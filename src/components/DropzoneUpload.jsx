@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { UploadCloud, Image as ImageIcon, X, Check } from 'lucide-react';
+import { uploadAssetToR2 } from '../services/api';
 
 export default function DropzoneUpload({ label, currentImage, onImageSelected, helperText, placeholder = "Upload .png logo" }) {
   const [isDragging, setIsDragging] = useState(false);
@@ -15,11 +16,16 @@ export default function DropzoneUpload({ label, currentImage, onImageSelected, h
     }
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const dataUrl = e.target.result;
       setPreview(dataUrl);
+
+      // Attempt immediate upload to Cloudflare R2 edge storage
+      const r2Url = await uploadAssetToR2(file);
+      const finalUrl = r2Url || dataUrl;
+
       if (onImageSelected) {
-        onImageSelected(dataUrl, file.name);
+        onImageSelected(finalUrl, file.name);
       }
     };
     reader.readAsDataURL(file);

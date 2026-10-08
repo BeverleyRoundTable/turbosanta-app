@@ -39,6 +39,25 @@ export async function lookupStreet(streetName, tableSlug = "beverley") {
   }
 }
 
+export async function uploadAssetToR2(file, tableSlug = "beverley") {
+  try {
+    const res = await fetch(`${API_BASE}/api/upload?table=${encodeURIComponent(tableSlug)}`, {
+      method: "POST",
+      body: file,
+      headers: {
+        "Content-Type": file.type || "image/png"
+      }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.url) return data.url;
+    }
+  } catch (err) {
+    console.warn("R2 upload error, falling back to local data URL:", err);
+  }
+  return null;
+}
+
 /**
  * Sends a message to the AI Sleigh Elf.
  * Connects to the local ADK Agent if reachable, otherwise uses a smart festive response engine.
