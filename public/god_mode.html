@@ -1,0 +1,2052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TurboSanta — God Mode</title>
+  
+  <!-- Preload Custom Font -->
+  <link rel="preload" href="https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.woff2" as="font" type="font/woff2" crossorigin>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.7.0/gpx.min.js"></script>
+  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+
+  <style>
+    /* ═══════════════════════════════════════ */
+    /* TURBOSANTA DESIGN SYSTEM */
+    /* ═══════════════════════════════════════ */
+    @font-face {
+      font-family: 'Eurostile';
+      src: url('https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Open Sans', sans-serif;
+      background: var(--dark);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    :root {
+      --gold: #FBAF33;
+      --gold-dim: rgba(251,175,51,0.12);
+      --gold-glow: rgba(251,175,51,0.25);
+      --dark: #0d0d0b;
+      --surface: #161614;
+      --surface-2: #1e1e1b;
+      --surface-3: #252522;
+      --border: rgba(255,255,255,0.08);
+      --border-gold: rgba(251,175,51,0.2);
+      --red: #D31C1C;
+      --green: #2ecc71;
+      --text: #eaeae5;
+      --text-dim: rgba(255,255,255,0.55);
+      --text-muted: rgba(255,255,255,0.3);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ── LOADER ── */
+    .loader {
+      position: fixed; inset: 0; background: var(--dark);
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 16px; z-index: 9999;
+      transition: opacity 0.4s;
+    }
+    .loader.done { opacity: 0; pointer-events: none; }
+    .loader-spin {
+      width: 40px; height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── ERROR DISPLAY ── */
+    .error-msg {
+      text-align: center; padding: 80px 24px; color: var(--red);
+      font-size: 1.1em; max-width: 600px; margin: 0 auto;
+    }
+    .error-msg code {
+      background: var(--surface-2); padding: 4px 10px; border-radius: 6px; 
+      font-size: 0.85em; font-family: 'Open Sans', monospace;
+    }
+
+    .dashboard { max-width: 1440px; margin: 0 auto; padding: 32px 24px; }
+
+    /* ── TOP BAR ── */
+    .top-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 32px; flex-wrap: wrap; gap: 16px;
+    }
+    .top-bar-left { display: flex; align-items: center; gap: 16px; }
+    .top-bar .logo {
+      width: 54px; height: 54px; border-radius: 12px;
+      background: var(--surface); border: 1px solid var(--border); padding: 4px;
+      object-fit: contain;
+    }
+    .top-bar .title { font-family: 'Eurostile', sans-serif; font-size: 32px; letter-spacing: 1px; text-transform: uppercase; }
+    .top-bar .title span { color: var(--gold); }
+
+    .top-bar-right { display: flex; align-items: center; gap: 20px; }
+
+    .live-badge {
+      display: flex; align-items: center; gap: 8px;
+      font-family: 'Open Sans', monospace; font-size: 11px; font-weight: 700; 
+      text-transform: uppercase; letter-spacing: 1.5px; 
+      color: var(--green); background: rgba(46,204,113,0.1);
+      padding: 8px 16px; border-radius: 100px; border: 1px solid rgba(46,204,113,0.2);
+    }
+    .live-dot {
+      width: 8px; height: 8px; background: var(--green);
+      border-radius: 50%; animation: pulseBadge 1.5s ease-in-out infinite;
+    }
+    .live-badge.stale { color: var(--red); background: rgba(211,28,28,0.1); border-color: rgba(211,28,28,0.2); }
+    .live-badge.stale .live-dot { background: var(--red); animation: none; }
+    @keyframes pulseBadge {
+      0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0px var(--green); }
+      50% { opacity: 0.5; transform: scale(0.8); box-shadow: 0 0 8px var(--green); }
+    }
+
+    .clock {
+      font-family: 'Open Sans', monospace; font-size: 18px; font-weight: 600; color: var(--text-dim);
+    }
+
+    /* ── STAT CARDS ── */
+    .stats-row {
+      display: grid; 
+      grid-template-columns: repeat(5, 1fr); 
+      gap: 16px; margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 24px 20px; text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .stat-card .label {
+      font-family: 'Open Sans', monospace; font-size: 10px; font-weight: 700; 
+      text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 8px;
+    }
+    .stat-card .value {
+      font-family: 'Eurostile', sans-serif; font-size: 36px; font-weight: 400; line-height: 1;
+      letter-spacing: 1px;
+    }
+    .stat-card .sub { font-size: 12px; color: var(--text-dim); margin-top: 8px; font-weight: 500; }
+    .stat-card .value.gold { color: var(--gold); }
+    .stat-card .value.green { color: var(--green); }
+    .stat-card .value.red { color: var(--red); }
+
+    /* ── MAIN GRID ── */
+    .main-grid { display: grid; grid-template-columns: 1fr 380px; gap: 20px; }
+
+    .map-panel {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden; position: relative; min-height: 500px;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+    }
+    #godMap { width: 100%; height: 100%; min-height: 500px; z-index: 1; }
+    
+    .map-overlay-label {
+      position: absolute; top: 16px; left: 16px;
+      background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
+      font-family: 'Open Sans', monospace; font-size: 10px; font-weight: 700; 
+      text-transform: uppercase; letter-spacing: 1.5px; padding: 8px 14px; 
+      border-radius: 8px; z-index: 1000; pointer-events: none;
+    }
+
+    .sidebar { display: flex; flex-direction: column; gap: 16px; }
+    .panel {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 24px;
+    }
+    .panel-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+    .panel-header .icon { font-size: 20px; }
+    .panel-header h3 {
+  font-family: 'Eurostile', sans-serif; font-size: 20px;
+  letter-spacing: 1.5px; color: #fff; line-height: 1; margin: 0;
+  text-transform: uppercase;
+}
+
+    /* ── MEMORY BOOK ── */
+    .intake-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.intake-img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  cursor: zoom-in;
+  border-bottom: 1px solid var(--border);
+}
+.intake-actions {
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+}
+    
+    /* ── PA SYSTEM & INPUTS ── */
+    .pa-input {
+      width: 100%; background: var(--surface-2); border: 1px solid var(--border);
+      color: #fff; padding: 14px; border-radius: 8px; font-family: 'Open Sans', sans-serif; 
+      font-size: 14px; margin-bottom: 12px; outline: none; transition: border-color 0.2s;
+    }
+    .pa-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-glow); }
+    
+    select.pa-input { font-family: 'Open Sans', sans-serif; font-weight: 600; cursor: pointer; }
+    select.pa-input option { background: var(--surface-2); color: #fff; }
+
+    .pa-btns { display: flex; gap: 10px; }
+    .pa-btns button {
+      flex: 1; padding: 12px; font-family: 'Open Sans', sans-serif; font-weight: 700; 
+      border-radius: 8px; cursor: pointer; border: none; transition: 0.2s; font-size: 13px;
+    }
+    .pa-btns button:active { transform: scale(0.96); }
+    
+    .btn-broadcast { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+    .btn-broadcast.live-active { 
+      background: var(--gold) !important; color: #000 !important;
+      font-weight: 800 !important; text-transform: uppercase;
+      animation: pulseBroadcast 1.5s infinite; 
+    }
+    @keyframes pulseBroadcast {
+      0% { box-shadow: 0 0 0 0 rgba(251, 175, 51, 0.4); }
+      50% { box-shadow: 0 0 0 12px rgba(251, 175, 51, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(251, 175, 51, 0); }
+    }
+
+    .btn-clear { background: var(--surface-3); color: var(--text-dim); border: 1px solid var(--border); }
+
+    /* ── CREW ALERT PANEL ── */
+    .crew-alert-panel { border-color: rgba(211,28,28,0.2) !important; }
+    .crew-alert-badge {
+      font-family: 'Open Sans', monospace; font-size: 9px; font-weight: 700; 
+      text-transform: uppercase; letter-spacing: 1px; color: var(--red);
+      background: rgba(211,28,28,0.08); border: 1px solid rgba(211,28,28,0.2);
+      padding: 4px 10px; border-radius: 4px; margin-left: auto;
+    }
+    .btn-crew-send { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+    .btn-crew-send.crew-active {
+      background: var(--red) !important; color: #fff !important;
+      animation: pulseCrew 1.5s infinite;
+    }
+    @keyframes pulseCrew {
+      0% { box-shadow: 0 0 0 0 rgba(211,28,28,0.4); }
+      50% { box-shadow: 0 0 0 10px rgba(211,28,28,0); }
+      100% { box-shadow: 0 0 0 0 rgba(211,28,28,0); }
+    }
+
+    /* ── USER MESSAGES ── */
+    .msg-item { background: var(--surface-2); padding: 16px; border-radius: 10px; margin-bottom: 12px; border-left: 4px solid #c88bff; }
+    .msg-text { font-size: 14px; margin-bottom: 14px; color: #fff; font-style: italic; line-height: 1.5; }
+    .msg-actions { display: flex; gap: 8px; }
+    .btn-approve { background: #c88bff; color: #000; border: none; padding: 10px; border-radius: 6px; cursor: pointer; flex: 2; font-weight: 700; font-size: 13px; }
+    .btn-reject { background: var(--surface-3); color: var(--red); border: 1px solid var(--border); padding: 10px; border-radius: 6px; cursor: pointer; flex: 1; font-weight: 700; font-size: 13px; }
+
+    .active-user-msg { 
+      background: rgba(200, 139, 255, 0.1); border: 1px solid rgba(200, 139, 255, 0.3); 
+      color: #e6c2ff; padding: 16px; border-radius: 10px; margin-bottom: 16px; 
+      font-size: 14px; font-weight: 700; display: none; text-align: center;
+    }
+
+    /* ── GPS INFO ── */
+    .gps-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .gps-item { background: var(--surface-2); border-radius: 8px; border: 1px solid var(--border); padding: 14px; }
+    .gps-label {
+      font-family: 'Open Sans', monospace; font-size: 9px; font-weight: 700; 
+      text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 4px;
+    }
+    .gps-value { font-family: 'Open Sans', monospace; font-size: 15px; font-weight: 700; color: #fff; }
+
+    /* ── ROUTE INFO ── */
+    .route-info { display: flex; flex-direction: column; gap: 10px; }
+    .route-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 16px; background: var(--surface-2); border-radius: 8px; margin-bottom: 4px;
+    }
+    .route-label { font-family: 'Open Sans', monospace; font-size: 11px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; }
+    .route-value { font-size: 14px; font-weight: 700; color: #fff; }
+    .route-value.gold { color: var(--gold); }
+    .no-route { text-align: center; padding: 20px; color: var(--text-muted); font-size: 14px; }
+
+    /* ── HEATMAP CONTROLS UI ── */
+    .heatmap-controls { display: none; margin-top: 15px; background: var(--surface-3); padding: 16px; border-radius: 10px; border: 1px solid var(--border); }
+    .heatmap-controls.active { display: block; animation: slideDown 0.3s ease-out; }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    .heatmap-controls select { 
+      width: 100%; margin-bottom: 10px; padding: 12px; background: var(--surface-2); color: var(--gold); 
+      font-weight: 700; border: 1px solid var(--border); border-radius: 8px; outline: none; cursor: pointer; font-family: 'Open Sans', sans-serif;
+    }
+    .btn-heat { 
+      background: var(--surface-2); color: var(--red); border: 1px solid var(--border); 
+      margin-top: 16px; width: 100%; padding: 14px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.2s; font-family: 'Open Sans', sans-serif;
+    }
+    .btn-heat:active { transform: scale(0.96); }
+    .btn-heat.active { background: var(--red); color: #fff; border-color: var(--red); box-shadow: 0 0 20px rgba(211, 28, 28, 0.3); }
+
+    /* ── DONATIONS ── */
+    .donation-mini { display: flex; flex-direction: column; gap: 12px; }
+    .donation-labels { display: flex; justify-content: space-between; font-family: 'Open Sans', monospace; font-size: 12px; font-weight: 700; }
+    .donation-bar-outer { height: 12px; background: var(--surface-2); border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+    .donation-bar-inner {
+      height: 100%; background: linear-gradient(90deg, var(--red), var(--gold));
+      border-radius: 10px; transition: width 1s ease; min-width: 8px;
+    }
+
+    /* ── STREETS ── */
+    .streets-scroll {
+      max-height: 160px; overflow-y: auto; font-family: 'Open Sans', monospace; font-size: 11px;
+      color: var(--text-dim); line-height: 2; padding: 12px; background: var(--surface-3); border-radius: 8px; margin-top: 6px;
+    }
+    .streets-scroll::-webkit-scrollbar { width: 6px; }
+    .streets-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* ── FOOTER ── */
+    .last-updated {
+      text-align: center; font-family: 'Open Sans', monospace; font-size: 11px; 
+      color: var(--text-muted); margin-top: 40px; padding-bottom: 24px; text-transform: uppercase; letter-spacing: 1px;
+    }
+
+    /* ⭐ MAP STYLING (KEPT EXACTLY AS REQUESTED) ⭐ */
+    .leaflet-tile-pane { filter: brightness(0.85) saturate(0.9); }
+    .leaflet-top, .leaflet-bottom { z-index: 500 !important; }
+
+    @media (max-width: 900px) {
+      .stats-row { grid-template-columns: repeat(3, 1fr); } 
+      .main-grid { grid-template-columns: 1fr; }
+      .map-panel { min-height: 400px; }
+    }
+    @media (max-width: 500px) {
+      .stats-row { grid-template-columns: 1fr 1fr; } 
+      .dashboard { padding: 16px; }
+      .top-bar .title { font-size: 28px; }
+    }
+
+    /* ⭐ GPS HEALTH — Timeline & Badge Styles */
+    .gps-health-tl {
+      display: flex; align-items: flex-end; gap: 2px;
+      height: 40px; margin-top: 16px; background: var(--surface-3); padding: 4px; border-radius: 6px;
+    }
+    .tl-bar {
+      flex: 1; min-height: 2px; border-radius: 2px;
+      transition: height 0.3s, background 0.3s;
+    }
+    .gps-health-tl-labels {
+      display: flex; justify-content: space-between;
+      font-family: 'Open Sans', monospace; font-size: 9px; font-weight: 700; letter-spacing: 1px;
+      color: var(--text-muted); margin-top: 8px; text-transform: uppercase;
+    }
+    .gps-health-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 100px;
+      font-family: 'Open Sans', monospace; font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; transition: all 0.3s;
+    }
+    .gps-health-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      transition: all 0.3s; flex-shrink: 0;
+    }
+    @keyframes gphDotPulse {
+      0% { box-shadow: 0 0 0 0 rgba(0,230,118,0.4); }
+      70% { box-shadow: 0 0 0 8px rgba(0,230,118,0); }
+      100% { box-shadow: 0 0 0 0 rgba(0,230,118,0); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="loader" id="loader"><div class="loader-spin"></div></div>
+<div id="app"></div>
+
+<script>
+// ⚡ SET YOUR WORKER URL HERE
+const WORKER_URL = "https://your-worker.workers.dev/"; 
+
+const API = new URLSearchParams(location.search).get('api') || '';
+
+const STATE = {
+  settings: {}, routes: [], donations: {}, tracker: {}, streets: [],
+  gps: null, activeViewers: 0, totalWaves: 0, 
+  lastApiUpdate: null, lastGpsUpdate: null, lastViewerUpdate: null,
+  map: null, marker: null, routeGlowLayer: null, routeMainLayer: null, gpxLoaded: false
+};
+
+function haversineMeters(a, b) {
+  const R = 6371000;
+  const dLat = (b.lat - a.lat) * Math.PI / 180;
+  const dLng = (b.lng - a.lng) * Math.PI / 180;
+  const s = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+
+let wakeLock = null;
+async function requestWakeLock() {
+  try {
+    if ("wakeLock" in navigator) {
+      wakeLock = await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener("release", () => setTimeout(requestWakeLock, 2000));
+    }
+  } catch (err) {
+    console.error("Wake Lock error:", err);
+  }
+}  
+  
+function getApiUrl(params = '') {
+  const secret = sessionStorage.getItem('sleighSecret') || '';
+  const base = API.includes('?') ? API : API + '?';
+  const separator = base.endsWith('?') ? '' : '&';
+  return `${base}${separator}secret=${encodeURIComponent(secret)}${params ? '&' + params : ''}`;
+}
+
+if (!API) {
+  document.getElementById('loader').classList.add('done');
+  document.getElementById('app').innerHTML =
+    '<div class="error-msg">Missing <strong>?api=</strong> parameter.<br><br>Usage: <code>god_mode?api=YOUR_API_URL</code></div>';
+} else {
+  init();
+}
+
+  async function fetchFastAnnouncements() {
+  if (!API) return;
+  
+  // Construct the target URL and wrap it in the Worker
+  const targetScript = `${API}${API.includes('?') ? '&' : '?'}function=getAnnouncement`;
+  const fastTrackUrl = `${WORKER_URL}?ttl=2&target=${encodeURIComponent(targetScript)}`;
+
+  try {
+    const res = await fetch(fastTrackUrl);
+    const data = await res.json();
+    
+    if (data.settings) {
+      STATE.settings.live_announcement = data.settings.live_announcement || '';
+      STATE.settings.user_announcement = data.settings.user_announcement || '';
+      STATE.settings.user_announcement_ts = data.settings.user_announcement_ts || 0;
+    }
+
+    // Force UI refresh instantly
+    updatePaButtonState();
+    updateUserMsgState();
+  } catch (e) {
+    // Fail silently so it doesn't clutter the console on a fast loop
+  }
+}
+  
+async function init() {
+  let secret = sessionStorage.getItem('sleighSecret');
+  
+  if (!secret) {
+    secret = prompt("🎅 God Mode Authorization Required\n\nEnter the Master Password:");
+    if (!secret) {
+      document.getElementById('app').innerHTML = '<div class="error-msg">Authorization required. Refresh the page to try again.</div>';
+      document.getElementById('loader').classList.add('done');
+      return;
+    }
+    
+    try {
+      const sep = API.includes('?') ? '&' : '?';
+      const check = await fetch(`${API}${sep}function=verifyGodMode&secret=${encodeURIComponent(secret)}`);
+      const result = await check.json();
+      
+      if (!result.valid) {
+        document.getElementById('app').innerHTML = '<div class="error-msg">❌ Access Denied. Incorrect Password.</div>';
+        document.getElementById('loader').classList.add('done');
+        return;
+      }
+      
+      sessionStorage.setItem('sleighSecret', secret);
+    } catch(e) {
+      document.getElementById('app').innerHTML = '<div class="error-msg">❌ Failed to connect to API to verify password.</div>';
+      document.getElementById('loader').classList.add('done');
+      return;
+    }
+  }
+
+  await fetchApiData();
+  buildDashboard();
+  initMap();
+  document.getElementById('loader').classList.add('done');
+  
+  fetchGps();
+  // 🛡️ Initialize GPS Health without the direct Firebase URL
+  GpsHealth.init();
+  
+  fetchViewers();
+  fetchWeather();
+  
+  // ── EXISTING HEAVY LOOPS ──
+  setInterval(fetchApiData, 30000);
+  setInterval(fetchGps, 5000);
+  setInterval(fetchViewers, 10000);
+  setInterval(fetchWeather, 900000);
+  setInterval(updateClock, 1000);
+  setInterval(updateGpsAge, 1000);
+  setInterval(updateUserMsgState, 1000);
+
+  // ⚡ NEW: FAST-TRACK LOOPS ──
+  setInterval(fetchFastAnnouncements, 3000);
+  fetchFastAnnouncements(); // Kick off immediately
+
+  // Keep screen awake
+  requestWakeLock();
+  setInterval(() => { 
+    if (document.visibilityState === "visible") requestWakeLock(); 
+  }, 60000);
+}
+  
+async function fetchApiData() {
+  try {
+    const res = await fetch(getApiUrl());
+    const data = await res.json();
+    STATE.settings = data.settings || {};
+    STATE.routes = data.routes || [];
+    STATE.donations = data.donations || {};
+    STATE.donationsLedger = data.donationsLedger || [];
+    STATE.tracker = data.tracker || {};
+    STATE.streets = data.streets || [];
+    STATE.lastApiUpdate = new Date();
+    
+    const paInput = document.getElementById("paInput");
+    if (paInput && document.activeElement !== paInput) {
+      paInput.value = STATE.settings.live_announcement || '';
+    }
+
+    const crewInput = document.getElementById("crewAlertInput");
+    if (crewInput && document.activeElement !== crewInput) {
+      crewInput.value = STATE.settings.crew_alert || '';
+    }
+
+    updateDashboard();
+    updateCrewAlertButtonState();
+    updateUserMsgState(); 
+  } catch(e) { console.error('API:', e); }
+}
+
+async function fetchGps() {
+  try {
+    const res = await fetch(getApiUrl('function=proxyFirebase'));
+    const data = await res.json();
+    if (data && data.lat) { 
+      STATE.gps = data; 
+      STATE.lastGpsUpdate = new Date(); 
+      
+      if (!STATE.weather) {
+        fetchWeather();
+      }
+    }
+    updateGps();
+  } catch(e) { console.error('GPS:', e); }
+}
+
+async function fetchViewers() {
+  try {
+    const res = await fetch(getApiUrl('function=getActiveViewers'));
+    const data = await res.json();
+    STATE.activeViewers = data.active || 0;
+    STATE.totalWaves = data.waves || 0; 
+    STATE.lastViewerUpdate = new Date();
+    updateViewers();
+  } catch(e) { console.error('Viewers:', e); }
+}
+
+function getWeatherEmoji(code) {
+  if (code === 0) return '☀️ Clear';
+  if (code <= 3) return '☁️ Cloudy';
+  if (code <= 48) return '🌫️ Fog';
+  if (code <= 67) return '🌧️ Rain';
+  if (code <= 77) return '❄️ Snow';
+  if (code <= 82) return '🌧️ Showers';
+  if (code <= 86) return '❄️ Snow Showers';
+  if (code >= 95) return '⛈️ Thunderstorm';
+  return '🌡️ Unknown';
+}
+
+async function fetchWeather() {
+  const lat = STATE.gps?.lat; 
+  const lng = STATE.gps?.lng;
+
+  if (!lat || !lng) {
+    const container = document.getElementById('weatherDetail');
+    if (container) {
+      container.innerHTML = '<div class="no-route">Waiting for location data...</div>';
+    }
+    return;
+  }
+
+  try {
+    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&windspeed_unit=mph`);
+    const data = await res.json();
+    if (data.current_weather) {
+      STATE.weather = data.current_weather;
+      updateWeather();
+    }
+  } catch(e) { console.error('Weather fetching failed:', e); }
+}
+
+function updateWeather() {
+  const container = document.getElementById('weatherDetail');
+  if (!container || !STATE.weather) return;
+  
+  const w = STATE.weather;
+  const condition = getWeatherEmoji(w.weathercode);
+  const conditionColor = w.weathercode > 50 ? 'color: var(--red);' : '';
+  
+  container.innerHTML = `
+    <div class="gps-grid">
+      <div class="gps-item" style="grid-column: span 2;">
+        <div class="gps-label">Condition</div>
+        <div class="gps-value" style="${conditionColor}">${condition}</div>
+      </div>
+      <div class="gps-item">
+        <div class="gps-label">Temp</div>
+        <div class="gps-value">${w.temperature}°C</div>
+      </div>
+      <div class="gps-item">
+        <div class="gps-label">Wind</div>
+        <div class="gps-value">${w.windspeed} mph</div>
+      </div>
+    </div>`;
+}
+  
+function getTodayRoute() {
+  const today = new Date().toISOString().slice(0, 10);
+  return STATE.routes.find(r => r.date === today) || null;
+}
+
+function getNextRoute() {
+  const today = new Date().toISOString().slice(0, 10);
+  return STATE.routes.filter(r => r.date && r.date > today)
+    .sort((a, b) => a.date.localeCompare(b.date))[0] || null;
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  const dt = new Date(d + 'T00:00:00');
+  return isNaN(dt) ? d : dt.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+function fmtTime(d) {
+  return d ? d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '--:--:--';
+}
+
+function gpsAgeText() {
+  if (!STATE.gps?.ts) return 'No signal';
+  const s = Math.floor((Date.now() - new Date(STATE.gps.ts).getTime()) / 1000);
+  if (s < 0) return 'Just now';
+  if (s < 60) return s + 's ago';
+  if (s < 3600) return Math.floor(s / 60) + 'm ago';
+  return Math.floor(s / 3600) + 'h ago';
+}
+
+function isGpsFresh() {
+  return STATE.gps?.ts && (Date.now() - new Date(STATE.gps.ts).getTime()) < 120000;
+}
+
+async function sendAnnouncement() {
+  const msg = document.getElementById('paInput').value.trim();
+  const btn = document.getElementById('broadcastBtn');
+  const secret = sessionStorage.getItem('sleighSecret') || ''; 
+  
+  btn.innerText = "Sending...";
+  btn.style.background = "var(--surface-3)";
+  btn.style.color = "var(--text-dim)";
+  
+  try {
+    const response = await fetch(API, { 
+      method: "POST", 
+      body: JSON.stringify({ 
+        action: "updateAnnouncement", 
+        message: msg,
+        secret: secret 
+      }) 
+    });
+    
+    const result = await response.json();
+    
+    if (result.ok) {
+      STATE.settings.live_announcement = msg;
+    } else {
+      alert("Action Blocked: " + result.error); 
+    }
+    
+    updatePaButtonState();
+    
+  } catch(e) { 
+    alert('Failed to update announcement. Check connection.'); 
+    updatePaButtonState(); 
+  }
+}
+
+function updatePaButtonState() {
+  const btn = document.getElementById('broadcastBtn');
+  const paInput = document.getElementById("paInput");
+  const msg = STATE.settings.live_announcement || '';
+  
+  if (paInput && document.activeElement !== paInput) {
+    paInput.value = msg;
+  }
+
+  if (msg.trim() !== '') {
+    btn.innerText = "ACTIVE ON TRACKER";
+    btn.className = "btn-broadcast live-active";
+  } else {
+    btn.innerText = "Broadcast Live";
+    btn.className = "btn-broadcast";
+  }
+}
+
+async function sendCrewAlert() {
+  const msg = document.getElementById('crewAlertInput').value.trim();
+  const btn = document.getElementById('crewAlertBtn');
+  const secret = sessionStorage.getItem('sleighSecret') || '';
+  btn.innerText = "Sending...";
+  btn.style.background = "var(--surface-3)";
+  btn.style.color = "var(--text-dim)";
+  try {
+    const response = await fetch(API, {
+      method: "POST",
+      body: JSON.stringify({ action: "updateCrewAlert", message: msg, secret })
+    });
+    const result = await response.json();
+    if (result.ok) {
+      STATE.settings.crew_alert = msg;
+    } else {
+      alert("Action Blocked: " + result.error);
+    }
+    updateCrewAlertButtonState();
+  } catch(e) {
+    alert('Failed to send crew alert. Check connection.');
+    updateCrewAlertButtonState();
+  }
+}
+
+  async function clearAnnouncement() {
+  const btn = document.getElementById('broadcastBtn');
+  const secret = sessionStorage.getItem('sleighSecret') || ''; 
+  
+  btn.innerText = "Clearing...";
+  btn.style.background = "var(--surface-3)";
+  btn.style.color = "var(--text-dim)";
+  
+  try {
+    const response = await fetch(API, { 
+      method: "POST", 
+      body: JSON.stringify({ 
+        action: "updateAnnouncement", 
+        message: " ", // 🎅 MAGIC TRICK: Single space forces Google to overwrite the cell
+        secret: secret 
+      }) 
+    });
+    
+    const result = await response.json();
+    
+    if (result.ok) {
+      STATE.settings.live_announcement = '';
+      document.getElementById('paInput').value = '';
+    } else {
+      alert("Action Blocked: " + result.error); 
+    }
+    
+    updatePaButtonState();
+    
+  } catch(e) { 
+    alert('Failed to clear announcement. Check connection.'); 
+    updatePaButtonState(); 
+  }
+}
+
+async function clearCrewAlert() {
+  const btn = document.getElementById('crewAlertBtn');
+  const secret = sessionStorage.getItem('sleighSecret') || ''; 
+  
+  btn.innerText = "Clearing...";
+  btn.style.background = "var(--surface-3)";
+  btn.style.color = "var(--text-dim)";
+  
+  try {
+    const response = await fetch(API, { 
+      method: "POST", 
+      body: JSON.stringify({ 
+        action: "updateCrewAlert", 
+        message: " ", // 🎅 MAGIC TRICK: Single space forces Google to overwrite the cell
+        secret: secret 
+      }) 
+    });
+    
+    const result = await response.json();
+    
+    if (result.ok) {
+      STATE.settings.crew_alert = '';
+      document.getElementById('crewAlertInput').value = '';
+    } else {
+      alert("Action Blocked: " + result.error);
+    }
+    
+    updateCrewAlertButtonState();
+    
+  } catch(e) { 
+    alert('Failed to clear crew alert. Check connection.'); 
+    updateCrewAlertButtonState(); 
+  }
+}
+  
+function updateCrewAlertButtonState() {
+  const btn = document.getElementById('crewAlertBtn');
+  const input = document.getElementById('crewAlertInput');
+  const msg = STATE.settings.crew_alert || '';
+  if (!btn) return;
+  if (input && document.activeElement !== input) input.value = msg;
+  if (msg.trim() !== '') {
+    btn.innerText = "ACTIVE ON CREW HUB";
+    btn.className = "btn-crew-send crew-active";
+  } else {
+    btn.innerText = "Send to Crew";
+    btn.className = "btn-crew-send";
+  }
+}
+
+function buildDashboard() {
+  const s = STATE.settings;
+  const logo = s.logo_overlay_url || '';
+  const currency = STATE.donations.currency || '£';
+  const todayRoute = getTodayRoute();
+
+  const presetList = Array.isArray(s.presets) ? s.presets : [];
+  let presetOptionsHTML = '<select class="pa-input" id="paSelect" onchange="if(this.value){ document.getElementById(\'paInput\').value = this.value; this.value=\'\'; }">';
+  
+  if (presetList.length > 0) {
+    presetOptionsHTML += '<option value="">-- Quick select a preset message --</option>';
+    presetList.forEach(p => {
+      if (p && String(p).trim() !== '') {
+        const cleanStr = String(p).trim();
+        const safeVal = cleanStr.replace(/"/g, '&quot;');
+        presetOptionsHTML += `<option value="${safeVal}" title="${safeVal}">${cleanStr}</option>`;
+      }
+    });
+  }
+  else {
+    presetOptionsHTML += '<option value="" disabled selected>No presets loaded from settings</option>';
+  }
+  presetOptionsHTML += '</select>';
+
+  let h = '<div class="dashboard">';
+
+  h += `<div class="top-bar">
+    <div class="top-bar-left">
+      ${logo ? `<img class="logo" src="${logo}">` : ''}
+      <div class="title">GOD <span>MODE</span></div>
+    </div>
+    <div class="top-bar-right">
+      <div class="live-badge" id="liveBadge"><div class="live-dot"></div><span id="liveBadgeText">CONNECTING</span></div>
+      <div class="clock" id="clock">${fmtTime(new Date())}</div>
+    </div>
+  </div>`;
+
+  h += `<div class="stats-row">
+    <div class="stat-card">
+      <div class="label">Active Route</div>
+      <div class="value gold" id="statRoute" style="font-size:36px;">${todayRoute?.routeName || '—'}</div>
+      
+      <div class="sub" id="statRouteDate" style="display: none;">${todayRoute ? 'Tonight' : 'No route today'}</div>
+      
+      <div class="sub" id="godProgressWrapper" style="margin-top: 14px; display: ${todayRoute ? 'block' : 'none'};">
+        <div class="donation-bar-outer" style="margin-bottom: 6px;">
+          <div id="godProgressBar" class="donation-bar-inner" style="width: 0%; background: var(--gold);"></div>
+        </div>
+        <div id="godProgressText" style="font-family:'Open Sans', monospace; font-weight: 700; font-size:10px; text-transform:uppercase; letter-spacing:1px; color: var(--gold);">0% Complete</div>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="label">Live Viewers</div>
+      <div class="value green" id="statViewers">—</div>
+      <div class="sub">Last 5 minutes</div>
+    </div>
+    
+    <div class="stat-card">
+    <div class="label">Messages Sent</div>
+    <div class="value gold" id="statWaves">—</div>
+    <div class="sub">Pending approval</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="label">GPS Health</div>
+      <div class="value" id="statGpsStatus">—</div>
+      <div class="sub" id="statGpsAge">Waiting...</div>
+      <div class="sub" id="statGpsRate" style="color: var(--text-muted); margin-top: 2px; font-family:'Open Sans', monospace; font-size:10px;"></div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="label">Raised So Far</div>
+      <div class="value gold" id="statRaised">${currency}${(STATE.donations.total || 0).toLocaleString()}</div>
+      <div class="sub" id="statTarget">of ${currency}${(STATE.donations.target || 0).toLocaleString()}</div>
+    </div>
+    
+  </div>`;
+
+  h += `<div class="main-grid">
+    <div class="map-panel">
+      <div class="map-overlay-label" id="mapLabel">Live Position</div>
+      <div id="godMap"></div>
+    </div>
+    <div class="sidebar">
+
+      <div class="panel">
+        <div class="panel-header"><span class="icon">📢</span><h3>Live PA System</h3></div>
+        
+        ${presetOptionsHTML}
+        
+        <input type="text" id="paInput" class="pa-input" placeholder="Type a custom alert or select above..." value="${s.live_announcement || ''}" />
+        <div class="pa-btns">
+          <button id="broadcastBtn" class="btn-broadcast" onclick="sendAnnouncement()">Broadcast Live</button>
+          <button class="btn-clear" onclick="clearAnnouncement()">Clear</button>
+        </div>
+      </div>
+
+      <div class="panel crew-alert-panel">
+        <div class="panel-header">
+          <span class="icon">🔔</span>
+          <h3 style="color:var(--red);">Crew Alert</h3>
+          <span class="crew-alert-badge">Crew Hub Only</span>
+        </div>
+        <input type="text" id="crewAlertInput" class="pa-input" placeholder="e.g. Route 2 — delay 10 mins, stand by..." value="${s.crew_alert || ''}" />
+        <div class="pa-btns">
+          <button id="crewAlertBtn" class="btn-crew-send" onclick="sendCrewAlert()">Send to Crew</button>
+          <button class="btn-clear" onclick="clearCrewAlert()">Clear</button>
+        </div>
+      </div>
+
+<div class="panel crew-alert-panel">
+  <div class="panel-header">
+    <span class="icon">🚨</span>
+    <h3 style="color:var(--red);">Incident Log</h3>
+    <span class="crew-alert-badge" id="incidentCount">0 logged</span>
+  </div>
+
+  <select class="pa-input" id="incidentRoute">
+    <option value="">— Select Route —</option>
+  </select>
+
+  <select class="pa-input" id="incidentType">
+    <option value="Breakdown">Breakdown</option>
+    <option value="Injury">Injury</option>
+    <option value="Near Miss">Near Miss</option>
+    <option value="Complaint">Complaint</option>
+    <option value="Property Damage">Property Damage</option>
+    <option value="Other">Other</option>
+  </select>
+
+  <select class="pa-input" id="incidentSeverity">
+    <option value="Low">Low</option>
+    <option value="Medium" selected>Medium</option>
+    <option value="High">High</option>
+  </select>
+
+  <input type="text" class="pa-input" id="incidentDesc" placeholder="What happened?" />
+  <input type="text" class="pa-input" id="incidentPersons" placeholder="Who was involved?" />
+  <input type="text" class="pa-input" id="incidentAction" placeholder="Action taken?" />
+  <input type="text" class="pa-input" id="incidentReporter" placeholder="Your name" />
+
+  <select class="pa-input" id="incidentFollowUp">
+    <option value="No">No follow-up needed</option>
+    <option value="Yes">Follow-up required</option>
+  </select>
+
+  <div class="pa-btns">
+    <button class="btn-broadcast" onclick="submitIncident()" id="incidentBtn">Log Incident</button>
+  </div>
+
+  <div id="incidentHistory" style="margin-top:16px;"></div>
+</div>
+
+      <div class="panel" id="userMessagesPanel" style="display: none;">
+        <div class="panel-header">
+          <span class="icon">💌</span>
+          <h3>User Messages</h3>
+        </div>
+        <div id="activeUserMsgBox" class="active-user-msg">
+          Live Now: <br><span id="activeUserMsgText"></span>
+        </div>
+        <div id="pendingMessagesQueue">
+           <div class="no-route">No pending messages</div>
+        </div>
+      </div>
+
+      <div class="panel" id="memoryIntakePanel">
+  <div class="panel-header">
+    <span class="icon">📸</span>
+    <h3>Photo Intake</h3>
+    <span class="crew-alert-badge" id="intakeCount">0 pending</span>
+  </div>
+  <div id="memoryIntakeQueue" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+     <div class="no-route" style="grid-column: span 2;">No pending photos</div>
+  </div>
+</div>
+
+      <div class="panel">
+        <div class="panel-header"><span class="icon">🗺️</span><h3>Route & Planning</h3></div>
+        <div id="routeDetail"></div>
+        <button id="toggleHeatmapBtn" class="btn-heat" onclick="toggleHeatmap()">🔥 Heatmap Mode</button>
+        <div id="heatmapControls" class="heatmap-controls">
+          <select id="heatType" onchange="drawHeatmap()">
+            <option value="subscribers">📍 Live Subscribers (Waited)</option>
+            <option value="suggestions">✉️ Route Requests (Asked)</option>
+          </select>
+          <select id="heatYear" onchange="drawHeatmap()">
+            <option value="All">All Time</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><span class="icon">☁️</span><h3>Live Weather</h3></div>
+        <div id="weatherDetail">
+          <div class="no-route">Fetching atmosphere data...</div>
+        </div>
+      </div>
+
+      <div class="panel" id="elfCamPanel">
+        <div class="panel-header"><span class="icon">📸</span><h3>Elf Cam</h3></div>
+        <div id="elfCamPreview">
+          <div class="no-route">Waiting for first image...</div>
+        </div>
+        <div style="font-family:'Open Sans', monospace; font-size:10px; color:var(--text-muted); margin-top:12px; text-align:center; text-transform:uppercase; letter-spacing:1px;" id="elfCamAge">No image received</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="icon">📡</span>
+          <h3>GPS Health</h3>
+          <div class="gps-health-badge" id="gphBadge" style="margin-left:auto;">
+            <span class="gps-health-dot" id="gphDot"></span>
+            <span id="gphBadgeText">NO DATA</span>
+          </div>
+        </div>
+        <div class="gps-grid">
+          <div class="gps-item"><div class="gps-label">Fix Age</div><div class="gps-value" id="gphAge" style="font-variant-numeric:tabular-nums;">—</div></div>
+          <div class="gps-item"><div class="gps-label">Fix/min</div><div class="gps-value" id="gphRate" style="font-variant-numeric:tabular-nums;">—</div></div>
+          <div class="gps-item"><div class="gps-label">Latitude</div><div class="gps-value" id="gpsLat">${STATE.gps?.lat || '—'}</div></div>
+          <div class="gps-item"><div class="gps-label">Longitude</div><div class="gps-value" id="gpsLng">${STATE.gps?.lng || '—'}</div></div>
+        </div>
+        <div class="gps-health-tl" id="gphTimeline"></div>
+        <div class="gps-health-tl-labels"><span>oldest</span><span>newest</span></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><span class="icon">❤️</span><h3>Donations</h3></div>
+        <div id="donationDetail"></div>
+      </div>
+
+    <div class="panel" id="giftAidPanel">
+        <div class="panel-header">
+          <span class="icon">🎁</span>
+          <h3>Gift Aid</h3>
+          <span class="crew-alert-badge" id="giftAidBadge" style="color:var(--green); background:rgba(46,204,113,0.08); border-color:rgba(46,204,113,0.2);">0 declarations</span>
+        </div>
+        <div class="gps-grid" style="margin-bottom:16px;">
+          <div class="gps-item">
+            <div class="gps-label">Donations</div>
+            <div class="gps-value gold" id="gaTotal">£0</div>
+          </div>
+          <div class="gps-item">
+            <div class="gps-label">Gift Aid (25%)</div>
+            <div class="gps-value" id="gaBoost" style="color:var(--green);">£0</div>
+          </div>
+        </div>
+        <div id="giftAidEntries" style="max-height:240px; overflow-y:auto;"></div>
+        <div class="pa-btns" style="margin-top:16px;">
+          <button class="btn-broadcast" onclick="bulkClaimGiftAid()" id="gaBulkBtn">Mark All Pending as Claimed</button>
+        </div>
+
+        <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border);">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+          <span style="font-size:16px;">📄</span>
+          <span style="font-family:'Eurostile', sans-serif; font-size:18px; letter-spacing:1px; color:#fff;">HMRC Export</span>
+        </div>
+        <select class="pa-input" id="gaExportFilter" style="margin-bottom:10px;">
+          <option value="Pending">Pending only (not yet claimed)</option>
+          <option value="All">All declarations</option>
+          <option value="Claimed">Claimed only</option>
+        </select>
+        <div class="pa-btns">
+          <button class="btn-broadcast" onclick="downloadHmrcExport()" id="gaExportBtn">Download HMRC CSV</button>
+        </div>
+        <div style="font-family:'Open Sans', monospace; font-size:10px; color:var(--text-muted); margin-top:10px; line-height:1.6; text-transform:uppercase; letter-spacing:0.5px;">
+          R68 schedule format. Paste into HMRC ODS template.
+        </div>
+      </div>
+      </div>
+      
+  </div>`;
+  
+  h += '<div class="last-updated" id="lastUpdated">Connecting...</div>';
+  h += '</div>';
+
+  if (document.getElementById('app').innerHTML === "") {
+    document.getElementById('app').innerHTML = h;
+  }
+  
+  updateDashboard();
+  updatePaButtonState(); 
+  updateCrewAlertButtonState();
+}
+
+function initMap() {
+  const s = STATE.settings;
+  
+  const startLat = STATE.gps?.lat || 52.47080954243374;
+  const startLng = STATE.gps?.lng || -1.9206740193920633;
+  const startZoom = 15;
+
+  // Added preferCanvas: true right here 👇
+  STATE.map = L.map('godMap', { zoomControl: true, preferCanvas: true }).setView([startLat, startLng], startZoom);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap'
+  }).addTo(STATE.map);
+
+  const iconUrl = s.sleigh_icon_live || 'https://i.ibb.co/Qj3vDbSR/Santa-Marker-11.png';
+  STATE.marker = L.marker([startLat, startLng], {
+    icon: L.icon({ iconUrl, iconSize: [64, 64], iconAnchor: [32, 60] })
+  }).addTo(STATE.map);
+
+  const todayRoute = getTodayRoute();
+  const nextRoute = getNextRoute();
+  const route = todayRoute || nextRoute;
+
+  if (route && route.gpxUrl) {
+    loadGpxRoute(route, s);
+  }
+}
+
+function loadGpxRoute(route, settings) {
+  const startIconUrl = settings.sleigh_icon_start || 'https://i.ibb.co/PzDYmwzZ/Santa-Marker-4.png';
+  const endIconUrl = settings.sleigh_icon_end || 'https://i.ibb.co/39WF0kBd/Santa-Marker-5.png';
+
+  // ⭐ NEW: Fetch raw points for the progress bar calculation
+  fetch(route.gpxUrl).then(r => r.text()).then(text => {
+    const xml = new DOMParser().parseFromString(text, "text/xml");
+    const pts = [...xml.getElementsByTagName("trkpt")];
+    STATE.gpxRoute = pts.map(p => ({
+      lat: parseFloat(p.getAttribute("lat")),
+      lng: parseFloat(p.getAttribute("lon"))
+    }));
+  }).catch(e => console.error("Error parsing raw GPX for progress:", e));
+  
+  STATE.routeGlowLayer = new L.GPX(route.gpxUrl, {
+    async: true,
+    polyline_options: { color: '#ffd700', weight: 7, opacity: 0.45, lineCap: 'round', lineJoin: 'round' },
+    marker_options: { startIconUrl: null, endIconUrl: null, shadowUrl: null }
+  }).addTo(STATE.map);
+
+  STATE.routeMainLayer = new L.GPX(route.gpxUrl, {
+    async: true,
+    polyline_options: { color: '#d31c1c', weight: 4, opacity: 0.95, lineCap: 'round', lineJoin: 'round' },
+    marker_options: {
+      startIcon: L.icon({ iconUrl: startIconUrl, iconSize: [48, 48], iconAnchor: [24, 48], shadowUrl: null }),
+      endIcon: L.icon({ iconUrl: endIconUrl, iconSize: [48, 48], iconAnchor: [24, 48], shadowUrl: null }),
+      shadowUrl: null
+    }
+  }).addTo(STATE.map);
+
+  STATE.routeMainLayer.on('loaded', (e) => {
+    STATE.gpxLoaded = true;
+    if (!STATE.gps && !heatmapMode) {
+      STATE.map.fitBounds(e.target.getBounds(), { padding: [30, 30] });
+    }
+  });
+}
+
+function updateDashboard() { 
+  updateRouteDetail(); 
+  updateDonationDetail(); 
+  updateRaisedStat(); 
+  updateElfCam();
+  populateIncidentRoutes();
+  
+  // Hide or Show the User Messages Panel based on the Setting toggle
+  const panel = document.getElementById('userMessagesPanel');
+  if (panel) {
+    const isEnabled = String(STATE.settings?.enable_user_messages).toUpperCase() === 'TRUE';
+    panel.style.display = isEnabled ? 'block' : 'none';
+  }
+  
+const gaPanel = document.getElementById('giftAidPanel');
+  if (gaPanel) {
+    const gaEnabled = String(STATE.settings?.enable_gift_aid || '').toUpperCase() === 'TRUE';
+    gaPanel.style.display = gaEnabled ? 'block' : 'none';
+  }
+}
+// ⭐ NEW: Checks if a user message is currently active and updates the UI
+function updateUserMsgState() {
+  const activeMsgBox = document.getElementById('activeUserMsgBox');
+  const activeMsgText = document.getElementById('activeUserMsgText');
+  if (!activeMsgBox || !activeMsgText) return;
+
+  const uMsg = STATE.settings?.user_announcement;
+  const uTs = Number(STATE.settings?.user_announcement_ts) || 0;
+  
+  // Is it active? (Less than 20 seconds old)
+  const isActive = uMsg && (Date.now() - uTs < 20000);
+
+  if (isActive) {
+    activeMsgText.textContent = `"${uMsg}"`;
+    activeMsgBox.style.display = 'block';
+  } else {
+    activeMsgBox.style.display = 'none';
+  }
+}
+
+function updateClock() {
+  const el = document.getElementById('clock');
+  if (el) el.textContent = fmtTime(new Date());
+}
+
+function updateGpsAge() {
+  const fresh = isGpsFresh();
+  const age = gpsAgeText();
+
+  const el = (id, fn) => { const e = document.getElementById(id); if (e) fn(e); };
+
+  el('gpsAgeLive', e => e.textContent = age);
+  el('liveBadge', e => e.className = 'live-badge' + (fresh ? '' : ' stale'));
+  el('liveBadgeText', e => e.textContent = fresh ? 'LIVE' : 'NO SIGNAL');
+  
+  if (!heatmapMode) {
+    el('mapLabel', e => e.textContent = fresh ? 'Live Position' : 'Last Known Position');
+  }
+
+  el('lastUpdated', e => {
+    const p = [];
+    if (STATE.lastGpsUpdate) p.push('GPS ' + fmtTime(STATE.lastGpsUpdate));
+    if (STATE.lastViewerUpdate) p.push('Viewers ' + fmtTime(STATE.lastViewerUpdate));
+    if (STATE.lastApiUpdate) p.push('API ' + fmtTime(STATE.lastApiUpdate));
+    e.textContent = p.join('  ·  ');
+  });
+}
+
+function updateGps() {
+  if (!STATE.gps) return;
+  const el = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+
+  el('gpsLat', parseFloat(STATE.gps.lat).toFixed(6));
+  el('gpsLng', parseFloat(STATE.gps.lng).toFixed(6));
+  if (STATE.gps.ts) el('gpsTime', fmtTime(new Date(STATE.gps.ts)));
+
+  if (STATE.map && STATE.marker && !heatmapMode) {
+    const ll = L.latLng(STATE.gps.lat, STATE.gps.lng);
+    STATE.marker.setLatLng(ll);
+    
+    const distance = STATE.map.getCenter().distanceTo(ll);
+
+    if (distance > 5000) {
+      if (STATE.routeGlowLayer) STATE.map.removeLayer(STATE.routeGlowLayer);
+      if (STATE.routeMainLayer) STATE.map.removeLayer(STATE.routeMainLayer);
+      
+      STATE.map.flyTo(ll, 15, { animate: true, duration: 2.0 });
+      
+      STATE.map.once('moveend', () => {
+        if (!heatmapMode && STATE.routeGlowLayer) STATE.routeGlowLayer.addTo(STATE.map);
+        if (!heatmapMode && STATE.routeMainLayer) STATE.routeMainLayer.addTo(STATE.map);
+      });
+      
+    } else if (distance > 10) {
+      STATE.map.panTo(ll, { animate: true, duration: 0.8 });
+    }
+  }
+
+  updateGpsAge();
+
+  // ⭐ Calculate Progress Percentage
+  if (STATE.gpxRoute && STATE.gpxRoute.length > 1 && STATE.gps) {
+    let bestIndex = 0;
+    let bestDist = Infinity;
+    
+    for (let i = 0; i < STATE.gpxRoute.length; i++) {
+      const d = haversineMeters(STATE.gps, STATE.gpxRoute[i]);
+      if (d < bestDist) { bestDist = d; bestIndex = i; }
+    }
+    
+    const bar = document.getElementById("godProgressBar");
+    const txt = document.getElementById("godProgressText");
+    
+    if (bestDist > 50) { 
+      if (bar) bar.style.width = "0%";
+      if (txt) {
+        txt.textContent = "Off Route";
+        txt.style.color = "var(--red)"; 
+      }
+    } else {
+      const pct = Math.min(100, Math.round((bestIndex / (STATE.gpxRoute.length - 1)) * 100));
+      if (bar) bar.style.width = pct + "%";
+      if (txt) {
+        txt.textContent = pct + "% Complete";
+        txt.style.color = "var(--gold)"; 
+      }
+    }
+  }
+}
+
+function updateViewers() {
+  const vEl = document.getElementById('statViewers');
+  if (vEl) vEl.textContent = STATE.activeViewers;
+}
+
+function updatePendingCount(count) {
+  const wEl = document.getElementById('statWaves');
+  if (wEl) wEl.textContent = count > 0 ? count : '0';
+}
+
+function updateRouteDetail() {
+  const c = document.getElementById('routeDetail');
+  if (!c) return;
+
+  const today = getTodayRoute();
+  const next = getNextRoute();
+  const route = today || next;
+  const isToday = !!today;
+
+  if (!route) { c.innerHTML = '<div class="no-route">No routes scheduled</div>'; return; }
+
+  const streets = (route.streets || '').split(',').map(s => s.trim()).filter(Boolean);
+
+  c.innerHTML = `<div class="route-info">
+    <div class="route-row"><span class="route-label">Route</span><span class="route-value">${route.routeName || '—'}</span></div>
+    <div class="route-row"><span class="route-label">${isToday ? 'Tonight' : 'Next'}</span><span class="route-value gold">${fmtDate(route.date)}</span></div>
+    <div class="route-row"><span class="route-label">Streets</span><span class="route-value">${streets.length}</span></div>
+    ${streets.length ? `<div class="streets-scroll">${streets.join(' · ')}</div>` : ''}
+  </div>`;
+
+  const el = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  el('statRoute', route.routeName || '—');
+  
+  const dateEl = document.getElementById('statRouteDate');
+  const progWrap = document.getElementById('godProgressWrapper');
+  
+  if (isToday) {
+    if (dateEl) dateEl.style.display = 'none';
+    if (progWrap) progWrap.style.display = 'block';
+  } else {
+    if (dateEl) {
+      dateEl.style.display = 'block';
+      dateEl.textContent = 'Next: ' + fmtDate(route.date);
+    }
+    if (progWrap) progWrap.style.display = 'none';
+  }
+}
+  
+function updateDonationDetail() {
+  const c = document.getElementById('donationDetail');
+  if (!c) return;
+  const d = STATE.donations;
+  const ledger = STATE.donationsLedger || [];
+  const cur = d.currency || '£';
+  const total = d.total || 0;
+  const target = d.target || 0;
+  const pct = target > 0 ? Math.min(100, Math.round((total / target) * 100)) : 0;
+
+  let html = `<div class="donation-mini">
+    <div class="donation-labels"><span class="raised">${cur}${total.toLocaleString()}</span><span class="target">${cur}${target.toLocaleString()}</span></div>
+    <div class="donation-bar-outer"><div class="donation-bar-inner" style="width:${pct}%"></div></div>
+    <div style="font-family:'Open Sans', monospace; font-size:10px; font-weight:700; color:var(--text-muted); text-align:center; text-transform:uppercase; letter-spacing:1px; margin-top:4px;">${pct}% of target</div>
+  </div>`;
+
+  // Draw the live feed of recent transactions underneath
+  if (ledger.length > 0) {
+    html += `<div style="margin-top:16px; border-top:1px solid var(--border); padding-top:12px;">
+      <div style="font-family:'Open Sans',monospace; font-size:10px; color:var(--text-muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:1px;">Live Activity</div>
+      <div class="streets-scroll" style="max-height:160px; padding:0; background:transparent;">`;
+    
+    ledger.forEach(entry => {
+       const dt = new Date(entry.date);
+       const timeStr = isNaN(dt) ? '' : dt.toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit'});
+       const routeStr = entry.route ? entry.route : 'Manual Entry';
+       
+       html += `
+         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; padding:10px; background:var(--surface-3); border-radius:8px;">
+           <div>
+             <div style="font-weight:700; font-size:14px; color:#fff;">${cur}${parseFloat(entry.total).toFixed(2)}</div>
+             <div style="font-size:10px; color:var(--gold); margin-top:2px;">📍 ${routeStr}</div>
+           </div>
+           <div style="font-family:'Open Sans',monospace; font-size:10px; color:var(--text-muted);">${timeStr}</div>
+         </div>`;
+    });
+    html += `</div></div>`;
+  }
+  
+  c.innerHTML = html;
+}
+
+function updateRaisedStat() {
+  const d = STATE.donations;
+  const cur = d.currency || '£';
+  const el = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  el('statRaised', `${cur}${(d.total || 0).toLocaleString()}`);
+  el('statTarget', `of ${cur}${(d.target || 0).toLocaleString()}`);
+}
+
+// ⭐ NEW: HEATMAP LOGIC
+let heatmapMode = false;
+let heatLayer = null;
+let allHeatData = null;
+let allGpxLayers = [];
+
+async function toggleHeatmap() {
+  const btn = document.getElementById('toggleHeatmapBtn');
+  const controls = document.getElementById('heatmapControls');
+
+  if (heatmapMode) {
+    heatmapMode = false;
+    btn.innerText = "🔥 Heatmap Mode"; 
+    btn.className = "btn-heat";
+    controls.classList.remove('active');
+    document.getElementById('mapLabel').textContent = isGpsFresh() ? 'Live Position' : 'Last Known Position';
+    
+    if (heatLayer) STATE.map.removeLayer(heatLayer);
+    allGpxLayers.forEach(layer => STATE.map.removeLayer(layer));
+    allGpxLayers = [];
+    
+    if (STATE.marker && STATE.gps) {
+      STATE.marker.addTo(STATE.map);
+      STATE.map.panTo([STATE.gps.lat, STATE.gps.lng]);
+    }
+    
+    if (STATE.routeGlowLayer) STATE.routeGlowLayer.addTo(STATE.map);
+    if (STATE.routeMainLayer) STATE.routeMainLayer.addTo(STATE.map);
+    
+  } else {
+    btn.innerText = "Loading Data...";
+    try {
+      const res = await fetch(getApiUrl('function=getHeatmapData'));
+      allHeatData = await res.json();
+      
+      if (allHeatData.error) throw new Error(allHeatData.error);
+      
+      heatmapMode = true;
+      btn.innerText = "Exit Heatmap Mode";
+      btn.className = "btn-heat active";
+      controls.classList.add('active');
+      document.getElementById('mapLabel').textContent = 'Planning Map';
+
+      if (STATE.marker) STATE.map.removeLayer(STATE.marker);
+      if (STATE.routeGlowLayer) STATE.map.removeLayer(STATE.routeGlowLayer);
+      if (STATE.routeMainLayer) STATE.map.removeLayer(STATE.routeMainLayer);
+      
+      STATE.routes.forEach(route => {
+        if (route.gpxUrl) {
+          const l = new L.GPX(route.gpxUrl, {
+            async: true,
+            polyline_options: { color: "#ffffff", weight: 4, opacity: 0.35, lineCap: 'round', lineJoin: 'round' }, 
+            marker_options: { startIconUrl: null, endIconUrl: null, shadowUrl: null }
+          }).addTo(STATE.map);
+          allGpxLayers.push(l);
+        }
+      });
+
+      const allYears = [...(allHeatData.subscribers||[]).map(d=>d.year), ...(allHeatData.suggestions||[]).map(d=>d.year)];
+      const uniqueYears = [...new Set(allYears)].filter(y => y !== "Unknown").sort().reverse();
+      const yearSelect = document.getElementById('heatYear');
+      yearSelect.innerHTML = '<option value="All">All Time</option>';
+      uniqueYears.forEach(y => {
+        yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
+      });
+      if (uniqueYears.length > 0) yearSelect.value = uniqueYears[0];
+
+      drawHeatmap();
+
+    } catch (e) {
+      alert("Failed to load Heatmap data. " + e.message);
+      btn.innerText = "🔥 Heatmap Mode";
+    }
+  }
+}
+
+function drawHeatmap() {
+  if (!heatmapMode || !allHeatData) return;
+  if (heatLayer) STATE.map.removeLayer(heatLayer);
+  
+  const type = document.getElementById('heatType').value; 
+  const year = document.getElementById('heatYear').value;
+  
+  const activeDataset = allHeatData[type] || [];
+  const filtered = activeDataset.filter(d => year === "All" || d.year === year);
+  const leafletFormat = filtered.map(d => [d.lat, d.lng, 1]);
+
+  if (leafletFormat.length === 0) return; 
+
+  heatLayer = L.heatLayer(leafletFormat, {
+    radius: 25, blur: 15, maxZoom: 15,
+    gradient: {0.4: 'blue', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: 'red'}
+  }).addTo(STATE.map);
+}
+
+  function updateElfCam() {
+  const url = STATE.settings?.elf_cam_url;
+  const container = document.getElementById('elfCamPreview');
+  const ageEl = document.getElementById('elfCamAge');
+  const panel = document.getElementById('elfCamPanel');
+  if (!container) return;
+
+  if (!url) {
+    if (panel) panel.style.display = 'none';  // hide entirely if not configured
+    return;
+  }
+
+  if (panel) panel.style.display = '';  // restore when a URL arrives mid-session
+
+  // Convert to thumbnail URL the same way the tracker does
+  let finalUrl = url;
+  if (url.includes('drive.google.com')) {
+    try {
+      const urlObj = new URL(url);
+      const fileId = urlObj.searchParams.get('id');
+      if (fileId) finalUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
+    } catch(e) {}
+  }
+
+  container.innerHTML = `
+  <img src="${finalUrl}" 
+    style="width:100%; max-height:160px; object-fit:cover; object-position:center top; border-radius:8px; border:1px solid var(--border); background:var(--surface-3);"
+    onerror="this.style.border='1px solid var(--red)'; this.alt='⚠️ Image failed to load — check Drive sharing';"
+    alt="Elf Cam">`;
+  
+  if (ageEl) ageEl.textContent = 'UPDATED: ' + fmtTime(new Date());
+}
+
+// ⭐ NEW: Poll for pending User Messages
+setInterval(fetchPendingMessages, 10000);
+
+async function fetchPendingMessages() {
+  const secret = sessionStorage.getItem('sleighSecret') || '';
+  try {
+    const res = await fetch(`${API}${API.includes('?')?'&':'?'}function=getPendingMessages&secret=${encodeURIComponent(secret)}`);
+    const msgs = await res.json();
+    const container = document.getElementById('pendingMessagesQueue');
+    
+    if(msgs.length === 0) {
+       container.innerHTML = '<div class="no-route">No pending messages</div>';
+       updatePendingCount(0);
+       return;
+    }
+    
+    let html = '';
+    msgs.forEach(m => {
+       const safeMsg = encodeURIComponent(m.msg);
+       const routeLabel = m.route ? `<div style="font-family:'Open Sans',monospace;font-size:10px;color:var(--gold);margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">📍 ${m.route}</div>` : '';
+       html += `
+         <div class="msg-item">
+           ${routeLabel}
+           <div class="msg-text">"${m.msg}"</div>
+           <div class="msg-actions">
+             <button class="btn-approve" onclick="handleUserMsg('${safeMsg}', 'approveUserMessage')">Approve (20s)</button>
+             <button class="btn-reject" onclick="handleUserMsg('${safeMsg}', 'rejectUserMessage')">Reject</button>
+           </div>
+         </div>
+       `;
+    });
+    container.innerHTML = html;
+    updatePendingCount(msgs.length);
+  } catch(e){}
+  
+}
+
+  setInterval(fetchIntakeMemories, 15000); // Poll every 15 seconds
+
+async function fetchIntakeMemories() {
+  const secret = sessionStorage.getItem('sleighSecret') || '';
+  try {
+    const res = await fetch(`${API}${API.includes('?')?'&':'?'}function=getIntakeMemories&secret=${encodeURIComponent(secret)}`);
+    const files = await res.json();
+    const container = document.getElementById('memoryIntakeQueue');
+    const badge = document.getElementById('intakeCount');
+    
+    if (badge) badge.textContent = `${files.length} pending`;
+    
+    if (files.length === 0) {
+       container.innerHTML = '<div class="no-route" style="grid-column: span 2;">No pending photos</div>';
+       return;
+    }
+    
+    let html = '';
+    files.forEach(f => {
+       // Embed-friendly thumbnail for the God Mode UI
+       const thumbUrl = `https://drive.google.com/thumbnail?id=${f.id}&sz=w400`;
+       // Full resolution link for the new tab
+       const fullUrl = `https://drive.google.com/uc?export=view&id=${f.id}`;
+       
+       html += `
+         <div class="intake-card" id="intake-${f.id}">
+           <img src="${thumbUrl}" class="intake-img" onclick="window.open('${fullUrl}', '_blank')">
+           <div class="intake-actions">
+             <button class="btn-approve" style="padding: 6px; font-size: 11px;" onclick="moderateMemory('${f.id}', 'approve')">Approve</button>
+             <button class="btn-reject" style="padding: 6px; font-size: 11px;" onclick="moderateMemory('${f.id}', 'deny')">Deny</button>
+           </div>
+         </div>
+       `;
+    });
+    container.innerHTML = html;
+  } catch(e) {}
+}
+
+async function moderateMemory(fileId, action) {
+  const secret = sessionStorage.getItem('sleighSecret') || '';
+  
+  // Optimistic UI update: hide the card immediately
+  const card = document.getElementById(`intake-${fileId}`);
+  if (card) card.style.opacity = '0.3';
+
+  try {
+    const res = await fetch(API, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'moderateMemory', fileId: fileId, modAction: action, secret: secret })
+    });
+    const result = await res.json();
+    
+    if (result.ok) {
+      if (card) card.remove();
+      // Optional: Decrement badge count instantly
+    } else {
+      alert("Failed to moderate photo: " + result.error);
+      if (card) card.style.opacity = '1';
+    }
+  } catch(e) {
+    alert("Network error processing photo.");
+    if (card) card.style.opacity = '1';
+  }
+}
+
+// Kickstart on load
+setTimeout(fetchIntakeMemories, 2000);
+  
+async function handleUserMsg(encodedMsg, action) {
+  const secret = sessionStorage.getItem('sleighSecret') || '';
+  const msg = decodeURIComponent(encodedMsg);
+  
+  // Optimistically set the active state instantly so God Mode feels fast
+  if (action === 'approveUserMessage') {
+    STATE.settings.user_announcement = msg;
+    STATE.settings.user_announcement_ts = Date.now();
+    updateUserMsgState();
+  }
+
+  // Optimistically remove it from UI to feel fast
+  fetchPendingMessages(); 
+  
+  try {
+    await fetch(API, {
+      method: 'POST',
+      body: JSON.stringify({ action: action, message: msg, secret: secret })
+    });
+    // Force immediate tracker setting refresh
+    fetchApiData(); 
+  } catch(e) {
+    alert("Failed to process message.");
+  }
+}
+
+// Kickstart the fetch when dashboard loads
+setTimeout(fetchPendingMessages, 1500);
+
+// ═══════════════════════════════════════════════════════════════
+// ⭐ GPS HEALTH MODULE — Polls Firebase directly every 2 seconds
+// Reads /location/current.json (public read per your Firebase rules)
+// Feeds data back into the stat card and sidebar panel.
+// ═══════════════════════════════════════════════════════════════
+ 
+const GpsHealth = (() => {
+  const POLL = 2000;
+  const HIST = 40;
+  const T_GREEN = 10, T_AMBER = 30, T_RED = 60;
+  const GREEN = "var(--green)", AMBER = "var(--gold)", RED = "var(--red)";
+ 
+  let fbUrl = null, tmr = null;
+  const fixes = [];
+  let lastRawTs = null;
+ 
+  function clr(s) { return s <= T_GREEN ? GREEN : s <= T_AMBER ? AMBER : RED; }
+  function lbl(s) { return s <= T_GREEN ? "LIVE" : s <= T_AMBER ? "DELAYED" : s <= T_RED ? "STALE" : "LOST"; }
+  function fmtAge(s) { return s < 60 ? s + "s" : s < 3600 ? Math.floor(s / 60) + "m" : Math.floor(s / 3600) + "h"; }
+ 
+  function rate() {
+    if (fixes.length < 2) return 0;
+    const ms = fixes[fixes.length - 1].ts - fixes[0].ts;
+    return ms > 0 ? Math.round((fixes.length - 1) / (ms / 60000)) : 0;
+  }
+ 
+  function renderTimeline() {
+    const el = document.getElementById("gphTimeline");
+    if (!el) return;
+    const gaps = [];
+    for (let i = 1; i < fixes.length; i++) gaps.push((fixes[i].ts - fixes[i - 1].ts) / 1000);
+    while (gaps.length < HIST) gaps.unshift(0);
+    const show = gaps.slice(-HIST);
+    const mx = Math.max(12, ...show);
+    el.innerHTML = show.map(g => {
+      if (g === 0) return '<div class="tl-bar" style="background:rgba(255,255,255,0.03);height:2px"></div>';
+      const pct = Math.min(100, Math.max(6, (g / mx) * 100));
+      const c = g <= 4 ? GREEN : g <= 12 ? AMBER : RED;
+      return `<div class="tl-bar" style="background:${c};height:${pct}%;opacity:1"></div>`;
+    }).join("");
+  }
+ 
+  function paint(ageSec, lat, lng) {
+    const c = clr(ageSec), l = lbl(ageSec);
+ 
+    // Sidebar badge
+    const badge = document.getElementById("gphBadge");
+    const dot = document.getElementById("gphDot");
+    const btxt = document.getElementById("gphBadgeText");
+    if (badge) {
+      badge.style.background = ageSec <= T_GREEN ? "rgba(46,204,113,.1)" : ageSec <= T_AMBER ? "rgba(251,175,51,.1)" : "rgba(211,28,28,.1)";
+      badge.style.border = "1px solid " + c;
+      badge.style.color = c;
+    }
+    if (dot) {
+      dot.style.background = c;
+      dot.style.boxShadow = ageSec <= T_GREEN ? "0 0 6px " + c : "none";
+      dot.style.animation = ageSec <= T_GREEN ? "gphDotPulse 1.4s infinite" : "none";
+    }
+    if (btxt) btxt.textContent = l;
+ 
+    // Sidebar values
+    const ageEl = document.getElementById("gphAge");
+    if (ageEl) { ageEl.textContent = fmtAge(ageSec); ageEl.style.color = c; }
+ 
+    const r = rate();
+    const rateEl = document.getElementById("gphRate");
+    if (rateEl) { rateEl.textContent = r || "—"; rateEl.style.color = r >= 20 ? GREEN : r >= 10 ? AMBER : r > 0 ? RED : ""; }
+ 
+    // Feed stat card (top row) — these IDs already exist in God Mode
+    const statStatus = document.getElementById("statGpsStatus");
+    if (statStatus) { statStatus.textContent = l; statStatus.className = "value " + (ageSec <= T_GREEN ? "green" : ageSec <= T_AMBER ? "gold" : "red"); }
+ 
+    const statAge = document.getElementById("statGpsAge");
+    if (statAge) statAge.textContent = fmtAge(ageSec) + " ago";
+ 
+    const statRate = document.getElementById("statGpsRate");
+    if (statRate) statRate.textContent = r > 0 ? r + " fix/min" : "";
+ 
+    // Feed existing GPS Data fields that other parts of God Mode reference
+    if (lat !== null) {
+      const latEl = document.getElementById("gpsLat");
+      if (latEl) latEl.textContent = lat.toFixed(6);
+      const lngEl = document.getElementById("gpsLng");
+      if (lngEl && lng !== null) lngEl.textContent = lng.toFixed(6);
+    }
+ 
+    renderTimeline();
+  }
+ 
+  async function poll() {
+    try {
+      // 🛡️ SANTA PROXY: Fetch via Cloudflare Worker -> GAS Proxy
+      const proxyScript = `${API}${API.includes('?') ? '&' : '?'}function=proxyFirebase`;
+      const fastGpsUrl = `${WORKER_URL}?ttl=2&target=${encodeURIComponent(proxyScript)}`;
+      
+      const r = await fetch(fastGpsUrl, { cache: "no-store" });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      let d = await r.json();
+ 
+      // Unwrap nested structure (same as tracker/proxyFirebase)
+      if (d && typeof d === "object" && !d.lat) {
+        const f = Object.values(d)[0];
+        if (f && typeof f === "object") d = f;
+      }
+      if (!d || typeof d.lat !== "number" || typeof d.lng !== "number") { paint(999, null, null); return; }
+ 
+      const fts = new Date(d.ts || 0).getTime();
+      const age = Math.round((Date.now() - fts) / 1000);
+ 
+      if (d.ts !== lastRawTs && fts > 0) {
+        lastRawTs = d.ts;
+        fixes.push({ ts: fts, lat: d.lat, lng: d.lng });
+        while (fixes.length > HIST * 2) fixes.shift();
+      }
+      paint(age, d.lat, d.lng);
+    } catch {
+      const last = fixes[fixes.length - 1];
+      const age = last ? Math.round((Date.now() - last.ts) / 1000) : 999;
+      paint(age, last?.lat || null, last?.lng || null);
+    }
+  }
+ 
+  return {
+    init() {
+      if (tmr) clearInterval(tmr);
+      poll();
+      tmr = setInterval(poll, POLL);
+    },
+    destroy() { if (tmr) { clearInterval(tmr); tmr = null; } },
+    getState() {
+      const last = fixes[fixes.length - 1];
+      return {
+        ageSec: last ? Math.round((Date.now() - last.ts) / 1000) : null,
+        rate: rate(), lat: last?.lat || null, lng: last?.lng || null,
+        status: last ? lbl(Math.round((Date.now() - last.ts) / 1000)) : "NO DATA"
+      };
+    }
+  };
+})();
+
+  // ═══════════════════════════════════════════════════════════════
+// 🚨 INCIDENT LOGGING
+// ═══════════════════════════════════════════════════════════════
+
+function populateIncidentRoutes() {
+  const sel = document.getElementById('incidentRoute');
+  if (!sel) return;
+  
+  // Keep the default option, clear the rest
+  sel.innerHTML = '<option value="">— Select Route —</option>';
+  
+  const todayRoute = getTodayRoute();
+  
+  STATE.routes.forEach(r => {
+    if (r.routeName) {
+      const opt = document.createElement('option');
+      opt.value = r.routeName;
+      opt.textContent = r.routeName;
+      if (todayRoute && r.routeName === todayRoute.routeName) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  });
+}
+
+async function submitIncident() {
+  const btn = document.getElementById('incidentBtn');
+  const desc = document.getElementById('incidentDesc').value.trim();
+  
+  if (!desc) { alert('Please describe what happened.'); return; }
+  
+  btn.innerText = 'Logging...';
+  btn.style.background = 'var(--surface-3)';
+  btn.style.color = 'var(--text-dim)';
+
+  const payload = {
+    action: 'logIncident',
+    secret: sessionStorage.getItem('sleighSecret') || '',
+    routeName: document.getElementById('incidentRoute').value,
+    type: document.getElementById('incidentType').value,
+    severity: document.getElementById('incidentSeverity').value,
+    description: desc,
+    personsInvolved: document.getElementById('incidentPersons').value.trim(),
+    actionTaken: document.getElementById('incidentAction').value.trim(),
+    reportedBy: document.getElementById('incidentReporter').value.trim(),
+    followUpRequired: document.getElementById('incidentFollowUp').value,
+    date: new Date().toISOString().slice(0, 10)
+  };
+
+  try {
+    const res = await fetch(API, { method: 'POST', body: JSON.stringify(payload) });
+    const result = await res.json();
+    
+    if (result.ok) {
+      // Clear the form but keep route + reporter (likely logging multiple on same night)
+      document.getElementById('incidentDesc').value = '';
+      document.getElementById('incidentPersons').value = '';
+      document.getElementById('incidentAction').value = '';
+      document.getElementById('incidentType').value = 'Breakdown';
+      document.getElementById('incidentSeverity').value = 'Medium';
+      document.getElementById('incidentFollowUp').value = 'No';
+      
+      fetchIncidentHistory();
+    } else {
+      alert('Failed: ' + (result.error || 'Unknown error'));
+    }
+  } catch (e) {
+    alert('Network error logging incident.');
+  }
+  
+  btn.innerText = 'Log Incident';
+  btn.style.background = '';
+  btn.style.color = '';
+}
+
+async function fetchIncidentHistory() {
+  try {
+    const res = await fetch(getApiUrl('function=getIncidentLogs'));
+    const logs = await res.json();
+    
+    const container = document.getElementById('incidentHistory');
+    const badge = document.getElementById('incidentCount');
+    if (!container) return;
+    
+    if (badge) badge.textContent = logs.length + ' logged';
+    
+    if (logs.length === 0) {
+      container.innerHTML = '<div class="no-route">No incidents recorded</div>';
+      return;
+    }
+    
+    const sevColor = s => s === 'High' ? 'var(--red)' : s === 'Medium' ? 'var(--gold)' : 'var(--green)';
+    
+    container.innerHTML = '<div class="streets-scroll" style="max-height:200px;">' +
+      logs.map(l => 
+        `<div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="font-weight:700;color:${sevColor(l.severity)};">${l.type}</span>
+            <span style="color:var(--text-muted);font-size:9px;">${l.date || ''}</span>
+          </div>
+          <div style="color:var(--text);font-family:'Open Sans',sans-serif;font-size:12px;margin-bottom:4px;">${l.description}</div>
+          ${l.route ? `<span style="color:var(--gold);font-size:10px;">📍 ${l.route}</span>` : ''}
+          ${l.followUp === 'Yes' ? `<span style="color:var(--red);font-size:10px;margin-left:8px;">⚠️ FOLLOW-UP</span>` : ''}
+        </div>`
+      ).join('') + '</div>';
+      
+  } catch (e) { console.error('Incidents:', e); }
+}
+
+// Kick off on load
+setTimeout(() => { populateIncidentRoutes(); fetchIncidentHistory(); }, 2000);
+setInterval(fetchIncidentHistory, 30000);
+
+// ═══════════════════════════════════════════════════════════════
+// 🎁 GIFT AID PANEL
+// ═══════════════════════════════════════════════════════════════
+
+async function fetchGiftAidData() {
+  try {
+    const res = await fetch(getApiUrl('function=getGiftAidSummary'));
+    const data = await res.json();
+    if (data.error) return;
+
+    const badge = document.getElementById('giftAidBadge');
+    const totalEl = document.getElementById('gaTotal');
+    const boostEl = document.getElementById('gaBoost');
+    const container = document.getElementById('giftAidEntries');
+
+    if (badge) badge.textContent = data.declarations + ' declaration' + (data.declarations !== 1 ? 's' : '');
+    if (totalEl) totalEl.textContent = '£' + data.totalDonations.toFixed(2);
+    if (boostEl) boostEl.textContent = '+ £' + data.totalGiftAid.toFixed(2);
+
+    if (!container) return;
+
+    if (data.entries.length === 0) {
+      container.innerHTML = '<div class="no-route">No Gift Aid declarations yet</div>';
+      return;
+    }
+
+    const pending = data.entries.filter(e => e.status === 'Pending').length;
+    const bulkBtn = document.getElementById('gaBulkBtn');
+    if (bulkBtn) {
+      bulkBtn.textContent = pending > 0 ? 'Mark All ' + pending + ' Pending as Claimed' : '✅ All Claimed';
+      bulkBtn.disabled = pending === 0;
+      bulkBtn.style.opacity = pending === 0 ? '0.5' : '1';
+    }
+
+    container.innerHTML = data.entries.map(e => {
+      const statusColor = e.status === 'Claimed' ? 'var(--green)' : 'var(--gold)';
+      const statusIcon = e.status === 'Claimed' ? '✅' : '⏳';
+      const d = new Date(e.date);
+      const dateStr = isNaN(d) ? '' : d.toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+
+      return `<div style="background:var(--surface-2);border:1px solid var(--border);border-left:4px solid ${statusColor};border-radius:10px;padding:14px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <strong style="font-size:14px;color:#fff;">${e.name}</strong>
+          <span style="font-family:'Open Sans',monospace;font-size:10px;color:var(--text-muted);">${dateStr}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <span style="font-family:'Open Sans',monospace;font-size:13px;color:var(--gold);font-weight:700;">£${e.amount.toFixed(2)}</span>
+            <span style="font-family:'Open Sans',monospace;font-size:11px;color:var(--green);margin-left:8px;">+£${e.giftAid.toFixed(2)}</span>
+            ${e.route ? `<span style="font-family:'Open Sans',monospace;font-size:10px;color:var(--text-muted);margin-left:8px;">📍 ${e.route}</span>` : ''}
+          </div>
+          <span style="font-size:11px;color:${statusColor};font-weight:700;">${statusIcon} ${e.status}</span>
+        </div>
+      </div>`;
+    }).join('');
+
+  } catch(e) { console.error('GiftAid:', e); }
+}
+
+async function bulkClaimGiftAid() {
+  const btn = document.getElementById('gaBulkBtn');
+  if (!confirm('Mark ALL pending Gift Aid declarations as Claimed?\n\nDo this after you have submitted the claim to HMRC.')) return;
+
+  btn.textContent = 'Processing...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(API, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'updateGiftAidStatus',
+        secret: sessionStorage.getItem('sleighSecret') || '',
+        mode: 'bulkAll',
+        status: 'Claimed'
+      })
+    });
+    const result = await res.json();
+    if (result.ok) {
+      btn.textContent = '✅ ' + result.updated + ' Claimed';
+      setTimeout(fetchGiftAidData, 1500);
+    } else {
+      alert('Error: ' + (result.error || 'Unknown'));
+      btn.textContent = 'Mark All Pending as Claimed';
+      btn.disabled = false;
+    }
+  } catch(e) {
+    alert('Network error');
+    btn.textContent = 'Mark All Pending as Claimed';
+    btn.disabled = false;
+  }
+}
+
+  async function downloadHmrcExport() {
+  const btn = document.getElementById('gaExportBtn');
+  const filter = document.getElementById('gaExportFilter').value;
+  btn.textContent = 'Generating...';
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  try {
+    const res = await fetch(getApiUrl(`function=getGiftAidExport&status=${encodeURIComponent(filter)}`));
+    const data = await res.json();
+    if (data.error) { alert('Export failed: ' + data.error); return; }
+    if (!data.ok || data.count === 0) { alert('No ' + filter + ' Gift Aid declarations to export.'); return; }
+    const blob = new Blob([data.csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const now = new Date();
+    const dateStamp = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+    link.href = url;
+    link.download = `GiftAid_HMRC_${filter}_${dateStamp}.csv`;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    btn.textContent = '✅ ' + data.count + ' rows exported';
+    if (data.truncated) alert('⚠️ HMRC limit: Only first 1,000 exported. Submit this claim, then export the rest.');
+  } catch (e) {
+    alert('Network error generating export.');
+  } finally {
+    setTimeout(() => { btn.textContent = 'Download HMRC CSV'; btn.disabled = false; btn.style.opacity = '1'; }, 3000);
+  }
+}
+  
+setTimeout(fetchGiftAidData, 2500);
+setInterval(fetchGiftAidData, 30000);
+
+  document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    requestWakeLock();
+  }
+});
+  
+</script>
+</body>
+</html>

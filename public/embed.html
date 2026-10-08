@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TurboSanta — Embed Code Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ═══════════════════════════════════════ */
+    /* TURBOSANTA DESIGN SYSTEM */
+    /* ═══════════════════════════════════════ */
+    :root {
+      --gold: #FBAF33;
+      --gold-dim: rgba(251,175,51,0.12);
+      --gold-glow: rgba(251,175,51,0.25);
+      --dark: #0d0d0b;
+      --surface: #161614;
+      --surface-2: #1e1e1b;
+      --surface-3: #252522;
+      --border: rgba(255,255,255,0.08);
+      --border-hover: rgba(255,255,255,0.15);
+      --text: #eaeae5;
+      --text-dim: rgba(255,255,255,0.55);
+      --text-muted: rgba(255,255,255,0.3);
+      --red: #D31C1C;
+      --green: #2ecc71;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--dark);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      padding: 64px 20px 80px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* ── HEADER ── */
+    .header-wrap {
+      text-align: center;
+      margin-bottom: 56px;
+      width: 100%;
+    }
+
+    h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 56px;
+      font-weight: 400;
+      letter-spacing: 2px;
+      line-height: 1.1;
+      margin-bottom: 16px;
+      color: #fff;
+    }
+
+    .api-display-wrap {
+      display: inline-block;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 8px 24px;
+      border-radius: 100px;
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      /* FIX: Prevent wide strings from breaking the layout */
+      max-width: 100%; 
+      overflow-wrap: break-word;
+    }
+
+    .api-display-wrap span {
+      color: var(--gold);
+      font-weight: 700;
+      /* FIX: Force long API strings to break to the next line */
+      word-break: break-all;
+    }
+
+    /* ── BLOCKS / CARDS ── */
+    .block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 32px 40px;
+      border-radius: 16px;
+      margin-bottom: 24px;
+      transition: border-color 0.2s ease, transform 0.2s ease;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .block:hover {
+      border-color: rgba(251,175,51,0.2);
+      transform: translateY(-2px);
+    }
+
+    .block h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 32px;
+      letter-spacing: 1px;
+      color: #fff;
+      margin-bottom: 12px;
+      line-height: 1.2;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .block p {
+      font-size: 14px;
+      color: var(--text-dim);
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .block p strong {
+      color: #fff;
+    }
+
+    /* ── TEXTAREAS ── */
+    textarea {
+      width: 100%;
+      height: 120px;
+      background: var(--surface-2);
+      color: var(--text);
+      padding: 16px 20px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      resize: vertical;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+      line-height: 1.5;
+    }
+
+    textarea:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px var(--gold-glow);
+    }
+
+    /* ── BUTTONS ── */
+    button.copy {
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      margin-top: 20px;
+      padding: 12px 28px;
+      border: none;
+      border-radius: 8px;
+      background: var(--surface-3);
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: 1px solid var(--border);
+    }
+
+    button.copy:hover {
+      background: var(--gold);
+      color: #000;
+      border-color: var(--gold);
+    }
+
+    button.copy:active {
+      transform: scale(0.97);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 600px) {
+      body {
+        padding: 32px 16px 60px; /* Reduced top padding on mobile */
+      }
+      .header-wrap {
+        margin-bottom: 40px;
+      }
+      h1 { 
+        font-size: 38px; /* Slightly smaller to fit nicely */
+      }
+      .api-display-wrap { 
+        font-size: 11px;
+        padding: 10px 16px;
+        border-radius: 16px; /* Switch from pill to rounded box for multiline */
+        display: block; /* Allows it to expand downward naturally */
+        width: 100%;
+      }
+      .block {
+        padding: 24px 20px;
+      }
+      .block h2 {
+        font-size: 28px;
+      }
+    }
+  </style>
+
+  <script src="embed_generator.js" defer></script>
+</head>
+
+<body>
+
+  <div class="header-wrap">
+    <h1>🎅 TURBOSANTA EMBED GENERATOR</h1>
+    <div class="api-display-wrap">
+      Detected API: <span id="apiDisplay">Loading...</span>
+    </div>
+  </div>
+
+  <div class="block">
+    <h2>Santa Sleigh (Main App Link)</h2>
+    <textarea id="santasleighLink"></textarea>
+    <button class="copy" onclick="copyCode('santasleighLink')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Address Lookup (Link)</h2>
+    <textarea id="addressLink"></textarea>
+    <button class="copy" onclick="copyCode('addressLink')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Address Lookup (Recommended Embed)</h2>
+    <textarea id="addressLookup" style="height:220px;"></textarea>
+    <button class="copy" onclick="copyCode('addressLookup')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Beacon Standalone (Glovebox / Spare Phone)</h2>
+    <p>
+      <strong>Bulletproof Setup:</strong> Use this on a dedicated, plugged-in spare phone to transmit GPS reliably without being disturbed.
+    </p>
+    <textarea id="beaconLink"></textarea>
+    <button class="copy" onclick="copyCode('beaconLink')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Bingo (Link)</h2>
+    <textarea id="bingoLink"></textarea>
+    <button class="copy" onclick="copyCode('bingoLink')">Copy Code</button>
+  </div>
+  
+  <div class="block">
+    <h2>Carousel (Recommended Embed)</h2>
+    <textarea id="carouselLink" style="height:220px;"></textarea>
+    <button class="copy" onclick="copyCode('carouselLink')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Countdown (Link)</h2>
+    <textarea id="countdownLink"></textarea>
+    <button class="copy" onclick="copyCode('countdownLink')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Crew Sign-up/Check-in (Link)</h2>
+    <textarea id="crewLink"></textarea>
+    <button class="copy" onclick="copyCode('crewLink')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Colouring Page (Link)</h2>
+    <textarea id="colouringpageLink"></textarea>
+    <button class="copy" onclick="copyCode('colouringpageLink')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Door Hanger (Link)</h2>
+    <textarea id="doorhangerLink"></textarea>
+    <button class="copy" onclick="copyCode('doorhangerLink')">Copy Code</button>
+  </div>
+  
+  <div class="block">
+    <h2>Elf Cam (Link)</h2>
+    <textarea id="elfcamLink"></textarea>
+    <button class="copy" onclick="copyCode('elfcamLink')">Copy Code</button>
+  </div>
+  
+  <div class="block">
+    <h2>Full Thermometer (Recommended Embed)</h2>
+    <textarea id="fullThermo" style="height:220px;"></textarea>
+    <button class="copy" onclick="copyCode('fullThermo')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>God Mode Dashboard (Link)</h2>
+    <textarea id="godModeLink"></textarea>
+    <button class="copy" onclick="copyCode('godModeLink')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Gift Aid (Link)</h2>
+    <textarea id="giftaidLink"></textarea>
+    <button class="copy" onclick="copyCode('giftaidLink')">Copy Code</button>
+  </div>
+  
+  <div class="block">
+    <h2>GPX Animation Links (Auto)</h2>
+    <textarea id="gpxList" style="height:200px;"></textarea>
+    <button class="copy" onclick="copyCode('gpxList')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Letter to Santa (Link)</h2>
+    <textarea id="letterLink"></textarea>
+    <button class="copy" onclick="copyCode('letterLink')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Letter to Santa (Recommended Embed)</h2>
+    <textarea id="recommendedLetter" style="height:220px;"></textarea>
+    <button class="copy" onclick="copyCode('recommendedLetter')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Magic Mailbox (Link)</h2>
+    <textarea id="magicmailboxLink"></textarea>
+    <button class="copy" onclick="copyCode('magicmailboxLink')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Memory Book (Link)</h2>
+    <textarea id="memorybookLink"></textarea>
+    <button class="copy" onclick="copyCode('memorybookLink')">Copy Code</button>
+  </div>
+  
+  <div class="block">
+    <h2>Mini Thermometer (Recommended Embed)</h2>
+    <textarea id="miniThermo" style="height:220px;"></textarea>
+    <button class="copy" onclick="copyCode('miniThermo')">Copy Code</button>
+  </div>
+  
+  <div class="block">
+    <h2>QR Poster Generator (Link)</h2>
+    <textarea id="qrPosterLink"></textarea>
+    <button class="copy" onclick="copyCode('qrPosterLink')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Reindeer Adoption (Link)</h2>
+    <textarea id="reindeerLink"></textarea>
+    <button class="copy" onclick="copyCode('reindeerLink')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Route Card (Link)</h2>
+    <textarea id="routeCardLink"></textarea>
+    <button class="copy" onclick="copyCode('routeCardLink')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Route Card (Recommended Embed)</h2>
+    <textarea id="recommendedRouteCard" style="height:220px;"></textarea>
+    <button class="copy" onclick="copyCode('recommendedRouteCard')">Copy Code</button>
+  </div>
+  
+  <div class="block">
+    <h2>Route Planner (Link)</h2>
+    <textarea id="routeplannerLink"></textarea>
+    <button class="copy" onclick="copyCode('routeplannerLink')">Copy Code</button>
+  </div>
+  
+  <div class="block">
+    <h2>Routes (Link)</h2>
+    <textarea id="routesLink"></textarea>
+    <button class="copy" onclick="copyCode('routesLink')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Routes (Recommended Embed)</h2>
+    <textarea id="recommendedRoutes" style="height:220px;"></textarea>
+    <button class="copy" onclick="copyCode('recommendedRoutes')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Santa Nice List</h2>
+    <textarea id="niceListEmbed" style="height:220px;"></textarea>
+    <button class="copy" onclick="copyCode('niceListEmbed')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Santa’s Been – Photo Generator</h2>
+    <textarea id="santasBeenEmbed" style="height:220px;"></textarea>
+    <button class="copy" onclick="copyCode('santasBeenEmbed')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Santa Studio (Link)</h2>
+    <textarea id="santastudioLink"></textarea>
+    <button class="copy" onclick="copyCode('santastudioLink')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Sat-Nav & Transmit (Solo Driver Link)</h2>
+    <p>
+      <strong>All-in-One Setup:</strong> Turn-by-turn routing arrow + background GPS transmitting in one app. <em>Warning: Driver must keep the screen on and not switch apps!</em>
+    </p>
+    <textarea id="satnavLink"></textarea>
+    <button class="copy" onclick="copyCode('satnavLink')">Copy Code</button>
+  </div>
+  
+  <div class="block">
+    <h2>Season Wrap Report (Link)</h2>
+    <textarea id="seasonWrapLink"></textarea>
+    <button class="copy" onclick="copyCode('seasonWrapLink')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Snowman Frame – Face Photo</h2>
+    <textarea id="snowmanFrameEmbed" style="height:220px;"></textarea>
+    <button class="copy" onclick="copyCode('snowmanFrameEmbed')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Suggest Routes (Link)</h2>
+    <textarea id="suggestLink"></textarea>
+    <button class="copy" onclick="copyCode('suggestLink')">Copy Code</button>
+  </div>
+  
+  <div class="block">
+    <h2>Thank You Card (Link)</h2>
+    <textarea id="thankYouLink"></textarea>
+    <button class="copy" onclick="copyCode('thankYouLink')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Tracker (Link)</h2>
+    <textarea id="trackerLink"></textarea>
+    <button class="copy" onclick="copyCode('trackerLink')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Tracker (Recommended Embed)</h2>
+    <textarea id="recommendedTracker" style="height:220px;"></textarea>
+    <button class="copy" onclick="copyCode('recommendedTracker')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Tracker: TV/Kiosk Mode (Link)</h2>
+    <textarea id="trackerKioskLink"></textarea>
+    <button class="copy" onclick="copyCode('trackerKioskLink')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Tracker: TV/Kiosk Mode (Recommended Embed)</h2>
+    <textarea id="recommendedTrackerKiosk" style="height:220px;"></textarea>
+    <button class="copy" onclick="copyCode('recommendedTrackerKiosk')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Volunteer Certificate (Link)</h2>
+    <textarea id="volunteercertLink"></textarea>
+    <button class="copy" onclick="copyCode('volunteercertLink')">Copy Code</button> 
+  </div>
+  
+  <script>
+    function copyCode(id){
+      const el = document.getElementById(id);
+      el.select();
+      navigator.clipboard.writeText(el.value);
+      
+      const btn = el.nextElementSibling;
+      const originalText = btn.innerText;
+      btn.innerText = "Copied! ✨";
+      btn.style.background = "var(--gold)";
+      btn.style.color = "#000";
+      
+      setTimeout(() => { 
+        btn.innerText = originalText; 
+        btn.style.background = "";
+        btn.style.color = "";
+      }, 1500);
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // 🎅 MASTER REGISTRY AUTO-PING
+    // Fires silently in the background whenever a user opens the 
+    // embed generator from their spreadsheet.
+    // ════════════════════════════════════════════════════════════
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const apiParam = urlParams.get('api');
+      
+      if (apiParam) {
+        // 1. Fetch the chapter's data to get their ID and Name
+        fetch(apiParam)
+          .then(response => response.json())
+          .then(data => {
+            if (data && data.settings) {
+              const sleighId = data.settings.sleigh_name || "unknown-table";
+              const sleighName = data.settings.sleigh_display_name || "Santa Sleigh";
+              
+              // 2. Fire the payload directly to the Master Registry
+              const registryUrl = "https://script.google.com/macros/s/AKfycbydqxlwWkD7Kh7IJisZSiweBBbsXDy7smUxpOvT5eLVQxsDO2PqwrJyQI_3y4kwnJB6/exec";
+              
+              fetch(registryUrl, {
+                method: 'POST',
+                mode: 'no-cors', // Bypasses browser cross-origin blocks for blind background posts
+                headers: {
+                  'Content-Type': 'text/plain' // Must be text/plain for no-cors to work
+                },
+                body: JSON.stringify({
+                  id: sleighId,
+                  name: sleighName,
+                  api: apiParam
+                })
+              }).then(() => {
+                console.log("🎅 Successfully registered with Master Registry!");
+              }).catch(err => console.error("Registry ping failed:", err));
+            }
+          })
+          .catch(err => console.error("Failed to fetch API settings for registry ping:", err));
+      }
+    });
+  </script>
+
+</body>
+</html>

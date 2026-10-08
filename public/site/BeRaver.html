@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <!-- Updated viewport to prevent mobile form zooming -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>BeRaver Summer Festival | Beverley Round Table</title>
+
+    <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "a0ee4ac4cadf430abfae375e294e1280"}'></script><!-- End Cloudflare Web Analytics -->
+    
+    <!-- Open Graph / Social Sharing -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="BeRaver Summer Festival | Beverley Round Table">
+<meta property="og:description" content="Eat. Play. Dance. Donate. Join us in Saturday Market for live DJs, street food, and high-voltage games.">
+<meta property="og:image" content="https://brt-23f.pages.dev/images/BERAVER.png">
+<meta property="og:url" content="https://beraver.beverleyroundtable.co.uk">
+    
+    <!-- Preload BRT Custom Font -->
+    <link rel="preload" href="https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.woff2" as="font" type="font/woff2" crossorigin>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        heading: ['Eurostile', 'sans-serif'], 
+                        body: ['Open Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        beraverBlue: '#4db8e8',
+                        beraverPink: '#ff007f',
+                        beraverDark: '#1D1D1A', 
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* BRT Eurostile Font Injection */
+        @font-face {
+            font-family: 'Eurostile';
+            src: url('https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        body {
+            background-color: #1D1D1A;
+            color: #FFFFFF;
+            touch-action: manipulation;
+        }
+        
+        .neon-text-blue { text-shadow: 0 0 10px rgba(77, 184, 232, 0.7), 0 0 20px rgba(77, 184, 232, 0.5); }
+        .neon-text-pink { text-shadow: 0 0 10px rgba(255, 0, 127, 0.7), 0 0 20px rgba(255, 0, 127, 0.5); }
+
+        /* Electric Pulse Animation */
+        @keyframes pulse-travel {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        .electric-separator {
+            position: relative;
+            width: 100%;
+            height: 2px;
+            background: rgba(255,255,255,0.05);
+            overflow: hidden;
+            margin: 4rem 0;
+            border-radius: 2px;
+        }
+        .electric-pulse {
+            position: absolute;
+            top: 0;
+            width: 25%; /* Shorter, tighter laser beam */
+            height: 100%;
+            /* Bright white core surrounded by your pink and blue */
+            background: linear-gradient(90deg, transparent, #ff007f, #ffffff, #4db8e8, transparent);
+            /* Intensified dual-tone neon glow */
+            box-shadow: -10px 0 20px #ff007f, 10px 0 20px #4db8e8, 0 0 15px #ffffff;
+            /* Faster, punchier animation */
+            animation: pulse-travel 1.2s infinite ease-in-out;
+        }
+
+        /* Glass Input for Modal */
+        .glass-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .glass-input:focus {
+            outline: none;
+            border-color: #ff007f;
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+        }
+        select option { background-color: #1D1D1A; color: white; }
+
+        ::-webkit-scrollbar {
+    width: 10px;
+}
+::-webkit-scrollbar-track {
+    background: #1D1D1A; 
+}
+::-webkit-scrollbar-thumb {
+    background: #ff007f; /* beraverPink */
+    border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #4db8e8; /* beraverBlue */
+}
+        
+    </style>
+</head>
+<body class="font-body antialiased flex flex-col min-h-screen">
+
+    <header class="fixed w-full top-0 z-40 bg-beraverDark/95 backdrop-blur-sm border-b border-white/10">
+        <div class="container mx-auto px-4 md:px-6 py-4 flex justify-between items-center h-20">
+            <!-- Logo -->
+            <a href="#" class="flex items-center gap-3 group flex-shrink-0">
+                <img src="https://brt-23f.pages.dev/icons/BRTLogo.png" alt="BRT Logo" class="w-10 h-10 md:w-12 md:h-12 object-contain transition-transform duration-300 group-hover:scale-105">
+                <div class="hidden md:block font-heading font-black text-xl md:text-2xl tracking-tighter text-white uppercase">
+                    Beverley <span class="text-beraverBlue">Round Table</span>
+                </div>
+            </a>
+
+            <!-- Sticky Anchors -->
+            <nav class="flex gap-4 md:gap-8 font-heading font-bold text-xs md:text-sm tracking-widest uppercase">
+                <a href="#whatson" class="text-gray-300 hover:text-beraverBlue transition-colors">What's On</a>
+                <a href="#funzone" class="text-gray-300 hover:text-beraverPink transition-colors">Fun Zone</a>
+            </nav>
+
+            <!-- Donate Button -->
+            <a href="https://donate.beverleyroundtable.co.uk" target="_blank" rel="noopener noreferrer" class="font-heading uppercase font-bold text-xs md:text-sm text-beraverDark bg-beraverPink px-4 md:px-6 py-2 rounded-full hover:bg-white transition-all duration-200 transform hover:scale-105 shadow-[0_0_15px_rgba(255,0,127,0.5)] whitespace-nowrap">
+                DONATE
+            </a>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="min-h-screen flex flex-col justify-center items-center text-center px-4 pt-20 relative overflow-hidden">
+        
+        <div class="absolute top-0 left-0 w-full h-full z-0 overflow-hidden">
+            <video autoplay loop muted playsinline class="w-full h-full object-cover opacity-70">
+                <source src="https://brt-23f.pages.dev/images/vid.webm" type="video/webm">
+                <source src="https://brt-23f.pages.dev/images/vid.mp4" type="video/mp4">
+            </video>
+            <div class="absolute inset-0 bg-beraverDark/60"></div>
+        </div>
+
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-beraverBlue/10 blur-[120px] rounded-full z-0 pointer-events-none"></div>
+
+        <div class="relative z-10 flex flex-col items-center mt-10 md:mt-20">
+            <img src="https://brt-23f.pages.dev/images/BERAVER.png" alt="BeRaver Logo" class="w-full max-w-lg md:max-w-3xl mb-8 drop-shadow-2xl">
+            
+            <h1 class="text-4xl md:text-6xl font-heading font-black uppercase tracking-wide mb-6">
+    <span class="text-beraverBlue neon-text-blue">
+        <span class="block md:inline">Eat.</span>
+        <span class="block md:inline">Play.</span>
+    </span>
+    <span class="text-beraverPink neon-text-pink">
+        <span class="block md:inline">Dance.</span>
+        <span class="block md:inline">Donate.</span>
+    </span>
+            </h1>
+                   
+            <!-- Calendar Info Card (Active State) -->
+<a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=BeRaver+Summer+Festival&dates=20250101T110000/20250101T150000&details=Eat+Play.+Dance+Donate.+Powered+by+Zendure.&location=Saturday+Market,+Beverley" 
+   target="_blank" 
+   rel="noopener noreferrer" 
+   class="group flex flex-col md:flex-row gap-6 text-lg md:text-xl font-bold bg-white/5 border border-white/10 hover:border-beraverPink transition-all duration-300 px-8 py-6 rounded-3xl mb-10 backdrop-blur-sm cursor-pointer hover:bg-white/10 hover:scale-105 hover:shadow-[0_0_30px_rgba(255,0,127,0.3)]">
+    <div class="flex items-center gap-3">
+        <span class="text-beraverPink group-hover:animate-pulse">📅</span>
+        <span class="font-heading tracking-wide">SATURDAY, DD/MM/YY</span>
+    </div>
+    <div class="hidden md:block text-white/30">|</div>
+    <div class="flex items-center gap-3">
+        <span class="text-beraverPink">⏰</span>
+        <span class="font-heading tracking-wide">11:00 AM - 3:00 PM</span>
+    </div>
+    <div class="hidden md:block text-white/30">|</div>
+    <div class="flex items-center gap-3">
+        <span class="text-beraverPink">📍</span>
+        <span class="font-heading tracking-wide">SATURDAY MARKET</span>
+    </div>
+    <div class="hidden md:block text-white/30">|</div>
+    <div class="flex items-center gap-2 text-beraverBlue group-hover:text-beraverPink transition-colors">
+        <span class="font-heading uppercase text-sm tracking-widest">Save Date</span>
+        <span class="text-xl">→</span>
+    </div>
+</a>
+        </div>
+    </section>
+
+    <!-- The Setup Section -->
+    <section id="whatson" class="py-24 bg-beraverDark relative border-t border-white/5">
+        <div class="absolute top-20 left-10 w-96 h-96 bg-beraverPink/10 blur-[120px] rounded-full pointer-events-none z-0"></div>
+        <div class="absolute bottom-20 right-10 w-96 h-96 bg-beraverBlue/10 blur-[120px] rounded-full pointer-events-none z-0"></div>
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl md:text-5xl font-heading font-black mb-4 uppercase">Powered by <span class="text-beraverBlue neon-text-blue">Zendure</span></h2>
+                <p class="text-lg text-gray-400 max-w-2xl mx-auto">Experience a fully off-grid dancefloor. No noisy generators, no fumes. Just pure energy and incredible sound.</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-12 items-stretch">
+                <!-- Main Stage Card -->
+                <div class="bg-white/5 rounded-3xl p-8 border border-white/10 hover:shadow-[0_0_30px_rgba(77,184,232,0.2)] hover:-translate-y-1 transform transition-all duration-300 transition-colors duration-300 group relative overflow-hidden flex flex-col">
+                    <div class="absolute top-0 right-0 bg-beraverBlue text-beraverDark font-heading font-bold text-sm px-4 py-1 rounded-bl-xl z-10 uppercase tracking-widest">The Main Stage</div>
+                    <h3 class="text-3xl font-heading font-black text-white mb-4 mt-2 uppercase">The Treo DJ Booth</h3>
+                    <p class="text-gray-400 mb-6 flex-grow">Our custom Mahindra Treo Tuk-Tuk transformed into a rolling DJ booth, pumping out family-friendly dance anthems and driving basslines.</p>
+                    <ul class="space-y-3 text-gray-300 text-sm font-semibold">
+                        <li class="flex items-center gap-2"><span class="text-beraverBlue">⚡</span> 100% powered by the Zendure SolarFlow 2400 Pro</li>
+                        <li class="flex items-center gap-2"><span class="text-beraverBlue">🎵</span> Live DJ Peak Set from 1:00 PM - 3:00 PM</li>
+                    </ul>
+                </div>
+
+                <!-- Roaming Hub Card -->
+                <div class="bg-white/5 rounded-3xl p-8 border border-white/10 hover:shadow-[0_0_30px_rgba(255,0,127,0.2)] hover:-translate-y-1 transform transition-all duration-300 transition-colors duration-300 group relative overflow-hidden flex flex-col">
+                    <div class="absolute top-0 right-0 bg-beraverPink text-white font-heading font-bold text-sm px-4 py-1 rounded-bl-xl z-10 uppercase tracking-widest">The Gaming Hub</div>
+                    <h3 class="text-3xl font-heading font-black text-white mb-4 mt-2 uppercase">Zendure E-Cargo</h3>
+                    <p class="text-gray-400 mb-6 flex-grow">Check out our interactive game station anchored right in the heart of the festival. Powered entirely by Zendure e-mobility.</p>
+                    <ul class="space-y-3 text-gray-300 text-sm font-semibold">
+                        <li class="flex items-center gap-2"><span class="text-beraverPink">🪩</span> Roaming Party Hub</li>
+                        <li class="flex items-center gap-2"><span class="text-beraverPink">🃏</span> Hosting the giant "Play Your Cards Right"</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="electric-separator">
+            <div class="electric-pulse"></div>
+        </div>
+
+        <!-- Fun Zone -->
+        <div id="funzone" class="text-center mt-24 mb-16 scroll-mt-24">
+            <h2 class="text-4xl md:text-5xl font-heading font-black mb-4 uppercase">The BeRaver <span class="text-beraverPink neon-text-pink">Fun Zone</span></h2>
+            <p class="text-lg text-gray-400 max-w-2xl mx-auto">Explore our marketplace for festival food, high-voltage games, and eco-friendly rave gear.</p>
+        </div>
+
+        <!-- The opening grid wrapper you were missing -->
+        <div class="grid md:grid-cols-3 gap-8 px-6 container mx-auto">
+            
+            <div class="bg-white/5 rounded-3xl p-8 border border-white/10 hover:border-beraverBlue/50 transition-colors duration-300">
+    <h3 class="text-2xl font-heading font-black text-white mb-4 uppercase">Festival Fuel</h3>
+    <ul class="space-y-4 text-gray-400 text-sm">
+        <li><strong class="text-white block mb-1">Festival Hog Roast</strong> Slow-roasted pulled pork sandwiches and classic street food trimmings.</li>
+        <li><strong class="text-white block mb-1">Bursting Boba Bar</strong> Ice-cold popping boba lemonades to keep your energy up on the dancefloor.</li>
+        <li><strong class="text-white block mb-1">Neon Candy Floss</strong> Hot, freshly spun candy floss for an instant festival sugar rush.</li>
+        <li><strong class="text-white block mb-1">Local Restaurant Pop-Ups</strong> Beverley's favourite high street spots pitching up to serve hot festival bites ferried straight from their kitchens.</li>
+            </ul>
+        </div>        
+            
+            <div class="bg-white/5 rounded-3xl p-8 border border-white/10 hover:border-beraverPink/50 transition-colors duration-300">
+                <h3 class="text-2xl font-heading font-black text-white mb-4 uppercase">High-Voltage Games</h3>
+                <ul class="space-y-4 text-gray-400 text-sm">
+                    <li><strong class="text-white block mb-1">Crack the Safe</strong> Guess the 4-digit code to win a premium prize!</li>
+                    <li><strong class="text-white block mb-1">Spin the Decks</strong> A BeRaver themed wheel of fortune for instant wins.</li>
+                    <li><strong class="text-white block mb-1">Play Your Cards Right</strong> Step up to the Zendure e-cargo bike to play our giant game board.</li>
+                </ul>
+            </div>
+
+            <div class="bg-white/5 rounded-3xl p-8 border border-white/10 hover:border-beraverBlue/50 transition-colors duration-300">
+                <h3 class="text-2xl font-heading font-black text-white mb-4 uppercase">Rave Ready</h3>
+                <ul class="space-y-4 text-gray-400 text-sm">
+                    <li><strong class="text-white block mb-1">Festival Market</strong> Local makers selling unique crafts, festival wear, and wares.</li>
+                    <li><strong class="text-white block mb-1">"Rave Survival" Tombola</strong> Win toys, neon sunglasses, and glow batons.</li>
+                    <li><strong class="text-white block mb-1">Bio-Glitter Bar</strong> Get festival-ready with eco-friendly biodegradable glitter.</li>
+                </ul>
+            </div>
+            
+        <!-- The closing grid wrapper -->
+        </div>
+    </section>
+
+    <!-- Live Donation Ticker -->
+    <section class="bg-black border-t border-white/10 py-4 relative z-20 overflow-hidden shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
+        <div class="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-3 h-3 rounded-full bg-red-600 animate-pulse shadow-[0_0_10px_red]"></div>
+                <span class="font-heading font-bold uppercase tracking-widest text-sm text-gray-300">Live Webhook</span>
+            </div>
+            <div class="font-heading font-black text-2xl text-white transition-transform duration-300" id="total-raised-container">
+                £<span id="total-raised">0</span> <span class="text-beraverBlue text-lg">Raised This Year</span>
+            </div>
+            <div id="latest-donation" class="text-sm font-bold h-6 overflow-hidden transition-opacity duration-300 text-gray-400">
+                Listening for Zeffy drops...
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer / CTA Section -->
+    <footer id="donate" class="bg-beraverDark py-16">
+        <div class="container mx-auto px-6 text-center">
+            <h2 class="text-3xl md:text-4xl font-heading font-black mb-6 uppercase">Support Your Local Community</h2>
+            <p class="text-gray-400 max-w-xl mx-auto mb-10 text-lg">Can't make the event but want to support Beverley Round Table? Drop a digital donation, or step up and volunteer for a shift on the day.</p>
+            
+            <div class="flex flex-col sm:flex-row gap-6 justify-center items-center">
+                <!-- Donate Link -->
+                <a href="https://donate.beverleyroundtable.co.uk" target="_blank" rel="noopener noreferrer" class="w-full sm:w-auto bg-gradient-to-r from-beraverBlue to-beraverPink text-white hover:bg-[#3ba4d4] text-beraverDark font-heading font-black px-8 py-4 rounded-full text-xl uppercase transition-all shadow-[0_0_20px_rgba(77,184,232,0.4)] hover:shadow-[0_0_30px_rgba(77,184,232,0.6)] transform hover:-translate-y-1">
+                    Donate Online Now
+                </a>
+                
+                <!-- NEW Modal Trigger -->
+        <button onclick="openVolunteerModal()" class="w-full sm:w-auto bg-transparent border-2 border-beraverPink text-white hover:bg-beraverPink font-heading font-black px-8 py-3.5 rounded-full text-xl uppercase transition-all hover:shadow-[0_0_20px_rgba(255,0,127,0.5)] transform hover:-translate-y-1">
+            Join the Crew
+        </button>
+
+        <!-- Vendor Lead Trigger -->
+<a href="mailto:beverley247@roundtable.org.uk?subject=BeRaver Trader Pitch Enquiry&body=Hi%20BeRaver%20Team%2C%0A%0AI%20would%20like%20to%20book%20a%20pitch%20for%20the%20festival.%0A%0ABusiness%20Name%3A%0APitch%20Type%20(Food%20or%20Craft)%3A%0A%0A%5B*%20Please%20attach%20your%20Public%20Liability%20Insurance%20certificate%20(minimum%20%C2%A32m)%20to%20this%20email%20*%5D" class="w-full sm:w-auto bg-transparent border-2 border-white/20 text-gray-300 hover:border-beraverBlue hover:text-white font-heading font-black px-8 py-3.5 rounded-full text-xl uppercase transition-all hover:shadow-[0_0_20px_rgba(77,184,232,0.3)] transform hover:-translate-y-1">
+    Book a Pitch
+</a>
+        
+    <!-- This closing div must come AFTER all three buttons -->
+    </div>
+    
+    <div class="mt-16 pt-10 border-t border-white/10">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-6 mb-6">
+                    <div class="flex items-center gap-3">
+                        <img src="https://brt-23f.pages.dev/icons/BRTLogo.png" alt="BRT Logo" class="w-10 h-10 object-contain drop-shadow-[0_0_8px_rgba(77,184,232,0.5)]">
+                        <span class="font-heading font-bold uppercase text-white tracking-widest text-sm">Beverley Round Table</span>
+                    </div>
+                    
+                    <div class="flex flex-col sm:flex-row gap-4 sm:gap-8 text-center sm:text-left items-center">
+                        <a href="https://beverleyroundtable.co.uk" class="font-body text-gray-400 hover:text-beraverBlue transition-colors text-sm font-semibold">Main BRT Website</a>
+                        <a href="https://requests.beverleyroundtable.co.uk" target="_blank" class="font-body text-gray-400 hover:text-beraverPink transition-colors text-sm font-semibold">Request a Grant</a>
+                    </div>
+                </div>
+                
+                <div class="text-center md:text-left border-t border-white/10 pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div class="flex flex-col gap-1 w-full">
+                        <p class="font-body text-gray-500 text-xs">
+                            &copy; <span id="year">2026</span> Beverley Round Table. Do More.
+                        </p>
+                        <p class="font-body text-gray-600 text-xs font-semibold">
+                            Registered Charity Application Pending (CIO Foundation)
+                        </p>
+                    </div>
+                </div>
+            </div>
+    </footer>
+
+    <!-- VOLUNTEER MODAL -->
+    <!-- Reduced outer padding (p-2) to maximize screen width -->
+    <div id="volunteerModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-4 opacity-0 transition-opacity duration-300">
+        
+        <!-- Reduced max-height and inner padding to prevent scrolling on average phones -->
+        <div class="bg-beraverDark border border-white/10 p-4 md:p-8 rounded-2xl md:rounded-3xl max-w-xl w-full relative shadow-[0_0_40px_rgba(77,184,232,0.2)] transform scale-95 transition-transform duration-300 flex flex-col max-h-[95vh]" id="modalContent">
+            
+            <button onclick="closeVolunteerModal()" class="absolute top-3 right-3 md:top-4 md:right-4 text-gray-400 hover:text-white transition-colors z-10">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 md:h-8 md:w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+
+            <!-- Compacted header margins -->
+            <header class="text-center mb-3 md:mb-6 flex flex-col items-center flex-shrink-0">
+                <h2 class="text-2xl md:text-4xl font-heading font-black uppercase tracking-wide mb-1 mt-2">
+                    JOIN THE <span class="text-beraverBlue neon-text-blue">CREW</span>
+                </h2>
+                <p class="text-gray-400 text-xs md:text-base">Volunteer Sign-Up</p>
+            </header>
+
+            <!-- Reduced space-y gaps between form fields -->
+            <form id="volunteerForm" onsubmit="submitForm(event)" class="space-y-3 md:space-y-5 overflow-y-auto px-1 flex-grow scrollbar-hide">
+                
+                <div>
+                    <label class="block font-heading uppercase text-[10px] md:text-xs tracking-widest text-gray-400 mb-1">Full Name</label>
+                    <input type="text" id="volName" required placeholder="e.g. John Smith" 
+                           class="glass-input w-full px-3 py-2 md:px-4 md:py-3 rounded-lg md:rounded-xl font-body text-sm md:text-base placeholder-gray-500">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-5">
+                    <div>
+                        <label class="block font-heading uppercase text-[10px] md:text-xs tracking-widest text-gray-400 mb-1">Phone</label>
+                        <input type="tel" id="volPhone" required placeholder="07..." 
+                               class="glass-input w-full px-3 py-2 md:px-4 md:py-3 rounded-lg md:rounded-xl font-body text-sm md:text-base placeholder-gray-500">
+                    </div>
+                    <div>
+                        <label class="block font-heading uppercase text-[10px] md:text-xs tracking-widest text-gray-400 mb-1">Email</label>
+                        <input type="email" id="volEmail" required placeholder="name@example.com" 
+                               class="glass-input w-full px-3 py-2 md:px-4 md:py-3 rounded-lg md:rounded-xl font-body text-sm md:text-base placeholder-gray-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-heading uppercase text-[10px] md:text-xs tracking-widest text-gray-400 mb-1">Organisation (Optional)</label>
+                    <input type="text" id="volOrg" placeholder="e.g. Scouts, Guides, or leave blank" 
+                           class="glass-input w-full px-3 py-2 md:px-4 md:py-3 rounded-lg md:rounded-xl font-body text-sm md:text-base placeholder-gray-500">
+                </div>
+
+                <div>
+                    <label class="block font-heading uppercase text-[10px] md:text-xs tracking-widest text-gray-400 mb-1">Preferred Role</label>
+                    <select id="volRole" required class="glass-input w-full px-3 py-2 md:px-4 md:py-3 rounded-lg md:rounded-xl font-body text-sm md:text-base cursor-pointer">
+                        <option value="">Select an assignment...</option>
+                        <option value="Any">General Crew (Put me anywhere!)</option>
+                        <option value="Bucket Collection">Bucket Collection / Fundraiser</option>
+                        <option value="Games Operator">Games Operator (Crack the Safe, Tombola)</option>
+                        <option value="Stall Assistant">Stall Assistant (Boba, Candy Floss)</option>
+                    </select>
+                </div>
+
+                <div class="pt-2 md:pt-4 mt-2 md:mt-4 border-t border-white/10">
+                    <label class="flex items-start gap-3 cursor-pointer group">
+                        <input type="checkbox" required class="mt-0.5 flex-shrink-0 w-4 h-4 md:w-5 md:h-5 accent-beraverPink bg-white/10 border-white/20 rounded cursor-pointer">
+                        <span class="text-[11px] md:text-sm text-gray-400 group-hover:text-gray-300 transition-colors leading-tight">
+                            I agree to volunteer for the festival shift and follow safety instructions from Beverley Round Table.
+                        </span>
+                    </label>
+                </div>
+
+                <button type="submit" id="submitBtn" 
+                        class="w-full mt-4 md:mt-6 bg-beraverPink hover:bg-white text-beraverDark font-heading font-black px-6 py-3 md:py-4 rounded-lg md:rounded-xl text-base md:text-lg uppercase transition-all shadow-[0_0_15px_rgba(255,0,127,0.4)] hover:shadow-[0_0_25px_rgba(255,255,255,0.6)] transform hover:-translate-y-1 flex-shrink-0">
+                    Sign Up Now
+                </button>
+                
+                <div id="statusMessage" class="hidden text-center mt-2 font-bold text-xs md:text-sm pb-2"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Script Logic -->
+    <script>
+        // --- Zeffy Webhook Ticker ---
+        const WORKER_URL = "https://zeffywebhook.beverley247.workers.dev";
+        let totalRaised = 0;
+        let lastDonationId = null;
+        let isInitialLoad = true;
+        const raisedEl = document.getElementById('total-raised');
+        const raisedContainer = document.getElementById('total-raised-container');
+        const latestEl = document.getElementById('latest-donation');
+        document.getElementById('year').innerText = new Date().getFullYear();
+
+        function triggerDonationAlert(name, amount) {
+            raisedEl.innerText = totalRaised;
+            raisedContainer.classList.add('scale-110', 'text-beraverPink');
+            setTimeout(() => raisedContainer.classList.remove('scale-110', 'text-beraverPink'), 400);
+            latestEl.style.opacity = 0;
+            setTimeout(() => {
+                latestEl.innerHTML = `⚡ NEW: <span class="text-white">${name}</span> dropped <span class="text-beraverPink neon-text-pink">£${amount}</span>!`;
+                latestEl.style.opacity = 1;
+            }, 300);
+        }
+
+        async function pollLatestDonation() {
+            try {
+                const response = await fetch(WORKER_URL);
+                if (!response.ok) return;
+                const data = await response.json();
+                if (typeof data.total === 'number') {
+                    totalRaised = data.total;
+                    raisedEl.innerText = totalRaised;
+                }
+                if (data.id && data.id !== lastDonationId) {
+                    if (isInitialLoad) {
+                        if (latestEl) {
+                            latestEl.innerHTML = `LATEST: <span class="text-white">${data.name || 'Supporter'}</span> dropped <span class="text-beraverPink neon-text-pink">£${data.amount || 0}</span>!`;
+                        }
+                    } else {
+                        triggerDonationAlert(data.name || 'Supporter', data.amount || 0);
+                    }
+                    lastDonationId = data.id; 
+                }
+                isInitialLoad = false;
+            } catch (error) {}
+        }
+        setInterval(pollLatestDonation, 5000);
+        pollLatestDonation(); 
+
+        // --- Volunteer Modal UI Logic ---
+        const modal = document.getElementById('volunteerModal');
+        const modalContent = document.getElementById('modalContent');
+
+        function openVolunteerModal() {
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+                modalContent.classList.add('scale-100');
+            }, 10);
+            document.body.style.overflow = 'hidden'; 
+        }
+
+        function closeVolunteerModal() {
+            modal.classList.add('opacity-0');
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.body.style.overflow = ''; 
+            }, 300);
+        }
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeVolunteerModal();
+        });
+
+        // --- Volunteer Form Submission Logic ---
+        const API_URL = "https://script.google.com/macros/s/AKfycbza8lZWAoisU0GSC7btPlVLsT-vX9-o1zi1GDhl1TQX6jvNaCRMs3MjeW0TftKoE3v6cQ/exec";
+
+        async function submitForm(e) {
+            e.preventDefault();
+            
+            const btn = document.getElementById('submitBtn');
+            const status = document.getElementById('statusMessage');
+            
+            btn.innerText = "TRANSMITTING...";
+            btn.disabled = true;
+            btn.classList.add('opacity-70', 'cursor-not-allowed');
+            status.classList.add('hidden');
+
+            const payload = {
+                name: document.getElementById('volName').value,
+                phone: document.getElementById('volPhone').value,
+                email: document.getElementById('volEmail').value,
+                org: document.getElementById('volOrg').value,
+                role: document.getElementById('volRole').value,
+                timestamp: new Date().toISOString()
+            };
+
+            try {
+                // 'no-cors' mode bypasses the strict Google redirect blocks entirely
+                await fetch(API_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify(payload)
+                });
+
+                // With no-cors, we cannot read the response object. We assume success if the network request completed without crashing.
+                status.innerText = "You're on the list! We'll be in touch with details soon.";
+                status.className = "text-center mt-4 font-bold text-sm text-green-400 neon-text-blue block";
+                document.getElementById('volunteerForm').reset();
+                
+                setTimeout(closeVolunteerModal, 3000);
+                
+            } catch (err) {
+                console.error(err);
+                status.innerText = "Connection failed. Please check your internet and try again.";
+                status.className = "text-center mt-4 font-bold text-sm text-red-400 block";
+            } finally {
+                btn.innerText = "SIGN UP NOW";
+                btn.disabled = false;
+                btn.classList.remove('opacity-70', 'cursor-not-allowed');
+            }
+        }
+    </script>
+
+    <!-- Click tracking: BeRaver Site Analytics -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwyAk3IScj--iNDQUn0ddk5wUH99Gfh6kPnCGmxgHhb4dIOoPRGaRwGT1lD-E9jf8dv/exec";
+
+    document.addEventListener('click', function(event) {
+        const link = event.target.closest('a');
+        if (!link) return;
+        const href = link.getAttribute('href');
+        if (!href) return;
+
+        let payloadLabel = "";
+
+        // 1. Internal Nav & Section Taps
+        if (href.startsWith('#') && href.length > 1) {
+            const sectionName = href.substring(1).replace(/[^a-zA-Z0-9]/g, '_');
+            payloadLabel = `BeRaver_Tap_${sectionName}`;
+        }
+        // 2. Vendor Pitch Bookings (Unique to BeRaver)
+        else if (href.startsWith('mailto:')) {
+            payloadLabel = 'BeRaver_Click_Pitch_Booking';
+        }
+        // 3. Outbound Clicks (Donations, Main BRT site, Socials)
+        else if (href.startsWith('http') && !href.includes(window.location.hostname)) {
+            try {
+                const urlObj = new URL(href);
+                let domain = urlObj.hostname.replace('www.', '').split('.')[0];
+                const cleanName = domain.charAt(0).toUpperCase() + domain.slice(1);
+                payloadLabel = `BeRaver_Click_${cleanName}_Outbound`;
+            } catch (e) {
+                payloadLabel = 'BeRaver_Click_Unknown_Outbound';
+            }
+        }
+
+        // Silently log to the existing Google Sheet
+        if (payloadLabel) {
+            fetch(WEB_APP_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                keepalive: true,
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ sponsorName: payloadLabel })
+            }).catch(err => console.error("Tracking failed"));
+        }
+    });
+});
+</script>
+    
+</body>
+</html>

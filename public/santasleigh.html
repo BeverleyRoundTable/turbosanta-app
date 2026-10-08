@@ -1,0 +1,1698 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Santa Sleigh</title>
+    
+    <!-- Primary Meta Tags -->
+    <meta name="description" content="Follow Santa live on his journey, check when he is visiting your street, and help us raise vital funds for the local community this Christmas!">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Santa Sleigh Live Tracker">
+    <meta property="og:description" content="Follow Santa live on his journey, check when he is visiting your street, and help us raise vital funds for the local community this Christmas!">
+    <meta property="og:image" content="https://brt-23f.pages.dev/icons/site_background.png"> 
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Santa Sleigh Live Tracker">
+    <meta name="twitter:description" content="Follow Santa live on his journey, check when he is visiting your street, and help us raise vital funds for the local community this Christmas!">
+    <meta name="twitter:image" content="https://brt-23f.pages.dev/icons/site_background.png">
+
+    <!-- PWA & Mobile App Tags -->
+    <meta name="theme-color" content="#1D1D1A">
+    <link rel="icon" type="image/png" href="https://brt-23f.pages.dev/icons/RTBI_Santa.png">
+    <link rel="apple-touch-icon" href="https://brt-23f.pages.dev/icons/RTBI_Santa.png">
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Preload heavy background image for faster paint -->
+    <link rel="preload" as="image" href="https://brt-23f.pages.dev/icons/site_background.png">
+    
+    <!-- Preload Custom Eurostile Font (Matching BRT setup) -->
+    <link rel="preload" href="https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.woff2" as="font" type="font/woff2" crossorigin>
+    
+    <!-- Open Sans is the official Round Table paragraph font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/fontawesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/solid.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/brands.min.css">
+
+    <!-- API Preconnections -->
+    <link rel="preconnect" href="https://santaproxy.beverley247.workers.dev">
+    <link rel="preconnect" href="https://brt-23f.pages.dev">
+
+    <style>
+        @font-face {
+            font-family: 'Eurostile';
+            src: url('https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.woff2') format('woff2'),
+                 url('https://brt-23f.pages.dev/fonts/eurostile-bold.woff2') format('woff2'),
+                 url('https://brt-23f.pages.dev/fonts/eurostile-bold.woff') format('woff'),
+                 url('https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.otf') format('opentype');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        :root {
+            --primary: #FBAF33;
+            --accent: #FFFFFF;
+            --bg-dark: #1D1D1A;
+            --bg-card: #000000;
+            --text-main: #FFFFFF;
+            --text-muted: rgba(255, 255, 255, 0.7);
+            --border: rgba(255, 255, 255, 0.15);
+            --on-primary: #000000;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        @media (max-width: 600px) {
+            .thermo-card {
+                padding: 25px 15px; 
+            }
+            .thermo-title {
+                font-size: 16px;
+                letter-spacing: 0px;
+            }
+            .thermo-stats {
+                font-size: 18px;
+                padding: 0 5px;
+            }
+        }
+        
+        #site-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--bg-dark);
+            background-image: 
+                linear-gradient(180deg, rgba(29, 29, 26, 0.85) 0%, rgba(0, 0, 0, 0.95) 100%),
+                url('https://brt-23f.pages.dev/icons/site_background.png');
+            background-size: cover;
+            background-position: center;
+            z-index: -1;
+        }
+
+        .fab-map {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--primary);
+            color: var(--on-primary);
+            padding: 15px 20px;
+            border-radius: 50px;
+            font-family: 'Eurostile', 'Open Sans', sans-serif;
+            font-size: 16px;
+            text-transform: uppercase;
+            text-decoration: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 999;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(20px);
+        }
+        .fab-map.visible {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+
+        h1, h2, h3, .brand-font {
+            font-family: 'Eurostile', 'Open Sans', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .loader-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-dark);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+        .spinner {
+            width: 50px; height: 50px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        nav {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            text-decoration: none;
+            color: var(--text-main);
+        }
+        .nav-logo {
+            height: 50px;
+            width: 50px;
+            object-fit: contain;
+            border-radius: 50%;
+            background: var(--accent);
+            padding: 2px;
+        }
+        .nav-title {
+            font-size: 24px;
+            color: var(--text-main);
+            font-weight: 700;
+        }
+        .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+        .nav-links a {
+            color: var(--text-main);
+            text-decoration: none;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        #announcement-bar {
+            background: var(--primary);
+            color: var(--on-primary);
+            padding: 10px 20px;
+            text-align: center;
+            font-weight: 700;
+            display: none;
+            font-size: 14px;
+        }
+        #announcement-bar.is-alert {
+            background: #d31c1c;
+            color: #ffffff;
+        }
+
+        .hero {
+            padding: 60px 20px;
+            text-align: center;
+            background: radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, transparent 70%);
+        }
+        .hero h1 {
+            font-size: 56px;
+            margin-bottom: 15px;
+            color: var(--text-main);
+            text-shadow: 0 4px 10px rgba(0,0,0,0.8);
+        }
+        .hero p {
+            font-size: 18px;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto 30px;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.8);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 28px;
+            background: var(--primary);
+            color: var(--on-primary);
+            font-family: 'Eurostile', 'Open Sans', sans-serif;
+            font-size: 20px;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            text-transform: uppercase;
+            border: none;
+            cursor: pointer;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+        }
+        
+        section {
+            padding: 60px 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+            scroll-margin-top: 80px;
+        }
+        .section-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .section-header h2 {
+            font-size: 40px;
+            color: var(--text-main);
+            text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+        }
+        .section-header p {
+             text-shadow: 0 2px 5px rgba(0,0,0,0.8);
+        }
+
+        .iframe-container {
+            width: 100%;
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .iframe-container iframe {
+            width: 100%;
+            border: none;
+            display: block;
+        }
+        
+        #tracker-iframe {
+            height: 75svh;
+            min-height: 500px;
+        }
+        @media(min-width: 601px) {
+            #tracker-iframe {
+                height: 80svh;
+                min-height: 650px;
+            }
+        }
+
+        .thermo-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            padding: 40px 30px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .thermo-title {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .progress-bar-bg {
+            width: 100%;
+            height: 24px;
+            background: var(--bg-dark);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--primary);
+            border-radius: 12px;
+            transition: width 1.5s ease-out;
+        }
+        .thermo-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            font-size: 24px;
+        }
+
+        .volunteer-banner {
+            background: linear-gradient(135deg, rgba(29,29,26,0.9) 0%, rgba(0,0,0,0.95) 100%);
+            border: 1px solid var(--primary);
+            border-radius: 12px;
+            padding: 25px;
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+            text-align: left;
+        }
+        .volunteer-text {
+            flex: 1;
+        }
+        .volunteer-text h3 {
+            color: var(--primary);
+            font-size: 24px;
+            margin-bottom: 5px;
+            line-height: 1.2;
+        }
+        .volunteer-text p {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin: 0;
+            line-height: 1.4;
+        }
+        .btn-outline {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 20px;
+            background: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            font-family: 'Eurostile', 'Open Sans', sans-serif;
+            font-size: 18px;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.2s ease-in-out;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .btn-outline:hover {
+            background: var(--primary);
+            color: var(--on-primary);
+        }
+        
+        @media(max-width: 600px) {
+            .volunteer-banner {
+                flex-direction: column;
+                text-align: center;
+                padding: 20px;
+            }
+            .btn-outline {
+                width: 100%;
+            }
+        }
+
+        /* --- TONIGHT'S FEATURED ROUTE SPOTLIGHT --- */
+        .today-spotlight-card {
+            background: var(--bg-card);
+            border: 2px solid var(--primary);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 35px;
+            box-shadow: 0 0 25px rgba(251, 175, 51, 0.2), 0 10px 30px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .today-spotlight-card {
+                display: grid;
+                grid-template-columns: 1.1fr 1fr;
+                gap: 30px;
+                align-items: center;
+                padding: 28px 32px;
+            }
+        }
+
+        .today-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--primary);
+            color: var(--on-primary);
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            padding: 4px 12px;
+            border-radius: 20px;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            width: fit-content;
+        }
+
+        .today-sponsor-box {
+            background: rgba(251, 175, 51, 0.06);
+            border: 1px solid var(--primary);
+            border-radius: 12px;
+            padding: 18px;
+            box-shadow: 0 0 15px rgba(251, 175, 51, 0.15);
+        }
+
+        /* --- ROUTES GRID --- */
+        .routes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+        .route-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+            display: flex;
+            flex-direction: column;
+        }
+        .route-card h3 {
+            color: var(--text-main);
+            font-size: 24px;
+            margin-bottom: 10px;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            word-break: break-word;
+            hyphens: auto;
+        }
+        .route-date {
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            font-size: 14px;
+        }
+        .route-streets {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        /* --- SPONSORS --- */
+        .sponsors-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+        }
+        .sponsor-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 15px;
+            width: 180px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+        }
+        .sponsor-card img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        /* --- ABOUT US --- */
+        .about-card {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            padding: 40px 30px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        .social-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--bg-dark);
+            color: var(--text-main);
+            font-size: 24px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border: 1px solid var(--border);
+        }
+        .social-btn:hover {
+            background: var(--primary);
+            color: var(--on-primary);
+            transform: translateY(-2px); 
+        }
+
+        /* --- FAQ SECTION --- */
+        .faq-accordion {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .faq-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .faq-header {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            background: rgba(0,0,0,0.4);
+            transition: background 0.2s ease;
+            list-style: none;
+        }
+        .faq-header::-webkit-details-marker { display: none; }
+        .faq-header::marker { content: ''; }
+        .faq-header:hover {
+            background: rgba(251, 175, 51, 0.1);
+        }
+        .faq-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin: 0;
+            padding-right: 20px;
+        }
+        .faq-icon {
+            color: var(--primary);
+            font-size: 20px;
+            transition: transform 0.3s ease;
+        }
+        .faq-content {
+            padding: 20px;
+            border-top: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-muted);
+            font-size: 15px;
+            line-height: 1.6;
+        }
+        .faq-item[open] .faq-icon {
+            transform: rotate(180deg);
+        }
+
+        /* --- FOOTER --- */
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            border-top: 1px solid var(--border);
+            margin-top: 60px;
+            background: var(--bg-card);
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        @media(max-width: 600px) {
+            nav {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 15px;
+            }
+            .nav-links {
+                width: 100%;
+                overflow-x: auto;
+                white-space: nowrap;
+                padding-bottom: 5px;
+                justify-content: flex-start;
+                -ms-overflow-style: none;  
+                scrollbar-width: none;  
+            }
+            .nav-links::-webkit-scrollbar { 
+                display: none; 
+            }
+            .hero h1 { font-size: 40px; }
+        }
+
+        .tracker-fs {
+            display: block;
+            text-align: center;
+            margin-top: 14px;
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 14px;
+            text-decoration: none;
+        }
+        .tracker-fs:hover { text-decoration: underline; }
+        .tracker-fs[hidden] { display: none; }
+
+        a:focus-visible,
+        button:focus-visible,
+        summary:focus-visible {
+            outline: 3px solid var(--text-main);
+            outline-offset: 3px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+            *, *::before, *::after {
+                transition-duration: 0.01ms !important;
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+            }
+            .spinner {
+                animation-duration: 2.5s !important;
+                animation-iteration-count: infinite !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="site-bg"></div>
+
+    <!-- Loading Overlay -->
+    <div id="loader" class="loader-overlay" role="status" aria-live="polite">
+        <div class="spinner"></div>
+        <h2 id="loader-text" class="brand-font">Loading Sleigh Data...</h2>
+        <div id="loader-error" style="display: none; color: #d31c1c; text-align: center; max-width: 80%; margin-top: 20px;"></div>
+    </div>
+    
+    <script>
+    window.SLEIGH_CONFIG = Object.assign({
+        proxyBase: 'https://santaproxy.beverley247.workers.dev',
+        frameBase: 'https://brt-23f.pages.dev/sleigh',
+        assetBase: 'https://brt-23f.pages.dev/icons',
+        prettyDomain: 'roundtablesantasleigh.co.uk'
+    }, window.SLEIGH_CONFIG || {});
+
+    window.sleighProxyUrl = function (api) {
+        return window.SLEIGH_CONFIG.proxyBase + '/?ttl=30&target=' + encodeURIComponent(api);
+    };
+
+    window.sleighFetchData = function (api) {
+        return fetch(window.sleighProxyUrl(api), { cache: 'no-store' }).then(function (response) {
+            if (!response.ok) throw new Error('Failed to load API data (HTTP ' + response.status + ')');
+            return response.json();
+        });
+    };
+
+    window.__sleighApiUrl = new URLSearchParams(location.search).get('api');
+
+    if (window.__sleighPrefetchedData) {
+        window.__sleighDataPromise = Promise.resolve(window.__sleighPrefetchedData);
+    } else if (window.__sleighApiUrl) {
+        window.__sleighDataPromise = window.sleighFetchData(window.__sleighApiUrl);
+    }
+
+    if (window.__sleighDataPromise) {
+        window.__sleighDataPromise.catch(function () {});
+    }
+    </script>
+
+    <!-- Live Announcement -->
+    <div id="announcement-bar" role="status" aria-live="polite"></div>
+
+    <!-- Navigation -->
+    <nav>
+        <a href="#" class="nav-brand">
+            <img id="nav-logo" src="" alt="" class="nav-logo" style="display: none;">
+            <div class="nav-title brand-font" id="nav-title">Santa Sleigh</div>
+        </a>
+        <div class="nav-links">
+            <a href="#tracker">Live Tracker</a>
+            <a href="#routes">Routes</a>
+            <a href="#memory-book" id="nav-memory-book">Memory Book</a>
+            <a href="#donate" id="nav-donate">Donate</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero">
+        <h1><span id="hero-title">Santa Sleigh</span></h1>
+        <p>Follow Santa live on his journey, check when he is visiting your street, and help us raise vital funds for the local community this Christmas!</p>
+        <div style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
+            <a href="#tracker" class="btn">Track Santa Live</a>
+            <button id="share-btn" type="button" aria-label="Share this page" class="btn" style="background: transparent; border: 2px solid var(--border); color: var(--text-main);"><i class="fa-solid fa-share-nodes"></i></button>
+        </div>
+    </header>
+
+    <!-- Tracker Section -->
+    <section id="tracker">
+        <div class="section-header">
+            <h2>LIVE <span style="color: var(--primary);">TRACKER</span></h2>
+            <p>Watch Santa's sleigh move in real-time as he visits the streets!</p>
+        </div>
+        <div class="iframe-container">
+            <iframe id="tracker-iframe" height="600" title="Santa Tracker" allow="geolocation; screen-wake-lock" scrolling="no"></iframe>
+        </div>
+        <a id="tracker-fullscreen" class="tracker-fs" href="#" target="_blank" rel="noopener" hidden>Open the tracker full-screen</a>
+    </section>
+
+    <!-- Donations Section -->
+    <section id="donate">
+        <div class="section-header">
+            <h2>HELP US SPREAD <span style="color: var(--primary);">THE MAGIC</span></h2>
+            <p>Every penny raised goes directly back into supporting our local community.</p>
+        </div>
+        
+        <div class="thermo-card">
+            <h3 class="thermo-title brand-font" style="color: var(--text-main);">FUNDRAISER <span style="color: var(--primary);">TARGET</span></h3>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="donation-fill"></div>
+            </div>
+            <div class="thermo-stats brand-font">
+                <span id="donation-current" style="color: var(--primary);">£0</span>
+                <span id="donation-target" style="color: var(--text-muted);">£0</span>
+            </div>
+            <p id="donation-updated-wrap" style="margin-bottom: 20px; font-size: 14px; color: var(--text-muted);">Last updated: <span id="donation-updated">Recently</span></p>
+            <a href="#" id="donate-btn" class="btn" target="_blank" rel="noopener noreferrer" style="display: none;">Donate Now</a>
+        </div>
+
+        <div id="volunteer-container" style="display: none; max-width: 600px; margin: 0 auto;">
+            <div class="volunteer-banner">
+                <div class="volunteer-text">
+                    <h3 class="brand-font">Help Keep The Sleigh Moving!</h3>
+                    <p>We need drivers, navigators, and bucket collectors. Volunteer as an elf this year!</p>
+                </div>
+                <a href="#" id="volunteer-btn" class="btn-outline" target="_blank" rel="noopener noreferrer">Volunteer Now <i class="fa-solid fa-arrow-right" style="margin-left: 5px;"></i></a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Routes Section -->
+    <section id="routes">
+        <div class="section-header">
+            <h2>ROUTE <span style="color: var(--primary);">SCHEDULE</span></h2>
+            <p>Find out exactly when Santa is coming to your neighbourhood.</p>
+        </div>
+        
+        <div class="iframe-container" style="margin-bottom: 40px;">
+            <iframe id="address-iframe" height="500" title="Address Lookup" scrolling="no" loading="lazy" allow="geolocation"></iframe>
+        </div>
+
+        <!-- Dedicated Spotlight for Today's Route -->
+        <div id="today-route-container"></div>
+
+        <div class="routes-grid" id="routes-container">
+            <!-- Populated by JS -->
+        </div>
+    </section>
+
+    <!-- MEMORY BOOK SECTION -->
+    <section id="memory-book">
+        <div class="section-header">
+            <h2>DIGITAL <span style="color: var(--primary);">MEMORY BOOK</span></h2>
+            <p>Spotted Santa? Help us build our digital memory book and share your photos!</p>
+        </div>
+        <div class="iframe-container">
+            <iframe id="memory-book-iframe" height="900" title="Santa Memory Book" loading="lazy" allow="camera; microphone; geolocation"></iframe>
+        </div>
+    </section>
+
+    <!-- Sponsors Section -->
+    <section id="sponsors" style="display: none;">
+        <div class="section-header">
+            <h2>OUR GENEROUS <span style="color: var(--primary);">SPONSORS</span></h2>
+            <p>Thank you to the local businesses keeping the sleigh on the road.</p>
+        </div>
+        <div class="sponsors-grid" id="sponsors-container">
+            <!-- Populated by JS -->
+        </div>
+    </section>
+
+    <!-- FAQ & SAFETY SECTION -->
+    <section id="faq">
+        <div class="section-header">
+            <h2>FAQ & <span style="color: var(--primary);">SAFETY RULES</span></h2>
+            <p>Important information about the sleigh routes and how to enjoy the magic safely.</p>
+        </div>
+        
+        <div class="faq-accordion">
+            <details class="faq-item" name="faq">
+                <summary class="faq-header">
+                    <h3 class="faq-title">Will you definitely come down my street tonight?</h3>
+                    <i class="fa-solid fa-chevron-down faq-icon" aria-hidden="true"></i>
+                </summary>
+                <div class="faq-content">
+                    <p>Our routes are a guide, not a guarantee. We are entirely run by volunteers and rely on good weather, clear traffic, and having enough people to safely operate the sleigh. Sometimes we have to cut a route short due to rain, ice, or time restrictions. Please use the live tracker to see exactly where we are!</p>
+                </div>
+            </details>
+
+            <details class="faq-item" name="faq">
+                <summary class="faq-header">
+                    <h3 class="faq-title">Why didn't you turn down my cul-de-sac?</h3>
+                    <i class="fa-solid fa-chevron-down faq-icon" aria-hidden="true"></i>
+                </summary>
+                <div class="faq-content">
+                    <p>The Santa Sleigh is very large and difficult to manoeuvre. If there are parked cars blocking a turning circle, or if a cul-de-sac is too tight for us to safely turn around, the driver will make the decision to stay on the main road. If you live down a tight street, please come out to the nearest junction to wave to Santa!</p>
+                </div>
+            </details>
+
+            <details class="faq-item" name="faq">
+                <summary class="faq-header">
+                    <h3 class="faq-title">Can my children climb onto the sleigh for a photo?</h3>
+                    <i class="fa-solid fa-chevron-down faq-icon" aria-hidden="true"></i>
+                </summary>
+                <div class="faq-content">
+                    <p>For safety and insurance reasons, <strong>no one is allowed on the sleigh</strong> while it is moving or during the street collections. You are very welcome to take photos of Santa from the pavement. Please ensure children do not run into the road towards the moving vehicle.</p>
+                </div>
+            </details>
+
+            <details class="faq-item" name="faq">
+                <summary class="faq-header">
+                    <h3 class="faq-title">Where does the donated money go?</h3>
+                    <i class="fa-solid fa-chevron-down faq-icon" aria-hidden="true"></i>
+                </summary>
+                <div class="faq-content">
+                    <p>Every single penny collected goes directly into our local Round Table charity fund. Throughout the year, we distribute this money to local good causes, community groups, food banks, and individuals in need right here in our town.</p>
+                </div>
+            </details>
+
+            <details class="faq-item" name="faq">
+                <summary class="faq-header">
+                    <h3 class="faq-title">Do you accept card donations?</h3>
+                    <i class="fa-solid fa-chevron-down faq-icon" aria-hidden="true"></i>
+                </summary>
+                <div class="faq-content">
+                    <p>Yes! Our elves carry contactless card readers alongside their traditional buckets. You can also donate right here on this website using the Donate button at the top of the page.</p>
+                </div>
+            </details>
+            
+            <details class="faq-item" name="faq">
+                <summary class="faq-header">
+                    <h3 class="faq-title">Can I volunteer to help?</h3>
+                    <i class="fa-solid fa-chevron-down faq-icon" aria-hidden="true"></i>
+                </summary>
+                <div class="faq-content">
+                    <p>Absolutely! We are always looking for enthusiastic volunteers to help collect donations, act as safety walkers, or even drive the towing vehicle. Reach out to us via our social media channels below to get involved.</p>
+                </div>
+            </details>
+        </div>
+    </section>
+    
+    <!-- ABOUT US SECTION -->
+    <section id="about">
+        <div class="section-header">
+            <h2>WHO <span style="color: var(--primary);">WE ARE</span></h2>
+        </div>
+        <div class="about-card">
+            <p style="font-size: 18px; margin-bottom: 20px;">
+                The Santa Sleigh is proudly operated by <strong id="about-table-name" style="color: var(--primary);">Round Table</strong>.
+            </p>
+            <p style="margin-bottom: 20px; color: var(--text-muted);">
+                Round Table is an events-based club for young men aged 18-45 focused on delivering a programme of social and community events. Whether it be trying a new sport, going on an adventure, or raising money for our communities, we aim to have fun, make friends, and live life to the fullest.
+            </p>
+            <p style="font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: var(--text-main);">
+                Find the friends you've been missing. <span style="color: var(--primary);">Do More in <span id="current-year-text"></span>.</span>
+            </p>
+            
+            <div class="social-links" id="social-links-container"></div>
+        </div>
+    </section>
+
+    <a href="#tracker" id="fab-map" class="fab-map" aria-label="Jump to map">
+        <i class="fa-solid fa-map-location-dot"></i> Live Map
+    </a>
+
+    <footer>
+        <p>&copy; <span id="year"></span> <span id="footer-name">Santa Sleigh</span>. Powered by TurboSanta.</p>
+    </footer>
+
+    <script>
+        const CFG = window.SLEIGH_CONFIG;
+        const $ = (id) => document.getElementById(id);
+        const DEFAULT_LOGO = CFG.assetBase + '/RTBI_Santa.png';
+        const DEFAULT_WEBSITE = 'https://www.roundtable.co.uk';
+        const BG_OVERLAY = 'linear-gradient(180deg, rgba(29, 29, 26, 0.85) 0%, rgba(0, 0, 0, 0.95) 100%)';
+        const FRAME_ORIGIN = (() => { try { return new URL(CFG.frameBase).origin; } catch (e) { return ''; } })();
+
+        const currentYear = new Date().getFullYear();
+        $('current-year-text').textContent = currentYear;
+        $('year').textContent = currentYear;
+
+        function safeUrl(u) {
+            if (!u) return '';
+            try {
+                const x = new URL(String(u).trim(), location.href);
+                return (x.protocol === 'https:' || x.protocol === 'http:') ? x.href : '';
+            } catch (e) { return ''; }
+        }
+
+        function el(tag, className, text) {
+            const n = document.createElement(tag);
+            if (className) n.className = className;
+            if (text !== undefined && text !== null) n.textContent = text;
+            return n;
+        }
+
+        function asArray(v) { return Array.isArray(v) ? v : []; }
+
+        function parseColor(v) {
+            if (typeof v !== 'string') return null;
+            const s = v.trim();
+            const hex = /^#([0-9a-f]{3,8})$/i.exec(s);
+            if (hex) {
+                let h = hex[1];
+                if (h.length === 3 || h.length === 4) h = h.split('').map(c => c + c).join('');
+                if (h.length !== 6 && h.length !== 8) return null;
+                return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+            }
+            try {
+                if (/var\(|url\(|expression/i.test(s)) return null;
+                if (!(window.CSS && CSS.supports && CSS.supports('color', s))) return null;
+                const ctx = document.createElement('canvas').getContext('2d');
+                ctx.fillStyle = '#000000';
+                ctx.fillStyle = s;
+                const out = ctx.fillStyle;
+                if (out.charAt(0) === '#') return parseColor(out);
+                const rgb = /^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(out);
+                return rgb ? [+rgb[1], +rgb[2], +rgb[3]] : null;
+            } catch (e) { return null; }
+        }
+
+        function readableTextOn(rgb) {
+            const lin = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+            const L = 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]);
+            return ((L + 0.05) / 0.05) >= (1.05 / (L + 0.05)) ? '#000000' : '#ffffff';
+        }
+
+        function parseRouteDate(v) {
+            if (!v) return null;
+            const s = String(v).trim();
+            const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+            const d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(s);
+            return isNaN(d) ? null : d;
+        }
+
+        function deriveTableName(siteName) {
+            return siteName
+                .replace(/\bsanta(?:['\u2019]s)?\b/gi, '')
+                .replace(/\bsleighs?\b/gi, '')
+                .replace(/\bround\s+table\b/gi, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function showError(html, detail) {
+            const loaderText = $('loader-text');
+            const loaderError = $('loader-error');
+            const spinner = document.querySelector('.spinner');
+            if (spinner) spinner.style.display = 'none';
+
+            const target = (loaderText && loaderError) ? loaderError : $('announcement-bar');
+            target.innerHTML = html;
+            if (detail) {
+                const p = el('p', '', detail);
+                p.style.marginTop = '12px';
+                target.appendChild(p);
+            }
+            if (target === loaderError) {
+                loaderText.textContent = 'Setup Required';
+                loaderText.style.color = '#d31c1c';
+                loaderError.style.display = 'block';
+            } else {
+                target.classList.add('is-alert');
+                target.style.display = 'block';
+            }
+            console.error(html, detail || '');
+        }
+
+        function removeLoader() {
+            const loader = $('loader') || document.querySelector('.loader-overlay');
+            if (loader) {
+                loader.style.display = 'none';
+                loader.setAttribute('aria-hidden', 'true');
+            }
+        }
+
+        let netState = 'online';
+        let liveAnnouncement = '';
+
+        function paintBanner() {
+            const bar = $('announcement-bar');
+            let text = '';
+            let alert = false;
+            if (netState === 'offline') {
+                text = '\uD83D\uDCF6 Connection lost. Showing offline map and saved routes.';
+                alert = true;
+            } else if (netState === 'reconnecting') {
+                text = '\uD83D\uDCE1 Reconnected! Refreshing sleigh data...';
+            } else if (liveAnnouncement) {
+                text = '\uD83C\uDF85 ' + liveAnnouncement;
+            }
+            bar.classList.toggle('is-alert', alert);
+            bar.textContent = text;
+            bar.style.display = text ? 'block' : 'none';
+        }
+
+        function renderTheme(settings) {
+            const root = document.documentElement;
+            const primary = parseColor(settings.primary_color);
+            if (primary) {
+                root.style.setProperty('--primary', String(settings.primary_color).trim());
+                root.style.setProperty('--on-primary', readableTextOn(primary));
+            } else {
+                root.style.removeProperty('--primary');
+                root.style.removeProperty('--on-primary');
+            }
+            if (parseColor(settings.accent_color)) {
+                root.style.setProperty('--accent', String(settings.accent_color).trim());
+            } else {
+                root.style.removeProperty('--accent');
+            }
+
+            const bgEl = $('site-bg');
+            const bg = safeUrl(settings.background_url);
+            if (bgEl) {
+                bgEl.style.backgroundImage = bg
+                    ? BG_OVERLAY + ', url("' + bg.replace(/"/g, '%22') + '")'
+                    : '';
+            }
+        }
+
+        function setTitleParts(node, highlight, suffix) {
+            node.replaceChildren();
+            const span = el('span', '', highlight);
+            span.style.color = 'var(--primary)';
+            node.appendChild(span);
+            if (suffix) node.appendChild(document.createTextNode(' ' + suffix));
+        }
+
+        function renderBranding(settings) {
+            const siteName = String(settings.sleigh_display_name || 'Santa Sleigh');
+            document.title = siteName;
+            $('footer-name').textContent = siteName;
+
+            const match = siteName.match(/(.*?\bRound Table\b)/i);
+            const tablePart = match ? match[1].trim() : siteName;
+            const suffix = match ? siteName.substring(match[0].length).trim() : '';
+            setTitleParts($('nav-title'), tablePart, suffix);
+            setTitleParts($('hero-title'), tablePart, suffix);
+
+            const logo = safeUrl(settings.logo_overlay_url);
+            const navLogo = $('nav-logo');
+            navLogo.onerror = () => { navLogo.onerror = null; navLogo.src = DEFAULT_LOGO; };
+            navLogo.src = logo || DEFAULT_LOGO;
+            navLogo.alt = siteName + ' logo';
+            navLogo.style.display = 'block';
+
+            if (logo) {
+                const iconLink = document.querySelector("link[rel='icon']");
+                const appleIconLink = document.querySelector("link[rel='apple-touch-icon']");
+                if (iconLink) iconLink.href = logo;
+                if (appleIconLink) appleIconLink.href = logo;
+            }
+
+            if (location.protocol === 'http:' || location.protocol === 'https:') {
+                let canon = document.querySelector('link[rel="canonical"]');
+                if (!canon) {
+                    canon = document.createElement('link');
+                    canon.rel = 'canonical';
+                    document.head.appendChild(canon);
+                }
+                canon.href = safeUrl(settings.canonical_url) || (location.origin + location.pathname);
+            }
+        }
+
+        function renderAnnouncement(settings) {
+            liveAnnouncement = settings.live_announcement ? String(settings.live_announcement) : '';
+            paintBanner();
+        }
+
+        let lazyObserver = null;
+        function observeLazyFrame(frame) {
+            if (!('IntersectionObserver' in window)) {
+                frame.src = frame.dataset.src;
+                frame.removeAttribute('data-src');
+                return;
+            }
+            if (!lazyObserver) {
+                lazyObserver = new IntersectionObserver((entries, obs) => {
+                    entries.forEach(entry => {
+                        if (!entry.isIntersecting) return;
+                        const f = entry.target;
+                        if (f.dataset.src) {
+                            f.src = f.dataset.src;
+                            f.removeAttribute('data-src');
+                        }
+                        obs.unobserve(f);
+                    });
+                }, { rootMargin: '300px' });
+            }
+            lazyObserver.observe(frame);
+        }
+
+        function setFrameSrc(id, url, lazy) {
+            const frame = $(id);
+            if (!frame) return;
+            if (frame.getAttribute('src') === url || frame.dataset.src === url) return;
+            if (lazy && !frame.getAttribute('src')) {
+                frame.dataset.src = url;
+                observeLazyFrame(frame);
+            } else {
+                frame.src = url;
+            }
+        }
+
+        function frameUrl(page, api) {
+            let url = CFG.frameBase + '/' + page +
+                '?api=' + encodeURIComponent(api) +
+                '&proxy=' + encodeURIComponent(window.sleighProxyUrl(api));
+            
+            if (page === 'address.html') {
+                const shareBase = prettyAddressesUrl();
+                if (shareBase) url += '&shareBase=' + encodeURIComponent(shareBase);
+            } else if (page === 'tracker') {
+                const shareBase = prettyTrackerUrl();
+                if (shareBase) url += '&shareBase=' + encodeURIComponent(shareBase);
+            }
+            return url;
+        }
+
+        let frameMessageBound = false;
+        function bindFrameMessages() {
+            if (frameMessageBound) return;
+            frameMessageBound = true;
+            window.addEventListener('message', (e) => {
+                const addr = $('address-iframe');
+                if (!addr || e.source !== addr.contentWindow) return;
+                if (FRAME_ORIGIN && e.origin !== FRAME_ORIGIN) return;
+                const h = e.data && Number(e.data.addressLookupHeight);
+                if (Number.isFinite(h) && h >= 100 && h <= 5000) addr.style.height = Math.round(h) + 'px';
+            });
+        }
+
+        function prettyTrackerUrl() {
+            const domain = String(CFG.prettyDomain || '').toLowerCase();
+            if (!domain) return '';
+            const host = location.hostname.toLowerCase();
+            const suffix = '.' + domain;
+            if (host.length <= suffix.length || host.slice(-suffix.length) !== suffix) return '';
+            const sub = host.slice(0, -suffix.length);
+            if (!/^[a-z0-9-]+$/.test(sub) || sub === 'www' || /tracker$/.test(sub)) return '';
+            return location.protocol + '//' + sub + 'tracker' + suffix;
+        }
+
+        function prettyCrewUrl() {
+            const domain = String(CFG.prettyDomain || '').toLowerCase();
+            if (!domain) return '';
+            const host = location.hostname.toLowerCase();
+            const suffix = '.' + domain;
+            if (host.length <= suffix.length || host.slice(-suffix.length) !== suffix) return '';
+            const sub = host.slice(0, -suffix.length);
+            if (!/^[a-z0-9-]+$/.test(sub) || sub === 'www' || /tracker$/.test(sub) || /crew$/.test(sub)) return '';
+            return location.protocol + '//' + sub + 'crew' + suffix;
+        }
+
+        function prettyAddressesUrl() {
+            const domain = String(CFG.prettyDomain || '').toLowerCase();
+            if (!domain) return '';
+            const host = location.hostname.toLowerCase();
+            const suffix = '.' + domain;
+            if (host.length <= suffix.length || host.slice(-suffix.length) !== suffix) return '';
+            const sub = host.slice(0, -suffix.length);
+            if (!/^[a-z0-9-]+$/.test(sub) || sub === 'www' || /tracker$/.test(sub) || /crew$/.test(sub) || /addresses$/.test(sub)) return '';
+            return location.protocol + '//' + sub + 'addresses' + suffix;
+        }
+
+        function renderFrames(api) {
+            const trackerUrl = frameUrl('tracker', api);
+            setFrameSrc('tracker-iframe', trackerUrl, false);
+            setFrameSrc('address-iframe', frameUrl('address.html', api), true);
+            setFrameSrc('memory-book-iframe', frameUrl('memory_book', api), true);
+            const fs = $('tracker-fullscreen');
+            if (fs) { fs.href = prettyTrackerUrl() || trackerUrl; fs.hidden = false; }
+            bindFrameMessages();
+        }
+
+        let donationFillAnimated = false;
+        function renderDonations(donations, settings) {
+            const currency = donations.currency ? String(donations.currency) : '\u00A3';
+            const target = parseFloat(donations.target) || 0;
+            const current = parseFloat(donations.total) || 0;
+            const hasTarget = target > 0;
+            const donateUrl = safeUrl(settings.donate_url);
+            
+            const api = window.__sleighApiUrl;
+            const fallbackCrewUrl = CFG.frameBase + '/crew?api=' + encodeURIComponent(api);
+            const volunteerUrl = prettyCrewUrl() || fallbackCrewUrl;
+
+            const card = document.querySelector('.thermo-card');
+            [
+                card.querySelector('.thermo-title'),
+                card.querySelector('.progress-bar-bg'),
+                card.querySelector('.thermo-stats'),
+                $('donation-updated-wrap')
+            ].forEach(n => { if (n) n.style.display = hasTarget ? '' : 'none'; });
+
+            if (hasTarget) {
+                $('donation-current').textContent = currency + current.toLocaleString();
+                $('donation-target').textContent = 'OF ' + currency + target.toLocaleString();
+                $('donation-updated').textContent = donations.lastUpdatePretty ? String(donations.lastUpdatePretty) : 'Today';
+                const pct = Math.max(0, Math.min((current / target) * 100, 100));
+                setTimeout(() => { $('donation-fill').style.width = pct + '%'; }, donationFillAnimated ? 0 : 500);
+                donationFillAnimated = true;
+            }
+
+            const donateBtn = $('donate-btn');
+            if (donateUrl) {
+                donateBtn.href = donateUrl;
+                donateBtn.style.display = 'inline-block';
+            } else {
+                donateBtn.style.display = 'none';
+            }
+            card.style.display = (hasTarget || donateUrl) ? '' : 'none';
+
+            if (volunteerUrl) {
+                $('volunteer-btn').href = volunteerUrl;
+                $('volunteer-container').style.display = 'block';
+            } else {
+                $('volunteer-container').style.display = 'none';
+            }
+
+            const hasAny = hasTarget || !!donateUrl || !!volunteerUrl;
+            $('donate').style.display = hasAny ? '' : 'none';
+            const navDonate = $('nav-donate');
+            if (navDonate) navDonate.style.display = hasAny ? '' : 'none';
+        }
+
+        // --- Routes Rendering ---
+        function renderRoutes(routes, sponsors = []) {
+            const container = $('routes-container');
+            container.replaceChildren();
+
+            let todayContainer = $('today-route-container');
+            if (!todayContainer) {
+                todayContainer = el('div');
+                todayContainer.id = 'today-route-container';
+                container.parentNode.insertBefore(todayContainer, container);
+            }
+            todayContainer.replaceChildren();
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const allRoutes = routes
+                .filter(r => r && r.routeName)
+                .map(route => {
+                    const d = parseRouteDate(route.date);
+                    if (!d) return null;
+                    const day = new Date(d);
+                    day.setHours(0, 0, 0, 0);
+                    return { route, d, day };
+                })
+                .filter(Boolean)
+                .sort((a, b) => a.day - b.day);
+
+            if (!allRoutes.length) {
+                const p = el('p', '', 'No routes scheduled yet. Check back soon!');
+                p.style.color = 'var(--text-muted)';
+                container.appendChild(p);
+                return;
+            }
+
+            const todayItem = allRoutes.find(item => item.day.getTime() === today.getTime());
+            const otherRoutes = allRoutes.filter(item => item !== todayItem);
+
+            // 1. Render Today's Route as the Hero Spotlight Banner
+            if (todayItem) {
+                renderTodaySpotlight(todayItem, sponsors, todayContainer);
+            }
+
+            // 2. Render all other routes in the uniform schedule grid
+            otherRoutes.forEach(({ route, d, day }) => {
+                const isPast = day < today;
+                const card = el('div', 'route-card');
+                
+                if (isPast) {
+                    card.style.opacity = '0.5';
+                    card.style.border = '1px solid var(--bg-dark)';
+                }
+
+                const start = route['Start Time'] || '';
+                const end = route['End Time'] || '';
+                const time = (start && end) ? start + ' - ' + end : '';
+                const dateText = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+                
+                const dateWrapper = el('div', 'route-date');
+                if (isPast) {
+                    const badge = el('span', '', '✓ COMPLETED | ');
+                    badge.style.color = 'var(--text-main)';
+                    dateWrapper.appendChild(badge);
+                }
+                
+                dateWrapper.appendChild(document.createTextNode(time ? dateText + ' | ' + time : dateText));
+                card.appendChild(dateWrapper);
+                card.appendChild(el('h3', 'brand-font', String(route.routeName)));
+
+                if (route.streets) {
+                const streets = String(route.streets).split(',').map(s => s.trim()).filter(Boolean);
+                if (streets.length) {
+                    // Shows all street names and expands the box naturally
+                    card.appendChild(el('div', 'route-streets', streets.join(', ')));
+                }
+            }
+
+                if (route.sponsorName) {
+                    const sponsorBox = el('div');
+                    sponsorBox.style.cssText = 'margin-top: auto; padding-top: 15px; border-top: 1px solid var(--border);';
+                    
+                    const sponsorLabel = el('div', '', 'SPONSORED BY:');
+                    sponsorLabel.style.cssText = 'font-size: 11px; color: var(--primary); text-transform: uppercase; font-weight: 700; margin-bottom: 10px; letter-spacing: 0.5px; opacity: 0.8;';
+                    sponsorBox.appendChild(sponsorLabel);
+
+                    const contentFlex = el('div');
+                    contentFlex.style.cssText = 'display: flex; gap: 12px; align-items: center;';
+
+                    if (route.sponsorUrl) {
+                        const img = document.createElement('img');
+                        img.src = safeUrl(route.sponsorUrl);
+                        img.alt = String(route.sponsorName);
+                        img.style.cssText = 'width: 50px; height: 50px; object-fit: contain; background: #fff; border-radius: 6px; padding: 4px; flex-shrink: 0;';
+                        contentFlex.appendChild(img);
+                    }
+
+                    const sponsorMatch = sponsors.find(sp => sp.name === route.sponsorName);
+                    const sponsorLink = sponsorMatch ? safeUrl(sponsorMatch.sponsorLink) : safeUrl(route.sponsorLink);
+                    
+                    if (sponsorLink) {
+                        const a = document.createElement('a');
+                        a.href = sponsorLink;
+                        a.target = '_blank';
+                        a.rel = 'noopener noreferrer';
+                        a.textContent = String(route.sponsorName);
+                        a.style.cssText = 'color: var(--text-main); font-weight: bold; text-decoration: none; font-size: 15px;';
+                        a.onmouseover = () => a.style.textDecoration = 'underline';
+                        a.onmouseout = () => a.style.textDecoration = 'none';
+                        contentFlex.appendChild(a);
+                    } else {
+                        const strong = el('strong', '', String(route.sponsorName));
+                        strong.style.cssText = 'color: var(--text-main); font-size: 15px;';
+                        contentFlex.appendChild(strong);
+                    }
+
+                    sponsorBox.appendChild(contentFlex);
+                    card.appendChild(sponsorBox);
+                }
+
+                container.appendChild(card);
+            });
+        }
+
+        // --- Render Tonight's Hero Spotlight ---
+        function renderTodaySpotlight({ route, d }, sponsors, parent) {
+            const card = el('div', 'today-spotlight-card');
+
+            const start = route['Start Time'] || '';
+            const end = route['End Time'] || '';
+            const time = (start && end) ? start + ' - ' + end : '';
+            const dateText = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+
+            const routeInfo = el('div');
+            
+            const badge = el('div', 'today-badge');
+            badge.innerHTML = '<i class="fa-solid fa-star"></i> TONIGHT\'S ROUTE';
+            routeInfo.appendChild(badge);
+
+            const dateEl = el('div', 'route-date', time ? dateText + ' | ' + time : dateText);
+            dateEl.style.fontSize = '15px';
+            routeInfo.appendChild(dateEl);
+
+            const title = el('h3', 'brand-font', String(route.routeName));
+            title.style.fontSize = '30px';
+            title.style.margin = '4px 0 10px 0';
+            routeInfo.appendChild(title);
+
+            if (route.streets) {
+            const streets = String(route.streets).split(',').map(s => s.trim()).filter(Boolean);
+            if (streets.length) {
+                // Shows all street names in full
+                const streetsEl = el('div', 'route-streets', streets.join(', '));
+                streetsEl.style.fontSize = '14px';
+                routeInfo.appendChild(streetsEl);
+            }
+        }
+
+            card.appendChild(routeInfo);
+
+            if (route.sponsorName) {
+                const sponsorBox = el('div', 'today-sponsor-box');
+
+                const label = el('div', '', "⭐ TONIGHT'S SPONSOR:");
+                label.style.cssText = 'font-size: 12px; color: var(--primary); text-transform: uppercase; font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px;';
+                sponsorBox.appendChild(label);
+
+                const contentFlex = el('div');
+                contentFlex.style.cssText = 'display: flex; gap: 15px; align-items: center; margin-bottom: 8px;';
+
+                if (route.sponsorUrl) {
+                    const img = document.createElement('img');
+                    img.src = safeUrl(route.sponsorUrl);
+                    img.alt = String(route.sponsorName);
+                    img.style.cssText = 'width: 65px; height: 65px; object-fit: contain; background: #fff; border-radius: 8px; padding: 4px; flex-shrink: 0;';
+                    contentFlex.appendChild(img);
+                }
+
+                const sponsorMatch = sponsors.find(sp => sp.name === route.sponsorName);
+                const sponsorLink = sponsorMatch ? safeUrl(sponsorMatch.sponsorLink) : safeUrl(route.sponsorLink);
+
+                const textFlex = el('div');
+                if (sponsorLink) {
+                    const a = document.createElement('a');
+                    a.href = sponsorLink;
+                    a.target = '_blank';
+                    a.rel = 'noopener noreferrer';
+                    a.textContent = String(route.sponsorName);
+                    a.style.cssText = 'color: var(--text-main); font-weight: bold; text-decoration: none; font-size: 18px;';
+                    a.onmouseover = () => a.style.textDecoration = 'underline';
+                    a.onmouseout = () => a.style.textDecoration = 'none';
+                    textFlex.appendChild(a);
+                } else {
+                    const strong = el('strong', '', String(route.sponsorName));
+                    strong.style.cssText = 'color: var(--text-main); font-size: 18px;';
+                    textFlex.appendChild(strong);
+                }
+                contentFlex.appendChild(textFlex);
+                sponsorBox.appendChild(contentFlex);
+
+                if (route.sponsorDescription) {
+                    const desc = el('div', '', String(route.sponsorDescription));
+                    desc.style.cssText = 'font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-top: 10px;';
+                    sponsorBox.appendChild(desc);
+                }
+
+                card.appendChild(sponsorBox);
+            }
+
+            parent.appendChild(card);
+        }
+
+        // --- Sponsors (RESTORED) ---
+        function renderSponsors(sponsors) {
+            const section = $('sponsors');
+            const container = $('sponsors-container');
+            container.replaceChildren();
+
+            const valid = sponsors.filter(s => s && safeUrl(s.sponsorUrl));
+            section.style.display = valid.length ? 'block' : 'none';
+
+            valid.forEach(sponsor => {
+                const wrap = el('div', 'sponsor-card');
+                const img = document.createElement('img');
+                img.src = safeUrl(sponsor.sponsorUrl);
+                img.alt = sponsor.name ? String(sponsor.name) : 'Sponsor';
+                img.loading = 'lazy';
+                img.decoding = 'async';
+
+                const link = safeUrl(sponsor.sponsorLink);
+                if (link) {
+                    const a = document.createElement('a');
+                    a.href = link;
+                    a.target = '_blank';
+                    a.rel = 'noopener noreferrer sponsored';
+                    a.style.cssText = 'display:flex; width:100%; height:100%; justify-content:center;';
+                    a.appendChild(img);
+                    wrap.appendChild(a);
+                } else {
+                    wrap.appendChild(img);
+                }
+                container.appendChild(wrap);
+            });
+        }
+
+        // --- About + social ---
+        function renderAbout(settings) {
+            const siteName = String(settings.sleigh_display_name || 'Santa Sleigh');
+            const explicit = settings.table_name ? String(settings.table_name).trim() : '';
+            const derived = deriveTableName(siteName);
+            $('about-table-name').textContent = explicit || (derived ? derived + ' Round Table' : siteName);
+        }
+
+        function socialBtn(href, label, iconClass) {
+            const a = document.createElement('a');
+            a.href = href;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            a.className = 'social-btn';
+            a.setAttribute('aria-label', label);
+            a.title = label;
+            const i = document.createElement('i');
+            i.className = iconClass;
+            i.setAttribute('aria-hidden', 'true');
+            a.appendChild(i);
+            return a;
+        }
+
+        function renderSocial(settings) {
+            const container = $('social-links-container');
+            container.replaceChildren();
+            [
+                [safeUrl(settings.table_website_url) || DEFAULT_WEBSITE, 'Website', 'fa-solid fa-globe'],
+                [safeUrl(settings.table_facebook_url), 'Facebook', 'fa-brands fa-facebook-f'],
+                [safeUrl(settings.table_instagram_url), 'Instagram', 'fa-brands fa-instagram'],
+                [safeUrl(settings.table_tiktok_url), 'TikTok', 'fa-brands fa-tiktok'],
+                [safeUrl(settings.table_youtube_url), 'YouTube', 'fa-brands fa-youtube']
+            ].forEach(([href, label, icon]) => {
+                if (href) container.appendChild(socialBtn(href, label, icon));
+            });
+        }
+
+        function safely(name, fn) {
+            try { fn(); } catch (err) { console.error('Render failed: ' + name, err); }
+        }
+
+        function applySettings(data, api) {
+            const settings = (data && data.settings) || {};
+            const donations = (data && data.donations) || {};
+            const routes = asArray(data && data.routes);
+            const sponsors = asArray(data && data.sponsors);
+
+            safely('theme', () => renderTheme(settings));
+            safely('branding', () => renderBranding(settings));
+            safely('announcement', () => renderAnnouncement(settings));
+            safely('frames', () => renderFrames(api));
+            safely('donations', () => renderDonations(donations, settings));
+            safely('routes', () => renderRoutes(routes, sponsors));
+            safely('sponsors', () => renderSponsors(sponsors));
+            safely('about', () => renderAbout(settings));
+            safely('social', () => renderSocial(settings));
+        }
+
+        const SETUP_ERROR_HTML = "Could not load data from the provided API. Please check the URL and ensure your Google Script is deployed as a Web App accessible to 'Anyone'.";
+
+        function checkPayload(data) {
+            if (!data || typeof data !== 'object') throw new Error('The API returned an empty response.');
+            if (data.error) throw new Error(String(data.error));
+            return data;
+        }
+
+        function initializeSleighApp(retryCount = 0) {
+            const apiUrl = window.__sleighApiUrl || new URLSearchParams(location.search).get('api');
+
+            if (!apiUrl) {
+                if (retryCount < 10) {
+                    setTimeout(() => initializeSleighApp(retryCount + 1), 100);
+                    return;
+                }
+                showError("Welcome to the Universal Sleigh Template! <br><br> We couldn't find the sleigh data for this web address. If you are a Round Table chapter setting up a new tracker, please ensure your sleigh name is not null.");
+                return;
+            }
+
+            window.__sleighApiUrl = apiUrl;
+            if (!window.__sleighDataPromise) {
+                window.__sleighDataPromise = window.sleighFetchData(apiUrl);
+            }
+
+            window.__sleighDataPromise
+                .then(data => {
+                    applySettings(checkPayload(data), apiUrl);
+                    removeLoader();
+                })
+                .catch(err => {
+                    showError(SETUP_ERROR_HTML + '<br><br>', err && err.message);
+                    fetch(CFG.proxyBase + '/log?error=' + encodeURIComponent(err && err.message) + '&api=' + encodeURIComponent(apiUrl)).catch(()=>{});
+                });
+        }
+
+        function refreshSleighData() {
+            const api = window.__sleighApiUrl;
+            if (!api) return Promise.resolve();
+            return window.sleighFetchData(api).then(data => applySettings(checkPayload(data), api));
+        }
+
+        window.addEventListener('offline', () => {
+            netState = 'offline';
+            paintBanner();
+        });
+
+        window.addEventListener('online', () => {
+            netState = 'reconnecting';
+            paintBanner();
+            setTimeout(() => {
+                refreshSleighData()
+                    .catch(err => console.warn('Refresh after reconnect failed:', err))
+                    .finally(() => {
+                        if (netState === 'reconnecting') netState = 'online';
+                        paintBanner();
+                    });
+            }, 2000);
+        });
+
+        document.querySelectorAll('.faq-item').forEach(item => {
+            item.addEventListener('toggle', () => {
+                if (!item.open) return;
+                document.querySelectorAll('.faq-item[open]').forEach(other => {
+                    if (other !== item) other.open = false;
+                });
+            });
+        });
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => {
+                    console.log('Service Worker registration failed: ', err);
+                });
+            });
+        }
+
+        const shareBtn = $('share-btn');
+        if (shareBtn) {
+            if (navigator.share) {
+                shareBtn.addEventListener('click', () => {
+                    navigator.share({
+                        title: document.title,
+                        text: 'Santa is on his way! Track the sleigh live:',
+                        url: window.location.href
+                    }).catch(err => {
+                        if (err && err.name !== 'AbortError') console.error(err);
+                    });
+                });
+            } else {
+                shareBtn.style.display = 'none';
+            }
+        }
+
+        const fab = $('fab-map');
+        if (fab) {
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 800) {
+                    fab.classList.add('visible');
+                } else {
+                    fab.classList.remove('visible');
+                }
+            }, { passive: true });
+        }
+
+        initializeSleighApp();
+    </script>
+</body>
+</html>

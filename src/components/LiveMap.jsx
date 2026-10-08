@@ -211,7 +211,7 @@ export default function LiveMap({ tableData }) {
       scrollMarginTop: '80px'
     }}>
       {/* Section Header */}
-      <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+      <div style={{ textAlign: 'center', marginBottom: '24px' }}>
         <h2 style={{ fontSize: 'clamp(28px, 4vw, 42px)', margin: '0 0 8px 0', textShadow: '0 2px 10px rgba(0,0,0,0.8)' }}>
           LIVE <span style={{ color: 'var(--primary)' }}>TRACKER</span>
         </h2>
@@ -220,19 +220,63 @@ export default function LiveMap({ tableData }) {
         </p>
       </div>
 
-      {/* Status Bar */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        background: '#151513',
-        border: '1px solid var(--border)',
-        borderBottom: 'none',
-        borderRadius: '16px 16px 0 0',
-        padding: '14px 20px',
-        flexWrap: 'wrap',
-        gap: '12px'
-      }}>
+      {/* Powered by Zendure Badge */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+        <div style={{
+          background: '#151513',
+          border: '1px solid rgba(0,240,255,0.4)',
+          padding: '6px 18px',
+          borderRadius: '999px',
+          boxShadow: '0 0 20px rgba(0,240,255,0.25)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          flexWrap: 'wrap',
+          justifyContent: 'center'
+        }}>
+          <span style={{ fontFamily: 'Eurostile, sans-serif', fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1.5px', fontWeight: 700 }}>
+            Powered by
+          </span>
+          <img
+            src="/images/zendure.png"
+            alt="Zendure"
+            style={{ height: '24px', background: '#fff', padding: '2px 8px', borderRadius: '6px', objectFit: 'contain' }}
+            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+          />
+          <span style={{
+            borderLeft: '1px solid #374151',
+            paddingLeft: '12px',
+            fontFamily: 'Eurostile, sans-serif',
+            fontSize: '11px',
+            color: '#00f0ff',
+            textTransform: 'uppercase',
+            letterSpacing: '1.5px',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+            Official Power Partners
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00f0ff', display: 'inline-block' }} />
+          </span>
+        </div>
+      </div>
+
+      {/* Zendure Electrical Border Wrapper */}
+      <div className="zendure-power-wrapper">
+        <div className="zendure-power-inner">
+          {/* Status Bar */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            background: '#151513',
+            borderBottom: '1px solid var(--border)',
+            borderRadius: '1.8rem 1.8rem 0 0',
+            padding: '14px 20px',
+            flexWrap: 'wrap',
+            gap: '12px'
+          }}>
         {/* Status Indicator */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
@@ -319,6 +363,9 @@ export default function LiveMap({ tableData }) {
             <Radio size={14} color="var(--primary)" />
             <span>Live Beacon Active</span>
           </span>
+        </div>
+      </div>
+      {/* End of Zendure inner and outer wrappers */}
         </div>
       </div>
     </section>

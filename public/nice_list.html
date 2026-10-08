@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TurboSanta — Santa’s Nice List</title>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500;700&family=Mountains+of+Christmas:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ═══════════════════════════════════════ */
+    /* TURBOSANTA DESIGN SYSTEM */
+    /* ═══════════════════════════════════════ */
+    :root {
+      /* Fallback variables, updated dynamically by applyTheme() */
+      --primary: #FBAF33;
+      --primary-rgb: 251, 175, 51;
+      --on-primary: #000000;
+      
+      --primary-dim: rgba(var(--primary-rgb), 0.12);
+      --primary-glow: rgba(var(--primary-rgb), 0.25);
+      
+      --dark: #0d0d0b;
+      --surface: #161614;
+      --surface-2: #1e1e1b;
+      --surface-3: #252522;
+      --border: rgba(255,255,255,0.08);
+      --text: #eaeae5;
+      --text-dim: rgba(255,255,255,0.55);
+      --text-muted: rgba(255,255,255,0.3);
+    }
+  
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    /* 🔧 IMPORTANT: prevent iframe forcing viewport height */
+    html, body {
+      height: auto;
+      min-height: 0;
+    }
+
+    body {
+      margin: 0;
+      padding: 16px 12px;
+      background: transparent; /* Keep transparent for iframe embedding */
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      /* FIXED: Banished the scrollbar */
+      overflow-y: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .santa-checker {
+      max-width: 720px;
+      /* FIXED: Added 40px margin to the bottom so the shadow isn't cut off */
+      margin: 0 auto 40px;
+      padding: 32px 24px 40px;
+      text-align: center;
+      background: var(--surface);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+      position: relative;
+      overflow: hidden;
+    }
+
+    h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 42px;
+      letter-spacing: 2px;
+      color: #fff;
+      margin: 0 0 24px 0;
+      line-height: 1;
+    }
+    
+    h2 span {
+      color: var(--primary);
+    }
+
+    input {
+      width: 100%;
+      max-width: 420px;
+      padding: 16px 20px;
+      border-radius: 8px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: #fff;
+      font-family: 'DM Mono', monospace;
+      font-size: 16px;
+      display: block;
+      margin: 0 auto;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+
+    input::placeholder { 
+      color: var(--text-muted); 
+      font-family: 'DM Sans', sans-serif;
+    }
+    
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 16px 32px;
+      border-radius: 8px;
+      border: none;
+      background: var(--primary);
+      color: var(--on-primary);
+      font-weight: 700;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      cursor: pointer;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+      transition: transform 0.1s, filter 0.2s;
+    }
+
+    button:hover {
+      filter: brightness(0.92);
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    #status {
+      margin: 24px 0 16px;
+      min-height: 1.5em;
+      font-family: 'DM Mono', monospace;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    a#download {
+      display: none;
+      margin: 16px auto 0;
+      padding: 14px 28px;
+      border-radius: 8px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: #fff;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      width: fit-content;
+    }
+    
+    a#download:hover {
+      background: var(--surface-3);
+    }
+    
+    a#download:active {
+      transform: scale(0.97);
+    }
+    
+    @media (max-width: 600px) {
+      .santa-checker { padding: 32px 20px; }
+      h2 { font-size: 36px; }
+    }
+  </style>
+
+</head>
+
+<body>
+
+<div class="santa-checker" id="niceRoot">
+
+  <h2>🎅 NAUGHTY OR <span>NICE?</span></h2>
+
+  <input id="childName" placeholder="Enter a name..." autocomplete="off" />
+  
+  <button onclick="startCheck()">Check Santa’s List</button>
+
+  <p id="status"></p>
+
+  <canvas id="canvas" width="1600" height="1131" style="display:none;"></canvas>
+
+  <a id="download" download="Santa_Nice_List_Certificate.pdf">
+    ⬇ Download PDF Certificate
+  </a>
+</div>
+
+<script>
+  
+/* ---------- ASSETS ---------- */
+const bgImage = new Image();
+bgImage.crossOrigin = "anonymous";
+bgImage.src = "https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/sleigh/nice_list.png";
+
+/* ---------- THEME & API SETUP ---------- */
+const params = new URLSearchParams(location.search);
+let API_URL = params.get("api") || localStorage.getItem("SANTA_API") || sessionStorage.getItem("SANTA_API");
+
+if (API_URL) {
+  localStorage.setItem("SANTA_API", API_URL); 
+  sessionStorage.setItem("SANTA_API", API_URL);
+  
+  const WORKER_URL = "https://santaproxy.beverley247.workers.dev/";
+  const DATA_URL = `${WORKER_URL}?ttl=30&target=${encodeURIComponent(API_URL)}`;
+  
+  fetch(DATA_URL)
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.settings) applyTheme(data.settings);
+    })
+    .catch(e => console.warn("Failed to load theme for nice list", e));
+}
+
+function parseColor(v) {
+  if (typeof v !== 'string') return null;
+  const s = v.trim();
+  const hex = /^#([0-9a-f]{3,8})$/i.exec(s);
+  if (hex) {
+    let h = hex[1];
+    if (h.length === 3 || h.length === 4) h = h.split('').map(c => c + c).join('');
+    if (h.length !== 6 && h.length !== 8) return null;
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+  try {
+    if (/var\(|url\(|expression/i.test(s)) return null;
+    if (!(window.CSS && CSS.supports && CSS.supports('color', s))) return null;
+    const ctx = document.createElement('canvas').getContext('2d');
+    ctx.fillStyle = '#000000';
+    ctx.fillStyle = s;
+    const out = ctx.fillStyle;
+    if (out.charAt(0) === '#') return parseColor(out);
+    const rgb = /^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(out);
+    return rgb ? [+rgb[1], +rgb[2], +rgb[3]] : null;
+  } catch (e) { return null; }
+}
+
+function readableTextOn(rgb) {
+  const lin = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  const L = 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]);
+  return ((L + 0.05) / 0.05) >= (1.05 / (L + 0.05)) ? '#000000' : '#ffffff';
+}
+
+function applyTheme(settings) {
+  const root = document.documentElement;
+  const raw = settings && settings.primary_color;
+  const rgb = parseColor(raw);
+  
+  if (rgb) {
+    root.style.setProperty('--primary', String(raw).trim());
+    root.style.setProperty('--primary-rgb', rgb.join(', '));
+    root.style.setProperty('--on-primary', readableTextOn(rgb));
+  } else {
+    root.style.removeProperty('--primary');
+    root.style.removeProperty('--primary-rgb');
+    root.style.removeProperty('--on-primary');
+  }
+}
+
+/* ---------- MAIN FLOW ---------- */
+function startCheck(){
+  const name = document.getElementById("childName").value.trim();
+  if(!name) return alert("Please enter a name");
+
+  const status = document.getElementById("status");
+  const download = document.getElementById("download");
+
+  download.style.display = "none";
+  status.innerText = "Checking Santa’s list… 🤔";
+  
+  // FIXED: Adjusted to dynamically read scrollHeight so it accounts for the margin
+  sendHeight();
+
+  const phases = ["Naughty…", "Nice…", "Naughty…", "Nice…"];
+  let i = 0;
+
+  const interval = setInterval(() => {
+    status.innerText = phases[i % phases.length];
+    sendHeight();
+    i++;
+  }, 400);
+
+  setTimeout(() => {
+    clearInterval(interval);
+    status.innerText = "✅ NICE LIST CONFIRMED!";
+    generatePDF(name);
+  }, 2200);
+}
+
+/* ---------- CERTIFICATE RENDER ---------- */
+function generatePDF(name){
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+  const link = document.getElementById("download");
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+
+  // We use Mountains of Christmas if it's loaded, otherwise fallback to DM Sans
+  ctx.fillStyle = "#000";
+  ctx.font = "bold 80px 'Mountains of Christmas', 'DM Sans', sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(name, canvas.width / 2, 620);
+
+  // Canvas → PDF
+  const imgData = canvas.toDataURL("image/png");
+
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({
+    orientation: "landscape",
+    unit: "pt",
+    format: "a4"
+  });
+
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+
+  pdf.addImage(imgData, "PNG", 0, 0, pageWidth, pageHeight);
+
+  const blob = pdf.output("blob");
+  if (link.href) URL.revokeObjectURL(link.href);
+  link.href = URL.createObjectURL(blob);
+  link.style.display = "inline-block";
+
+  sendHeight();
+}
+
+/* ---------- AUTO-HEIGHT ---------- */
+function sendHeight(){
+  // FIXED: Switched to documentElement.scrollHeight to safely include the 40px bottom margin
+  const height = document.documentElement.scrollHeight;
+  window.parent.postMessage({ niceListHeight: height }, "*");
+}
+
+// Fire multiple times to catch font + layout settling
+window.addEventListener("load", () => {
+  sendHeight();
+  setTimeout(() => sendHeight(), 100);
+  setTimeout(() => sendHeight(), 300);
+  setTimeout(() => sendHeight(), 600);
+});
+
+window.addEventListener("resize", () => sendHeight());
+
+const observer = new MutationObserver(() => sendHeight());
+observer.observe(document.body, { childList:true, subtree:true });
+</script>
+
+</body>
+</html>

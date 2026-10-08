@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<title>>TurboSanta — Beacon</title>
+<meta name="theme-color" content="#0a0a09">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/icons/RTBI_Santa.png">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Open+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0a0a09;--card:#151513;--raised:#1c1c19;
+    --border:rgba(255,255,255,0.06);
+    --gold:#FBAF33;--gold-dim:rgba(251,175,51,0.12);
+    --green:#00e676;--green-dim:rgba(0,230,118,0.10);
+    --amber:#ffab00;--amber-dim:rgba(255,171,0,0.10);
+    --red:#ff1744;--red-dim:rgba(255,23,68,0.10);
+    --text:#eeeee8;--dim:rgba(255,255,255,0.45);
+    --mono:'JetBrains Mono',monospace;--sans:'Open Sans',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);
+    overflow:hidden;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+  body{display:flex;flex-direction:column}
+
+  /* ── Loader ── */
+  .loader{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:16px;z-index:9999;transition:opacity .4s}
+  .loader.done{opacity:0;pointer-events:none}
+  .loader-spin{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--gold);
+    border-radius:50%;animation:spin .8s linear infinite}
+  .loader-text{font-size:13px;color:var(--dim);font-weight:600}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .error-msg{text-align:center;padding:80px 24px;color:var(--red);font-size:1em;max-width:500px;margin:0 auto;line-height:1.6}
+  .error-msg code{background:var(--card);padding:4px 10px;border-radius:6px;font-size:.85em;color:var(--gold)}
+
+  /* ── Header ── */
+  .hdr{padding:16px 20px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+  .hdr-left{display:flex;align-items:center;gap:8px}
+  .hdr-dot{width:8px;height:8px;border-radius:50%;background:var(--dim);transition:all .3s}
+  .hdr-dot.live{background:var(--green);box-shadow:0 0 8px var(--green)}
+  .hdr-dot.buf{background:var(--amber);box-shadow:0 0 6px var(--amber)}
+  .hdr-dot.err{background:var(--red)}
+  .hdr-lbl{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gold)}
+  .hdr-right{display:flex;align-items:center;gap:8px}
+  .hdr-name{font-size:11px;color:var(--dim);font-weight:600;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* ── Stage ── */
+  .stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 20px;gap:14px;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+  .ring{width:160px;height:160px;border-radius:50%;position:relative;display:flex;align-items:center;justify-content:center}
+  .ring::before,.ring::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:2px solid currentColor;opacity:0;pointer-events:none}
+  .ring.tx{color:var(--green)}.ring.tx::before{animation:rP 2.4s ease-out infinite}.ring.tx::after{animation:rP 2.4s ease-out .7s infinite}
+  .ring.buf{color:var(--amber)}.ring.buf::before{animation:rP 1.4s ease-out infinite}
+  .ring.err{color:var(--red)}.ring.idle{color:var(--dim)}
+  @keyframes rP{0%{transform:scale(1);opacity:.5}100%{transform:scale(1.55);opacity:0}}
+
+  .core{width:110px;height:110px;border-radius:50%;background:var(--card);border:3px solid currentColor;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;z-index:1;transition:border-color .4s}
+  .core-e{font-size:32px;line-height:1}
+  .core-s{font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:2px;margin-top:6px;color:inherit;text-transform:uppercase}
+  .stx{font-size:13px;font-weight:700;color:var(--dim);text-align:center;min-height:20px;transition:color .3s}
+
+  /* ── Stats ── */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);
+    border-radius:10px;overflow:hidden;width:100%;max-width:440px;flex-shrink:0}
+  .st{background:var(--card);padding:12px 6px;text-align:center}
+  .sv{font-family:var(--mono);font-size:18px;font-weight:800;line-height:1;margin-bottom:4px;color:var(--dim);
+    font-variant-numeric:tabular-nums;transition:color .3s}
+  .sl{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--dim)}
+  .cg{color:var(--green)!important}.ca{color:var(--amber)!important}.cr{color:var(--red)!important}.cw{color:var(--text)!important}
+
+  /* ── Queue ── */
+  .qt{width:100%;max-width:440px;background:var(--amber-dim);border:1px solid rgba(255,171,0,.18);border-radius:10px;
+    padding:10px 14px;display:flex;align-items:center;gap:10px;opacity:0;transform:translateY(6px);
+    transition:all .4s;flex-shrink:0;pointer-events:none}
+  .qt.vis{opacity:1;transform:translateY(0);pointer-events:auto}
+  .qt-i{font-size:16px;flex-shrink:0}.qt-t{font-size:11px;font-weight:700;color:var(--amber);flex:1;letter-spacing:.3px}
+  .qt-n{font-family:var(--mono);font-size:18px;font-weight:800;color:var(--amber);min-width:28px;text-align:right}
+
+  /* ── Screen warning ── */
+  .screen-warn{width:100%;max-width:440px;background:var(--gold-dim);border:1px solid rgba(251,175,51,.18);
+    border-radius:10px;padding:10px 14px;font-size:11px;font-weight:600;color:var(--gold);text-align:center;
+    line-height:1.5;flex-shrink:0;display:none}
+  body.transmitting .screen-warn{display:block}
+
+  /* ── BG audio indicator ── */
+  .bg-badge{width:100%;max-width:440px;background:var(--green-dim);border:1px solid rgba(0,230,118,.18);
+    border-radius:10px;padding:8px 14px;font-size:10px;font-weight:600;color:var(--green);text-align:center;
+    line-height:1.5;flex-shrink:0;display:none}
+  body.transmitting .bg-badge{display:block}
+
+  /* ── Controls ── */
+  .ctrls{padding:14px 20px calc(14px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--border);display:flex;gap:10px;flex-shrink:0}
+  .cb{flex:1;padding:16px 10px;border-radius:14px;font-weight:900;font-size:15px;font-family:var(--sans);
+    cursor:pointer;border:none;transition:transform .1s;letter-spacing:.5px}
+  .cb:active{transform:scale(.95)}
+  .cb-go{background:var(--green);color:#000;box-shadow:0 4px 20px rgba(0,230,118,.25)}
+  .cb-stop{background:var(--red);color:#fff;box-shadow:0 4px 20px rgba(255,23,68,.25)}
+  .cb-log{flex:.4;background:var(--card);color:var(--dim);border:1px solid var(--border)}
+
+  /* ── Drawer ── */
+  .dw{position:fixed;bottom:0;left:0;right:0;max-height:55vh;background:var(--raised);border-top:2px solid var(--gold);
+    border-radius:16px 16px 0 0;transform:translateY(100%);transition:transform .4s cubic-bezier(.16,1,.3,1);z-index:200;display:flex;flex-direction:column}
+  .dw.open{transform:translateY(0)}
+  .dw-h{padding:10px;text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .dw-bar{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 6px}
+  .dw-h span{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim)}
+  .log{flex:1;overflow-y:auto;padding:0 14px 14px;font-family:var(--mono);font-size:10.5px;line-height:1.7;color:var(--dim);-webkit-overflow-scrolling:touch}
+  .log .g{color:var(--green)}.log .a{color:var(--amber)}.log .r{color:var(--red)}
+</style>
+</head>
+<body>
+
+<div class="loader" id="loader">
+  <div class="loader-spin"></div>
+  <div class="loader-text" id="loaderText">Connecting to API…</div>
+</div>
+<div id="app"></div>
+
+<script>
+(()=>{
+"use strict";
+
+const API = new URLSearchParams(location.search).get('api') || '';
+
+const CFG = { RETRY_MS: 5000, MAX_AGE_MS: 90*60*1000, DB: "TurboBeacon", STORE: "q", VER: 1, LOG_CAP: 300 };
+
+const X = { url:null, running:false, wid:null, sent:0, lastTs:null, depth:0, db:null, flushTmr:null, ageTmr:null, sleighName:"", audioCtx:null, silentSrc:null };
+
+// ═══════════════════════════════════════
+// BOOT — same pattern as god_mode
+// ═══════════════════════════════════════
+
+if (!API) {
+  document.getElementById('loader').classList.add('done');
+  document.getElementById('app').innerHTML = '<div class="error-msg">Missing <strong>?api=</strong> parameter.<br><br>Usage: <code>beacon?api=YOUR_API_URL</code></div>';
+} else {
+  boot();
+}
+
+async function boot() {
+  const ltxt = document.getElementById('loaderText');
+
+  // ── 1. Authenticate (same as god_mode) ──
+  let secret = sessionStorage.getItem('beaconSecret');
+
+  if (!secret) {
+    secret = prompt("📡 Beacon Authorization\n\nEnter the Beacon password:");
+    if (!secret) {
+      document.getElementById('app').innerHTML = '<div class="error-msg">Authorization required. Refresh to try again.</div>';
+      document.getElementById('loader').classList.add('done');
+      return;
+    }
+
+    ltxt.textContent = "Verifying password…";
+    try {
+      const sep = API.includes('?') ? '&' : '?';
+      const res = await fetch(`${API}${sep}function=verifyBeaconAuth&secret=${encodeURIComponent(secret)}`);
+      const result = await res.json();
+      if (!result.valid) {
+        document.getElementById('app').innerHTML = '<div class="error-msg">❌ Access Denied. Incorrect password.</div>';
+        document.getElementById('loader').classList.add('done');
+        return;
+      }
+      sessionStorage.setItem('beaconSecret', secret);
+    } catch(e) {
+      document.getElementById('app').innerHTML = '<div class="error-msg">❌ Failed to verify password.<br>' + e.message + '</div>';
+      document.getElementById('loader').classList.add('done');
+      return;
+    }
+  }
+
+  // ── 2. Fetch beacon config (protected endpoint) ──
+  ltxt.textContent = "Fetching GPS config…";
+  try {
+    const sep = API.includes('?') ? '&' : '?';
+    const res = await fetch(`${API}${sep}function=getBeaconConfig&secret=${encodeURIComponent(secret)}`);
+    const cfg = await res.json();
+
+    if (cfg.error) {
+      document.getElementById('app').innerHTML = '<div class="error-msg">❌ ' + cfg.error + '</div>';
+      document.getElementById('loader').classList.add('done');
+      return;
+    }
+
+    X.url = cfg.gpsLoggerUrl;
+    X.sleighName = cfg.sleighName || "Santa Sleigh";
+  } catch(e) {
+    document.getElementById('app').innerHTML = '<div class="error-msg">❌ Failed to fetch beacon config.<br>' + e.message + '</div>';
+    document.getElementById('loader').classList.add('done');
+    return;
+  }
+
+  // ── 3. Build UI & start ──
+  try { X.db = await dbOpen(); } catch { /* no offline buffer */ }
+  await dbPurge(); await syncQ();
+
+  buildUI();
+  startAge();
+  document.getElementById('loader').classList.add('done');
+
+  // Network events
+  window.addEventListener("online", () => { L("🌐 Network restored","g"); flush(); });
+  window.addEventListener("offline", () => { L("📴 Network lost","a"); if(X.running) setMode("buf"); });
+  X.flushTmr = setInterval(() => { if(X.running && X.depth>0 && navigator.onLine) flush(); }, CFG.RETRY_MS);
+  document.addEventListener("visibilitychange", () => { if(!document.hidden && X.running) wakeLock(); });
+
+  L("🎅 TurboSanta Beacon v2.1 ready","g");
+  L("📡 Target: " + X.url,"g");
+}
+
+// ═══════════════════════════════════════
+// UI BUILD
+// ═══════════════════════════════════════
+
+function buildUI() {
+  document.getElementById('app').innerHTML = `
+    <div class="hdr">
+      <div class="hdr-left"><div id="Hd" class="hdr-dot"></div><span class="hdr-lbl">Beacon</span></div>
+      <div class="hdr-right"><span id="Hn" class="hdr-name">${X.sleighName}</span></div>
+    </div>
+    <div class="stage">
+      <div id="R" class="ring idle"><div class="core"><div id="Re" class="core-e">📡</div><div id="Rs" class="core-s">idle</div></div></div>
+      <div id="St" class="stx">Tap START to begin transmitting</div>
+      <div class="stats">
+        <div class="st"><div id="Vf" class="sv">0</div><div class="sl">Fixes</div></div>
+        <div class="st"><div id="Va" class="sv">—</div><div class="sl">Acc (m)</div></div>
+        <div class="st"><div id="Vt" class="sv">—</div><div class="sl">Last Fix</div></div>
+        <div class="st"><div id="Vs" class="sv">—</div><div class="sl">km/h</div></div>
+      </div>
+      <div id="Qt" class="qt"><div class="qt-i">📦</div><div class="qt-t">Queued offline — will replay on reconnect</div><div id="Qn" class="qt-n">0</div></div>
+      <div class="bg-badge">🔊 Silent audio active — GPS will continue in background tabs</div>
+      <div class="screen-warn">⚠️ Keep screen on and plugged in for best results.</div>
+    </div>
+    <div class="ctrls">
+      <button id="Cl" class="cb cb-log">LOG</button>
+      <button id="Cm" class="cb cb-go">▶︎ START</button>
+    </div>
+    <div id="D" class="dw">
+      <div id="Dh" class="dw-h"><div class="dw-bar"></div><span>Transmission Log</span></div>
+      <div id="Dl" class="log"></div>
+    </div>
+  `;
+
+  // Wire buttons
+  _("Cm").onclick = toggleBeacon;
+
+  let logOpen = false;
+  _("Cl").onclick = () => { logOpen = !logOpen; _("D").classList.toggle("open", logOpen); };
+  _("Dh").onclick = () => { logOpen = false; _("D").classList.remove("open"); };
+}
+
+function toggleBeacon() {
+  const mb = _("Cm");
+  if (!X.running) {
+    X.running = true;
+    mb.textContent = "⏹ STOP"; mb.className = "cb cb-stop";
+    setMode("tx"); wakeLock(); gpsOn(); silentAudioStart();
+    L("▶ Beacon started","g");
+  } else {
+    X.running = false; gpsOff(); silentAudioStop();
+    mb.textContent = "▶︎ START"; mb.className = "cb cb-go";
+    setMode("idle");
+    if(wl) try{wl.release()}catch{}
+    L("⏹ Beacon stopped","a");
+  }
+}
+
+// ═══════════════════════════════════════
+// SILENT AUDIO — prevents tab throttling
+// ═══════════════════════════════════════
+
+function silentAudioStart() {
+  try {
+    if (X.audioCtx) return; // already running
+    X.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // Create a silent oscillator (gain = 0)
+    const osc = X.audioCtx.createOscillator();
+    const gain = X.audioCtx.createGain();
+    gain.gain.value = 0.001; // near-silent but enough to count as "playing audio"
+    osc.connect(gain);
+    gain.connect(X.audioCtx.destination);
+    osc.start();
+    X.silentSrc = { osc, gain };
+    L("🔊 Silent audio started (background keep-alive)","g");
+  } catch(e) {
+    L("⚠️ Silent audio failed: " + e.message,"a");
+  }
+}
+
+function silentAudioStop() {
+  try {
+    if (X.silentSrc) {
+      X.silentSrc.osc.stop();
+      X.silentSrc.osc.disconnect();
+      X.silentSrc.gain.disconnect();
+      X.silentSrc = null;
+    }
+    if (X.audioCtx) {
+      X.audioCtx.close();
+      X.audioCtx = null;
+    }
+    L("🔇 Silent audio stopped","a");
+  } catch {}
+}
+
+// ═══════════════════════════════════════
+// INDEXED-DB
+// ═══════════════════════════════════════
+
+const _ = id => document.getElementById(id);
+
+function dbOpen() {
+  return new Promise((ok,no) => {
+    const r = indexedDB.open(CFG.DB,CFG.VER);
+    r.onupgradeneeded = e => { const d=e.target.result; if(!d.objectStoreNames.contains(CFG.STORE)) d.createObjectStore(CFG.STORE,{keyPath:"id",autoIncrement:true}); };
+    r.onsuccess = () => ok(r.result);
+    r.onerror = () => no(r.error);
+  });
+}
+function dbAdd(p) {
+  if(!X.db)return Promise.resolve();
+  return new Promise((ok,no) => { const tx=X.db.transaction(CFG.STORE,"readwrite"); tx.objectStore(CFG.STORE).add({p,t:Date.now()}); tx.oncomplete=()=>{syncQ();ok()}; tx.onerror=()=>no(tx.error); });
+}
+function dbAll() {
+  if(!X.db)return Promise.resolve([]);
+  return new Promise((ok,no) => { const tx=X.db.transaction(CFG.STORE,"readonly"); const r=tx.objectStore(CFG.STORE).getAll(); r.onsuccess=()=>ok(r.result||[]); r.onerror=()=>no(r.error); });
+}
+function dbDel(id) {
+  if(!X.db)return Promise.resolve();
+  return new Promise(ok => { const tx=X.db.transaction(CFG.STORE,"readwrite"); tx.objectStore(CFG.STORE).delete(id); tx.oncomplete=ok; tx.onerror=ok; });
+}
+async function dbPurge() {
+  const items=await dbAll(); const cut=Date.now()-CFG.MAX_AGE_MS; let n=0;
+  for(const i of items){if(i.t<cut){await dbDel(i.id);n++}}
+  if(n)L(`🧹 Purged ${n} stale fix(es)`,"a"); syncQ();
+}
+async function syncQ() {
+  try{X.depth=(await dbAll()).length}catch{X.depth=0}
+  const el=_("Qn"); if(el) el.textContent=X.depth;
+  const qt=_("Qt"); if(qt) qt.classList.toggle("vis",X.depth>0);
+}
+
+// ═══════════════════════════════════════
+// FIREBASE PUT + QUEUE FLUSH
+// ═══════════════════════════════════════
+
+async function putFix(payload) {
+  try {
+    const r = await fetch(X.url, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    X.sent++; X.lastTs=Date.now();
+    _("Vf").textContent=X.sent;
+    setMode("tx");
+    L(`📡 #${X.sent} → ${payload.lat.toFixed(5)}, ${payload.lng.toFixed(5)}`,"g");
+    return true;
+  } catch(e) {
+    await dbAdd(payload);
+    setMode("buf");
+    L(`📦 Queued (${e.message})`,"a");
+    return false;
+  }
+}
+
+async function flush() {
+  if(X.depth===0||!navigator.onLine)return;
+  const items=await dbAll(); if(!items.length)return;
+  items.sort((a,b)=>a.t-b.t);
+  L(`🔄 Replaying ${items.length} fix(es)…`,"a");
+  let ok=0;
+  for(const it of items){
+    if(Date.now()-it.t>CFG.MAX_AGE_MS){await dbDel(it.id);continue}
+    try{const r=await fetch(X.url,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(it.p)});
+      if(r.ok){await dbDel(it.id);ok++;X.sent++}else break;
+    }catch{break}
+  }
+  if(ok){_("Vf").textContent=X.sent;L(`✅ Replayed ${ok} fix(es)`,"g")}
+  syncQ();
+  if(X.depth===0&&X.running)setMode("tx");
+}
+
+// ═══════════════════════════════════════
+// GPS WATCH
+// ═══════════════════════════════════════
+
+function gpsOn() {
+  if(!("geolocation" in navigator)){_("St").textContent="Geolocation not supported";L("❌ Geolocation unavailable","r");return}
+  X.wid = navigator.geolocation.watchPosition(
+    pos => {
+  const c = pos.coords;
+  const payload = { lat: c.latitude, lng: c.longitude, ts: new Date().toISOString() };
+  
+  if (window._lastRoadName) payload.roadName = window._lastRoadName;
+
+  const now = Date.now();
+  if (!window._lastGeocodeTime || now - window._lastGeocodeTime > 5000) {
+    window._lastGeocodeTime = now;
+    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${c.latitude.toFixed(6)}&lon=${c.longitude.toFixed(6)}&format=json&zoom=18&addressdetails=1`, { 
+      headers: { 'User-Agent': 'TurboSanta-Beacon/1.0' } 
+    })
+    .then(r => r.json())
+    .then(data => {
+      const road = data.address?.road || data.address?.pedestrian || data.address?.path || "";
+      if (road) window._lastRoadName = road;
+    }).catch(() => {});
+  }
+      const acc=Math.round(c.accuracy);
+      const aEl=_("Va"); aEl.textContent=acc; aEl.className="sv "+(acc<=10?"cg":acc<=30?"cw":"ca");
+      if(c.speed!=null&&c.speed>=0){const kph=Math.round(c.speed*3.6);const sEl=_("Vs");sEl.textContent=kph;sEl.className="sv "+(kph>2?"cg":"cw")}
+      putFix(payload);
+    },
+    err => { L(`⚠️ GPS: ${err.message} (${err.code})`,"r"); _("St").textContent="GPS Error: "+err.message; setMode("err"); },
+    { enableHighAccuracy:true, maximumAge:0, timeout:4000 }
+  );
+}
+function gpsOff() { if(X.wid!==null){navigator.geolocation.clearWatch(X.wid);X.wid=null} }
+
+// ═══════════════════════════════════════
+// VISUAL MODE
+// ═══════════════════════════════════════
+
+function setMode(m) {
+  const ring=_("R"); if(ring) ring.className="ring "+m;
+  const map={tx:["📡","LIVE","Transmitting","var(--green)"],buf:["📦","BUFFER","Offline — queuing locally","var(--amber)"],err:["⚠️","ERROR","GPS or network error","var(--red)"],idle:["📡","IDLE","Tap START to begin transmitting","var(--dim)"]};
+  const[emoji,label,text,clr]=map[m]||map.idle;
+  const re=_("Re"),rs=_("Rs"),st=_("St"),hd=_("Hd");
+  if(re)re.textContent=emoji;if(rs)rs.textContent=label;
+  if(st){st.textContent=text;st.style.color=clr}
+  if(hd)hd.className="hdr-dot "+({tx:"live",buf:"buf",err:"err"}[m]||"");
+  document.body.classList.toggle("transmitting",m==="tx"||m==="buf");
+}
+
+function startAge() {
+  if(X.ageTmr)clearInterval(X.ageTmr);
+  X.ageTmr=setInterval(()=>{
+    const el=_("Vt"); if(!el)return;
+    if(!X.lastTs){el.textContent="—";return}
+    const s=Math.round((Date.now()-X.lastTs)/1000);
+    el.textContent=s<60?s+"s":Math.floor(s/60)+"m";
+    el.className="sv "+(s<=5?"cg":s<=15?"cw":s<=30?"ca":"cr");
+  },500);
+}
+
+function L(msg,cls="g") {
+  const box=_("Dl"); if(!box)return;
+  const ts=new Date().toLocaleTimeString("en-GB",{hour12:false});
+  const el=document.createElement("div");el.className=cls;
+  el.textContent=`[${ts}] ${msg}`;
+  box.appendChild(el);box.scrollTop=box.scrollHeight;
+  while(box.children.length>CFG.LOG_CAP)box.removeChild(box.firstChild);
+}
+
+let wl=null;
+async function wakeLock(){try{if("wakeLock" in navigator){wl=await navigator.wakeLock.request("screen");wl.addEventListener("release",()=>{if(X.running)setTimeout(wakeLock,2000)})}}catch{}}
+
+})();
+</script>
+</body>
+</html>

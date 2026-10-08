@@ -1,0 +1,3136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TurboSanta — Tracker</title>
+  
+  <link id="dynamic-manifest" rel="manifest" href="">
+  <meta name="theme-color" content="#0d0d0b">
+  <link rel="apple-touch-icon" href="https://brt-23f.pages.dev//icons/RTBI_Santa.png">
+  
+  <!-- Preconnects: open connections to the hosts we hit immediately, before the requests are made -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://unpkg.com">
+  <link rel="preconnect" href="https://tile.openstreetmap.org">
+
+  <link rel="preload" href="https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.woff2" as="font" type="font/woff2" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- leaflet-gpx removed: never used (GPX is parsed manually in loadGpxRoute).
+       leaflet-rotate + MapLibre GL JS (~800KB, driver-mode satnav only) are now
+       lazy-loaded in init() when ?driver=1 — spectators skip them entirely. -->
+
+  <style>
+    @font-face {
+        font-family: 'Eurostile';
+        src: url('https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+        font-weight: 700;
+        font-style: normal;
+        font-display: swap;
+    }
+    
+    :root {
+      /* Brand colour. Default is Round Table gold; applyTheme() overrides these from the API
+         (settings.primary_color), exactly like the Santa sleigh page does. */
+      --primary: #FBAF33;
+      --primary-rgb: 251, 175, 51;   /* same colour as an r, g, b triplet for translucent shades */
+      --on-primary: #000000;         /* text on --primary, auto-picked for readability */
+      --primary-dim: rgba(var(--primary-rgb), 0.12);
+      --primary-glow: rgba(var(--primary-rgb), 0.25);
+      --dark: #0d0d0b;
+      --surface: #161614;
+      --surface-2: #1e1e1b;
+      --surface-3: #252522;
+      --border: rgba(255,255,255,0.08);
+      --border-primary: rgba(var(--primary-rgb), 0.2);
+      --text: #eaeae5;
+      --text-dim: rgba(255,255,255,0.55);
+      --rt-grey: var(--dark);
+      --red: #D31C1C;
+      
+      --ui-bottom-safe: 24px; 
+      
+      --donate-bottom: calc(var(--ui-bottom-safe) + 185px);
+      --info-bottom: var(--ui-bottom-safe);
+    }
+    
+    @supports(padding:env(safe-area-inset-bottom)){ 
+      :root{
+        --ui-bottom-safe: calc(32px + env(safe-area-inset-bottom));
+        --donate-bottom: calc(var(--ui-bottom-safe) + 185px);
+        --info-bottom: var(--ui-bottom-safe);
+      } 
+    }
+
+    html, body { 
+      margin: 0; padding: 0; height: 100%; 
+      background: var(--dark); 
+      color: var(--text); 
+      font-family: 'Open Sans', sans-serif; 
+      overflow: hidden; 
+      -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
+    }
+    #map { position: absolute; inset: 0; z-index: 100; }
+    body.dim-ui #map { filter: brightness(0.85); transition: filter 600ms ease; }
+    /* MapLibre satnav map — only used in driver mode */
+    #mlmap { position: absolute; inset: 0; z-index: 100; display: none; }
+    body.driver-mode #map { display: none; }
+    body.driver-mode #mlmap { display: block; }
+    /* Hide MapLibre's default attribution control — we'll add a discreet credit elsewhere */
+    body.driver-mode .maplibregl-ctrl-bottom-right,
+    body.driver-mode .maplibregl-ctrl-bottom-left { z-index: 200; }
+    body.driver-mode .maplibregl-ctrl-attrib { font-size: 9px; opacity: 0.5; }
+    
+    #snow { position:fixed; inset:0; pointer-events:none; z-index:1500; opacity:0; transition:opacity 800ms ease; }
+    body.snowing #snow { opacity:1; }
+    body::after { content:''; position:fixed; inset:0; background:radial-gradient(circle,transparent 40%,rgba(0,0,0,0.6) 100%); pointer-events:none; opacity:0; transition:opacity 1.5s ease; z-index:1400; }
+    body.snowing::after { opacity:1; }
+
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+    .status-popup { 
+      position: absolute; top: 20px; left: 50%; transform: translateX(-50%); 
+      background: rgba(29, 29, 26, 0.95);
+      border: 1px solid var(--border);
+      color: var(--text); padding: 12px 18px; font-size: 1.05em; font-weight: 800; 
+      border-radius: 14px;
+      max-width: 90%; box-shadow: 0 4px 24px rgba(0,0,0,0.5); 
+      z-index: 4000; text-align: center; transition: all 0.4s ease; line-height: 1.4;
+      overflow: hidden; 
+    }
+
+    .status-popup::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 4px;
+      background: var(--primary);
+      width: var(--progress, 0%);
+      transition: width 1s ease-in-out;
+      box-shadow: 0 0 10px rgba(var(--primary-rgb), 0.8);
+      z-index: 0;
+    }
+
+    .status-popup.is-announcement {
+      background: rgba(29, 29, 26, 0.95) !important; color: var(--primary) !important; 
+      border: 1px solid var(--primary) !important; font-weight: 900 !important;
+      text-transform: uppercase; letter-spacing: 0.05em; animation: alertPulse 1.5s infinite; 
+    }
+    @keyframes alertPulse {
+      0% { box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0.5); transform: translateX(-50%) scale(1); }
+      50% { box-shadow: 0 0 0 15px rgba(var(--primary-rgb), 0); transform: translateX(-50%) scale(1.02); }
+      100% { box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0); transform: translateX(-50%) scale(1); }
+    }
+
+    .status-popup.is-user-msg {
+      background: rgba(45, 15, 60, 0.95) !important; color: #e6c2ff !important; 
+      border: 1px solid #c88bff !important; font-weight: 900 !important;
+      animation: userPulse 1.5s infinite; 
+    }
+    @keyframes userPulse {
+      0% { box-shadow: 0 0 0 0 rgba(200, 139, 255, 0.6); transform: translateX(-50%) scale(1); }
+      50% { box-shadow: 0 0 0 15px rgba(200, 139, 255, 0); transform: translateX(-50%) scale(1.02); }
+      100% { box-shadow: 0 0 0 0 rgba(200, 139, 255, 0); transform: translateX(-50%) scale(1); }
+    }
+
+    .status-popup.is-reconnecting {
+      border: 1px solid #ff6b35 !important;
+      animation: reconnectPulse 2s ease-in-out infinite;
+    }
+    @keyframes reconnectPulse {
+      0%, 100% { border-color: #ff6b35; }
+      50% { border-color: rgba(255, 107, 53, 0.3); }
+    }
+    .dot-reconnecting { background: #ff6b35; animation: pulse 1.4s infinite; }
+
+    .info-popup { 
+  position: fixed; bottom: var(--info-bottom); left: 50%; transform: translateX(-50%); 
+  background: rgba(29, 29, 26, 0.95); border: 1px solid var(--border);
+  padding: 10px 14px; border-radius: 14px; 
+  display: flex; align-items: center; gap: 10px;
+  row-gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  font-size: .85em; font-weight: 800; z-index: 2000; 
+  width: min(540px, calc(100vw - 32px));
+  box-sizing: border-box; box-shadow: 0 4px 24px rgba(0,0,0,0.5); 
+  transition: opacity 600ms ease;
+}
+
+    /* Row 1 — utility buttons (Follow / Re-centre / Share / Music) */
+.info-popup .btn {
+  flex: 1 1 calc(25% - 10px);
+  min-width: 95px;
+}
+
+/* Row 2 — priority live-event buttons, larger and pushed to the second row */
+.info-popup #msgBtn,
+.info-popup #notifyBtn,
+.info-popup #twitchBtn {
+  flex: 1 1 calc(48% - 5px);
+  padding: 11px 14px;
+  font-size: 1em;
+  min-width: 140px;
+}
+#msgBtn   { order: 10; }
+#notifyBtn { order: 11; }
+#twitchBtn { order: 12; }
+    
+    .btn { 
+      background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--border); 
+      border-radius: 10px; padding: 7px 12px; cursor: pointer; font-weight: 800; 
+      font-family: inherit; transition: all 0.2s ease; 
+      -webkit-tap-highlight-color: transparent;
+      outline: none;
+    }
+    @media (hover: hover) {
+      .btn:hover { background: var(--surface); color: var(--text); }
+    }
+    .btn:active { transform: scale(0.96); border-color: var(--primary); color: var(--primary); }
+    .btn.locked { opacity: 0.4; pointer-events: none; filter: grayscale(1); }
+
+    .donate-box { 
+      position: fixed; bottom: var(--donate-bottom); left: 50%; transform: translateX(-50%); 
+      width: 70%; max-width: 420px; z-index: 2000; transition: opacity 600ms ease; 
+    }
+
+    .donate-btn { 
+  font-family: 'Eurostile', sans-serif;
+  font-size: 16px; /* Reduced from 22px to fit wide characters */
+  line-height: 1.2; /* Keeps wrapped lines grouped tightly */
+  letter-spacing: 1px; /* Slightly reduced from 1.5px to save horizontal space */
+  text-transform: uppercase;
+  background: var(--primary); 
+  color: var(--on-primary); 
+  border: 2px solid var(--primary); 
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  min-height: 58px; /* Changed from fixed height to min-height so it can expand */
+  padding: 8px 15px; /* Added vertical padding to balance wrapped text */
+  box-sizing: border-box; 
+  width: 100%;
+  border-radius: 16px; 
+  font-weight: 900; 
+  text-decoration: none; 
+  box-shadow: 0 4px 16px rgba(0,0,0,.4); 
+  transition: background 0.5s ease; 
+  position: relative; 
+  z-index: 1; 
+  overflow: hidden;
+}
+
+    #donateText {
+      display: inline-block;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      text-align: center;
+      width: 100%;
+    }
+    .text-fade-out {
+      opacity: 0;
+      transform: translateY(-4px) scale(0.98);
+    }
+    .gamified-pulse {
+      animation: magicPulse 3s infinite;
+    }
+    @keyframes magicPulse {
+      0% { box-shadow: 0 4px 16px rgba(0,0,0,.4), 0 0 0 0 rgba(var(--primary-rgb), 0.6); }
+      70% { box-shadow: 0 4px 16px rgba(0,0,0,.4), 0 0 0 12px rgba(var(--primary-rgb), 0); }
+      100% { box-shadow: 0 4px 16px rgba(0,0,0,.4), 0 0 0 0 rgba(var(--primary-rgb), 0); }
+    }
+
+    .route-sponsor {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 18px 10px 20px;
+  background: rgba(29, 29, 26, 0.92);
+  border: 1px solid var(--border-primary);
+  border-radius: 16px;
+  box-shadow: 0 6px 22px rgba(0,0,0,0.5), 0 0 0 1px rgba(var(--primary-rgb), 0.06);
+  z-index: 3500;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity .5s ease, transform .5s ease, top .35s ease;
+  pointer-events: auto;
+  text-decoration: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.route-sponsor.visible { opacity: 1; transform: translateY(0); }
+.route-sponsor span {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--primary);
+  white-space: nowrap;
+  line-height: 1;
+}
+.route-sponsor img {
+  max-height: 44px;
+  max-width: 140px;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.35));
+}
+
+/* Hide where it would clash */
+body.kiosk .route-sponsor,
+body.driver-mode .route-sponsor { display: none; }
+
+body.dim-ui .route-sponsor { opacity: 0.55; filter: saturate(0.85); }
+body.dim-ui .route-sponsor:hover { opacity: 0.85; }
+
+/* Mobile — sizing only; vertical position is set by layoutOverlays() against the live status bar */
+@media (max-width: 480px) {
+  .route-sponsor {
+    right: 10px;
+    padding: 8px 14px 10px;
+    gap: 4px;
+    flex-direction: column;
+    align-items: center;
+  }
+  .route-sponsor span {
+    display: block;
+    font-size: 9px;
+    letter-spacing: .08em;
+  }
+  .route-sponsor img { max-height: 36px; max-width: 110px; }
+}
+    
+    #magic-container {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 9999; overflow: hidden;
+    }
+    .sparkle {
+      position: absolute; width: 10px; height: 10px;
+      background: #fff; border-radius: 50%;
+      opacity: 0; pointer-events: none;
+      animation: floatUp ease-out forwards;
+    }
+    @keyframes floatUp {
+      0% { transform: translateY(0) scale(0.5); opacity: 1; }
+      100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
+    }
+
+    .install-overlay {
+      position: absolute; top: 0; left: 0; bottom: 0; right: 0; 
+      width: 100%; z-index: 2005; 
+      opacity: 0; pointer-events: none; transition: opacity 0.8s ease;
+    }
+    .install-overlay.visible { opacity: 1; pointer-events: auto; }
+
+    .override-install-btn {
+      font-family: 'Open Sans', sans-serif; 
+      font-size: 1.05em;
+      letter-spacing: 0;
+      border: 2px solid #fff;
+      box-shadow: none;
+      cursor: pointer;
+    }
+
+    .wave-emoji {
+      position: fixed; font-size: 3.5em; pointer-events: none; z-index: 9999;
+      animation: floatWave 1.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    }
+    @keyframes floatWave {
+      0% { opacity: 1; transform: translateY(0) scale(0.8) rotate(0deg); }
+      30% { transform: translateY(-40px) scale(1.2) rotate(20deg); }
+      60% { transform: translateY(-70px) scale(1.2) rotate(-15deg); }
+      100% { opacity: 0; transform: translateY(-120px) scale(1) rotate(10deg); }
+    }
+
+    body.dim-ui .donate-box, body.dim-ui .info-popup, body.dim-ui .status-popup { opacity: 0.45; filter: saturate(0.85); }
+    body.dim-ui .donate-box:hover, body.dim-ui .info-popup:hover, body.dim-ui .status-popup:hover { opacity: 0.75; }
+    .status-dot { width: 12px; aspect-ratio: 1/1; border-radius: 50%; flex-shrink: 0; display: none; }
+    .dot-moving { background: #2cff4e; animation: pulse 1.4s infinite; }
+    .dot-stopped { background: var(--primary); }
+    @keyframes pulse { 
+      0% { box-shadow: 0 0 0 0 rgba(44,255,78,.6); } 
+      70% { box-shadow: 0 0 0 10px rgba(44,255,78,0); } 
+      100% { box-shadow: 0 0 0 0 rgba(44,255,78,0); } 
+    }
+    
+    #loadingCover { position: fixed; inset: 0; background: var(--rt-grey); display: flex; align-items: center; justify-content: center; z-index: 6000; }
+    #loadingSpinner { width: 52px; height: 52px; border-radius: 50%; border: 4px solid var(--border); border-top-color: var(--primary); animation: spin .9s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .modal-overlay { 
+  display: none; 
+  position: fixed; 
+  inset: 0; 
+  background: rgba(0,0,0,0.85); 
+  z-index: 5000; 
+  align-items: center; 
+  justify-content: center; 
+  padding: 20px; 
+}
+
+.modal-box { 
+  background: var(--surface); 
+  padding: 24px; 
+  border-radius: 20px; 
+  width: 100%; 
+  max-width: 340px; 
+  text-align: center; 
+  border: 1px solid var(--border); 
+  box-shadow: 0 10px 40px rgba(0,0,0,0.6); 
+  animation: slideUp 0.3s cubic-bezier(0.16,1,0.3,1); 
+}
+
+@keyframes slideUp { 
+  from { transform: translateY(20px); opacity: 0; } 
+  to { transform: translateY(0); opacity: 1; } 
+}
+
+.modal-title { 
+  font-family: 'Eurostile', sans-serif;
+  font-size: 26px; 
+  font-weight: 800; 
+  letter-spacing: 1.5px; 
+  margin: 0 0 8px 0; 
+  color: var(--primary); 
+}
+
+.modal-desc { 
+  font-size: 0.9em; 
+  color: var(--text-dim); 
+  margin-bottom: 20px; 
+  line-height: 1.4; 
+}
+
+.modal-input { 
+  width: 100%; 
+  padding: 14px; 
+  margin-bottom: 20px; 
+  background: var(--surface-2); 
+  border: 2px solid var(--border); 
+  border-radius: 12px; 
+  color: var(--text); 
+  font-size: 16px; 
+  box-sizing: border-box; 
+  text-align: center; 
+  font-family: inherit; 
+}
+
+.modal-input:focus { 
+  outline: none; 
+  border-color: var(--primary); 
+}
+
+.modal-btns { 
+  display: flex; 
+  gap: 12px; 
+}
+
+.btn-full { 
+  flex: 1; 
+  padding: 12px; 
+  border-radius: 12px; 
+  font-weight: 800; 
+  font-size: 0.95em; 
+  cursor: pointer; 
+  border: none; 
+  transition: transform 0.1s; 
+  font-family: inherit; 
+}
+
+.btn-full:active { 
+  transform: scale(0.96); 
+}
+
+.btn-cancel { 
+  background: var(--surface-2); 
+  color: var(--text-dim); 
+  border: 1px solid var(--border); 
+}
+
+.btn-confirm { 
+  background: var(--primary); 
+  color: var(--on-primary); 
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3); 
+}
+
+    /* ── SCHEDULE MODAL STYLES ── */
+    .schedule-item {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: border-color 0.2s ease;
+    }
+    .schedule-item:hover {
+      border-color: rgba(var(--primary-rgb), 0.3);
+    }
+    .schedule-details { display: flex; flex-direction: column; gap: 4px; flex-grow: 1; padding-right: 10px; }
+    .schedule-route { font-weight: 800; color: var(--primary); font-size: 1.1em; line-height: 1.1; }
+    .schedule-date { font-size: 0.85em; color: var(--text-dim); font-weight: 600; }
+    .schedule-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .cal-btn {
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); border-radius: 8px; padding: 8px 12px; font-size: 0.8em;
+      cursor: pointer; font-weight: 700; transition: all 0.2s ease; font-family: inherit;
+    }
+    .cal-btn:hover { background: var(--surface-3); border-color: var(--text-dim); }
+    .cal-btn:active { transform: scale(0.95); }
+    .cal-btn.btn-gcal { color: #fff; }
+    .cal-btn.btn-ics { color: #fff; }
+    
+    .toast-box { display: none; position: fixed; left: 50%; bottom: calc(var(--donate-bottom) + 80px); transform: translateX(-50%); background: rgba(var(--primary-rgb), 0.95); color: var(--on-primary); padding: 14px 20px; font-weight: 800; border-radius: 22px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); z-index: 6000; pointer-events: none; max-width: min(90vw,420px); text-align: center; line-height: 1.3; }
+    .toast-visible { display: block; }
+
+    body.kiosk { --kiosk-bottom: 56px; cursor: none; }
+    body.kiosk .kiosk-sponsor { bottom: var(--kiosk-bottom); }
+    body.kiosk .kiosk-banner { bottom: calc(var(--kiosk-bottom) + 64px); }
+    body.kiosk .toast-box, body.kiosk .status-popup:not(.is-announcement), body.kiosk #statusDot, body.kiosk .leaflet-control-zoom, body.kiosk .info-popup { display: none !important; }
+    body.kiosk .leaflet-container { -webkit-tap-highlight-color: transparent; }
+    body.kiosk .leaflet-container *, body.kiosk .leaflet-interactive:focus, body.kiosk .leaflet-interactive { outline: none !important; pointer-events: none; }
+    .kiosk-banner { position: fixed; bottom: calc(var(--kiosk-bottom) + 64px); left: 50%; transform: translateX(-50%) translateY(-6px); background: rgba(29, 29, 26, 0.96); border: 1px solid var(--border); color: var(--text); padding: 16px 36px; border-radius: 999px; font-size: 1.25em; font-weight: 900; letter-spacing: 0.4px; box-shadow: 0 8px 28px rgba(0,0,0,0.55); z-index: 4500; pointer-events: none; opacity: 0; transition: opacity 0.6s ease, transform 0.6s ease; text-align: center; display: none; }
+    body.kiosk .kiosk-banner { display: block; }
+    .kiosk-banner.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .kiosk-banner.live { animation: kioskPulse 2.8s ease-in-out infinite; }
+    .kiosk-subtitle { font-size: 0.75em; opacity: 0.85; margin-top: 4px; text-align: center; color: var(--primary); }
+    @keyframes kioskPulse { 0%,100%{box-shadow:0 8px 28px rgba(0,0,0,0.55)} 50%{box-shadow:0 8px 34px rgba(var(--primary-rgb), 0.4)} }
+    
+    .kiosk-sponsor { position: fixed; bottom: var(--kiosk-bottom); left: 50%; transform: translateX(-50%) translateY(6px); background: rgba(29, 29, 26, 0.95); border: 1px solid var(--border); padding: 10px 18px; border-radius: 14px; display: flex; align-items: center; gap: 12px; z-index: 4400; box-shadow: 0 6px 22px rgba(0,0,0,0.55); opacity: 0; pointer-events: none; transition: opacity 0.6s ease, transform 0.6s ease; }
+    .kiosk-sponsor.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .kiosk-sponsor span { font-size: 0.75em; font-weight: 700; color: var(--text-dim); white-space: nowrap; }
+    .kiosk-sponsor img { max-height: 34px; max-width: 160px; object-fit: contain; }
+    
+    @media(max-height:700px){ 
+      :root{ --ui-bottom-safe: calc(20px + env(safe-area-inset-bottom)); }
+      .donate-box{ width: 85%; max-width: 360px; }
+      .info-popup{ font-size: .8em; padding: 8px 12px; }
+      .status-popup{ font-size: .95em; padding: 12px 16px; } 
+    }
+    
+    @media(max-width: 480px) { 
+  
+  .info-popup { 
+    width: calc(100vw - 16px); 
+    padding: 8px 6px; 
+    gap: 4px; 
+    row-gap: 6px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 20px) !important; 
+  }
+  
+  /* Row 1 — utility buttons compact */
+  .info-popup .btn { 
+    flex: 1 1 calc(25% - 4px); 
+    padding: 8px 2px; 
+    font-size: 0.9em; 
+    white-space: nowrap; 
+    text-align: center; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+    min-width: 0;
+  }
+
+  /* Row 2 — priority buttons larger, override base min-widths */
+  .info-popup #msgBtn,
+  .info-popup #notifyBtn,
+  .info-popup #twitchBtn {
+    flex: 1 1 calc(33.333% - 4px);
+    padding: 12px 4px;
+    font-size: 0.95em;
+    min-width: 0;
+  }
+
+  .status-dot { width: 10px; flex: 0 0 10px; margin-right: 2px; }
+
+  .toast-box { bottom: calc(env(safe-area-inset-bottom, 0px) + 230px) !important; } 
+}
+    
+    .ios-install-prompt { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px); background: rgba(29, 29, 26, 0.95); border: 1px solid var(--primary); color: #fff; padding: 16px; border-radius: 16px; font-size: 0.9em; font-weight: 700; text-align: center; z-index: 9999; width: 85%; max-width: 340px; box-shadow: 0 8px 32px rgba(0,0,0,0.6); opacity: 0; transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; }
+    .ios-install-prompt.visible { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto; }
+    .ios-install-prompt .close-btn { position: absolute; top: 4px; right: 10px; background: none; border: none; color: var(--text-dim); font-size: 1.5em; cursor: pointer; }
+
+    .polaroid { position: fixed; background: #fff; padding: 8px 8px 24px 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); z-index: 9000; pointer-events: none; opacity: 0; animation: polaroidFade 10s cubic-bezier(0.16, 1, 0.3, 1) forwards; max-width: 280px; border-radius: 4px; }
+    .polaroid img { width: 100%; height: auto; display: block; border-radius: 2px; border: 1px solid rgba(0,0,0,0.1); min-height: 150px; background: #f0f0f0; }
+    .polaroid-caption { color: #111; font-family: 'Open Sans', sans-serif; font-weight: 900; font-size: 1.0em; text-align: center; margin-top: 10px; letter-spacing: 0.5px; }
+    @keyframes polaroidFade {
+      0% { opacity: 0; transform: scale(0.6) translateY(40px) rotate(var(--rotStart)); }
+      10% { opacity: 1; transform: scale(1) translateY(0) rotate(var(--rotMid)); }
+      85% { opacity: 1; transform: scale(1) translateY(0) rotate(var(--rotMid)); }
+      100% { opacity: 0; transform: scale(0.9) translateY(-30px) rotate(var(--rotEnd)); }
+    }
+    @media (max-width: 600px) { .polaroid { max-width: 160px; padding: 5px 5px 16px 5px; } .polaroid-caption { font-size: 0.85em; margin-top: 6px; } }
+    
+    .driver-mode { max-width: 500px; margin: 0 auto; position: relative; border-left: 1px solid var(--border); border-right: 1px solid var(--border); box-shadow: 0 0 40px rgba(0,0,0,0.8); }
+    .driver-progress-box { font-family: 'Eurostile', sans-serif; letter-spacing: 2px; display: none; position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); background: rgba(29, 29, 26, 0.95); border: 3px solid var(--primary); color: var(--primary); padding: 14px 40px; font-size: 3em; font-weight: 900; border-radius: 24px; z-index: 5000; box-shadow: 0 10px 40px rgba(0,0,0,0.8), inset 0 0 15px rgba(var(--primary-rgb), 0.2); text-align: center; pointer-events: none; }
+    body.driver-mode.nav-active .driver-progress-box { display: none; }
+    body.driver-mode .donate-box, body.driver-mode .info-popup, body.driver-mode .install-overlay, body.driver-mode .ios-install-prompt { display: none !important; }
+
+    /* ══════════════════════════════════════════════
+       DRIVER MODE — HEADING-UP NAV (Waze-style)
+       ══════════════════════════════════════════════ */
+
+    /* Map rotation handled by leaflet-rotate plugin via map.setBearing() */
+
+
+
+    /* ── BRANDED TURN-BY-TURN NAV BANNER ── */
+    #navBanner {
+      position: fixed;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 100%; max-width: 500px;
+      background: linear-gradient(180deg, rgba(13, 13, 11, 0.98) 0%, rgba(22, 22, 20, 0.96) 100%);
+      color: #fff;
+      padding: 0;
+      display: none;
+      z-index: 6000;
+      font-family: 'Open Sans', sans-serif;
+      border-bottom: 3px solid var(--primary);
+      box-shadow: 0 6px 28px rgba(0,0,0,0.7), 0 2px 0 rgba(var(--primary-rgb), 0.15) inset;
+      box-sizing: border-box;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    body.driver-mode.nav-active #navBanner.ready { display: flex; flex-direction: column; }
+
+    .nav-top-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 18px 12px 18px;
+    }
+
+    #navBanner .nav-icon {
+      font-size: 2.8em;
+      line-height: 1;
+      flex-shrink: 0;
+      width: 64px;
+      text-align: center;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
+    }
+
+    #navBanner .nav-body { flex: 1; min-width: 0; }
+
+    #navBanner .nav-dist {
+      font-family: 'Eurostile', sans-serif;
+      letter-spacing: 3px;
+      font-size: 2.6em;
+      font-weight: 900;
+      color: var(--primary);
+      line-height: 1;
+      text-shadow: 0 0 20px rgba(var(--primary-rgb), 0.3);
+    }
+
+    #navBanner .nav-road {
+      font-size: 1.1em;
+      font-weight: 800;
+      margin-top: 4px;
+      color: #fff;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #navBanner .nav-instruction {
+      font-size: 0.85em;
+      font-weight: 600;
+      margin-top: 2px;
+      color: var(--text-dim);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #navBanner .nav-mute {
+      pointer-events: auto;
+      background: var(--surface-2);
+      border: 2px solid var(--border-primary);
+      color: var(--primary);
+      font-size: 1.3em;
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      cursor: pointer;
+      flex-shrink: 0;
+      padding: 0;
+      transition: all 0.2s ease;
+    }
+    #navBanner .nav-mute:active {
+      transform: scale(0.92);
+      background: var(--primary-dim);
+    }
+
+    /* Speed + ETA strip at bottom of nav banner */
+    .nav-meta-strip {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 18px 10px 18px;
+      background: rgba(0,0,0,0.3);
+      border-top: 1px solid var(--border);
+      font-size: 0.8em;
+      font-weight: 700;
+      color: var(--text-dim);
+      letter-spacing: 0.5px;
+    }
+    .nav-meta-strip .nav-speed { color: var(--text); }
+    .nav-meta-strip .nav-eta { color: var(--primary); }
+
+    #navBanner.off-route {
+      border-bottom-color: var(--red);
+      box-shadow: 0 6px 28px rgba(211,28,28,0.3), 0 2px 0 rgba(211,28,28,0.15) inset;
+    }
+    #navBanner.off-route .nav-dist { color: var(--red); text-shadow: 0 0 20px rgba(211,28,28,0.4); }
+    #navBanner.off-route .nav-road { color: var(--red); }
+
+    .twitch-container { position: fixed; bottom: calc(var(--info-bottom) + 80px); right: 12px; width: 640px; height: 360px; background: var(--surface-2); border: 2px solid var(--primary); border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); z-index: 3000; overflow: hidden; transform: translateX(120%); opacity: 0; transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; }
+    .twitch-container.visible { transform: translateX(0); opacity: 1; pointer-events: auto; }
+    .twitch-container iframe { width: 100%; height: 100%; border: none; }
+    @media (max-width: 768px) { .twitch-container { width: calc(100vw - 32px); right: 16px; left: 16px; height: 200px; bottom: calc(var(--info-bottom) + 110px); transform: translateY(150%); } .twitch-container.visible { transform: translateY(0); } }
+
+    #fireworks { position: fixed; inset: 0; pointer-events: none; z-index: 9500; opacity: 0; transition: opacity 0.5s ease; }
+    #fireworks.active { opacity: 1; }
+
+    .btn.music-on { border-color: var(--primary); color: var(--primary); }
+
+    #workshopOverlay {
+  position: fixed; inset: 0; background: var(--dark);
+  z-index: 8000; display: none; flex-direction: column;
+  padding: 40px 20px; overflow-y: auto; overflow-x: hidden; text-align: center;
+  box-sizing: border-box;
+  }
+    .ws-card {
+  background: var(--surface); border: 1px solid var(--border-primary);
+  padding: 40px; border-radius: 16px; max-width: 500px; width: 100%;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.6); position: relative; overflow: hidden;
+  margin: 0 auto;
+  flex-shrink: 0;
+  box-sizing: border-box;
+    }
+    .ws-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, var(--red), var(--primary));
+    }
+    .ws-title {
+      font-family: 'Eurostile', sans-serif; font-size: 42px;
+      color: #fff; letter-spacing: 2px; margin-bottom: 10px; line-height: 1;
+    }
+    .ws-title span { color: var(--primary); }
+    .ws-countdown {
+      font-family: 'Open Sans', monospace; font-size: 28px; font-weight: 700;
+      margin: 24px 0; color: #fff;
+      background: var(--surface-2); padding: 16px; border-radius: 12px; border: 1px solid var(--border);
+    }
+    .ws-bar-wrap {
+      background: var(--surface-2); border-radius: 10px; height: 16px;
+      border: 1px solid var(--border); overflow: hidden; margin-top: 8px; position: relative;
+    }
+    .ws-bar-fill {
+      background: linear-gradient(90deg, var(--red), var(--primary));
+      height: 100%; width: 0%; transition: width 1s ease;
+    }
+    .ws-item { text-align: left; margin-bottom: 24px; }
+    .ws-item-label {
+      display: flex; justify-content: space-between; font-size: 13px;
+      font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px;
+    }
+    .ws-status-text { color: var(--text); font-size: 12px; margin-top: 6px; font-style: italic; }
+    .ws-donate {
+      display: inline-block; margin-top: 20px; padding: 12px 24px;
+      background: var(--primary); color: var(--on-primary); font-weight: 700; font-size: 14px;
+      border-radius: 8px; text-decoration: none;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .ws-donate:hover { filter: brightness(0.92); }
+    .ws-donate:active { transform: scale(0.97); }
+
+    .ws-skip-btn {
+      background: none; border: none; color: var(--text-muted); text-decoration: underline;
+      font-family: inherit; font-size: 12px; margin-top: 20px; cursor: pointer; transition: color 0.2s;
+    }
+    .ws-skip-btn:hover { color: var(--text); }
+
+    .ws-schedule { margin-bottom: 16px; }
+    .ws-schedule-title {
+      font-size: 11px; font-weight: 700; color: var(--text-dim);
+      text-transform: uppercase; letter-spacing: 1.5px;
+      margin-bottom: 8px; padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    .ws-schedule-list { text-align: left; }
+    .ws-schedule-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 6px 0; border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .ws-schedule-item:last-child { border-bottom: none; }
+    .ws-schedule-date { color: var(--text-dim); font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+    .ws-schedule-name { color: var(--text); font-weight: 800; text-align: right; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-left: 10px; }
+    .ws-schedule-item:first-child .ws-schedule-name { color: var(--primary); }
+    .ws-schedule-item:first-child .ws-schedule-date { color: var(--primary); }
+
+    @media (max-height: 850px) {
+  #workshopOverlay { padding: 15px 15px; justify-content: center; }
+  .ws-card { padding: 15px 20px; }
+  .ws-title { font-size: 26px; margin-bottom: 4px; }
+  .ws-card > p { display: none; } /* Hide intro paragraph to save space */
+  .ws-countdown { font-size: 20px; padding: 8px; margin: 10px 0; }
+  .ws-schedule { margin-bottom: 12px; }
+  .ws-schedule-title { margin-bottom: 4px; padding-bottom: 4px; }
+  .ws-schedule-item { padding: 3px 0; font-size: 12px; }
+  .ws-item { margin-bottom: 12px; }
+  .ws-bar-wrap { height: 8px; margin-top: 4px; }
+  .ws-status-text { font-size: 10px; margin-top: 2px; }
+  .ws-donate { margin-top: 10px; padding: 10px 16px; }
+  .ws-skip-btn { margin-top: 10px; }
+}
+    
+  </style>
+</head>
+<body>
+  <div id="loadingCover"><div id="loadingSpinner"></div></div>
+  <div class="status-popup" id="statusBox" role="status" aria-live="polite" aria-atomic="true">Searching for Santa…</div>
+
+  <a id="routeSponsor" class="route-sponsor" target="_blank" rel="noopener" aria-label="Tonight's route sponsor">
+    <span>Sponsored by</span>
+    <img alt="">
+  </a>
+
+  <div class="donate-box" id="donateBox">
+    <a id="donateLink" class="donate-btn gamified-pulse" target="_blank" aria-label="Donate and support the Santa Sleigh">
+      <span id="donateText">DONATE & SUPPORT US</span>
+    </a>
+    <div class="install-overlay" id="installOverlayBox">
+      <button id="installAppBtn" class="donate-btn override-install-btn" aria-label="Install tracker app to home screen">Add App to Home Screen</button>
+    </div>
+  </div>
+
+  <a id="giftAidLink" href="#" target="_blank" style="display:none; position:fixed; bottom:calc(var(--donate-bottom) + 70px); left:50%; transform:translateX(-50%); font-family:'Open Sans',sans-serif; font-size:12px; color:#2ecc71; text-decoration:none; font-weight:700; z-index:2000; text-align:center; padding:6px 14px; background:rgba(13,13,11,0.85); border:1px solid rgba(46,204,113,0.2); border-radius:100px;">UK taxpayer? Boost your donation by 25%</a>
+  
+  <div id="iosPrompt" class="ios-install-prompt" role="dialog" aria-label="Install instructions for iOS">
+    <button class="close-btn" id="iosCloseBtn" aria-label="Close install instructions">&times;</button>
+    To install this tracker, tap the <strong>Share</strong> icon below <br>
+    (the square with an arrow) and select <br>
+    <span style="color: var(--primary);">"Add to Home Screen"</span>
+  </div>
+
+  <nav class="info-popup" aria-label="Tracker controls">
+    <div id="statusDot" class="status-dot" role="img" aria-label="Connection status indicator"></div>
+    <button class="btn" id="followBtn" aria-label="Toggle auto-follow Santa on map">Follow: ON</button>
+    <button class="btn" id="recenterBtn" aria-label="Re-centre map on Santa">Re-centre</button>
+    <button class="btn" id="notifyBtn" aria-label="Set a notification pin for when Santa is nearby">Notify Me</button>
+    <button class="btn" id="scheduleBtn" aria-label="View upcoming routes schedule">Schedule</button>
+    <button class="btn" id="twitchBtn" style="display: none; border-color: var(--primary); color: var(--primary);" aria-label="Toggle sleigh camera feed">Cam: OFF</button>
+    <button class="btn" id="msgBtn" style="display: none;" aria-label="Send a message to Santa">Msg Santa</button>
+    <button class="btn" id="shareBtn" style="display: none;" aria-label="Share this tracker link with others">Share</button>
+    <button class="btn" id="musicBtn" style="display: none;" aria-label="Play Christmas music">Music: Off</button>
+    <div id="toast" class="toast-box" role="alert" aria-live="assertive"></div>
+  </nav>
+
+  <div id="twitchBox" class="twitch-container">
+    <div style="padding: 10px; text-align: center; color: var(--text-dim); font-size: 12px; height: 100%; display: flex; align-items: center; justify-content: center;">Loading Sleigh Cam...</div>
+  </div>
+
+  <div id="emailModal" class="modal-overlay" role="dialog" aria-labelledby="emailModalTitle" aria-modal="true">
+    <div class="modal-box">
+      <div class="modal-title" id="emailModalTitle">Get Notified</div>
+      <div class="modal-desc">Want to know when Santa is nearby? Enter your email below (optional).</div>
+      <input type="email" id="subEmail" class="modal-input" placeholder="santa@example.com" aria-label="Your email address for notifications">
+      <div class="modal-btns">
+        <button class="btn-full btn-cancel" id="modalCancelBtn">Cancel</button>
+        <button class="btn-full btn-confirm" id="modalConfirmBtn">Notify Me</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="msgModal" class="modal-overlay" role="dialog" aria-labelledby="msgModalTitle" aria-modal="true">
+    <div class="modal-box">
+      <div class="modal-title" id="msgModalTitle">Message Santa</div>
+      <div class="modal-desc">Send a quick message to the sleigh (max 50 chars). Shows on the tracker if the Elves approve!</div>
+      <input type="text" id="userMsgInput" class="modal-input" placeholder="e.g., We are outside waiting!" maxlength="50" aria-label="Your message to Santa, maximum 50 characters">
+      <div class="modal-btns">
+        <button class="btn-full btn-cancel" id="msgCancelBtn">Cancel</button>
+        <button class="btn-full btn-confirm" id="msgConfirmBtn">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="scheduleModal" class="modal-overlay" role="dialog" aria-labelledby="scheduleModalTitle" aria-modal="true">
+  <div class="modal-box" style="max-width: 440px; display: flex; flex-direction: column; max-height: 85vh;">
+    <div class="modal-title" id="scheduleModalTitle">Route Schedule</div>
+    <div class="modal-desc">Find your street and save the date!</div>
+    <div id="scheduleList" style="overflow-y: auto; text-align: left; margin-bottom: 20px; padding-right: 5px; flex-grow: 1;">
+      <!-- Populated by JavaScript -->
+    </div>
+    <div class="modal-btns">
+      <button class="btn-full btn-cancel" id="scheduleCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
+  
+  <div id="kioskBanner" class="kiosk-banner"></div>
+  <div id="kioskSponsor" class="kiosk-sponsor"></div>
+  <div id="map" role="application" aria-label="Live Santa tracker map"></div>
+  <div id="mlmap" role="application" aria-label="Driver satnav map" aria-hidden="true"></div>
+  <canvas id="snow" aria-hidden="true"></canvas>
+  <canvas id="fireworks" aria-hidden="true"></canvas>
+  <div id="driverProgressBox" class="driver-progress-box" aria-hidden="true">0%</div>
+
+  <div id="magic-container"></div>
+  
+  <div id="workshopOverlay">
+    <div class="ws-card">
+      <h1 class="ws-title">SANTA'S <span>WORKSHOP</span></h1>
+      <p style="color: var(--text-dim); font-size: 14px;">The sleigh is currently undergoing off-season maintenance. We'll be back on the road in:</p>
+      
+      <div id="wsCountdown" class="ws-countdown">-- : -- : --</div>
+
+      <div id="wsSchedule" class="ws-schedule" style="display: none;">
+        <div class="ws-schedule-title">Upcoming Routes</div>
+        <div id="wsScheduleList" class="ws-schedule-list"></div>
+      </div>
+
+      <div class="ws-item">
+        <div class="ws-item-label"><span>Sleigh MOT & Waxing</span> <span id="wsMotPct">0%</span></div>
+        <div class="ws-bar-wrap"><div id="wsMotBar" class="ws-bar-fill"></div></div>
+        <div id="wsMotText" class="ws-status-text">Checking runners...</div>
+      </div>
+      
+      <div class="ws-item">
+        <div class="ws-item-label"><span>Reindeer Flight Training</span> <span id="wsDeerPct">0%</span></div>
+        <div class="ws-bar-wrap"><div id="wsDeerBar" class="ws-bar-fill"></div></div>
+        <div id="wsDeerText" class="ws-status-text">Stretching legs...</div>
+      </div>
+
+      <div class="ws-item">
+        <div class="ws-item-label"><span>Elf Recruitment</span> <span id="wsElfPct">0%</span></div>
+        <div class="ws-bar-wrap"><div id="wsElfBar" class="ws-bar-fill"></div></div>
+        <div id="wsElfText" class="ws-status-text">Reviewing CVs...</div>
+      </div>
+      
+      <button class="ws-skip-btn" onclick="document.getElementById('workshopOverlay').remove();">Bypass & view map</button>
+<a id="wsDonate" class="ws-donate" href="#" target="_blank" style="display: none;">Donate to support good causes</a>
+    </div>
+  </div>
+
+  <script>
+    
+   document.addEventListener("DOMContentLoaded", () => {
+
+      // --- THEME FROM THE API ---
+      // Same source and rules as the Santa sleigh page: settings.primary_color drives the brand colour,
+      // and text on it flips black/white for readability. Missing or invalid -> Round Table gold.
+      let PRIMARY_HEX = '#FBAF33';   // JS-side copy of --primary for canvas effects (CSS uses the variables)
+
+      // Returns [r, g, b] for a valid CSS colour, otherwise null. (Copied from santasleigh.html)
+      function parseColor(v) {
+        if (typeof v !== 'string') return null;
+        const s = v.trim();
+        const hex = /^#([0-9a-f]{3,8})$/i.exec(s);
+        if (hex) {
+          let h = hex[1];
+          if (h.length === 3 || h.length === 4) h = h.split('').map(c => c + c).join('');
+          if (h.length !== 6 && h.length !== 8) return null;
+          return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+        }
+        try {
+          if (/var\(|url\(|expression/i.test(s)) return null;
+          if (!(window.CSS && CSS.supports && CSS.supports('color', s))) return null;
+          const ctx = document.createElement('canvas').getContext('2d');
+          ctx.fillStyle = '#000000';
+          ctx.fillStyle = s;
+          const out = ctx.fillStyle;
+          if (out.charAt(0) === '#') return parseColor(out);
+          const rgb = /^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(out);
+          return rgb ? [+rgb[1], +rgb[2], +rgb[3]] : null;
+        } catch (e) { return null; }
+      }
+
+      // Black or white, whichever reads better on the given colour (WCAG contrast ratio). (Copied from santasleigh.html)
+      function readableTextOn(rgb) {
+        const lin = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+        const L = 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]);
+        return ((L + 0.05) / 0.05) >= (1.05 / (L + 0.05)) ? '#000000' : '#ffffff';
+      }
+
+      function applyTheme(settings) {
+        const root = document.documentElement;
+        const raw = settings && settings.primary_color;
+        const rgb = parseColor(raw);
+        if (rgb) {
+          PRIMARY_HEX = '#' + rgb.map(x => x.toString(16).padStart(2, '0')).join('');
+          root.style.setProperty('--primary', String(raw).trim());
+          root.style.setProperty('--primary-rgb', rgb.join(', '));
+          root.style.setProperty('--on-primary', readableTextOn(rgb));
+        } else {
+          PRIMARY_HEX = '#FBAF33';
+          ['--primary', '--primary-rgb', '--on-primary'].forEach(p => root.style.removeProperty(p));
+        }
+      }
+
+      // Remember the colour per API so repeat visits skip the gold flash before the first payload lands.
+      // Storage can be blocked inside iframes, so both helpers swallow errors.
+      function loadCachedTheme(api) {
+        try {
+          const c = localStorage.getItem('SANTA_THEME:' + api);
+          if (c) applyTheme({ primary_color: c });
+        } catch (e) {}
+      }
+      function saveTheme(api, color) {
+        try {
+          if (parseColor(color)) localStorage.setItem('SANTA_THEME:' + api, String(color).trim());
+          else localStorage.removeItem('SANTA_THEME:' + api);
+        } catch (e) {}
+      }
+
+      // --- RATE LIMITING CLIENT ID ---
+      if (!localStorage.getItem("turbo_santa_client_id")) {
+        localStorage.setItem("turbo_santa_client_id", crypto.randomUUID());
+      }
+
+      // --- NETWORK STATUS LISTENERS ---
+      window.addEventListener('offline', () => showToast("Connection lost. Map updates paused."));
+      window.addEventListener('online', () => showToast("Reconnected!"));
+
+      // --- TAP-OUTSIDE TO CLOSE MODALS ---
+      document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+          if (e.target === overlay) {
+            overlay.style.display = 'none';
+            if (typeof AppState !== 'undefined' && AppState.vars && AppState.vars.escapeListener) {
+              document.removeEventListener("keydown", AppState.vars.escapeListener);
+              AppState.vars.escapeListener = null;
+            }
+          }
+        });
+      });
+     
+      // --- SANTA'S WORKSHOP MANAGER ---
+      const WorkshopManager = {
+        timerId: null,
+        init(routes) {
+            const now = new Date();
+            now.setHours(0, 0, 0, 0);
+            
+            let futureRouteObjects = [];
+            // 1. Only process routes if they exist and contain a valid future date
+            if (routes && routes.length > 0) {
+                futureRouteObjects = routes
+                    .filter(r => r.date && !isNaN(new Date(r.date)) && new Date(r.date) >= now)
+                    .sort((a,b) => new Date(a.date) - new Date(b.date));
+            }
+            
+            let targetDate = null;
+            let hasValidDates = false;
+            
+            if (futureRouteObjects.length > 0) {
+                targetDate = new Date(futureRouteObjects[0].date);
+                hasValidDates = true;
+            } else {
+                // 2. Set an invisible fallback target for the progress bar math only
+                targetDate = new Date(now.getFullYear(), 11, 1);
+                if (targetDate < now) targetDate = new Date(now.getFullYear() + 1, 11, 1);
+            }
+            
+            const startDate = new Date(targetDate.getFullYear(), 0, 1);
+            const daysUntil = (targetDate - now) / (1000 * 60 * 60 * 24);
+            
+            // If we have a valid date and it's less than 10 days away, drop the overlay
+            if (hasValidDates && daysUntil < 10) return false; 
+            
+            document.getElementById('workshopOverlay').style.display = 'flex';
+            
+            const scheduleEl = document.getElementById('wsSchedule');
+            const listEl = document.getElementById('wsScheduleList');
+            
+            if (hasValidDates) {
+              scheduleEl.style.display = 'block';
+              listEl.innerHTML = '';
+              const toShow = futureRouteObjects.slice(0, 3);
+              for (const r of toShow) {
+                const d = new Date(r.date);
+                const dateStr = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+                const item = document.createElement('div');
+                item.className = 'ws-schedule-item';
+                item.innerHTML = `<span class="ws-schedule-date">${dateStr}</span><span class="ws-schedule-name">${r.routeName || 'TBC'}</span>`;
+                listEl.appendChild(item);
+              }
+              if (futureRouteObjects.length > 3) {
+                const more = document.createElement('div');
+                more.style.cssText = 'text-align:center; color:var(--text-dim); font-size:11px; margin-top:6px; font-style:italic;';
+                more.textContent = `+ ${futureRouteObjects.length - 3} more routes`;
+                listEl.appendChild(more);
+              }
+            } else {
+              // Hide the schedule preview if there are no valid dates
+              scheduleEl.style.display = 'none';
+            }
+
+            // Pass the hasValidDates flag into the loop
+            this.startLoop(startDate, targetDate, hasValidDates);
+            return true;
+        },
+        startLoop(start, end, hasValidDates) {
+            const update = () => {
+                const now = new Date();
+                const totalMs = end.getTime() - start.getTime();
+                const elapsedMs = now.getTime() - start.getTime();
+                let pct = hasValidDates ? Math.max(0, Math.min(100, (elapsedMs / totalMs) * 100)) : 0;
+                
+                // 3. Swap the countdown for text if no valid dates exist
+                if (!hasValidDates) {
+                    document.getElementById('wsCountdown').textContent = "DATES COMING SOON";
+                } else {
+                    const diff = end.getTime() - now.getTime();
+                    if (diff > 0) {
+                        const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                        const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                        const m = Math.floor((diff / 1000 / 60) % 60);
+                        document.getElementById('wsCountdown').textContent = `${d}d ${h}h ${m}m`;
+                    } else {
+                        document.getElementById('wsCountdown').textContent = "Ready for takeoff!";
+                    }
+                }
+                
+                const motPct = Math.min(100, pct * 1.05).toFixed(1);
+                document.getElementById('wsMotBar').style.width = motPct + '%';
+                document.getElementById('wsMotPct').textContent = Math.floor(motPct) + '%';
+                let motTxt = "Oiling the runners...";
+                if (motPct > 15) motTxt = "Deep-cleaning the upholstery...";
+                if (motPct > 30) motTxt = "Re-painting the chassis...";
+                if (motPct > 45) motTxt = "Checking the aerodynamics...";
+                if (motPct > 60) motTxt = "Upgrading sat-nav software...";
+                if (motPct > 75) motTxt = "Testing the magic thrusters...";
+                if (motPct > 90) motTxt = "Polishing the bells...";
+                if (motPct >= 100) motTxt = "Sleigh MOT passed!";
+                if (pct === 0) motTxt = "Recovering from the big night...";
+                document.getElementById('wsMotText').textContent = motTxt;
+                const deerPct = Math.min(100, Math.pow(pct/100, 2) * 100).toFixed(1);
+                document.getElementById('wsDeerBar').style.width = deerPct + '%';
+                document.getElementById('wsDeerPct').textContent = Math.floor(deerPct) + '%';
+                let deerTxt = "Deep sleep in Lapland...";
+                if (deerPct > 10) deerTxt = "Waking up and stretching...";
+                if (deerPct > 20) deerTxt = "Grazing on magic lichen...";
+                if (deerPct > 30) deerTxt = "Light trotting exercises...";
+                if (deerPct > 40) deerTxt = "Antler polishing routines...";
+                if (deerPct > 50) deerTxt = "Formation hovering practice...";
+                if (deerPct > 60) deerTxt = "High-altitude acclimation...";
+                if (deerPct > 75) deerTxt = "Test flights over the tundra...";
+                if (deerPct > 90) deerTxt = "Carb-loading on magic oats...";
+                if (deerPct >= 100) deerTxt = "Ready for flight!";
+                if (pct === 0) deerTxt = "Sleeping off the carrots...";
+                document.getElementById('wsDeerText').textContent = deerTxt;
+                const todayDay = Math.floor(now.getTime() / (1000 * 60 * 60 * 24));
+                const elfJumps = (Math.sin(todayDay / 2) + 1) * 2; 
+                const elfPctRaw = pct === 0 ? 0 : Math.min(100, pct + elfJumps);
+                document.getElementById('wsElfBar').style.width = elfPctRaw.toFixed(1) + '%';
+                document.getElementById('wsElfPct').textContent = Math.floor(elfPctRaw) + '%';
+                let elfTxt = "Reviewing volunteer CVs...";
+                if (elfPctRaw > 15) elfTxt = "Sorting uniform sizes...";
+                if (elfPctRaw > 30) elfTxt = "Sizing high-vis jackets...";
+                if (elfPctRaw > 45) elfTxt = "Map reading crash-course...";
+                if (elfPctRaw > 60) elfTxt = "Bucket shaking orientation...";
+                if (elfPctRaw > 75) elfTxt = "Practicing friendly waves...";
+                if (elfPctRaw > 90) elfTxt = "Final safety briefings...";
+                if (elfPctRaw >= 100) elfTxt = "Crew is briefed & ready!";
+                if (pct === 0) elfTxt = "Taking annual leave...";
+                document.getElementById('wsElfText').textContent = elfTxt;
+            };
+            update();
+            this.timerId = setInterval(update, 60000); 
+        }
+      };
+
+      // --- GAMIFIED DONATION LOGIC ---
+      const GamifiedDonation = {
+        phrases: [
+          "Buy Santa a Mince Pie (£2)", "Leave out Milk & Cookies (£4)",
+          "Chip in for Santa's Dry Cleaning (£5)", "Keep Santa's Toes Warm (£4)",
+          "Buy Santa a Midnight Espresso (£3)", "Buy Rudolph a Carrot (£3)",
+          "Buy a juicy Apple for Blitzen (£2)", "Sponsor a Reindeer's Flight (£10)",
+          "Buy a pouch of Magical Reindeer Dust (£3)", "Top up Dasher's Magical Oats (£4)",
+          "Warm up the Elves with Hot Cocoa (£5)", "Treat the Crew to Candy Canes (£2)",
+          "Buy the Lead Elf some Earmuffs (£5)", "Keep the Elves' hands warm (£3)",
+          "Buy the volunteer crew a slice of pizza (£5)", "Fuel the Sleigh with Magic (£5)",
+          "Keep the Sleigh Bells Ringing (£3)", "Fix a wobbly Sleigh Runner (£5)",
+          "Buy Magical Anti-Freeze for the Sleigh (£4)", "Upgrade Santa's Sat-Nav (£10)",
+          "Light the way for the Sleigh (£3)", "Support Local Charities (£2+)",
+          "Spread Christmas Cheer (£5)", "Help fill a local Stocking (£5)",
+          "Give the gift of giving (£2+)"
+        ],
+        currentIndex: 0, textEl: null,
+        init() { this.textEl = document.getElementById("donateText"); if (!this.textEl) return; this.currentIndex = Math.floor(Math.random() * this.phrases.length); this.textEl.textContent = this.phrases[this.currentIndex]; setInterval(() => this.rotate(), 10000); },
+        rotate() { if (!this.textEl) return; this.textEl.classList.add("text-fade-out"); setTimeout(() => { this.currentIndex = (this.currentIndex + 1) % this.phrases.length; this.textEl.textContent = this.phrases[this.currentIndex]; this.textEl.classList.remove("text-fade-out"); }, 400); }
+      };
+
+      // --- SPARKLE EFFECT ---
+      document.getElementById('donateLink').addEventListener('click', function(e) {
+        e.preventDefault(); const targetUrl = this.href; 
+        const container = document.getElementById('magic-container');
+        if (container) { for (let i = 0; i < 25; i++) { const sparkle = document.createElement('div'); sparkle.className = 'sparkle'; const x = (e.clientX || window.innerWidth / 2) + (Math.random() * 80 - 40); const y = (e.clientY || window.innerHeight - 100) + (Math.random() * 60 - 30); const colors = ['#ffd700', '#ffffff', '#ff4d4d', PRIMARY_HEX]; const color = colors[Math.floor(Math.random() * colors.length)]; sparkle.style.left = x + 'px'; sparkle.style.top = y + 'px'; sparkle.style.background = color; sparkle.style.boxShadow = `0 0 10px ${color}, 0 0 20px ${color}`; sparkle.style.animationDuration = (Math.random() * 1 + 0.8) + 's'; container.appendChild(sparkle); setTimeout(() => { sparkle.remove(); }, 2000); } }
+        setTimeout(() => { if (targetUrl && targetUrl !== "#") { window.open(targetUrl, '_blank'); } }, 800); 
+      });
+
+      const dynamicManifest = {
+        "name": "Santa Sleigh Tracker", "short_name": "Santa Tracker",
+        "description": "Live GPS tracking for the local Round Table Santa Sleigh.",
+        "start_url": window.location.href, "display": "standalone",
+        "background_color": "#1D1D1A", "theme_color": "#FBAF33",
+        "icons": [
+          { "src": "https://brt-23f.pages.dev//icons/RTBI_Santa.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+          { "src": "https://brt-23f.pages.dev//icons/RTBI_Santa.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+        ]
+      };
+      const manifestBlob = new Blob([JSON.stringify(dynamicManifest)], { type: 'application/json' });
+      const manifestUrl = URL.createObjectURL(manifestBlob);
+      document.getElementById('dynamic-manifest').setAttribute('href', manifestUrl);
+      setTimeout(() => URL.revokeObjectURL(manifestUrl), 0);
+      
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+      if (isIOS && !isStandalone) { const iosPrompt = document.getElementById('iosPrompt'); setTimeout(() => { if(iosPrompt) iosPrompt.classList.add('visible'); }, 3000); document.getElementById('iosCloseBtn').addEventListener('click', () => { iosPrompt.classList.remove('visible'); }); }
+      if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(() => {}); }); }
+
+      let deferredPrompt, installTimeout;
+      window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; const overlay = document.getElementById('installOverlayBox'); overlay.classList.add('visible'); installTimeout = setTimeout(() => { overlay.classList.remove('visible'); }, 10000); });
+      document.getElementById('installAppBtn').addEventListener('click', async () => { const overlay = document.getElementById('installOverlayBox'); if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; overlay.classList.remove('visible'); deferredPrompt = null; clearTimeout(installTimeout); } });
+
+      // ⚡ CLOUDFLARE WORKER ENDPOINT
+      const WORKER_URL = "https://santaproxy.beverley247.workers.dev/";
+
+      async function fetchFastAnnouncements() {
+        if (!AppState.flags.pageVisible || !AppState.vars.apiUrl) return;
+
+        const targetScript = `${AppState.vars.apiUrl}${AppState.vars.apiUrl.includes('?') ? '&' : '?'}function=getAnnouncement`;
+        const fastTrackUrl = `${WORKER_URL}?ttl=2&target=${encodeURIComponent(targetScript)}`;
+
+        try {
+          const data = await Utils.loadJSON(fastTrackUrl);
+          if (data.settings && AppState.vars.latestApiData) {
+            const s = AppState.vars.latestApiData.settings || {};
+            s.live_announcement = data.settings.live_announcement || '';
+            s.user_announcement = data.settings.user_announcement || '';
+            s.user_announcement_ts = data.settings.user_announcement_ts || 0;
+            AppState.vars.latestApiData.settings = s;
+
+            // Immediately evaluate message UI
+            const liveMsg = s.live_announcement;
+            const userMsg = s.user_announcement;
+            const userMsgTs = Number(String(s.user_announcement_ts).replace(/\D/g, '')) || 0;
+
+            if (userMsg && userMsgTs !== AppState.vars.lastSeenMsgTs) {
+              AppState.vars.lastSeenMsgTs = userMsgTs;
+              sessionStorage.setItem('SANTA_LAST_MSG_TS', String(userMsgTs));
+              if (userMsgTs && (Date.now() - userMsgTs) < 30 * 60 * 1000) AppState.vars.localMsgStartTime = Date.now();
+            }
+            
+            const isUserMsgActive = userMsg && AppState.vars.localMsgStartTime && (Date.now() - AppState.vars.localMsgStartTime < 20000);
+
+            if (liveMsg && liveMsg.trim() !== "") {
+              AppState.dom.statusBox.textContent = `${liveMsg}`;
+              AppState.dom.statusBox.classList.add("is-announcement");
+              AppState.dom.statusBox.classList.remove("is-user-msg");
+              setDimUI(false);
+            } else if (isUserMsgActive) {
+              AppState.dom.statusBox.textContent = `${userMsg}`;
+              AppState.dom.statusBox.classList.add("is-user-msg");
+              AppState.dom.statusBox.classList.remove("is-announcement");
+              setDimUI(false);
+            } else if (AppState.dom.statusBox.classList.contains("is-announcement") || AppState.dom.statusBox.classList.contains("is-user-msg")) {
+              // If it just cleared, remove the classes. The main GPS loop will rewrite the text on the next 6-second tick.
+              AppState.dom.statusBox.classList.remove("is-announcement", "is-user-msg");
+            }
+          }
+        } catch(e) { } // Fail silently so it doesn't clutter the console
+      }
+
+      const AppConfig = {
+        API: { REFRESH_MS: 6000, REFRESH_MAX_MS: 60000, STALE_MS: 5 * 60 * 1000, MOTION_WINDOW_MS: 60 * 1000, MOVE_THRESHOLD_METERS: 8, MIN_FIXES_FOR_ETA: 3, MIN_ETA_WINDOW_MS: 15 * 1000 },
+        
+        NOTIFICATIONS: { NEAR_DISTANCE_METERS: 250, PASSED_DISTANCE_OFFSET: 150 },
+        GPX: { AHEAD: 80, BACK: 5, EARLY_EXIT_METERS: 25, TAIL_METERS: 150 },
+        SNOW: { ETA_MINUTES_MAX: 15, LEVELS: { LIGHT: 1, HEAVY: 2, BLIZZARD: 3 }, MOBILE_BASE_COUNT: 30, DESKTOP_BASE_COUNT: 60, MULTIPLIERS: [0, 1, 2.5, 5] },
+        BATTERY: { LOW: 0.4, CRITICAL: 0.2, FRAME_SKIP: { LOW: 2, CRITICAL: 3 } },
+        LOCATIONS: { LAPLAND: [66.5436, 25.8473] },
+        ICONS: { PREVIEW: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-grey.png", CONFIRMED: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png", FALLBACK_LIVE: "https://brt-23f.pages.dev//icons/sleigh_icon.png", FALLBACK_START: "https://brt-23f.pages.dev//icons/start_icon.png", FALLBACK_END: "https://brt-23f.pages.dev//icons/end_icon.png", BROWSER_ICON: "https://brt-23f.pages.dev//icons/bell_icon.png" }
+      };
+
+      const AppState = {
+        map: null, mlMap: null, marker: null, notifyMarker: null, gpxRoute: null, lastFix: null, recentFixes: [], routeFixes: [],
+        flags: { follow: true, firstFix: true, isKiosk: false, gpxLoaded: false, snowActive: false, pageVisible: !document.hidden, awaitingPin: false, browserNotified: sessionStorage.getItem("SANTA_BROWSER_NOTIFIED") === "1", hasPassedSticky: sessionStorage.getItem("SANTA_HAS_PASSED") === "1", celebrationFired: sessionStorage.getItem("SANTA_CELEBRATION_FIRED") === "1", musicEnabled: false, beaconActive: false },
+        vars: { apiUrl: null, sleighName: "Santa Sleigh", staleSince: null, lastSnapIndex: 0, snowflakes: [], animRaf: null, pendingSubscription: null, notifyLatLng: null, lastVisualPos: null, escapeListener: null, lastElfCamUrl: null, lastSeenMsgTs: Number(sessionStorage.getItem('SANTA_LAST_MSG_TS')) || 0, pollTimer: null, consecutiveErrors: 0, musicUrl: null, currentMapHeading: 0, latestApiData: null, lastSettingsFetch: 0, lastTxTime: 0, lastLeafletRouteIdx: -1, lastMlRouteIdx: -1, userSnapCache: null, etaEmaSec: null },
+        dom: { loading: document.getElementById("loadingCover"), statusBox: document.getElementById("statusBox"), followBtn: document.getElementById("followBtn"), recenterBtn: document.getElementById("recenterBtn"), notifyBtn: document.getElementById("notifyBtn"), msgBtn: document.getElementById("msgBtn"), statusDot: document.getElementById("statusDot"), donateLink: document.getElementById("donateLink"), donateBox: document.getElementById("donateBox"), kioskBanner: document.getElementById("kioskBanner"), sponsorBox: document.getElementById("kioskSponsor"), toast: document.getElementById("toast"), snowCanvas: document.getElementById("snow"), shareBtn: document.getElementById("shareBtn"), musicBtn: document.getElementById("musicBtn"), fireworks: document.getElementById("fireworks") }
+      };
+
+      function scheduleNextPoll() { if (AppState.vars.pollTimer) clearTimeout(AppState.vars.pollTimer); const delay = Math.min(AppConfig.API.REFRESH_MS * Math.pow(2, AppState.vars.consecutiveErrors), AppConfig.API.REFRESH_MAX_MS); AppState.vars.pollTimer = setTimeout(updateTracker, delay); }
+
+      const Utils = {
+        validPos: (lat, lng) => typeof lat === "number" && !isNaN(lat) && typeof lng === "number" && !isNaN(lng),
+        lerp: (a, b, t) => a + (b - a) * t,
+        easeOutCubic: (t) => 1 - Math.pow(1 - t, 3),
+        isValidImageUrl(url) { if (!url || typeof url !== 'string') return false; try { const parsed = new URL(url); return ['http:', 'https:', 'data:'].includes(parsed.protocol); } catch { return false; } },
+        resolveImageUrl(url) { if (!url || typeof url !== 'string' || !url.includes('drive.google.com')) return url; try { const u = new URL(url); const pathMatch = u.pathname.match(/\/file\/d\/([^/]+)/); const fileId = u.searchParams.get('id') || (pathMatch ? pathMatch[1] : null); return fileId ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w400` : url; } catch { return url; } },
+        async loadJSON(url) { const r = await fetch(url, { cache: "no-store" }); if (!r.ok) throw new Error(`Fetch failed: ${r.status}`); return r.json(); },
+        haversineMeters(a, b) { const R = 6371000, dLat = (b.lat - a.lat) * Math.PI / 180, dLng = (b.lng - a.lng) * Math.PI / 180; const s = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(s)); },
+        calculateSpeed(fixes) { if (fixes.length < AppConfig.API.MIN_FIXES_FOR_ETA) return null; const first = fixes[0], last = fixes[fixes.length - 1], elapsed = last.ts - first.ts; if (elapsed < AppConfig.API.MIN_ETA_WINDOW_MS) return null; return Math.min(Math.max((last.cumulative - first.cumulative) / (elapsed / 1000), 0.3), 31); },
+        calculateRouteSpeed(routeFixes) { if (routeFixes.length < AppConfig.API.MIN_FIXES_FOR_ETA) return null; const first = routeFixes[0], last = routeFixes[routeFixes.length - 1], elapsed = last.ts - first.ts; if (elapsed < AppConfig.API.MIN_ETA_WINDOW_MS) return null; const dist = last.routeDist - first.routeDist; if (dist <= 0) return null; return Math.min(Math.max(dist / (elapsed / 1000), 0.1), 31); },
+        toggleFollowControls(enable) { const { followBtn, recenterBtn } = AppState.dom; if (enable) { followBtn.classList.remove("locked"); recenterBtn.classList.remove("locked"); } else { followBtn.classList.add("locked"); recenterBtn.classList.add("locked"); } },
+        bearingBetween(a, b) {
+          const dLng = (b.lng - a.lng) * Math.PI / 180;
+          const lat1 = a.lat * Math.PI / 180, lat2 = b.lat * Math.PI / 180;
+          const y = Math.sin(dLng) * Math.cos(lat2);
+          const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+          return ((Math.atan2(y, x) * 180 / Math.PI) + 360) % 360;
+        }
+      };
+
+      let batteryState = { supported: false, charging: true, level: 1 };
+      if ("getBattery" in navigator) { 
+        navigator.getBattery().then(battery => { 
+          batteryState.supported = true; 
+          const update = () => { 
+            batteryState.charging = battery.charging; 
+            batteryState.level = battery.level; 
+            
+            // Driver Mode Battery Saver: Flatten pitch if battery drops below 20% and is discharging
+            if (AppState.flags.isDriver && AppState.mlMap && !batteryState.charging && batteryState.level <= 0.2) {
+              if (AppState.mlMap.getPitch() > 0) {
+                AppState.mlMap.easeTo({ pitch: 0, duration: 2000 });
+                console.warn("Low battery: Switched MapLibre to 2D mode to save power.");
+              }
+            }
+          }; 
+          update(); 
+          battery.addEventListener("chargingchange", update); 
+          battery.addEventListener("levelchange", update); 
+        }); 
+      }
+
+      let wakeLock = null;
+      async function requestWakeLock() { try { if ("wakeLock" in navigator) { wakeLock = await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release", () => setTimeout(requestWakeLock, 2000)); } } catch(e) {} }
+
+      function animateMarkerTo(targetLat, targetLng) { if (!AppState.marker) return; const startLL = AppState.marker.getLatLng(); const start = { lat: startLL.lat, lng: startLL.lng }; const end = { lat: targetLat, lng: targetLng }; const startTime = performance.now(); const duration = 900; let hasPanned = false; if (AppState.vars.animRaf) cancelAnimationFrame(AppState.vars.animRaf); function step(now) { const t = Math.min(1, (now - startTime) / duration); const e = Utils.easeOutCubic(t); const lat = Utils.lerp(start.lat, end.lat, e); const lng = Utils.lerp(start.lng, end.lng, e); const ll = L.latLng(lat, lng); AppState.marker.setLatLng(ll); AppState.vars.lastVisualPos = { lat: ll.lat, lng: ll.lng }; if ((AppState.flags.follow || AppState.flags.isKiosk) && !AppState.flags.firstFix && !hasPanned && !AppState.flags.isDriver) { AppState.map.panTo([end.lat, end.lng], { animate: true, duration: 0.9 }); hasPanned = true; } if (t < 1) { AppState.vars.animRaf = requestAnimationFrame(step); } else { AppState.vars.animRaf = null; } } AppState.vars.animRaf = requestAnimationFrame(step); }
+      function pushFix(lat, lng, ts) { const fixes = AppState.recentFixes; const last = fixes[fixes.length - 1]; const dist = last ? Utils.haversineMeters(last, { lat, lng }) : 0; fixes.push({ lat, lng, ts, cumulative: (last?.cumulative || 0) + dist }); const cutoff = ts - AppConfig.API.MOTION_WINDOW_MS; while (fixes.length && fixes[0].ts < cutoff) fixes.shift(); }
+      function pushRouteFix(routeDist, ts) { const fixes = AppState.routeFixes; fixes.push({ routeDist, ts }); const cutoff = ts - AppConfig.API.MOTION_WINDOW_MS; while (fixes.length && fixes[0].ts < cutoff) fixes.shift(); }
+      function isSleighMoving() { if (AppState.recentFixes.length < 2) return false; const first = AppState.recentFixes[0], last = AppState.recentFixes[AppState.recentFixes.length - 1]; return (last.cumulative - first.cumulative) >= AppConfig.API.MOVE_THRESHOLD_METERS; }
+
+      async function loadGpxRoute(url) { try { const controller = new AbortController(); 
+      const timeoutId = setTimeout(() => controller.abort(), 5000); 
+      const res = await fetch(url, { cache: "no-store", signal: controller.signal }); clearTimeout(timeoutId); if (!res.ok) throw new Error("GPX fetch failed"); 
+      const text = await res.text(); const xml = new DOMParser().parseFromString(text, "text/xml"); 
+      const wpts = [...xml.getElementsByTagName("wpt")];
+      AppState.gpxStops = wpts.map(wpt => ({
+        lat: parseFloat(wpt.getAttribute("lat")),
+        lng: parseFloat(wpt.getAttribute("lon")),
+        name: (wpt.getElementsByTagName("name")[0]?.textContent || "Planned Stop").trim()
+      }));
+
+      const pts = [...xml.getElementsByTagName("trkpt")]; if (pts.length < 2) throw new Error("GPX too short"); let dist = 0; let route = []; for (let i = 0; i < pts.length; i++) { const lat = parseFloat(pts[i].getAttribute("lat")); const lng = parseFloat(pts[i].getAttribute("lon")); const nameEl = pts[i].getElementsByTagName("name")[0]; const roadName = nameEl ? (nameEl.textContent || '').trim() : ''; if (i > 0) dist += Utils.haversineMeters(route[i - 1], { lat, lng }); route.push({ lat, lng, dist, index: i, roadName }); } AppState.gpxRoute = route; AppState.flags.gpxLoaded = true; AppState.vars.lastSnapIndex = 0; } catch (e) { AppState.flags.gpxLoaded = false; AppState.dom.notifyBtn.style.display = "none"; } }
+
+      function snapToGpxIndex(pos, searchOpts) { if (!AppState.gpxRoute) return null; const { AHEAD, BACK, EARLY_EXIT_METERS } = searchOpts || AppConfig.GPX; const isGlobalSearch = !searchOpts; const start = isGlobalSearch ? 0 : Math.max(0, AppState.vars.lastSnapIndex - BACK); const end = isGlobalSearch ? AppState.gpxRoute.length - 1 : Math.min(AppState.gpxRoute.length - 1, AppState.vars.lastSnapIndex + AHEAD); let bestIndex = isGlobalSearch ? 0 : AppState.vars.lastSnapIndex; let bestDist = Infinity; for (let i = start; i <= end; i++) { const d = Utils.haversineMeters(pos, AppState.gpxRoute[i]); if (d < bestDist) { bestDist = d; bestIndex = i; } if (!isGlobalSearch && i > AppState.vars.lastSnapIndex && d > bestDist + EARLY_EXIT_METERS) break; } if (!isGlobalSearch) AppState.vars.lastSnapIndex = bestIndex; return { point: AppState.gpxRoute[bestIndex], distance: bestDist }; }
+
+      // ── GPX-FOLLOWING PAST + TAIL ──
+      // The gold "past" is the GPX itself, start -> the pin's snapped vertex: every vertex, so it can never
+      // cut a corner. The tail is the same idea: the last TAIL_METERS of GPX vertices behind the pin.
+      function gpxPastCoords(idx, lngFirst) {
+        const r = AppState.gpxRoute; if (!r || idx < 1) return [];
+        return r.slice(0, idx + 1).map(p => lngFirst ? [p.lng, p.lat] : [p.lat, p.lng]);
+      }
+      function gpxTailPoints(idx, meters) {
+        const r = AppState.gpxRoute; if (!r || idx < 1 || !r[idx]) return [];
+        const endDist = r[idx].dist; let s = idx;
+        while (s > 0 && endDist - r[s].dist < meters) s--; // stops on the first vertex at least `meters` behind
+        return r.slice(s, idx + 1);
+      }
+      function setLeafletPastRoute(idx) {
+        if (!AppState.dynamicRoutePastMain) return;
+        const c = gpxPastCoords(idx, false);
+        AppState.dynamicRoutePastMain.setLatLngs(c); AppState.dynamicRoutePastGlow.setLatLngs(c);
+      }
+      function setMlPastRoute(idx) {
+        const src = AppState.mlMap && AppState.mlMap.getSource('gpx-route-past'); if (!src) return;
+        const c = gpxPastCoords(idx, true);
+        src.setData(c.length >= 2 ? { type: 'Feature', geometry: { type: 'LineString', coordinates: c } } : { type: 'FeatureCollection', features: [] });
+      }
+      // Leaflet fade tail: every GPX segment goes into one of segs.length opacity bands by distance behind the pin.
+      function renderLeafletGpxTail(pts, segs) {
+        const n = segs.length, bands = Array.from({ length: n }, () => []);
+        if (pts.length > 1) {
+          const d0 = pts[0].dist, span = (pts[pts.length - 1].dist - d0) || 1;
+          for (let j = 1; j < pts.length; j++) {
+            const b = Math.min(n - 1, Math.floor(n * (pts[j].dist - d0) / span)), band = bands[b];
+            if (!band.length) band.push([pts[j - 1].lat, pts[j - 1].lng]);
+            band.push([pts[j].lat, pts[j].lng]);
+          }
+        }
+        segs.forEach((seg, k) => seg.setLatLngs(bands[k]));
+      }
+
+      // ── PIN ETA HELPERS ──────────────────────────────────────────
+      // Snap the notify pin to the GPX once and cache it (pin is static;
+      // only re-snap if the pin actually moves).
+      function getUserPinSnap() {
+        const pin = AppState.vars.notifyLatLng;
+        if (!pin || !AppState.flags.gpxLoaded || !AppState.gpxRoute) return null;
+        const c = AppState.vars.userSnapCache;
+        if (c && c.lat === pin.lat && c.lng === pin.lng) return c.snap;
+        const saved = AppState.vars.lastSnapIndex; // full-route scan must not disturb Santa's snap window
+        const snap = snapToGpxIndex(pin, null);
+        AppState.vars.lastSnapIndex = saved;
+        AppState.vars.userSnapCache = snap ? { lat: pin.lat, lng: pin.lng, snap } : null;
+        return snap;
+      }
+
+      function formatClock(ms) {
+        const d = new Date(ms);
+        let h = d.getHours(); const m = d.getMinutes();
+        const ap = h >= 12 ? "pm" : "am"; h = h % 12 || 12;
+        return h + ":" + String(m).padStart(2, "0") + ap;
+      }
+
+      // Round to the nearest 5 minutes — stops the clock time twitching
+      // every poll when Santa's pace wobbles between houses.
+      function roundTo5Min(ms) { return Math.round(ms / 300000) * 300000; }
+
+      function parseRouteClock(hm) {
+        const m = String(hm || "").match(/^(\d{1,2}):(\d{2})/);
+        if (!m) return null;
+        const d = new Date(); d.setHours(parseInt(m[1], 10), parseInt(m[2], 10), 0, 0);
+        return d.getTime();
+      }
+
+      // PRE-ROUTE estimate: interpolate the pin's distance along the GPX
+      // against the route's scheduled Start/End times, so pinned families
+      // see "due around 7:40pm tonight" before the sleigh even moves.
+      function getScheduledPinEtaText() {
+        const route = AppState.vars.todayRoute;
+        if (!route || !AppState.vars.notifyLatLng || !AppState.flags.gpxLoaded) return null;
+        const start = parseRouteClock(route["Start Time"]);
+        let end = parseRouteClock(route["End Time"]);
+        if (!start || !end) return null;
+        if (end <= start) end += 12 * 60 * 60 * 1000;            // crossed-midnight guard
+        if (Date.now() > end + 30 * 60 * 1000) return null;      // window over — Lapland text wins
+        const userSnap = getUserPinSnap();
+        if (!userSnap) return null;
+        const total = AppState.gpxRoute[AppState.gpxRoute.length - 1].dist || 1;
+        const frac = Math.min(1, Math.max(0, userSnap.point.dist / total));
+        let due = start + frac * (end - start);
+        if (due < Date.now()) due = Date.now() + 5 * 60 * 1000;  // running late — never show a time in the past
+        return "Santa is due near your pin around " + formatClock(roundTo5Min(due)) + " tonight!";
+      }
+
+      // ══════════════════════════════════════════════════════════════
+      //  TURN-BY-TURN NAVIGATION — Branded Waze-style heading-up
+      // ══════════════════════════════════════════════════════════════
+      const TurnByTurn = {
+        steps: null,
+        cursor: 0,
+        spoken: new Set(),
+        muted: false,
+        banner: null,
+        lastSpeed: 0,
+
+        async load(gpxRoute) {
+          if (!gpxRoute || gpxRoute.length < 2) return;
+          
+          // Try OSRM first (best: road names + roundabouts)
+          const osrmSteps = await TurnByTurn._loadOSRM(gpxRoute);
+          if (osrmSteps && osrmSteps.length > 0) {
+            TurnByTurn.steps = osrmSteps;
+            TurnByTurn.cursor = 0;
+            TurnByTurn.ensureBanner();
+            console.info(`[TBT] OSRM loaded ${osrmSteps.length} maneuvers`);
+            return;
+          }
+          
+          // Fallback: detect turns purely from GPX geometry (no external API)
+          const gpxSteps = TurnByTurn._loadFromGPX(gpxRoute);
+          if (gpxSteps && gpxSteps.length > 0) {
+            TurnByTurn.steps = gpxSteps;
+            TurnByTurn.cursor = 0;
+            TurnByTurn.ensureBanner();
+            // Check if GPX already has embedded road names (from Route Planner export)
+            const turnsWithNames = gpxSteps.filter(s => s.type === 'turn' && s.roadName).length;
+            const totalTurns = gpxSteps.filter(s => s.type === 'turn').length;
+            if (turnsWithNames > 0) {
+              console.info(`[TBT] GPX fallback loaded ${gpxSteps.length} turns (${turnsWithNames}/${totalTurns} with embedded road names)`);
+            } else {
+              console.info(`[TBT] GPX fallback loaded ${gpxSteps.length} turns — enriching with Nominatim…`);
+              // Only call Nominatim if GPX has no embedded names
+              TurnByTurn._enrichWithRoadNames(gpxSteps);
+            }
+          } else {
+            console.warn('[TBT] No turns detected in GPX');
+            TurnByTurn.steps = null;
+          }
+        },
+
+        async _loadOSRM(gpxRoute) {
+          try {
+            const MAX = 50;
+            const stride = Math.max(1, Math.ceil(gpxRoute.length / MAX));
+            const sampled = [];
+            for (let i = 0; i < gpxRoute.length; i += stride) sampled.push(gpxRoute[i]);
+            const last = gpxRoute[gpxRoute.length - 1];
+            if (sampled[sampled.length - 1] !== last) sampled.push(last);
+            const coords = sampled.map(p => `${p.lng.toFixed(6)},${p.lat.toFixed(6)}`).join(';');
+            const osrmBase = `https://router.project-osrm.org/match/v1`;
+            const osrmParams = `?steps=true&geometries=geojson&overview=simplified`;
+            let res = await fetch(`${osrmBase}/driving/${coords}${osrmParams}`);
+            if (!res.ok) {
+              console.warn('[TBT] Driving profile failed (' + res.status + '), trying foot…');
+              res = await fetch(`${osrmBase}/foot/${coords}${osrmParams}`);
+            }
+            if (!res.ok) throw new Error('OSRM HTTP ' + res.status);
+            const data = await res.json();
+            if (data.code !== 'Ok' || !data.matchings || !data.matchings.length) throw new Error('No match');
+
+            const steps = [];
+            for (const m of data.matchings) {
+              for (const leg of m.legs) {
+                for (const s of leg.steps) {
+                  steps.push({
+                    loc: { lat: s.maneuver.location[1], lng: s.maneuver.location[0] },
+                    type: s.maneuver.type,
+                    mod: s.maneuver.modifier || '',
+                    exit: s.maneuver.exit || null,
+                    name: s.name || '',
+                    instruction: TurnByTurn.buildInstruction(s),
+                    icon: TurnByTurn.iconFor(s.maneuver.type, s.maneuver.modifier),
+                    roadName: s.name || ''
+                  });
+                }
+              }
+            }
+
+            for (const s of steps) {
+              let bestI = 0, bestD = Infinity;
+              for (let i = 0; i < gpxRoute.length; i++) {
+                const d = Utils.haversineMeters(s.loc, gpxRoute[i]);
+                if (d < bestD) { bestD = d; bestI = i; }
+              }
+              s.gpxIdx = bestI;
+            }
+            steps.sort((a, b) => a.gpxIdx - b.gpxIdx);
+            return steps;
+          } catch (e) {
+            console.warn('[TBT] OSRM unavailable:', e.message);
+            return null;
+          }
+        },
+
+        // ── GPX-ONLY TURN DETECTOR ──
+        // Detects turns purely from bearing changes in the GPX geometry.
+        // No external API needed — completely bulletproof.
+        _loadFromGPX(gpxRoute) {
+          const TURN_THRESHOLD = 25;      // degrees — minimum angle change to count as a turn
+          const SHARP_THRESHOLD = 70;     // degrees — sharp turn
+          const SLIGHT_THRESHOLD = 40;    // degrees — below this is "slight"
+          const MIN_DIST_BETWEEN = 30;    // metres — merge turns closer than this
+          const LOOK_WINDOW = 8;          // points ahead/behind for bearing calculation
+          
+          const steps = [];
+          
+          // Add depart
+          const startRoad = gpxRoute[0].roadName || '';
+          steps.push({
+            loc: gpxRoute[0],
+            type: 'depart', mod: '', exit: null, name: startRoad,
+            instruction: startRoad ? `Head along ${startRoad}` : 'Start driving',
+            icon: '🚩', roadName: startRoad,
+            gpxIdx: 0
+          });
+          
+          // Walk the route looking for bearing changes
+          for (let i = LOOK_WINDOW; i < gpxRoute.length - LOOK_WINDOW; i++) {
+            const behind = gpxRoute[Math.max(0, i - LOOK_WINDOW)];
+            const here = gpxRoute[i];
+            const ahead = gpxRoute[Math.min(gpxRoute.length - 1, i + LOOK_WINDOW)];
+            
+            const bearingIn = Utils.bearingBetween(behind, here);
+            const bearingOut = Utils.bearingBetween(here, ahead);
+            
+            // Signed angle difference (-180 to +180, positive = right)
+            let angleDiff = bearingOut - bearingIn;
+            while (angleDiff > 180) angleDiff -= 360;
+            while (angleDiff < -180) angleDiff += 360;
+            
+            const absAngle = Math.abs(angleDiff);
+            if (absAngle < TURN_THRESHOLD) continue;
+            
+            // Skip if too close to last detected turn
+            if (steps.length > 1) {
+              const lastTurn = steps[steps.length - 1];
+              const dist = here.dist - gpxRoute[lastTurn.gpxIdx].dist;
+              if (dist < MIN_DIST_BETWEEN) continue;
+            }
+            
+            // Classify the turn
+            const isRight = angleDiff > 0;
+            let mod, icon;
+            if (absAngle >= SHARP_THRESHOLD) {
+              mod = isRight ? 'sharp right' : 'sharp left';
+              icon = isRight ? '↗️' : '↖️';
+            } else if (absAngle >= SLIGHT_THRESHOLD) {
+              mod = isRight ? 'right' : 'left';
+              icon = isRight ? '➡️' : '⬅️';
+            } else {
+              mod = isRight ? 'slight right' : 'slight left';
+              icon = isRight ? '↗' : '↖';
+            }
+            
+            // Get road name from GPX — look ahead for the road being turned onto
+            const aheadName = gpxRoute[Math.min(i + LOOK_WINDOW, gpxRoute.length - 1)].roadName || '';
+            const instruction = aheadName ? `Turn ${mod} onto ${aheadName}` : `Turn ${mod}`;
+            
+            steps.push({
+              loc: here,
+              type: 'turn', mod, exit: null, name: aheadName,
+              instruction,
+              icon, roadName: aheadName,
+              gpxIdx: i
+            });
+          }
+          
+          // Add arrive
+          const endRoad = gpxRoute[gpxRoute.length - 1].roadName || '';
+          steps.push({
+            loc: gpxRoute[gpxRoute.length - 1],
+            type: 'arrive', mod: '', exit: null, name: endRoad,
+            instruction: 'You have arrived',
+            icon: '🏁', roadName: endRoad,
+            gpxIdx: gpxRoute.length - 1
+          });
+          
+          return steps;
+        },
+
+        // ── ROAD NAME ENRICHMENT (via Nominatim reverse geocode) ──
+        // Runs in background after GPX turn detection.
+        // Updates step objects in-place — the banner auto-picks up names on next render.
+        // If Nominatim is down or rate-limited, turns still work with generic instructions.
+        async _enrichWithRoadNames(steps) {
+          const turnSteps = steps.filter(s => s.type === 'turn');
+          if (turnSteps.length === 0) return;
+          
+          console.info(`[TBT] Enriching ${turnSteps.length} turns with road names…`);
+          let enriched = 0;
+          
+          for (const step of turnSteps) {
+            try {
+              const res = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?lat=${step.loc.lat.toFixed(6)}&lon=${step.loc.lng.toFixed(6)}&format=json&zoom=18&addressdetails=1`,
+                { headers: { 'User-Agent': 'TurboSanta-SleighTracker/1.0' } }
+              );
+              if (!res.ok) continue;
+              const data = await res.json();
+              const road = data.address?.road || data.address?.pedestrian || data.address?.path;
+              if (road) {
+                step.name = road;
+                step.roadName = road;
+                step.instruction = `Turn ${step.mod} onto ${road}`;
+                enriched++;
+              }
+            } catch (e) {
+              // Silently continue — road name is cosmetic
+            }
+            // Nominatim usage policy: max 1 request per second
+            await new Promise(r => setTimeout(r, 1100));
+          }
+          
+          console.info(`[TBT] Road names: ${enriched}/${turnSteps.length} enriched`);
+        },
+
+        buildInstruction(s) {
+          const m = s.maneuver;
+          const type = m.type;
+          const dir = m.modifier || '';
+          const name = s.name || '';
+          const onto = name ? ` onto ${name}` : '';
+          if (type === 'depart') return name ? `Head along ${name}` : 'Start driving';
+          if (type === 'arrive') return 'You have arrived';
+          if (type === 'turn') return `Turn ${dir}${onto}`;
+          if (type === 'new name') return name ? `Continue onto ${name}` : 'Continue ahead';
+          if (type === 'merge') return `Merge${dir ? ' ' + dir : ''}${onto}`;
+          if (type === 'on ramp') return `Take the ramp${dir ? ' on the ' + dir : ''}`;
+          if (type === 'off ramp') return `Take the exit${dir ? ' on the ' + dir : ''}`;
+          if (type === 'fork') return `Keep ${dir || 'ahead'} at the fork${onto}`;
+          if (type === 'end of road') return `Turn ${dir}${onto}`;
+          if (type === 'continue') return `Continue ${dir}${onto}`;
+          if (type === 'roundabout' || type === 'rotary') {
+            const ex = m.exit ? ` take exit ${m.exit}` : '';
+            return `At the roundabout,${ex}${onto}`;
+          }
+          if (type === 'exit roundabout' || type === 'exit rotary') return `Exit roundabout${onto}`;
+          return name ? `Continue on ${name}` : 'Continue';
+        },
+
+        iconFor(type, mod) {
+          if (type === 'arrive') return '🏁';
+          if (type === 'depart') return '🚩';
+          if (type === 'roundabout' || type === 'rotary') return '🔄';
+          if (mod === 'uturn') return '↩️';
+          if (mod === 'sharp left') return '↖️';
+          if (mod === 'sharp right') return '↗️';
+          if (mod === 'slight left') return '↖';
+          if (mod === 'slight right') return '↗';
+          if (mod === 'left') return '⬅️';
+          if (mod === 'right') return '➡️';
+          return '⬆️';
+        },
+
+        ensureBanner() {
+          if (TurnByTurn.banner) return TurnByTurn.banner;
+          const el = document.createElement('div');
+          el.id = 'navBanner';
+          el.innerHTML = `
+            <div class="nav-top-row">
+              <div class="nav-icon" id="navIconEl">⬆️</div>
+              <div class="nav-body">
+                <div class="nav-dist" id="navDistEl">—</div>
+                <div class="nav-road" id="navRoadEl">Locating…</div>
+                <div class="nav-instruction" id="navTextEl"></div>
+              </div>
+              <button class="nav-mute" id="navMuteBtn" aria-label="Toggle voice">🔊</button>
+            </div>
+            <div class="nav-meta-strip">
+              <span class="nav-speed" id="navSpeedEl">— mph</span>
+              <span class="nav-eta" id="navEtaEl">Route in progress</span>
+            </div>`;
+          document.body.appendChild(el);
+          TurnByTurn.banner = el;
+          TurnByTurn.els = {
+            navSpeed: document.getElementById('navSpeedEl'),
+            navEta: document.getElementById('navEtaEl'),
+            navIcon: document.getElementById('navIconEl'),
+            navRoad: document.getElementById('navRoadEl'),
+            navText: document.getElementById('navTextEl'),
+            navDist: document.getElementById('navDistEl')
+          };
+          document.getElementById('navMuteBtn').onclick = () => {
+            TurnByTurn.muted = !TurnByTurn.muted;
+            document.getElementById('navMuteBtn').textContent = TurnByTurn.muted ? '🔇' : '🔊';
+            if (TurnByTurn.muted && 'speechSynthesis' in window) speechSynthesis.cancel();
+          };
+          return el;
+        },
+
+        update(snapIdx, snapDistance, speedMps) {
+          if (!TurnByTurn.steps || !TurnByTurn.steps.length || !AppState.gpxRoute) return;
+          const banner = TurnByTurn.ensureBanner();
+          banner.classList.add('ready');
+
+          // Update speed display
+          if (typeof speedMps === 'number' && speedMps >= 0) {
+            TurnByTurn.lastSpeed = speedMps;
+            const mph = Math.round(speedMps * 2.237);
+            const speedEl = TurnByTurn.els.navSpeed;
+            if (speedEl) speedEl.textContent = `${mph} mph`;
+          }
+
+          // Route remaining
+          const totalDist = AppState.gpxRoute[AppState.gpxRoute.length - 1].dist;
+          const currentDist = AppState.gpxRoute[snapIdx] ? AppState.gpxRoute[snapIdx].dist : 0;
+          const remaining = totalDist - currentDist;
+          const etaEl = TurnByTurn.els.navEta;
+          if (etaEl) {
+            if (TurnByTurn.lastSpeed > 0.5) {
+              const etaSecs = remaining / TurnByTurn.lastSpeed;
+              const etaMins = Math.ceil(etaSecs / 60);
+              etaEl.textContent = `${TurnByTurn.formatDist(remaining)} remaining · ~${etaMins} min`;
+            } else {
+              etaEl.textContent = `${TurnByTurn.formatDist(remaining)} remaining`;
+            }
+          }
+
+          // Advance cursor past manoeuvres we've passed
+          while (TurnByTurn.cursor < TurnByTurn.steps.length - 1 &&
+                 TurnByTurn.steps[TurnByTurn.cursor].gpxIdx <= snapIdx - 1) {
+            TurnByTurn.cursor++;
+          }
+          const step = TurnByTurn.steps[TurnByTurn.cursor];
+          if (!step) return;
+
+          const offRoute = snapDistance > 60;
+          banner.classList.toggle('off-route', offRoute);
+
+          const tgt = AppState.gpxRoute[step.gpxIdx];
+          const metersToTurn = tgt ? Math.max(0, tgt.dist - currentDist) : 0;
+
+          TurnByTurn.els.navIcon.textContent = step.icon;
+          
+          const roadEl = TurnByTurn.els.navRoad;
+          const textEl = TurnByTurn.els.navText;
+          
+          if (offRoute) {
+            roadEl.textContent = 'Return to route';
+            textEl.textContent = step.instruction;
+            TurnByTurn.els.navDist.textContent = 'OFF ROUTE';
+          } else {
+            // Show road name prominently, instruction as subtitle
+            roadEl.textContent = step.roadName || step.instruction;
+            textEl.textContent = step.roadName ? step.instruction : '';
+            TurnByTurn.els.navDist.textContent = TurnByTurn.formatDist(metersToTurn);
+          }
+
+          if (!offRoute) TurnByTurn.maybeSpeak(step, metersToTurn);
+        },
+
+        formatDist(m) {
+          if (m < 30) return 'Now';
+          if (m < 1000) return `${Math.round(m / 10) * 10} m`;
+          return `${(m / 1000).toFixed(1)} km`;
+        },
+
+        maybeSpeak(step, meters) {
+          if (TurnByTurn.muted || !('speechSynthesis' in window)) return;
+          const k = TurnByTurn.cursor;
+          const bands = [
+            { hi: 400, lo: 340, tag: 'far', prefix: 'In 400 metres, ' },
+            { hi: 200, lo: 160, tag: 'mid2', prefix: 'In 200 metres, ' },
+            { hi: 100, lo:  70, tag: 'mid', prefix: 'In 100 metres, ' },
+            { hi:  40, lo:   0, tag: 'now', prefix: '' }
+          ];
+          for (const b of bands) {
+            const key = `${k}:${b.tag}`;
+            if (meters <= b.hi && meters > b.lo && !TurnByTurn.spoken.has(key)) {
+              TurnByTurn.spoken.add(key);
+              const phrase = b.prefix + (b.prefix ? step.instruction.toLowerCase() : step.instruction);
+              try {
+                const u = new SpeechSynthesisUtterance(phrase);
+                u.rate = 1.0; u.volume = 1.0; u.lang = 'en-GB';
+                speechSynthesis.cancel();
+                speechSynthesis.speak(u);
+              } catch (e) {}
+              break;
+            }
+          }
+        },
+
+        prime() {
+          if (!('speechSynthesis' in window)) return;
+          try {
+            const u = new SpeechSynthesisUtterance('Sat nav active');
+            u.rate = 1.0; u.volume = 0.8; u.lang = 'en-GB';
+            speechSynthesis.speak(u);
+          } catch (e) {}
+        },
+
+        // ── HEADING-UP MAP ROTATION ──
+        // For MapLibre (driver mode), bearing is applied as part of a combined easeTo
+        // call in the GPS watch handler — that way bearing + centre animate together
+        // and don't interrupt each other every tick (the source of the "fixed map" bug).
+        // For non-driver modes, fall through to leaflet-rotate's setBearing.
+        rotateMap(headingDeg) {
+          AppState.vars.currentMapHeading = headingDeg;
+          if (AppState.mlMap) return; // bearing applied by GPS handler's combined easeTo
+          if (!AppState.map || typeof AppState.map.setBearing !== 'function') return;
+          AppState.map.setBearing(-headingDeg);
+        }
+      };
+
+      function setDimUI(dim) { document.body.classList.toggle("dim-ui", !!dim); }
+      function showToast(message) { if (AppState.flags.isKiosk) return; const t = AppState.dom.toast; t.textContent = message; t.classList.add("toast-visible"); setTimeout(() => t.classList.remove("toast-visible"), 4000); }
+      function setConnectionState(state) { const box = AppState.dom.statusBox; box.classList.remove("is-reconnecting"); if (state === "reconnecting") { box.classList.add("is-reconnecting"); AppState.dom.statusDot.style.display = "block"; AppState.dom.statusDot.className = "status-dot dot-reconnecting"; } }
+
+      const Fireworks = {
+        particles: [], canvas: null, ctx: null, rafId: null, active: false,
+        init() { this.canvas = AppState.dom.fireworks; this.ctx = this.canvas.getContext("2d"); this.resize(); window.addEventListener("resize", () => this.resize()); },
+        resize() { if (!this.canvas) return; this.canvas.width = window.innerWidth; this.canvas.height = window.innerHeight; },
+        launch() { if (this.active) return; this.active = true; this.canvas.classList.add("active"); for (let burst = 0; burst < 5; burst++) { setTimeout(() => this._createBurst(), burst * 400); } this._draw(); setTimeout(() => this.stop(), 4000); },
+        _createBurst() { const cx = Math.random() * this.canvas.width * 0.6 + this.canvas.width * 0.2; const cy = Math.random() * this.canvas.height * 0.3 + this.canvas.height * 0.1; const colors = [PRIMARY_HEX, "#D31C1C", "#2cff4e", "#fff", "#ff6b9d", "#4fc3f7"]; const count = 40 + Math.floor(Math.random() * 30); for (let i = 0; i < count; i++) { const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.3; const speed = 2 + Math.random() * 4; this.particles.push({ x: cx, y: cy, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 1, decay: 0.008 + Math.random() * 0.012, color: colors[Math.floor(Math.random() * colors.length)], size: 2 + Math.random() * 3 }); } },
+        _draw() { if (!this.active) return; const ctx = this.ctx; ctx.clearRect(0, 0, this.canvas.width, this.canvas.height); for (let i = this.particles.length - 1; i >= 0; i--) { const p = this.particles[i]; p.x += p.vx; p.y += p.vy; p.vy += 0.06; p.vx *= 0.99; p.life -= p.decay; if (p.life <= 0) { this.particles.splice(i, 1); continue; } ctx.globalAlpha = p.life; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2); ctx.fill(); if (Math.random() > 0.7) { ctx.globalAlpha = p.life * 0.4; ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(p.x - p.vx * 2, p.y - p.vy * 2, p.size * 0.4, 0, Math.PI * 2); ctx.fill(); } } ctx.globalAlpha = 1; this.rafId = requestAnimationFrame(() => this._draw()); },
+        stop() { this.active = false; if (this.rafId) cancelAnimationFrame(this.rafId); this.particles = []; if (this.ctx) this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height); this.canvas.classList.remove("active"); }
+      };
+
+      const SleighAudio = {
+        _audio: null, _targetVol: 0, _rampTimer: null, _loaded: false,
+        init(url) { if (!url || this._audio) return; const a = new Audio(); a.src = url; a.loop = true; a.volume = 0; a.preload = "auto"; a.crossOrigin = "anonymous"; a.addEventListener("canplaythrough", () => { this._loaded = true; }, { once: true }); a.addEventListener("error", () => { this._loaded = false; }); this._audio = a; },
+        play() { if (!this._audio) return; const p = this._audio.play(); if (p && p.catch) p.catch(() => {}); this._startVolumeRamp(); },
+        pause() { if (!this._audio) return; this._audio.pause(); this._stopVolumeRamp(); },
+        setIntensity(level) { if (!AppState.flags.musicEnabled || !this._audio) return; const volMap = { 0: 0.15, 1: 0.25, 2: 0.5, 3: 0.8 }; this._targetVol = volMap[level] ?? 0.15; this._startVolumeRamp(); },
+        arrivalSurge() { if (!this._audio || !AppState.flags.musicEnabled) return; this._targetVol = 1.0; this._audio.volume = 1.0; setTimeout(() => { this._targetVol = 0.3; this._startVolumeRamp(); }, 3000); },
+        _startVolumeRamp() { if (this._rampTimer) return; this._rampTimer = setInterval(() => { if (!this._audio) { this._stopVolumeRamp(); return; } const current = this._audio.volume; const diff = this._targetVol - current; if (Math.abs(diff) < 0.01) { this._audio.volume = this._targetVol; this._stopVolumeRamp(); } else { this._audio.volume = current + diff * 0.15; } }, 50); },
+        _stopVolumeRamp() { if (this._rampTimer) { clearInterval(this._rampTimer); this._rampTimer = null; } },
+        mute() { this._targetVol = 0; if (this._audio) this._audio.volume = 0; this._stopVolumeRamp(); }
+      };
+
+      const SnowSystem = {
+        _rafId: null,
+        resize() { AppState.dom.snowCanvas.width = window.innerWidth; AppState.dom.snowCanvas.height = window.innerHeight; },
+        create(level) { const isMobile = window.innerWidth < 600; const baseCount = isMobile ? AppConfig.SNOW.MOBILE_BASE_COUNT : AppConfig.SNOW.DESKTOP_BASE_COUNT; const count = Math.floor(baseCount * AppConfig.SNOW.MULTIPLIERS[level]); AppState.vars.snowflakes = Array.from({ length: count }, () => ({ x: Math.random() * AppState.dom.snowCanvas.width, y: Math.random() * AppState.dom.snowCanvas.height, radius: Math.random() * 3 + 1, speed: ((Math.random() * 1 + 0.5) + (Math.random() * 1.5)) * (level === 3 ? 1.3 : 1), swayOffset: Math.random() * Math.PI * 2, swaySpeed: Math.random() * 0.02 + 0.005 })); },
+        draw() { if (!AppState.flags.snowActive || !AppState.flags.pageVisible) return; let frameSkip = 0; if (batteryState.supported && !batteryState.charging) { if (batteryState.level <= AppConfig.BATTERY.CRITICAL) frameSkip = AppConfig.BATTERY.FRAME_SKIP.CRITICAL; else if (batteryState.level <= AppConfig.BATTERY.LOW) frameSkip = AppConfig.BATTERY.FRAME_SKIP.LOW; } SnowSystem._frame = (SnowSystem._frame || 0) + 1; if (frameSkip && SnowSystem._frame % (frameSkip + 1) !== 0) { SnowSystem._rafId = requestAnimationFrame(SnowSystem.draw); return; } const ctx = AppState.dom.snowCanvas.getContext("2d"); ctx.clearRect(0, 0, AppState.dom.snowCanvas.width, AppState.dom.snowCanvas.height); ctx.fillStyle = "rgba(255, 255, 255, 0.95)"; for (const f of AppState.vars.snowflakes) { f.y += f.speed; f.swayOffset += f.swaySpeed; f.x += Math.sin(f.swayOffset) * 0.5; if (f.y > AppState.dom.snowCanvas.height) { f.y = -10; f.x = Math.random() * AppState.dom.snowCanvas.width; } if (f.x > AppState.dom.snowCanvas.width) f.x = 0; if (f.x < 0) f.x = AppState.dom.snowCanvas.width; ctx.fillRect(f.x - f.radius, f.y - f.radius, f.radius * 2, f.radius * 2); } SnowSystem._rafId = requestAnimationFrame(SnowSystem.draw); },
+        setLevel(on, level) { if (!on) { if (AppState.flags.snowActive) { AppState.flags.snowActive = false; if (SnowSystem._rafId) { cancelAnimationFrame(SnowSystem._rafId); SnowSystem._rafId = null; } document.body.classList.remove("snowing"); const ctx = AppState.dom.snowCanvas.getContext("2d"); ctx.clearRect(0, 0, AppState.dom.snowCanvas.width, AppState.dom.snowCanvas.height); } return; } if (AppState.currentSnowLevel !== level) { AppState.currentSnowLevel = level; SnowSystem.create(level); } if (!AppState.flags.snowActive) { AppState.flags.snowActive = true; document.body.classList.add("snowing"); SnowSystem.draw(); } }
+      };
+
+      function showNotifyMarker(lat, lng, confirmed) { if (AppState.notifyMarker) AppState.map.removeLayer(AppState.notifyMarker); const iconUrl = confirmed ? AppConfig.ICONS.CONFIRMED : AppConfig.ICONS.PREVIEW; AppState.notifyMarker = L.marker([lat, lng], { icon: L.icon({ iconUrl, iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png", shadowSize: [41, 41] }), interactive: true }).addTo(AppState.map); if (!confirmed) { AppState.notifyMarker.bindPopup("Tap this pin again to confirm").openPopup(); AppState.notifyMarker.once("click", () => { AppState.flags.awaitingPin = false; showNotifyMarker(lat, lng, true); sessionStorage.setItem("SANTA_NOTIFY_POINT", JSON.stringify({ lat, lng })); AppState.vars.pendingSubscription = { lat, lng }; AppState.vars.notifyLatLng = { lat, lng }; document.getElementById("emailModal").style.display = "flex"; document.getElementById("subEmail").focus(); }); } }
+      
+      function fireBrowserNotification(title, body) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  // tag dedupes if it ever double-fires
+  const opts = { body, icon: AppConfig.ICONS.BROWSER_ICON, requireInteraction: true, tag: "santa-near" };
+  const fallback = () => { try { new Notification(title, opts); } catch (e) {} };
+  if (navigator.serviceWorker && navigator.serviceWorker.getRegistration) {
+    navigator.serviceWorker.getRegistration()
+      .then(reg => (reg && reg.showNotification) ? reg.showNotification(title, opts) : fallback())
+      .catch(fallback);
+  } else {
+    fallback();
+  }
+}
+      
+      function triggerPolaroid(imgSrc, captionText = "Live from the Sleigh!") { if (!AppState.flags.pageVisible) return; const p = document.createElement("div"); p.className = "polaroid"; const isMobile = window.innerWidth < 600; const isLeft = Math.random() > 0.5; const TOP_SAFE = 90, BOTTOM_SAFE = isMobile ? 230 : 210, POLAROID_H = isMobile ? 180 : 300; const availableH = window.innerHeight - TOP_SAFE - BOTTOM_SAFE - POLAROID_H; const safeTop = TOP_SAFE + (availableH > 0 ? Math.random() * availableH : 0); if (isMobile) { p.style.left = isLeft ? "22px" : "auto"; p.style.right = isLeft ? "auto" : "22px"; } else { p.style.left = isLeft ? (Math.random() * 6 + 1) + "%" : "auto"; p.style.right = isLeft ? "auto" : (Math.random() * 6 + 1) + "%"; } p.style.top = safeTop + "px"; const maxRot = isMobile ? 6 : 12; const rot = Math.random() * (maxRot * 2) - maxRot; p.style.setProperty("--rotStart", (rot * 2) + "deg"); p.style.setProperty("--rotMid", rot + "deg"); p.style.setProperty("--rotEnd", (rot * 0.5) + "deg"); p.innerHTML = `<img src="${imgSrc}" alt="Elf Cam"><div class="polaroid-caption">${captionText}</div>`; document.body.appendChild(p); setTimeout(() => p.remove(), 10000); }
+
+      // Ask once, from a user gesture. Safari requires the gesture; Chrome
+// downgrades non-gesture prompts to a quiet UI most people never see.
+function ensureNotifyPermission() {
+  if (!("Notification" in window) || Notification.permission !== "default") return;
+  try {
+    const p = Notification.requestPermission(() => {}); // callback form = legacy Safari
+    if (p && p.catch) p.catch(() => {});                // promise form = everyone else
+  } catch (e) {}
+}
+      
+      async function updateTracker() {
+        // Hidden tab / backgrounded PWA: stop polling entirely. The visibilitychange
+        // handler restarts the loop the instant the page is visible again, so every
+        // backgrounded phone stops hitting Firebase + Apps Script for nothing.
+        if (!AppState.flags.pageVisible) return;
+        try {
+          const now = Date.now();
+          if (!AppState.vars.lastSettingsFetch || now - AppState.vars.lastSettingsFetch > 10000) { AppState.vars.latestApiData = await Utils.loadJSON(AppState.vars.dataUrl); AppState.vars.lastSettingsFetch = now; }
+          const latestApiData = AppState.vars.latestApiData;
+          
+          const rawElfCamUrl = latestApiData.settings?.elf_cam_url;
+          if (rawElfCamUrl && rawElfCamUrl !== AppState.vars.lastElfCamUrl && Utils.isValidImageUrl(rawElfCamUrl)) { if (AppState.flags.pageVisible) { AppState.vars.lastElfCamUrl = rawElfCamUrl; let finalImgUrl = rawElfCamUrl; if (finalImgUrl.includes("drive.google.com")) { try { const urlObj = new URL(finalImgUrl); const fileId = urlObj.searchParams.get("id"); if (fileId) finalImgUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`; } catch(e) {} } triggerPolaroid(finalImgUrl, "Live from the Sleigh!"); } }
+
+          // 🚀 UNIVERSAL FIREBASE GATEWAY: Fetch via Cloudflare Worker
+// The worker pulls the table's specific secret from GAS behind the scenes
+const fastGpsUrl = `${WORKER_URL}?action=liveGps&api=${encodeURIComponent(AppState.vars.apiUrl)}`;
+          
+let data = await Utils.loadJSON(fastGpsUrl);
+
+if (data && typeof data === "object" && !data.lat) { 
+  const first = Object.values(data)[0]; 
+  if (first && typeof first === "object") data = first; 
+}
+
+// If data is empty or coords aren't valid, don't throw an error — handle gracefully:
+if (!data || !Utils.validPos(data.lat, data.lng)) {
+  AppState.dom.statusBox.textContent = getScheduledPinEtaText() || "Santa is preparing in Lapland!";
+  AppState.dom.statusDot.style.display = "none";
+  scheduleNextPoll();
+  return;
+}
+
+AppState.vars.consecutiveErrors = 0;
+setConnectionState("live");
+
+const ts = new Date(data.ts).getTime(), age = Date.now() - ts, isFresh = age <= AppConfig.API.STALE_MS;
+
+          const rs = document.getElementById('routeSponsor');
+if (rs) rs.classList.toggle('visible', !!AppState.vars.sponsorReady && !AppState.flags.isKiosk && !AppState.flags.isDriver);
+if (window.layoutOverlays) window.layoutOverlays();
+          
+          if (AppState.flags.isKiosk) { AppState.dom.kioskBanner.classList.toggle("live", isFresh); const statusEl = document.getElementById("kioskStatus"); if (statusEl) statusEl.textContent = isFresh ? "LIVE TRACKING" : "PREPARING IN LAPLAND"; if (AppState.dom.sponsorBox) AppState.dom.sponsorBox.classList.toggle("visible", isFresh && !!AppState.vars.kioskSponsorReady); }
+
+          if (!isFresh) {
+            if (!AppState.vars.staleSince) AppState.vars.staleSince = ts;
+            if (Date.now() - AppState.vars.staleSince > AppConfig.API.STALE_MS) { AppState.marker.setLatLng(AppConfig.LOCATIONS.LAPLAND); if (AppState.flags.follow) AppState.map.setView(AppConfig.LOCATIONS.LAPLAND, 5, { animate: true, duration: 2 }); AppState.dom.statusBox.textContent = getScheduledPinEtaText() || "Santa is in Lapland preparing for Christmas!"; AppState.dom.statusBox.classList.remove("is-announcement", "is-user-msg"); AppState.dom.statusDot.style.display = "none"; setDimUI(false); AppState.flags.firstFix = true; SleighAudio.setIntensity(0); scheduleNextPoll(); return; }
+            if (AppState.lastFix) { animateMarkerTo(AppState.lastFix.lat, AppState.lastFix.lng); const staleRoad = AppState.gpxRoute?.[AppState.vars.lastSnapIndex]?.roadName; AppState.dom.statusBox.textContent = staleRoad ? `Santa has stopped on ${staleRoad}!` : "Santa has stopped to spread cheer!"; AppState.dom.statusBox.classList.remove("is-announcement", "is-user-msg"); AppState.dom.statusDot.style.display = "block"; AppState.dom.statusDot.className = "status-dot dot-stopped"; setDimUI(false); scheduleNextPoll(); return; }
+          } else { AppState.vars.staleSince = null; AppState.lastFix = { lat: data.lat, lng: data.lng }; }
+
+          let visualPos = { lat: data.lat, lng: data.lng };
+          if (AppState.flags.gpxLoaded) {
+            const snap = snapToGpxIndex(visualPos, AppConfig.GPX); if (snap && snap.distance < 50) visualPos = snap.point;
+            if (AppState.gpxRoute && AppState.gpxRoute.length > 1) { const bestPoint = (snap && snap.distance < 50) ? snap : snapToGpxIndex(visualPos, null); /* reuse windowed snap when it hit — pay for a full-route scan only on a miss */ if (bestPoint && bestPoint.distance <= 50) { const percentComplete = Math.min(100, Math.round((bestPoint.point.index || AppState.vars.lastSnapIndex) / (AppState.gpxRoute.length - 1) * 100)); AppState.dom.statusBox.style.setProperty('--progress', `${percentComplete}%`); if (AppState.flags.isDriver) { const bigBox = document.getElementById("driverProgressBox"); if (bigBox) bigBox.textContent = `${percentComplete}%`; } } else { AppState.dom.statusBox.style.setProperty('--progress', `0%`); if (AppState.flags.isDriver) { const bigBox = document.getElementById("driverProgressBox"); if (bigBox) bigBox.textContent = `OFF ROUTE`; } } }
+            if (AppState.dynamicRouteRemainingMain && AppState.vars.lastLeafletRouteIdx !== AppState.vars.lastSnapIndex) { const idx = AppState.vars.lastSnapIndex; const remaining = AppState.gpxRoute.slice(idx).map(p => [p.lat, p.lng]); AppState.dynamicRouteRemainingMain.setLatLngs(remaining); AppState.dynamicRouteRemainingGlow.setLatLngs(remaining); setLeafletPastRoute(idx); AppState.vars.lastLeafletRouteIdx = idx; }
+            if (AppState.mlMap && !AppState.flags.beaconActive && AppState.flags.gpxLoaded && AppState.gpxRoute && AppState.vars.lastMlRouteIdx !== AppState.vars.lastSnapIndex) { const idx = AppState.vars.lastSnapIndex; const rSrc = AppState.mlMap.getSource('gpx-route-remaining'); if (rSrc) { const rCoords = AppState.gpxRoute.slice(idx).map(p => [p.lng, p.lat]); rSrc.setData(rCoords.length >= 2 ? { type: 'Feature', geometry: { type: 'LineString', coordinates: rCoords } } : { type: 'FeatureCollection', features: [] }); setMlPastRoute(idx); AppState.vars.lastMlRouteIdx = idx; } }
+          }
+
+          animateMarkerTo(visualPos.lat, visualPos.lng);
+
+          // --- FADING TAIL LOGIC ---
+          if (!AppState.tailFixes) AppState.tailFixes = [];
+          const lastTailFix = AppState.tailFixes[AppState.tailFixes.length - 1];
+          const moveDist = lastTailFix ? Utils.haversineMeters({lat: lastTailFix[0], lng: lastTailFix[1]}, visualPos) : 999;
+          
+          // Only stretch the tail if moving, prevents collapsing when parked
+          if (moveDist > 2) {
+              AppState.tailFixes.push([visualPos.lat, visualPos.lng]);
+              if (AppState.tailFixes.length > 25) AppState.tailFixes.shift(); // Max 25 coordinates
+          }
+
+          // On-route (visualPos was snapped to a GPX vertex, so it carries .index): tail = the GPX's own vertices.
+          // Off-route: fall back to the raw-fix tail below.
+          const gpxTailPts = (typeof visualPos.index === 'number') ? gpxTailPoints(visualPos.index, AppConfig.GPX.TAIL_METERS) : null;
+
+          // Render Leaflet segmented tail (draw backwards so newest point always has highest opacity)
+          if (AppState.tailSegments && gpxTailPts) {
+              renderLeafletGpxTail(gpxTailPts, AppState.tailSegments);
+          } else if (AppState.tailSegments && AppState.tailFixes.length > 1) {
+              const maxSegs = AppState.tailSegments.length;
+              const tailLen = AppState.tailFixes.length;
+              
+              for (let i = 0; i < maxSegs; i++) AppState.tailSegments[i].setLatLngs([]); // Clear old segments
+              
+              for (let i = 0; i < tailLen - 1; i++) {
+                  const pNewer = AppState.tailFixes[tailLen - 1 - i];
+                  const pOlder = AppState.tailFixes[tailLen - 2 - i];
+                  const targetSegIdx = maxSegs - 1 - i;
+                  if (targetSegIdx >= 0) AppState.tailSegments[targetSegIdx].setLatLngs([pOlder, pNewer]);
+              }
+          }
+
+          // Render MapLibre gradient tail
+          if (AppState.mlMap && AppState.mlMap.getSource('sleigh-tail')) {
+              const mlTailCoords = gpxTailPts ? gpxTailPts.map(p => [p.lng, p.lat]) : AppState.tailFixes.map(p => [p[1], p[0]]);
+              AppState.mlMap.getSource('sleigh-tail').setData(
+                  mlTailCoords.length >= 2
+                  ? { type: 'Feature', geometry: { type: 'LineString', coordinates: mlTailCoords } }
+                  : { type: 'FeatureCollection', features: [] }
+              );
+          }
+          // -------------------------
+          pushFix(data.lat, data.lng, Date.now());
+
+          let etaSeconds = null;
+          if (AppState.flags.hasPassedSticky) { /* locked */ }
+          else if (AppState.vars.notifyLatLng && AppState.flags.gpxLoaded && isFresh) {
+            const santaSnap = snapToGpxIndex({ lat: data.lat, lng: data.lng }, AppConfig.GPX);
+            if (santaSnap) { let userSnap; const pinCache = AppState.vars.userSnapCache; if (pinCache && pinCache.lat === AppState.vars.notifyLatLng.lat && pinCache.lng === AppState.vars.notifyLatLng.lng) { userSnap = pinCache.snap; } else { /* pin is static — full-route snap once, then reuse every poll */ const savedSnapIdx = AppState.vars.lastSnapIndex; userSnap = snapToGpxIndex(AppState.vars.notifyLatLng, null); AppState.vars.lastSnapIndex = savedSnapIdx; AppState.vars.userSnapCache = userSnap ? { lat: AppState.vars.notifyLatLng.lat, lng: AppState.vars.notifyLatLng.lng, snap: userSnap } : null; } pushRouteFix(santaSnap.point.dist, Date.now());
+              if (userSnap) { const totalRouteDist = AppState.gpxRoute[AppState.gpxRoute.length - 1].dist; const isUserNearEnd = userSnap.point.dist > (totalRouteDist - AppConfig.NOTIFICATIONS.PASSED_DISTANCE_OFFSET); const santaReachedEnd = santaSnap.point.dist >= (totalRouteDist - 10);
+                if ((santaSnap.point.dist > userSnap.point.dist + AppConfig.NOTIFICATIONS.PASSED_DISTANCE_OFFSET) || (isUserNearEnd && santaReachedEnd)) {
+                  AppState.flags.hasPassedSticky = true; AppState.vars.etaEmaSec = null; sessionStorage.setItem("SANTA_HAS_PASSED", "1");
+                  if (!AppState.flags.celebrationFired) { AppState.flags.celebrationFired = true; sessionStorage.setItem("SANTA_CELEBRATION_FIRED", "1"); Fireworks.launch(); SleighAudio.arrivalSurge(); }
+                } else { const remaining = Math.max(0, userSnap.point.dist - santaSnap.point.dist); const routeSpeed = Utils.calculateRouteSpeed(AppState.routeFixes); const rawSpeed = Utils.calculateSpeed(AppState.recentFixes); const effectiveSpeed = (routeSpeed && routeSpeed > 0.3) ? routeSpeed : (rawSpeed && rawSpeed > 0.5) ? rawSpeed : 1.4; const rawEta = remaining / effectiveSpeed; const prevEma = AppState.vars.etaEmaSec; AppState.vars.etaEmaSec = (prevEma === null) ? rawEta : (0.35 * rawEta + 0.65 * prevEma); etaSeconds = AppState.vars.etaEmaSec; }
+              }
+            }
+          }
+
+          const etaMinutes = isFinite(etaSeconds) ? etaSeconds / 60 : Infinity;
+          let snowLevel = 0, triggerSnow = false;
+          if (AppState.vars.notifyLatLng && !AppState.flags.hasPassedSticky && etaSeconds !== null && isFresh) { if (etaMinutes < 15) { triggerSnow = true; if (etaMinutes < 3) snowLevel = 3; else if (etaMinutes < 8) snowLevel = 2; else snowLevel = 1; } }
+          if (AppState.flags.hasPassedSticky) { triggerSnow = false; snowLevel = 0; }
+          const { maxLevel } = function(){ if (batteryState.supported && !batteryState.charging) { if(batteryState.level <= AppConfig.BATTERY.CRITICAL) return { maxLevel: 1 }; if(batteryState.level <= AppConfig.BATTERY.LOW) return { maxLevel: 2 }; } return { maxLevel: 3 }; }();
+          SnowSystem.setLevel(triggerSnow, Math.min(snowLevel, maxLevel));
+          SleighAudio.setIntensity(triggerSnow ? Math.min(snowLevel, maxLevel) : 0);
+
+          const moving = isSleighMoving();
+          AppState.dom.statusDot.style.display = "block";
+          AppState.dom.statusDot.className = moving ? "status-dot dot-moving" : "status-dot dot-stopped";
+          const msgBtnEl = AppState.dom.msgBtn; if (msgBtnEl) msgBtnEl.style.display = (AppState.vars.todayRoute && isFresh && !AppState.flags.isKiosk) ? "inline-block" : "none";
+
+          const liveMsg = latestApiData.settings?.live_announcement; const userMsg = latestApiData.settings?.user_announcement; const userMsgTs = Number(String(latestApiData.settings?.user_announcement_ts).replace(/\D/g, '')) || 0;
+          if (userMsg && userMsgTs !== AppState.vars.lastSeenMsgTs) { AppState.vars.lastSeenMsgTs = userMsgTs; sessionStorage.setItem('SANTA_LAST_MSG_TS', String(userMsgTs)); const MSG_MAX_AGE_MS = 30 * 60 * 1000; if (userMsgTs && (Date.now() - userMsgTs) < MSG_MAX_AGE_MS) AppState.vars.localMsgStartTime = Date.now(); }
+          const isUserMsgActive = userMsg && AppState.vars.localMsgStartTime && (Date.now() - AppState.vars.localMsgStartTime < 20000);
+
+          if (liveMsg && liveMsg.trim() !== "") { AppState.dom.statusBox.textContent = `${liveMsg}`; AppState.dom.statusBox.classList.add("is-announcement"); AppState.dom.statusBox.classList.remove("is-user-msg"); setDimUI(false); }
+          else if (isUserMsgActive) { AppState.dom.statusBox.textContent = `${userMsg}`; AppState.dom.statusBox.classList.add("is-user-msg"); AppState.dom.statusBox.classList.remove("is-announcement"); setDimUI(false); }
+          else { AppState.dom.statusBox.classList.remove("is-announcement", "is-user-msg");
+            if (AppState.flags.hasPassedSticky) { 
+  AppState.dom.statusBox.textContent = "Santa has just been here!"; 
+  setDimUI(false); 
+  document.title = "Passed - TurboSanta"; // <-- ADDED
+}
+else if (etaSeconds !== null && !moving) { 
+  AppState.dom.statusBox.textContent = "Santa has stopped nearby!"; 
+  setDimUI(false); 
+  document.title = "Stopped - TurboSanta"; // <-- ADDED
+}
+else if (etaSeconds !== null) { 
+  const mins = etaSeconds / 60; 
+  const dueMs = Date.now() + etaSeconds * 1000; 
+  let etaText; 
+  if (mins < 2) { 
+    etaText = "Santa is nearly here!"; 
+    document.title = "(< 2m) TurboSanta"; // <-- ADDED
+  } else if (mins < 12) { 
+    const band = mins < 4 ? "~3" : mins < 7 ? "~5" : "~10"; 
+    etaText = "Santa is " + band + " mins away — about " + formatClock(dueMs) + " at your pin!"; 
+    document.title = `(${band}m) TurboSanta`; // <-- ADDED
+  } else { 
+    etaText = "Santa\u2019s due near your pin around " + formatClock(roundTo5Min(dueMs)) + "!"; 
+    document.title = `(${Math.ceil(mins)}m) TurboSanta`; // <-- ADDED
+  } 
+  AppState.dom.statusBox.textContent = etaText; 
+  setDimUI(mins > 45); 
+}
+else if (moving) { 
+  const gpxPoint = AppState.gpxRoute?.[AppState.vars.lastSnapIndex];
+  const gpxDist = gpxPoint ? Utils.haversineMeters({lat: data.lat, lng: data.lng}, gpxPoint) : 999;
+  const currentRoad = data.roadName || (gpxDist < 60 ? gpxPoint.roadName : "");
+  
+  AppState.dom.statusBox.textContent = currentRoad ? `Santa is on ${currentRoad}!` : "Santa is out spreading joy!"; 
+  setDimUI(false); 
+  document.title = "Live — TurboSanta"; 
+}
+else { 
+  const gpxPoint = AppState.gpxRoute?.[AppState.vars.lastSnapIndex];
+  const gpxDist = gpxPoint ? Utils.haversineMeters({lat: data.lat, lng: data.lng}, gpxPoint) : 999;
+  const currentRoad = data.roadName || (gpxDist < 60 ? gpxPoint.roadName : "");
+  
+  AppState.dom.statusBox.textContent = currentRoad ? `Santa has stopped on ${currentRoad}!` : "Santa has stopped to spread cheer!"; 
+  setDimUI(false); 
+  document.title = "TurboSanta — Tracker"; 
+}
+               }
+          if (AppState.vars.notifyLatLng && !AppState.flags.browserNotified && !AppState.flags.hasPassedSticky) { const straightDist = Utils.haversineMeters({ lat: data.lat, lng: data.lng }, AppState.vars.notifyLatLng); const isSmartEta = (etaSeconds !== null && etaSeconds < 180); const isCloseFallback = straightDist < AppConfig.NOTIFICATIONS.NEAR_DISTANCE_METERS && (etaSeconds === null || etaSeconds < 600); if (isSmartEta || isCloseFallback) { AppState.flags.browserNotified = true; sessionStorage.setItem("SANTA_BROWSER_NOTIFIED", "1"); fireBrowserNotification("Santa is nearly here!", "He's approaching your location!"); } }
+          if (AppState.flags.firstFix) { AppState.map.setView(visualPos, AppState.flags.isKiosk ? 15 : 16); AppState.flags.firstFix = false; }
+
+        } catch (e) {
+          AppState.vars.consecutiveErrors++;
+          if (AppState.vars.consecutiveErrors >= 2) { setConnectionState("reconnecting"); AppState.dom.statusBox.textContent = "Reconnecting to Santa…"; }
+          if (AppState.lastFix) { animateMarkerTo(AppState.lastFix.lat, AppState.lastFix.lng); if (AppState.vars.consecutiveErrors < 2) AppState.dom.statusBox.textContent = "Santa is nearby…"; AppState.dom.statusDot.style.display = "none"; setDimUI(false); }
+        }
+        scheduleNextPoll();
+      }
+
+     // --- CALENDAR EXPORT LOGIC ---
+const CalendarHelper = {
+  // Converts "2026-12-05" and "17:30" to standard ICS YYYYMMDDTHHMMSSZ format
+  formatICSDate(dateStr, timeStr) {
+    if (!timeStr) timeStr = "17:30"; // Fallback start time
+    const d = new Date(dateStr);
+    const datePart = d.toISOString().split('T')[0].replace(/-/g, '');
+    const timePart = timeStr.replace(':', '') + '00';
+    return `${datePart}T${timePart}Z`;
+  },
+  
+  buildGoogleUrl(route) {
+    const start = this.formatICSDate(route.date, route["Start Time"]);
+    const end = this.formatICSDate(route.date, route["End Time"] || route["Start Time"]);
+    const title = encodeURIComponent(`Santa Sleigh: ${route.routeName}`);
+    const loc = encodeURIComponent(`${route.routeName}, Beverley, UK`);
+    const details = encodeURIComponent(`The Round Table Santa Sleigh is visiting ${route.routeName}! Listen out for the music and track us live at: ${window.location.href.split('?')[0]}`);
+    
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&location=${loc}`;
+  },
+  
+  downloadIcs(route) {
+    const start = this.formatICSDate(route.date, route["Start Time"]);
+    const end = this.formatICSDate(route.date, route["End Time"] || route["Start Time"]);
+    const title = `Santa Sleigh: ${route.routeName}`;
+    const loc = `${route.routeName}, Beverley, UK`;
+    const desc = `The Round Table Santa Sleigh is visiting ${route.routeName}! Track us live at: ${window.location.href.split('?')[0]}`;
+
+    const icsData = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//TurboSanta//EN",
+      "CALSCALE:GREGORIAN",
+      "BEGIN:VEVENT",
+      `UID:${route.routeName.replace(/\s+/g, '')}-${start}@turbosanta`,
+      `DTSTAMP:${start}`,
+      `DTSTART:${start}`,
+      `DTEND:${end}`,
+      `SUMMARY:${title}`,
+      `LOCATION:${loc}`,
+      `DESCRIPTION:${desc}`,
+      "END:VEVENT",
+      "END:VCALENDAR"
+    ].join("\r\n");
+
+    const blob = new Blob([icsData], { type: 'text/calendar;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Santa_${route.routeName.replace(/\s+/g, '_')}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+};
+
+function populateScheduleModal(routes) {
+  const list = document.getElementById("scheduleList");
+  list.innerHTML = "";
+  
+  const now = new Date();
+  now.setHours(0,0,0,0);
+
+  // Filter for today and future routes only
+  const futureRoutes = (routes || [])
+    .filter(r => r.date && new Date(r.date) >= now)
+    .sort((a,b) => new Date(a.date) - new Date(b.date));
+
+  if (futureRoutes.length === 0) {
+    list.innerHTML = `<div style="text-align:center; color: var(--text-dim); margin-top: 20px;">No upcoming routes scheduled.</div>`;
+    return;
+  }
+
+  futureRoutes.forEach(route => {
+    const d = new Date(route.date);
+    const dateStr = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+    const timeStr = route["Start Time"] ? ` @ ${route["Start Time"]}` : "";
+
+    const item = document.createElement("div");
+    item.className = "schedule-item";
+    item.innerHTML = `
+      <div class="schedule-details">
+        <div class="schedule-route">${route.routeName || 'TBC'}</div>
+        <div class="schedule-date">${dateStr}${timeStr}</div>
+      </div>
+      <div class="schedule-actions">
+        <button class="cal-btn btn-gcal" aria-label="Add to Google Calendar">Google</button>
+        <button class="cal-btn btn-ics" aria-label="Download for Apple Calendar">Apple</button>
+      </div>
+    `;
+
+    item.querySelector('.btn-gcal').onclick = () => window.open(CalendarHelper.buildGoogleUrl(route), '_blank');
+    item.querySelector('.btn-ics').onclick = () => CalendarHelper.downloadIcs(route);
+
+    list.appendChild(item);
+  });
+}
+
+      async function init() {
+        const params = new URLSearchParams(location.search);
+        AppState.flags.isKiosk = params.get("kiosk") === "1" || sessionStorage.getItem("SANTA_KIOSK") === "1";
+        if (params.get("kiosk") === "1") sessionStorage.setItem("SANTA_KIOSK", "1");
+        if (AppState.flags.isKiosk) document.body.classList.add("kiosk");
+        AppState.flags.isDriver = params.get("driver") === "1";
+
+        // ── DRIVER-ONLY LIBRARIES (lazy-loaded) ──
+        // leaflet-rotate + MapLibre GL (~800KB) are only used in ?driver=1 satnav mode.
+        // Spectators never download them; for drivers they fetch in parallel with the
+        // API + GPX requests below and are awaited just before the map is built.
+        // Loaders resolve on error too — existing typeof/feature guards handle fallback.
+        const loadScript = (src) => new Promise((res) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = res; document.head.appendChild(s); });
+        const loadCss = (href) => new Promise((res) => { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; l.onload = res; l.onerror = res; document.head.appendChild(l); });
+        const driverLibsPromise = AppState.flags.isDriver ? Promise.all([
+          loadScript("https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate-src.js"),
+          loadScript("https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"),
+          loadCss("https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css")
+        ]) : null;
+
+        if (AppState.flags.isDriver) {
+          document.body.classList.add("driver-mode");
+          const navBtn = document.createElement("button");
+          navBtn.innerHTML = "START SAT-NAV & BEACON";
+          navBtn.style.cssText = "position:absolute; bottom:80px; left:10%; width:80%; padding:20px; font-size:20px; font-weight:900; font-family:'Eurostile',sans-serif; letter-spacing:2px; background:var(--primary); color:var(--on-primary); border-radius:16px; z-index:9999; border:3px solid rgba(255,255,255,0.2); box-shadow:0 10px 40px rgba(0,0,0,0.6), 0 0 30px rgba(var(--primary-rgb), 0.3); cursor:pointer;";
+          document.body.appendChild(navBtn);
+          
+          const BeaconDB = { db: null, sent: 0, depth: 0, init: () => new Promise((resolve) => { const req = indexedDB.open("TurboBeacon", 1); req.onupgradeneeded = e => { if(!e.target.result.objectStoreNames.contains("q")) e.target.result.createObjectStore("q", {keyPath:"id", autoIncrement:true}); }; req.onsuccess = () => { BeaconDB.db = req.result; resolve(); }; req.onerror = () => resolve(); }), add: (p) => new Promise(res => { if(!BeaconDB.db) return res(); const tx = BeaconDB.db.transaction("q","readwrite"); tx.objectStore("q").add({p, t:Date.now()}); tx.oncomplete=()=>{ BeaconDB.updateUI(); res(); }; }), getAll: () => new Promise(res => { if(!BeaconDB.db) return res([]); const tx = BeaconDB.db.transaction("q","readonly"); const req = tx.objectStore("q").getAll(); req.onsuccess=()=>res(req.result||[]); }), del: (id) => new Promise(res => { if(!BeaconDB.db) return res(); const tx = BeaconDB.db.transaction("q","readwrite"); tx.objectStore("q").delete(id); tx.oncomplete=res; }), updateUI: async () => { if(!BeaconDB.db) return; BeaconDB.depth = (await BeaconDB.getAll()).length; const qEl = document.getElementById('txQueued'); if(qEl) qEl.textContent = BeaconDB.depth; const pill = document.getElementById('txPill'); if(pill) { if (BeaconDB.depth > 0) { pill.style.borderColor = "var(--primary)"; pill.style.color = "var(--primary)"; document.getElementById('txState').textContent = "BUFFERING"; } else { pill.style.borderColor = "#00e676"; pill.style.color = "#00e676"; document.getElementById('txState').textContent = "LIVE"; } } }, flush: async (url) => { if (BeaconDB.depth === 0 || !navigator.onLine) return; const items = await BeaconDB.getAll(); if (!items.length) return; items.sort((a,b) => a.t - b.t); for (const it of items) { if (Date.now() - it.t > 90*60*1000) { await BeaconDB.del(it.id); continue; } try { const r = await fetch(url, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(it.p) }); if (r.ok) { await BeaconDB.del(it.id); BeaconDB.sent++; document.getElementById('txSent').textContent = BeaconDB.sent; } else break; } catch { break; } } BeaconDB.updateUI(); } };
+          
+          navBtn.onclick = async () => {
+            let secret = sessionStorage.getItem('beaconSecret');
+            if (!secret) { secret = prompt("Beacon Authorization\nEnter the Beacon password:"); if (!secret) return; }
+            navBtn.textContent = "VERIFYING...";
+            let gpsLoggerUrl = null;
+            try {
+              const sep = AppState.vars.apiUrl.includes('?') ? '&' : '?';
+              const res = await fetch(`${AppState.vars.apiUrl}${sep}function=verifyBeaconAuth&secret=${encodeURIComponent(secret)}`);
+              const result = await res.json();
+              if (!result.valid) { alert("Access Denied."); navBtn.textContent = "START SAT-NAV & BEACON"; sessionStorage.removeItem('beaconSecret'); return; }
+              sessionStorage.setItem('beaconSecret', secret);
+              navBtn.textContent = "FETCHING CONFIG...";
+              const cfgRes = await fetch(`${AppState.vars.apiUrl}${sep}function=getBeaconConfig&secret=${encodeURIComponent(secret)}`);
+              const cfg = await cfgRes.json();
+              if (cfg.error || !cfg.gpsLoggerUrl) throw new Error(cfg.error || "Missing URL");
+              gpsLoggerUrl = cfg.gpsLoggerUrl;
+            } catch (e) { alert("Setup failed: " + e.message); navBtn.textContent = "START SAT-NAV & BEACON"; return; }
+            
+            await BeaconDB.init();
+            await BeaconDB.updateUI();
+            setInterval(() => BeaconDB.flush(gpsLoggerUrl), 5000);
+            navBtn.style.display = "none";
+            document.body.classList.add("nav-active");
+            AppState.flags.beaconActive = true; // live GPS now owns the MapLibre route-line progression
+            requestWakeLock();
+
+            // Unlock audio context for iOS & ensure background keep-alive
+try {
+  AppState.vars.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const osc = AppState.vars.audioCtx.createOscillator();
+  const gain = AppState.vars.audioCtx.createGain();
+  gain.gain.value = 0.001; osc.connect(gain); gain.connect(AppState.vars.audioCtx.destination); osc.start(); 
+} catch(e) {}
+            TurnByTurn.prime();
+                                        
+            AppState.dom.statusBox.textContent = "Sat-Nav & Beacon Active";
+            AppState.dom.statusBox.style.color = "var(--primary)";
+            // Zoom in for nav — use MapLibre when available (driver mode), fallback to Leaflet
+            if (AppState.mlMap) {
+              AppState.mlMap.easeTo({ zoom: 18, pitch: 60, duration: 1200, essential: true });
+            } else {
+              AppState.map.setZoom(18);
+            }
+            
+            // ── BRANDED TX STATUS PILL ──
+            const txPill = document.createElement("div");
+            txPill.id = "txPill";
+            txPill.style.cssText = "position:fixed; top:auto; bottom:50px; left:50%; transform:translateX(-50%); background:rgba(13, 13, 11, 0.95); border:2px solid #00e676; color:#00e676; padding:8px 16px; border-radius:14px; font-weight:900; font-size:0.8em; z-index:4500; box-shadow:0 4px 16px rgba(0,0,0,0.6); display:flex; gap:12px; pointer-events:none; font-family:'Open Sans',sans-serif;";
+            txPill.innerHTML = `<span id="txState">LIVE</span> <span>Tx: <span id="txSent">0</span></span> <span>Q: <span id="txQueued">0</span></span>`;
+            document.body.appendChild(txPill);
+            
+            // Driver position arrow.
+            // MapLibre path uses an SVG arrow because CSS-border triangles inside the
+            // MapLibre marker container don't render at a predictable fixed pixel size.
+            // Leaflet fallback uses the original inline-styled border-triangle div, unchanged.
+            let driverMarker;
+            if (AppState.mlMap) {
+              const arrowEl = document.createElement('div');
+              arrowEl.style.cssText = "width:28px; height:34px; pointer-events:none; transform-origin:50% 75%; transition:transform 0.3s ease; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.5));";
+              arrowEl.innerHTML = '<svg width="28" height="34" viewBox="0 0 28 34" xmlns="http://www.w3.org/2000/svg" style="display:block;"><polygon points="14,0 28,34 0,34" fill="#007AFF"/></svg>';
+              // Keep a reference for the rotation step further down (replaces the
+              // querySelector('div') used in the Leaflet path).
+              driverMarker = new maplibregl.Marker({
+                element: arrowEl,
+                anchor: 'bottom',                 // GPS point sits at the base of the arrow
+                offset: [0, 8],                   // Nudge up by 8px so geo point ≈ original Leaflet iconAnchor [14,26]
+                rotationAlignment: 'viewport',    // Rotation in screen-space
+                pitchAlignment: 'viewport'        // Stay flat to camera, don't tilt with pitch
+              }).setLngLat([0, 0]).addTo(AppState.mlMap);
+              driverMarker._arrowEl = arrowEl;    // Stash for the rotation step below
+            } else {
+              driverMarker = L.marker([0,0], {
+                icon: L.divIcon({
+                  className: 'driver-arrow',
+                  html: '<div style="width:0; height:0; border-left:14px solid transparent; border-right:14px solid transparent; border-bottom:34px solid #007AFF; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.5)); transform-origin: 50% 75%; transition: transform 0.3s ease;"></div>',
+                  iconSize: [28, 34],
+                  iconAnchor: [14, 26]
+                }),
+                zIndexOffset: 1000
+              }).addTo(AppState.map);
+            }
+            
+            // Smoothed heading for map rotation (Google Maps-style stability)
+            let smoothedHeading = null;
+            let lastDriverPos = null;
+            let lastRotationTime = 0;
+            // Rolling buffer of recent fixes — gives a stable bearing at slow speeds
+            // where individual fix-to-fix movement is below the noise floor (~2-5m).
+            // Bearing is computed from oldest→newest in buffer once total distance > 3m.
+            const recentFixesForHeading = [];
+            const HEADING_BUFFER_MAX = 6;
+            
+            function smoothAngle(current, target, factor) {
+              // Shortest-path angular interpolation
+              let diff = target - current;
+              while (diff > 180) diff -= 360;
+              while (diff < -180) diff += 360;
+              return (current + diff * factor + 360) % 360;
+            }
+            
+            function angleDiff(a, b) {
+              let d = b - a;
+              while (d > 180) d -= 360;
+              while (d < -180) d += 360;
+              return Math.abs(d);
+            }
+
+            // Interpolate position onto the GPX line segment for smooth tracking
+            function snapToLineSegment(pos, snapIdx) {
+              if (!AppState.gpxRoute || snapIdx < 0) return null;
+              const route = AppState.gpxRoute;
+              // Check segment before and after the snap point, pick closest
+              let bestPt = route[snapIdx];
+              let bestDist = Utils.haversineMeters(pos, bestPt);
+              
+              const segments = [];
+              if (snapIdx > 0) segments.push([snapIdx - 1, snapIdx]);
+              if (snapIdx < route.length - 1) segments.push([snapIdx, snapIdx + 1]);
+              
+              for (const [iA, iB] of segments) {
+                const a = route[iA], b = route[iB];
+                // Project pos onto line A→B using parameterised t
+                const dx = b.lng - a.lng, dy = b.lat - a.lat;
+                const lenSq = dx * dx + dy * dy;
+                if (lenSq === 0) continue;
+                let t = ((pos.lng - a.lng) * dx + (pos.lat - a.lat) * dy) / lenSq;
+                t = Math.max(0, Math.min(1, t));
+                const projected = { lat: a.lat + t * dy, lng: a.lng + t * dx };
+                const d = Utils.haversineMeters(pos, projected);
+                if (d < bestDist) {
+                  bestDist = d;
+                  bestPt = projected;
+                  // Inherit the route distance for ETA calc
+                  bestPt.dist = a.dist + t * (b.dist - a.dist);
+                  bestPt.index = iA;
+                }
+              }
+              return { point: bestPt, distance: bestDist };
+            }
+
+            // ══════════════════════════════════════════════
+            //  GPS WATCH — HEADING-UP MAP ROTATION
+            // ══════════════════════════════════════════════
+            navigator.geolocation.watchPosition(async (pos) => {
+              const lat = pos.coords.latitude;
+              const lng = pos.coords.longitude;
+              const gpsHeading = pos.coords.heading;
+              const speed = pos.coords.speed || 0;
+              
+              let vp = { lat, lng };
+              let snapResult = null;
+              
+              if (AppState.flags.gpxLoaded && AppState.gpxRoute) {
+                snapResult = snapToGpxIndex(vp, null);
+                // Interpolate onto the line segment for smooth centre-line tracking
+                if (snapResult && snapResult.distance < 40) {
+                  const interpolated = snapToLineSegment(vp, snapResult.point.index || AppState.vars.lastSnapIndex);
+                  if (interpolated && interpolated.distance < 40) {
+                    vp = interpolated.point;
+                    snapResult = interpolated;
+                  } else {
+                    vp = snapResult.point;
+                  }
+                }
+              }
+              
+              // ── Calculate heading ──
+              // Priority: GPX route direction (most stable for pre-planned routes)
+              // then GPS compass, then movement bearing as fallbacks when off-route
+              const MIN_ROTATION_INTERVAL_MS = 250;
+
+              let heading = null;
+              const isOnRoute = snapResult && snapResult.distance < 40;
+
+              // 1. GPX forward bearing — primary source when on-route
+              if (isOnRoute && AppState.gpxRoute) {
+                const idx = snapResult.point.index || AppState.vars.lastSnapIndex;
+                const lookAhead = Math.min(idx + 10, AppState.gpxRoute.length - 1);
+                if (lookAhead > idx) {
+                  heading = Utils.bearingBetween(AppState.gpxRoute[idx], AppState.gpxRoute[lookAhead]);
+                }
+              }
+
+              // 2. Off-route fallback: GPS compass when moving (lowered to 1 m/s ≈ slow walk)
+              if (heading === null && speed >= 1.0 && typeof gpsHeading === 'number' && !isNaN(gpsHeading)) {
+                heading = gpsHeading;
+              }
+
+              // 3. Off-route fallback: bearing from a rolling fix buffer.
+              // This works even when individual fix-to-fix movement is tiny (slow parade speeds,
+              // GPS jitter), because we accumulate distance across several fixes before deciding
+              // on a bearing. Old fixes (>4s) are dropped so we always reflect the latest direction.
+              if (heading === null) {
+                recentFixesForHeading.push({ lat, lng, ts: Date.now() });
+                while (recentFixesForHeading.length > HEADING_BUFFER_MAX) recentFixesForHeading.shift();
+                while (recentFixesForHeading.length > 1 && Date.now() - recentFixesForHeading[0].ts > 4000) {
+                  recentFixesForHeading.shift();
+                }
+                if (recentFixesForHeading.length >= 2) {
+                  const oldest = recentFixesForHeading[0];
+                  const newest = recentFixesForHeading[recentFixesForHeading.length - 1];
+                  const total = Utils.haversineMeters(oldest, newest);
+                  if (total > 3) heading = Utils.bearingBetween(oldest, newest);
+                }
+              }
+
+              // 4. Final fallback: simple two-fix movement bearing (lowered 5m → 2m)
+              if (heading === null && lastDriverPos) {
+                const moveDist = Utils.haversineMeters(lastDriverPos, { lat, lng });
+                if (moveDist > 2) {
+                  heading = Utils.bearingBetween(lastDriverPos, { lat, lng });
+                }
+              }
+
+              // Smooth and apply.
+              // KEY FIX: smoothedHeading is always updated to the new candidate (no dead zone
+              // trap). Dead zone now only gates whether we actually CALL easeTo each tick —
+              // the internal state still drifts toward target across fixes, so over a few
+              // seconds the map naturally rotates to match heading-up like Google Maps.
+              if (typeof heading === 'number' && !isNaN(heading)) {
+                const now = Date.now();
+                if (smoothedHeading === null) {
+                  smoothedHeading = heading;
+                  lastRotationTime = now;
+                } else {
+                  // Smoothing factor: snappier than before (was 0.06/0.12 → starved).
+                  // 0.25 at speed feels like Google Maps; 0.15 slow keeps GPS noise quiet.
+                  const smoothFactor = speed > 5 ? 0.25 : 0.15;
+                  smoothedHeading = smoothAngle(smoothedHeading, heading, smoothFactor);
+                }
+                lastRotationTime = now;
+              }
+              
+              lastDriverPos = { lat, lng };
+              
+              // Update TurnByTurn with snap info and speed
+              if (snapResult && snapResult.point) {
+                TurnByTurn.update(snapResult.point.index, snapResult.distance, speed);
+              }
+
+              // Real-time route progress on the MapLibre map — shrink the red/gold ahead,
+              // grow the grey trail behind. Mirrors the line ~1350 update but fires every
+              // GPS tick so the visual matches the driver's position immediately, like Google Maps.
+              // Uses the LIVE GPS snap index (not the poll-lagged lastSnapIndex) so the red line
+              // shrinks under the arrow in real time, Waze-style. Off-route: hold last progression.
+              const liveRouteIdx = (isOnRoute && snapResult && snapResult.point && typeof snapResult.point.index === 'number') ? snapResult.point.index : AppState.vars.lastSnapIndex;
+              if (AppState.mlMap && AppState.flags.gpxLoaded && AppState.gpxRoute && AppState.vars.lastMlRouteIdx !== liveRouteIdx) { const idx = liveRouteIdx; const rSrc = AppState.mlMap.getSource('gpx-route-remaining'); if (rSrc) { const rCoords = AppState.gpxRoute.slice(idx).map(p => [p.lng, p.lat]); rSrc.setData(rCoords.length >= 2 ? { type: 'Feature', geometry: { type: 'LineString', coordinates: rCoords } } : { type: 'FeatureCollection', features: [] }); setMlPastRoute(idx); AppState.vars.lastMlRouteIdx = idx; } }
+              
+              // Position the driver arrow — MapLibre uses [lng, lat], Leaflet uses [lat, lng]
+              if (AppState.mlMap) {
+                driverMarker.setLngLat([vp.lng, vp.lat]);
+              } else {
+                driverMarker.setLatLng([vp.lat, vp.lng]);
+              }
+              
+              // Rotate arrow to track the IMMEDIATE route line (not the smoothed map heading)
+              // Uses a very short look-ahead (3 points = ~30m) so the arrow follows
+              // the road directly underneath it, like Google Maps
+              if (isOnRoute && AppState.gpxRoute && smoothedHeading !== null) {
+                const idx = snapResult.point.index || AppState.vars.lastSnapIndex;
+                const arrowLookAhead = Math.min(idx + 3, AppState.gpxRoute.length - 1);
+                if (arrowLookAhead > idx) {
+                  const immediateRouteBearing = Utils.bearingBetween(AppState.gpxRoute[idx], AppState.gpxRoute[arrowLookAhead]);
+                  // Arrow angle = route bearing minus map bearing (compensate for map rotation)
+                  let arrowAngle = immediateRouteBearing - smoothedHeading;
+                  while (arrowAngle > 180) arrowAngle -= 360;
+                  while (arrowAngle < -180) arrowAngle += 360;
+                  if (AppState.mlMap) {
+                    if (driverMarker._arrowEl) driverMarker._arrowEl.style.transform = `rotate(${arrowAngle}deg)`;
+                  } else {
+                    const arrowDiv = driverMarker.getElement()?.querySelector('div');
+                    if (arrowDiv) arrowDiv.style.transform = `rotate(${arrowAngle}deg)`;
+                  }
+                }
+              }
+              // Centre the camera on the driver — and rotate to heading-up at the same time.
+              // KEY FIX: a single easeTo({center, bearing}) call. Previously bearing and centre
+              // were two separate easeTo calls fired back-to-back, so the centre call
+              // interrupted the bearing animation every tick → the map appeared frozen.
+              // Now they animate together, like Google Maps / Waze.
+              AppState.vars.lastDriverFix = { lat: vp.lat, lng: vp.lng };
+              if (AppState.mlMap) {
+                if (AppState.flags.driverFollow !== false) {
+                  const animOpts = { center: [vp.lng, vp.lat], duration: 700, essential: true };
+                  if (smoothedHeading !== null) animOpts.bearing = smoothedHeading;
+                  AppState.mlMap.easeTo(animOpts);
+                  // Keep the shared state in sync for things like the recenter button
+                  if (smoothedHeading !== null) AppState.vars.currentMapHeading = smoothedHeading;
+                }
+              } else {
+                AppState.map.panTo([vp.lat, vp.lng], { animate: true, duration: 1 });
+                if (smoothedHeading !== null) TurnByTurn.rotateMap(smoothedHeading);
+              }
+              
+              // ── TRANSMIT GPS TO FIREBASE (throttled) ──
+              // Trackers read /location/current.json every 6s, so transmitting every GPS
+              // fix (~1/s) wastes ~5 of every 6 writes plus driver battery and data.
+              // Send at most one fix every 4s — still well inside the 6s read cadence.
+              const txNow = Date.now();
+              if (txNow - AppState.vars.lastTxTime >= 4000) {
+                AppState.vars.lastTxTime = txNow;
+                let activeRoad = "";
+                
+                // Only assign the road name if the driver is physically on/near the route
+                if (isOnRoute && snapResult && snapResult.point && snapResult.point.roadName) {
+                  activeRoad = snapResult.point.roadName;
+                } else if (isOnRoute && TurnByTurn.steps && TurnByTurn.steps[TurnByTurn.cursor]) {
+                  activeRoad = TurnByTurn.steps[TurnByTurn.cursor].roadName || "";
+                }
+                
+                const payload = { lat, lng, roadName: activeRoad, ts: new Date().toISOString() };
+                try {
+                  const r = await fetch(gpsLoggerUrl, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
+                  if (!r.ok) throw new Error("HTTP " + r.status);
+                  BeaconDB.sent++;
+                  document.getElementById('txSent').textContent = BeaconDB.sent;
+                  if(BeaconDB.depth === 0) {
+                    txPill.style.borderColor = "#00e676"; txPill.style.color = "#00e676";
+                    document.getElementById('txState').textContent = "LIVE";
+                  }
+                } catch(e) {
+                  await BeaconDB.add(payload);
+                }
+              }
+            }, () => {
+              alert("GPS Error: Please ensure Location Services are turned on.");
+            }, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+          };
+        }
+        
+       AppState.vars.apiUrl = params.get("api") || localStorage.getItem("SANTA_API") || sessionStorage.getItem("SANTA_API");
+if (!AppState.vars.apiUrl) { alert("Missing ?api=URL"); return; }
+
+// Safety feature: If a new naked API URL is used, wipe any old proxy from memory
+if (params.has("api") && !params.has("proxy")) {
+  localStorage.removeItem("SANTA_PROXY");
+  sessionStorage.removeItem("SANTA_PROXY");
+}
+
+AppState.vars.proxyUrl = params.get("proxy") || localStorage.getItem("SANTA_PROXY") || sessionStorage.getItem("SANTA_PROXY");
+
+localStorage.setItem("SANTA_API", AppState.vars.apiUrl); 
+sessionStorage.setItem("SANTA_API", AppState.vars.apiUrl);
+loadCachedTheme(AppState.vars.apiUrl);
+
+if (AppState.vars.proxyUrl) {
+  localStorage.setItem("SANTA_PROXY", AppState.vars.proxyUrl); 
+  sessionStorage.setItem("SANTA_PROXY", AppState.vars.proxyUrl);
+}
+
+// Create a unified data endpoint (Prefers proxy, falls back to direct API)
+AppState.vars.dataUrl = AppState.vars.proxyUrl || AppState.vars.apiUrl;
+        requestWakeLock(); setInterval(() => { if (document.visibilityState === "visible") requestWakeLock(); }, 60000);
+
+        let apiData;
+        // Check if the Cloudflare Router already pre-fetched the data for us!
+        if (window.__sleighPrefetchedData) {
+            apiData = window.__sleighPrefetchedData;
+        } else {
+            // Fallback for direct page loads
+            apiData = await Utils.loadJSON(AppState.vars.dataUrl);
+        }
+
+        // Seed the settings cache so the first updateTracker doesn't immediately
+        // re-fetch the same Apps Script endpoint — removes a 1–2s roundtrip before
+        // the first live fix can appear.
+        AppState.vars.latestApiData = apiData;
+        AppState.vars.lastSettingsFetch = Date.now();
+        if (apiData && apiData.settings) {
+          try { applyTheme(apiData.settings); saveTheme(AppState.vars.apiUrl, apiData.settings.primary_color); } catch (e) { console.warn('Theme not applied:', e); }
+        }
+
+        // Setup Schedule Modal
+          const scheduleBtn = document.getElementById('scheduleBtn');
+          const scheduleModal = document.getElementById('scheduleModal');
+          const scheduleCloseBtn = document.getElementById('scheduleCloseBtn');
+
+          if (scheduleBtn && scheduleModal) {
+            // Populate the list using the routes data we already fetched
+            populateScheduleModal(apiData.routes);
+            
+            scheduleBtn.onclick = () => {
+              scheduleModal.style.display = 'flex';
+            };
+            
+            scheduleCloseBtn.onclick = () => {
+              scheduleModal.style.display = 'none';
+            };
+          }
+        
+        AppState.vars.firebaseUrl = apiData.tracker?.firebase_url ? apiData.tracker.firebase_url.replace(/\/$/, "") : null;
+        const settings = apiData.settings || {};
+        AppState.vars.sleighName = settings.sleigh_display_name || "Santa Sleigh";
+        const today = new Date().toISOString().slice(0, 10);
+        const route = (apiData.routes || []).find(r => r.date === today && r.gpxUrl) || null;
+        AppState.vars.todayRoute = route;
+
+        if (!AppState.flags.isDriver && !AppState.flags.isKiosk && !route) {
+            WorkshopManager.init(apiData.routes);
+        }
+
+        const musicUrl = settings.background_music_url;
+        if (musicUrl && musicUrl.trim() !== "" && !AppState.flags.isKiosk && !AppState.flags.isDriver) {
+          AppState.vars.musicUrl = musicUrl.trim();
+          SleighAudio.init(AppState.vars.musicUrl);
+          const musicBtn = AppState.dom.musicBtn;
+          musicBtn.style.display = "inline-block";
+          musicBtn.onclick = () => {
+            AppState.flags.musicEnabled = !AppState.flags.musicEnabled;
+            if (AppState.flags.musicEnabled) {
+              musicBtn.textContent = "Music: On"; musicBtn.classList.add("music-on");
+              musicBtn.setAttribute("aria-label", "Christmas music is playing — tap to mute");
+              SleighAudio.play();
+              if (AppState.flags.snowActive && AppState.currentSnowLevel) { SleighAudio.setIntensity(AppState.currentSnowLevel); } else { SleighAudio.setIntensity(0); }
+            } else {
+              musicBtn.textContent = "Music: Off"; musicBtn.classList.remove("music-on");
+              musicBtn.setAttribute("aria-label", "Christmas music is muted — tap to play");
+              SleighAudio.mute();
+            }
+          };
+        }
+
+        const twitchEnabled = String(settings.enable_twitch || "").toUpperCase() === "TRUE"; const twitchChannel = settings.twitch_channel;
+        if (twitchEnabled && twitchChannel && twitchChannel.trim() !== "" && !AppState.flags.isKiosk && !AppState.flags.isDriver) { const twitchBtn = document.getElementById('twitchBtn'), twitchBox = document.getElementById('twitchBox'); let twitchLoaded = false; twitchBtn.style.display = "inline-block"; twitchBtn.addEventListener('click', () => { if (twitchBox.classList.contains('visible')) { twitchBox.classList.remove('visible'); twitchBtn.textContent = "Cam: OFF"; twitchBtn.style.background = "var(--surface-2)"; twitchBtn.style.color = "var(--primary)"; } else { twitchBox.classList.add('visible'); twitchBtn.textContent = "Cam: LIVE"; twitchBtn.style.background = "var(--primary-glow)"; twitchBtn.style.color = "var(--primary)"; if (!twitchLoaded) { const parents = new Set([window.location.hostname || "localhost"]); if (window.top !== window.self && document.referrer) { try { const rh = new URL(document.referrer).hostname; if (rh) parents.add(rh); } catch(e) {} } const pp = [...parents].map(p => `parent=${encodeURIComponent(p)}`).join('&'); twitchBox.innerHTML = `<iframe src="https://player.twitch.tv/?channel=${encodeURIComponent(twitchChannel)}&${pp}&muted=true" frameborder="0" allowfullscreen="true" scrolling="no" allow="autoplay; fullscreen"></iframe>`; twitchLoaded = true; } } }); }
+        
+        const don = apiData.donations || {};
+        const wsD = document.getElementById('wsDonate'); // Moved outside the if-statement
+        
+        if (settings.donate_url && !AppState.flags.isKiosk) { 
+          AppState.dom.donateLink.href = settings.donate_url;
+          if (wsD) { 
+            wsD.href = settings.donate_url; 
+            wsD.style.display = "inline-block"; // Show the workshop button
+          } 
+          AppState.dom.donateBox.style.display = "block"; 
+          GamifiedDonation.init();
+          if (don.target && don.target > 0) { 
+            const pct = Math.min(100, Math.max(0, Math.round((don.total / don.target) * 100))); 
+            AppState.dom.donateLink.style.background = `linear-gradient(90deg, var(--primary) ${pct}%, rgba(var(--primary-rgb), 0.3) ${pct}%)`; 
+          } 
+        } else { 
+          AppState.dom.donateBox.style.display = "none"; 
+          if (wsD) wsD.style.display = "none"; // Hide the workshop button
+        }
+        
+        fetch(`${AppState.vars.apiUrl}?function=logView&ua=${encodeURIComponent(navigator.userAgent)}&source=web&route=${encodeURIComponent(AppState.vars.todayRoute ? AppState.vars.todayRoute.routeName : 'Unassigned')}`, { keepalive: true });
+
+        setInterval(() => {
+          if (document.visibilityState === "visible" && navigator.onLine && AppState.vars.apiUrl) {
+            fetch(`${AppState.vars.apiUrl}?function=logView&ua=${encodeURIComponent(navigator.userAgent)}&source=web_heartbeat&route=${encodeURIComponent(AppState.vars.todayRoute ? AppState.vars.todayRoute.routeName : 'Unassigned')}`, { cache: "no-store" })
+              .catch(() => {});
+          }
+        }, 3 * 60 * 1000);
+        
+        if (AppState.flags.isKiosk && AppState.dom.kioskBanner) { const statusDiv = document.createElement('div'); statusDiv.id = 'kioskStatus'; statusDiv.textContent = 'PREPARING IN LAPLAND'; const subtitleDiv = document.createElement('div'); subtitleDiv.className = 'kiosk-subtitle'; subtitleDiv.textContent = AppState.vars.sleighName; AppState.dom.kioskBanner.innerHTML = ''; AppState.dom.kioskBanner.appendChild(statusDiv); AppState.dom.kioskBanner.appendChild(subtitleDiv); AppState.dom.kioskBanner.classList.add("visible"); }
+        if (!route) { AppState.dom.notifyBtn.style.display = "none"; } else { await loadGpxRoute(route.gpxUrl); if (AppState.flags.isDriver && AppState.flags.gpxLoaded) TurnByTurn.load(AppState.gpxRoute); }
+
+        const gaLink = document.getElementById('giftAidLink');
+        if (gaLink && !AppState.flags.isKiosk && !AppState.flags.isDriver && String(settings.enable_gift_aid || '').toUpperCase() === 'TRUE') {
+          let host = location.hostname.toLowerCase();
+          
+          // If embedded inside an iframe on pages.dev, peek at the parent URL
+          if (!host.includes('roundtablesantasleigh.co.uk') && document.referrer) {
+            try {
+              const ref = new URL(document.referrer);
+              host = ref.hostname.toLowerCase();
+            } catch(e) {}
+          }
+
+          if (host.includes('roundtablesantasleigh.co.uk')) {
+            let base = host.split('.')[0];
+            if (base.endsWith('tracker')) base = base.replace(/tracker$/, '');
+            gaLink.href = `https://${base}giftaid.roundtablesantasleigh.co.uk`;
+          } else {
+            gaLink.href = location.origin + '/sleigh/gift_aid?api=' + encodeURIComponent(AppState.vars.apiUrl);
+          }
+          gaLink.style.display = 'block';
+        }
+        
+        window.initTrackerMap = function() {
+    AppState.map = L.map("map", { zoomControl: !AppState.flags.isKiosk && !AppState.flags.isDriver, rotate: !!AppState.flags.isDriver, touchRotate: false, shiftKeyRotate: false, rotateControl: false }).setView(AppConfig.LOCATIONS.LAPLAND, AppState.flags.isKiosk ? 6 : 5);
+    
+    AppState.map.on("zoomend", () => { if (!AppState.dynamicRouteRemainingMain) return; const z = AppState.map.getZoom(); const mainWeight = z >= 17 ? 5 : z >= 15 ? 4 : 3; AppState.dynamicRouteRemainingMain.setStyle({ weight: mainWeight }); AppState.dynamicRouteRemainingGlow.setStyle({ weight: mainWeight + 3 }); if (AppState.dynamicRoutePastMain) { AppState.dynamicRoutePastMain.setStyle({ weight: mainWeight }); AppState.dynamicRoutePastGlow.setStyle({ weight: mainWeight + 3 }); } const tailWeight = z >= 17 ? 7 : z >= 15 ? 5 : 4; if (AppState.tailSegments) AppState.tailSegments.forEach(seg => seg.setStyle({ weight: tailWeight })); });
+    
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(AppState.map);
+    
+    if (AppState.flags.isKiosk) { const m = AppState.map; m.dragging.disable(); m.scrollWheelZoom.disable(); m.doubleClickZoom.disable(); m.boxZoom.disable(); m.keyboard.disable(); m.touchZoom.disable(); AppState.dom.followBtn.style.display = "none"; AppState.dom.recenterBtn.style.display = "none"; AppState.dom.notifyBtn.style.display = "none"; if(AppState.dom.msgBtn) AppState.dom.msgBtn.style.display = "none"; AppState.dom.donateBox.style.display = "none"; }
+    
+    if (route && AppState.flags.gpxLoaded && AppState.gpxRoute && AppState.gpxRoute.length > 0) { 
+        const allLatLngs = AppState.gpxRoute.map(p => [p.lat, p.lng]); 
+        AppState.dynamicRouteRemainingGlow = L.polyline(allLatLngs, { color: "#ffd700", weight: 7, opacity: 0.45 }).addTo(AppState.map); 
+        AppState.dynamicRouteRemainingMain = L.polyline(allLatLngs, { color: "#d31c1c", weight: 4, opacity: 0.95 }).addTo(AppState.map); 
+        AppState.dynamicRoutePastGlow = L.polyline([], { color: "#ffd700", weight: 7, opacity: 0.45 }).addTo(AppState.map);
+        AppState.dynamicRoutePastMain = L.polyline([], { color: "#ffd700", weight: 4, opacity: 0.95 }).addTo(AppState.map); 
+        
+        // Initialize the 24 dynamic tail segments (fading out from index 23 down to 0)
+        AppState.tailFixes = [];
+        AppState.tailSegments = Array.from({length: 24}, (_, i) => 
+            L.polyline([], { color: '#FBAF33', weight: 6, opacity: (i + 1) / 24, lineCap: 'round', lineJoin: 'round' }).addTo(AppState.map)
+        );
+        const startPt = AppState.gpxRoute[0], endPt = AppState.gpxRoute[AppState.gpxRoute.length - 1]; 
+        L.marker([startPt.lat, startPt.lng], { icon: L.icon({ iconUrl: settings.sleigh_icon_start || AppConfig.ICONS.FALLBACK_START, iconSize: [48, 48], iconAnchor: [24, 48] }) }).addTo(AppState.map); 
+        L.marker([endPt.lat, endPt.lng], { icon: L.icon({ iconUrl: settings.sleigh_icon_end || AppConfig.ICONS.FALLBACK_END, iconSize: [48, 48], iconAnchor: [24, 48] }) }).addTo(AppState.map); 
+        AppState.map.fire("zoomend"); 
+    }
+
+    // Draw Planned Stops
+    if (AppState.gpxStops && AppState.gpxStops.length > 0) {
+      // Pull the stop icon from settings, fallback to start icon if not defined
+      const stopImgUrl = settings.sleigh_icon_stop || settings.sleigh_icon_start || AppConfig.ICONS.FALLBACK_START;
+      
+      AppState.gpxStops.forEach(stop => {
+        L.marker([stop.lat, stop.lng], {
+          icon: L.divIcon({
+            className: 'stop-marker',
+            html: `<img src="${stopImgUrl}" style="width:32px; height:32px; filter:drop-shadow(0 4px 8px rgba(0,0,0,0.6)); object-fit:contain; display:block;">`,
+            iconSize: [32, 32],
+            iconAnchor: [16, 16] // Center the image over the coordinate
+          })
+        })
+        .bindTooltip(stop.name, { direction: 'top', offset: [0, -16], className: 'stop-tooltip' })
+        .addTo(AppState.map);
+      });
+    }
+
+    if (AppState.flags.isKiosk && route?.sponsorUrl && Utils.isValidImageUrl(route.sponsorUrl)) { const span = document.createElement('span'); span.textContent = 'Proudly sponsored by'; const img = document.createElement('img'); img.alt = route.sponsorName || 'Sponsor'; img.onerror = () => { AppState.vars.kioskSponsorReady = false; AppState.dom.sponsorBox.classList.remove('visible'); }; img.src = Utils.resolveImageUrl(route.sponsorUrl); AppState.dom.sponsorBox.innerHTML = ''; AppState.dom.sponsorBox.appendChild(span); AppState.dom.sponsorBox.appendChild(img); AppState.vars.kioskSponsorReady = true; }
+    
+    // Non-kiosk route sponsor — set src/href once at init; visibility is toggled per poll in updateTracker
+    if (!AppState.flags.isKiosk && !AppState.flags.isDriver && route?.sponsorUrl && Utils.isValidImageUrl(route.sponsorUrl)) {
+      const rs = document.getElementById('routeSponsor');
+      if (rs) {
+        const img = rs.querySelector('img');
+        img.alt = route.sponsorName ? `${route.sponsorName} logo` : 'Sponsor logo';
+        img.onerror = () => { AppState.vars.sponsorReady = false; rs.classList.remove('visible'); };
+        img.onload = () => { if (window.layoutOverlays) window.layoutOverlays(); };
+        img.src = Utils.resolveImageUrl(route.sponsorUrl);
+        if (route.sponsorName) rs.setAttribute('aria-label', `Tonight's route sponsor: ${route.sponsorName}`);
+        if (route.sponsorLink) { rs.href = route.sponsorLink; } else { rs.removeAttribute('href'); }
+        rs.addEventListener('click', () => { try { fetch(`${AppState.vars.apiUrl}?function=logSponsorClick&route=${encodeURIComponent(route.routeName || '')}&sponsor=${encodeURIComponent(route.sponsorName || route.sponsorLink || 'unknown')}`, { keepalive: true }).catch(() => {}); } catch(e) {} });
+        AppState.vars.sponsorReady = true;
+      }
+    }
+
+// ── Overlay layout engine ──────────────────────────────────────────
+// (a) Donate stack rides the button panel: the panel grows when the
+//     live-mode buttons appear, so measure its real top edge and
+//     drive --donate-bottom from it (donate box, Gift Aid link and
+//     toasts all key off that one variable).
+// (b) Sponsor pill hugs the status bar: beside it when there's
+//     horizontal room, tucked directly beneath it when there isn't —
+//     one rule for browser and embeds, live or idle.
+window.layoutOverlays = function() {
+  const nav = document.querySelector('.info-popup');
+  if (nav) {
+    const nr = nav.getBoundingClientRect();
+    if (nr.height > 0) {
+      document.documentElement.style.setProperty('--donate-bottom', (Math.max(0, window.innerHeight - nr.top) + 14) + 'px');
+    }
+  }
+  const pill = document.getElementById('routeSponsor');
+  const sb = AppState.dom.statusBox;
+  if (pill && sb) {
+    const sbr = sb.getBoundingClientRect();
+    if (sbr.height > 0) {
+      const margin = 12;
+      const fitsBeside = (window.innerWidth - sbr.right - margin * 2) >= pill.offsetWidth;
+      pill.style.top = Math.round(fitsBeside ? Math.max(margin, sbr.top) : sbr.bottom + 10) + 'px';
+    }
+  }
+};
+if ('ResizeObserver' in window) {
+  const overlayRO = new ResizeObserver(() => window.layoutOverlays());
+  const navEl = document.querySelector('.info-popup');
+  if (navEl) overlayRO.observe(navEl);
+  if (AppState.dom.statusBox) overlayRO.observe(AppState.dom.statusBox);
+  const pillEl = document.getElementById('routeSponsor');
+  if (pillEl) overlayRO.observe(pillEl);
+} else {
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => window.layoutOverlays(), 100);
+  });
+}
+          
+window.layoutOverlays();
+
+            if (!AppState.flags.isKiosk && !AppState.flags.isDriver) {
+        const shareBtn = AppState.dom.shareBtn;
+        shareBtn.style.display = "inline-block";
+        shareBtn.onclick = async () => {
+          
+          // 1. Grab the shareBase passed from santasleigh.html (if inside an iframe)
+          const params = new URLSearchParams(location.search);
+          const shareBase = params.get("shareBase");
+          
+          // 2. Use shareBase if it exists, otherwise use actual window URL (if standalone)
+          const baseUrl = shareBase ? shareBase : window.location.href;
+          const urlObj = new URL(baseUrl);
+          
+          // Dynamically build share URL with pin coordinates if active
+          if (AppState.vars.notifyLatLng) {
+            urlObj.searchParams.set("pin", `${AppState.vars.notifyLatLng.lat.toFixed(6)},${AppState.vars.notifyLatLng.lng.toFixed(6)}`);
+          } else {
+            urlObj.searchParams.delete("pin");
+          }
+          const shareUrl = urlObj.toString();
+          const shareText = `Track Santa's sleigh LIVE! ${AppState.vars.sleighName}`;
+                
+                const copyFallback = async () => {
+                  try {
+                    await navigator.clipboard.writeText(shareUrl);
+                    showToast("Link copied! Share it with your street!");
+                  } catch(e) {
+                    prompt("Copy this tracker link:", shareUrl);
+                  }
+                };
+                
+                if (navigator.share) {
+                  try {
+                    await navigator.share({ title: "Santa Sleigh Tracker", text: shareText, url: shareUrl });
+                    showToast("Shared!");
+                  } catch(e) {
+                    if (!e || e.name !== "AbortError") await copyFallback();
+                  }
+                } else {
+                  await copyFallback();
+                }
+              };
+            }
+
+            if (!AppState.flags.isKiosk) {
+              let pinSource = null;
+              let isDeepLink = false;
+              
+              // 1. Check URL for a shared pin
+              const pinParam = new URLSearchParams(location.search).get("pin");
+              if (pinParam) {
+                const parts = pinParam.split(',');
+                if (parts.length === 2) {
+                  const pLat = parseFloat(parts[0]);
+                  const pLng = parseFloat(parts[1]);
+                  if (Utils.validPos(pLat, pLng)) {
+                    pinSource = { lat: pLat, lng: pLng };
+                    isDeepLink = true;
+                  }
+                }
+                // Strip the pin from the address bar so it doesn't persist on page refresh
+                const cleanUrl = new URL(window.location.href);
+                cleanUrl.searchParams.delete('pin');
+                window.history.replaceState({}, document.title, cleanUrl.toString());
+              }
+              
+              // 2. Fallback to their own saved session pin
+              if (!pinSource) {
+                const savedPin = sessionStorage.getItem("SANTA_NOTIFY_POINT");
+                if (savedPin) { try { pinSource = JSON.parse(savedPin); } catch(e) {} }
+              }
+
+              if (pinSource) {
+                AppState.flags.browserNotified = false;
+                sessionStorage.removeItem("SANTA_BROWSER_NOTIFIED");
+                AppState.vars.notifyLatLng = { lat: pinSource.lat, lng: pinSource.lng };
+                
+                // If it's a deep link, place a 'preview' pin (false) so they must tap it to subscribe.
+                // If it's from sessionStorage, it's already 'confirmed' (true).
+                showNotifyMarker(pinSource.lat, pinSource.lng, !isDeepLink);
+                
+                if (isDeepLink) {
+                  AppState.flags.awaitingPin = true; // Enables moving it by tapping elsewhere
+                  AppState.map.setView([pinSource.lat, pinSource.lng], 17);
+                  AppState.dom.statusBox.textContent = "Shared pin found! Tap it to get notified.";
+                }
+              }
+            }
+          
+            AppState.map.on("click", e => { if (!AppState.flags.awaitingPin) return; showNotifyMarker(e.latlng.lat, e.latlng.lng, false); AppState.dom.statusBox.textContent = "Pin moved — tap again to confirm"; });
+            AppState.marker = L.marker(AppConfig.LOCATIONS.LAPLAND, { icon: L.icon({ iconUrl: settings.sleigh_icon_live || AppConfig.ICONS.FALLBACK_LIVE, iconSize: [64, 64], iconAnchor: [32, 60] }) });
+            if (!AppState.flags.isDriver) AppState.marker.addTo(AppState.map);
+
+            AppState.dom.followBtn.onclick = () => { AppState.flags.follow = !AppState.flags.follow; AppState.dom.followBtn.textContent = "Follow: " + (AppState.flags.follow ? "ON" : "OFF"); };
+            AppState.dom.recenterBtn.onclick = () => { AppState.flags.follow = true; AppState.dom.followBtn.textContent = "Follow: ON"; AppState.map.panTo(AppState.marker.getLatLng()); };
+            AppState.dom.notifyBtn.onclick = () => {ensureNotifyPermission(); AppState.flags.follow = false; AppState.dom.followBtn.textContent = "Follow: OFF"; AppState.flags.browserNotified = false; AppState.flags.hasPassedSticky = false; AppState.flags.celebrationFired = false; sessionStorage.removeItem("SANTA_CELEBRATION_FIRED"); AppState.routeFixes = []; AppState.vars.etaEmaSec = null; AppState.vars.userSnapCache = null; sessionStorage.removeItem("SANTA_BROWSER_NOTIFIED"); sessionStorage.removeItem("SANTA_EMAIL_SUBSCRIBED"); sessionStorage.removeItem("SANTA_NOTIFY_POINT"); sessionStorage.removeItem("SANTA_HAS_PASSED"); if (AppState.notifyMarker) AppState.map.removeLayer(AppState.notifyMarker); AppState.notifyMarker = null; AppState.vars.notifyLatLng = null; if (AppState.vars.escapeListener) document.removeEventListener("keydown", AppState.vars.escapeListener); AppState.vars.escapeListener = (e) => { if (e.key === "Escape" && AppState.flags.awaitingPin) { AppState.flags.awaitingPin = false; if (AppState.notifyMarker) AppState.map.removeLayer(AppState.notifyMarker); AppState.dom.statusBox.textContent = ""; Utils.toggleFollowControls(true); document.removeEventListener("keydown", AppState.vars.escapeListener); AppState.vars.escapeListener = null; } }; document.addEventListener("keydown", AppState.vars.escapeListener); AppState.flags.awaitingPin = true; AppState.dom.statusBox.textContent = "Locating you..."; if ("geolocation" in navigator) { navigator.geolocation.getCurrentPosition((position) => { AppState.map.setView([position.coords.latitude, position.coords.longitude], 17); showNotifyMarker(position.coords.latitude, position.coords.longitude, false); AppState.dom.statusBox.textContent = "Is this your house? Tap the pin to confirm."; }, () => { AppState.dom.statusBox.textContent = "Tap the map to place your pin..."; }, { enableHighAccuracy: true, timeout: 5000 }); } else { AppState.dom.statusBox.textContent = "Tap the map to place your pin..."; } };
+
+            if (AppState.dom.msgBtn) { 
+  AppState.dom.msgBtn.onclick = () => { 
+    document.getElementById('msgModal').style.display = 'flex'; 
+    document.getElementById('userMsgInput').focus(); 
+  }; 
+}
+
+document.getElementById('msgCancelBtn').onclick = () => { 
+  document.getElementById('msgModal').style.display = 'none'; 
+};
+
+document.getElementById('msgConfirmBtn').onclick = () => { 
+  const input = document.getElementById('userMsgInput'); 
+  const msg = input.value.trim(); 
+  if (!msg) return; 
+  document.getElementById('msgModal').style.display = 'none'; 
+  showToast("Sending message to the elves..."); 
+  
+  // Route through the Cloudflare Worker proxy to bypass CORS
+  const messageTarget = `${WORKER_URL}?target=${encodeURIComponent(AppState.vars.apiUrl)}`;
+
+  fetch(messageTarget, { 
+    method: 'POST', 
+    body: JSON.stringify({ 
+      action: "submitUserMessage", 
+      message: msg, 
+      routeName: AppState.vars.todayRoute?.routeName || '',
+      clientId: localStorage.getItem("turbo_santa_client_id")
+    }) 
+  })
+  .then(r => r.json())
+  .then(d => { 
+    if (d.ok) showToast("Sent! Waiting for Elf approval..."); 
+    else showToast(d.error || "Failed to send."); 
+  })
+  .catch(() => showToast("Network error.")); 
+  
+  input.value = ''; 
+};
+            document.getElementById("modalCancelBtn").addEventListener("click", () => { document.getElementById("emailModal").style.display = "none"; AppState.dom.statusBox.textContent = "Tap the pin to try again"; if (AppState.vars.escapeListener) { document.removeEventListener("keydown", AppState.vars.escapeListener); AppState.vars.escapeListener = null; } });
+            document.getElementById("modalConfirmBtn").addEventListener("click", () => { const email = document.getElementById("subEmail").value.trim(); document.getElementById("emailModal").style.display = "none"; if (AppState.vars.escapeListener) { document.removeEventListener("keydown", AppState.vars.escapeListener); AppState.vars.escapeListener = null; } Utils.toggleFollowControls(true); if (sessionStorage.getItem("SANTA_EMAIL_SUBSCRIBED") === "1") { showToast("You're already signed up!"); return; } AppState.dom.statusBox.textContent = "Saving your notification..."; if (!AppState.vars.pendingSubscription) { showToast("Error: No location selected."); return; } fetch(`${AppState.vars.apiUrl}?function=subscribe&lat=${AppState.vars.pendingSubscription.lat}&lng=${AppState.vars.pendingSubscription.lng}&email=${encodeURIComponent(email)}`).then(r=>r.json()).then(d => { if (d.ok) { sessionStorage.setItem("SANTA_EMAIL_SUBSCRIBED", "1"); showToast(email ? "You're signed up! We'll email you when Santa is close." : "You're signed up! Keep this page open for alerts."); AppState.dom.statusBox.textContent = ""; if (AppState.notifyMarker) { AppState.map.removeLayer(AppState.notifyMarker); AppState.notifyMarker = null; } AppState.vars.pendingSubscription = null; } else { showToast("Error saving notification."); AppState.dom.statusBox.textContent = "Failed to save."; } }).catch(() => { showToast("Network error."); AppState.dom.statusBox.textContent = "Connection failed."; }); });
+
+            // ══════════════════════════════════════════════
+            //  DRIVER MODE — MapLibre GL JS satnav overlay
+            //  Vector tiles → labels stay upright when bearing rotates,
+            //  plus native pitch for Waze/Google-Maps-style 3D perspective.
+            // ══════════════════════════════════════════════
+            if (AppState.flags.isDriver && typeof maplibregl !== 'undefined') {
+              const initialCenter = (AppState.gpxRoute && AppState.gpxRoute.length)
+                ? [AppState.gpxRoute[0].lng, AppState.gpxRoute[0].lat]
+                : [AppConfig.LOCATIONS.LAPLAND[1], AppConfig.LOCATIONS.LAPLAND[0]];
+
+              const mlMap = new maplibregl.Map({
+                container: 'mlmap',
+                style: 'https://tiles.openfreemap.org/styles/liberty',
+                center: initialCenter,
+                zoom: 14,
+                pitch: 60,            // 3D tilt — Waze/Google Maps satnav perspective
+                bearing: 0,
+                maxPitch: 75,
+                attributionControl: { compact: true },
+                fadeDuration: 0
+              });
+              AppState.mlMap = mlMap;
+
+              // Lock manual rotation — heading-up nav owns bearing.
+              // Pinch-zoom and pan stay enabled (Google-Maps-satnav style).
+              mlMap.dragRotate.disable();
+              mlMap.touchZoomRotate.disableRotation();
+              mlMap.keyboard.disable();
+
+              // Follow mode: camera tracks GPS by default. Pan exits follow,
+              // pinch-zoom does NOT (matches Google Maps satnav).
+              AppState.flags.driverFollow = true;
+
+              // Recenter button — appears when user pans away
+              const recenterBtnEl = document.createElement('button');
+              recenterBtnEl.id = 'driverRecenterBtn';
+              recenterBtnEl.innerHTML = 'RECENTER';
+              recenterBtnEl.style.cssText = "position:fixed; right:16px; bottom:130px; padding:14px 18px; background:var(--primary); color:var(--on-primary); border:3px solid rgba(255,255,255,0.2); border-radius:24px; font-family:'Eurostile',sans-serif; font-size:1.1em; font-weight:900; letter-spacing:2px; box-shadow:0 8px 24px rgba(0,0,0,0.6), 0 0 20px rgba(var(--primary-rgb), 0.3); z-index:5500; display:none; cursor:pointer;";
+              document.body.appendChild(recenterBtnEl);
+              recenterBtnEl.onclick = () => {
+                AppState.flags.driverFollow = true;
+                recenterBtnEl.style.display = 'none';
+                // Snap the camera back over the last known driver position with the satnav framing
+                if (AppState.vars.lastDriverFix) {
+                  mlMap.easeTo({
+                    center: [AppState.vars.lastDriverFix.lng, AppState.vars.lastDriverFix.lat],
+                    zoom: 18, pitch: 60,
+                    bearing: AppState.vars.currentMapHeading || 0,
+                    duration: 800, essential: true
+                  });
+                }
+              };
+
+              // dragstart fires only on user-initiated pan, not programmatic easeTo —
+              // so this won't be triggered by our own follow updates.
+              mlMap.on('dragstart', () => {
+                AppState.flags.driverFollow = false;
+                recenterBtnEl.style.display = 'block';
+              });
+
+              mlMap.on('load', () => {
+                // Add the GPX route as 3 layers mirroring the original Leaflet polylines:
+                // past (gold, GPX start -> pin), remaining glow (gold), remaining main (red).
+                // The two sources are updated each tick alongside the Leaflet setLatLngs calls.
+                if (AppState.flags.gpxLoaded && AppState.gpxRoute && AppState.gpxRoute.length > 1) {
+                  const coords = AppState.gpxRoute.map(p => [p.lng, p.lat]);
+                  mlMap.addSource('gpx-route-remaining', {
+                    type: 'geojson',
+                    data: { type: 'Feature', geometry: { type: 'LineString', coordinates: coords } }
+                  });
+                  
+                  // Gold "past": the GPX from the start up to the pin (empty until the pin moves)
+                  mlMap.addSource('gpx-route-past', {
+                    type: 'geojson',
+                    data: { type: 'FeatureCollection', features: [] }
+                  });
+
+                  // Add the dynamic tail source (requires lineMetrics for gradient)
+                  mlMap.addSource('sleigh-tail', {
+                    type: 'geojson',
+                    lineMetrics: true, 
+                    data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] } }
+                  });
+                  
+                  // Layer order: remaining glow (bottom) -> remaining red (middle) -> tail (top)
+                  mlMap.addLayer({
+                    id: 'gpx-route-glow',
+                    type: 'line',
+                    source: 'gpx-route-remaining',
+                    layout: { 'line-cap': 'round', 'line-join': 'round' },
+                    paint: { 'line-color': '#ffd700', 'line-width': 12, 'line-opacity': 0.45, 'line-blur': 4 }
+                  });
+                  mlMap.addLayer({
+                    id: 'gpx-route-main',
+                    type: 'line',
+                    source: 'gpx-route-remaining',
+                    layout: { 'line-cap': 'round', 'line-join': 'round' },
+                    paint: { 'line-color': '#d31c1c', 'line-width': 6, 'line-opacity': 0.95 }
+                  });
+                  
+                  mlMap.addLayer({
+                    id: 'gpx-route-past-glow',
+                    type: 'line',
+                    source: 'gpx-route-past',
+                    layout: { 'line-cap': 'round', 'line-join': 'round' },
+                    paint: { 'line-color': '#ffd700', 'line-width': 12, 'line-opacity': 0.45, 'line-blur': 4 }
+                  });
+                  mlMap.addLayer({
+                    id: 'gpx-route-past',
+                    type: 'line',
+                    source: 'gpx-route-past',
+                    layout: { 'line-cap': 'round', 'line-join': 'round' },
+                    paint: { 'line-color': '#ffd700', 'line-width': 6, 'line-opacity': 0.95 }
+                  });
+
+                  // Fading Gradient Tail Layer
+                  mlMap.addLayer({
+                    id: 'sleigh-tail-layer',
+                    type: 'line',
+                    source: 'sleigh-tail',
+                    layout: { 'line-cap': 'round', 'line-join': 'round' },
+                    paint: { 
+                      'line-width': 8,
+                      'line-gradient': [
+                        'interpolate', ['linear'], ['line-progress'],
+                        0, 'rgba(251, 175, 51, 0)', // Tail tip (transparent)
+                        1, '#FBAF33'                // Sleigh connection (solid gold)
+                      ]
+                    }
+                  });
+                }
+
+                // Fit to route bounds so the driver can orient before navigation starts
+                if (AppState.gpxRoute && AppState.gpxRoute.length > 1) {
+                  // Loop instead of Math.min(...spread) — spreading huge point arrays can blow the call stack
+                  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+                  for (const p of AppState.gpxRoute) { if (p.lat < minLat) minLat = p.lat; if (p.lat > maxLat) maxLat = p.lat; if (p.lng < minLng) minLng = p.lng; if (p.lng > maxLng) maxLng = p.lng; }
+                  mlMap.fitBounds([[minLng, minLat], [maxLng, maxLat]], { padding: 60, pitch: 0, bearing: 0, duration: 0 });
+                }
+
+                // Draw Planned Stops on MapLibre (Driver Mode)
+                if (AppState.gpxStops && AppState.gpxStops.length > 0) {
+                  const stopImgUrl = settings.sleigh_icon_stop || settings.sleigh_icon_start || AppConfig.ICONS.FALLBACK_START;
+
+                  AppState.gpxStops.forEach(stop => {
+                    const el = document.createElement('div');
+                    el.innerHTML = `<img src="${stopImgUrl}" style="width:40px; height:40px; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.8)); object-fit:contain; display:block;">`;
+                    
+                    const popup = new maplibregl.Popup({ offset: 25, closeButton: false })
+                      .setHTML(`<div style="color:#000; font-weight:900; font-family:'Open Sans', sans-serif; font-size:14px; padding:4px;">${stop.name}</div>`);
+
+                    new maplibregl.Marker({ element: el, anchor: 'bottom' })
+                      .setLngLat([stop.lng, stop.lat])
+                      .setPopup(popup)
+                      .addTo(AppState.mlMap);
+                  });
+                }
+                
+              });
+
+              // Fix: maplibre canvas may not size correctly until layout settles
+              setTimeout(() => mlMap.resize(), 100);
+              window.addEventListener('resize', () => mlMap.resize());
+            }
+
+            // Kick off the heavy 6-second GPS/Data loop
+            updateTracker();
+            
+            // ⚡ Kick off the lightning-fast 3-second PA Announcement loop
+            setInterval(fetchFastAnnouncements, 3000);
+            fetchFastAnnouncements();
+        };
+
+        Fireworks.init();
+        AppState.dom.loading.style.display = "none";
+        SnowSystem.resize();
+        window.addEventListener("resize", SnowSystem.resize);
+        if (driverLibsPromise) await driverLibsPromise; // driver mode only — spectators skip
+        window.initTrackerMap();
+        window.SantaDebug = { AppState, SnowSystem, Fireworks, SleighAudio, animateMarkerTo, Utils, AppConfig, TurnByTurn };
+      }
+
+      document.addEventListener("visibilitychange", () => { AppState.flags.pageVisible = !document.hidden; if (AppState.flags.pageVisible) { if (AppState.flags.isKiosk) requestWakeLock(); if (AppState.vars.lastVisualPos && AppState.marker) AppState.marker.setLatLng(AppState.vars.lastVisualPos); if (AppState.flags.snowActive) SnowSystem.draw(); if (AppState.vars.pollTimer) clearTimeout(AppState.vars.pollTimer); updateTracker(); } });
+
+      init();
+    });
+  </script>
+</body>
+</html>

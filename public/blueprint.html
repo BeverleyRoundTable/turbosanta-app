@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sleigh Blueprint</title>
+  
+  <!-- Preload Custom Eurostile Font -->
+  <link rel="preload" href="https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.woff2" as="font" type="font/woff2" crossorigin>
+
+  <!-- Import Official Round Table Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* --- BRAND FONT INJECTION --- */
+    @font-face {
+      font-family: 'Eurostile';
+      src: url('https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.woff2') format('woff2'),
+           url('https://brt-23f.pages.dev/fonts/eurostile-bold.woff2') format('woff2'),
+           url('https://brt-23f.pages.dev/fonts/eurostile-bold.woff') format('woff'),
+           url('https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.otf') format('opentype');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    /* --- BRAND VARIABLES --- */
+    :root {
+      /* Fallback variables, updated dynamically by applyTheme() */
+      --primary: #FBAF33;
+      --primary-rgb: 251, 175, 51;
+      --on-primary: #000000;
+      
+      --accent: #FFFFFF; /* White */
+      --bg-dark: #1D1D1A; /* Table Grey */
+      --bg-card: #000000; /* Black */
+      --text-main: #FFFFFF;
+      --text-muted: rgba(255, 255, 255, 0.7);
+      --border: rgba(255, 255, 255, 0.15);
+    }
+
+    /* --- CORE STYLES --- */
+    body {
+      margin: 0;
+      padding: 20px;
+      background-color: var(--bg-dark);
+      font-family: 'Open Sans', sans-serif;
+      color: var(--text-main);
+    }
+
+    .blueprint-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    /* --- MAP & IMAGE --- */
+    .sleigh-map {
+      position: relative;
+      width: 100%;
+      background: var(--bg-card); 
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      border: 1px solid var(--border);
+    }
+
+    .base-image {
+      width: 100%;
+      height: auto;
+      display: block;
+      opacity: 0.9;
+    }
+
+    /* --- GAMIFIED HOTSPOTS --- */
+    .hotspot {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      background: var(--primary);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      box-shadow: 0 0 10px var(--primary);
+      transition: all 0.3s ease;
+      z-index: 10;
+      touch-action: manipulation;
+    }
+
+    /* Radar Pulse Animation */
+    .hotspot::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 100%;
+      height: 100%;
+      background: var(--primary);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      animation: pulse 2s infinite cubic-bezier(0.165, 0.84, 0.44, 1);
+      z-index: -1;
+    }
+
+    @keyframes pulse {
+      0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+      100% { transform: translate(-50%, -50%) scale(3.5); opacity: 0; }
+    }
+
+    /* Active & Hover States using Brand White */
+    .hotspot:hover, .active-dot {
+      background: var(--accent);
+      box-shadow: 0 0 20px var(--accent);
+    }
+    .active-dot::before {
+      background: var(--accent);
+    }
+
+    /* --- INFO PANEL (DARK MODE) --- */
+    .info-panel {
+      background: var(--bg-card);
+      padding: 24px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      border-left: 5px solid var(--primary);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      min-height: 120px;
+    }
+
+    #panel-title {
+      margin: 0 0 5px 0;
+      font-size: 1.5rem;
+      font-family: 'Eurostile', 'Open Sans', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-main);
+    }
+
+    .highlight-text {
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin: 0 0 15px 0;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    #panel-desc {
+      margin: 0;
+      line-height: 1.6;
+      color: var(--text-muted);
+    }
+
+    .fade-in {
+      animation: fadeIn 0.4s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="blueprint-container">
+    
+    <!-- The Visual Map -->
+    <div class="sleigh-map">
+      <img src="https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/icons/sleigh-wireframe.png" alt="Santa Sleigh Blueprint" class="base-image" id="sleigh-image">
+      
+      <!-- Hotspots mapped for 16:9 Landscape Layout -->
+      <div class="hotspot" style="top: 60%; left: 70%;" data-id="power"></div>
+      <div class="hotspot" style="top: 45%; left: 82%;" data-id="audio"></div>
+      <div class="hotspot" style="top: 25%; left: 45%;" data-id="lighting"></div>
+      <div class="hotspot active-dot" style="top: 75%; left: 50%;" data-id="chassis"></div>
+    </div>
+
+    <!-- The Sponsor Info Panel (Starts on Chassis) -->
+    <div class="info-panel" id="sponsor-panel">
+      <div class="panel-content">
+        <h3 id="panel-title">The Sleigh Base</h3>
+        <h4 id="panel-sponsor" class="highlight-text">Mahindra Treo Platform</h4>
+        <p id="panel-desc">A fully electric, zero-emission foundation wrapped in festive magic, keeping the route green and environmentally friendly.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    /* ---------- THEME & API SETUP ---------- */
+    const params = new URLSearchParams(location.search);
+    let API_URL = params.get("api") || localStorage.getItem("SANTA_API") || sessionStorage.getItem("SANTA_API");
+
+    if (API_URL) {
+      localStorage.setItem("SANTA_API", API_URL); 
+      sessionStorage.setItem("SANTA_API", API_URL);
+      
+      const WORKER_URL = "https://santaproxy.beverley247.workers.dev/";
+      const DATA_URL = `${WORKER_URL}?ttl=30&target=${encodeURIComponent(API_URL)}`;
+      
+      fetch(DATA_URL)
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.settings) applyTheme(data.settings);
+        })
+        .catch(e => console.warn("Failed to load theme for blueprint", e));
+    }
+
+    function parseColor(v) {
+      if (typeof v !== 'string') return null;
+      const s = v.trim();
+      const hex = /^#([0-9a-f]{3,8})$/i.exec(s);
+      if (hex) {
+        let h = hex[1];
+        if (h.length === 3 || h.length === 4) h = h.split('').map(c => c + c).join('');
+        if (h.length !== 6 && h.length !== 8) return null;
+        return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+      }
+      try {
+        if (/var\(|url\(|expression/i.test(s)) return null;
+        if (!(window.CSS && CSS.supports && CSS.supports('color', s))) return null;
+        const ctx = document.createElement('canvas').getContext('2d');
+        ctx.fillStyle = '#000000';
+        ctx.fillStyle = s;
+        const out = ctx.fillStyle;
+        if (out.charAt(0) === '#') return parseColor(out);
+        const rgb = /^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(out);
+        return rgb ? [+rgb[1], +rgb[2], +rgb[3]] : null;
+      } catch (e) { return null; }
+    }
+
+    function readableTextOn(rgb) {
+      const lin = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+      const L = 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]);
+      return ((L + 0.05) / 0.05) >= (1.05 / (L + 0.05)) ? '#000000' : '#ffffff';
+    }
+
+    function applyTheme(settings) {
+      const root = document.documentElement;
+      const raw = settings && settings.primary_color;
+      const rgb = parseColor(raw);
+      
+      if (rgb) {
+        root.style.setProperty('--primary', String(raw).trim());
+        root.style.setProperty('--primary-rgb', rgb.join(', '));
+        root.style.setProperty('--on-primary', readableTextOn(rgb));
+      } else {
+        root.style.removeProperty('--primary');
+        root.style.removeProperty('--primary-rgb');
+        root.style.removeProperty('--on-primary');
+      }
+    }
+
+    // =========================================================================
+    // 1. YOUR WEB APP URL (Site Analytics / Hub for silent logging)
+    // =========================================================================
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwyAk3IScj--iNDQUn0ddk5wUH99Gfh6kPnCGmxgHhb4dIOoPRGaRwGT1lD-E9jf8dv/exec"; 
+
+    // =========================================================================
+    // 2. COMPONENT DATABASE
+    // =========================================================================
+    const sleighComponents = {
+      chassis: {
+        title: "The Sleigh Base",
+        sponsor: "Mahindra Treo Platform",
+        desc: "A fully electric, zero-emission foundation wrapped in festive magic, keeping the route green and environmentally friendly.",
+        logLabel: "Blueprint_Tap_Chassis"
+      },
+      power: {
+        title: "The Magic Core",
+        sponsor: "Official Power Partner: Zendure",
+        desc: "Super power packs to make the sleigh sparkle! These SolarFlow stations provide clean, silent energy to keep Santa glowing all night long without noisy generators.",
+        logLabel: "Blueprint_Tap_Zendure" 
+      },
+      audio: {
+        title: "Sleigh Bells & Bass",
+        sponsor: "Audio by JBL",
+        desc: "Linked PartyBox speakers pushing booming Christmas anthems through the streets, making sure you hear Santa before you see him.",
+        logLabel: "Blueprint_Tap_JBL"
+      },
+      lighting: {
+        title: "Dynamic Illuminations",
+        sponsor: "Powered by Govee",
+        desc: "Thousands of smart LEDs mapped across the modular aluminum frame, capable of snowfall effects and reacting live to the music.",
+        logLabel: "Blueprint_Tap_Govee"
+      }
+    };
+
+    // =========================================================================
+    // 3. INTERACTION LOGIC & SILENT LOGGING (DATA IN)
+    // =========================================================================
+    const hotspots = document.querySelectorAll('.hotspot');
+    const panelTitle = document.getElementById('panel-title');
+    const panelSponsor = document.getElementById('panel-sponsor');
+    const panelDesc = document.getElementById('panel-desc');
+    const infoPanel = document.getElementById('sponsor-panel');
+
+    hotspots.forEach(dot => {
+      dot.addEventListener('click', (e) => {
+        hotspots.forEach(h => h.classList.remove('active-dot'));
+        e.target.classList.add('active-dot');
+
+        const id = e.target.getAttribute('data-id');
+        const data = sleighComponents[id];
+
+        infoPanel.classList.remove('fade-in');
+        void infoPanel.offsetWidth; 
+        
+        panelTitle.textContent = data.title;
+        panelSponsor.textContent = data.sponsor;
+        panelDesc.textContent = data.desc;
+        
+        infoPanel.classList.add('fade-in');
+
+        // Silently log the click to Google Sheets for your backend reporting
+        if(WEB_APP_URL !== "") {
+          fetch(WEB_APP_URL, {
+            method: 'POST',
+            mode: 'no-cors', 
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ sponsorName: data.logLabel })
+          }).catch(err => console.error("Tracking failed"));
+        }
+      });
+    });
+
+    // =========================================================================
+    // 4. DEV TOOL: COORDINATE FINDER (Triggered via URL: ?pinpoint=true)
+    // =========================================================================
+    const urlParamsBlueprint = new URLSearchParams(window.location.search);
+    
+    if (urlParamsBlueprint.has('pinpoint')) {
+      const devBanner = document.createElement('div');
+      devBanner.innerHTML = "🛠️ PINPOINT MODE ACTIVE: Click anywhere on the sleigh to get coordinates.";
+      devBanner.style.cssText = "background: #ff3333; color: white; text-align: center; padding: 10px; font-weight: bold; border-radius: 8px; margin-bottom: 15px;";
+      document.querySelector('.blueprint-container').prepend(devBanner);
+
+      document.getElementById('sleigh-image').addEventListener('click', function(e) {
+        const rect = e.target.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        
+        const coordinateString = `style="top: ${y.toFixed(2)}%; left: ${x.toFixed(2)}%;"`;
+        console.log(`Copy this into your HTML hotspot element:\n${coordinateString}`);
+        prompt("Copy your new coordinates:", coordinateString);
+      });
+    }
+    
+  </script>
+
+  <script>
+  function sendHeight() {
+    const height = document.documentElement.scrollHeight;
+    window.parent.postMessage({ frameHeight: height }, '*');
+  }
+  
+  // Send height when page loads
+  window.addEventListener('load', sendHeight);
+  
+  // Send height if window resizes
+  window.addEventListener('resize', sendHeight);
+  
+  // Send height when a hotspot is clicked
+  document.querySelectorAll('.hotspot').forEach(dot => {
+    dot.addEventListener('click', () => {
+      setTimeout(sendHeight, 50);
+    });
+  });
+</script>
+
+</body>
+</html>

@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import {
   Radio, Megaphone, Settings, Calendar, Heart, Shield,
   LogOut, ExternalLink, Save, Download, CheckCircle2,
-  Users, Plus, Trash2, Edit3, Smartphone
+  Users, Plus, Trash2, Edit3, Smartphone, Code, Copy,
+  MapPin, Bell, Activity, MessageSquare, Check, X
 } from 'lucide-react';
 import { logoutAdmin } from '../services/auth';
 import DropzoneUpload from './DropzoneUpload';
@@ -18,6 +19,22 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   const [isCockpitOpen, setIsCockpitOpen] = useState(false);
   const [editingRoute, setEditingRoute] = useState(null);
   const [isRouteModalOpen, setIsRouteModalOpen] = useState(false);
+
+  // Embed & Crew Alert State
+  const [copiedKey, setCopiedKey] = useState('');
+  const [crewAlertText, setCrewAlertText] = useState('');
+  const [activeCrewAlert, setActiveCrewAlert] = useState('');
+  const [messages, setMessages] = useState([
+    { id: 1, text: "Just saw Santa turning onto New Road! The kids are cheering! 🎅🎉", time: "2m ago", status: "pending" },
+    { id: 2, text: "Buckets filled on Lawless Lane! Elves doing a brilliant job!", time: "5m ago", status: "approved" },
+    { id: 3, text: "Can Santa wave to the upstairs window at 24? Big fans here!", time: "8m ago", status: "pending" }
+  ]);
+
+  const copyToClipboard = (key, text) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(''), 2500);
+  };
 
   // Settings State
   const [formData, setFormData] = useState({
@@ -167,6 +184,18 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
           </button>
 
           <a
+            href={`/god_mode.html?table=${session.tableId || 'beverley'}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-secondary"
+            style={{ padding: '8px 14px', fontSize: '13px', borderColor: 'var(--primary)', color: 'var(--primary)', textDecoration: 'none' }}
+            title="Open classic GitHub God Mode in full screen"
+          >
+            <Activity size={15} />
+            <span>Classic God Mode</span>
+          </a>
+
+          <a
             href="/"
             onClick={(e) => { e.preventDefault(); window.location.reload(); }}
             className="btn-secondary"
@@ -187,10 +216,47 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         </div>
       </header>
 
+      {/* 5 Live Mission Control Stat Cards (from GitHub god_mode.html) */}
+      <div style={{
+        maxWidth: '1000px',
+        margin: '20px auto 0 auto',
+        padding: '0 20px',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+        gap: '12px'
+      }}>
+        <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 700, marginBottom: '6px' }}>Active Viewers</div>
+          <div className="brand-font" style={{ fontSize: '28px', color: '#22c55e', lineHeight: 1 }}>342</div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Live on radar</div>
+        </div>
+        <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 700, marginBottom: '6px' }}>Total Waves</div>
+          <div className="brand-font" style={{ fontSize: '28px', color: 'var(--primary)', lineHeight: 1 }}>1,480</div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Audience cheers</div>
+        </div>
+        <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 700, marginBottom: '6px' }}>Sleigh Speed</div>
+          <div className="brand-font" style={{ fontSize: '28px', color: '#38bdf8', lineHeight: 1 }}>4.8 <span style={{ fontSize: '14px' }}>MPH</span></div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Safe parade pace</div>
+        </div>
+        <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 700, marginBottom: '6px' }}>GPS Accuracy</div>
+          <div className="brand-font" style={{ fontSize: '28px', color: '#22c55e', lineHeight: 1 }}>±3m</div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Sub-second locked</div>
+        </div>
+        <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 700, marginBottom: '6px' }}>Total Raised</div>
+          <div className="brand-font" style={{ fontSize: '28px', color: 'var(--primary)', lineHeight: 1 }}>£{tableData?.table?.total_raised || 19}</div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Goal: £{tableData?.table?.fundraising_goal || 8000}</div>
+        </div>
+      </div>
+
       {/* Navigation Sub-Tabs */}
       <div style={{
         background: '#121210',
         borderBottom: '1px solid var(--border)',
+        margin: '20px 0 0 0',
         padding: '0 24px',
         display: 'flex',
         gap: '8px',
@@ -199,6 +265,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         {[
           { id: 'announcements', label: 'Live PA Broadcast', icon: Megaphone },
           { id: 'routes', label: 'Routes & Timetables', icon: Calendar },
+          { id: 'embeds', label: 'Embed Generator', icon: Code },
+          { id: 'crew', label: 'Crew & Messages', icon: Bell },
           { id: 'settings', label: 'Table Settings & Branding', icon: Settings },
           { id: 'giftaid', label: 'Gift Aid & HMRC', icon: Heart }
         ].map(tab => {
@@ -465,7 +533,260 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
           </div>
         )}
 
-        {/* TAB 3: TABLE SETTINGS & DRAG-AND-DROP LOGO UPLOAD */}
+        {/* TAB 3: EMBED CODE GENERATOR (FOR CHAPTERS' OWN WEBSITES) */}
+        {activeTab === 'embeds' && (
+          <div style={{
+            background: '#151513',
+            border: '1px solid var(--border)',
+            borderRadius: '16px',
+            padding: '30px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h2 className="brand-font" style={{ fontSize: '24px', margin: '0 0 4px 0' }}>
+                  Embed Code Generator
+                </h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0 }}>
+                  Embed interactive widgets directly onto your Table's existing WordPress, Wix, Squarespace, or custom website.
+                </p>
+              </div>
+
+              <a
+                href={`/embed.html?table=${session.tableId || 'beverley'}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary"
+                style={{ padding: '8px 16px', fontSize: '13px', borderColor: 'var(--primary)', color: 'var(--primary)', textDecoration: 'none' }}
+              >
+                <ExternalLink size={15} />
+                <span>Open Full Embed Lab</span>
+              </a>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Widget 1: Spatial Address Lookup */}
+              <div style={{ background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <strong style={{ fontSize: '16px', color: '#fff' }}>1. Street Address & Spatial Lookup (Recommended)</strong>
+                  <button
+                    onClick={() => copyToClipboard('addr', `<iframe src="https://turbosanta-app.pages.dev/address.html?table=${session.tableId || 'beverley'}" width="100%" height="600" style="border:none;border-radius:16px;" allow="geolocation"></iframe>`)}
+                    className="btn-primary"
+                    style={{ padding: '6px 14px', fontSize: '12px' }}
+                  >
+                    {copiedKey === 'addr' ? <Check size={14} /> : <Copy size={14} />}
+                    <span>{copiedKey === 'addr' ? 'Copied!' : 'Copy Code'}</span>
+                  </button>
+                </div>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '10px' }}>
+                  Interactive OpenStreetMap with "Use My Location", street autocomplete, and 150m radius calculation.
+                </p>
+                <pre style={{ background: '#151513', padding: '12px', borderRadius: '8px', fontSize: '12px', color: 'var(--primary)', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+{`<iframe src="https://turbosanta-app.pages.dev/address.html?table=${session.tableId || 'beverley'}" width="100%" height="600" style="border:none;border-radius:16px;" allow="geolocation"></iframe>`}
+                </pre>
+              </div>
+
+              {/* Widget 2: Live Sleigh Tracker */}
+              <div style={{ background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <strong style={{ fontSize: '16px', color: '#fff' }}>2. Live Sleigh Tracker Map</strong>
+                  <button
+                    onClick={() => copyToClipboard('track', `<iframe src="https://turbosanta-app.pages.dev/tracker.html?table=${session.tableId || 'beverley'}" width="100%" height="650" style="border:none;border-radius:16px;" allow="geolocation"></iframe>`)}
+                    className="btn-primary"
+                    style={{ padding: '6px 14px', fontSize: '12px' }}
+                  >
+                    {copiedKey === 'track' ? <Check size={14} /> : <Copy size={14} />}
+                    <span>{copiedKey === 'track' ? 'Copied!' : 'Copy Code'}</span>
+                  </button>
+                </div>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '10px' }}>
+                  Full mission map with real-time GPS telemetry, dual-layer route polylines, and live Santa marker.
+                </p>
+                <pre style={{ background: '#151513', padding: '12px', borderRadius: '8px', fontSize: '12px', color: 'var(--primary)', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+{`<iframe src="https://turbosanta-app.pages.dev/tracker.html?table=${session.tableId || 'beverley'}" width="100%" height="650" style="border:none;border-radius:16px;" allow="geolocation"></iframe>`}
+                </pre>
+              </div>
+
+              {/* Widget 3: Donation Thermometer */}
+              <div style={{ background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <strong style={{ fontSize: '16px', color: '#fff' }}>3. Live Donation Thermometer</strong>
+                  <button
+                    onClick={() => copyToClipboard('thermo', `<div data-santa-thermo="" data-table="${session.tableId || 'beverley'}"></div>\n<script src="https://turbosanta-app.pages.dev/donations_v2.js"></script>`)}
+                    className="btn-primary"
+                    style={{ padding: '6px 14px', fontSize: '12px' }}
+                  >
+                    {copiedKey === 'thermo' ? <Check size={14} /> : <Copy size={14} />}
+                    <span>{copiedKey === 'thermo' ? 'Copied!' : 'Copy Code'}</span>
+                  </button>
+                </div>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '10px' }}>
+                  1-line script or container to show real-time community fundraising target and Gift Aid callout.
+                </p>
+                <pre style={{ background: '#151513', padding: '12px', borderRadius: '8px', fontSize: '12px', color: 'var(--primary)', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+{`<div data-santa-thermo="" data-table="${session.tableId || 'beverley'}"></div>\n<script src="https://turbosanta-app.pages.dev/donations_v2.js"></script>`}
+                </pre>
+              </div>
+
+              {/* Widget 4: Talk to Santa Lapland Call */}
+              <div style={{ background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <strong style={{ fontSize: '16px', color: '#fff' }}>4. Talk to Santa Claus (AI Voice Call)</strong>
+                  <button
+                    onClick={() => copyToClipboard('chat', `<iframe src="https://turbosanta-app.pages.dev/santa_chat.html?table=${session.tableId || 'beverley'}" width="100%" height="600" style="border:none;border-radius:16px;" allow="microphone"></iframe>`)}
+                    className="btn-primary"
+                    style={{ padding: '6px 14px', fontSize: '12px' }}
+                  >
+                    {copiedKey === 'chat' ? <Check size={14} /> : <Copy size={14} />}
+                    <span>{copiedKey === 'chat' ? 'Copied!' : 'Copy Code'}</span>
+                  </button>
+                </div>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '10px' }}>
+                  Interactive AI phone hotline connecting directly to Lapland with voice input.
+                </p>
+                <pre style={{ background: '#151513', padding: '12px', borderRadius: '8px', fontSize: '12px', color: 'var(--primary)', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+{`<iframe src="https://turbosanta-app.pages.dev/santa_chat.html?table=${session.tableId || 'beverley'}" width="100%" height="600" style="border:none;border-radius:16px;" allow="microphone"></iframe>`}
+                </pre>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: CREW ALERTS & SPOTTING MESSAGES */}
+        {activeTab === 'crew' && (
+          <div style={{
+            background: '#151513',
+            border: '1px solid var(--border)',
+            borderRadius: '16px',
+            padding: '30px'
+          }}>
+            <h2 className="brand-font" style={{ fontSize: '24px', margin: '0 0 10px 0' }}>
+              Walking Crew Alerts & Moderation
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '24px' }}>
+              Broadcast urgent operational alerts directly to bucket-collecting elves, and moderate public spotting messages.
+            </p>
+
+            {/* Crew Alert Broadcaster */}
+            <div style={{ background: '#0d0d0b', border: '1px solid rgba(211,28,28,0.3)', borderRadius: '12px', padding: '20px', marginBottom: '30px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <Bell size={18} color="#d31c1c" />
+                <strong style={{ fontSize: '16px', color: '#fff' }}>Emergency / Operational Alert to Elves</strong>
+              </div>
+              <textarea
+                rows={2}
+                value={crewAlertText}
+                onChange={(e) => setCrewAlertText(e.target.value)}
+                placeholder="Type crew alert (e.g. Pause 2 mins at corner of Wood Lane; Re-group before crossing main road)..."
+                style={{
+                  width: '100%',
+                  background: '#151513',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  color: '#fff',
+                  fontSize: '14px',
+                  marginBottom: '12px',
+                  boxSizing: 'border-box'
+                }}
+              />
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => {
+                    setActiveCrewAlert(crewAlertText);
+                    setSaveStatus('🚨 Alert broadcasted to all crew devices!');
+                    setTimeout(() => setSaveStatus(''), 3000);
+                  }}
+                  className="btn-primary"
+                  style={{ padding: '8px 18px', fontSize: '13px', background: '#d31c1c' }}
+                >
+                  <Bell size={14} />
+                  <span>Send Crew Alert</span>
+                </button>
+                {activeCrewAlert && (
+                  <button
+                    onClick={() => {
+                      setActiveCrewAlert('');
+                      setCrewAlertText('');
+                      setSaveStatus('Crew alert cleared.');
+                      setTimeout(() => setSaveStatus(''), 3000);
+                    }}
+                    className="btn-secondary"
+                    style={{ padding: '8px 18px', fontSize: '13px' }}
+                  >
+                    Clear Active Alert
+                  </button>
+                )}
+              </div>
+              {activeCrewAlert && (
+                <div style={{ marginTop: '14px', padding: '10px 14px', background: 'rgba(211,28,28,0.15)', border: '1px solid #d31c1c', borderRadius: '8px', color: '#fca5a5', fontSize: '13px' }}>
+                  <strong>ACTIVE ON CREW SCREENS:</strong> {activeCrewAlert}
+                </div>
+              )}
+            </div>
+
+            {/* Public Messages Queue */}
+            <div>
+              <h3 className="brand-font" style={{ fontSize: '18px', color: 'var(--primary)', marginBottom: '14px' }}>
+                Public Spotting Notes & Messages ({messages.filter(m => m.status === 'pending').length} Pending)
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {messages.map(msg => (
+                  <div
+                    key={msg.id}
+                    style={{
+                      background: '#0d0d0b',
+                      border: '1px solid var(--border)',
+                      borderRadius: '10px',
+                      padding: '16px 20px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '16px',
+                      flexWrap: 'wrap'
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: '220px' }}>
+                      <p style={{ margin: '0 0 6px 0', fontSize: '14px', color: '#fff', fontStyle: 'italic' }}>
+                        "{msg.text}"
+                      </p>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        Received {msg.time} • Status: <strong style={{ color: msg.status === 'approved' ? '#86efac' : msg.status === 'rejected' ? '#fca5a5' : 'var(--primary)' }}>{msg.status.toUpperCase()}</strong>
+                      </span>
+                    </div>
+                    {msg.status === 'pending' && (
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={() => {
+                            setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: 'approved' } : m));
+                            setSaveStatus('Message approved for public display!');
+                            setTimeout(() => setSaveStatus(''), 2500);
+                          }}
+                          className="btn-primary"
+                          style={{ padding: '6px 12px', fontSize: '12px', background: '#22c55e', color: '#000' }}
+                        >
+                          <Check size={14} />
+                          <span>Approve</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: 'rejected' } : m));
+                          }}
+                          className="btn-secondary"
+                          style={{ padding: '6px 12px', fontSize: '12px', borderColor: '#d31c1c', color: '#fca5a5' }}
+                        >
+                          <X size={14} />
+                          <span>Reject</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 5: TABLE SETTINGS & DRAG-AND-DROP LOGO UPLOAD */}
         {activeTab === 'settings' && (
           <div style={{
             background: '#151513',

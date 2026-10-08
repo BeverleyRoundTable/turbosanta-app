@@ -153,3 +153,53 @@ h1, h2, h3, h4, .brand-font {
   background-color: var(--primary) !important;
   color: #000000 !important;
 }
+
+/* --- ZENDURE ELECTRICAL FLOW ANIMATION --- */
+@keyframes electric-spin {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.zendure-power-wrapper {
+  position: relative;
+  border-radius: 2rem;
+  overflow: hidden;
+  padding: 3px;
+}
+
+.zendure-power-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 250%;
+  height: 250%;
+  background: conic-gradient(from 0deg, transparent 70%, #00f0ff 85%, #3b82f6 100%);
+  animation: electric-spin 3s linear infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.zendure-power-inner {
+  position: relative;
+  z-index: 1;
+  background-color: #151513;
+  border-radius: 1.8rem;
+  height: 100%;
+}
+
+/* --- FESTIVE SNOW BACKGROUND --- */
+.snow-pattern {
+  background-image: 
+    radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 5px),
+    radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 3px),
+    radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 4px);
+  background-size: 550px 550px, 350px 350px, 250px 250px;
+  background-position: 0 0, 40px 60px, 130px 270px;
+  animation: snow 120s linear infinite;
+}
+
+@keyframes snow {
+  0% { background-position: 0px 0px, 40px 60px, 130px 270px; }
+  100% { background-position: 500px 1000px, 400px 400px, 300px 300px; }
+}

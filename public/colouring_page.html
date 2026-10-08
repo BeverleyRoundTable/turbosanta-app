@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TurboSanta — Santa Colouring Pages</title>
+<meta name="theme-color" content="#0d0d0b">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=Mountains+of+Christmas:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ═══════════════════════════════════════ */
+  /* TURBOSANTA DESIGN SYSTEM */
+  /* ═══════════════════════════════════════ */
+  :root {
+    --gold: #FBAF33;
+    --gold-dim: rgba(251,175,51,0.12);
+    --gold-glow: rgba(251,175,51,0.25);
+    --dark: #0d0d0b;
+    --surface: #161614;
+    --surface-2: #1e1e1b;
+    --surface-3: #252522;
+    --border: rgba(255,255,255,0.08);
+    --border-gold: rgba(251,175,51,0.2);
+    --red: #D31C1C;
+    --green: #2ecc71;
+    --text: #eaeae5;
+    --text-dim: rgba(255,255,255,0.55);
+    --text-muted: rgba(255,255,255,0.3);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: transparent; /* FIXED: Makes the base transparent for embeds */
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── UI CONTROLS ── */
+  .controls-wrapper {
+    padding: 48px 24px 24px;
+  }
+
+  .controls {
+    max-width: 540px;
+    margin: 0 auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 28px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  }
+
+  .ctrl-header { text-align: center; margin-bottom: 32px; }
+  
+  .ctrl-header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    letter-spacing: 2px;
+    color: #fff;
+    margin-bottom: 8px;
+    line-height: 1;
+  }
+  
+  .ctrl-header h1 span { color: var(--gold); }
+  
+  .ctrl-header p {
+    font-size: 15px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  .field { margin-bottom: 20px; }
+  
+  .field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  
+  .field input {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    color: #fff;
+    font-family: 'DM Mono', monospace;
+    font-size: 16px;
+    outline: none;
+    transition: border 0.2s;
+  }
+  
+  .field input:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px var(--gold-glow);
+  }
+  
+  .field input::placeholder { color: var(--text-muted); font-family: 'DM Sans', sans-serif; }
+
+  .scene-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0;
+  }
+  
+  .scene-card {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 10px; cursor: pointer; text-align: center;
+    transition: all 0.2s; position: relative;
+  }
+  
+  .scene-card:hover { border-color: var(--border-gold); background: rgba(251,175,51,0.03); transform: translateY(-2px); }
+  .scene-card.active { border-color: var(--gold); background: var(--gold-dim); box-shadow: 0 4px 16px var(--gold-glow); }
+  
+  .scene-card .sc-icon { font-size: 32px; display: block; margin-bottom: 8px; line-height: 1; }
+  .scene-card .sc-name { font-size: 12px; font-weight: 700; color: var(--text-dim); }
+  .scene-card.active .sc-name { color: #fff; }
+  
+  .scene-card .sc-src {
+    position: absolute; top: 6px; right: 8px; font-family: 'DM Mono', monospace; font-size: 9px;
+    font-weight: 500; letter-spacing: 1px; text-transform: uppercase; padding: 2px 6px; border-radius: 4px;
+  }
+  .sc-src.custom { background: rgba(46,204,113,0.15); color: var(--green); border: 1px solid rgba(46,204,113,0.3); }
+  .sc-src.builtin { background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--border); }
+
+  .btn-row { display: flex; gap: 12px; margin-top: 24px; }
+  
+  .btn {
+    flex: 1; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 15px;
+    border: none; border-radius: 8px; padding: 16px; cursor: pointer;
+    transition: transform 0.1s, background 0.2s; text-align: center;
+  }
+  
+  .btn:active { transform: scale(0.97); }
+  
+  .btn-gold { background: var(--gold); color: #000; }
+  .btn-gold:hover { background: #e59d28; }
+  
+  .btn-ghost { background: var(--surface-2); color: #fff; border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--surface-3); }
+
+  .info-text {
+    font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted);
+    text-align: center; margin-top: 20px; line-height: 1.6; text-transform: uppercase; letter-spacing: 1px;
+  }
+
+  /* ── LOADER ── */
+  .loader {
+    position: fixed; inset: 0; 
+    background: transparent; /* FIXED: Prevents a black box flash on white websites */
+    display: flex; align-items: center;
+    justify-content: center; flex-direction: column; gap: 16px; z-index: 9999; transition: opacity 0.4s;
+  }
+  .loader.done { opacity: 0; pointer-events: none; }
+  .loader-spin {
+    width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--gold);
+    border-radius: 50%; animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg) } }
+
+  /* ── PRINTABLE COLOURING PAGE ── */
+  .page-wrap {
+    display: flex; justify-content: center; padding: 24px; border-top: 1px solid var(--border);
+  }
+
+  .colouring-page {
+    width: 595px; height: 842px; background: #fff; border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6); display: flex; flex-direction: column;
+    align-items: center; padding: 0; overflow: hidden; position: relative; border: 1px solid var(--border);
+  }
+
+  .cp-header {
+    width: 100%; padding: 28px 24px 20px; text-align: center; border-bottom: 3px solid #1D1D1A;
+    position: relative; flex-shrink: 0;
+  }
+  
+  .cp-title {
+    font-family: 'Bebas Neue', sans-serif; font-size: 56px; letter-spacing: 2px;
+    color: #1D1D1A; line-height: 1; margin-bottom: 8px;
+  }
+  
+  .cp-name {
+    font-family: 'Mountains of Christmas', cursive; font-size: 32px; font-weight: 700;
+    color: var(--red); margin: 0; line-height: 1;
+  }
+  
+  .cp-name.empty {
+    font-family: 'DM Mono', monospace; color: #ccc; font-size: 14px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 2px;
+  }
+
+  .cp-scene {
+    flex: 1; width: 100%; display: flex; align-items: center; justify-content: center;
+    padding: 24px 32px; overflow: hidden;
+  }
+  .cp-scene svg { max-width: 100%; max-height: 100%; width: auto; height: auto; }
+  .cp-scene img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+  .cp-footer {
+    width: 100%; padding: 16px 40px; border-top: 2px solid #f4f4f4; display: flex;
+    align-items: center; justify-content: space-between; flex-shrink: 0;
+  }
+  
+  .cp-footer-left {
+    display: flex; align-items: center; gap: 10px; max-width: 60%; overflow: hidden; margin-left: 12px;
+  }
+  .cp-footer-logo { height: 24px; width: auto; object-fit: contain; flex-shrink: 0; }
+  .cp-footer-brand {
+    font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 700; color: #999;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: 1px;
+  }
+  
+  .cp-footer-right {
+    font-family: 'DM Mono', monospace; font-size: 9px; color: #ccc; font-weight: 500;
+    letter-spacing: 1px; white-space: nowrap; margin-right: 12px; text-transform: uppercase;
+  }
+
+  .cp-corner { position: absolute; font-size: 24px; opacity: 0.12; pointer-events: none; color: #1D1D1A; }
+  .cp-corner.tl { top: 12px; left: 16px; } .cp-corner.tr { top: 12px; right: 16px; }
+  .cp-corner.bl { bottom: 12px; left: 16px; } .cp-corner.br { bottom: 12px; right: 16px; }
+
+  .scene-loading { font-family: 'DM Mono', monospace; color: #ccc; font-size: 14px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;}
+
+  /* ── PRINT RULES ── */
+  @media print {
+    body { background: #fff !important; }
+    .controls-wrapper, .loader { display: none !important; }
+    .page-wrap { padding: 0; background: none !important; border: none !important; }
+    .colouring-page {
+      box-shadow: none !important; border: none !important; border-radius: 0;
+      width: 100%; height: auto; min-height: 100vh;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    @page { margin: 8mm; size: A4 portrait; }
+  }
+
+  /* ── MOBILE ── */
+  @media(max-width: 640px) {
+    .colouring-page { width: 100%; height: auto; aspect-ratio: 595/842; min-height: 0; }
+    .cp-title { font-size: 42px; }
+    .cp-name { font-size: 24px; }
+    .scene-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="loader" id="loader"><div class="loader-spin"></div></div>
+
+<div class="controls-wrapper">
+  <div class="controls" id="controls">
+    <div class="ctrl-header">
+      <h1>🖍️ COLOURING <span>PAGE</span></h1>
+      <p>Pick a festive scene, add a child's name, and print a personalised colouring page!</p>
+    </div>
+
+    <div class="field">
+      <label>Child's Name</label>
+      <input type="text" id="childName" placeholder="e.g. Sophie" maxlength="30">
+    </div>
+
+    <div class="field">
+      <label>Choose a Scene</label>
+      <div class="scene-grid" id="sceneGrid"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-gold" onclick="generate()">Generate Page</button>
+      <button class="btn btn-ghost" onclick="window.print()">🖨 Print</button>
+    </div>
+
+    <div class="info-text">Prints perfectly on A4 paper. Grab some crayons and let the magic happen!</div>
+  </div>
+</div>
+
+<div class="page-wrap" id="pageWrap"></div>
+
+<script>
+const API = new URLSearchParams(location.search).get('api') || '';
+let CFG = { logo:'', sleighName:'Santa Sleigh' };
+
+/* ══════════════════════════════════════════════════════════════
+   SCENE CONFIG — Edit this array to add/remove/customise scenes
+
+   Each scene has:
+     id    — unique key
+     icon  — emoji for the picker card
+     name  — display label
+     url   — (optional) URL to custom artwork (PNG, JPG, SVG, or WebP)
+             If set, loads from this URL (e.g. GitHub raw)
+             If empty/null, uses the built-in fallback SVG
+
+   To add your own artwork:
+   1. Design in Canva at 2000×2500px — black outlines, no fills, white bg
+   2. Export as PNG (most reliable) or SVG
+   3. Upload to your GitHub repo, e.g.:
+      https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/colouring/sleigh.png
+   4. Paste the raw URL into the 'url' field below
+   5. Deploy — the generator loads your custom art automatically
+
+   Supports: .png, .jpg, .jpeg, .webp, .svg
+   Recommended canvas size: 2000×2500px (4:5 portrait)
+   Subject should fill ~60-65% of canvas, leaving space for kids to doodle
+   ══════════════════════════════════════════════════════════════ */
+
+const SCENES = [
+  {
+    id: 'sleigh',
+    icon: '🛷',
+    name: "Santa's Sleigh",
+    url: 'https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/colouring/sleigh.png'  // ← Paste your custom image URL here
+  },
+  {
+    id: 'tree',
+    icon: '🎄',
+    name: 'Christmas Tree',
+    url: 'https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/colouring/tree.png'
+  },
+  {
+    id: 'snowman',
+    icon: '⛄',
+    name: 'Snowman',
+    url: 'https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/colouring/snowman.png'
+  },
+  {
+    id: 'house',
+    icon: '🏠',
+    name: 'Cosy House',
+    url: 'https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/colouring/house.png'
+  },
+  {
+    id: 'presents',
+    icon: '🎁',
+    name: 'Present Stack',
+    url: 'https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/colouring/presents.png'
+  },
+  {
+    id: 'reindeer',
+    icon: '🦌',
+    name: 'Reindeer',
+    url: 'https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/colouring/reindeer.png'
+  }
+];
+
+let selectedScene = 'sleigh';
+
+async function init() {
+  if (API) {
+    try {
+      const res = await fetch(API);
+      const data = await res.json();
+      const s = data.settings || {};
+      CFG.logo = s.logo_overlay_url || '';
+      CFG.sleighName = s.sleigh_display_name || 'Santa Sleigh';
+    } catch(e) {}
+  }
+
+  const grid = document.getElementById('sceneGrid');
+  grid.innerHTML = SCENES.map(s => {
+    const srcLabel = s.url
+      ? '<span class="sc-src custom">Custom</span>'
+      : '<span class="sc-src builtin">Built-in</span>';
+    return `<div class="scene-card ${s.id===selectedScene?'active':''}" data-scene="${s.id}" onclick="pickScene('${s.id}')">
+      ${srcLabel}
+      <span class="sc-icon">${s.icon}</span>
+      <span class="sc-name">${s.name}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('loader').classList.add('done');
+  generate();
+}
+
+function pickScene(id) {
+  selectedScene = id;
+  document.querySelectorAll('.scene-card').forEach(c => c.classList.toggle('active', c.dataset.scene === id));
+  generate();
+}
+
+async function generate() {
+  const name = document.getElementById('childName').value.trim();
+  const scene = SCENES.find(s => s.id === selectedScene);
+  const logoHtml = CFG.logo ? `<img class="cp-footer-logo" src="${CFG.logo}" alt="">` : '';
+  const nameHtml = name
+    ? `<div class="cp-name">${name}'s Christmas Masterpiece</div>`
+    : `<div class="cp-name empty">My Christmas Masterpiece</div>`;
+
+  document.getElementById('pageWrap').innerHTML = `
+    <div class="colouring-page">
+      <span class="cp-corner tl">❄</span><span class="cp-corner tr">⭐</span>
+      <span class="cp-corner bl">🎄</span><span class="cp-corner br">❄</span>
+      <div class="cp-header">
+        <div class="cp-title">Merry Christmas!</div>
+        ${nameHtml}
+      </div>
+      <div class="cp-scene" id="sceneArea"><span class="scene-loading">Loading scene…</span></div>
+      <div class="cp-footer">
+        <div class="cp-footer-left">
+          ${logoHtml}
+          <span class="cp-footer-brand">${CFG.sleighName}</span>
+        </div>
+        <div class="cp-footer-right">COLOUR ME IN!</div>
+      </div>
+    </div>
+  `;
+
+  const area = document.getElementById('sceneArea');
+
+  if (scene.url) {
+    // Custom artwork — use <img> which handles PNG, JPG, SVG, WebP, etc
+    area.innerHTML = `<img src="${scene.url}" alt="${scene.name}" style="max-width:100%;max-height:100%;object-fit:contain;">`;
+    return;
+  }
+
+  // Built-in fallback
+  const fallback = FALLBACKS[scene.id];
+  area.innerHTML = fallback ? fallback() : '<span class="scene-loading">No artwork available</span>';
+}
+
+document.getElementById('childName').addEventListener('input', generate);
+
+/* ══════════════════════════════════════════════════════════════
+   BUILT-IN FALLBACK SVGs
+   These are simple line-art placeholders. Replace with custom
+   PNG or SVG URLs in the SCENES config above for production quality.
+   ══════════════════════════════════════════════════════════════ */
+
+const FALLBACKS = {
+  sleigh() {
+    return `<svg viewBox="0 0 500 380" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#1D1D1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="60" cy="40" r="3"/><circle cx="420" cy="30" r="2.5"/><circle cx="250" cy="20" r="2"/>
+      <circle cx="140" cy="55" r="1.8"/><circle cx="380" cy="60" r="2.2"/>
+      <path d="M440 50 Q455 40 450 65 Q435 75 440 50Z" stroke-width="2"/>
+      <path d="M160 230 Q140 230 130 250 L120 280 Q115 295 135 300 L350 300 Q375 300 370 280 L360 250 Q355 235 340 230 Z" stroke-width="3"/>
+      <path d="M110 310 Q100 310 95 320 L90 330 Q88 340 100 340 L380 340 Q395 340 390 330 L385 320 Q380 310 370 310 Z" stroke-width="2.5"/>
+      <line x1="130" y1="300" x2="120" y2="310"/><line x1="350" y1="300" x2="360" y2="310"/>
+      <ellipse cx="250" cy="210" rx="45" ry="35" stroke-width="2.5"/>
+      <circle cx="250" cy="165" r="25" stroke-width="2.5"/>
+      <path d="M225 155 L235 110 Q250 95 270 115 L275 155" stroke-width="2.5"/>
+      <circle cx="237" cy="108" r="6"/>
+      <path d="M220 158 Q250 168 280 158" stroke-width="3"/>
+      <circle cx="242" cy="162" r="2.5" fill="#1D1D1A"/><circle cx="258" cy="162" r="2.5" fill="#1D1D1A"/>
+      <circle cx="250" cy="172" r="4"/>
+      <path d="M230 178 Q235 200 250 205 Q265 200 270 178" stroke-width="2"/>
+      <path d="M205 210 L170 195 L155 200" stroke-width="2.5"/>
+      <path d="M295 210 L330 195 L345 200" stroke-width="2.5"/>
+      <circle cx="155" cy="200" r="8"/><circle cx="345" cy="200" r="8"/>
+      <path d="M300 200 Q330 180 340 220 Q335 240 310 235 Z" stroke-width="2"/>
+      <path d="M170 195 Q100 170 40 200" stroke-width="1.5" stroke-dasharray="6 4"/>
+      <ellipse cx="50" cy="220" rx="35" ry="20" stroke-width="2"/>
+      <circle cx="25" cy="205" r="12" stroke-width="2"/>
+      <circle cx="22" cy="202" r="2" fill="#1D1D1A"/>
+      <path d="M18 195 L10 178 L5 182 M18 195 L14 176 L20 172" stroke-width="2"/>
+      <circle cx="28" cy="210" r="3"/>
+      <line x1="30" y1="238" x2="28" y2="265"/><line x1="45" y1="240" x2="43" y2="265"/>
+      <line x1="60" y1="240" x2="62" y2="265"/><line x1="70" y1="238" x2="72" y2="265"/>
+      <path d="M0 350 Q50 340 100 350 Q150 358 200 348 Q250 340 300 350 Q350 358 400 348 Q450 340 500 350" stroke-width="2"/>
+    </svg>`;
+  },
+
+  tree() {
+    return `<svg viewBox="0 0 440 420" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#1D1D1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M220 30 L226 50 L248 50 L230 62 L236 82 L220 70 L204 82 L210 62 L192 50 L214 50 Z" stroke-width="2"/>
+      <path d="M220 70 L140 160 L165 160 L100 250 L135 250 L75 340 L365 340 L305 250 L340 250 L275 160 L300 160 Z" stroke-width="2.5"/>
+      <rect x="200" y="340" width="40" height="45" rx="4" stroke-width="2.5"/>
+      <circle cx="175" cy="200" r="10"/><circle cx="260" cy="190" r="8"/><circle cx="200" cy="280" r="10"/>
+      <circle cx="290" cy="290" r="8"/><circle cx="150" cy="300" r="9"/><circle cx="235" cy="230" r="7"/>
+      <path d="M170 170 Q200 180 230 165 Q260 155 280 170" stroke-width="1.5" stroke-dasharray="5 3"/>
+      <path d="M130 260 Q180 275 230 258 Q280 245 320 260" stroke-width="1.5" stroke-dasharray="5 3"/>
+      <rect x="100" y="365" width="50" height="35" rx="4"/>
+      <line x1="125" y1="365" x2="125" y2="400"/><line x1="100" y1="382" x2="150" y2="382"/>
+      <path d="M115 365 Q125 352 135 365" stroke-width="2"/>
+      <rect x="280" y="372" width="45" height="28" rx="4"/>
+      <line x1="302" y1="372" x2="302" y2="400"/>
+      <rect x="170" y="378" width="35" height="22" rx="3"/>
+      <line x1="187" y1="378" x2="187" y2="400"/>
+      <path d="M20 400 Q80 390 140 400 Q200 410 260 400 Q320 390 380 400 Q410 405 440 398" stroke-width="2"/>
+    </svg>`;
+  },
+
+  snowman() {
+    return `<svg viewBox="0 0 440 420" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#1D1D1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="220" cy="320" r="75" stroke-width="2.5"/>
+      <circle cx="220" cy="215" r="55" stroke-width="2.5"/>
+      <circle cx="220" cy="140" r="40" stroke-width="2.5"/>
+      <rect x="190" y="80" width="60" height="45" rx="4" stroke-width="2.5"/>
+      <line x1="175" y1="105" x2="265" y2="105" stroke-width="3"/>
+      <rect x="195" y="85" width="50" height="6" rx="2" stroke-width="1.5"/>
+      <circle cx="207" cy="132" r="4" fill="#1D1D1A"/><circle cx="233" cy="132" r="4" fill="#1D1D1A"/>
+      <path d="M220 142 L240 148 L220 154" stroke-width="2"/>
+      <circle cx="208" cy="158" r="2" fill="#1D1D1A"/><circle cx="216" cy="162" r="2" fill="#1D1D1A"/>
+      <circle cx="224" cy="163" r="2" fill="#1D1D1A"/><circle cx="232" cy="162" r="2" fill="#1D1D1A"/>
+      <path d="M180 170 Q200 180 220 175 Q240 170 260 180" stroke-width="3"/>
+      <path d="M250 178 L260 210 L248 212" stroke-width="2.5"/>
+      <circle cx="220" cy="200" r="5"/><circle cx="220" cy="225" r="5"/><circle cx="220" cy="250" r="5"/>
+      <path d="M165 210 L100 175 M115 185 L105 165 M115 185 L95 180" stroke-width="2.5"/>
+      <path d="M275 210 L340 175 M325 185 L335 165 M325 185 L345 180" stroke-width="2.5"/>
+      <g stroke-width="1.5">
+        <path d="M60 80 L60 100 M50 90 L70 90 M53 83 L67 97 M67 83 L53 97"/>
+        <path d="M380 120 L380 136 M372 128 L388 128 M374 122 L386 134"/>
+        <path d="M90 280 L90 296 M82 288 L98 288"/>
+        <path d="M360 300 L360 312 M354 306 L366 306"/>
+      </g>
+      <path d="M20 390 Q100 378 180 390 Q260 400 340 388 Q380 383 440 392" stroke-width="2"/>
+    </svg>`;
+  },
+
+  house() {
+    return `<svg viewBox="0 0 460 400" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#1D1D1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M50 180 L230 60 L410 180" stroke-width="3"/>
+      <rect x="80" y="180" width="300" height="180" stroke-width="2.5"/>
+      <rect x="310" y="90" width="40" height="90" stroke-width="2.5"/>
+      <path d="M330 90 Q325 70 335 55 Q340 40 330 25" stroke-width="2" stroke-dasharray="4 3"/>
+      <circle cx="330" cy="72" r="10" stroke-width="2"/>
+      <path d="M320 65 L325 52 Q330 48 338 55 L340 65" stroke-width="2"/>
+      <circle cx="326" cy="51" r="3"/>
+      <rect x="190" y="260" width="80" height="100" rx="6" stroke-width="2.5"/>
+      <circle cx="258" cy="310" r="4"/>
+      <circle cx="230" cy="285" r="14" stroke-width="2"/>
+      <path d="M226 275 Q230 270 234 275" stroke-width="2"/>
+      <rect x="105" y="210" width="55" height="50" rx="4" stroke-width="2"/>
+      <line x1="132" y1="210" x2="132" y2="260"/><line x1="105" y1="235" x2="160" y2="235"/>
+      <rect x="300" y="210" width="55" height="50" rx="4" stroke-width="2"/>
+      <line x1="327" y1="210" x2="327" y2="260"/><line x1="300" y1="235" x2="355" y2="235"/>
+      <line x1="100" y1="262" x2="165" y2="262" stroke-width="3"/>
+      <line x1="295" y1="262" x2="360" y2="262" stroke-width="3"/>
+      <circle cx="80" cy="40" r="2.5"/><circle cx="400" cy="50" r="2"/><circle cx="160" cy="30" r="1.8"/>
+      <path d="M55 180 Q100 172 150 180 Q200 186 230 178 Q280 172 330 180 Q370 186 405 178" stroke-width="2"/>
+      <path d="M0 370 Q80 360 160 370 Q240 378 320 368 Q380 362 460 372" stroke-width="2"/>
+    </svg>`;
+  },
+
+  presents() {
+    return `<svg viewBox="0 0 440 380" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#1D1D1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="60" y="160" width="150" height="120" rx="6" stroke-width="2.5"/>
+      <line x1="135" y1="160" x2="135" y2="280"/><line x1="60" y1="220" x2="210" y2="220"/>
+      <path d="M115 160 Q105 140 120 130 Q135 125 135 140" stroke-width="2.5"/>
+      <path d="M155 160 Q165 140 150 130 Q135 125 135 140" stroke-width="2.5"/>
+      <circle cx="135" cy="152" r="8" stroke-width="2"/>
+      <rect x="230" y="200" width="120" height="90" rx="5" stroke-width="2.5"/>
+      <line x1="290" y1="200" x2="290" y2="290"/><line x1="230" y1="245" x2="350" y2="245"/>
+      <path d="M275 200 Q268 185 280 178 Q290 174 290 188" stroke-width="2"/>
+      <path d="M305 200 Q312 185 300 178 Q290 174 290 188" stroke-width="2"/>
+      <circle cx="290" cy="195" r="6" stroke-width="2"/>
+      <rect x="250" y="135" width="80" height="60" rx="4" stroke-width="2.5"/>
+      <line x1="290" y1="135" x2="290" y2="195"/><line x1="250" y1="165" x2="330" y2="165"/>
+      <path d="M280 135 Q276 124 285 120 Q290 118 290 128" stroke-width="2"/>
+      <path d="M300 135 Q304 124 295 120 Q290 118 290 128" stroke-width="2"/>
+      <rect x="160" y="115" width="55" height="42" rx="3"/>
+      <line x1="187" y1="115" x2="187" y2="157"/>
+      <path d="M180 115 Q187 105 194 115" stroke-width="2"/>
+      <path d="M80 80 L80 100 M70 90 L90 90" stroke-width="2"/>
+      <path d="M360 100 L360 116 M352 108 L368 108" stroke-width="2"/>
+      <circle cx="200" cy="60" r="3"/><circle cx="400" cy="70" r="2.5"/>
+      <path d="M0 350 Q80 340 160 350 Q240 358 320 348 Q380 342 440 352" stroke-width="2"/>
+    </svg>`;
+  },
+
+  reindeer() {
+    return `<svg viewBox="0 0 440 400" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#1D1D1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="220" cy="220" rx="90" ry="55" stroke-width="2.5"/>
+      <ellipse cx="340" cy="160" rx="35" ry="30" stroke-width="2.5"/>
+      <path d="M295 195 Q315 180 325 170" stroke-width="2.5"/>
+      <path d="M300 210 Q330 195 340 185" stroke-width="2.5"/>
+      <path d="M335 132 L330 90 L315 80 M330 100 L310 95 M330 110 L318 105" stroke-width="2.5"/>
+      <path d="M355 132 L360 90 L375 80 M360 100 L380 95 M360 110 L372 105" stroke-width="2.5"/>
+      <circle cx="352" cy="155" r="5" fill="#1D1D1A"/>
+      <circle cx="353" cy="153" r="1.5" fill="white"/>
+      <circle cx="370" cy="168" r="8" stroke-width="2.5"/>
+      <path d="M325 140 L312 128 L320 145" stroke-width="2"/>
+      <path d="M360 178 Q365 182 370 180" stroke-width="1.5"/>
+      <path d="M310 185 Q325 195 340 188" stroke-width="2"/>
+      <circle cx="325" cy="195" r="6"/><line x1="325" y1="195" x2="325" y2="200" stroke-width="1.5"/>
+      <line x1="160" y1="270" x2="155" y2="340" stroke-width="2.5"/>
+      <path d="M148 342 L162 342" stroke-width="2"/>
+      <line x1="195" y1="275" x2="190" y2="345" stroke-width="2.5"/>
+      <path d="M183 345 L197 345" stroke-width="2"/>
+      <line x1="250" y1="275" x2="255" y2="340" stroke-width="2.5"/>
+      <path d="M248 342 L262 342" stroke-width="2"/>
+      <line x1="280" y1="270" x2="285" y2="340" stroke-width="2.5"/>
+      <path d="M278 342 L292 342" stroke-width="2"/>
+      <path d="M132 210 Q115 200 120 215 Q125 225 130 218" stroke-width="2"/>
+      <g stroke-width="1.5">
+        <path d="M60 100 L60 120 M50 110 L70 110 M53 103 L67 117"/>
+        <path d="M400 250 L400 266 M392 258 L408 258"/>
+        <path d="M80 300 L80 312 M74 306 L86 306"/>
+      </g>
+      <circle cx="100" cy="60" r="3"/><circle cx="380" cy="80" r="2.5"/><circle cx="220" cy="40" r="2"/>
+      <path d="M0 370 Q80 358 160 370 Q240 378 320 368 Q380 360 440 372" stroke-width="2"/>
+    </svg>`;
+  }
+};
+
+init();
+</script>
+</body>
+</html>

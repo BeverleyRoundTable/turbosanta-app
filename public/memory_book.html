@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TurboSanta — Memory Book</title>
+  <!-- Preload Custom Font -->
+<link rel="preload" href="https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.woff2" as="font" type="font/woff2" crossorigin>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    @font-face {
+    font-family: 'Eurostile';
+    src: url('https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+    
+    :root {
+      /* Brand colour. Default is Round Table gold; applyTheme() overrides these from the API
+         (settings.primary_color), exactly like the Santa sleigh page does. */
+      --primary: #FBAF33;
+      --primary-rgb: 251, 175, 51;   /* same colour as an r, g, b triplet for translucent shades */
+      --on-primary: #000000;         /* text on --primary, auto-picked for readability */
+      --dark: #0d0d0b;
+      --surface: #161614;
+      --surface-2: #1e1e1b;
+      --border: rgba(255,255,255,0.08);
+      --text: #eaeae5;
+      --text-dim: rgba(255,255,255,0.55);
+      --red: #D31C1C;
+      --green: #2ecc71;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Open Sans', sans-serif;
+      /* FIXED: Made background transparent for seamless iframe embedding */
+      background: transparent; 
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      /* Kept the magical glow, it will blend beautifully over the host site's background! */
+      background-image: radial-gradient(circle at 50% 0%, rgba(var(--primary-rgb), 0.05) 0%, transparent 70%);
+    }
+
+    /* Set by JS when the page is opened directly rather than embedded: transparent would show white */
+    html.standalone body { background-color: var(--dark); }
+
+    /* --- HEADER --- */
+    header {
+      text-align: center;
+      padding: 44px 20px 40px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .subtext {
+      font-size: 16px;
+      color: var(--text-dim);
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+
+    .time-machine {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--surface-2); padding: 6px 16px; 
+      border-radius: 999px; border: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+    .time-machine span { color: var(--text-dim); font-size: 13px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; }
+    .time-machine select {
+      background: transparent; color: var(--primary); border: none;
+      font-family: 'Eurostile', 'Open Sans', sans-serif; font-size: 24px; letter-spacing: 1.5px;
+      cursor: pointer; outline: none; appearance: none; padding-right: 4px;
+    }
+    .time-machine select option { background: var(--surface); color: #fff; font-family: 'Open Sans', sans-serif; font-size: 16px; }
+    
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--surface-2); color: #fff;
+      padding: 14px 28px; border-radius: 12px; text-decoration: none;
+      font-weight: 800; font-size: 15px; border: 1px solid var(--border);
+      transition: all 0.2s; cursor: pointer; outline: none;
+    }
+    .btn:hover {
+      background: var(--primary); color: var(--on-primary); border-color: var(--primary);
+      transform: translateY(-2px); box-shadow: 0 8px 24px rgba(var(--primary-rgb), 0.2);
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* --- GALLERY GRID --- */
+    .gallery-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 20px 80px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 30px;
+    }
+
+    /* --- POLAROID CARDS --- */
+    .polaroid {
+      background: #fff;
+      padding: 16px 16px 40px 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      border-radius: 4px;
+      width: calc(33.333% - 20px);
+      max-width: 350px;
+      min-width: 260px;
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s;
+      cursor: pointer;
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    .polaroid:hover {
+      transform: scale(1.05) translateY(-10px) !important; /* Overrides inline rotation */
+      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+      z-index: 10;
+    }
+
+    .polaroid img {
+      width: 100%;
+      height: auto;
+      object-fit: cover;
+      aspect-ratio: 4/3;
+      background: #f0f0f0;
+      border: 1px solid rgba(0,0,0,0.1);
+    }
+
+    .polaroid-caption {
+      font-family: 'Eurostile', 'Open Sans', sans-serif;
+      color: #222;
+      font-size: 20px;
+      font-weight: 700;
+      text-align: center;
+      margin-top: 16px;
+      line-height: 1;
+    }
+
+    /* --- LOADING / EMPTY STATES --- */
+    .state-message {
+      width: 100%; text-align: center; padding: 80px 20px;
+      color: var(--text-dim); font-size: 16px;
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+    }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid var(--border); border-top-color: var(--primary);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeUp { to { opacity: 1; transform: translateY(0) rotate(var(--rot)); } }
+
+    /* --- UPLOAD MODAL --- */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+      z-index: 5000; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-box {
+      background: var(--surface); padding: 32px; border-radius: 20px;
+      width: 100%; max-width: 400px; text-align: center;
+      border: 1px solid var(--border); box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+      animation: slideUp 0.3s cubic-bezier(0.16,1,0.3,1);
+    }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    
+    .modal-title {
+      font-family: 'Eurostile', 'Open Sans', sans-serif; font-size: 32px;
+      letter-spacing: 1.5px; margin: 0 0 12px 0; color: var(--primary); line-height: 1;
+    }
+    .modal-desc { font-size: 14px; color: var(--text-dim); margin-bottom: 24px; line-height: 1.5; }
+
+    /* File Input Styling */
+    .file-drop-area {
+      border: 2px dashed var(--border); border-radius: 12px;
+      padding: 30px 20px; background: var(--surface-2);
+      cursor: pointer; transition: all 0.2s; margin-bottom: 24px;
+    }
+    .file-drop-area:hover { border-color: var(--primary); background: rgba(var(--primary-rgb), 0.05); }
+    .file-drop-area span { display: block; font-size: 14px; color: var(--text-dim); font-weight: 700; margin-top: 0;}
+    .file-drop-area input[type=file] { display: none; }
+    
+    .preview-img {
+      display: none; width: 100%; max-height: 200px; object-fit: contain;
+      border-radius: 8px; margin-bottom: 24px; border: 1px solid var(--border);
+    }
+    .preview-video {
+      display: none; width: 100%; max-height: 240px;
+      border-radius: 8px; margin-bottom: 24px; border: 1px solid var(--border);
+      background: #000;
+    }
+    .upload-hint { font-size: 12px; color: var(--text-dim); margin: -12px 0 20px; }
+
+    /* --- VIDEO POLAROID (branded play facade) --- */
+    .polaroid .video-facade {
+      position: relative; width: 100%; aspect-ratio: 4/3;
+      background: #000; border: 1px solid rgba(0,0,0,0.1);
+      overflow: hidden; cursor: pointer;
+    }
+    .polaroid .video-poster {
+      position: absolute; inset: 0;
+      background-size: cover; background-position: center;
+      transition: transform 0.4s ease, filter 0.2s ease;
+    }
+    .polaroid .video-poster::after {
+      content: ""; position: absolute; inset: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(0,0,0,0.15), rgba(0,0,0,0.45));
+    }
+    .polaroid .video-play-btn {
+      position: absolute; inset: 0; margin: auto;
+      width: 64px; height: 64px; border-radius: 50%;
+      background: var(--primary); color: var(--on-primary);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.5);
+      transition: transform 0.2s ease; pointer-events: none;
+    }
+    .polaroid .video-play-btn svg { margin-left: 3px; } /* optical-centre the triangle */
+    .polaroid .video-facade:hover .video-poster { filter: brightness(1.06); transform: scale(1.04); }
+    .polaroid .video-facade:hover .video-play-btn { transform: scale(1.12); }
+
+    /* Video cards stay put on hover so the play button is easy to hit */
+    .polaroid.is-video:hover {
+      transform: rotate(var(--rot)) !important;
+      box-shadow: 0 18px 44px rgba(0,0,0,0.55);
+      z-index: 10;
+    }
+
+    /* --- VIDEO LIGHTBOX (full-size player, controls never clipped) --- */
+    .video-lightbox { z-index: 6000; }
+    .lightbox-inner {
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+    }
+    .lightbox-player {
+      width: min(86vw, 560px); height: min(72vh, 560px);
+      background: #000; border-radius: 12px; overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.7);
+    }
+    .lightbox-player iframe { width: 100%; height: 100%; border: 0; }
+    .lightbox-fallback {
+      color: var(--text-dim); font-size: 13px; font-weight: 700;
+      text-decoration: none; transition: color 0.2s;
+    }
+    .lightbox-fallback:hover { color: var(--primary); }
+    .lightbox-close {
+      position: absolute; top: 20px; right: 24px;
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--surface-2); color: #fff; border: 1px solid var(--border);
+      font-size: 26px; line-height: 1; cursor: pointer; z-index: 2;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+    }
+    .lightbox-close:hover { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+
+    .modal-btns { display: flex; gap: 12px; }
+    .btn-full { flex: 1; }
+    .btn-cancel { background: var(--surface-2); border: 1px solid var(--border); }
+    .btn-cancel:hover { background: var(--surface-3); border-color: var(--text-dim); color: #fff; box-shadow: none; transform: none;}
+
+    @media(max-width: 768px) {
+      header { padding: 32px 20px 30px; }
+      .gallery-container { gap: 16px; padding: 0 16px 60px; }
+      .polaroid { width: calc(50% - 8px); min-width: 150px; padding: 10px 10px 24px 10px; }
+      .polaroid-caption { font-size: 16px; margin-top: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <p class="subtext" id="headerSubtext">Loading sleigh data...</p>
+    
+    <div class="time-machine" id="timeMachineBox" style="display: none;">
+      <span>Archive:</span>
+      <select id="yearSelect"></select>
+    </div>
+    <br>
+    <button class="btn" id="openUploadBtn">Submit a Photo or Video</button>
+  </header>
+
+  <div class="gallery-container" id="gallery">
+    <div class="state-message" id="loader">
+      <div class="spinner"></div>
+      Loading magical moments...
+    </div>
+  </div>
+
+  <div id="uploadModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-title">Share a Memory</div>
+      <div class="modal-desc">Send us your best photo or a short video clip from the night! Everything is reviewed by the elves before being added to the book.</div>
+      
+      <div class="file-drop-area" id="dropArea" onclick="document.getElementById('fileInput').click()">
+        <span id="dropText">Tap to select a photo or video</span>
+        <input type="file" id="fileInput" accept="image/jpeg, image/png, video/mp4, video/quicktime, video/webm">
+      </div>
+
+      <img id="imagePreview" class="preview-img" alt="Preview">
+      <video id="videoPreview" class="preview-video" controls playsinline muted></video>
+      <div class="upload-hint" id="uploadHint">Videos must be under 25&nbsp;MB (roughly a 15–25 second clip).</div>
+
+      <div class="modal-btns">
+        <button class="btn btn-full btn-cancel" id="cancelUploadBtn">Cancel</button>
+        <button class="btn btn-full" id="confirmUploadBtn" disabled>Upload</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="videoLightbox" class="modal-overlay video-lightbox">
+    <button class="lightbox-close" id="lightboxClose" aria-label="Close video">&times;</button>
+    <div class="lightbox-inner">
+      <div class="lightbox-player" id="lightboxPlayer"></div>
+      <a class="lightbox-fallback" id="lightboxOpen" href="#" target="_blank" rel="noopener">Trouble playing? Open in Google Drive ↗</a>
+    </div>
+  </div>
+
+  <canvas id="compressCanvas" style="display:none;"></canvas>
+
+  <script>
+    
+    // --- THEME FROM THE API ---
+    // Same source and rules as the Santa sleigh page: settings.primary_color drives the brand colour,
+    // and text on it flips black/white for readability. Missing or invalid -> Round Table gold.
+    // Opened directly instead of inside the site's iframe: the transparent body would show white.
+    if (window.self === window.top) document.documentElement.classList.add('standalone');
+
+    // Returns [r, g, b] for a valid CSS colour, otherwise null. (Copied from santasleigh.html)
+    function parseColor(v) {
+      if (typeof v !== 'string') return null;
+      const s = v.trim();
+      const hex = /^#([0-9a-f]{3,8})$/i.exec(s);
+      if (hex) {
+        let h = hex[1];
+        if (h.length === 3 || h.length === 4) h = h.split('').map(c => c + c).join('');
+        if (h.length !== 6 && h.length !== 8) return null;
+        return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+      }
+      try {
+        if (/var\(|url\(|expression/i.test(s)) return null;
+        if (!(window.CSS && CSS.supports && CSS.supports('color', s))) return null;
+        const ctx = document.createElement('canvas').getContext('2d');
+        ctx.fillStyle = '#000000';
+        ctx.fillStyle = s;
+        const out = ctx.fillStyle;
+        if (out.charAt(0) === '#') return parseColor(out);
+        const rgb = /^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(out);
+        return rgb ? [+rgb[1], +rgb[2], +rgb[3]] : null;
+      } catch (e) { return null; }
+    }
+
+    // Black or white, whichever reads better on the given colour (WCAG contrast ratio). (Copied from santasleigh.html)
+    function readableTextOn(rgb) {
+      const lin = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+      const L = 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]);
+      return ((L + 0.05) / 0.05) >= (1.05 / (L + 0.05)) ? '#000000' : '#ffffff';
+    }
+
+    function applyTheme(settings) {
+      const root = document.documentElement;
+      const raw = settings && settings.primary_color;
+      const rgb = parseColor(raw);
+      if (rgb) {
+        root.style.setProperty('--primary', String(raw).trim());
+        root.style.setProperty('--primary-rgb', rgb.join(', '));
+        root.style.setProperty('--on-primary', readableTextOn(rgb));
+      } else {
+        ['--primary', '--primary-rgb', '--on-primary'].forEach(p => root.style.removeProperty(p));
+      }
+    }
+
+    // The settings request below is a direct Apps Script call (slow), so remember the colour per API
+    // and apply it straight away next time instead of flashing gold first. Storage can be blocked in iframes.
+    function loadCachedTheme(api) {
+      try {
+        const c = localStorage.getItem('SANTA_THEME:' + api);
+        if (c) applyTheme({ primary_color: c });
+      } catch (e) {}
+    }
+    function saveTheme(api, color) {
+      try {
+        if (parseColor(color)) localStorage.setItem('SANTA_THEME:' + api, String(color).trim());
+        else localStorage.removeItem('SANTA_THEME:' + api);
+      } catch (e) {}
+    }
+
+    // --- HELPER: GET BASE URL ---
+    function getApiUrl() {
+      // 1. Look for ?api= in the URL (for Cloudflare/external hosting)
+      const params = new URLSearchParams(window.location.search);
+      const apiParam = params.get("api") || localStorage.getItem("SANTA_API");
+      
+      if (apiParam) {
+        localStorage.setItem("SANTA_API", apiParam); // Cache it so it survives page reloads
+        return apiParam;
+      }
+      
+      // 2. Fallback: If deployed directly via Google Apps Script
+      const url = new URL(window.location.href);
+      url.search = ''; 
+      return url.toString();
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+  const apiUrl = getApiUrl();
+  const sep = apiUrl.includes('?') ? '&' : '?';
+  loadCachedTheme(apiUrl);
+  const WORKER_URL = "https://santaproxy.beverley247.workers.dev/";
+
+      // Elements
+      const gallery = document.getElementById('gallery');
+      const loader = document.getElementById('loader');
+      const subtext = document.getElementById('headerSubtext');
+
+      // --- VIDEO LIGHTBOX ---
+      const videoLightbox = document.getElementById('videoLightbox');
+      const lightboxPlayer = document.getElementById('lightboxPlayer');
+      const lightboxClose = document.getElementById('lightboxClose');
+      const lightboxOpen = document.getElementById('lightboxOpen');
+
+      const driveViewUrl = (id) => `https://drive.google.com/file/d/${id}/view`;
+      const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
+
+      // On mobile the page is usually embedded as an iframe on the host site,
+      // and Drive video won't play in a nested iframe — so open Drive directly.
+      // On desktop the in-page lightbox works, so use that.
+      function openVideo(id) {
+        if (isMobile()) {
+          window.open(driveViewUrl(id), '_blank', 'noopener');
+        } else {
+          openVideoLightbox(id);
+        }
+      }
+
+      function openVideoLightbox(id) {
+        lightboxPlayer.innerHTML = `<iframe src="https://drive.google.com/file/d/${id}/preview"
+          allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+        lightboxOpen.href = driveViewUrl(id);
+        videoLightbox.style.display = 'flex';
+      }
+      function closeVideoLightbox() {
+        videoLightbox.style.display = 'none';
+        lightboxPlayer.innerHTML = ''; // stop playback
+      }
+      lightboxClose.addEventListener('click', closeVideoLightbox);
+      videoLightbox.addEventListener('click', (e) => {
+        if (e.target === videoLightbox) closeVideoLightbox(); // backdrop click
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && videoLightbox.style.display === 'flex') closeVideoLightbox();
+      });
+
+      // --- 1. LOAD GALLERY DATA & YEARS ---
+      const yearSelect = document.getElementById('yearSelect');
+      const timeMachineBox = document.getElementById('timeMachineBox');
+
+      async function loadGallery(year) {
+        loader.style.display = 'flex';
+        gallery.innerHTML = '';
+        gallery.appendChild(loader);
+
+        try {
+          const res = await fetch(`${apiUrl}${sep}function=getMemoryBook&year=${year}`);
+          const images = await res.json();
+          loader.style.display = 'none';
+
+          if (!images || images.length === 0) {
+            gallery.innerHTML = `
+              <div class="state-message">
+                The memory book for ${year} is empty.<br>Click 'Submit a Photo' above to be the first!
+              </div>`;
+          } else {
+            // Shuffle images randomly on every refresh and limit count to prevent bloat
+            const maxItems = window.matchMedia('(max-width: 768px)').matches ? 6 : 12;
+            const displayImages = [...images].sort(() => Math.random() - 0.5).slice(0, maxItems);
+
+            const captions = [
+              // Short & Sweet
+              "Magical!", "Santa!", "Ho Ho Ho!", "Festive fun!", "Great night!", 
+              "Sleigh bells!", "Believe!", "Pure joy!", "Feeling festive!",
+              
+              // Warm & Fuzzy
+              "Merry & Bright!", "Making memories!", "Christmas magic!", 
+              "Waiting for Santa!", "Winter wonderland!", "Christmas spirit!", 
+              "Spreading joy!", "Best time of the year!", "Magic in the air!", 
+              "A night to remember!", "Joy to the World!", "Making spirits bright!", 
+              "Christmas cheer!", "Magical moments!", "Happy Christmas!", 
+              "'Tis the season!", "Festive magic!", "Festive spirit!", "Sparkle and shine!",
+              
+              // Playful & Funny
+              "Reindeer games!", "Santa's little helper!", "Up to snow good!", 
+              "Elfing around!", "Jingle all the way!", "Naughty or Nice?", 
+              "Dear Santa...", "Got milk and cookies?", "Sleigh vibes!", 
+              "Sleighing it!", "Snow much fun!", "Here comes Santa!", 
+              "Reindeer ready!", "Elf spotted!", "Santa's helpers!", 
+              "Caught on camera!", "Sleigh bells ringing!"
+            ];
+
+            displayImages.forEach((item, index) => {
+              // Backward compatible: old API returned plain URL strings (all images)
+              const media = (typeof item === 'string')
+                ? { type: 'image', url: item }
+                : item;
+
+              const card = document.createElement('div');
+              card.className = 'polaroid';
+              const rot = (Math.random() * 8 - 4).toFixed(1);
+              card.style.setProperty('--rot', `${rot}deg`);
+              card.style.animation = `fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards ${index * 0.05}s`;
+              const caption = captions[Math.floor(Math.random() * captions.length)];
+
+              if (media.type === 'video' && media.id) {
+                card.classList.add('is-video');
+                const poster = media.poster || `https://drive.google.com/thumbnail?id=${media.id}&sz=w800`;
+                card.innerHTML = `
+                  <div class="video-facade" role="button" tabindex="0" aria-label="Play video">
+                    <div class="video-poster" style="background-image:url('${poster}')"></div>
+                    <div class="video-play-btn">
+                      <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    </div>
+                  </div>
+                  <div class="polaroid-caption">${caption}</div>`;
+
+                const facade = card.querySelector('.video-facade');
+                const onPlay = () => openVideo(media.id);
+                facade.addEventListener('click', onPlay);
+                facade.addEventListener('keydown', (ev) => {
+                  if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onPlay(); }
+                });
+              } else {
+                card.innerHTML = `<img src="${media.url}" alt="Community Photo" loading="lazy"><div class="polaroid-caption">${caption}</div>`;
+              }
+              gallery.appendChild(card);
+            });
+          }
+        } catch (err) {
+          loader.style.display = 'none';
+          gallery.innerHTML = `<div class="state-message" style="color: var(--red);">Oops! The elves couldn't load the photos right now.</div>`;
+        }
+      }
+
+      try {
+        const currentYear = new Date().getFullYear();
+        
+        // ⭐ OPTIMIZATION: Fire the gallery fetch immediately, don't wait for the years list
+        loadGallery(currentYear);
+
+        // Fetch Sleigh Name in background
+        fetch(`${apiUrl}${sep}function=getRoutes`).then(r => r.json()).then(data => {
+            if(data && data.settings) {
+                try { applyTheme(data.settings); saveTheme(apiUrl, data.settings.primary_color); } catch (e) { console.warn('Theme not applied:', e); }
+                const name = data.settings.sleigh_display_name || "Santa Sleigh";
+                subtext.textContent = `Magical moments from the ${name} routes.`;
+                document.title = `Memories — ${name}`;
+            }
+        }).catch(e => { subtext.textContent = "Magical moments captured by you!"; });
+
+        // Fetch Available Years in background (No 'await')
+        fetch(`${apiUrl}${sep}function=getMemoryYears`).then(r => r.json()).then(availableYears => {
+            if (availableYears.length > 0) {
+              availableYears.forEach(y => {
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.textContent = y;
+                yearSelect.appendChild(opt);
+              });
+              
+              if (availableYears.length > 1) {
+                 timeMachineBox.style.display = 'inline-flex';
+              }
+              
+              // If the newest year ISN'T the current year, correct the display
+              if (availableYears[0] !== currentYear && !yearSelect.hasAttribute('data-loaded')) {
+                  yearSelect.value = availableYears[0];
+                  loadGallery(availableYears[0]);
+              }
+              yearSelect.setAttribute('data-loaded', 'true');
+            }
+        });
+        
+        // Listen for year changes
+        yearSelect.addEventListener('change', (e) => {
+          loadGallery(e.target.value);
+        });
+
+      } catch (err) {
+        console.error("Failed to boot gallery", err);
+      }
+
+      // --- 2. UPLOAD LOGIC ---
+      const uploadModal = document.getElementById('uploadModal');
+      const fileInput = document.getElementById('fileInput');
+      const dropArea = document.getElementById('dropArea');
+      const imagePreview = document.getElementById('imagePreview');
+      const videoPreview = document.getElementById('videoPreview');
+      const confirmUploadBtn = document.getElementById('confirmUploadBtn');
+      const compressCanvas = document.getElementById('compressCanvas');
+
+      // Hard cap on video size. base64 inflates ~33%, and Apps Script POSTs
+      // get unreliable past ~30 MB, so keep this conservative. Tune if needed.
+      const MAX_VIDEO_MB = 25;
+      const MAX_VIDEO_BYTES = MAX_VIDEO_MB * 1024 * 1024;
+
+      let base64Output = null;
+      let mediaKind = null; // 'image' | 'video'
+
+      document.getElementById('openUploadBtn').onclick = () => { uploadModal.style.display = 'flex'; };
+      
+      const resetModal = () => {
+        uploadModal.style.display = 'none';
+        fileInput.value = "";
+        dropArea.style.display = "block";
+        imagePreview.style.display = "none";
+        imagePreview.src = "";
+        videoPreview.style.display = "none";
+        if (videoPreview.src) { URL.revokeObjectURL(videoPreview.src); }
+        videoPreview.removeAttribute('src');
+        videoPreview.load();
+        confirmUploadBtn.disabled = true;
+        confirmUploadBtn.textContent = "Upload";
+        base64Output = null;
+        mediaKind = null;
+      };
+
+      document.getElementById('cancelUploadBtn').onclick = resetModal;
+
+      // Handle file selection: images get compressed, videos get validated + read raw
+      fileInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const isVideo = file.type.startsWith('video/');
+        const isImage = file.type.startsWith('image/');
+
+        if (!isVideo && !isImage) {
+          alert("Please choose a photo or a video file.");
+          fileInput.value = "";
+          return;
+        }
+
+        // ---- VIDEO PATH ----
+        if (isVideo) {
+          if (file.size > MAX_VIDEO_BYTES) {
+            const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+            alert(`That clip is ${sizeMb} MB — too big to send.\n\nPlease keep videos under ${MAX_VIDEO_MB} MB (about a 15–25 second clip). On a phone you can trim it in your gallery before uploading.`);
+            fileInput.value = "";
+            return;
+          }
+
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            base64Output = e.target.result; // data:video/...;base64,....
+            mediaKind = 'video';
+
+            // Preview using an object URL (lighter than the base64 string)
+            const objUrl = URL.createObjectURL(file);
+            dropArea.style.display = "none";
+            imagePreview.style.display = "none";
+            videoPreview.src = objUrl;
+            videoPreview.style.display = "block";
+            confirmUploadBtn.disabled = false;
+          };
+          reader.readAsDataURL(file);
+          return;
+        }
+
+        // ---- IMAGE PATH (compress to JPEG) ----
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = new Image();
+          img.onload = function() {
+            // Compress logic: max 1200px wide/high
+            const MAX_DIM = 1200;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+              if (width > MAX_DIM) { height *= MAX_DIM / width; width = MAX_DIM; }
+            } else {
+              if (height > MAX_DIM) { width *= MAX_DIM / height; height = MAX_DIM; }
+            }
+
+            compressCanvas.width = width;
+            compressCanvas.height = height;
+            const ctx = compressCanvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Compress to JPEG, 80% quality
+            base64Output = compressCanvas.toDataURL('image/jpeg', 0.8);
+            mediaKind = 'image';
+
+            // Show preview
+            dropArea.style.display = "none";
+            videoPreview.style.display = "none";
+            imagePreview.src = base64Output;
+            imagePreview.style.display = "block";
+            confirmUploadBtn.disabled = false;
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+
+      // Submit to Google Apps Script
+      confirmUploadBtn.addEventListener('click', async () => {
+        if (!base64Output) return;
+
+        confirmUploadBtn.disabled = true;
+        confirmUploadBtn.textContent = (mediaKind === 'video')
+          ? "Uploading clip…"
+          : "Sending…";
+
+        try {
+          const payload = {
+            action: "uploadMemoryPhoto",
+            imageData: base64Output // server reads the real MIME from this prefix
+          };
+
+          // Replace fetch(apiUrl, ...) with these lines:
+          const uploadTarget = `${WORKER_URL}?target=${encodeURIComponent(apiUrl)}`;
+
+          const response = await fetch(uploadTarget, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify(payload)
+          });
+
+          const data = await response.json();
+          if (data.ok) {
+            const what = (mediaKind === 'video') ? "video" : "photo";
+            alert(`Thank you! Your ${what} has been sent to the elves for review.`);
+            resetModal();
+          } else {
+            alert("Upload Failed: " + data.error);
+            confirmUploadBtn.disabled = false;
+            confirmUploadBtn.textContent = "Try Again";
+          }
+        } catch (err) {
+          alert("Network Error. Please check your connection. Large videos may time out — try a shorter clip.");
+          confirmUploadBtn.disabled = false;
+          confirmUploadBtn.textContent = "Try Again";
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TurboSanta — Spatial Lookup</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Preload Custom Font -->
+<link rel="preload" href="https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.woff2" as="font" type="font/woff2" crossorigin>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Turf.js for Lightning-Fast Client-Side Spatial Math -->
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+
+  <style>
+    @font-face {
+    font-family: 'Eurostile';
+    src: url('https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+    
+    :root {
+      /* Brand colour. Defaults are Round Table gold; applyTheme() overrides these from the API
+         (settings.primary_color), exactly like the Santa sleigh page does. */
+      --primary: #FBAF33;
+      --primary-rgb: 251, 175, 51;   /* same colour as an r, g, b triplet for the translucent shades below */
+      --on-primary: #000000;         /* text on --primary, auto-picked for readability */
+      --primary-dim: rgba(var(--primary-rgb), 0.12);
+      --primary-glow: rgba(var(--primary-rgb), 0.25);
+      --dark: #0d0d0b;
+      --surface: #161614;
+      --surface-2: #1e1e1b;
+      --border: rgba(255,255,255,0.08);
+      --border-primary: rgba(var(--primary-rgb), 0.2);
+      --text: #eaeae5;
+      --text-dim: rgba(255,255,255,0.55);
+      --red: #D31C1C;
+      --green: #2ecc71;
+      --text-muted: rgba(255,255,255,0.3);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 24px 12px 60px; 
+      background: transparent; 
+      color: var(--text);
+      font-family: 'Open Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-y: auto;
+    }
+
+    /* Set by JS when the page is opened directly rather than embedded */
+    html.standalone body { background: var(--dark); }
+
+    #address-root {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px 20px;
+      background: var(--surface);
+      border-radius: 16px;
+      border: 1px solid var(--border-primary);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    }
+
+    .controls-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .locate-btn {
+      height: 58px;
+      width: 100%;
+      border-radius: 16px;
+      border: 2px solid var(--primary);
+      background: var(--primary);
+      color: var(--on-primary);
+      font-weight: 900;
+      font-family: 'Eurostile', 'Open Sans', sans-serif;
+      font-size: 24px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.4);
+      transition: transform 0.1s, filter 0.2s;
+    }
+
+    .locate-btn:hover:not(:disabled) { filter: brightness(0.92); }
+    .locate-btn:active:not(:disabled) { transform: scale(0.96); box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+    .locate-btn:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
+
+    .instruction-text {
+      text-align: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    #lookup-map {
+      height: 350px;
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      z-index: 1; 
+    }
+
+    #results {
+      padding-bottom: 40px;
+    }
+    
+    #results:empty { margin-top: 0; padding-bottom: 0; }
+
+    .addr-route-card {
+      background: var(--surface-2);
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      padding: 20px 24px;
+      margin: 20px 0;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    .addr-route-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(var(--primary-rgb), 0.15); 
+      border-color: rgba(var(--primary-rgb), 0.5);
+    }
+
+    /* Dynamically accepts the route color generated in JS */
+    .addr-route-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: var(--route-color, var(--primary));
+    }
+
+    .addr-route-title {
+      margin: 0 0 4px;
+      font-family: 'Eurostile', 'Open Sans', sans-serif;
+      font-size: 32px;
+      letter-spacing: 1.5px;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .addr-route-date {
+      margin: 0;
+      font-family: 'Open Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .addr-no-results {
+      text-align: center;
+      margin-top: 32px;
+      font-weight: 600;
+      color: var(--primary);
+      font-size: 16px;
+    }
+
+    .addr-no-results.addr-passed { color: var(--green); }
+
+    /* ── STREET SEARCH (from countdown) ── */
+    .addr-search-wrap { position: relative; width: 100%; }
+
+    .addr-search-input {
+      width: 100%;
+      height: 58px;
+      padding: 0 20px 0 48px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      color: #fff;
+      font-family: 'Open Sans', sans-serif;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .addr-search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
+    .addr-search-input:disabled { opacity: 0.6; cursor: not-allowed; }
+    .addr-search-input::placeholder { color: var(--text-muted); font-family: 'Open Sans', sans-serif; }
+
+    .addr-search-icon {
+      position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
+      font-size: 18px; pointer-events: none; opacity: 0.7;
+    }
+
+    /* Overlays the map instead of pushing it down, so the embed height doesn't jump */
+    .addr-suggest {
+      display: none;
+      position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 2000;
+      max-height: 240px; overflow-y: auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .addr-suggest.open { display: block; }
+
+    .addr-suggest-item {
+      padding: 14px 18px; cursor: pointer; font-size: 15px; font-weight: 700;
+      border-bottom: 1px solid var(--border); transition: background 0.1s;
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      color: var(--text);
+    }
+    .addr-suggest-item:last-child { border-bottom: none; }
+    .addr-suggest-item:hover, .addr-suggest-item:focus { background: var(--primary-dim); color: #fff; outline: none; }
+
+    .addr-suggest-route {
+      font-family: 'Open Sans', sans-serif; font-size: 11px; font-weight: 500;
+      color: var(--text-muted); text-transform: uppercase; text-align: right;
+    }
+    .addr-suggest-item:hover .addr-suggest-route { color: var(--primary); }
+
+    .addr-suggest-empty { padding: 20px; text-align: center; color: var(--text-dim); font-size: 14px; }
+
+    /* ── SHARE BUTTONS (from countdown) ── */
+    .addr-btn-row { display: flex; gap: 10px; margin-top: 16px; }
+
+    .addr-btn {
+      flex: 1; padding: 12px; border-radius: 12px; border: none;
+      font-weight: 900; font-size: 20px; letter-spacing: 1.5px; font-family: 'Eurostile', 'Open Sans', sans-serif;
+      cursor: pointer; text-align: center;
+      transition: transform 0.1s, background 0.2s, filter 0.2s;
+    }
+    .addr-btn:active { transform: scale(0.97); }
+
+    .addr-btn-primary { background: var(--primary); color: var(--on-primary); }
+    .addr-btn-primary:hover { filter: brightness(0.92); }
+
+    .addr-btn-ghost { background: var(--surface); color: #fff; border: 1px solid var(--border); }
+    .addr-btn-ghost:hover { background: var(--dark); }
+
+    /* ── STANDALONE NAVIGATION ── */
+    .addr-back-banner {
+      display: none; /* Hidden by default when embedded as an iframe */
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      text-align: center;
+      text-decoration: none;
+      color: #fff;
+      font-family: 'Eurostile', 'Open Sans', sans-serif;
+      font-size: 22px;
+      letter-spacing: 1.5px;
+      transition: background 0.2s, transform 0.1s, border-color 0.2s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    
+    .addr-back-banner:hover {
+      background: var(--surface);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    
+    .addr-back-banner:active {
+      transform: scale(0.98);
+    }
+    
+    /* Reveal the button ONLY when opened directly via a share link */
+    html.standalone .addr-back-banner {
+      display: block; 
+    }
+
+    @media (max-width: 600px) {
+      .locate-btn {
+        font-size: 15px; /* Scales down the wide Eurostile text so it fits */
+        height: 50px;
+        letter-spacing: 0.5px;
+        padding: 0 10px;
+      }
+      
+      .addr-route-title {
+        font-size: 24px; /* Scales down route titles for narrow screens */
+      }
+    }
+    
+  </style>
+</head>
+
+<body>
+  <div id="address-root">
+    
+    <a href="#" id="backToMainLink" class="addr-back-banner">
+      ⬅ BACK TO SANTA SLEIGH HOME
+    </a>
+
+    <div class="controls-wrapper">
+      <button id="locateBtn" class="locate-btn" disabled>
+        Loading Map Data...
+      </button>
+      <div class="addr-search-wrap">
+        <span class="addr-search-icon">🔍</span>
+        <input type="text" id="streetInput" class="addr-search-input" placeholder="Or type your street name…" autocomplete="off" disabled>
+        <div class="addr-suggest" id="streetSuggest"></div>
+      </div>
+      <div class="instruction-text">or simply tap your street on the map below</div>
+    </div>
+
+    <div id="lookup-map"></div>
+    <div id="results"></div>
+
+  </div>
+
+  <script>
+  const params = new URLSearchParams(location.search);
+  
+  let API_URL = params.get("api") || localStorage.getItem("SANTA_API") || sessionStorage.getItem("SANTA_API");
+  
+  if (params.has("api") && !params.has("proxy")) {
+    localStorage.removeItem("SANTA_PROXY");
+    sessionStorage.removeItem("SANTA_PROXY");
+  }
+
+  let PROXY_URL = params.get("proxy") || localStorage.getItem("SANTA_PROXY") || sessionStorage.getItem("SANTA_PROXY");
+
+  if (API_URL) {
+    localStorage.setItem("SANTA_API", API_URL); 
+    sessionStorage.setItem("SANTA_API", API_URL);
+  }
+  
+  if (PROXY_URL) {
+    localStorage.setItem("SANTA_PROXY", PROXY_URL); 
+    sessionStorage.setItem("SANTA_PROXY", PROXY_URL);
+  }
+
+  const tableSlug = params.get("table") || "beverley";
+  // ⚡ Auto-connect to Cloudflare Worker API (D1) or legacy Google Script proxy
+  const WORKER_URL = "https://santaproxy.beverley247.workers.dev/";
+  const DATA_URL = API_URL
+    ? `${WORKER_URL}?ttl=30&target=${encodeURIComponent(API_URL)}`
+    : `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableSlug)}`;
+  
+  const CATCHMENT_METERS = 150;
+
+  // ── Theme from the API ──────────────────────────────────────────────
+  // Same source and rules as the Santa sleigh page: settings.primary_color drives the brand
+  // colour, and text on it flips black/white for readability. Missing or invalid -> Round Table gold.
+  const DEFAULT_PRIMARY = '#FBAF33';
+  let PRIMARY = DEFAULT_PRIMARY;   // JS-side copy of --primary (Leaflet line colours can't read CSS vars)
+
+  // Opened directly (e.g. from a shared link) instead of inside the site's iframe:
+  if (window.self === window.top) {
+    document.documentElement.classList.add('standalone');
+    
+    // Automatically calculate the town's main tracker URL
+    const host = location.hostname.toLowerCase();
+    let mainUrl = 'https://www.roundtablesantasleigh.co.uk'; // Generic fallback
+    
+    if (host.includes('addresses.')) {
+      // Swaps "ellonaddresses.roundtablesantasleigh.co.uk" back to "ellon.roundtablesantasleigh.co.uk"
+      mainUrl = location.protocol + '//' + host.replace('addresses.', '.');
+    } else if (API_URL) {
+      // Fallback for when you are testing on raw .pages.dev links
+      mainUrl = 'https://brt-23f.pages.dev/sleigh/santasleigh.html?api=' + encodeURIComponent(API_URL);
+    }
+    
+    document.getElementById('backToMainLink').href = mainUrl;
+  }
+
+  // Returns [r, g, b] for a valid CSS colour, otherwise null. (Copied from santasleigh.html)
+  function parseColor(v) {
+    if (typeof v !== 'string') return null;
+    const s = v.trim();
+    const hex = /^#([0-9a-f]{3,8})$/i.exec(s);
+    if (hex) {
+      let h = hex[1];
+      if (h.length === 3 || h.length === 4) h = h.split('').map(c => c + c).join('');
+      if (h.length !== 6 && h.length !== 8) return null;
+      return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+    }
+    try {
+      if (/var\(|url\(|expression/i.test(s)) return null;
+      if (!(window.CSS && CSS.supports && CSS.supports('color', s))) return null;
+      const ctx = document.createElement('canvas').getContext('2d');
+      ctx.fillStyle = '#000000';
+      ctx.fillStyle = s;
+      const out = ctx.fillStyle;
+      if (out.charAt(0) === '#') return parseColor(out);
+      const rgb = /^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(out);
+      return rgb ? [+rgb[1], +rgb[2], +rgb[3]] : null;
+    } catch (e) { return null; }
+  }
+
+  // Black or white, whichever reads better on the given colour (WCAG contrast ratio). (Copied from santasleigh.html)
+  function readableTextOn(rgb) {
+    const lin = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+    const L = 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]);
+    return ((L + 0.05) / 0.05) >= (1.05 / (L + 0.05)) ? '#000000' : '#ffffff';
+  }
+
+  function applyTheme(settings) {
+    const root = document.documentElement;
+    const raw = settings && settings.primary_color;
+    const rgb = parseColor(raw);
+    if (rgb) {
+      PRIMARY = String(raw).trim();
+      root.style.setProperty('--primary', PRIMARY);
+      root.style.setProperty('--primary-rgb', rgb.join(', '));
+      root.style.setProperty('--on-primary', readableTextOn(rgb));
+    } else {
+      PRIMARY = DEFAULT_PRIMARY;
+      ['--primary', '--primary-rgb', '--on-primary'].forEach(p => root.style.removeProperty(p));
+    }
+  }
+
+  const redIcon = L.icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  });
+
+  let routesData = [];
+  let map;
+  let userPin = null;
+  let streetIndex = [];    // [{ street, route }] built from each route's comma-separated "streets" field
+  let currentStreet = '';  // street the current results were looked up for ('' for pin / GPS lookups)
+
+  // 🔗 Sheet cells sometimes hold "raw.githubusercontent.com/..." with no scheme.
+  // fetch() treats that as a relative path on THIS site (404), so add https:// when missing.
+  function normaliseUrl(url) {
+    const u = String(url || '').trim();
+    if (!u) return '';
+    if (/^https?:\/\//i.test(u)) return u;
+    if (u.startsWith('//')) return 'https:' + u;
+    return 'https://' + u.replace(/^\/+/, '');
+  }
+
+  // 🎨 Unlimited distinct colours: golden-angle hue steps keep neighbours far apart,
+  // and every 8 routes the saturation/lightness band shifts so late routes get new shades.
+  const COLOUR_TIERS = [
+    { s: 90, l: 55 },
+    { s: 85, l: 38 },
+    { s: 80, l: 70 },
+    { s: 95, l: 46 }
+  ];
+  function routeColour(index) {
+    const hue = Math.round((index * 137.508) % 360);
+    const tier = COLOUR_TIERS[Math.floor(index / 8) % COLOUR_TIERS.length];
+    return `hsl(${hue}, ${tier.s}%, ${tier.l}%)`;
+  }
+
+  // HTML-escape sheet-supplied text before it goes into innerHTML
+  function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  const DATE_LONG  = { weekday: 'long',  day: 'numeric', month: 'long' };
+  const DATE_SHORT = { weekday: 'short', day: 'numeric', month: 'short' };
+  function fmtRouteDate(route, opts = DATE_LONG) {
+    return route.date ? new Date(route.date).toLocaleDateString('en-GB', opts) : 'Date TBC';
+  }
+
+  // Routes dated before today are hidden. Shared by pin lookups and street lookups.
+  function routeTiming(route) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let isFutureOrToday = true;
+    let parsedTime = Infinity;
+
+    if (route.date) {
+      const routeDate = new Date(route.date);
+      if (!isNaN(routeDate)) {
+        const cleanRouteDate = new Date(routeDate.getFullYear(), routeDate.getMonth(), routeDate.getDate());
+        if (cleanRouteDate < today) isFutureOrToday = false;
+        parsedTime = cleanRouteDate.getTime();
+      }
+    }
+    return { isFutureOrToday, parsedTime };
+  }
+
+  function initMap() {
+    // Initialized to Marchesi House (Round Table HQ) as the national fallback
+    map = L.map('lookup-map').setView([52.4708, -1.9207], 15);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap',
+      maxZoom: 18
+    }).addTo(map);
+
+    map.on('click', function(e) {
+      if (!document.getElementById('locateBtn').disabled) {
+        processCoordinates(e.latlng.lat, e.latlng.lng);
+      }
+    });
+  }
+
+  async function loadRouteData() {
+    const resultsDiv = document.getElementById('results');
+    const btn = document.getElementById('locateBtn');
+    const defaultBtnHtml = `
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 2px;">
+        <circle cx="12" cy="12" r="10"></circle>
+        <path d="M12 2a10 10 0 0 1 10 10c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2z"></path>
+        <circle cx="12" cy="12" r="3"></circle>
+      </svg> Use My Current Location`;
+
+    try {
+      const res = await fetch(DATA_URL, { cache: "no-store" });
+      const data = await res.json();
+
+      try { applyTheme(data && (data.settings || data.table)); } catch (e) { console.warn('Theme not applied:', e); }
+
+      if(data && data.routes) {
+        routesData = data.routes.map(r => {
+          const routeStreets = (data.streets || []).filter(s => s.route_id === r.id).map(s => s.street_name);
+          return {
+            ...r,
+            routeName: r.name || r.routeName || 'Santa Route',
+            streets: r.streets || (routeStreets.length ? routeStreets.join(', ') : ''),
+            gpxUrl: r.gpxUrl || r.gpx_url || ''
+          };
+        });
+        const loadedLayers = [];
+
+        // Colour is fixed by position in the API list, so one failed GPX never shifts the others
+        routesData.forEach((route, index) => { route.color = routeColour(index); });
+
+        buildStreetIndex();
+
+        await Promise.all(routesData.map(async (route, index) => {
+          if (route.gpxUrl) {
+            try {
+              const gpxRes = await fetch(normaliseUrl(route.gpxUrl), { cache: "no-store" });
+              if (!gpxRes.ok) throw new Error("HTTP " + gpxRes.status);
+              const gpxXml = await gpxRes.text();
+              route.geoJSON = parseGPXToLineString(gpxXml);
+            } catch (e) { console.error("GPX load failed for", route.routeName, route.gpxUrl, e); }
+          }
+          // Fallback track if no GPX URL
+          if (!route.geoJSON) {
+            route.geoJSON = turf.lineString([
+              [-0.441231, 53.852305], [-0.442234, 53.853289], [-0.443871, 53.854867],
+              [-0.446416, 53.854689], [-0.448762, 53.854998], [-0.450607, 53.854992],
+              [-0.452940, 53.854210], [-0.453890, 53.853110], [-0.451680, 53.850980],
+              [-0.446210, 53.850780], [-0.441231, 53.852305]
+            ]);
+          }
+
+          if (route.geoJSON) {
+            route.mapLayer = L.geoJSON(route.geoJSON, {
+              color: route.color,
+              weight: 4, 
+              opacity: 0.75
+            }).addTo(map);
+
+            loadedLayers.push(route.mapLayer);
+          }
+        }));
+
+        // 📍 Dynamically center and scale map to fit all loaded API routes
+        if (loadedLayers.length > 0) {
+          const featureGroup = L.featureGroup(loadedLayers);
+          map.fitBounds(featureGroup.getBounds(), { padding: [30, 30] });
+        }
+
+        applyDeepLink();
+      }
+    } catch (err) {
+      console.error("Failed to fetch route data:", err);
+    } finally {
+      btn.innerHTML = defaultBtnHtml;
+      btn.disabled = false;
+      document.getElementById('streetInput').disabled = false;
+    }
+  }
+
+  function parseGPXToLineString(xmlStr) {
+    const cleanXmlStr = xmlStr.replace(/xmlns(:\w+)?=".*?"/g, '');
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(cleanXmlStr, "text/xml");
+    const trackPoints = xmlDoc.getElementsByTagName("trkpt");
+
+    const coords = [];
+    for (let i = 0; i < trackPoints.length; i++) {
+      const lat = parseFloat(trackPoints[i].getAttribute("lat"));
+      const lon = parseFloat(trackPoints[i].getAttribute("lon"));
+      if (!isNaN(lat) && !isNaN(lon)) {
+        coords.push([lon, lat]); 
+      }
+    }
+
+    if (coords.length > 1) {
+      return turf.lineString(coords);
+    }
+    return null;
+  }
+
+  document.getElementById('locateBtn').addEventListener('click', () => {
+    const btn = document.getElementById('locateBtn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = "Locating...";
+    btn.disabled = true;
+
+    if (!navigator.geolocation) {
+      alert("Your browser doesn't support geolocation. Please tap the map instead.");
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        processCoordinates(position.coords.latitude, position.coords.longitude);
+      },
+      (error) => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        alert("Could not get your location. Please check your browser permissions or tap the map directly.");
+      },
+      { enableHighAccuracy: true, timeout: 5000 }
+    );
+  });
+
+  function processCoordinates(lat, lng) {
+    currentStreet = '';
+    streetInputEl.value = '';
+    closeSuggest();
+
+    if (userPin) map.removeLayer(userPin);
+    userPin = L.marker([lat, lng], {icon: redIcon}).addTo(map);
+    map.setView([lat, lng], 16);
+
+    const userLocation = turf.point([lng, lat]);
+    const matchedRoutes = [];
+
+    routesData.forEach(route => {
+      if (route.geoJSON) {
+        const distance = turf.pointToLineDistance(userLocation, route.geoJSON, { units: 'meters' });
+
+        if (distance <= CATCHMENT_METERS) {
+          const { isFutureOrToday, parsedTime } = routeTiming(route);
+
+          if (isFutureOrToday) {
+            matchedRoutes.push({
+              ...route,
+              distance: Math.round(distance),
+              parsedDate: parsedTime
+            });
+          }
+        }
+      }
+    });
+
+    matchedRoutes.sort((a, b) => {
+      if (a.parsedDate !== b.parsedDate) return a.parsedDate - b.parsedDate;
+      return a.distance - b.distance; 
+    });
+
+    renderResults(matchedRoutes);
+  }
+
+  function renderResults(matches) {
+    const resultsDiv = document.getElementById('results');
+    resultsDiv.innerHTML = "";
+
+    if (matches.length === 0) {
+      resultsDiv.innerHTML = `
+        <div class="addr-no-results">
+          No routes found close to this location.
+          <br><small style="font-size: 13px; color: var(--text-dim); font-weight: 500;">Try dropping the pin slightly closer to the main road.</small>
+        </div>`;
+    } else {
+      matches.forEach(route => {
+        const formattedDate = fmtRouteDate(route);
+
+        // Pin / GPS lookups know the distance; street lookups know the street name
+        let locationLine = '';
+        if (route.distance != null) {
+          locationLine = `📍 This route passes roughly <span style="color: var(--text);">${route.distance} meters</span> from your pin.`;
+        } else if (currentStreet) {
+          locationLine = `📍 Santa visits <span style="color: var(--text);">${esc(currentStreet)}</span> on this route.`;
+        }
+
+        resultsDiv.innerHTML += `
+          <div class="addr-route-card" data-route-name="${route.routeName}" style="--route-color: ${route.color || PRIMARY};">
+            <h3 class="addr-route-title">${route.routeName}</h3>
+            <p class="addr-route-date">${formattedDate} (Starts at approx ${route['Start Time'] || '17:30'})</p>
+            ${locationLine ? `<p style="margin: 12px 0 0; font-size: 13px; font-weight: 600; color: var(--text-dim);">${locationLine}</p>` : ''}
+            <div class="addr-btn-row">
+              <button type="button" class="addr-btn addr-btn-primary addr-share-btn">📤 Share</button>
+              <button type="button" class="addr-btn addr-btn-ghost addr-copy-btn">🔗 Copy Link</button>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    document.querySelectorAll('.addr-route-card').forEach(card => {
+      card.addEventListener('click', function() {
+        focusRoute(this.getAttribute('data-route-name'));
+      });
+    });
+
+    // Buttons live inside the clickable card, so stop the click reaching it (no map fly on share)
+    const cardRouteName = el => el.closest('.addr-route-card').getAttribute('data-route-name');
+
+    document.querySelectorAll('.addr-share-btn').forEach(btn => {
+      btn.addEventListener('click', e => { e.stopPropagation(); shareRoute(cardRouteName(btn)); });
+    });
+
+    document.querySelectorAll('.addr-copy-btn').forEach(btn => {
+      btn.addEventListener('click', e => { e.stopPropagation(); copyRouteLink(cardRouteName(btn), btn); });
+    });
+
+    sendHeight();
+  }
+
+  function focusRoute(targetRouteName) {
+    routesData.forEach(r => {
+      if (r.mapLayer) {
+        r.mapLayer.setStyle({ color: r.color || PRIMARY, weight: 4, opacity: 0.75 });
+      }
+    });
+
+    const selectedRoute = routesData.find(r => r.routeName === targetRouteName);
+    if (selectedRoute && selectedRoute.mapLayer) {
+      selectedRoute.mapLayer.setStyle({ color: selectedRoute.color || PRIMARY, weight: 8, opacity: 1 });
+      selectedRoute.mapLayer.bringToFront();
+
+      map.flyToBounds(selectedRoute.mapLayer.getBounds(), { padding: [40, 40], duration: 1.2 });
+    }
+  }
+
+  // ═══════════════════════════════════════
+  // STREET LOOKUP (ported from countdown)
+  // ═══════════════════════════════════════
+  const streetInputEl = document.getElementById('streetInput');
+  const streetSuggest = document.getElementById('streetSuggest');
+
+  function buildStreetIndex() {
+    streetIndex = [];
+    routesData.forEach(route => {
+      String(route.streets || '').split(',').map(s => s.trim()).filter(Boolean)
+        .forEach(street => streetIndex.push({ street, route }));
+    });
+  }
+
+  function closeSuggest() { streetSuggest.classList.remove('open'); }
+
+  function searchStreets(query) {
+    const q = query.trim().toLowerCase();
+    if (q.length < 2) { closeSuggest(); return; }
+
+    const matches = streetIndex.filter(e => e.street.toLowerCase().includes(q));
+
+    if (matches.length === 0) {
+      streetSuggest.innerHTML = '<div class="addr-suggest-empty">No streets found — try a different spelling</div>';
+      streetSuggest.classList.add('open');
+      return;
+    }
+
+    // Dedupe: same street listed twice on the same route
+    const seen = new Set();
+    const unique = matches.filter(m => {
+      const key = m.street.toLowerCase() + '|' + m.route.routeName;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    streetSuggest.innerHTML = unique.slice(0, 8).map(m => `
+      <div class="addr-suggest-item" tabindex="0" data-idx="${streetIndex.indexOf(m)}">
+        <span>${esc(m.street)}</span>
+        <span class="addr-suggest-route">${esc(m.route.routeName)} · ${esc(fmtRouteDate(m.route, DATE_SHORT))}</span>
+      </div>`).join('');
+    streetSuggest.classList.add('open');
+
+    streetSuggest.querySelectorAll('.addr-suggest-item').forEach(el => {
+      el.addEventListener('click', () => selectStreet(streetIndex[parseInt(el.dataset.idx, 10)]));
+      el.addEventListener('keydown', e => { if (e.key === 'Enter') el.click(); });
+    });
+  }
+
+  function selectStreet(entry) {
+    if (!entry) return;
+    streetInputEl.value = entry.street;
+    streetInputEl.blur();
+    closeSuggest();
+    showRouteMatches([entry.route], entry.street);
+  }
+
+  // Cards for a street / shared-link lookup (no pin, so no distance)
+  function showRouteMatches(routes, street) {
+    currentStreet = street || '';
+    if (userPin) { map.removeLayer(userPin); userPin = null; }
+
+    const upcoming = routes
+      .map(route => ({ route, ...routeTiming(route) }))
+      .filter(x => x.isFutureOrToday)
+      .sort((a, b) => a.parsedTime - b.parsedTime)
+      .map(x => x.route);
+
+    if (upcoming.length === 0) {
+      document.getElementById('results').innerHTML = `
+        <div class="addr-no-results addr-passed">
+          🎄 Santa has already visited ${esc(street || (routes[0] && routes[0].routeName) || 'this route')}!
+          <br><small style="font-size: 13px; color: var(--text-dim); font-weight: 500;">We hope you enjoyed the magic!</small>
+        </div>`;
+      sendHeight();
+      return;
+    }
+
+    renderResults(upcoming);
+    focusRoute(upcoming[0].routeName);
+  }
+
+  // Opens a shared link: ?route=NAME (optionally with &street=NAME), or ?street=NAME on its own
+  function applyDeepLink() {
+    const routeParam = params.get('route');
+    const streetParam = params.get('street');
+    if (!routeParam && !streetParam) return;
+
+    if (streetParam) streetInputEl.value = streetParam;
+
+    if (routeParam) {
+      const route = routesData.find(r => r.routeName === routeParam);
+      if (route) { showRouteMatches([route], streetParam || ''); return; }
+    }
+
+    if (streetParam) {
+      const hits = streetIndex.filter(e => e.street.toLowerCase() === streetParam.toLowerCase());
+      if (hits.length) showRouteMatches(hits.map(h => h.route), hits[0].street);
+      else searchStreets(streetParam);
+    }
+  }
+
+  streetInputEl.addEventListener('input', () => searchStreets(streetInputEl.value));
+  streetInputEl.addEventListener('focus', () => { if (streetInputEl.value.length >= 2) searchStreets(streetInputEl.value); });
+  streetInputEl.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeSuggest();
+    if (e.key === 'Enter') {
+      const first = streetSuggest.querySelector('.addr-suggest-item');
+      if (first) first.click();
+    }
+  });
+
+  // Close dropdown on outside click
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.addr-search-wrap')) closeSuggest();
+  });
+
+  // ═══════════════════════════════════════
+  // SHARE (ported from countdown)
+  // ═══════════════════════════════════════
+  function routeShareUrl(routeName) {
+    // Use the pleasant URL passed from the parent if available, otherwise fallback to the iframe's URL
+    const shareBase = params.get('shareBase');
+    const url = new URL(shareBase || location.href);
+    
+    // If we DO NOT have a pleasant URL, we must clear the iframe hash and manually attach the ugly API URL
+    // If we DO have a pleasant URL, the Cloudflare router handles the API lookup automatically!
+    if (!shareBase) {
+      url.search = '';
+      url.hash = '';
+      url.searchParams.set('api', API_URL);
+    }
+    
+    // Always append the specific route and street parameters
+    url.searchParams.set('route', routeName);
+    if (currentStreet) url.searchParams.set('street', currentStreet);
+    
+    return url.toString();
+  }
+
+  function routeShareText(route) {
+    const when = route.date ? ` on ${fmtRouteDate(route)}` : ' (date TBC)';
+    return currentStreet
+      ? `🎅 Santa is visiting ${currentStreet}${when}! Check the route:`
+      : `🎅 Santa's ${route.routeName} route runs${when}! See if he's visiting your street:`;
+  }
+
+  function shareRoute(routeName) {
+    const route = routesData.find(r => r.routeName === routeName);
+    if (!route) return;
+
+    const url = routeShareUrl(routeName);
+    const text = routeShareText(route);
+    const whatsApp = () => window.open(`https://wa.me/?text=${encodeURIComponent(text + '\n' + url)}`, '_blank');
+
+    if (navigator.share) {
+      // Closing the share sheet isn't an error; anything else (e.g. iframe not allowed to share) falls back to WhatsApp
+      navigator.share({ title: 'Santa Route', text, url })
+        .catch(err => { if (!err || err.name !== 'AbortError') whatsApp(); });
+    } else {
+      whatsApp();
+    }
+  }
+
+  function copyRouteLink(routeName, btn) {
+    const url = routeShareUrl(routeName);
+
+    const done = () => {
+      btn.textContent = '✅ Copied!';
+      setTimeout(() => { btn.textContent = '🔗 Copy Link'; }, 2000);
+    };
+
+    // The Clipboard API can be blocked inside a cross-origin iframe, so keep an old-school fallback
+    const legacy = () => {
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      ta.style.cssText = 'position:fixed;opacity:0;';
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, url.length);
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) {}
+      ta.remove();
+      if (ok) done(); else window.prompt('Copy this link:', url);
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done, legacy);
+    } else {
+      legacy();
+    }
+  }
+
+  function sendHeight() {
+    const height = document.documentElement.scrollHeight;
+    parent.postMessage({ addressLookupHeight: height }, "*");
+  }
+
+  window.onload = () => {
+    initMap();
+    loadRouteData();
+    sendHeight();
+  };
+
+  const observer = new MutationObserver(sendHeight);
+  observer.observe(document.body, { childList: true, subtree: true });
+  window.addEventListener("resize", sendHeight);
+
+</script>
+</body>
+</html>

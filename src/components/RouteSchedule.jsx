@@ -28,11 +28,38 @@ export default function RouteSchedule({ tableData }) {
           ROUTE <span style={{ color: 'var(--primary)' }}>SCHEDULE</span>
         </h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '16px' }}>
-          Find out exactly when Santa is coming to your neighbourhood.
+          Wondering when Santa’s visiting your area? Search your street on the interactive map below to see when the magic is arriving!
         </p>
       </div>
 
-      {/* Instant Street Search Bar */}
+      {/* Address Spatial Lookup Map (from GitHub address.html) */}
+      <div style={{
+        maxWidth: '960px',
+        margin: '0 auto 48px auto',
+        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        padding: '8px',
+        borderRadius: '24px',
+        border: '1px solid rgba(211, 28, 28, 0.3)',
+        boxShadow: '0 10px 40px rgba(0,0,0,0.6)',
+        overflow: 'hidden'
+      }}>
+        <iframe
+          src={`/address.html?table=${tableData?.table?.slug || 'beverley'}`}
+          title="Santa Address & Street Lookup"
+          style={{
+            width: '100%',
+            height: '640px',
+            border: 'none',
+            borderRadius: '20px',
+            backgroundColor: '#151513',
+            display: 'block'
+          }}
+          allow="geolocation"
+          loading="lazy"
+        />
+      </div>
+
+      {/* Street Search Filter */}
       <div style={{
         maxWidth: '650px',
         margin: '0 auto 40px auto',

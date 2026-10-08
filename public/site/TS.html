@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turbo Santa | Master Sheet</title>
+    
+    <link rel="preload" href="https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/site/Eurostile_Extended_2_Bold.woff2" as="font" type="font/woff2" crossorigin>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brt: {
+                            dark: '#1D1D1A', /* Table Grey */
+                            gold: '#FBAF33', /* Golden Yellow */
+                            white: '#FFFFFF',
+                            light: '#f5f5f3',
+                            red: '#d31c1c'
+                        }
+                    },
+                    fontFamily: {
+                        heading: ['Eurostile', 'Montserrat', 'sans-serif'], 
+                        body: ['Open Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Eurostile Font Setup */
+        @font-face {
+            font-family: 'Eurostile';
+            src: url('https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+            font-weight: bold;
+            font-style: normal;
+            font-display: swap;
+        }
+    </style>
+</head>
+<body class="bg-brt-dark text-brt-white font-body min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div class="max-w-xl w-full bg-[#2a2a26] rounded-2xl shadow-2xl p-8 border border-brt-gold/20 flex flex-col items-center text-center space-y-8">
+        
+        <h1 class="font-heading text-4xl md:text-5xl text-brt-gold uppercase tracking-wider drop-shadow-sm">
+            Turbo Santa
+        </h1>
+
+        <div class="w-full max-w-md rounded-xl overflow-hidden border border-brt-dark bg-brt-dark/50 aspect-video flex items-center justify-center mx-auto shadow-inner relative group">
+            <img src="https://brt-23f.pages.dev/images/ts.gif" alt="Turbo Santa" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300">
+        </div>
+
+                <a href="https://docs.google.com/spreadsheets/d/1lg0VRDDxQXAxD1dsXtUK25GHMwJAoYcF0_cH5got1w4/copy?gid=132315198#gid=132315198" target="_blank" rel="noopener noreferrer" 
+           class="inline-flex items-center gap-3 bg-brt-gold text-brt-dark font-heading uppercase font-bold text-lg px-8 py-4 rounded-xl hover:bg-white hover:text-brt-dark transition-all duration-300 transform hover:scale-105 shadow-[0_0_15px_rgba(251,175,51,0.3)] hover:shadow-[0_0_20px_rgba(251,175,51,0.5)]">
+            <i class="fa-solid fa-file-excel text-2xl"></i>
+            Copy Master Sheet
+        </a>
+
+        <div class="w-full h-px bg-brt-gold/20"></div>
+
+        <div class="w-full flex flex-col items-center space-y-4">
+            
+            <div class="font-heading text-xl text-brt-white font-bold tracking-widest uppercase">
+                Version: <span id="deploymentVersion" class="text-brt-gold drop-shadow-md">Loading...</span>
+            </div>
+
+            <div class="w-full bg-brt-red/10 border border-brt-red/60 rounded-xl p-5 text-sm text-brt-light text-left leading-relaxed shadow-sm">
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="fa-solid fa-triangle-exclamation text-brt-gold text-lg"></i>
+                    <strong class="font-heading text-brt-gold uppercase tracking-wide text-base">Important Update Notice</strong>
+                </div>
+                <p class="font-body opacity-90">
+                    If you are not running the latest version, please create a new copy of the Master Sheet and transfer your information over to ensure everything runs smoothly.
+                </p>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        fetch('https://script.google.com/macros/s/AKfycbwl88G_1QGwp6uN1JEGV2Abd7FAwQg7Id3_ufSNW_n1e7rsPAw-ZUor5vlqL8_GBfCK/exec')
+        .then(res => res.json())
+        .then(data => {
+            const versionEl = document.getElementById('deploymentVersion');
+            if (data.settings && data.settings.app_version) {
+                versionEl.textContent = data.settings.app_version;
+            } else {
+                versionEl.textContent = "Live";
+            }
+        })
+        .catch(err => {
+            console.error("Could not load version");
+            document.getElementById('deploymentVersion').textContent = "Unknown";
+        });
+    </script>
+</body>
+</html>

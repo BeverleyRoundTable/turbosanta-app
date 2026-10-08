@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TurboSanta — Crew Hub</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" href="https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.woff2" as="font" type="font/woff2" crossorigin>
+  
+<style>
+  /* ═══════════════════════════════════════ */
+  /* TURBOSANTA DESIGN SYSTEM */
+  /* ═══════════════════════════════════════ */
+  @font-face {
+      font-family: 'Eurostile';
+      src: url('https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.woff2') format('woff2'),
+           url('https://brt-23f.pages.dev/fonts/eurostile-bold.woff2') format('woff2'),
+           url('https://brt-23f.pages.dev/fonts/eurostile-bold.woff') format('woff'),
+           url('https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.otf') format('opentype');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+  }
+  
+  :root {
+    /* Brand colour. Default is Round Table gold; applyTheme() overrides these from the API
+       (settings.primary_color), exactly like the Santa sleigh page does. */
+    --primary: #FBAF33;
+    --primary-rgb: 251, 175, 51;   /* same colour as an r, g, b triplet for translucent shades */
+    --on-primary: #000000;         /* text on --primary, auto-picked for readability */
+    --primary-dim: rgba(var(--primary-rgb), 0.12);
+    --primary-glow: rgba(var(--primary-rgb), 0.25);
+    --dark: #0d0d0b;
+    --surface: #161614;
+    --surface-2: #1e1e1b;
+    --surface-3: #252522;
+    --border: rgba(255,255,255,0.08);
+    --border-primary: rgba(var(--primary-rgb), 0.2);
+    --red: #D31C1C;
+    --green: #2ecc71;
+    --text: #eaeae5;
+    --text-dim: rgba(255,255,255,0.55);
+    --text-muted: rgba(255,255,255,0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Open Sans', sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app { max-width: 600px; margin: 0 auto; padding: 48px 24px 64px; }
+
+  header { text-align: center; margin-bottom: 40px; }
+
+  header h1 {
+    font-family: 'Eurostile', sans-serif;
+    font-size: 48px;
+    letter-spacing: 2px;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  header h1 span { color: var(--primary); }
+
+  header p { 
+    color: var(--text-dim); 
+    font-size: 15px; 
+    font-weight: 500;
+  }
+
+  /* ── CREW ALERT BANNER ── */
+  .crew-alert {
+    display: none;
+    background: rgba(211,28,28,0.15);
+    border: 1px solid rgba(211,28,28,0.3);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    animation: alertPulse 2s infinite alternate;
+  }
+  .crew-alert.active { display: flex; align-items: flex-start; gap: 14px; }
+  @keyframes alertPulse {
+    from { box-shadow: 0 0 8px rgba(211,28,28,0.1); } 
+    to { box-shadow: 0 0 20px rgba(211,28,28,0.3); }
+  }
+  .crew-alert-text { display: flex; flex-direction: column; gap: 4px; }
+  .crew-alert-label {
+    font-family: 'Open Sans', monospace;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.5px; color: var(--red);
+  }
+  #crewAlertText, #qrCrewAlertText {
+    font-size: 14px; font-weight: 600; color: #fff; line-height: 1.5;
+  }
+
+  /* ── TABS ── */
+  .format-row {
+    display: flex; gap: 12px; margin-bottom: 24px; justify-content: center;
+  }
+
+  .format-btn {
+    font-family: 'Open Sans', monospace; font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px;
+    padding: 14px 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text-dim); cursor: pointer;
+    transition: all 0.2s; flex: 1; text-align: center; max-width: 200px;
+  }
+
+  .format-btn:hover { border-color: var(--border-primary); color: #fff; background: var(--surface-3); }
+  .format-btn.active { border-color: var(--primary); background: var(--primary); color: var(--on-primary); }
+
+  /* ── PANELS & FIELDS ── */
+  .section { display: none; }
+  .section.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 28px; margin-bottom: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  }
+
+  .panel h3 {
+    font-family: 'Eurostile', sans-serif; 
+    font-size: 28px;
+    letter-spacing: 1px; color: #fff; margin-bottom: 20px; line-height: 1;
+  }
+
+  .field { margin-bottom: 20px; }
+
+  .field label {
+    display: block; font-family: 'Open Sans', monospace; font-size: 11px;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-muted); margin-bottom: 8px;
+  }
+
+  .field input, .field select {
+    width: 100%; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 16px; color: #fff;
+    font-family: 'Open Sans', monospace; font-size: 15px; outline: none;
+    transition: all 0.2s;
+  }
+
+  .field input:focus, .field select:focus { 
+    border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); 
+  }
+  .field input::placeholder { color: var(--text-muted); font-family: 'Open Sans', sans-serif; }
+  .field select option { background: var(--surface-2); color: var(--text); }
+
+  /* ── AGREEMENTS ── */
+  .agreement-item { display: flex; align-items: flex-start; margin-bottom: 12px; }
+  .agreement-item input { width: 18px; height: 18px; margin-right: 12px; margin-top: 2px; accent-color: var(--primary); cursor: pointer; }
+  .agreement-item label { font-family: 'Open Sans', sans-serif; text-transform: none; letter-spacing: normal; font-size: 14px; color: var(--text-dim); font-weight: 400; cursor: pointer; margin-bottom: 0; line-height: 1.5; }
+  
+  /* ── BUTTONS ── */
+  .btn-row { display: flex; gap: 12px; margin-top: 32px; }
+  .btn {
+    width: 100%; font-family: 'Open Sans', sans-serif; font-weight: 700; font-size: 15px;
+    border: none; border-radius: 8px; padding: 16px 24px; cursor: pointer;
+    transition: transform 0.1s, background 0.2s, filter 0.2s; text-align: center;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--primary); color: var(--on-primary); }
+  .btn-primary:hover:not(:disabled) { filter: brightness(0.92); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── CHECKLIST & ROSTER ── */
+  .check-item {
+    display: flex; align-items: center; padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .check-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .check-item input[type="checkbox"] {
+    width: 22px; height: 22px; margin-right: 16px; cursor: pointer;
+    accent-color: var(--primary);
+  }
+  .check-item label {
+    font-size: 15px; color: #fff; font-weight: 600;
+    margin: 0; cursor: pointer; flex: 1;
+  }
+
+  .vol-card {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-left: 4px solid var(--primary); border-radius: 10px; 
+    padding: 16px; margin-bottom: 12px;
+  }
+  .vol-card strong { display: block; font-size: 16px; color: #fff; margin-bottom: 4px;}
+  .vol-card span { font-family: 'Open Sans', monospace; font-size: 12px; color: var(--text-dim); }
+
+  /* ── LOADING & STATUS ── */
+  .status { text-align: center; padding: 48px 20px; color: var(--text-dim); font-size: 14px; font-weight: 500; }
+  .spinner {
+    width: 36px; height: 36px; border: 3px solid var(--border);
+    border-top-color: var(--primary); border-radius: 50%;
+    animation: spin 0.7s linear infinite; margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error-msg { text-align: center; padding: 60px 24px; color: var(--red); }
+  .error-msg code { background: var(--surface-2); padding: 4px 10px; border-radius: 6px; font-family: 'Open Sans', monospace; }
+
+  /* ── OPS REFRESH BTN ── */
+  #refreshBtn {
+    background: var(--surface-2); border: 1px solid var(--border);
+    color: var(--text-dim); padding: 8px 14px; border-radius: 6px; cursor: pointer;
+    font-family: 'Open Sans', monospace; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px; transition: 0.2s;
+  }
+  #refreshBtn:hover { border-color: var(--primary); color: var(--primary); background: var(--surface-3); }
+
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <h1>CREW <span>HUB</span></h1>
+    <p>Volunteer tools & live operations</p>
+  </header>
+
+  <div id="initArea">
+    <div class="status"><div class="spinner"></div>Connecting to TurboSanta API...</div>
+  </div>
+
+  <div id="mainApp" style="display: none;">
+
+    <div id="crewAlertBanner" class="crew-alert">
+      <div class="crew-alert-text">
+        <span class="crew-alert-label">Message from Lead Elf</span>
+        <span id="crewAlertText"></span>
+      </div>
+    </div>
+    
+    <div class="format-row">
+      <button class="format-btn active" data-target="signup" onclick="switchTab(this)">Sign Up</button>
+      <button class="format-btn" data-target="qr" onclick="switchTab(this)">QR Code</button>
+      <button class="format-btn" data-target="ops" onclick="switchTab(this)">Ops</button>
+    </div>
+
+    <div id="signup" class="section active">
+      <div class="panel">
+        <h3>Join a Route</h3>
+        <form id="signupForm" onsubmit="submitVolunteer(event)">
+          <div class="field">
+            <label>Select Route & Date</label>
+            <select id="routeSelect" required>
+              <option value="">Loading routes...</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Full Name</label>
+            <input type="text" id="volName" required placeholder="e.g. John Smith">
+          </div>
+          <div class="field">
+            <label>Preferred Role</label>
+            <select id="volRole" required>
+              <option value="">Loading roles…</option>
+            </select>
+          </div>
+          
+          <div class="field">
+            <label>Phone Number (For the night)</label>
+            <input type="tel" id="volPhone" required placeholder="07...">
+          </div>
+
+          <div class="field">
+            <label>Email Address</label>
+            <input type="email" id="volEmail" required placeholder="For your night's impact stats!">
+          </div>
+
+          <div class="field">
+            <label>Organisation (Optional)</label>
+            <input type="text" id="volOrg" placeholder="e.g. Scouts, Round Table, or leave blank">
+          </div>
+
+          <div class="field" style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border);">
+            <label style="color: var(--primary);">Volunteer Agreement</label>
+            
+            <div class="agreement-item">
+              <input type="checkbox" id="agree1" required>
+              <label for="agree1">I agree to actively participate in collections and follow the safety instructions and guidance provided by the Lead Elf.</label>
+            </div>
+          </div>
+          
+          <div class="btn-row">
+            <button type="submit" id="submitBtn" class="btn btn-primary">Sign Up Now</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="qr" class="section">
+      <div class="panel" style="text-align: center;">
+        <h3>Street Collection Tools</h3>
+        <p style="font-size: 15px; color: var(--text-dim); margin-bottom: 24px;">
+          Show these QR codes for the public to scan with their phone camera.
+        </p>
+        
+        <button onclick="openQR('donate')" class="btn btn-primary" style="margin-bottom: 12px;">
+          Donation QR Code
+        </button>
+
+        <button onclick="openQR('giftaid')" class="btn" style="background: var(--green); color: #000; font-weight: 700;">
+          Gift Aid Declaration QR
+        </button>
+      </div>
+    </div>
+
+    <div id="ops" class="section">
+      <div class="panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3 style="margin-bottom: 0;">Tonight's Setup</h3>
+          <button id="refreshBtn" onclick="loadRouteData()" style="display: none;">
+            Refresh
+          </button>
+        </div>
+        <div class="field" style="margin-bottom: 0;">
+          <label>Select Route to Manage</label>
+          <select id="opsRouteSelect" onchange="loadRouteData()">
+            <option value="">Loading routes...</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="opsContent" style="display:none;">
+        <div class="panel">
+          <h3>Pre-Departure Checklist</h3>
+          <div id="checklistContainer"></div>
+        </div>
+
+        <div class="panel">
+          <h3>Tonight's Crew</h3>
+          <div id="crewContainer"></div>
+        </div>
+
+        <div class="panel" style="border-color: var(--border-primary); background: rgba(var(--primary-rgb), 0.03);">
+          <h3 style="color: var(--primary);">End of Route</h3>
+          <p style="font-size: 14px; color: var(--text-dim); margin-bottom: 24px; line-height: 1.6;">
+            <strong style="color: var(--red);">Wait until cash is counted!</strong> Once all cash and card donations are logged in the Donations sheet, click here to close the route and email the final totals to the crew.
+          </p>
+          <button id="closeRouteBtn" class="btn btn-primary" onclick="closeRoute()">Close Route & Email Crew</button>
+        </div>
+
+      </div> </div> </div> </div>
+
+<div id="qrModal" style="display:none; position:fixed; inset:0; background:var(--dark); z-index:9999; flex-direction:column; align-items:center; justify-content:center; padding:24px; text-align: center;">
+
+  <div id="qrCrewAlert" style="display:none; width:100%; max-width:420px; background:rgba(211,28,28,0.15); border:1px solid rgba(211,28,28,0.3); border-radius:12px; padding:16px 20px; margin-bottom:24px; text-align:left;">
+    <div style="font-family:'Open Sans', monospace; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:var(--red); margin-bottom:4px;">Message from Lead Elf</div>
+    <div id="qrCrewAlertText"></div>
+  </div>
+
+  <h2 id="qrHeading" style="font-family:'Eurostile', sans-serif; color:#fff; font-size:56px; letter-spacing:2px; margin-bottom:8px; line-height:1;">DONATE <span>HERE</span></h2>
+  <p id="qrSubtitle" style="color:var(--text-dim); font-size:16px; margin-bottom:40px; font-weight:500;">Scan with your phone camera</p>
+  
+  <div style="background:#fff; padding:16px; border-radius:16px; margin-bottom:48px; box-shadow:0 12px 40px rgba(0,0,0,0.6);">
+    <img id="qrImage" src="" style="width: 75vw; max-width: 320px; aspect-ratio: 1/1; display:block; border-radius:8px;">
+  </div>
+  
+  <button onclick="document.getElementById('qrModal').style.display='none'" style="background:var(--surface-2); color:#fff; padding:16px 24px; border-radius:8px; font-family:'Open Sans', sans-serif; font-size:15px; font-weight:700; border:1px solid var(--border); cursor:pointer; width: 100%; max-width: 350px; transition:background 0.2s;" onmouseover="this.style.background='var(--surface-3)'" onmouseout="this.style.background='var(--surface-2)'">Close / Back to Hub</button>
+</div>
+
+<script>
+const API = new URLSearchParams(location.search).get('api') || '';
+let globalDonateUrl = "";
+
+// --- THEME FROM THE API ---
+// Same source and rules as the Santa sleigh page: settings.primary_color drives the brand colour,
+// and text on it flips black/white for readability. Missing or invalid -> Round Table gold.
+
+// Returns [r, g, b] for a valid CSS colour, otherwise null. (Copied from santasleigh.html)
+function parseColor(v) {
+  if (typeof v !== 'string') return null;
+  const s = v.trim();
+  const hex = /^#([0-9a-f]{3,8})$/i.exec(s);
+  if (hex) {
+    let h = hex[1];
+    if (h.length === 3 || h.length === 4) h = h.split('').map(c => c + c).join('');
+    if (h.length !== 6 && h.length !== 8) return null;
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+  try {
+    if (/var\(|url\(|expression/i.test(s)) return null;
+    if (!(window.CSS && CSS.supports && CSS.supports('color', s))) return null;
+    const ctx = document.createElement('canvas').getContext('2d');
+    ctx.fillStyle = '#000000';
+    ctx.fillStyle = s;
+    const out = ctx.fillStyle;
+    if (out.charAt(0) === '#') return parseColor(out);
+    const rgb = /^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(out);
+    return rgb ? [+rgb[1], +rgb[2], +rgb[3]] : null;
+  } catch (e) { return null; }
+}
+
+// Black or white, whichever reads better on the given colour (WCAG contrast ratio). (Copied from santasleigh.html)
+function readableTextOn(rgb) {
+  const lin = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  const L = 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]);
+  return ((L + 0.05) / 0.05) >= (1.05 / (L + 0.05)) ? '#000000' : '#ffffff';
+}
+
+function applyTheme(settings) {
+  const root = document.documentElement;
+  const raw = settings && settings.primary_color;
+  const rgb = parseColor(raw);
+  if (rgb) {
+    root.style.setProperty('--primary', String(raw).trim());
+    root.style.setProperty('--primary-rgb', rgb.join(', '));
+    root.style.setProperty('--on-primary', readableTextOn(rgb));
+  } else {
+    ['--primary', '--primary-rgb', '--on-primary'].forEach(p => root.style.removeProperty(p));
+  }
+}
+
+// getRoutes is a direct Apps Script call (slow), so remember the colour per API and apply it
+// straight away next time instead of flashing gold first. Storage can be blocked, so swallow errors.
+function loadCachedTheme(api) {
+  try {
+    const c = localStorage.getItem('SANTA_THEME:' + api);
+    if (c) applyTheme({ primary_color: c });
+  } catch (e) {}
+}
+function saveTheme(api, color) {
+  try {
+    if (parseColor(color)) localStorage.setItem('SANTA_THEME:' + api, String(color).trim());
+    else localStorage.removeItem('SANTA_THEME:' + api);
+  } catch (e) {}
+}
+if (API) loadCachedTheme(API);
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (!API) {
+    document.getElementById('initArea').innerHTML = 
+      '<div class="error-msg">Missing <strong>?api=</strong> parameter.<br><br><code>crew.html?api=YOUR_API_URL</code></div>';
+  } else {
+    init();
+  }
+});
+
+async function init() {
+  try {
+    const res = await fetch(`${API}?function=getRoutes`);
+    const data = await res.json();
+
+    if (data && data.settings) {
+      try { applyTheme(data.settings); saveTheme(API, data.settings.primary_color); } catch (e) { console.warn('Theme not applied:', e); }
+    }
+    
+    if(!data.routes) throw new Error("Invalid API response");
+
+    globalDonateUrl = data.settings?.donate_url || "";
+
+    // ── CREW ALERT: read on init and start polling ──
+    updateCrewAlertBanner(data.settings?.crew_alert || '');
+    setInterval(pollCrewAlert, 15000);
+
+    populateRouteDropdowns(data.routes);
+
+    // Populate roles from API (dynamic from Settings Column U)
+    const roles = data.settings?.roles || [];
+    const roleSel = document.getElementById('volRole');
+    roleSel.innerHTML = '<option value="">Select a role…</option>';
+    if (roles.length > 0) {
+      roles.forEach(r => { roleSel.innerHTML += `<option value="${r}">${r}</option>`; });
+    } else {
+      ['Driver','Collections','Lead Elf','Santa','Tech/GPS','Safety Walkers']
+        .forEach(r => { roleSel.innerHTML += `<option value="${r}">${r}</option>`; });
+    }
+    
+    document.getElementById('initArea').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+  } catch(e) {
+    document.getElementById('initArea').innerHTML = 
+      `<div class="error-msg">Connection Failed: ${e.message}</div>`;
+  }
+}
+
+// ── CREW ALERT — drives both the main banner and the QR modal strip ──
+
+function updateCrewAlertBanner(msg) {
+  const banner    = document.getElementById('crewAlertBanner');
+  const text      = document.getElementById('crewAlertText');
+  const qrBanner  = document.getElementById('qrCrewAlert');
+  const qrText    = document.getElementById('qrCrewAlertText');
+
+  const hasMsg = msg && msg.trim() !== '';
+
+  if (banner)   banner.classList.toggle('active', hasMsg);
+  if (text)     text.textContent = hasMsg ? msg.trim() : '';
+  if (qrBanner) qrBanner.style.display = hasMsg ? 'block' : 'none';
+  if (qrText)   qrText.textContent = hasMsg ? msg.trim() : '';
+}
+
+async function pollCrewAlert() {
+  if (document.visibilityState !== 'visible') return;
+  try {
+    const res = await fetch(`${API}?function=getRoutes`);
+    const data = await res.json();
+    updateCrewAlertBanner(data.settings?.crew_alert || '');
+  } catch(e) { /* silent fail — don't disrupt the crew */ }
+}
+
+// ── QR LOGIC ──
+function openQR(type) {
+  let url, heading, subtitle;
+
+  if (type === 'giftaid') {
+    const base = location.origin + '/sleigh/gift_aid';
+    url = base + '?api=' + encodeURIComponent(API);
+    heading = 'GIFT <span>AID</span>';
+    subtitle = 'Boost your donation by 25% — scan to declare';
+  } else {
+    if (!globalDonateUrl) {
+      alert("No donation URL is set in your Settings sheet!");
+      return;
+    }
+    url = globalDonateUrl;
+    heading = 'DONATE <span>HERE</span>';
+    subtitle = 'Scan with your phone camera';
+  }
+
+  document.getElementById('qrImage').src = 
+    'https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=' + encodeURIComponent(url);
+  document.getElementById('qrHeading').innerHTML = heading;
+  document.getElementById('qrSubtitle').textContent = subtitle;
+  document.getElementById('qrModal').style.display = 'flex';
+}
+
+async function switchTab(btn) {
+  const target = btn.dataset.target;
+  
+  if (target === "ops") {
+    let secret = sessionStorage.getItem('opsSecret');
+    
+    if (!secret) {
+      secret = prompt("Operations Authorization Required\n\nEnter the Master Password:");
+      if (!secret) return; 
+      
+      const originalText = btn.innerText;
+      btn.innerText = "Verifying...";
+      
+      try {
+        const sep = API.includes('?') ? '&' : '?';
+        const check = await fetch(`${API}${sep}function=verifyGodMode&secret=${encodeURIComponent(secret)}`);
+        const result = await check.json();
+        
+        if (!result.valid) {
+          alert("Access Denied. Incorrect Password.");
+          btn.innerText = originalText;
+          return;
+        }
+        
+        sessionStorage.setItem('opsSecret', secret);
+      } catch(e) {
+        alert("Connection failed.");
+        btn.innerText = originalText;
+        return;
+      }
+      btn.innerText = originalText;
+    }
+  }
+
+  document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  
+  btn.classList.add('active');
+  document.getElementById(target).classList.add('active');
+}
+
+function populateRouteDropdowns(routes) {
+  const dropdowns = [document.getElementById('routeSelect'), document.getElementById('opsRouteSelect')];
+  
+  dropdowns.forEach(dropdown => {
+    dropdown.innerHTML = '<option value="">-- Choose a Route --</option>';
+    routes.forEach(route => {
+      if(route.routeName && route.date) {
+        const d = new Date(route.date);
+        const friendlyDate = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        
+        const option = document.createElement('option');
+        option.value = route.routeName;
+        const startTime = route["Start Time"] || "";
+const endTime = route["End Time"] || "";
+const timeStr = startTime ? ` (${startTime}–${endTime})` : "";
+
+option.textContent = `${route.routeName} — ${friendlyDate}${timeStr}`;
+        dropdown.appendChild(option);
+      }
+    });
+  });
+}
+
+async function submitVolunteer(e) {
+  e.preventDefault();
+  const btn = document.getElementById('submitBtn');
+  btn.innerText = "Submitting...";
+  btn.disabled = true;
+
+  const payload = {
+    action: "registerVolunteer",
+    routeName: document.getElementById('routeSelect').value,
+    name: document.getElementById('volName').value,
+    role: document.getElementById('volRole').value,
+    phone: document.getElementById('volPhone').value,
+    email: document.getElementById('volEmail').value,
+    organisation: document.getElementById('volOrg').value
+  };
+
+  try {
+    await fetch(API, { method: "POST", body: JSON.stringify(payload) });
+    alert("Thanks for signing up! You've been added to the roster.");
+    document.getElementById('signupForm').reset();
+  } catch (err) {
+    alert("Something went wrong. Please check your connection and try again.");
+  } finally {
+    btn.innerText = "Sign Up Now";
+    btn.disabled = false;
+  }
+}
+
+async function loadRouteData() {
+  const routeName = document.getElementById('opsRouteSelect').value;
+  const contentDiv = document.getElementById('opsContent');
+  const refreshBtn = document.getElementById('refreshBtn'); 
+  
+  // Retrieve the stored God Mode password
+  const secret = sessionStorage.getItem('opsSecret') || '';
+  
+  if (!routeName) {
+    contentDiv.style.display = 'none';
+    refreshBtn.style.display = 'none'; 
+    return;
+  }
+  
+  contentDiv.style.display = 'block';
+  refreshBtn.style.display = 'block'; 
+  
+  document.getElementById('checklistContainer').innerHTML = '<div class="status"><div class="spinner"></div></div>';
+  document.getElementById('crewContainer').innerHTML = '<div class="status"><div class="spinner"></div></div>';
+
+  try {
+    // Append the secret to both admin endpoints
+    const [checklistRes, volRes] = await Promise.all([
+      fetch(`${API}?function=getChecklist&route=${routeName}&secret=${encodeURIComponent(secret)}`),       fetch(`${API}?function=getVolunteers&route=${routeName}&secret=${encodeURIComponent(secret)}`)
+    ]);
+
+    const checklistPayload = await checklistRes.json();
+    const volData = await volRes.json();
+
+    renderChecklist(routeName, checklistPayload.tasks, checklistPayload.data);
+    renderCrew(volData);
+  } catch (e) {
+    document.getElementById('checklistContainer').innerHTML = `<p style="color:var(--red); font-family:'Open Sans',monospace; font-size:12px;">Error loading data.</p>`;
+    document.getElementById('crewContainer').innerHTML = ``;
+  }
+}
+
+function renderChecklist(routeName, tasks, data) {
+  const container = document.getElementById('checklistContainer');
+  container.innerHTML = "";
+
+  if (!tasks || tasks.length === 0) {
+    container.innerHTML = "<p style='color:var(--text-dim); font-size:14px;'>No checklist items found in sheet.</p>";
+    return;
+  }
+
+  tasks.forEach(item => {
+    const isChecked = data[item] === true || data[item] === "TRUE" || data[item] === "true";
+    const id = `chk_${item.replace(/\s+/g, '')}`;
+    
+    const div = document.createElement('div');
+    div.className = 'check-item';
+    div.innerHTML = `
+      <input type="checkbox" id="${id}" ${isChecked ? 'checked' : ''} 
+             onchange="updateChecklistItem('${routeName}', '${item}', this.checked)">
+      <label for="${id}">${item}</label>
+    `;
+    container.appendChild(div);
+  });
+}
+
+async function updateChecklistItem(routeName, item, isChecked) {
+  const secret = sessionStorage.getItem('opsSecret') || '';
+  const payload = {
+    action: "updateChecklist",
+    routeName: routeName,
+    item: item,
+    value: isChecked,
+    secret: secret
+  };
+
+  try {
+    const response = await fetch(API, { method: "POST", body: JSON.stringify(payload) });
+    const result = await response.json();
+    if(!result.ok) {
+        alert("Blocked: " + result.error);
+        document.getElementById(`chk_${item.replace(/\s+/g, '')}`).checked = !isChecked;
+    }
+  } catch (err) {
+    console.error("Failed to update checklist", err);
+    alert("Failed to save. Check your connection.");
+  }
+}
+
+function renderCrew(volunteers) {
+  const container = document.getElementById('crewContainer');
+  container.innerHTML = "";
+
+  if (!volunteers || volunteers.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-dim); font-size:14px;">No volunteers signed up yet.</p>';
+    return;
+  }
+
+  volunteers.forEach(vol => {
+    const div = document.createElement('div');
+    div.className = 'vol-card';
+    
+    const name = vol["Volunteer Name"] || "Unknown";
+    const role = vol["Role"] || "Volunteer";
+    const phone = vol["Phone Number"] || "No number";
+    const status = vol["Check-in Status"] || "Pending";
+    const routeName = vol["RouteName"];
+
+    // Update inline styles to match the new dark theme
+    const btnStyle = status === "Checked In" 
+      ? "background: var(--green); color: #000; font-family: 'Open Sans', sans-serif; font-weight: 700; border: none; padding: 6px 12px; border-radius: 6px; font-size: 13px; cursor: default;" 
+      : "background: var(--surface); color: var(--primary); font-family: 'Open Sans', sans-serif; font-weight: 700; border: 1px solid var(--border-primary); padding: 6px 12px; border-radius: 6px; font-size: 13px; cursor: pointer;";
+    
+    const btnText = status === "Checked In" ? "Here" : "Tap to Check-in";
+    const disabledAttr = status === "Checked In" ? "disabled" : "";
+
+    const orgBadge = vol["Organisation"] ? `<span style="background: var(--surface-3); color: var(--text-muted); padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 8px;">${vol["Organisation"]}</span>` : "";
+
+    div.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <strong>${name}${orgBadge}</strong>
+          <span>${role}  ·  ${phone}</span>
+        </div>
+        <button style="${btnStyle}" ${disabledAttr} onclick="checkInVolunteer(this, '${routeName}', '${name}', '${role}')">${btnText}</button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+async function checkInVolunteer(btn, routeName, volName, role) {
+  let bucketNumber = "";
+
+  if (role.toLowerCase().includes("collect")) {
+    bucketNumber = prompt(`Assign a Bucket Number for ${volName}:`);
+    if (bucketNumber === null) return; 
+  }
+
+  btn.innerText = "Checking in...";
+  const secret = sessionStorage.getItem('opsSecret') || '';
+  
+  const payload = {
+    action: "checkIn",
+    routeName: routeName,
+    name: volName,
+    bucket: bucketNumber,
+    secret: secret
+  };
+
+  try {
+    const response = await fetch(API, { method: "POST", body: JSON.stringify(payload) });
+    const result = await response.json();
+    
+    if(!result.ok) {
+        alert("Blocked: " + result.error);
+        btn.innerText = "Tap to Check-in";
+        return;
+    }
+    
+    btn.innerText = "Here" + (bucketNumber ? ` (#${bucketNumber})` : "");
+    btn.style.background = "var(--green)";
+    btn.style.color = "#000";
+    btn.style.border = "none";
+    btn.disabled = true;
+    
+    const infoSpan = btn.parentElement.querySelector('span');
+    if (bucketNumber) infoSpan.innerText += `  ·  Bucket: ${bucketNumber}`;
+
+  } catch (err) {
+    alert("Failed to check in. Try again.");
+    btn.innerText = "Tap to Check-in";
+  }
+}
+
+  async function closeRoute() {
+  const routeName = document.getElementById('opsRouteSelect').value;
+  if (!routeName) return alert("Please select a route first.");
+
+  const confirmed = confirm(`Are you sure you want to close "${routeName}"?\n\nThis will calculate the total raised and email all checked-in volunteers. You cannot undo this!`);
+  if (!confirmed) return;
+
+  const btn = document.getElementById('closeRouteBtn');
+  const originalText = btn.innerText;
+  btn.innerText = "Processing & Sending Emails...";
+  btn.disabled = true;
+
+  const secret = sessionStorage.getItem('opsSecret') || '';
+
+  const payload = {
+    action: "closeRoute",
+    routeName: routeName,
+    secret: secret
+  };
+
+  try {
+    const response = await fetch(API, { method: "POST", body: JSON.stringify(payload) });
+    const result = await response.json();
+
+    if(!result.ok) {
+      alert("Error: " + result.error);
+    } else {
+      alert(`Route Closed Successfully!\n\nSent thank-you emails to ${result.emailsSent} volunteers.`);
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Failed to close route. Check your connection.");
+  } finally {
+    btn.innerText = originalText;
+    btn.disabled = false;
+  }
+}
+  
+</script>
+</body>
+</html>
