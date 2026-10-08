@@ -164,7 +164,7 @@ export default {
     // ==============================================================
     if (path === "/api/upload" && request.method === "POST") {
       const contentType = request.headers.get("content-type") || "image/png";
-      const ext = contentType.includes("png") ? "png" : contentType.includes("svg") ? "svg" : "jpg";
+      const ext = contentType.includes("png") ? "png" : contentType.includes("svg") ? "svg" : (contentType.includes("gpx") || contentType.includes("xml")) ? "gpx" : "jpg";
       const key = `${table.slug}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
       
       if (env.R2) {
