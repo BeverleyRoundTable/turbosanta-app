@@ -687,10 +687,16 @@
     </div>
     
     <script>
+    const urlParams = new URLSearchParams(location.search);
+    const tableSlug = urlParams.get('table') || (location.hostname.includes('beverley') ? 'beverley' : (urlParams.get('api') ? '' : 'beverley'));
+    window.__sleighTableSlug = tableSlug;
+    window.__sleighApiUrl = urlParams.get('api');
+
     window.SLEIGH_CONFIG = Object.assign({
         proxyBase: 'https://santaproxy.beverley247.workers.dev',
-        frameBase: 'https://brt-23f.pages.dev/sleigh',
-        assetBase: 'https://brt-23f.pages.dev/icons',
+        frameBase: window.location.origin,
+        assetBase: window.location.origin + '/icons',
+        workerApi: 'https://turbosanta-api.beverley247.workers.dev',
         prettyDomain: 'roundtablesantasleigh.co.uk'
     }, window.SLEIGH_CONFIG || {});
 
@@ -705,12 +711,16 @@
         });
     };
 
-    window.__sleighApiUrl = new URLSearchParams(location.search).get('api');
-
     if (window.__sleighPrefetchedData) {
         window.__sleighDataPromise = Promise.resolve(window.__sleighPrefetchedData);
     } else if (window.__sleighApiUrl) {
         window.__sleighDataPromise = window.sleighFetchData(window.__sleighApiUrl);
+    } else if (window.__sleighTableSlug) {
+        window.__sleighDataPromise = fetch(`${window.SLEIGH_CONFIG.workerApi}/api/payload?table=${encodeURIComponent(window.__sleighTableSlug)}`)
+            .then(function(res) {
+                if (!res.ok) throw new Error('Failed to load table data (HTTP ' + res.status + ')');
+                return res.json();
+            });
     }
 
     if (window.__sleighDataPromise) {
@@ -732,6 +742,7 @@
             <a href="#routes">Routes</a>
             <a href="#memory-book" id="nav-memory-book">Memory Book</a>
             <a href="#donate" id="nav-donate">Donate</a>
+            <a href="#" onclick="openEmbedModal(event)" style="color: var(--primary); font-weight: 700;"><i class="fa-solid fa-code"></i> Embed</a>
         </div>
     </nav>
 
@@ -924,8 +935,43 @@
     </a>
 
     <footer>
-        <p>&copy; <span id="year"></span> <span id="footer-name">Santa Sleigh</span>. Powered by TurboSanta.</p>
+        <p>&copy; <span id="year"></span> <span id="footer-name">Santa Sleigh</span>. Powered by TurboSanta. &middot; <a href="#" onclick="openEmbedModal(event)" style="color:var(--primary); font-weight:700; text-decoration:none;">Embed On Your Website &lt;/&gt;</a></p>
     </footer>
+
+    <!-- Embed Modal -->
+    <div id="embed-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:99999; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(6px);">
+      <div style="background:var(--bg-card); border:1px solid var(--primary); border-radius:18px; max-width:680px; width:100%; max-height:90vh; overflow-y:auto; padding:32px; box-shadow:0 25px 60px rgba(0,0,0,0.9); position:relative;">
+        <button onclick="closeEmbedModal()" style="position:absolute; top:20px; right:20px; background:none; border:none; color:var(--text-main); font-size:28px; cursor:pointer; line-height:1;">&times;</button>
+        <h2 class="brand-font" style="font-size:28px; margin-bottom:8px; color:var(--text-main);">Embed On <span style="color:var(--primary);">Your Website</span></h2>
+        <p style="font-size:14px; color:var(--text-muted); margin-bottom:22px; line-height:1.5;">Every Round Table has full freedom: use this turnkey Santa Sleigh site, or copy these ready-to-paste iFrame codes to embed individual widgets directly onto your own WordPress, Squarespace, Wix, or custom website.</p>
+        
+        <div style="margin-bottom:18px;">
+          <label style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--primary); display:block; margin-bottom:8px; letter-spacing:1px;">Choose Element to Embed:</label>
+          <select id="modalWidgetSelect" onchange="updateModalEmbedCode()" style="width:100%; padding:12px 16px; background:var(--bg-dark); color:#fff; border:1px solid var(--border); border-radius:10px; font-size:14px; font-weight:600; outline:none;">
+            <option value="tracker">🛷 Live GPS Santa Sleigh Tracker</option>
+            <option value="address">🔍 Street & Address Schedule Lookup</option>
+            <option value="crew">👥 Crew Hub & Volunteer Sign-Up</option>
+            <option value="route_card">🌟 Tonight's Route Spotlight Card</option>
+            <option value="memory">📸 Digital Memory Book & Photo Gallery</option>
+            <option value="santachat">🧑‍🎄 Talk to Santa LIVE (ElevenLabs AI Voice Call)</option>
+            <option value="blueprint">🚜 Santa's Workshop Sleigh Blueprint</option>
+            <option value="giftaid">🎁 HMRC Gift Aid Declaration Form</option>
+            <option value="countdown">⏱️ Christmas Eve Countdown Banner</option>
+            <option value="full">🎅 Full Turnkey Santa Sleigh Website</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom:22px;">
+          <label style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:8px; letter-spacing:1px;">iFrame Embed Code (Copy & Paste):</label>
+          <textarea id="modalEmbedCode" readonly style="width:100%; height:110px; background:var(--bg-dark); color:var(--text-main); border:1px solid var(--border); border-radius:10px; padding:12px 16px; font-family:monospace; font-size:12px; line-height:1.5; resize:none; outline:none;"></textarea>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+          <button id="modalCopyBtn" onclick="copyModalEmbedCode()" class="btn" style="padding:10px 24px; font-size:15px;"><i class="fa-solid fa-copy"></i> Copy iFrame Code</button>
+          <a id="modalFullStudioLink" href="/embed.html?table=beverley" class="btn-outline" style="font-size:14px; padding:8px 18px;">Open Full Embed Studio <i class="fa-solid fa-arrow-up-right-from-square" style="margin-left:6px;"></i></a>
+        </div>
+      </div>
+    </div>
 
     <script>
         const CFG = window.SLEIGH_CONFIG;
@@ -1164,14 +1210,18 @@
         }
 
         function frameUrl(page, api) {
-            let url = CFG.frameBase + '/' + page +
-                '?api=' + encodeURIComponent(api) +
-                '&proxy=' + encodeURIComponent(window.sleighProxyUrl(api));
+            const file = page.endsWith('.html') ? page : `${page}.html`;
+            let url;
+            if (api) {
+                url = `${CFG.frameBase}/${file}?api=${encodeURIComponent(api)}&proxy=${encodeURIComponent(window.sleighProxyUrl(api))}`;
+            } else {
+                url = `${CFG.frameBase}/${file}?table=${encodeURIComponent(window.__sleighTableSlug || 'beverley')}`;
+            }
             
-            if (page === 'address.html') {
+            if (file === 'address.html') {
                 const shareBase = prettyAddressesUrl();
                 if (shareBase) url += '&shareBase=' + encodeURIComponent(shareBase);
-            } else if (page === 'tracker') {
+            } else if (file === 'tracker.html') {
                 const shareBase = prettyTrackerUrl();
                 if (shareBase) url += '&shareBase=' + encodeURIComponent(shareBase);
             }
@@ -1225,10 +1275,10 @@
         }
 
         function renderFrames(api) {
-            const trackerUrl = frameUrl('tracker', api);
+            const trackerUrl = frameUrl('tracker.html', api);
             setFrameSrc('tracker-iframe', trackerUrl, false);
             setFrameSrc('address-iframe', frameUrl('address.html', api), true);
-            setFrameSrc('memory-book-iframe', frameUrl('memory_book', api), true);
+            setFrameSrc('memory-book-iframe', frameUrl('memory_book.html', api), true);
             const fs = $('tracker-fullscreen');
             if (fs) { fs.href = prettyTrackerUrl() || trackerUrl; fs.hidden = false; }
             bindFrameMessages();
@@ -1243,7 +1293,10 @@
             const donateUrl = safeUrl(settings.donate_url);
             
             const api = window.__sleighApiUrl;
-            const fallbackCrewUrl = CFG.frameBase + '/crew?api=' + encodeURIComponent(api);
+            const table = window.__sleighTableSlug || 'beverley';
+            const fallbackCrewUrl = api
+                ? (CFG.frameBase + '/crew.html?api=' + encodeURIComponent(api))
+                : (`${CFG.frameBase}/crew.html?table=${encodeURIComponent(table)}`);
             const volunteerUrl = prettyCrewUrl() || fallbackCrewUrl;
 
             const card = document.querySelector('.thermo-card');
@@ -1596,31 +1649,129 @@
         }
 
         function initializeSleighApp(retryCount = 0) {
-            const apiUrl = window.__sleighApiUrl || new URLSearchParams(location.search).get('api');
+            const apiUrl = window.__sleighApiUrl;
+            const tableSlug = window.__sleighTableSlug || 'beverley';
 
-            if (!apiUrl) {
+            if (!apiUrl && !tableSlug) {
                 if (retryCount < 10) {
                     setTimeout(() => initializeSleighApp(retryCount + 1), 100);
                     return;
                 }
-                showError("Welcome to the Universal Sleigh Template! <br><br> We couldn't find the sleigh data for this web address. If you are a Round Table chapter setting up a new tracker, please ensure your sleigh name is not null.");
+                showError("Welcome to the Universal Sleigh Template! <br><br> Please provide a ?table= or ?api= parameter.");
                 return;
             }
 
-            window.__sleighApiUrl = apiUrl;
-            if (!window.__sleighDataPromise) {
-                window.__sleighDataPromise = window.sleighFetchData(apiUrl);
-            }
+            if (apiUrl) {
+                if (!window.__sleighDataPromise) {
+                    window.__sleighDataPromise = window.sleighFetchData(apiUrl);
+                }
 
-            window.__sleighDataPromise
-                .then(data => {
-                    applySettings(checkPayload(data), apiUrl);
-                    removeLoader();
-                })
-                .catch(err => {
-                    showError(SETUP_ERROR_HTML + '<br><br>', err && err.message);
-                    fetch(CFG.proxyBase + '/log?error=' + encodeURIComponent(err && err.message) + '&api=' + encodeURIComponent(apiUrl)).catch(()=>{});
-                });
+                window.__sleighDataPromise
+                    .then(data => {
+                        applySettings(checkPayload(data), apiUrl);
+                        removeLoader();
+                    })
+                    .catch(err => {
+                        showError(SETUP_ERROR_HTML + '<br><br>', err && err.message);
+                        fetch(CFG.proxyBase + '/log?error=' + encodeURIComponent(err && err.message) + '&api=' + encodeURIComponent(apiUrl)).catch(()=>{});
+                    });
+            } else {
+                // High-speed multi-tenant Cloudflare Worker + D1 Database
+                if (!window.__sleighDataPromise) {
+                    window.__sleighDataPromise = fetch(`${CFG.workerApi}/api/payload?table=${encodeURIComponent(tableSlug)}`).then(r => r.json());
+                }
+
+                window.__sleighDataPromise
+                    .then(raw => {
+                        const data = checkPayload(raw);
+                        const adapted = {
+                            settings: {
+                                sleigh_display_name: data.table?.sleigh_display_name || (data.table?.name ? `${data.table.name} Santa Sleigh` : 'Santa Sleigh'),
+                                table_name: data.table?.name || 'Round Table',
+                                primary_color: data.table?.primary_color || '#FBAF33',
+                                accent_color: data.table?.accent_color || '#FFFFFF',
+                                donate_url: data.table?.donate_url || '',
+                                live_announcement: data.table?.live_announcement || '',
+                                logo_overlay_url: data.table?.logo_url || '',
+                                background_url: data.table?.background_url || ''
+                            },
+                            donations: {
+                                total: data.table?.total_raised || 0,
+                                target: data.table?.fundraising_goal || 0,
+                                currency: '£',
+                                lastUpdatePretty: 'Live'
+                            },
+                            routes: (data.routes || []).map(r => ({
+                                ...r,
+                                routeName: r.name || r.routeName,
+                                date: r.date,
+                                'Start Time': r.start_time || '18:00',
+                                'End Time': r.end_time || '20:30',
+                                streets: r.streets || (data.streets?.filter(s => s.route_id === r.id).map(s => s.street_name).join(', ')) || '',
+                                sponsorName: r.sponsor_name,
+                                sponsorUrl: r.sponsor_logo_url,
+                                sponsorLink: r.sponsor_link,
+                                sponsorDescription: r.sponsor_description
+                            })),
+                            sponsors: data.sponsors || []
+                        };
+                        applySettings(adapted, '');
+                        removeLoader();
+                    })
+                    .catch(err => {
+                        showError("Failed to load Santa Sleigh data from Cloudflare Worker.<br><br>", err && err.message);
+                    });
+            }
+        }
+
+        function openEmbedModal(e) {
+            if (e) e.preventDefault();
+            const modal = $('embed-modal');
+            if (modal) {
+                modal.style.display = 'flex';
+                updateModalEmbedCode();
+            }
+        }
+        function closeEmbedModal() {
+            const modal = $('embed-modal');
+            if (modal) modal.style.display = 'none';
+        }
+        function updateModalEmbedCode() {
+            const sel = $('modalWidgetSelect');
+            const codeEl = $('modalEmbedCode');
+            const studioLink = $('modalFullStudioLink');
+            const val = sel ? sel.value : 'tracker';
+            const slug = window.__sleighTableSlug || 'beverley';
+            const base = window.location.origin;
+
+            if (studioLink) studioLink.href = `/embed.html?table=${encodeURIComponent(slug)}`;
+
+            const embedCodes = {
+                tracker: `<iframe src="${base}/tracker.html?table=${slug}" width="100%" height="650" frameborder="0" allow="geolocation; screen-wake-lock" style="border-radius:16px;"></iframe>`,
+                address: `<iframe src="${base}/address.html?table=${slug}" width="100%" height="550" frameborder="0" allow="geolocation" style="border-radius:16px;"></iframe>`,
+                crew: `<iframe src="${base}/crew.html?table=${slug}" width="100%" height="700" frameborder="0" style="border-radius:16px;"></iframe>`,
+                memory: `<iframe src="${base}/memory_book.html?table=${slug}" width="100%" height="850" frameborder="0" allow="camera; microphone; geolocation" style="border-radius:16px;"></iframe>`,
+                blueprint: `<iframe src="${base}/blueprint.html?table=${slug}" width="100%" height="600" frameborder="0" style="border-radius:16px;"></iframe>`,
+                route_card: `<iframe src="${base}/route_card.html?table=${slug}" width="100%" height="320" frameborder="0" style="border-radius:16px;"></iframe>`,
+                giftaid: `<iframe src="${base}/gift_aid.html?table=${slug}" width="100%" height="650" frameborder="0" style="border-radius:16px;"></iframe>`,
+                santachat: `<iframe src="${base}/santa_chat.html?table=${slug}" width="100%" height="600" frameborder="0" allow="microphone" style="border-radius:24px;"></iframe>`,
+                countdown: `<iframe src="${base}/countdown.html?table=${slug}" width="100%" height="180" frameborder="0" style="border-radius:12px;"></iframe>`,
+                full: `<iframe src="${base}/santasleigh.html?table=${slug}" width="100%" height="100vh" frameborder="0" allow="geolocation; screen-wake-lock" style="border-radius:16px;"></iframe>`
+            };
+
+            if (codeEl) codeEl.value = embedCodes[val] || embedCodes.tracker;
+        }
+        function copyModalEmbedCode() {
+            const codeEl = $('modalEmbedCode');
+            if (!codeEl) return;
+            codeEl.select();
+            navigator.clipboard.writeText(codeEl.value);
+            const btn = $('modalCopyBtn');
+            if (btn) {
+                const orig = btn.innerHTML;
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied to Clipboard!';
+                setTimeout(() => { btn.innerHTML = orig; }, 2000);
+            }
         }
 
         function refreshSleighData() {

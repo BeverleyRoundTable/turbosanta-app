@@ -865,17 +865,19 @@ const STATE = {
 };
 
 // ── PERSISTENCE ──
-function getApiUrl() {
+function getTableOrApi() {
   const params = new URLSearchParams(location.search);
-  return params.get('api') || '';
+  const api = params.get('api') || '';
+  const table = params.get('table') || (!api ? 'beverley' : '');
+  return { api, table };
 }
 
 // ── INIT ──
 document.addEventListener('DOMContentLoaded', () => {
-  const api = getApiUrl();
-  if (!api) {
+  const { api, table } = getTableOrApi();
+  if (!api && !table) {
     document.getElementById('routesList').innerHTML =
-      '<div class="status error">Missing <strong>?api=</strong> parameter.<br><br>Usage: <code>route_cards?api=YOUR_TURBOSANTA_API_URL</code></div>';
+      '<div class="status error">Missing <strong>?table=</strong> or <strong>?api=</strong> parameter.<br><br>Usage: <code>route_card.html?table=YOUR_TABLE</code></div>';
     return;
   }
   loadRoutes();
@@ -883,13 +885,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ── LOAD ROUTES ──
 async function loadRoutes() {
-  const url = getApiUrl();
+  const { api, table } = getTableOrApi();
+  const url = api || `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(table)}`;
   const list = document.getElementById('routesList');
   list.innerHTML = '<div class="status"><div class="spinner"></div>Loading routes…</div>';
 
   try {
     const res = await fetch(url, { cache: 'no-store' });
-    const data = await res.json();
+    let data = await res.json();
+
+    if (data.table && !data.settings) {
+      data.settings = data.table;
+    }
+    if (data.routes && Array.isArray(data.routes)) {
+      data.routes = data.routes.map(r => ({
+        ...r,
+        routeName: r.name || r.routeName,
+        date: r.date,
+        'Start Time': r.start_time || '18:00',
+        'End Time': r.end_time || '20:30',
+        streets: r.streets || (data.streets?.filter(s => s.route_id === r.id).map(s => s.street_name).join(', ')) || ''
+      }));
+    }
 
     STATE.routes = data.routes || [];
     STATE.settings = data.settings || {};
@@ -1196,9 +1213,9 @@ function generateCaption(route, title, dateText, streets, cta) {
   const donateUrl = STATE.settings.donate_url || '';
 
   // Build tracker URL — prefer clean URL from Settings
-  const apiUrl = getApiUrl();
+  const { api: apiUrl, table: tableSlug } = getTableOrApi();
   const trackerUrl = STATE.settings.tracker_url
-    || `https://brt-23f.pages.dev/sleigh/tracker?api=${encodeURIComponent(apiUrl)}`;
+    || (apiUrl ? `${window.location.origin}/tracker.html?api=${encodeURIComponent(apiUrl)}` : `${window.location.origin}/tracker.html?table=${encodeURIComponent(tableSlug || 'beverley')}`);
 
   // Format streets nicely
   const streetList = streets

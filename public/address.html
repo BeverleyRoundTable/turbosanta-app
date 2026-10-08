@@ -379,8 +379,10 @@
       // Swaps "ellonaddresses.roundtablesantasleigh.co.uk" back to "ellon.roundtablesantasleigh.co.uk"
       mainUrl = location.protocol + '//' + host.replace('addresses.', '.');
     } else if (API_URL) {
-      // Fallback for when you are testing on raw .pages.dev links
-      mainUrl = 'https://brt-23f.pages.dev/sleigh/santasleigh.html?api=' + encodeURIComponent(API_URL);
+      // Fallback for when testing with raw API URL
+      mainUrl = `${window.location.origin}/santasleigh.html?api=${encodeURIComponent(API_URL)}`;
+    } else {
+      mainUrl = `${window.location.origin}/santasleigh.html?table=${encodeURIComponent(tableSlug)}`;
     }
     
     document.getElementById('backToMainLink').href = mainUrl;

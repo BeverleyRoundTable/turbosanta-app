@@ -285,8 +285,10 @@
 // ═══════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════
-const API = new URLSearchParams(location.search).get('api') || '';
-const PRE_STREET = new URLSearchParams(location.search).get('street') || '';
+const params = new URLSearchParams(location.search);
+const API = params.get('api') || '';
+const tableSlug = params.get('table') || (!API ? 'beverley' : '');
+const PRE_STREET = params.get('street') || '';
 
 let streetMap = []; // [{street, routeName, date, dateObj}]
 let countdownInterval = null;
@@ -297,22 +299,41 @@ let trackerUrl = '';
 // INIT
 // ═══════════════════════════════════════
 async function init() {
-  if (!API) {
-    document.getElementById('loadingState').innerHTML = '<p style="color:var(--red);font-family:\'DM Mono\',monospace;font-weight:700">Missing ?api= parameter</p>';
+  if (!API && !tableSlug) {
+    document.getElementById('loadingState').innerHTML = '<p style="color:var(--red);font-family:\'DM Mono\',monospace;font-weight:700">Missing ?table= or ?api= parameter</p>';
     return;
   }
 
   try {
-    const res = await fetch(API);
-    const data = await res.json();
+    const fetchUrl = API || `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableSlug)}`;
+    const res = await fetch(fetchUrl);
+    let data = await res.json();
+
+    // Adapt schema if Worker D1 payload
+    if (data.table && !data.settings) {
+      data.settings = data.table;
+    }
+    if (data.routes && Array.isArray(data.routes)) {
+      data.routes = data.routes.map(r => ({
+        ...r,
+        routeName: r.name || r.routeName,
+        date: r.date,
+        'Start Time': r.start_time || '18:00',
+        'End Time': r.end_time || '20:30',
+        streets: r.streets || (data.streets?.filter(s => s.route_id === r.id).map(s => s.street_name).join(', ')) || ''
+      }));
+    }
+
     const routes = data.routes || [];
     const rawTracker = (data.settings?.tracker_url || '').trim();
     if (rawTracker) {
       trackerUrl = rawTracker.startsWith('http') ? rawTracker : `https://${rawTracker}`;
     } else {
-      trackerUrl = `${location.origin}/sleigh/tracker?api=${encodeURIComponent(API)}`;
+      trackerUrl = API
+        ? `${location.origin}/tracker.html?api=${encodeURIComponent(API)}`
+        : `${location.origin}/tracker.html?table=${encodeURIComponent(tableSlug)}`;
     }
-    const sleighName = data.settings?.sleigh_display_name || '';
+    const sleighName = data.settings?.sleigh_display_name || data.settings?.name || '';
     if (sleighName) {
       document.querySelector('.header p').textContent = `Find out when ${sleighName} visits your street!`;
     }

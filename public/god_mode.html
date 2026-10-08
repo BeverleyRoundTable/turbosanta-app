@@ -376,9 +376,12 @@
 // ⚡ SET YOUR WORKER URL HERE
 const WORKER_URL = "https://your-worker.workers.dev/"; 
 
-const API = new URLSearchParams(location.search).get('api') || '';
+const params = new URLSearchParams(location.search);
+const API = params.get('api') || '';
+const TABLE_SLUG = params.get('table') || 'beverley';
 
 const STATE = {
+  tableSlug: TABLE_SLUG,
   settings: {}, routes: [], donations: {}, tracker: {}, streets: [],
   gps: null, activeViewers: 0, totalWaves: 0, 
   lastApiUpdate: null, lastGpsUpdate: null, lastViewerUpdate: null,
@@ -844,12 +847,15 @@ function buildDashboard() {
 
   let h = '<div class="dashboard">';
 
+  const embedParam = API ? `api=${encodeURIComponent(API)}` : `table=${encodeURIComponent(STATE.tableSlug || 'beverley')}`;
   h += `<div class="top-bar">
     <div class="top-bar-left">
       ${logo ? `<img class="logo" src="${logo}">` : ''}
       <div class="title">GOD <span>MODE</span></div>
     </div>
-    <div class="top-bar-right">
+    <div class="top-bar-right" style="display:flex; align-items:center; gap:12px;">
+      <a href="/embed.html?${embedParam}" target="_blank" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px; background:rgba(251,175,51,0.15); color:var(--gold); border:1px solid rgba(251,175,51,0.3); padding:7px 14px; border-radius:100px; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">🔌 Website Embeds</a>
+      <a href="/santasleigh.html?${embedParam}" target="_blank" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,0.08); color:#fff; border:1px solid var(--border); padding:7px 14px; border-radius:100px; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">🛷 Sleigh Site</a>
       <div class="live-badge" id="liveBadge"><div class="live-dot"></div><span id="liveBadgeText">CONNECTING</span></div>
       <div class="clock" id="clock">${fmtTime(new Date())}</div>
     </div>

@@ -205,15 +205,30 @@
 
   <div class="header-wrap">
     <h1>🎅 TURBOSANTA EMBED GENERATOR</h1>
+    <p style="color:var(--text-dim); margin-bottom:18px; font-size:15px; max-width:680px; margin-left:auto; margin-right:auto;">
+      Use the auto-generated turnkey Santa Sleigh site for your Round Table, or copy any individual iFrame embed codes below to drop live interactive widgets straight onto your own website.
+    </p>
+    <div style="display:flex; justify-content:center; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
+      <span style="font-size:13px; font-weight:700; color:var(--gold); text-transform:uppercase; letter-spacing:1px;">Active Table Slug:</span>
+      <input id="tableSlugInput" type="text" value="beverley" placeholder="e.g. beverley, harrogate" style="background:var(--surface-2); border:1px solid var(--border); color:#fff; padding:8px 16px; border-radius:8px; font-family:'DM Mono',monospace; font-size:14px; width:180px; text-align:center;" onkeydown="if(event.key==='Enter') updateTableSlug()" />
+      <button onclick="updateTableSlug()" style="background:var(--gold); color:#000; border:none; padding:8px 18px; border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">Apply</button>
+    </div>
     <div class="api-display-wrap">
-      Detected API: <span id="apiDisplay">Loading...</span>
+      Target: <span id="apiDisplay">Loading...</span>
     </div>
   </div>
 
   <div class="block">
-    <h2>Santa Sleigh (Main App Link)</h2>
+    <h2>🎅 Santa Sleigh (Turnkey Auto-Generated Website)</h2>
+    <p>The complete, full-page Santa Sleigh experience (Tracker, Routes, Thermometer, Sponsors, FAQ) ready to drop into any webpage on your existing site.</p>
+    <textarea id="santasleighEmbed" style="height:150px;"></textarea>
+    <button class="copy" onclick="copyCode('santasleighEmbed')">Copy iFrame Code</button>
+  </div>
+
+  <div class="block">
+    <h2>Santa Sleigh (Direct Link)</h2>
     <textarea id="santasleighLink"></textarea>
-    <button class="copy" onclick="copyCode('santasleighLink')">Copy Code</button>
+    <button class="copy" onclick="copyCode('santasleighLink')">Copy Link</button>
   </div>
 
   <div class="block">
@@ -252,13 +267,27 @@
   <div class="block">
     <h2>Countdown (Link)</h2>
     <textarea id="countdownLink"></textarea>
-    <button class="copy" onclick="copyCode('countdownLink')">Copy Code</button>
+    <button class="copy" onclick="copyCode('countdownLink')">Copy Link</button>
+  </div>
+
+  <div class="block">
+    <h2>⏱️ Christmas Countdown Banner (Recommended Embed)</h2>
+    <p>Live ticking countdown banner to Christmas Eve for your homepage or header.</p>
+    <textarea id="countdownEmbed" style="height:150px;"></textarea>
+    <button class="copy" onclick="copyCode('countdownEmbed')">Copy iFrame Code</button>
   </div>
 
   <div class="block">
     <h2>Crew Sign-up/Check-in (Link)</h2>
     <textarea id="crewLink"></textarea>
-    <button class="copy" onclick="copyCode('crewLink')">Copy Code</button>
+    <button class="copy" onclick="copyCode('crewLink')">Copy Link</button>
+  </div>
+
+  <div class="block">
+    <h2>👥 Crew Hub & Volunteer Sign-Up (Recommended Embed)</h2>
+    <p>Allow volunteers to sign up for routes and check in on route night directly on your website.</p>
+    <textarea id="crewEmbed" style="height:180px;"></textarea>
+    <button class="copy" onclick="copyCode('crewEmbed')">Copy iFrame Code</button>
   </div>
 
   <div class="block">
@@ -294,7 +323,14 @@
   <div class="block">
     <h2>Gift Aid (Link)</h2>
     <textarea id="giftaidLink"></textarea>
-    <button class="copy" onclick="copyCode('giftaidLink')">Copy Code</button>
+    <button class="copy" onclick="copyCode('giftaidLink')">Copy Link</button>
+  </div>
+
+  <div class="block">
+    <h2>🎁 HMRC Gift Aid Declaration (Recommended Embed)</h2>
+    <p>Boost donations by 25% with this HMRC R68-compliant Gift Aid declaration form.</p>
+    <textarea id="giftaidEmbed" style="height:180px;"></textarea>
+    <button class="copy" onclick="copyCode('giftaidEmbed')">Copy iFrame Code</button>
   </div>
   
   <div class="block">
@@ -324,7 +360,14 @@
   <div class="block">
     <h2>Memory Book (Link)</h2>
     <textarea id="memorybookLink"></textarea>
-    <button class="copy" onclick="copyCode('memorybookLink')">Copy Code</button>
+    <button class="copy" onclick="copyCode('memorybookLink')">Copy Link</button>
+  </div>
+
+  <div class="block">
+    <h2>📸 Digital Memory Book & Gallery (Recommended Embed)</h2>
+    <p>Allow families to upload and browse festive community photos with Santa.</p>
+    <textarea id="memorybookEmbed" style="height:180px;"></textarea>
+    <button class="copy" onclick="copyCode('memorybookEmbed')">Copy iFrame Code</button>
   </div>
   
   <div class="block">
@@ -391,6 +434,20 @@
     <h2>Santa Studio (Link)</h2>
     <textarea id="santastudioLink"></textarea>
     <button class="copy" onclick="copyCode('santastudioLink')">Copy Code</button>
+  </div>
+
+  <div class="block">
+    <h2>🧑‍🎄 Talk to Santa LIVE (ElevenLabs AI Voice Call Embed)</h2>
+    <p>A magical live voice phone booth where children can talk out loud with Santa directly from your website.</p>
+    <textarea id="santachatEmbed" style="height:180px;"></textarea>
+    <button class="copy" onclick="copyCode('santachatEmbed')">Copy iFrame Code</button>
+  </div>
+
+  <div class="block">
+    <h2>🚜 Santa's Workshop Sleigh Blueprint (Recommended Embed)</h2>
+    <p>Interactive vehicle diagram with pulsing hot spots highlighting lights, sound, generator, and build partners.</p>
+    <textarea id="blueprintEmbed" style="height:180px;"></textarea>
+    <button class="copy" onclick="copyCode('blueprintEmbed')">Copy iFrame Code</button>
   </div>
 
   <div class="block">
