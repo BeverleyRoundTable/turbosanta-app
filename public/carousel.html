@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden; /* Perfect: Stops scrollbars */
+      background: transparent; /* Perfect: Transparent base */
+      font-family: system-ui, sans-serif;
+    }
+
+    .carousel-container {
+      width: 100%;
+      aspect-ratio: 4/3; 
+      max-height: 450px; 
+      overflow: hidden;
+      border-radius: 12px;
+      position: relative;
+      background: transparent; /* FIXED: Removed #161614 dark background */
+    }
+
+    .carousel-track {
+      display: flex;
+      height: 100%;
+      transition: transform 0.6s ease;
+    }
+
+    .carousel-slide {
+      min-width: 100%;
+      height: 100%;
+      position: relative;
+      display: flex;
+      align-items: center; 
+      justify-content: center;
+    }
+
+    .carousel-slide img.bg {
+      width: 100%;
+      height: 100%;
+      object-fit: cover; 
+      border-radius: 12px;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+
+    .carousel-slide img.bg.loaded {
+      opacity: 1;
+    }
+
+    /* Overlay (Logo) */
+    .carousel-overlay {
+      position: absolute;
+      z-index: 20;
+      pointer-events: none;
+      opacity: 0.95;
+    }
+
+    .pos-top-left { top: 12px; left: 12px; }
+    .pos-top-right { top: 12px; right: 12px; }
+    .pos-bottom-left { bottom: 12px; left: 12px; }
+    .pos-bottom-right { bottom: 12px; right: 12px; }
+    .pos-center { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+  </style>
+</head>
+
+<body>
+
+<div class="carousel-container">
+  <div class="carousel-track" id="santa-carousel-track">
+    </div>
+</div>
+
+<script>
+  // --- HELPER: GET DYNAMIC API URL ---
+  function getApiUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const apiParam = params.get("api") || localStorage.getItem("SANTA_API");
+    
+    if (apiParam) {
+      localStorage.setItem("SANTA_API", apiParam); // Cache it
+      return apiParam;
+    }
+    
+    const url = new URL(window.location.href);
+    url.search = ''; 
+    return url.toString();
+  }
+
+  async function loadTurboSantaCarousel() {
+    try {
+      const apiUrl = getApiUrl();
+      if (!apiUrl) {
+        console.error("No API URL found!");
+        return;
+      }
+
+      const sep = apiUrl.includes('?') ? '&' : '?';
+      const fetchUrl = `${apiUrl}${sep}function=getCarouselData`;
+
+      // 1. Ask the Google Sheet for the images and settings
+      const res = await fetch(fetchUrl);
+      const data = await res.json();
+      
+      // Stop if there are no images in the folder
+      if (!data.images || data.images.length === 0) return;
+
+      const track = document.getElementById("santa-carousel-track");
+      let html = "";
+
+      // 2. Build the slides
+      data.images.forEach((imgUrl, i) => {
+        let logoHtml = "";
+        
+        // Add the logo overlay if turned on in the Settings tab
+        if (String(data.logo_overlay_enabled).toLowerCase() === "true" && data.logo_overlay_url) {
+          
+          // 🐛 FIX: Safely add the 'pos-' prefix so the CSS class maps correctly
+          let pos = data.logo_overlay_position || "top-left";
+          if (!pos.startsWith("pos-")) pos = "pos-" + pos;
+
+          logoHtml = `<img class="carousel-overlay ${pos}" src="${data.logo_overlay_url}" style="width: ${data.logo_overlay_size}px;">`;
+        }
+
+        html += `
+          <div class="carousel-slide">
+            <img class="bg" src="${imgUrl}" alt="Santa Slide ${i+1}" onload="this.classList.add('loaded')">
+            ${logoHtml}
+          </div>
+        `;
+      });
+
+      // Inject the HTML into the page
+      track.innerHTML = html;
+
+      // 3. Start the auto-rotation (every 3.5 seconds)
+      let index = 0;
+      const totalSlides = data.images.length;
+      
+      if (totalSlides > 1) {
+        setInterval(() => {
+          index = (index + 1) % totalSlides;
+          track.style.transform = `translateX(-${index * 100}%)`;
+        }, 3500);
+      }
+
+    } catch (e) {
+      console.error("TurboSanta Carousel failed to load:", e);
+    }
+  }
+
+  // Trigger the script as soon as the page loads
+  document.addEventListener("DOMContentLoaded", loadTurboSantaCarousel);
+</script>
+
+</body>
+</html>

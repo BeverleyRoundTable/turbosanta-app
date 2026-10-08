@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TurboSanta — QR Poster Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ═══════════════════════════════════════ */
+  /* TURBOSANTA DESIGN SYSTEM */
+  /* ═══════════════════════════════════════ */
+  :root {
+    --gold: #FBAF33;
+    --gold-dim: rgba(251,175,51,0.12);
+    --gold-glow: rgba(251,175,51,0.25);
+    --dark: #0d0d0b;
+    --surface: #161614;
+    --surface-2: #1e1e1b;
+    --surface-3: #252522;
+    --border: rgba(255,255,255,0.08);
+    --text: #eaeae5;
+    --text-dim: rgba(255,255,255,0.55);
+    --text-muted: rgba(255,255,255,0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── CONTROLS (screen only) ── */
+  .controls-wrapper {
+    padding: 48px 24px 32px;
+  }
+
+  .controls {
+    max-width: 600px;
+    margin: 0 auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 32px 40px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  }
+
+  .controls header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .controls h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    letter-spacing: 2px;
+    color: #fff;
+    margin-bottom: 8px;
+    line-height: 1;
+  }
+  
+  .controls h1 span { color: var(--gold); }
+
+  .controls header p {
+    color: var(--text-dim);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .control-row {
+    display: flex;
+    gap: 16px;
+    align-items: end;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .control-group {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .control-group label {
+    display: block;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .control-group select,
+  .control-group input {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    outline: none;
+    transition: all 0.2s;
+  }
+  
+  .control-group select {
+    cursor: pointer; -webkit-appearance: none; appearance: none; font-weight: 600;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23FBAF33' stroke-width='2' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 16px center; padding-right: 40px;
+  }
+  
+  .control-group select option { background: var(--surface-2); color: #fff; }
+
+  .control-group select:focus,
+  .control-group input:focus { 
+    border-color: var(--gold); 
+    box-shadow: 0 0 0 3px var(--gold-glow);
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 32px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    border: none;
+    border-radius: 8px;
+    padding: 16px 24px;
+    cursor: pointer;
+    transition: transform 0.1s, background 0.2s;
+    white-space: nowrap;
+    flex: 1;
+    text-align: center;
+  }
+
+  .btn:active { transform: scale(0.97); }
+
+  .btn-gold {
+    background: var(--gold);
+    color: #000;
+  }
+  
+  .btn-gold:hover { background: #e59d28; }
+
+  .btn-ghost {
+    background: var(--surface-2);
+    color: #fff;
+    border: 1px solid var(--border);
+  }
+  
+  .btn-ghost:hover { background: var(--surface-3); }
+
+  /* ── POSTER PREVIEW (screen) ── */
+  .poster-preview-wrap {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* ── THE POSTER (A4) ── */
+  .poster {
+    width: 210mm;
+    min-height: 297mm;
+    background: #ffffff;
+    color: #0d0d0b;
+    font-family: 'DM Sans', sans-serif;
+    margin: 0 auto;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .poster-accent-top {
+    height: 16px;
+    background: var(--gold);
+  }
+
+  .poster-content {
+    flex: 1;
+    padding: 48px 48px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .poster-logo {
+    width: 96px;
+    height: 96px;
+    object-fit: contain;
+    margin-bottom: 24px;
+  }
+
+  .poster-sleigh-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 32px;
+  }
+
+  .poster-headline {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 80px;
+    line-height: 0.95;
+    color: #0d0d0b;
+    margin-bottom: 16px;
+    letter-spacing: 1px;
+  }
+
+  .poster-subline {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--gold);
+    margin-bottom: 40px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .poster-date-block {
+    background: #0d0d0b;
+    color: white;
+    padding: 24px 64px;
+    border-radius: 16px;
+    margin-bottom: 40px;
+    width: 100%;
+    max-width: 500px;
+  }
+
+  .poster-date-block .day-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 16px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--gold);
+    margin-bottom: 4px;
+  }
+
+  .poster-date-block .date-main {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 64px;
+    letter-spacing: 1px;
+    line-height: 1;
+  }
+
+  .poster-streets {
+    font-size: 20px;
+    font-weight: 500;
+    color: #444;
+    line-height: 1.6;
+    margin-bottom: 48px;
+    max-width: 600px;
+  }
+
+  .poster-streets .separator {
+    color: #ccc;
+    margin: 0 10px;
+    font-weight: 700;
+  }
+
+  .poster-divider {
+    width: 120px;
+    height: 4px;
+    background: #0d0d0b;
+    border-radius: 2px;
+    margin: 0 auto 48px;
+  }
+
+  .poster-qr-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .poster-qr-box {
+    padding: 20px;
+    border: 6px solid #0d0d0b;
+    border-radius: 24px;
+    display: inline-block;
+    margin-bottom: 24px;
+    background: white;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+  }
+
+  .poster-scan-text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 40px;
+    color: #0d0d0b;
+    letter-spacing: 1px;
+  }
+  
+  .poster-scan-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--gold);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 4px;
+  }
+
+  .poster-footer {
+    padding: 24px 48px;
+    background: #0d0d0b;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: auto;
+  }
+
+  .poster-footer img {
+    width: 42px;
+    height: 42px;
+    object-fit: contain;
+    background: #fff;
+    border-radius: 8px;
+    padding: 4px;
+  }
+
+  .poster-footer .footer-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    color: #ccc;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  
+  .poster-footer .footer-text span {
+    color: var(--gold);
+    font-weight: 700;
+  }
+
+  /* ── PRINT ── */
+  @media print {
+    body { background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .controls-wrapper { display: none !important; }
+    .poster-preview-wrap { padding: 0; max-width: none; }
+    .poster {
+      width: 100%;
+      min-height: 100vh;
+      box-shadow: none;
+      border-radius: 0;
+    }
+    @page { margin: 0; size: A4 portrait; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls-wrapper" id="controls">
+  <div class="controls">
+    <header>
+      <h1>📌 QR POSTER <span>GENERATOR</span></h1>
+      <p>Generate brand-compliant route posters for your sleigh</p>
+    </header>
+    <div id="controlsInner">
+      <div style="text-align:center; font-family:'DM Mono', monospace; font-size:12px; padding:40px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">Loading routes…</div>
+    </div>
+  </div>
+</div>
+
+<div class="poster-preview-wrap" id="posterWrap" style="display:none;">
+  <div class="poster" id="poster"></div>
+</div>
+
+<script>
+const API = new URLSearchParams(location.search).get('api') || '';
+
+const STATE = {
+  settings: {},
+  routes: [],
+  selectedRoute: 0
+};
+
+if (!API) {
+  document.getElementById('controlsInner').innerHTML = 
+    '<div style="text-align:center; font-family:\'DM Mono\',monospace; font-size:12px; color:var(--red); padding:40px; text-transform:uppercase; letter-spacing:1px;">Missing ?api= parameter</div>';
+} else {
+  init();
+}
+
+async function init() {
+  try {
+    const res = await fetch(API);
+    const data = await res.json();
+    STATE.settings = data.settings || {};
+    STATE.routes = data.routes || [];
+
+    if (!STATE.routes.length) {
+      document.getElementById('controlsInner').innerHTML = '<div style="text-align:center; font-family:\'DM Mono\',monospace; font-size:12px; color:var(--text-muted); padding:40px; text-transform:uppercase; letter-spacing:1px;">No routes found.</div>';
+      return;
+    }
+
+    renderControls();
+    generatePoster();
+  } catch(e) {
+    document.getElementById('controlsInner').innerHTML = `<div style="text-align:center; padding:40px; color:var(--red); font-family:'DM Mono',monospace; font-size:12px;">Failed to load: ${e.message}</div>`;
+  }
+}
+
+function formatDateLong(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d)) return dateStr;
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function getDayName(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()];
+}
+
+function renderControls() {
+  const options = STATE.routes.map((r, i) => 
+    `<option value="${i}">${r.routeName || 'Route'} — ${formatDateLong(r.date)}</option>`
+  ).join('');
+
+  document.getElementById('controlsInner').innerHTML = `
+    <div class="control-row">
+      <div class="control-group">
+        <label>Select Route</label>
+        <select id="routeSelect" onchange="STATE.selectedRoute=this.value; generatePoster()">
+          ${options}
+        </select>
+      </div>
+    </div>
+    <div class="control-row">
+      <div class="control-group">
+        <label>Custom Headline</label>
+        <input type="text" id="customHeadline" placeholder="Santa is coming!" oninput="generatePoster()">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-gold" onclick="window.print()">🖨️ Print Poster</button>
+      <button class="btn btn-ghost" onclick="printAll()">🖨️ Print All Routes</button>
+    </div>
+  `;
+}
+
+function generatePoster(idx) {
+  const route = STATE.routes[idx !== undefined ? idx : STATE.selectedRoute];
+  if (!route) return;
+
+  const s = STATE.settings;
+  const headline = document.getElementById('customHeadline')?.value || "SANTA'S COMING TO YOUR STREET!";
+  const trackerUrl = s.tracker_url || `https://track.sleigh.com/?api=${encodeURIComponent(API)}`;
+
+  const streets = (route.streets || '').split(',').map(s => s.trim()).filter(Boolean);
+  const streetsHtml = streets.join('<span class="separator">·</span>');
+const startTime = route["Start Time"] || "";
+const endTime = route["End Time"] || "";
+const timeHtml = startTime ? `<div class="day-name" style="margin-top:8px;">${startTime} – ${endTime}</div>` : "";
+  
+  let h = `
+    <div class="poster-accent-top"></div>
+    <div class="poster-content">
+      ${s.logo_overlay_url ? `<img class="poster-logo" src="${s.logo_overlay_url}">` : ''}
+      <div class="poster-sleigh-name">${s.sleigh_display_name || 'Santa Sleigh'}</div>
+      <div class="poster-headline">${headline}</div>
+      <div class="poster-subline">${route.routeName || ''}</div>
+      
+      <div class="poster-date-block">
+  <div class="day-name">${getDayName(route.date)}</div>
+  <div class="date-main">${formatDateLong(route.date)}</div>
+  ${timeHtml}
+</div>
+
+      <div class="poster-streets">${streetsHtml}</div>
+      <div class="poster-divider"></div>
+
+      <div class="poster-qr-section">
+        <div class="poster-qr-box" id="qrTarget"></div>
+        <div class="poster-scan-text">SCAN TO TRACK SANTA LIVE</div>
+        <div class="poster-scan-sub">Follow the sleigh on the map</div>
+      </div>
+    </div>
+    <div class="poster-footer">
+      ${s.logo_overlay_url ? `<img src="${s.logo_overlay_url}">` : ''}
+      <span class="footer-text">${s.sleigh_display_name || 'Round Table'} · <span>TurboSanta</span></span>
+    </div>
+  `;
+
+  document.getElementById('poster').innerHTML = h;
+  document.getElementById('posterWrap').style.display = 'block';
+
+  new QRCode(document.getElementById('qrTarget'), {
+    text: trackerUrl,
+    width: 240,
+    height: 240,
+    colorDark: "#0d0d0b",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.H
+  });
+}
+
+async function printAll() {
+  const wrap = document.getElementById('posterWrap');
+  const poster = document.getElementById('poster');
+  let allHtml = '';
+
+  for (let i = 0; i < STATE.routes.length; i++) {
+    generatePoster(i);
+    await new Promise(r => setTimeout(r, 400)); // allow QR code to render
+    allHtml += `<div class="poster" style="page-break-after: always; margin-bottom: 20px;">${poster.innerHTML}</div>`;
+  }
+
+  poster.outerHTML = allHtml;
+  window.print();
+  
+  // A tiny delay before reload prevents some browsers from canceling the print dialog
+  setTimeout(() => location.reload(), 500); 
+}
+</script>
+</body>
+</html>

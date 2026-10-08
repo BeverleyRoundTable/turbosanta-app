@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TurboSanta — Season Wrap Report</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <style>
+  /* ═══════════════════════════════════════ */
+  /* TURBOSANTA DESIGN SYSTEM */
+  /* ═══════════════════════════════════════ */
+  :root {
+    --gold: #FBAF33;
+    --gold-dim: rgba(251,175,51,0.12);
+    --gold-glow: rgba(251,175,51,0.25);
+    --dark: #0d0d0b;
+    --surface: #161614;
+    --surface-2: #1e1e1b;
+    --surface-3: #252522;
+    --border: rgba(255,255,255,0.08);
+    --border-gold: rgba(251,175,51,0.2);
+    --text: #eaeae5;
+    --text-dim: rgba(255,255,255,0.55);
+    --text-muted: rgba(255,255,255,0.3);
+    --red: #D31C1C;
+    --green: #2ecc71;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── LOADING ── */
+  .loader {
+    position: fixed; inset: 0;
+    background: var(--dark);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 20px; z-index: 9999;
+    transition: opacity 0.4s;
+  }
+  .loader.done { opacity: 0; pointer-events: none; }
+  .loader-spin {
+    width: 44px; height: 44px;
+    border: 3px solid var(--border);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loader-text { 
+    font-family: 'DM Mono', monospace; 
+    color: var(--text-dim); 
+    font-size: 11px; 
+    text-transform: uppercase; 
+    letter-spacing: 1px;
+    font-weight: 700;
+  }
+
+  .error-msg {
+    text-align: center; padding: 80px 24px; color: var(--red);
+    font-size: 1.1em; max-width: 600px; margin: 0 auto;
+  }
+  .error-msg code {
+    background: var(--surface-2); padding: 4px 10px; border-radius: 6px; 
+    font-size: 0.85em; font-family: 'DM Mono', monospace;
+  }
+
+  /* ── PRINT BUTTON ── */
+  .print-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: rgba(13,13,11,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .print-bar-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+
+  .print-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    border: none;
+    background: var(--gold);
+    color: #000;
+    padding: 8px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.1s, background 0.2s;
+  }
+  .print-btn:hover { background: #e59d28; }
+  .print-btn:active { transform: scale(0.97); }
+
+  .snapshot-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: #fff;
+    padding: 8px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-right: 12px;
+  }
+  .snapshot-btn:hover { border-color: var(--gold); color: var(--gold); background: var(--surface-3); }
+  .snapshot-btn:active { transform: scale(0.97); }
+  .snapshot-btn.saved { background: var(--green); color: #000; border-color: var(--green); cursor: default; }
+  .snapshot-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── REPORT CONTAINER ── */
+  .report {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 80px 40px 80px;
+  }
+
+  /* ── HEADER ── */
+  .report-header {
+    text-align: center;
+    padding: 120px 40px 80px;
+    position: relative;
+    overflow: hidden;
+    min-height: 480px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+  }
+
+  .report-header::after {
+    content: '';
+    display: block;
+    width: 80px;
+    height: 4px;
+    background: linear-gradient(90deg, var(--red), var(--gold));
+    margin: 40px auto 0;
+    border-radius: 2px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .report-hero-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+  }
+
+  .report-hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(13,13,11,0.5) 0%,
+      rgba(13,13,11,0.8) 50%,
+      rgba(13,13,11,0.98) 85%,
+      rgba(13,13,11,1) 100%
+    );
+  }
+
+  .report-hero-no-img {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(211,28,28,0.15) 0%, transparent 60%),
+      radial-gradient(ellipse at 70% 80%, rgba(251,175,51,0.08) 0%, transparent 50%),
+      var(--surface);
+  }
+
+  .report-header-content {
+    position: relative;
+    z-index: 2;
+  }
+
+  .report-logo {
+    width: 88px; height: 88px;
+    border-radius: 24px;
+    object-fit: contain;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    padding: 6px;
+    margin: 0 auto 24px;
+    display: block;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+  }
+
+  .report-sleigh-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--gold);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+  }
+
+  .report-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 88px;
+    letter-spacing: 2px;
+    line-height: 0.95;
+    color: #fff;
+  }
+
+  .report-year {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--gold);
+    background: var(--gold-dim);
+    padding: 8px 24px;
+    border-radius: 100px;
+    margin-top: 24px;
+    letter-spacing: 1px;
+    border: 1px solid var(--border-gold);
+  }
+
+  /* ── SECTION ── */
+  .section { margin-top: 64px; }
+  .section-head { display: flex; align-items: center; gap: 16px; margin-bottom: 32px; }
+  .section-head .icon { font-size: 32px; }
+  .section-head h2 { font-family: 'Bebas Neue', sans-serif; font-size: 40px; letter-spacing: 1px; color: #fff; line-height: 1; }
+  .section-divider { height: 1px; background: var(--border); margin-bottom: 64px; }
+
+  /* ── HERO STATS ── */
+  .hero-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-top: 48px;
+  }
+
+  .hero-stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px 24px;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+  }
+
+  .hero-stat .number { 
+    font-family: 'Bebas Neue', sans-serif; 
+    font-size: 64px; 
+    line-height: 1; 
+    letter-spacing: 1px; 
+    margin-bottom: 12px; 
+    color: #fff;
+  }
+  .hero-stat .number.gold { color: var(--gold); }
+  .hero-stat .number.red { color: var(--red); }
+  .hero-stat .number.green { color: var(--green); }
+  
+  .hero-stat .label { 
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; 
+    color: var(--text-muted); 
+    font-weight: 700; 
+    text-transform: uppercase; 
+    letter-spacing: 1.5px; 
+  }
+  .hero-stat .sub { font-size: 13px; font-weight: 500; color: var(--text-dim); margin-top: 8px; }
+
+  /* ── DONATION BAR & FINANCIALS ── */
+  .donation-section { margin-top: 32px; }
+  .donation-bar-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px 40px; box-shadow: 0 12px 30px rgba(0,0,0,0.2); }
+  .donation-labels { display: flex; justify-content: space-between; margin-bottom: 16px; font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .donation-raised { color: var(--gold); }
+  .donation-target { color: var(--text-muted); }
+  .donation-bar-outer { height: 28px; background: var(--surface-2); border-radius: 14px; overflow: hidden; position: relative; border: 1px solid var(--border); }
+  .donation-bar-inner { height: 100%; background: linear-gradient(90deg, var(--red), var(--gold)); border-radius: 14px; transition: width 1s ease; min-width: 20px; }
+  .donation-pct { text-align: center; margin-top: 16px; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px; }
+
+  .finance-breakdown { display: flex; gap: 24px; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border); }
+  .finance-item { flex: 1; }
+  .finance-item:not(:first-child) { border-left: 1px solid var(--border); padding-left: 24px; }
+  .finance-item .label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .finance-item .value { font-family: 'DM Mono', monospace; font-size: 24px; font-weight: 700; color: #fff; line-height: 1; }
+  .finance-item .value.red { color: var(--red); }
+  .finance-item .value.green { color: var(--green); font-size: 32px; }
+
+  /* ── ROUTE LIST ── */
+  .route-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  .route-table th { 
+    text-align: left; font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 700; 
+    color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px; 
+    padding: 16px 20px; border-bottom: 1px solid var(--border); background: var(--surface-2);
+  }
+  .route-table td { padding: 16px 20px; font-size: 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .route-table tr:last-child td { border-bottom: none; }
+  .route-table tr:hover td { background: rgba(251,175,51,0.03); }
+  
+  .route-table .route-name { font-weight: 700; color: #fff; font-size: 15px; }
+  .route-table .route-date { font-family: 'DM Mono', monospace; color: var(--gold); font-weight: 700; font-size: 12px; white-space: nowrap; text-transform: uppercase; }
+  .route-table .route-streets { color: var(--text-dim); font-size: 13px; line-height: 1.5; }
+  .route-table .route-raised { text-align: right; color: var(--green); font-weight: 700; font-family: 'DM Mono', monospace; font-size: 13px; }
+  .route-table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+
+  /* ── DIGITAL REACH ── */
+  .reach-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .reach-item { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px 24px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+  .reach-item .icon { font-size: 40px; margin-bottom: 16px; line-height: 1; }
+  .reach-item .number { font-family: 'Bebas Neue', sans-serif; font-size: 48px; letter-spacing: 1px; line-height: 1; margin-bottom: 8px; color: #fff; }
+  .reach-item .label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; }
+  
+  .reach-empty { grid-column: 1 / -1; text-align: center; color: var(--text-muted); font-size: 14px; padding: 48px; background: var(--surface); border: 1px dashed var(--border); border-radius: 16px; }
+  .reach-empty code { background: var(--surface-2); padding: 4px 10px; border-radius: 6px; font-family: 'DM Mono', monospace; font-size: 12px; color: #fff; }
+
+  /* ── HIGHLIGHT QUOTE ── */
+  .highlight-quote { 
+    background: var(--surface); border: 1px solid var(--border); 
+    border-left: 6px solid var(--gold); border-radius: 0 16px 16px 0; 
+    padding: 40px 48px; margin-top: 16px; font-size: 20px; font-weight: 500; 
+    color: #fff; line-height: 1.6; font-style: italic; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  }
+
+  /* ── SPONSORS ── */
+  .sponsors-row { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
+  .sponsor-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px 48px; display: flex; align-items: center; justify-content: center; min-width: 240px; min-height: 120px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+  .sponsor-card img { max-height: 80px; max-width: 240px; object-fit: contain; }
+
+  /* ── ROUTE MAPS GRID ── */
+  .maps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+  .map-card { border-radius: 14px; overflow: hidden; border: 1px solid var(--border); background: var(--surface); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+  .map-card img { width: 100%; height: 220px; object-fit: cover; display: block; border-bottom: 1px solid var(--border); }
+  .map-card-label { padding: 16px 20px 12px; font-size: 15px; font-weight: 700; color: #fff; display: flex; justify-content: space-between; align-items: center; }
+  .map-card-label .date { font-family: 'DM Mono', monospace; color: var(--gold); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+  .map-card-stats { padding: 0 20px 20px; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: flex; justify-content: space-between; align-items: center; }
+
+  /* ── FOOTER ── */
+  .report-footer { 
+    text-align: center; padding: 64px 0 32px; margin-top: 64px; 
+    border-top: 1px solid var(--border); color: var(--text-muted); 
+    font-family: 'DM Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 500;
+  }
+  .report-footer img { width: 36px; height: 36px; border-radius: 8px; object-fit: contain; vertical-align: middle; margin-right: 12px; background: var(--surface-2); padding: 4px; border: 1px solid var(--border); }
+
+  /* ═══════════════════
+     PRINT STYLES
+     ═══════════════════ */
+  @media print {
+    :root {
+      --bg: #0d0d0b; --surface: #161614; --surface-2: #1e1e1b; --border: rgba(255,255,255,0.12);
+      --text: #eaeae5; --text-dim: rgba(255,255,255,0.55); --text-muted: rgba(255,255,255,0.35);
+      --red: #D31C1C; --gold: #FBAF33; --gold-dim: rgba(251,175,51,0.15); --green: #2ecc71;
+    }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    body { background: #0d0d0b; color: #eaeae5; }
+    .print-bar { display: none !important; }
+    .loader { display: none !important; }
+    .report { padding: 0 20px; }
+    
+    .report-header { 
+      padding: 80px 40px 60px; 
+      min-height: 300px; 
+      border-radius: 16px;
+      overflow: hidden !important; 
+      position: relative !important;
+      page-break-inside: avoid;
+    }
+    .report-title { font-size: 72px; }
+    
+    .report-hero-bg { 
+      display: block !important; 
+      visibility: visible !important; 
+      opacity: 1 !important;
+    }
+    .report-hero-overlay { 
+      display: block !important; 
+      background: linear-gradient(to bottom, rgba(13,13,11,0.5) 0%, rgba(13,13,11,0.8) 50%, rgba(13,13,11,0.98) 85%, rgba(13,13,11,1) 100%) !important; 
+    }
+    
+    .hero-stats { gap: 12px; }
+    .hero-stat { padding: 24px 16px; box-shadow: none; border: 1px solid var(--border); }
+    .hero-stat .number { font-size: 48px; }
+    .section { margin-top: 40px; }
+    .section-divider { margin-bottom: 40px; }
+    .route-table td, .route-table th { padding: 12px 16px; font-size: 12px; }
+    .maps-grid { gap: 12px; }
+    .map-card { box-shadow: none; border: 1px solid var(--border); }
+    .map-card img { height: 160px; }
+    .report-footer { margin-top: 32px; padding-top: 24px; }
+    @page { margin: 1.5cm; size: A4; }
+    .hero-stat, .reach-item, .donation-bar-wrap, .highlight-quote, .map-card, .route-table-wrap, .sponsor-card { break-inside: avoid; }
+    .section { break-inside: auto; }
+  }
+
+  /* ── DESKTOP ENHANCEMENTS ── */
+  @media (min-width: 1100px) {
+    .comparison-grid { grid-template-columns: repeat(3, 1fr); }
+    .hero-stats { grid-template-columns: repeat(4, 1fr); }
+  }
+  
+  .comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 16px;
+  }
+  
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  }
+  
+  .chart-card h4 {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  .chart-card canvas { display: block; }
+  
+  .no-history {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 14px;
+    padding: 60px 40px;
+    background: var(--surface);
+    border: 1px dashed var(--border);
+    border-radius: 16px;
+    line-height: 1.7;
+  }
+  .no-history strong { color: var(--gold); display: block; font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+  .no-history code { background: var(--surface-2); padding: 4px 10px; border-radius: 6px; font-family: 'DM Mono', monospace; font-size: 12px; color: #fff; }
+
+  @media (max-width: 800px) {
+    .hero-stats { grid-template-columns: repeat(2, 1fr); }
+    .reach-row { grid-template-columns: repeat(2, 1fr); }
+    .report { padding: 90px 24px 48px; }
+    .report-title { font-size: 64px; }
+    .comparison-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 500px) {
+    .print-bar { flex-direction: column; align-items: flex-start; gap: 16px; padding: 16px 20px; }
+    .print-bar-title { font-size: 10px; }
+    .print-bar > div { width: 100%; display: flex; gap: 12px; }
+    .print-bar > div .snapshot-btn, .print-bar > div .print-btn { flex: 1; text-align: center; margin-right: 0; padding: 12px; font-size: 12px; }
+    .hero-stats { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .hero-stat { padding: 24px 16px; }
+    .hero-stat .number { font-size: 42px; }
+    .report-title { font-size: 56px; }
+    .report-header { padding: 100px 24px 64px; min-height: 380px; }
+    .report-logo { width: 64px; height: 64px; }
+    .report { padding: 80px 16px 48px; }
+    .section { margin-top: 48px; }
+    .section-head h2 { font-size: 32px; }
+    .section-head .icon { font-size: 24px; }
+    .donation-bar-wrap { padding: 24px 20px; }
+    .donation-labels { font-size: 11px; }
+    .finance-breakdown { flex-direction: column; gap: 16px; }
+    .finance-item:not(:first-child) { border-left: none; padding-left: 0; border-top: 1px dashed var(--border); padding-top: 16px; }
+    .route-table .route-streets { display: none; }
+    .route-table td, .route-table th { padding: 12px; font-size: 12px; }
+    .route-table .route-name { font-size: 13px; }
+    .reach-row { grid-template-columns: 1fr; gap: 12px; }
+    .reach-item { padding: 24px 20px; }
+    .reach-item .number { font-size: 40px; }
+    .highlight-quote { padding: 24px 28px; font-size: 16px; }
+    .comparison-grid { grid-template-columns: 1fr; gap: 16px; }
+    .chart-card { padding: 20px; }
+    .chart-card canvas { max-height: 140px; }
+    .sponsor-card { min-width: 140px; padding: 20px 24px; }
+    .report-footer { padding: 40px 0 24px; font-size: 9px; }
+  }
+
+  @media (min-width: 501px) and (max-width: 800px) {
+    .route-table .route-streets { display: none; }
+    .chart-card canvas { max-height: 160px; }
+  }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+
+<div class="loader" id="loader">
+  <div class="loader-spin"></div>
+  <div class="loader-text">Generating season report...</div>
+</div>
+
+<div id="app"></div>
+
+<script>
+function getApiUrl() {
+  return new URLSearchParams(location.search).get('api') || '';
+}
+
+// Populated by render() — used by snapshotSeason()
+let _snapshotData = null;
+let _seasonHistory = [];
+
+function fmtDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d)) return dateStr;
+  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function fmtDateLong(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d)) return dateStr;
+  return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const api = getApiUrl();
+  if (!api) {
+    document.getElementById('loader').classList.add('done');
+    document.getElementById('app').innerHTML =
+      '<div class="error-msg">Missing <strong>?api=</strong> parameter.<br><br><code>season_wrap?api=YOUR_API_URL</code></div>';
+    return;
+  }
+
+  try {
+    const res = await fetch(api);
+    const data = await res.json();
+
+    // Fetch season history (silent fail if not yet populated)
+    try {
+      const histRes = await fetch(`${api}?function=getSeasonHistory`);
+      const histData = await histRes.json();
+      if (Array.isArray(histData.history)) _seasonHistory = histData.history;
+    } catch(e) { }
+
+    // Fetch auto-calculated tracker & sponsor analytics
+    try {
+      const statRes = await fetch(`${api}?function=getWrapAnalytics`);
+      const statData = await statRes.json();
+      if (statData && statData.totalViews !== undefined) {
+         data.wrapAnalytics = statData;
+      }
+    } catch(e) { }
+
+    render(data);
+  } catch(e) {
+    document.getElementById('loader').classList.add('done');
+    document.getElementById('app').innerHTML =
+      `<div class="error-msg">Failed to load data.<br><br>${e.message}</div>`;
+  }
+});
+
+function render(data) {
+  const s = data.settings || {};
+  const routes = data.routes || [];
+  const donations = data.donations || {};
+  const streets = data.streets || [];
+  const sponsors = data.sponsors || [];
+  const a = data.wrapAnalytics || {}; // <--- Extract auto-analytics
+
+  const logo = s.logo_overlay_url || '';
+  const bgImage = s.bgImageUrl || '';
+  const sleighName = s.sleigh_display_name || s.sleigh_name || 'Santa Sleigh';
+  const currency = donations.currency || '£';
+  const year = s.wrap_year || s.sponsor_pack_year || new Date().getFullYear();
+
+  const today = new Date();
+  today.setHours(23, 59, 59, 999); 
+  const completedRoutes = routes.filter(r => {
+    if (!r.date) return false;
+    return new Date(r.date + 'T23:59:59') <= today;
+  });
+  const plannedRoutes = routes.filter(r => {
+    if (!r.date) return false;
+    return new Date(r.date + 'T23:59:59') > today;
+  });
+
+  const routeCount = completedRoutes.length;
+  const completedRouteNames = new Set(completedRoutes.map(r => r.routeName));
+  const completedStreets = streets.filter(x => completedRouteNames.has(x.routeName));
+  const uniqueStreets = [...new Set(completedStreets.map(x => x.street))].length;
+  const totalRaised = donations.total || 0;
+  const targetAmount = donations.target || 0;
+  const totalExpenses = data.expenses || 0;
+  const totalGiftAid = data.giftAid ? (data.giftAid.giftAid || 0) : 0;
+  const giftAidDeclarations = data.giftAid ? (data.giftAid.declarations || 0) : 0;
+  const netRaised = (totalRaised + totalGiftAid) - totalExpenses;
+  const pct = targetAmount > 0 ? Math.min(100, Math.round((totalRaised / targetAmount) * 100)) : 0;
+  const volunteers = s.wrap_volunteers || s.sponsor_pack_volunteers || '—';
+
+  // Digital Reach — Autopopulated from Payload or Settings fallback
+  const computedViews = a.totalViews || completedRoutes.reduce((sum, r) => sum + (parseInt(r.views) || 0), 0);
+  const totalViews = computedViews > 0 ? computedViews : (s.wrap_total_views || '');
+  
+  const desktopMobile = (a.desktopPct > 0 || a.mobilePct > 0) 
+    ? `${a.desktopPct}% / ${a.mobilePct}%` 
+    : (s.wrap_desktop_mobile || '');
+    
+  const popularRoute = a.topRoute || s.wrap_most_popular_route || '';
+  const sponsorClicks = a.sponsorClicks || s.wrap_sponsor_clicks || 0;
+
+  const socialFollowers = s.wrap_social_followers || s.wrap_facebook_followers || s.sponsor_pack_facebook_followers || '';
+  const socialReach = s.wrap_social_reach || s.wrap_facebook_reach || s.sponsor_pack_facebook_reach || '';
+  const webViews = s.wrap_website_views || s.sponsor_pack_website_views || '';
+  const peakViewers = s.wrap_peak_viewers || '';
+  const totalWaves = s.season_total_waves || '';
+  const messageStats = data.messageStats || { total: 0, byRoute: {} };
+  const totalMessages = messageStats.total || 0;
+  const highlight = s.wrap_highlight || '';
+
+  const sortedRoutes = [...completedRoutes].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const sortedPlanned = [...plannedRoutes].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
+  const sponsorUrls = [...new Set(completedRoutes.map(r => r.sponsorUrl).filter(Boolean))];
+  const dates = completedRoutes.map(r => r.date).filter(Boolean).sort();
+  const firstDate = dates[0] ? fmtDate(dates[0]) : '';
+  const lastDate = dates[dates.length - 1] ? fmtDate(dates[dates.length - 1]) : '';
+  const dateRange = firstDate && lastDate ? `${firstDate} — ${lastDate}` : '';
+
+  const hasDigital = totalViews || socialFollowers || socialReach || webViews || desktopMobile || popularRoute || peakViewers || totalWaves || totalMessages > 0 || sponsorClicks > 0;
+
+  let h = '';
+
+  // Print bar
+  h += `
+    <div class="print-bar">
+      <div class="print-bar-title">${sleighName} · Season Report ${year}</div>
+      <div style="display:flex;align-items:center;gap:0;">
+        <button class="snapshot-btn" id="snapshotBtn" onclick="snapshotSeason()">📸 Snapshot Season</button>
+        <button class="print-btn" onclick="window.print()">🖨️ Print / Save PDF</button>
+      </div>
+    </div>`;
+
+  h += '<div class="report">';
+
+  // ── HEADER ──
+  h += `
+    <div class="report-header">
+      ${bgImage ? `<img class="report-hero-bg" src="${bgImage}" alt="">` : ''}
+      <div class="${bgImage ? 'report-hero-overlay' : 'report-hero-no-img'}"></div>
+      <div class="report-header-content">
+        ${logo ? `<img class="report-logo" src="${logo}" alt="">` : ''}
+        <div class="report-sleigh-name">${sleighName}</div>
+        <h1 class="report-title">SEASON WRAP<br>REPORT</h1>
+        <div class="report-year">${year} SEASON</div>
+      </div>
+    </div>`;
+
+  // ── HEADLINE STATS ──
+  h += `
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="number gold">${routeCount}</div>
+        <div class="label">Routes Completed</div>
+        ${dateRange ? `<div class="sub">${dateRange}</div>` : ''}
+      </div>
+      <div class="hero-stat">
+        <div class="number">${uniqueStreets}</div>
+        <div class="label">Streets Visited</div>
+      </div>
+      <div class="hero-stat">
+        <div class="number red">${currency}${totalRaised.toLocaleString()}</div>
+        <div class="label">Raised</div>
+        ${targetAmount ? `<div class="sub">Target: ${currency}${targetAmount.toLocaleString()}</div>` : ''}
+      </div>
+      <div class="hero-stat">
+        <div class="number gold">${volunteers}</div>
+        <div class="label">Volunteers</div>
+      </div>
+    </div>`;
+
+  // ── DONATION PROGRESS & FINANCIALS ──
+  if (totalRaised > 0 || targetAmount > 0) {
+    h += `
+      <div class="donation-section">
+        <div class="donation-bar-wrap">`;
+        
+    if (targetAmount > 0) {
+      h += `
+          <div class="donation-labels">
+            <span class="donation-raised">${currency}${totalRaised.toLocaleString()} raised</span>
+            <span class="donation-target">${currency}${targetAmount.toLocaleString()} target</span>
+          </div>
+          <div class="donation-bar-outer">
+            <div class="donation-bar-inner" style="width:${pct}%"></div>
+          </div>
+          <div class="donation-pct">${pct}% of target</div>`;
+    }
+
+    h += `
+          <div class="finance-breakdown" ${targetAmount === 0 ? 'style="border-top:none; margin-top:0; padding-top:0;"' : ''}>
+            <div class="finance-item">
+              <div class="label">Gross Raised</div>
+              <div class="value">${currency}${totalRaised.toLocaleString()}</div>
+            </div>
+            
+            <div class="finance-item">
+              <div class="label">Gift Aid (+25%)</div>
+              <div class="value green">+${currency}${totalGiftAid.toLocaleString()}</div>
+            </div>
+            
+            <div class="finance-item">
+              <div class="label">Operating Expenses</div>
+              <div class="value red">${totalExpenses > 0 ? '-' : ''}${currency}${totalExpenses.toLocaleString()}</div>
+            </div>
+            
+            <div class="finance-item">
+              <div class="label">True Net Impact</div>
+              <div class="value" style="color: var(--gold); font-size: 32px;">${currency}${netRaised.toLocaleString()}</div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // ── HIGHLIGHT ──
+  if (highlight) {
+    h += `
+      <div class="section">
+        <div class="section-head">
+          <span class="icon">⭐</span>
+          <h2>Season Highlight</h2>
+        </div>
+        <div class="highlight-quote">"${highlight}"</div>
+      </div>
+      <div class="section-divider"></div>`;
+  }
+
+  // ── ROUTES TABLE ──
+  if (sortedRoutes.length) {
+    h += `
+      <div class="section">
+        <div class="section-head">
+          <span class="icon">✅</span>
+          <h2>Routes Completed (${routeCount})</h2>
+        </div>
+        <div class="route-table-wrap">
+          <table class="route-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Route</th>
+                <th>Streets</th>
+                <th style="text-align:right;">Messages</th>
+                <th style="text-align:right;">Raised</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sortedRoutes.map(r => {
+                const st = (r.streets || '').replace(/,/g, ', ');
+                const raisedFmt = r.raised ? `${currency}${Number(r.raised).toLocaleString()}` : '—';
+                const msgCount = messageStats.byRoute[r.routeName] || 0;
+                const msgFmt = msgCount > 0 ? `💬 ${msgCount}` : '—';
+                return `<tr>
+                  <td class="route-date">${fmtDateLong(r.date)}</td>
+                  <td class="route-name">${r.routeName || '—'}</td>
+                  <td class="route-streets">${st || '—'}</td>
+                  <td style="text-align:right;color:var(--gold);font-weight:700;font-family:'DM Mono',monospace;font-size:13px;">${msgFmt}</td>
+                  <td class="route-raised">${raisedFmt}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  if (sortedPlanned.length) {
+    h += `
+      <div class="section">
+        <div class="section-head">
+          <span class="icon">📅</span>
+          <h2>Upcoming Routes (${sortedPlanned.length})</h2>
+        </div>
+        <div class="route-table-wrap">
+          <table class="route-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Route</th>
+                <th>Streets</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sortedPlanned.map(r => {
+                const st = (r.streets || '').replace(/,/g, ', ');
+                return `<tr>
+                  <td class="route-date">${fmtDateLong(r.date)}</td>
+                  <td class="route-name">${r.routeName || '—'}</td>
+                  <td class="route-streets">${st || '—'}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  // ── ROUTE MAPS ──
+  const routesWithMaps = sortedRoutes.filter(r => r.mapImageUrl);
+  if (routesWithMaps.length) {
+    h += `
+      <div class="section">
+        <div class="section-head">
+          <span class="icon">📍</span>
+          <h2>Route Coverage</h2>
+        </div>
+        <div class="maps-grid">
+          ${routesWithMaps.map(r => {
+            const viewsText = r.views ? `👁️ ${r.views} ${r.views === 1 ? 'view' : 'views'}` : '';
+            const raisedText = r.raised ? `💰 ${currency}${Number(r.raised).toLocaleString()}` : '';
+            
+            return `
+            <div class="map-card">
+              <img src="${r.mapImageUrl}" alt="${r.routeName}">
+              <div class="map-card-label">
+                <span>${r.routeName || 'Route'}</span>
+                <span class="date">${fmtDate(r.date)}</span>
+              </div>
+              <div class="map-card-stats">
+                <span>${viewsText}</span>
+                <span style="color:var(--gold);">${raisedText}</span>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  }
+
+  h += '<div class="section-divider"></div>';
+
+  // ── DIGITAL REACH ──
+  h += `
+    <div class="section">
+      <div class="section-head">
+        <span class="icon">📊</span>
+        <h2>Digital Reach</h2>
+      </div>`;
+
+  if (hasDigital) {
+    h += '<div class="reach-row">';
+    if (totalViews) h += `<div class="reach-item"><div class="icon">🌐</div><div class="number">${totalViews}</div><div class="label">Tracker Page Views</div></div>`;
+    if (socialFollowers) h += `<div class="reach-item"><div class="icon">📱</div><div class="number">${socialFollowers}</div><div class="label">Social Followers</div></div>`;
+    if (socialReach) h += `<div class="reach-item"><div class="icon">👀</div><div class="number">${socialReach}</div><div class="label">Total Social Reach</div></div>`;
+    if (webViews) h += `<div class="reach-item"><div class="icon">💻</div><div class="number">${webViews}</div><div class="label">Website Views</div></div>`;
+    if (desktopMobile) h += `<div class="reach-item"><div class="icon">📱💻</div><div class="number" style="font-family:'DM Sans', sans-serif; font-size:36px; font-weight:800; padding-top:10px;">${desktopMobile}</div><div class="label">Desktop / Mobile %</div></div>`;
+    if (popularRoute) h += `<div class="reach-item"><div class="icon">🏆</div><div class="number" style="font-family:'DM Sans', sans-serif; font-size:24px; font-weight:800; padding-top:20px; line-height:1.2; word-wrap:break-word;">${popularRoute}</div><div class="label">Most Viewed Route</div></div>`;
+    if (sponsorClicks > 0) h += `<div class="reach-item"><div class="icon">🖱️</div><div class="number">${sponsorClicks.toLocaleString()}</div><div class="label">Sponsor Link Clicks</div></div>`;
+    if (peakViewers) h += `<div class="reach-item"><div class="icon">🔥</div><div class="number">${peakViewers}</div><div class="label">Peak Live Trackers</div></div>`;
+    if (totalMessages > 0) h += `<div class="reach-item"><div class="icon">💬</div><div class="number">${totalMessages.toLocaleString()}</div><div class="label">Messages to Santa</div></div>`;
+    if (giftAidDeclarations > 0) h += `<div class="reach-item"><div class="icon">📝</div><div class="number">${giftAidDeclarations}</div><div class="label">Gift Aid Forms</div></div>`;    
+    h += '</div>';
+  } else {
+    h += `<div class="reach-row"><div class="reach-empty">Add analytics data to your Settings sheet to populate this section.<br>Keys: <code>wrap_total_views</code>, <code>wrap_social_followers</code>, etc.</div></div>`;
+  }
+
+  h += '</div>';
+
+  // ── SPONSORS ──
+  if (sponsorUrls.length) {
+    h += `
+      <div class="section-divider"></div>
+      <div class="section">
+        <div class="section-head">
+          <span class="icon">🤝</span>
+          <h2>Thank You to Our Sponsors</h2>
+        </div>
+        <div class="sponsors-row">
+          ${sponsorUrls.map(url => `
+            <div class="sponsor-card">
+              <img src="${url}" alt="Sponsor">
+            </div>`).join('')}
+        </div>
+      </div>`;
+  }
+
+  // ── YEAR-ON-YEAR COMPARISON ──
+  h += `
+    <div class="section-divider"></div>
+    <div class="section">
+      <div class="section-head">
+        <span class="icon">📈</span>
+        <h2>Year-on-Year Comparison</h2>
+      </div>
+      <div class="comparison-grid" id="comparisonGrid">`;
+
+  if (_seasonHistory.length === 0) {
+    h += `<div class="no-history">
+      <strong>No historical data yet</strong>
+      This section will show year-on-year charts once you have saved at least one season snapshot.<br><br>
+      When you're done reviewing this report, click <strong>📸 Snapshot Season</strong> above to save this season's data.
+      Next year, this section will automatically populate with comparison charts.
+    </div>`;
+  } else {
+    const allSeasons = [..._seasonHistory];
+    const currentExists = allSeasons.some(s => String(s.year) === String(year));
+    if (!currentExists) {
+      allSeasons.push({
+        year,
+        raised: totalRaised,
+        routes: routeCount,
+        streets: uniqueStreets,
+        totalViews: totalViews || 0,
+        messages: totalMessages || 0,
+        volunteers: volunteers || 0
+      });
+    }
+    allSeasons.sort((a, b) => Number(a.year) - Number(b.year));
+
+    const labels = allSeasons.map(s => s.year);
+    const gold = '#FBAF33';
+    const red = '#d31c1c';
+    const green = '#2ecc71';
+    const blue = '#4a9eff';
+    const purple = '#a78bfa';
+    const teal = '#2dd4bf';
+
+    const charts = [
+      { id: 'chartRaised',    label: '💰 Raised (£)',        data: allSeasons.map(s => Number(s.raised) || 0),      color: gold },
+      { id: 'chartRoutes',    label: '✅ Routes Completed', data: allSeasons.map(s => Number(s.routes) || 0),      color: red },
+      { id: 'chartStreets',   label: '🏘️ Streets Visited',  data: allSeasons.map(s => Number(s.streets) || 0),     color: green },
+      { id: 'chartViewers',   label: '👁️ Total Views',     data: allSeasons.map(s => Number(s.totalViews) || 0), color: blue }, 
+      { id: 'chartMessages',  label: '💬 Messages to Santa', data: allSeasons.map(s => Number(s.messages) || 0), color: purple }, 
+      { id: 'chartVolunteers',label: '🙋 Volunteers',       data: allSeasons.map(s => Number(s.volunteers) || 0),  color: teal }
+    ];
+
+    charts.forEach(c => {
+      h += `<div class="chart-card"><h4>${c.label}</h4><canvas id="${c.id}" height="160"></canvas></div>`;
+    });
+
+    h += `<script id="chartConfig" type="application/json">${JSON.stringify({ labels, charts: charts.map(c => ({ id: c.id, data: c.data, color: c.color })) })}\<\/script>`;
+  }
+
+  h += `</div></div>`;
+
+  // ── FOOTER ──
+  h += `
+    <div class="report-footer">
+      ${logo ? `<img src="${logo}" alt="">` : ''}
+      ${sleighName} · Season Report ${year} · TurboSanta
+    </div>`;
+
+  h += '</div>';
+
+  document.getElementById('app').innerHTML = h;
+
+  _snapshotData = {
+    year,
+    raised: totalRaised,
+    netRaised: netRaised,
+    expenses: totalExpenses,
+    routes: routeCount,
+    streets: uniqueStreets,
+    totalViews: totalViews || '', 
+    messages: totalMessages || '', 
+    volunteers: volunteers || ''
+  };
+
+  const configEl = document.getElementById('chartConfig');
+  if (configEl) {
+    try {
+      const cfg = JSON.parse(configEl.textContent);
+      cfg.charts.forEach(c => {
+        const canvas = document.getElementById(c.id);
+        if (!canvas) return;
+        const isMobile = window.innerWidth < 500;
+        
+        Chart.defaults.font.family = "'DM Mono', monospace";
+        
+        new Chart(canvas, {
+          type: 'bar',
+          data: {
+            labels: cfg.labels,
+            datasets: [{
+              data: c.data,
+              backgroundColor: c.color + '33',
+              borderColor: c.color,
+              borderWidth: 2,
+              borderRadius: 6,
+              borderSkipped: false
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: {
+                ticks: { color: 'rgba(255,255,255,0.5)', font: { size: isMobile ? 10 : 11, weight: '700' } },
+                grid: { color: 'rgba(255,255,255,0.05)' }
+              },
+              y: {
+                ticks: { color: 'rgba(255,255,255,0.5)', font: { size: isMobile ? 9 : 10, family: "'DM Sans', sans-serif", weight: '600' } },
+                grid: { color: 'rgba(255,255,255,0.05)' },
+                beginAtZero: true
+              }
+            }
+          }
+        });
+        canvas.parentElement.style.height = isMobile ? '140px' : '180px';
+      });
+    } catch(e) { console.warn('Chart render error:', e); }
+  }
+
+  setTimeout(() => {
+    document.getElementById('loader').classList.add('done');
+  }, 300);
+}
+
+async function snapshotSeason() {
+  const api = getApiUrl();
+  if (!api) { alert('No API URL found.'); return; }
+  if (!_snapshotData) { alert('Report data not loaded yet. Please wait and try again.'); return; }
+
+  const btn = document.getElementById('snapshotBtn');
+
+  const confirmed = confirm(
+    `📸 Snapshot ${_snapshotData.year} Season?\n\n` +
+    `This will save the following to your Season History tab:\n\n` +
+    `Year: ${_snapshotData.year}\n` +
+    `Raised: £${Number(_snapshotData.raised).toLocaleString()}\n` +
+    `Routes: ${_snapshotData.routes}\n` +
+    `Streets: ${_snapshotData.streets}\n` +
+    `Total Views: ${_snapshotData.totalViews || '—'}\n` + 
+    `Messages to Santa: ${_snapshotData.messages || '—'}\n` + 
+    `Volunteers: ${_snapshotData.volunteers || '—'}\n\n` +
+    `This cannot be undone. Continue?`
+  );
+  if (!confirmed) return;
+
+  const secret = prompt('🔐 Enter your God Mode password to save the snapshot:');
+  if (!secret) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  try {
+    const response = await fetch(api, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'snapshotSeason', secret, ..._snapshotData })
+    });
+    const result = await response.json();
+
+    if (result.ok) {
+      btn.textContent = '✅ Saved!';
+      btn.classList.add('saved');
+      setTimeout(() => location.reload(), 1500);
+    } else {
+      alert('Failed to save: ' + (result.error || 'Unknown error'));
+      btn.disabled = false;
+      btn.textContent = '📸 Snapshot Season';
+    }
+  } catch(e) {
+    alert('Connection failed. Check your API URL and try again.');
+    btn.disabled = false;
+    btn.textContent = '📸 Snapshot Season';
+  }
+}
+</script>
+</body>
+</html>

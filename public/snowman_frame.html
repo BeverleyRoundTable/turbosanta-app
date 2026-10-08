@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TurboSanta — My Snowman Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --gold: #FBAF33;
+    --gold-dim: rgba(251,175,51,0.12);
+    --gold-glow: rgba(251,175,51,0.25);
+    --dark: #0d0d0b;
+    --surface: #161614;
+    --surface-2: #1e1e1b;
+    --surface-3: #252522;
+    --border: rgba(255,255,255,0.08);
+    --border-gold: rgba(251,175,51,0.2);
+    --text: #eaeae5;
+    --text-dim: rgba(255,255,255,0.55);
+    --text-muted: rgba(255,255,255,0.3);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 24px;
+    font-family: 'DM Sans', sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    text-align: center;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .card {
+    background: var(--surface);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    padding: 40px 32px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    max-width: 600px;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Subtle background glow effect */
+  .card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(251,175,51,0.05) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .card > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    background: var(--gold-dim);
+    color: var(--gold);
+    border: 1px solid var(--border-gold);
+    margin-bottom: 20px;
+  }
+
+  .card h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(36px, 6vw, 56px);
+    letter-spacing: 3px;
+    line-height: 0.9;
+    color: #fff;
+    margin: 0 0 12px 0;
+  }
+
+  .card h2 span {
+    color: var(--gold);
+  }
+
+  .helper-text {
+    font-size: 15px;
+    color: var(--text-dim);
+    margin: 0 auto 24px;
+    max-width: 400px;
+    line-height: 1.5;
+  }
+
+  .upload-label {
+    display: inline-block;
+    margin: 0 auto 24px;
+    padding: 14px 28px;
+    border-radius: 8px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text);
+    transition: all 0.2s ease;
+  }
+
+  .upload-label:hover {
+    border-color: var(--gold);
+    background: var(--surface-3);
+  }
+
+  .upload-label:active {
+    transform: scale(0.98);
+  }
+
+  .upload-label input {
+    display: none;
+  }
+  
+  .upload-label:focus-within {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px var(--gold-glow);
+  }
+
+  .actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 8px;
+  }
+
+  button {
+    height: 48px;
+    padding: 0 32px;
+    border-radius: 8px;
+    border: none;
+    background: var(--gold);
+    color: #000;
+    font-weight: 700;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+
+  button:hover:not(:disabled) {
+    background: #e59d28;
+    transform: translateY(-2px);
+  }
+
+  button:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: var(--surface-3);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+
+  /* Secondary Button Styling for Download */
+  #downloadBtn {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  #downloadBtn:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: var(--surface-2);
+  }
+
+  canvas {
+    display: block;
+    margin: 24px auto 0;
+    max-width: 100%;
+    touch-action: none;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+
+  /* Success Animations */
+  @keyframes santaGlow {
+    0% { border-color: var(--border); box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+    50% { border-color: var(--gold); box-shadow: 0 0 30px var(--gold-glow); }
+    100% { border-color: var(--border); box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+  }
+
+  .card.success {
+    animation: santaGlow 1.4s ease-out;
+  }
+
+  /* Iframe / Embed Overrides */
+  body.embed {
+    background: transparent;
+    padding: 0;
+  }
+
+  body.embed .card {
+    border: none;
+    box-shadow: none;
+    background: transparent;
+    padding: 24px 0;
+  }
+</style>
+</head>
+
+<body>
+
+<div class="card">
+  <div class="hero-badge">📸 Photo Booth</div>
+  <h2>MY <span>SNOWMAN</span></h2>
+
+  <p class="helper-text">
+    Upload a picture of your face to place inside the frame. Drag to move, and scroll or pinch to zoom. ❄️
+  </p>
+
+  <label class="upload-label">
+    📸 Upload your face
+    <input id="photoInput" type="file" accept="image/*">
+  </label>
+
+  <div class="actions">
+    <button id="generateBtn" disabled>Create Image</button>
+    <button id="downloadBtn" style="display:none">⬇ Download image</button>
+  </div>
+
+  <canvas id="canvas" width="1000" height="1000"></canvas>
+</div>
+
+<script>
+/* ================= CONFIG ================= */
+const isEmbedded = window.self !== window.top;
+if (isEmbedded) {
+  document.body.classList.add("embed");
+}
+
+let faceScale = 1;
+let faceOffsetX = 0;
+let faceOffsetY = 0;
+
+let minZoom = 1;
+let maxZoom = 3;
+
+let dragging = false;
+let lastX = 0;
+let lastY = 0;
+let currentPhoto = null;
+let snowmanReady = false;
+let frameReady = false;
+let pinchStartDist = null;
+let pinchStartScale = 1;
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+ctx.imageSmoothingQuality = "high";
+
+const FRAME_SRC = "https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/sleigh/my_snowman.png";
+
+/* Face cut-out in the frame */
+const FACE = {
+  x: 658,
+  y: 547,
+  size: 166
+};
+
+/* Snowman placement (left side) */
+const SNOWMAN = {
+  x: 160,
+  y: 380,
+  width: 420,
+  height: 560
+};
+
+/* ======================================== */
+
+const snowmanData = localStorage.getItem("snowmanPNG");
+
+if (!snowmanData) {
+  alert("No snowman found — please build one first.");
+}
+
+const snowmanImg = new Image();
+snowmanImg.onload = () => {
+  snowmanReady = true;
+};
+snowmanImg.src = snowmanData;
+
+const frameImg = new Image();
+frameImg.crossOrigin = "anonymous";
+frameImg.onload = () => {
+  frameReady = true;
+};
+frameImg.src = FRAME_SRC;
+
+const photoInput = document.getElementById("photoInput");
+const generateBtn = document.getElementById("generateBtn");
+const downloadBtn = document.getElementById("downloadBtn");
+  
+photoInput.addEventListener("change", () => {
+  generateBtn.disabled = !photoInput.files.length;
+});
+
+generateBtn.onclick = generate;
+
+function generate(){
+  if (!photoInput.files.length) return;
+
+  generateBtn.disabled = true;
+  generateBtn.textContent = "Creating image…";
+
+  const photo = new Image();
+  photo.onload = () => {
+    currentPhoto = photo;
+
+    // calculate minimum zoom so photo always fills face hole
+    minZoom = Math.max(
+      FACE.size / photo.width,
+      FACE.size / photo.height
+    );
+
+    // allow strong zoom for distant photos, but cap it
+    maxZoom = Math.min(minZoom * 4, 4);
+
+    // sensible starting point
+    faceScale = Math.max(minZoom * 1.2, 1);
+    faceOffsetX = 0;
+    faceOffsetY = 0;
+
+    const wait = setInterval(() => {
+      if (snowmanReady && frameReady) {
+        clearInterval(wait);
+        draw(photo);
+        downloadBtn.style.display = "inline-flex";
+        generateBtn.disabled = false;
+        generateBtn.textContent = "Replace photo";
+
+        // ✨ Success pulse
+        const card = document.querySelector(".card");
+        if (card) {
+          card.classList.remove("success");
+          void card.offsetWidth; // Trigger reflow
+          card.classList.add("success");
+        }
+      }
+    }, 50);
+  };
+
+  photo.src = URL.createObjectURL(photoInput.files[0]);
+}
+
+function draw(photo){
+  if (!snowmanReady || !frameReady) return;
+  ctx.clearRect(0, 0, 1000, 1000);
+
+  /* ---------- FRAME FIRST ---------- */
+  ctx.drawImage(frameImg, 0, 0, 1000, 1000);
+
+  /* ---------- FACE (behind hole) ---------- */
+  ctx.save();
+
+  ctx.beginPath();
+  ctx.arc(
+    FACE.x + FACE.size / 2,
+    FACE.y + FACE.size / 2,
+    FACE.size / 2,
+    0,
+    Math.PI * 2
+  );
+  ctx.clip();
+
+  // draw full image, scaled + panned
+  const drawW = photo.width * faceScale;
+  const drawH = photo.height * faceScale;
+
+  const drawX =
+    FACE.x + FACE.size / 2 - drawW / 2 + faceOffsetX;
+  const drawY =
+    FACE.y + FACE.size / 2 - drawH / 2 + faceOffsetY;
+
+  ctx.drawImage(photo, drawX, drawY, drawW, drawH);
+
+  ctx.restore();
+
+  /* ---------- CUSTOM SNOWMAN ON TOP ---------- */
+  ctx.drawImage(
+    snowmanImg,
+    SNOWMAN.x,
+    SNOWMAN.y,
+    SNOWMAN.width,
+    SNOWMAN.height
+  );
+
+  generateBtn.disabled = false;
+  generateBtn.textContent = "Replace photo";
+
+  sendHeight(40);
+}
+
+/* ---------- iframe auto-height ---------- */
+function sendHeight(extra = 0){
+  const card = document.querySelector(".card");
+  if (!card) return;
+  
+  // Measure the actual card content, independent of the iframe window size
+  const rect = card.getBoundingClientRect();
+  const h = Math.ceil(rect.height) + extra;
+  
+  parent.postMessage({ snowmanFrameHeight: h }, "*");
+}
+
+window.addEventListener("load", () => sendHeight(40));
+window.addEventListener("resize", () => sendHeight(40));
+
+// ================= FACE INTERACTION =================
+
+canvas.addEventListener("mousedown", e => {
+  dragging = true;
+  lastX = e.offsetX;
+  lastY = e.offsetY;
+});
+
+canvas.addEventListener("mousemove", e => {
+  if (!dragging || !currentPhoto) return;
+  faceOffsetX += e.offsetX - lastX;
+  faceOffsetY += e.offsetY - lastY;
+  lastX = e.offsetX;
+  lastY = e.offsetY;
+  draw(currentPhoto);
+});
+
+canvas.addEventListener("mouseup", () => dragging = false);
+canvas.addEventListener("mouseleave", () => dragging = false);
+
+// Touch support
+canvas.addEventListener("touchstart", e => {
+  if (!currentPhoto) return;
+
+  if (e.touches.length === 1) {
+    // single finger drag
+    dragging = true;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    lastX = (e.touches[0].clientX - rect.left) * scaleX;
+    lastY = (e.touches[0].clientY - rect.top) * scaleY;
+  }
+
+  if (e.touches.length === 2) {
+    // pinch start
+    dragging = false;
+    pinchStartDist = getTouchDistance(e.touches);
+    pinchStartScale = faceScale;
+  }
+}, { passive:false });
+
+canvas.addEventListener("touchmove", e => {
+  if (!currentPhoto) return;
+  e.preventDefault();
+
+  if (e.touches.length === 1 && dragging) {
+    // drag
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    const x = (e.touches[0].clientX - rect.left) * scaleX;
+    const y = (e.touches[0].clientY - rect.top) * scaleY;
+
+    faceOffsetX += x - lastX;
+    faceOffsetY += y - lastY;
+
+    lastX = x;
+    lastY = y;
+
+    draw(currentPhoto);
+  }
+
+  if (e.touches.length === 2) {
+    const dist = getTouchDistance(e.touches);
+    const scaleChange = dist / pinchStartDist;
+
+    faceScale = pinchStartScale * scaleChange;
+    faceScale = Math.min(Math.max(faceScale, minZoom), maxZoom);
+
+    draw(currentPhoto);
+  }
+
+}, { passive:false });
+
+// Zoom (mouse / trackpad)
+canvas.addEventListener("wheel", e => {
+  e.preventDefault();
+  faceScale += e.deltaY * -0.001;
+  faceScale = Math.min(Math.max(faceScale, minZoom), maxZoom);
+  if (currentPhoto) draw(currentPhoto);
+}, { passive:false });
+
+downloadBtn.onclick = () => {
+  const a = document.createElement("a");
+  a.download = "my_snowman.png";
+  a.href = canvas.toDataURL("image/png");
+  a.click();
+
+  // 🧹 Clean up so refresh starts fresh
+  localStorage.removeItem("snowmanPNG");
+};
+
+function getTouchDistance(touches) {
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+  
+</script>
+
+</body>
+</html>

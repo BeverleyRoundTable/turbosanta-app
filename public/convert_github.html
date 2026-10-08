@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GitHub Raw Link Converter</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #FBAF33;
+      --primary-rgb: 251, 175, 51;
+      --on-primary: #000000;
+      --primary-dim: rgba(var(--primary-rgb), 0.12);
+      --primary-glow: rgba(var(--primary-rgb), 0.25);
+      --dark: #0d0d0b;
+      --surface: #161614;
+      --surface-2: #1e1e1b;
+      --border: rgba(255,255,255,0.08);
+      --border-primary: rgba(var(--primary-rgb), 0.2);
+      --text: #eaeae5;
+      --text-dim: rgba(255,255,255,0.55);
+      --red: #D31C1C;
+      --green: #2ecc71;
+      --text-muted: rgba(255,255,255,0.3);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 40px 12px 60px; 
+      background: var(--dark); 
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-y: auto;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #app-root {
+      width: 100%;
+      max-width: 700px;
+      padding: 32px 24px;
+      background: var(--surface);
+      border-radius: 16px;
+      border: 1px solid var(--border-primary);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    }
+
+    h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 42px;
+      letter-spacing: 1.5px;
+      color: #fff;
+      text-align: center;
+      margin: 0 0 8px;
+    }
+
+    .instruction-text {
+      text-align: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 28px;
+    }
+
+    /* ── INPUT ── */
+    .search-wrap { position: relative; width: 100%; margin-bottom: 24px; }
+
+    .search-input {
+      width: 100%;
+      height: 58px;
+      padding: 0 20px 0 48px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      color: #fff;
+      font-family: 'DM Mono', monospace;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
+    .search-input::placeholder { color: var(--text-muted); font-family: 'DM Sans', sans-serif; }
+
+    .search-icon {
+      position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
+      font-size: 18px; pointer-events: none; opacity: 0.7;
+    }
+
+    /* ── RESULTS CARD ── */
+    #results { display: none; }
+    
+    .route-card {
+      background: var(--surface-2);
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      padding: 24px;
+      margin: 0;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .route-card:hover {
+      box-shadow: 0 6px 16px rgba(var(--primary-rgb), 0.15); 
+      border-color: rgba(var(--primary-rgb), 0.5);
+    }
+    .route-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: var(--primary);
+    }
+
+    .route-title {
+      margin: 0 0 12px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      letter-spacing: 1px;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .raw-url-output {
+      margin: 0 0 20px;
+      padding: 12px 16px;
+      background: var(--surface);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-family: 'DM Mono', monospace;
+      font-size: 14px;
+      color: var(--primary);
+      word-break: break-all;
+    }
+
+    /* ── BUTTONS ── */
+    .btn-row { display: flex; gap: 12px; }
+
+    .btn {
+      flex: 1; padding: 14px; border-radius: 12px; border: none;
+      font-weight: 900; font-size: 20px; letter-spacing: 1.5px; font-family: 'Bebas Neue', sans-serif;
+      cursor: pointer; text-align: center; text-decoration: none;
+      display: inline-flex; justify-content: center; align-items: center; gap: 8px;
+      transition: transform 0.1s, background 0.2s, filter 0.2s;
+    }
+    .btn:active { transform: scale(0.97); }
+
+    .btn-primary { background: var(--primary); color: var(--on-primary); }
+    .btn-primary:hover { filter: brightness(0.92); }
+
+    .btn-ghost { background: var(--surface); color: #fff; border: 1px solid var(--border); }
+    .btn-ghost:hover { background: var(--dark); border-color: var(--text-dim); }
+
+    /* ── PREVIEW ── */
+    .image-preview {
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      display: none;
+      text-align: center;
+    }
+    .image-preview img {
+      max-width: 100%;
+      max-height: 300px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .preview-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+
+    .error-msg {
+      color: var(--red);
+      font-weight: 600;
+      text-align: center;
+      margin-top: 16px;
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app-root">
+    <h1>GitHub Raw Linker</h1>
+    <div class="instruction-text">Convert GitHub Blob URLs to Raw Files</div>
+
+    <div class="search-wrap">
+      <span class="search-icon">🔗</span>
+      <input type="text" id="urlInput" class="search-input" placeholder="Paste GitHub blob link here..." autocomplete="off">
+    </div>
+    
+    <div id="errorMsg" class="error-msg">Hmm, that doesn't look like a valid GitHub blob link.</div>
+
+    <div id="results">
+      <div class="route-card">
+        <h3 class="route-title">Raw Link Generated</h3>
+        <div class="raw-url-output" id="rawOutput"></div>
+        
+        <div class="btn-row">
+          <button type="button" class="btn btn-primary" id="copyBtn">
+            <span id="copyIcon">📋</span> <span id="copyText">Copy Link</span>
+          </button>
+          <a href="#" target="_blank" class="btn btn-ghost" id="openBtn">
+            🌐 Open in Tab
+          </a>
+        </div>
+
+        <div class="image-preview" id="previewArea">
+          <div class="preview-label">Image Preview</div>
+          <img id="imgPreview" src="" alt="Raw Image Preview" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const urlInput = document.getElementById('urlInput');
+    const resultsDiv = document.getElementById('results');
+    const errorMsg = document.getElementById('errorMsg');
+    const rawOutput = document.getElementById('rawOutput');
+    const openBtn = document.getElementById('openBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const copyText = document.getElementById('copyText');
+    const copyIcon = document.getElementById('copyIcon');
+    const previewArea = document.getElementById('previewArea');
+    const imgPreview = document.getElementById('imgPreview');
+
+    const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp'];
+
+    function convertUrl() {
+      const val = urlInput.value.trim();
+      
+      if (!val) {
+        resultsDiv.style.display = 'none';
+        errorMsg.style.display = 'none';
+        return;
+      }
+
+      try {
+        const parsed = new URL(val);
+        
+        // Ensure it's a GitHub link containing /blob/
+        if (parsed.hostname === 'github.com' && parsed.pathname.includes('/blob/')) {
+          errorMsg.style.display = 'none';
+          
+          // Switch host and format path
+          parsed.hostname = 'raw.githubusercontent.com';
+          parsed.pathname = parsed.pathname.replace('/blob/', '/');
+          
+          const rawUrl = parsed.toString();
+          
+          // Update UI
+          rawOutput.textContent = rawUrl;
+          openBtn.href = rawUrl;
+          resultsDiv.style.display = 'block';
+
+          // Check if it's an image for the preview
+          const isImage = imageExtensions.some(ext => parsed.pathname.toLowerCase().endsWith(ext));
+          if (isImage) {
+            imgPreview.src = rawUrl;
+            previewArea.style.display = 'block';
+          } else {
+            previewArea.style.display = 'none';
+            imgPreview.src = '';
+          }
+          
+        } else {
+          resultsDiv.style.display = 'none';
+          errorMsg.style.display = 'block';
+        }
+      } catch (e) {
+        // Invalid URL format
+        resultsDiv.style.display = 'none';
+        errorMsg.style.display = 'block';
+      }
+    }
+
+    // Auto-convert on paste or typing
+    urlInput.addEventListener('input', convertUrl);
+
+    // Copy to clipboard logic
+    copyBtn.addEventListener('click', () => {
+      const url = rawOutput.textContent;
+      if (!url) return;
+
+      navigator.clipboard.writeText(url).then(() => {
+        copyText.textContent = 'Copied!';
+        copyIcon.textContent = '✅';
+        copyBtn.style.filter = 'brightness(1.1)';
+        
+        setTimeout(() => {
+          copyText.textContent = 'Copy Link';
+          copyIcon.textContent = '📋';
+          copyBtn.style.filter = '';
+        }, 2000);
+      }).catch(err => {
+        alert("Failed to copy link. Please select the text and copy manually.");
+      });
+    });
+  </script>
+</body>
+</html>

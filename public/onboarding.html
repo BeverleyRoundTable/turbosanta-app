@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TurboSanta — Comprehensive Onboarding Guide v3.9</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gold: #FBAF33;
+      --gold-dim: #c48b20;
+      --gold-glow: rgba(251,175,51,0.15);
+      --grey-dark: #1D1D1A;
+      --grey-mid: #2a2a27;
+      --grey-card: #242421;
+      --grey-border: #333330;
+      --grey-muted: #6b6b66;
+      --red: #D31C1C;
+      --red-dim: rgba(211,28,28,0.12);
+      --green: #2ecc71;
+      --green-dim: rgba(46,204,113,0.12);
+      --blue: #4a9eff;
+      --blue-dim: rgba(74,158,255,0.12);
+      --text: #e8e8e3;
+      --text-muted: #a0a09a;
+      --sidebar-w: 280px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--grey-dark); color: var(--text); line-height: 1.7; font-size: 15px; }
+
+    #sidebar { position: fixed; top: 0; left: 0; width: var(--sidebar-w); height: 100vh; background: var(--grey-mid); border-right: 1px solid var(--grey-border); overflow-y: auto; z-index: 100; display: flex; flex-direction: column; }
+    .sidebar-header { padding: 28px 24px 20px; border-bottom: 1px solid var(--grey-border); background: var(--grey-dark); }
+    .sidebar-logo { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 2px; color: var(--gold); line-height: 1; margin-bottom: 4px; }
+    .sidebar-version { font-size: 11px; color: var(--grey-muted); letter-spacing: 1px; text-transform: uppercase; }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .nav-section-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--grey-muted); padding: 12px 24px 4px; display: block; }
+    .nav-link { display: flex; align-items: center; gap: 10px; padding: 8px 24px; color: var(--text-muted); text-decoration: none; font-size: 13.5px; font-weight: 500; transition: all 0.15s; border-left: 3px solid transparent; line-height: 1.3; }
+    .nav-link:hover { color: var(--gold); background: var(--gold-glow); border-left-color: var(--gold); }
+    .nav-link .nav-num { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--gold); min-width: 18px; opacity: 0.7; }
+
+    #main { margin-left: var(--sidebar-w); min-height: 100vh; }
+
+    .hero { background: var(--grey-dark); border-bottom: 1px solid var(--grey-border); padding: 64px 56px 52px; position: relative; overflow: hidden; }
+    .hero::before { content: '🎅'; position: absolute; right: 48px; top: 50%; transform: translateY(-50%); font-size: 120px; opacity: 0.06; pointer-events: none; }
+    .hero-eyebrow { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); font-weight: 600; margin-bottom: 12px; }
+    .hero-title { font-family: 'Bebas Neue', sans-serif; font-size: 64px; letter-spacing: 3px; color: #fff; line-height: 0.95; margin-bottom: 16px; }
+    .hero-title span { color: var(--gold); }
+    .hero-subtitle { font-size: 17px; color: var(--text-muted); max-width: 540px; line-height: 1.6; margin-bottom: 28px; }
+    .hero-badges { display: flex; gap: 10px; flex-wrap: wrap; }
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; letter-spacing: 0.3px; }
+    .badge-gold { background: var(--gold-glow); color: var(--gold); border: 1px solid rgba(251,175,51,0.3); }
+    .badge-grey { background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--grey-border); }
+
+    .content { padding: 48px 56px; max-width: 860px; }
+
+    .section { margin-bottom: 56px; scroll-margin-top: 24px; }
+    .section-header { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--grey-border); }
+    .section-num { font-family: 'Bebas Neue', sans-serif; font-size: 40px; color: var(--gold); opacity: 0.4; line-height: 1; min-width: 36px; padding-top: 2px; }
+    .section-icon { font-size: 22px; margin-bottom: 4px; display: block; }
+    h2.section-title { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 1.5px; color: #fff; line-height: 1; margin-bottom: 4px; }
+    .section-desc { font-size: 13.5px; color: var(--text-muted); font-weight: 400; }
+
+    h3.sub-title { font-size: 16px; font-weight: 700; color: var(--gold); margin: 28px 0 12px; display: flex; align-items: center; gap: 8px; }
+    h3.sub-title::before { content: ''; display: inline-block; width: 3px; height: 16px; background: var(--gold); border-radius: 2px; }
+
+    p { margin-bottom: 14px; color: var(--text); }
+    p:last-child { margin-bottom: 0; }
+
+    .callout { border-radius: 8px; padding: 16px 20px; margin: 20px 0; display: flex; gap: 14px; align-items: flex-start; }
+    .callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .callout-body { flex: 1; }
+    .callout-body strong { font-size: 13px; font-weight: 700; display: block; margin-bottom: 4px; letter-spacing: 0.3px; text-transform: uppercase; }
+    .callout-body p { font-size: 13.5px; color: inherit; margin-bottom: 0; }
+    .callout-warning { background: var(--red-dim); border: 1px solid rgba(211,28,28,0.3); color: #f5a5a5; }
+    .callout-warning strong { color: var(--red); }
+    .callout-info { background: var(--blue-dim); border: 1px solid rgba(74,158,255,0.25); color: #a5c8f5; }
+    .callout-info strong { color: var(--blue); }
+    .callout-tip { background: var(--gold-glow); border: 1px solid rgba(251,175,51,0.25); color: #f0d49a; }
+    .callout-tip strong { color: var(--gold); }
+    .callout-success { background: var(--green-dim); border: 1px solid rgba(46,204,113,0.25); color: #a5e8c3; }
+    .callout-success strong { color: var(--green); }
+
+    .steps { counter-reset: steps; list-style: none; margin: 16px 0; }
+    .steps li { counter-increment: steps; display: flex; align-items: flex-start; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--grey-border); font-size: 14px; }
+    .steps li:last-child { border-bottom: none; }
+    .steps li::before { content: counter(steps); font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: var(--gold); background: var(--gold-glow); border: 1px solid rgba(251,175,51,0.3); width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; line-height: 1; padding-top: 1px; }
+    .steps li p { margin: 0; font-size: 14px; padding-top: 4px; }
+
+    .bullet-list { list-style: none; margin: 12px 0; padding: 0; }
+    .bullet-list li { display: flex; gap: 10px; align-items: flex-start; padding: 5px 0; font-size: 14px; color: var(--text); }
+    .bullet-list li::before { content: '▸'; color: var(--gold); flex-shrink: 0; margin-top: 2px; font-size: 12px; }
+
+    .code-block { background: #111110; border: 1px solid var(--grey-border); border-radius: 8px; margin: 16px 0; overflow: hidden; }
+    .code-block-header { background: var(--grey-mid); padding: 8px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--grey-border); }
+    .code-lang { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--gold); }
+    .code-label { font-size: 11px; color: var(--grey-muted); }
+    .code-block pre { padding: 20px; overflow-x: auto; font-family: 'DM Mono', monospace; font-size: 12.5px; line-height: 1.7; color: #c9c9c4; }
+
+    .kv-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13.5px; }
+    .kv-table th { text-align: left; padding: 10px 14px; background: var(--grey-mid); color: var(--gold); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600; border-bottom: 1px solid var(--grey-border); }
+    .kv-table td { padding: 10px 14px; border-bottom: 1px solid var(--grey-border); color: var(--text); vertical-align: top; }
+    .kv-table td:first-child { font-family: 'DM Mono', monospace; font-size: 12.5px; color: var(--gold); white-space: nowrap; min-width: 180px; }
+    .kv-table tr:last-child td { border-bottom: none; }
+    .kv-table tbody tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+    .card { background: var(--grey-card); border: 1px solid var(--grey-border); border-radius: 8px; padding: 16px 18px; }
+    .card-icon { font-size: 20px; margin-bottom: 8px; display: block; }
+    .card-title { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .card-desc { font-size: 12.5px; color: var(--text-muted); line-height: 1.5; }
+
+    .device-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+    .device-card { border-radius: 8px; padding: 18px 20px; }
+    .device-card.device-a { background: var(--blue-dim); border: 1px solid rgba(74,158,255,0.2); }
+    .device-card.device-b { background: var(--green-dim); border: 1px solid rgba(46,204,113,0.2); }
+    .device-label { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 1px; margin-bottom: 4px; }
+    .device-a .device-label { color: var(--blue); }
+    .device-b .device-label { color: var(--green); }
+    .device-name { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 10px; }
+    .device-desc { font-size: 12.5px; color: var(--text-muted); margin-bottom: 8px; line-height: 1.5; }
+    .device-operator { font-size: 12px; color: var(--text-muted); font-style: italic; }
+
+    .colour-row { display: flex; gap: 12px; margin: 16px 0; }
+    .colour-swatch { flex: 1; border-radius: 8px; overflow: hidden; border: 1px solid var(--grey-border); }
+    .colour-sample { height: 60px; }
+    .colour-info { padding: 10px 14px; background: var(--grey-card); }
+    .colour-name { font-size: 12px; font-weight: 700; color: #fff; }
+    .colour-hex { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted); }
+    .colour-role { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    .divider { border: none; border-top: 1px solid var(--grey-border); margin: 48px 0; }
+
+    .guide-footer { background: var(--grey-mid); border-top: 1px solid var(--grey-border); padding: 32px 56px; display: flex; justify-content: space-between; align-items: center; }
+    .footer-brand { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; color: var(--gold); }
+    .footer-meta { font-size: 12px; color: var(--grey-muted); }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--grey-dark); }
+    ::-webkit-scrollbar-thumb { background: var(--grey-border); border-radius: 3px; }
+
+    @media (max-width: 900px) {
+      #sidebar { display: none; }
+      #main { margin-left: 0; }
+      .hero { padding: 40px 28px 36px; }
+      .hero-title { font-size: 48px; }
+      .content { padding: 32px 28px; }
+      .cards-grid, .device-grid { grid-template-columns: 1fr; }
+      .guide-footer { flex-direction: column; gap: 8px; text-align: center; padding: 24px 28px; }
+    }
+
+    .tag { display: inline-block; font-family: 'DM Mono', monospace; font-size: 11px; padding: 2px 8px; border-radius: 4px; vertical-align: middle; font-weight: 500; }
+    .tag-gold { background: var(--gold-glow); color: var(--gold); border: 1px solid rgba(251,175,51,0.3); }
+    .tag-red { background: var(--red-dim); color: #f5a5a5; border: 1px solid rgba(211,28,28,0.3); }
+    .tag-blue { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(74,158,255,0.3); }
+
+    em { color: var(--gold); font-style: normal; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<nav id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">🎅 TurboSanta</div>
+    <div class="sidebar-version">Onboarding Guide · v3.9 · September 2026</div>
+  </div>
+  <div class="sidebar-nav">
+    <span class="nav-section-label">Getting Started</span>
+    <a class="nav-link" href="#video-onboarding"><span class="nav-num">✦</span> Video Onboarding</a>
+    <a class="nav-link" href="#prereqs"><span class="nav-num">✦</span> Before You Start</a>
+    <a class="nav-link" href="#command-centre"><span class="nav-num">✦</span> Command Centre</a>
+
+    <span class="nav-section-label">Core Setup</span>
+    <a class="nav-link" href="#wizards"><span class="nav-num">✦</span> Setup Assistant</a>
+    <a class="nav-link" href="#api"><span class="nav-num">01</span> Deploy the API</a>
+    <a class="nav-link" href="#firebase"><span class="nav-num">02</span> Firebase Setup</a>
+    <a class="nav-link" href="#wizards"><span class="nav-num">03</span> Run the Wizards</a>
+    <a class="nav-link" href="#gps-logger"><span class="nav-num">04</span> Sleigh GPS</a>
+
+    <span class="nav-section-label">Configuration</span>
+    <a class="nav-link" href="#advanced"><span class="nav-num">05</span> Advanced Settings</a>
+    <a class="nav-link" href="#settings-ref"><span class="nav-num">05b</span> Settings Key Reference</a>
+    <a class="nav-link" href="#notifications"><span class="nav-num">06</span> Email Notifications</a>
+
+    <span class="nav-section-label">App Ecosystem</span>
+    <a class="nav-link" href="#app-suite"><span class="nav-num">07</span> The Dab Santa Suite</a>
+    <a class="nav-link" href="#route-planner"><span class="nav-num">08</span> Route Planner</a> 
+    <a class="nav-link" href="#mp4"><span class="nav-num">09</span> MP4 Generator</a>
+    <a class="nav-link" href="#wrap-report"><span class="nav-num">10</span> Season Wrap Report</a>
+
+    <span class="nav-section-label">Launch</span>
+    <a class="nav-link" href="#brand"><span class="nav-num">11</span> Brand &amp; Launch</a>
+    <a class="nav-link" href="#scaling"><span class="nav-num">12</span> Scaling &amp; Viral Protection</a>
+    <a class="nav-link" href="#satnav"><span class="nav-num">13</span> Sat-Nav Driver Mode</a>
+    <a class="nav-link" href="#memory-book"><span class="nav-num">14</span> Memory Book</a>
+    <a class="nav-link" href="#magic-mailbox"><span class="nav-num">15</span> Magic Mailbox</a>
+  </div>
+</nav>
+
+<div id="main">
+
+  <header class="hero">
+    <div class="hero-eyebrow">Comprehensive Onboarding Guide</div>
+    <h1 class="hero-title">TURBO<span>SANTA</span><br>MISSION CONTROL</h1>
+    <p class="hero-subtitle">Everything you need to go from a blank Google Sheet to a fully operational live sleigh tracker — routes, donations, notifications, crew logistics, and all the festive extras.</p>
+    <div class="hero-badges">
+      <span class="badge badge-gold">⚡ v3.9</span>
+      <span class="badge badge-grey">📅 Updated September 2026</span>
+      <span class="badge badge-grey">⏱ 5–10 min setup</span>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <section id="video-onboarding" class="section">
+      <div class="section-header">
+        <div class="section-num">✦</div>
+        <div class="section-title-block">
+          <span class="section-icon">▶️</span>
+          <h2 class="section-title">Video Onboarding</h2>
+          <span class="section-desc">Watch the step-by-step video guide</span>
+        </div>
+      </div>
+      <p>If you prefer a visual walkthrough, you can watch the complete video onboarding guide saved in Google Drive.</p>
+      
+      <div class="cards-grid">
+        <div class="card" style="grid-column: 1 / -1;">
+          <span class="card-icon">🎥</span>
+          <div class="card-title">TurboSanta Video Onboarding</div>
+          <div class="card-desc">
+            <a href="https://drive.google.com/file/d/1KAozAD3ZZ22LhJ16-Hsv1r8FLR6JTqRQ/view?usp=sharing" target="_blank" style="color: var(--gold); text-decoration: none; font-weight: 600;">▶ Watch Turbo Santa Onboarding.mp4</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="prereqs" class="section">
+      <div class="section-header">
+        <div class="section-num">✦</div>
+        <div class="section-title-block">
+          <span class="section-icon">🧰</span>
+          <h2 class="section-title">Before You Start</h2>
+          <span class="section-desc">What you'll need before touching anything else</span>
+        </div>
+      </div>
+      <ul class="bullet-list">
+        <li>A Google account (Round Table account preferred)</li>
+        <li>Your own copy of the <em>TurboSanta Master Sheet</em></li>
+        <li>5–10 minutes of uninterrupted setup time</li>
+        <li><em>Optional:</em> GPX route files, sleigh background images, and sponsor logos</li>
+      </ul>
+    </section>
+
+    <section id="command-centre" class="section">
+      <div class="section-header">
+        <div class="section-num">✦</div>
+        <div class="section-title-block">
+          <span class="section-icon">📊</span>
+          <h2 class="section-title">The Command Centre</h2>
+          <span class="section-desc">Your Google Sheet and its tab structure</span>
+        </div>
+      </div>
+      <p>Make your own copy of the TurboSanta Master Sheet (e.g., <em>Beverley TurboSanta</em>). Every tab has a specific job:</p>
+      <table class="kv-table" style="margin-top:16px;">
+        <thead><tr><th>Tab</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td>Landing Page</td><td>Your starting point. Click the Dab Santa image to access all generated links, embeds, and tools.</td></tr>
+          <tr><td>Settings</td><td>Master configuration with four data areas: <strong>Col A/B</strong> = key-value store (all named settings), <strong>Col Q</strong> = route name list for the Donations Wizard dropdown, <strong>Col S</strong> = PA preset messages for God Mode, <strong>Col U</strong> = volunteer roles for the Crew Hub and Certificate Generator. See the <a href="#settings-ref" style="color:var(--gold);">Settings Key Reference</a>.</td></tr>
+          <tr><td>Analytics Dashboard</td><td>Visualises viewer behaviour, device types, and route popularity.</td></tr>
+          <tr><td>Routes</td><td>Define nightly routes, dates, map images, GPX links, sponsor logos, and street lists. Also tracks <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">mp4Status</code> and <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">mp4Url</code> for the GPX Animator.</td></tr>
+          <tr><td>Donations</td><td>Log offline cash/card donations. Tallying here drives automated crew emails.</td></tr>
+          <tr><td>Expenses</td><td>Log outgoing costs (fuel, sweets, repairs, insurance, supplies) per route or as general. Column H auto-sums all expenses. Mirrors the Donations ledger layout. Use alongside Donations to calculate a true net figure for your AGM.</td></tr>
+          <tr><td>Gift Aid</td><td>Stores Gift Aid declarations submitted via the public form. Columns: Timestamp, Title, First Name, Last Name, Address Line 1, Address Line 2, City, Postcode, Email, Amount, Route, Declaration Date, Gift Aid Value, Status. Auto-created on first submission. God Mode includes a one-click HMRC R68 CSV export for Charities Online claims.</td></tr>
+          <tr><td>Sponsors</td><td>Track sponsor relationships: company, contact details, amount pledged vs received, sponsorship type (Route / Season / In-Kind), logo URL, and whether thank-you and impact reports have been sent. The Logo URL column can feed into per-route <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">sponsorUrl</code> on the Routes tab.</td></tr>
+          <tr><td>Tracker</td><td>Firebase connection settings — <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">firebase_url</code>, <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">firebase_path</code> (defaults to <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">/location/current</code>), <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">secret</code>, and <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">firebase_db_secret</code>. Cell B7 auto-generates the GPS Logger URL via formula — do not edit B7 manually.</td></tr>
+          <tr><td>RoadLookup</td><td>Powers the Address Lookup embed — maps street names to route/date combinations so families can see when Santa is visiting.</td></tr>
+          <tr><td>Volunteers</td><td>Crew sign-up backend. <strong>Column A</strong> is auto-filled with a date VLOOKUP formula — do not edit. Data starts from <strong>Column B</strong>: RouteName, Volunteer Name, Role, Phone, Email, Organisation, Check-in Status, Bucket Number. Syncs with the Crew Portal and Operations Tab on sleigh night.</td></tr>
+          <tr><td>Checklist</td><td>Pre-flight safety checklist backend. Column A = RouteName. <strong>Column B</strong> is auto-filled with a date formula. Remaining columns are checklist item names. Syncs in real-time from the Operations Tab on sleigh night.</td></tr>
+          <tr><td>Live Messages</td><td>Moderation queue for public Messages to Santa. Columns: Timestamp, Message, Status (Pending/Approved/Rejected), RouteName. God Mode polls this for pending messages; approvals push to the public tracker for 20 seconds.</td></tr>
+          <tr><td>Letters</td><td>Stores Letter to Santa submissions for moderation and social media content ideas.</td></tr>
+          <tr><td>Subscriber Heatmap</td><td>Permanently logs an anonymous lat/lng timestamp row every time someone subscribes for Santa notifications. Used by the AGM Heatmap tool (God Mode password protected). Three columns: timestamp, lat, lng.</td></tr>
+          <tr><td>Route Suggestions</td><td>Receives anonymous lat/lng pins from the post-season Suggest a Route tool. Three columns: timestamp, lat, lng. Used for next year's route planning heatmap.</td></tr>
+          <tr><td>Season History</td><td>Stores one row per season snapshot (Year, Raised, Routes, Streets, Peak Viewers, Messages, Volunteers). Auto-created on first snapshot.</td></tr>
+          <tr><td>Tracker Analytics</td><td>Syncs automatically from Firebase every 5 minutes with raw view events. Used by <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">GET_PEAK_VIEWERS</code> and the Analytics Dashboard.</td></tr>
+          <tr><td>Advanced</td><td>Reserved for future configuration. Leave as-is unless instructed.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <hr class="divider">
+
+    <section id="api" class="section">
+      <div class="section-header">
+        <div class="section-num">01</div>
+        <div class="section-title-block">
+          <span class="section-icon">🚀</span>
+          <h2 class="section-title">Deploy the TurboSanta API</h2>
+          <span class="section-desc">Must be completed first — everything else depends on this</span>
+        </div>
+      </div>
+      <p>The Apps Script API is the invisible brain connecting your Sheet to the live map, Santa's speed calculations, and all your public tools.</p>
+      <ol class="steps">
+        <li><p>In your Sheet, go to <em>Extensions → Apps Script</em>.</p></li>
+        <li><p>Click <em>Deploy → New deployment</em>.</p></li>
+        <li><p>Choose <em>Web app</em> as the deployment type.</p></li>
+        <li><p>Set <em>Execute as: Me</em> and <em>Who has access: Anyone</em>.</p></li>
+        <li><p>Click <em>Deploy</em>, authorise permissions, and <strong>copy the Web App URL</strong>.</p></li>
+        <li><p>Paste the URL into the <em>Settings</em> tab — find the row where Column A = <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">api_url</code> and set Column B to your URL.</p></li>
+      </ol>
+      <div class="callout callout-warning">
+        <span class="callout-icon">⚠️</span>
+        <div class="callout-body">
+          <strong>Always update deployments after edits</strong>
+          <p>If you ever edit Apps Script, go to <em>Deploy → Manage deployments → Update</em>. Old deployments serve stale code and will cause silent bugs.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="firebase" class="section">
+      <div class="section-header">
+        <div class="section-num">02</div>
+        <div class="section-title-block">
+          <span class="section-icon">🔥</span>
+          <h2 class="section-title">Firebase Setup</h2>
+          <span class="section-desc">Live sleigh location, analytics, and subscriber notifications</span>
+        </div>
+      </div>
+
+      <h3 class="sub-title">Understanding Your Two Firebase Keys</h3>
+      <p>TurboSanta uses <em>two distinct keys</em> in the Tracker sheet. These are not interchangeable:</p>
+      <table class="kv-table">
+        <thead><tr><th>Key</th><th>What it does</th><th>Where it lives</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>secret</td>
+            <td>GPS write key. Embedded in the Firebase write path. Permits writing the live location only. Safe to rotate if the sleigh phone is lost.</td>
+            <td>Beacon config / GPS Logger URL</td>
+          </tr>
+          <tr>
+            <td>firebase_db_secret</td>
+            <td>Admin key (Legacy Database Secret). Used server-side by Apps Script for reading subscribers, analytics, and history. <strong>Never exposed to the public.</strong></td>
+            <td>Apps Script only</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout callout-warning">
+        <span class="callout-icon">⚠️</span>
+        <div class="callout-body">
+          <strong>Common Mistake</strong>
+          <p>Setting both keys to the same value <em>appears</em> to work but breaks your Firebase security rules. The <code style="font-family:'DM Mono',monospace;font-size:12px;">secret</code> is used as a path segment in Firebase rules; <code style="font-family:'DM Mono',monospace;font-size:12px;">firebase_db_secret</code> is used for authentication. They must be different.</p>
+        </div>
+      </div>
+
+      <h3 class="sub-title">Create Your Firebase Project</h3>
+      <ol class="steps">
+        <li><p>Visit <em>https://firebase.google.com</em> and create a new project.</p></li>
+        <li><p>Go to <em>Build → Realtime Database</em> and create a database — choose <em>Region: Europe</em>.</p></li>
+        <li><p>Copy your Database URL and paste it into <em>Tracker → firebase_url</em>.</p></li>
+        <li><p>Go to <em>Project Settings → Service Accounts → Database Secrets</em> to find your <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">firebase_db_secret</code>.</p></li>
+      </ol>
+
+      <h3 class="sub-title">Create Placeholder Nodes</h3>
+      <p>Firebase automatically deletes empty nodes. The following placeholders must exist <em>before</em> any data is sent — create each with the value <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">placeholder: true</code>:</p>
+      <ul class="bullet-list">
+        <li><code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">location</code></li>
+        <li><code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">location/current</code></li>
+        <li><code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">analytics</code></li>
+        <li><code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">analytics/views</code></li>
+      </ul>
+
+      <h3 class="sub-title">Security Rules</h3>
+      <p>Open <em>Realtime Database → Rules</em> and paste the following. Replace <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">YOUR_SECRET</code> with your actual secret value.</p>
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="code-lang">JSON</span>
+          <span class="code-label">Firebase Security Rules</span>
+        </div>
+        <pre><code>{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "location": {
+      "current": {
+        "$secret": {
+          ".write": "$secret === 'YOUR_SECRET'"
+        }
+      },
+      "history": {
+        ".read": false,
+        ".write": "auth !== null",
+        ".indexOn": ["ts"]
+      }
+    },
+    "analytics": {
+      ".read": false,
+      ".write": false,
+      "views": { ".indexOn": ["ts"] }
+    },
+    "subscribers": {
+      ".read": false,
+      ".write": false
+    }
+  }
+}</code></pre>
+      </div>
+
+      <h3 class="sub-title">Automatic Data Cleanup</h3>
+      <p>TurboSanta prunes old Firebase data automatically in the background to keep things lean:</p>
+      <table class="kv-table">
+        <thead><tr><th>Data Type</th><th>Retention Rule</th></tr></thead>
+        <tbody>
+          <tr><td>GPS History</td><td>Entries older than 90 minutes are deleted every time the notification checker runs.</td></tr>
+          <tr><td>Messages to Santa</td><td>Sent to a moderation queue in the Live Messages sheet. Approved messages display on the public tracker for 20 seconds. All messages (Pending/Approved/Rejected) are retained in the sheet for season reporting.</td></tr>
+          <tr><td>Subscribers</td><td>Never-notified subscribers deleted after 24 hours. Notified subscribers deleted 6 hours after the "Santa has passed" email.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="wizards" class="section">
+      <div class="section-header">
+        <div class="section-num">03</div>
+        <div class="section-title-block">
+          <span class="section-icon">🧙</span>
+          <h2 class="section-title">Run the TurboSanta Wizards</h2>
+          <span class="section-desc">Guided setup for every major component — each wizard gives green ticks when complete</span>
+        </div>
+      </div>
+      <p>In your Google Sheet menu, click <em>🎅 TurboSanta</em> — each wizard is listed directly in the menu. Click the one you need and follow the prompts.</p>
+      <ul class="bullet-list">
+        <li><strong>🚀 Deployment Wizard</strong> — validates your web app deployment and saves the API URL.</li>
+        <li><strong>🏠 TurboSanta Home</strong> — onboarding health check dashboard showing critical issues and warnings.</li>
+        <li><strong>Firebase Wizard</strong> — validates DB, generates GPS logger URLs, builds security rules, and silently sets up the 5-minute Analytics sync trigger and 1-minute notification checker.</li>
+        <li><strong>GPX Overlay Wizard</strong> — configures GPX overlay mode for the map.</li>
+        <li><strong>Routes Wizard</strong> — add, edit, or delete nightly routes.</li>
+        <li><strong>Donations Wizard</strong> — log route donation totals.</li>
+        <li><strong>Carousel Wizard</strong> — connects your Google Drive photo folder to the donation carousel embed.</li>
+        <li><strong>RoadLookup Wizard</strong> — installs the ARRAYFORMULA that powers the Address Lookup embed.</li>
+        <li><strong>Sleigh Icons Wizard</strong> — configure start/end/live marker icons and sleigh mode.</li>
+        <li><strong>🔄 Sync Tracker Analytics</strong> — manually pull the latest Firebase view events into the Tracker Analytics tab.</li>
+        <li><strong>🎬 MP4 Generator</strong> — trigger an animated route video render via GitHub Actions.</li>
+      </ul>
+      <div class="callout callout-success">
+  <span class="callout-icon">🧙</span>
+  <div class="callout-body">
+    <strong>First Time? Use the Setup Assistant</strong>
+    <p>Fresh sheets auto-launch the <em>Setup Assistant</em> when opened — it walks you through identity, API deployment, and Firebase in one guided flow. You can also open it any time from the <em>🎅 TurboSanta</em> menu. The individual wizards below are for fine-tuning after initial setup.</p>
+  </div>
+</div>
+      
+      <div class="callout callout-info">
+        <span class="callout-icon">ℹ️</span>
+        <div class="callout-body">
+          <strong>Background Triggers</strong>
+          <p>Saving your Firebase settings via the Firebase Wizard automatically creates two Apps Script triggers: a <em>1-minute trigger</em> for <code style="font-family:'DM Mono',monospace;font-size:12px;">checkSubscribersAndNotify</code> and a <em>5-minute trigger</em> for <code style="font-family:'DM Mono',monospace;font-size:12px;">syncTrackerAnalytics</code>. To verify: <em>Extensions → Apps Script → Triggers (clock icon on the left)</em>. If either is missing, re-save your Firebase settings via the Firebase Wizard.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="gps-logger" class="section">
+      <div class="section-header">
+        <div class="section-num">04</div>
+        <div class="section-title-block">
+          <span class="section-icon">📡</span>
+          <h2 class="section-title">Sleigh GPS Transmitters</h2>
+          <span class="section-desc">Choose your transmission setup depending on who is driving</span>
+        </div>
+      </div>
+
+      <p>The sleigh phone needs to push GPS coordinates to Firebase every few seconds. TurboSanta gives you two main options. Both write the same <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">{lat, lng, ts}</code> payload to Firebase, so the tracker, God Mode, notifications, and history all work identically regardless of which one you use.</p>
+
+      <div class="device-grid">
+        <div class="device-card device-b">
+          <div class="device-label">Option A — Solo Driver Setup</div>
+          <div class="device-name">🧭 Sat-Nav &amp; Beacon (Merged)</div>
+          <div class="device-desc">One phone does it all. The driver opens the Tracker in <em>Driver Mode</em>. It provides a turn-by-turn routing arrow AND securely transmits the sleigh's location in the background simultaneously. Authenticates via God Mode password.</div>
+          <div class="device-operator">✅ Visual Routing · ✅ Offline Buffering · ✅ Keeps screen awake</div>
+        </div>
+        <div class="device-card device-a">
+          <div class="device-label">Option B — Bulletproof Setup</div>
+          <div class="device-name">📡 Dedicated Beacon Phone</div>
+          <div class="device-desc">A cheap spare phone runs the standalone <em>TurboSanta Beacon</em> page. Plug it into a power bank, stash it in the glovebox, and forget it. The driver uses a *second* phone for navigation.</div>
+          <div class="device-operator">✅ Driver can use their personal phone freely · ✅ Offline Buffering</div>
+        </div>
+      </div>
+
+      <div class="callout callout-tip">
+        <span class="callout-icon">💡</span>
+        <div class="callout-body">
+          <strong>Which one should I use?</strong>
+          <p>If the driver needs to use their phone to check texts or change music, use <strong>Option B</strong>. Mobile browsers aggressively pause GPS tracking when a tab is pushed to the background. Using a dedicated glovebox phone ensures the signal never drops. If the driver is strictly navigating and won't touch other apps, <strong>Option A</strong> is perfect.</p>
+        </div>
+      </div>
+
+      <h3 class="sub-title">Option A: Solo Driver (Sat-Nav &amp; Beacon)</h3>
+      <ol class="steps">
+        <li><p>Open the Tracker link and add <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">&amp;driver=1</code> to the end (or click <em>Sat Nav</em> from the Landing Page).</p></li>
+        <li><p>Tap the red <strong>🧭 START SAT-NAV &amp; BEACON</strong> button.</p></li>
+        <li><p>Enter the Beacon password when prompted to authorize the GPS transmitter.</p></li>
+        <li><p>A status pill will appear at the top. <strong>📡 LIVE</strong> (Green) means it's transmitting successfully. <strong>📦 BUFFERING</strong> (Amber) means you've hit a dead zone and it is saving fixes locally to replay later.</p></li>
+      </ol>
+
+      <h3 class="sub-title">Option B: Dedicated Beacon Setup</h3>
+      <ol class="steps">
+        <li><p>Open the Beacon URL from your Dab Santa Landing Page, or navigate to: <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">beacon?api=YOUR_API_URL</code></p></li>
+        <li><p>Enter the Beacon password.</p></li>
+        <li><p>Tap <em>▶ START</em> — the pulsing green ring confirms GPS is transmitting.</p></li>
+        <li><p>Mount the phone, plug it into a power bank, and leave the screen visible. (iPhone users: Set Auto-Lock to <em>Never</em> in iOS Settings).</p></li>
+      </ol>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">ℹ️</span>
+        <div class="callout-body">
+          <strong>Legacy Option: GPS Logger App</strong>
+          <p>If you prefer using a native third-party Android app instead of a web browser, you can still install <em>GPS Logger</em> from the Play Store. Paste the GPS Logger URL from your Tracker sheet (cell B7) into the app's custom URL field. <em>Note: Native apps do not have the offline buffering feature.</em></p>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <section id="advanced" class="section">
+      <div class="section-header">
+        <div class="section-num">05</div>
+        <div class="section-title-block">
+          <span class="section-icon">⚙️</span>
+          <h2 class="section-title">Advanced Settings</h2>
+          <span class="section-desc">Key settings rows not covered by the Wizards — all live in the Settings tab</span>
+        </div>
+      </div>
+      <div class="callout callout-info">
+        <span class="callout-icon">ℹ️</span>
+        <div class="callout-body">
+          <strong>How the Settings Tab Works</strong>
+          <p>The Settings tab has <em>four separate data areas</em>, not just one. Column A/B is the key-value store. Column Q, S, and U hold additional list data used by specific features — do not delete or move these columns.</p>
+        </div>
+      </div>
+
+      <h3 class="sub-title">PA Presets (Column S)</h3>
+      <p>Column S of the Settings sheet (from S2 downwards) holds pre-written PA announcement messages. The API reads this column on every request and returns them as a <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">presets</code> array, which God Mode loads into a dropdown so your Lead Elf can fire canned announcements quickly without typing on a cold night.</p>
+      <ul class="bullet-list">
+        <li>Each cell in S2:S is one preset message — one per row.</li>
+        <li>Blank cells between entries are ignored.</li>
+        <li>These are separate from the public PA system's <em>live message</em> — presets are pre-loaded options; <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">live_announcement</code> is what's actively broadcasting.</li>
+      </ul>
+
+      <h3 class="sub-title">Donations Route Dropdown (Column Q)</h3>
+      <p>Column Q of the Settings sheet (from Q2 downwards) holds the list of route names that appear in the <em>Donations Wizard</em> dropdown when logging cash/card totals. Keep this in sync with your Routes tab.</p>
+
+      <h3 class="sub-title">Volunteer Roles (Column U)</h3>
+      <p>Column U of the Settings sheet (from U2 downwards) holds the list of volunteer roles that appear in the <em>Crew Hub</em> sign-up form and the <em>Volunteer Certificate Generator</em>. Both tools read this list dynamically from the API — add, remove, or reorder roles in the sheet and they update automatically.</p>
+      <ul class="bullet-list">
+        <li>One role per row — e.g. Driver, Collections, Lead Elf, Santa, Tech/GPS, Safety Walkers.</li>
+        <li>If Column U is empty, both tools fall back to a sensible default list.</li>
+      </ul>
+      
+      <h3 class="sub-title">Live Announcement (PA System)</h3>
+      <p>The <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">live_announcement</code> key in Settings is the public PA system. When set, its value overrides the normal status box on <em>every</em> viewer's tracker with a pulsing gold announcement banner.</p>
+
+      <h3 class="sub-title">Messages to Santa</h3>
+      <p>The public <em>💬 Msg Santa</em> button lets viewers send a short message (max 50 characters) to the sleigh. Messages go into a moderation queue in God Mode — the Lead Elf can approve or reject each one. Approved messages appear as a pulsing purple banner on the public tracker for 20 seconds, then disappear automatically.</p>
+      <ul class="bullet-list">
+        <li>Enable the feature by setting <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">enable_user_messages</code> to <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">TRUE</code> in Settings.</li>
+        <li>The button only appears when GPS is live and a route is active — hidden in kiosk mode.</li>
+        <li>God Mode polls for pending messages every 10 seconds and shows the originating route name next to each one.</li>
+      </ul>
+
+      <h3 class="sub-title">Crew Alert</h3>
+      <p>The <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">crew_alert</code> key in Settings drives internal messaging from the Lead Elf to all volunteers on the Crew Hub — completely separate from the public PA system and never visible on the public tracker.</p>
+
+      <h3 class="sub-title">Elf Cam URL</h3>
+      <p>The <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">elf_cam_url</code> key powers the Elf Cam polaroid feature. When the Elf Cam captures a new photo, it writes the Google Drive URL here. The tracker polls for changes and displays any new image as a floating Polaroid on the public map.</p>
+
+      <h3 class="sub-title">Sleigh Cam (Twitch Stream)</h3>
+      <p>The <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">enable_twitch</code> toggle controls visibility of the 📺 Sleigh Cam button on the public tracker. When enabled and <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">twitch_channel</code> is set to your Twitch channel name, viewers see a Cam button in the control bar. Tapping it opens a Twitch player overlay on the map. The stream starts muted due to browser autoplay policy — viewers tap unmute within the player for audio.</p>
+      <ul class="bullet-list">
+        <li>Enable by setting <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">enable_twitch</code> to <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">TRUE</code> and <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">twitch_channel</code> to your channel name (e.g. <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">beverleyroundtable</code>) in Settings.</li>
+        <li>Set <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">enable_twitch</code> to <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">FALSE</code> or blank to hide the button — useful when you're not streaming.</li>
+        <li>Hidden automatically in kiosk and driver modes.</li>
+        <li>The Twitch embed dynamically reads the hosting domain, so it works on any table's Cloudflare Pages URL or custom domain without configuration.</li>
+      </ul>
+
+      <h3 class="sub-title">GET_PEAK_VIEWERS Formula</h3>
+      <p>TurboSanta includes a custom Google Sheets formula to calculate peak simultaneous viewers within any time window:</p>
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="code-lang">Google Sheets</span>
+          <span class="code-label">Custom Formula</span>
+        </div>
+        <pre><code>=GET_PEAK_VIEWERS(E2:E, 15)</code></pre>
+      </div>
+
+      <h3 class="sub-title">🎵 Dynamic Sleigh Music</h3>
+      <p>The public tracker includes a built-in music player that acts as a subliminal audio cue for families. When enabled, a 🔇 Music button appears on the tracker. The volume is intelligently tied to Santa's ETA:</p>
+      <ul class="bullet-list">
+        <li><strong>Ambient (No Pin / > 15 mins):</strong> Plays quietly at 15% volume in the background.</li>
+        <li><strong>Approaching (< 15 mins):</strong> Volume gently ramps up to 25%.</li>
+        <li><strong>Getting Close (< 8 mins):</strong> Volume increases to 50%.</li>
+        <li><strong>Imminent (< 3 mins):</strong> Volume pushes to 80% to build excitement.</li>
+        <li><strong>Arrival:</strong> When Santa hits the user's location, the volume spikes to 100% for 3 seconds alongside the visual fireworks!</li>
+      </ul>
+    </section>
+          
+    <section id="settings-ref" class="section">
+      <div class="section-header">
+        <div class="section-num">05b</div>
+        <div class="section-title-block">
+          <span class="section-icon">🗂️</span>
+          <h2 class="section-title">Settings Key Reference</h2>
+          <span class="section-desc">Every documented key in Column A of the Settings tab</span>
+        </div>
+      </div>
+
+      <h3 class="sub-title">Core / API</h3>
+      <table class="kv-table">
+        <thead><tr><th>Key</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>api_url</td><td>Your deployed Apps Script Web App URL. The single most critical setting — everything reads from this.</td></tr>
+          <tr><td>tracker_url</td><td>The public-facing URL for your sleigh tracker page (used in embeds and QR codes).</td></tr>
+          <tr><td>sleigh_name</td><td>Internal identifier for your sleigh.</td></tr>
+          <tr><td>sleigh_display_name</td><td>The human-readable sleigh name shown to the public.</td></tr>
+          <tr><td>sleigh_group</td><td>Group identifier for multi-sleigh tracking.</td></tr>
+          <tr><td>sleigh_mode</td><td><code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">single</code> or <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">multi</code>.</td></tr>
+          <tr><td>god_mode_password</td><td>Master password for God Mode Dashboard and Season Wrap Snapshot. Change before going live.</td></tr>
+          <tr><td>beacon_password</td><td>Secondary password specifically for authorizing the Sleigh GPS Beacon and Sat-Nav. Give this to your drivers.</td></tr>
+        </tbody>
+      </table>
+
+      <h3 class="sub-title">Feature Toggles</h3>
+      <table class="kv-table">
+        <thead><tr><th>Key</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>show_today_route</td><td>Show today's route on the tracker.</td></tr>
+          <tr><td>show_next_route</td><td>Show the next upcoming route.</td></tr>
+          <tr><td>show_tracker</td><td>Show the live GPS tracker map.</td></tr>
+          <tr><td>show_donations</td><td>Show the donation progress bar and total.</td></tr>
+          <tr><td>show_carousel</td><td>Show the photo carousel.</td></tr>
+          <tr><td>donate_url</td><td>URL the Donate button links to on the public tracker.</td></tr>
+          <tr><td>enable_user_messages</td><td>Set to <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">TRUE</code> to enable the 💬 Msg Santa button.</td></tr>
+          <tr><td>enable_twitch</td><td>Set to <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">TRUE</code> to show the 📺 Cam button on the public tracker.</td></tr>
+          <tr><td>enable_gift_aid</td><td>Set to <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">TRUE</code> to show the Gift Aid panel in God Mode and enable the public declaration form.</td></tr>
+          <tr><td>twitch_channel</td><td>Your Twitch channel name (e.g. <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">beverleyroundtable</code>). The embed uses this directly.</td></tr>
+        <tr><td>background_music_url</td><td>Direct link to an .mp3 or .ogg file (e.g., hosted on Cloudflare Pages or GitHub). If filled, the Music button appears on the public tracker. If left blank, the feature is completely hidden.</td></tr>
+        </tbody>
+      </table>
+
+      <h3 class="sub-title">Sleigh Night Controls</h3>
+      <table class="kv-table">
+        <thead><tr><th>Key</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>live_announcement</td><td>Public PA message. Overrides the ETA/status box on all viewers' trackers.</td></tr>
+          <tr><td>crew_alert</td><td>Internal crew message. Pulsing red banner on Crew Hub screens only.</td></tr>
+          <tr><td>elf_cam_url</td><td>Written automatically by the Elf Cam system. Latest photo URL.</td></tr>
+          <tr><td>user_announcement</td><td>Written automatically on message approval. Purple banner for 20 seconds.</td></tr>
+          <tr><td>user_announcement_ts</td><td>Unix timestamp (ms) for the 20-second countdown. Do not edit manually.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="notifications" class="section">
+      <div class="section-header">
+        <div class="section-num">06</div>
+        <div class="section-title-block">
+          <span class="section-icon">📧</span>
+          <h2 class="section-title">Subscriber Email Notifications</h2>
+          <span class="section-desc">Up to two automated emails per subscriber per sleigh night</span>
+        </div>
+      </div>
+
+      <h3 class="sub-title">Email 1 — "Santa's Nearly Here"</h3>
+      <p>Triggered when either condition is met and GPS is fresh (under 90 seconds old):</p>
+      <ul class="bullet-list">
+        <li>Santa's estimated arrival is <em>under 5 minutes</em> based on calculated speed, <strong>or</strong></li>
+        <li>Santa is <em>within 250 metres</em> of the subscriber's pin.</li>
+      </ul>
+
+      <h3 class="sub-title">Email 2 — "Santa's Just Been Past"</h3>
+      <p>Triggered after Email 1 when either condition is met:</p>
+      <ul class="bullet-list">
+        <li>Santa has moved <em>more than 150m further away</em> from the subscriber's closest recorded distance AND at least 1 minute has passed since Email 1, <strong>or</strong></li>
+        <li><em>20 minutes</em> have passed since Email 1 (timeout fallback).</li>
+      </ul>
+
+      <div class="callout callout-warning">
+        <span class="callout-icon">⚠️</span>
+        <div class="callout-body">
+          <strong>Month Guard — Currently Disabled</strong>
+          <p>The notification code contains a month guard that is currently <em>force-overridden to <code style="font-family:'DM Mono',monospace;font-size:12px;">allowEmails = true</code></em> for testing. Before going live, switch it to the production version: <code style="font-family:'DM Mono',monospace;font-size:12px;">const allowEmails = (month === 11 || month === 0);</code></p>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <section id="app-suite" class="section">
+      <div class="section-header">
+        <div class="section-num">07</div>
+        <div class="section-title-block">
+          <span class="section-icon">🎪</span>
+          <h2 class="section-title">The Dab Santa Suite</h2>
+          <span class="section-desc">Your full app ecosystem — accessible from the Landing Page</span>
+        </div>
+      </div>
+      <p>Once setup is complete, click the <em>Dab Santa image</em> on your Landing Page to open your master directory of tools.</p>
+
+      <h3 class="sub-title">🗺️ Pre-Season Planning</h3>
+      <div class="cards-grid">
+        <div class="card" style="grid-column: 1 / -1;">
+          <span class="card-icon">📍</span>
+          <div class="card-title">Route Planner</div>
+          <div class="card-desc">Design custom routes with auto-road snapping, estimate completion times, automatically extract visited street names for the Address Lookup tool, and export highly dense GPX files required by the Sat-Nav and Animator.</div>
+        </div>
+        
+      </div>
+      
+      <h3 class="sub-title">📍 Tracking &amp; Operations</h3>
+      <div class="cards-grid">
+        <div class="card">
+          <span class="card-icon">🗺️</span>
+          <div class="card-title">Sleigh Tracker</div>
+          <div class="card-desc">The main public map, featuring route details, donations, and festive interactions including dynamic ETA-based background music and the 💬 Msg Santa button.</div>
+        </div>
+        
+        <div class="card">
+          <span class="card-icon">📡</span>
+          <div class="card-title">GPS Beacon</div>
+          <div class="card-desc">Sleigh phone GPS transmitter with offline buffer. Authenticates via Beacon password, fetches Firebase config securely from the API. Pulsing ring shows LIVE/BUFFER/ERROR status.</div>
+        </div>
+        
+        <div class="card">
+          <span class="card-icon">🧭</span>
+          <div class="card-title">Sat-Nav Driver Mode</div>
+          <div class="card-desc">Distraction-free, turn-by-turn navigation screen for the towing vehicle. Includes the built-in option to act as the primary GPS transmitter while driving.</div>
+        </div>
+        
+        <div class="card">
+          <span class="card-icon">⚡</span>
+          <div class="card-title">God Mode Dashboard</div>
+          <div class="card-desc">Lead Elf cockpit — live GPS, viewer counts, donations, heatmaps, PA, crew alerts, message moderation queue, Gift Aid declarations with HMRC R68 CSV export, and the <em>GPS Health</em> panel showing fix age, fix rate, LIVE/DELAYED/STALE/LOST badge, and a timeline visualisation of signal gaps. Password protected.</div>
+        </div>
+        
+        <div class="card">
+          <span class="card-icon">📺</span>
+          <div class="card-title">Live Tracker Kiosk</div>
+          <div class="card-desc">Clutter-free map for TVs at HQ or local pubs.</div>
+        </div>
+        
+        <div class="card" style="grid-column: 1 / -1;">
+          <span class="card-icon">📸</span>
+          <div class="card-title">Elf Cam</div>
+          <div class="card-desc">Captures a JPEG photo from the sleigh phone at configurable intervals and uploads it to Google Drive via the <em>Highlander Protocol</em> (each new photo replaces the last — only one ever exists). The URL is written to <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">elf_cam_url</code> in Settings. The public tracker polls for changes and displays new images as floating polaroids on the map.</div>
+        </div>
+      </div>
+
+      <h3 class="sub-title">👥 Logistics &amp; Crew</h3>
+      <div class="cards-grid">
+        <div class="card">
+          <span class="card-icon">🙋</span>
+          <div class="card-title">Crew Portal</div>
+          <div class="card-desc">Volunteers sign up for routes and roles; includes a personal QR generator for phone donations, gift aid declarations and the real-time crew alert banner.</div>
+        </div>
+        
+        <div class="card">
+          <span class="card-icon">✅</span>
+          <div class="card-title">Operations Tab</div>
+          <div class="card-desc">Unlock on sleigh night for pre-flight safety checklists (syncs to Checklist tab) and crew check-in. Password protected.</div>
+        </div>
+        
+      <div class="card">
+          <span class="card-icon">🏅</span>
+          <div class="card-title">Volunteer Certificate Generator</div>
+          <div class="card-desc">Personalised certificates for each elf with their name, role, route, date, and amount raised. Downloadable as a PNG for WhatsApp or printable at A4 landscape.</div>
+        </div>
+        
+      </div>
+      
+      <h3 class="sub-title">📣 Marketing &amp; Socials</h3>
+      <div class="cards-grid">
+        <div class="card">
+          <span class="card-icon">🎬</span>
+          <div class="card-title">GPX Animator</div>
+          <div class="card-desc">Generates a festive MP4 of a Santa sprite flying your actual route.</div>
+        </div>
+        
+        <div class="card">
+          <span class="card-icon">🃏</span>
+          <div class="card-title">Route Cards Generator</div>
+          <div class="card-desc">Branded images for every route with maps, logos, and captions.</div>
+        </div>
+        
+        <div class="card">
+          <span class="card-icon">📮</span>
+          <div class="card-title">QR Poster Generator</div>
+          <div class="card-desc">Localised branded posters with a QR code linking to tonight's tracker.</div>
+        </div>
+        
+        <div class="card">
+          <span class="card-icon">🏠</span>
+          <div class="card-title">Address Lookup</div>
+          <div class="card-desc">Families type their street to instantly see when Santa is visiting.</div>
+        </div>
+        
+        <div class="card">
+          <span class="card-icon">🚪</span>
+          <div class="card-title">Door Hanger Generator</div>
+          <div class="card-desc">Printable door hangers families can hang to say they're waiting — with an auto-generated QR code linking straight to your tracker.</div>
+        </div>
+        
+        <div class="card" style="grid-column: 1 / -1;">
+          <span class="card-icon">📊</span>
+          <div class="card-title">Donation Thermometers &amp; Carousel</div>
+          <div class="card-desc">Embeddable live progress bars and photo galleries for your website.</div>
+        </div>
+        
+      </div>
+
+      <h3 class="sub-title">🎄 Festive Extras</h3>
+      <div class="cards-grid">
+        <div class="card">
+          <span class="card-icon">🦌</span>
+          <div class="card-title">Adopt a Reindeer</div>
+          <div class="card-desc">Children adopt a reindeer and receive a personalised certificate.</div>
+        </div>
+        
+        <div class="card">
+          <span class="card-icon">📜</span>
+          <div class="card-title">Nice List Certificate</div>
+          <div class="card-desc">Tests if a child is Naughty or Nice with a printable certificate.</div>
+        </div>
+        
+        <div class="card">
+          <span class="card-icon">🖼️</span>
+          <div class="card-title">Santa's Been! Photo Frame</div>
+          <div class="card-desc">Parents upload a photo for a festive Polaroid-style social media frame.</div>
+        </div>
+        
+        <div class="card">
+          <span class="card-icon">⛄</span>
+          <div class="card-title">Snowman Maker</div>
+          <div class="card-desc">Kids build a snowman and map their selfie onto its face.</div>
+        </div>
+
+        <div class="card">
+          <span class="card-icon">📸</span>
+          <div class="card-title">Community Memory Book</div>
+          <div class="card-desc">A crowdsourced public gallery where families upload their photos. Features automatic client-side image compression, an elf moderation queue, interactive polaroids with dynamic captions, and an archive Time Machine.</div>
+        </div>
+        
+        <div class="card">
+          <span class="card-icon">🖍️</span>
+          <div class="card-title">Colouring Page Generator</div>
+          <div class="card-desc">Kids pick a festive scene, type their name, and print a personalised A4 colouring page. Six scenes included with swappable artwork.</div>
+        </div>
+        
+        <div class="card">
+          <span class="card-icon">🎯</span>
+          <div class="card-title">Sleigh Spotter Bingo</div>
+          <div class="card-desc">Randomised printable bingo cards with things to spot when Santa passes. Every print is unique — 40 items in the pool, 24 per card plus a free space.</div>
+        </div>
+
+        <div class="card">
+  <span class="card-icon">⏰</span>
+  <div class="card-title">Santa Countdown Timer</div>
+  <div class="card-desc">Families search their street and get a live countdown showing exactly when Santa is visiting. Bookmarkable and shareable — builds anticipation in the days before.</div>
+</div>
+        
+        <div class="card" style="grid-column: 1 / -1;">
+          <span class="card-icon">✉️</span>
+          <div class="card-title">Letter to Santa</div>
+          <div class="card-desc">Captures children's wishlists and emails a reply from Santa. Entries are logged for social media content ideas.</div>
+        </div>
+        
+      </div>
+
+      <h3 class="sub-title">📊 Review &amp; Wrap-Up</h3>
+      <div class="cards-grid">
+        <div class="card">
+          <span class="card-icon">🏆</span>
+          <div class="card-title">Public Thank You Page</div>
+          <div class="card-desc">Shows total donations, routes completed, and streets visited.</div>
+        </div>
+        <div class="card">
+          <span class="card-icon">📋</span>
+          <div class="card-title">Season Wrap Report</div>
+          <div class="card-desc">Auto-generated print-ready AGM report with year-on-year comparison charts, per-route message counts, and one-click Season Snapshot.</div>
+        </div>
+        <div class="card">
+          <span class="card-icon">📈</span>
+          <div class="card-title">Analytics Dashboard</div>
+          <div class="card-desc">Visualises viewer behaviour, device types, and route popularity.</div>
+        </div>
+        <div class="card">
+          <span class="card-icon">📌</span>
+          <div class="card-title">Suggest a Route</div>
+          <div class="card-desc">Share post-season to collect public heatmap pins for next year's route planning.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="route-planner" class="section">
+      <div class="section-header">
+        <div class="section-num">08</div>
+        <div class="section-title-block">
+          <span class="section-icon">🗺️</span>
+          <h2 class="section-title">Route Planner</h2>
+          <span class="section-desc">Design custom routes, auto-detect streets, and export dense GPX files</span>
+        </div>
+      </div>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">ℹ️</span>
+        <div class="callout-body">
+          <strong>Alternative: gpx.studio</strong>
+          <p>If you prefer an external tool, <em>gpx.studio</em> can also create road-snapped routes. However, you will need to manually compile street names and the exported GPX files may require densification before use with the Sat-Nav or Animator.</p>
+        </div>
+      </div>
+
+      <p>The Route Planner is a standalone pre-season tool. It replaces generic tools like Google My Maps, solving the two biggest headaches of Santa logistics: generating dense GPX files and compiling street lists.</p>
+
+      <h3 class="sub-title">📍 Building & Snapping</h3>
+      <ul class="bullet-list">
+        <li><strong>Build Route Mode:</strong> Click the map to drop waypoints. The tool automatically snaps the path to valid roads (using Walking, Driving, or Cycling profiles).</li>
+        <li><strong>Adjusting:</strong> Drag waypoints to tweak the route, or right-click a marker to delete it.</li>
+        <li><strong>Existing Routes:</strong> If opened via the Landing Page (with the <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">?api=</code> parameter), the planner overlays your already-saved routes in faint blue so you avoid overlapping territories.</li>
+      </ul>
+
+      <h3 class="sub-title">🏘️ Automatic Street Detection</h3>
+      <p>Once your route is drawn (or a GPX is uploaded), the planner samples the geometry and reverse-geocodes it via OpenStreetMap to detect every street name along the path.</p>
+      <ul class="bullet-list">
+        <li>Wait for the <em>Detecting streets...</em> progress bar to finish scanning.</li>
+        <li>Click <strong>📋 Copy for Sheet</strong> to copy the comma-separated list.</li>
+        <li>Paste this directly into <strong>Column H (Streets)</strong> of your <em>Routes</em> tab. This instantly populates the public Address Lookup tool!</li>
+      </ul>
+
+      <h3 class="sub-title">⚙️ Densification & Export</h3>
+      <p>Standard routing tools create "sparse" GPX files (only dropping points at corners). TurboSanta's Sat-Nav, GPX Animator, and GPS bounding boxes rely on "dense" GPX files to work flawlessly.</p>
+      
+      <div class="callout callout-tip">
+        <span class="callout-icon">💡</span>
+        <div class="callout-body">
+          <strong>Recommended Settings</strong>
+          <p>Leave Density at <strong>10m</strong>. This ensures the Sat-Nav arrow tracks smoothly between junctions and the Animator sprite doesn't jump through buildings.</p>
+        </div>
+      </div>
+
+      <ul class="bullet-list">
+        <li><strong>Speed Slider:</strong> Adjust Santa's crawling speed (e.g., 3 mph) to get an accurate <em>Est. Time</em> for the night.</li>
+        <li>Click <strong>⬇ Export Dense GPX</strong> to download the file. Upload this to Google Drive and paste the link into the <em>Routes</em> tab.</li>
+      </ul>
+    </section>
+
+    <section id="mp4" class="section">
+      <div class="section-header">
+        <div class="section-num">09</div>
+        <div class="section-title-block">
+          <span class="section-icon">🎬</span>
+          <h2 class="section-title">MP4 Generator</h2>
+          <span class="section-desc">Animated route videos for social media, WhatsApp, and sponsor updates</span>
+        </div>
+      </div>
+
+      <h3 class="sub-title">One-Time GitHub Token Setup</h3>
+      <ol class="steps">
+        <li><p>Go to <em>github.com → Settings → Developer settings → Personal access tokens</em>.</p></li>
+        <li><p>Create a Classic token with scopes: <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">repo</code> and <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">workflow</code>.</p></li>
+        <li><p>Copy the token.</p></li>
+        <li><p>In your Sheet: <em>Extensions → Apps Script → Project Settings → Script Properties</em>.</p></li>
+        <li><p>Add a property with key <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">GITHUB_TOKEN</code> and paste your token as the value.</p></li>
+        <li><p>Save — the render button in the MP4 Generator wizard will now activate.</p></li>
+      </ol>
+    </section>
+
+    <section id="wrap-report" class="section">
+      <div class="section-header">
+        <div class="section-num">10</div>
+        <div class="section-title-block">
+          <span class="section-icon">📋</span>
+          <h2 class="section-title">Season Wrap Report</h2>
+          <span class="section-desc">AGM-in-a-Box — print-ready summaries and year-on-year comparison charts</span>
+        </div>
+      </div>
+
+      <h3 class="sub-title">📸 The Essential End-of-Season Snapshot</h3>
+      <p>To build your historical record and unlock the powerful year-on-year comparison charts, <strong>you must run a Season Snapshot</strong>. If you skip this step, you will lose your definitive end-of-year totals, and next year's AGM report will have no past data to compare against.</p>
+
+      <div class="callout callout-warning">
+        <span class="callout-icon">🛑</span>
+        <div class="callout-body">
+          <strong>CRITICAL: Don't Skip Your Snapshot!</strong>
+          <p>At the end of your final sleigh night—once all offline cash is tallied, your total donations are final, and the <code style="font-family:'DM Mono',monospace;font-size:12px;">wrap_*</code> fields in Settings are complete—open the Season Wrap Report and click the <strong>📸 Snapshot Season</strong> button in the top bar.</p>
+          <p style="margin-top: 8px;">This permanently writes a locked row to your <em>Season History</em> tab, ensuring your hard work is recorded for future committees to look back on.</p>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <section id="brand" class="section">
+      <div class="section-header">
+        <div class="section-num">11</div>
+        <div class="section-title-block">
+          <span class="section-icon">🎨</span>
+          <h2 class="section-title">Brand &amp; Launch</h2>
+          <span class="section-desc">Round Table brand compliance and going live</span>
+        </div>
+      </div>
+      <p>All TurboSanta tools automatically apply Round Table Brand Guidelines:</p>
+      <div class="colour-row">
+        <div class="colour-swatch">
+          <div class="colour-sample" style="background:#FBAF33;"></div>
+          <div class="colour-info">
+            <div class="colour-name">Golden Yellow</div>
+            <div class="colour-hex">#FBAF33</div>
+            <div class="colour-role">Primary colour</div>
+          </div>
+        </div>
+        <div class="colour-swatch">
+          <div class="colour-sample" style="background:#1D1D1A;"></div>
+          <div class="colour-info">
+            <div class="colour-name">Table Grey</div>
+            <div class="colour-hex">#1D1D1A</div>
+            <div class="colour-role">Background</div>
+          </div>
+        </div>
+        <div class="colour-swatch">
+          <div class="colour-sample" style="background:#D31C1C;"></div>
+          <div class="colour-info">
+            <div class="colour-name">Red</div>
+            <div class="colour-hex">#D31C1C</div>
+            <div class="colour-role">Festive accent only</div>
+          </div>
+        </div>
+      </div>
+      <p style="margin-top:8px;">Font: <em>Open Sans</em></p>
+    </section>
+
+    <section id="scaling" class="section">
+      <div class="section-header">
+        <div class="section-num">12</div>
+        <div class="section-title-block">
+          <span class="section-icon">🛡️</span>
+          <h2 class="section-title">Viral Protection &amp; Scaling</h2>
+          <span class="section-desc">Optional — for power users expecting large audiences</span>
+        </div>
+      </div>
+      <p>Google Apps Script has a hard limit of 30 simultaneous connections. A free <em>Cloudflare Worker</em> eliminates this risk entirely — cost: £0.00, capacity: 100,000+ simultaneous viewers.</p>
+
+      <h3 class="sub-title">Step-by-Step Cloudflare Setup</h3>
+      <ol class="steps">
+        <li><p>Visit <em>https://dash.cloudflare.com</em> and create a free account.</p></li>
+        <li><p>Go to <em>Workers &amp; Pages → Create Worker</em>. Name it, click Deploy, then click <em>Edit Code</em>.</p></li>
+        <li><p>Delete all default code and paste the worker script below.</p></li>
+        <li><p><strong>Critical:</strong> Replace the <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">GAS_URL</code> on line 3 with your actual Google Apps Script Web App URL.</p></li>
+        <li><p>Click <em>Deploy</em>. Update your <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">api_url</code> in Settings to the new Worker URL.</p></li>
+      </ol>
+
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="code-lang">JavaScript</span>
+          <span class="code-label">Cloudflare Worker — paste into editor</span>
+        </div>
+        <pre><code>export default {
+  async fetch(request, env, ctx) {
+    const GAS_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
+    const url = new URL(request.url);
+    const targetUrl = GAS_URL + url.search;
+    const cache = caches.default;
+    const cacheKey = new Request(targetUrl, request);
+    let response = await cache.match(cacheKey);
+    if (!response) {
+      response = await fetch(targetUrl);
+      response = new Response(response.body, response);
+      response.headers.set("Cache-Control", "s-maxage=5");
+      response.headers.set("Access-Control-Allow-Origin", "*");
+      ctx.waitUntil(cache.put(cacheKey, response.clone()));
+    } else {
+      response = new Response(response.body, response);
+      response.headers.set("Access-Control-Allow-Origin", "*");
+    }
+    return response;
+  }
+};</code></pre>
+      </div>
+    </section>
+
+    <section id="satnav" class="section">
+      <div class="section-header">
+        <div class="section-num">13</div>
+        <div class="section-title-block">
+          <span class="section-icon">🧭</span>
+          <h2 class="section-title">Sat-Nav Driver Mode</h2>
+          <span class="section-desc">Precise GPX-following navigation for the towing vehicle</span>
+        </div>
+      </div>
+      <p>TurboSanta's Sat-Nav strictly follows your loaded GPX routes — unlike Google Maps, which tries to recalculate and skip cul-de-sacs. Depending on your setup from <a href="#gps-logger" style="color:var(--gold);">Section 04</a>, you can use the Sat-Nav to simply navigate, or to navigate <em>and</em> transmit the sleigh's location simultaneously.</p>
+      
+      <h3 class="sub-title">Activating Sat-Nav Mode on the Night</h3>
+      <ol class="steps">
+        <li><p>Open your <em>Dab Santa</em> Landing Page and click <em>Sat Nav</em>. (Alternatively, open your standard tracker link and add <code style="font-family:'DM Mono',monospace;color:var(--gold);font-size:12px;">&amp;driver=1</code> to the end of the URL.)</p></li>
+        <li><p>A large red <strong>🧭 START SAT-NAV &amp; BEACON</strong> button will appear. Tap it.</p></li>
+        <li><p><strong>Authorize:</strong> Enter the Beacon password when prompted. This securely fetches the Firebase API credentials needed to transmit your location.</p></li>
+        <li><p>If your browser requests Location Permissions, tap <em>Allow</em>.</p></li>
+        <li><p>The screen zooms to street level, the blue arrow appears, and public UI buttons (Donate, Notify) vanish to prevent distractions.</p></li>
+        <li><p><strong>Watch the Pill:</strong> Look at the status pill at the top of the screen. <strong>📡 LIVE</strong> (Green) means you are actively transmitting. <strong>📦 BUFFERING</strong> (Amber) means you've hit a mobile dead zone and fixes are being saved offline to push later.</p></li>
+      </ol>
+
+      <div class="callout callout-warning">
+        <span class="callout-icon">⚠️</span>
+        <div class="callout-body">
+          <strong>Keep the App Open</strong>
+          <p>If you are using the Sat-Nav as your primary GPS transmitter, you must keep the browser tab open and visible on the screen. If the driver puts the phone to sleep or switches apps to check a text message, the browser will pause the GPS tracking.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="memory-book" class="section">
+      <div class="section-header">
+        <div class="section-num">14</div>
+        <div class="section-title-block">
+          <span class="section-icon">📸</span>
+          <h2 class="section-title">Community Memory Book</h2>
+          <span class="section-desc">Crowdsourced polaroid gallery with moderation and time-machine archives</span>
+        </div>
+      </div>
+
+      <p>The Memory Book is a dedicated public page where your community can upload and view photos from the sleigh routes. It builds a permanent, crowdsourced visual history of your Round Table's impact without you having to manually chase families for photos.</p>
+
+      <h3 class="sub-title">🛡️ The Moderation Queue</h3>
+      <p>To ensure absolute brand safety, photos do not appear publicly the moment they are uploaded. Instead, they follow a strict approval flow:</p>
+      <ul class="bullet-list">
+        <li><strong>Smart Uploads:</strong> When a user selects a photo, the app automatically compresses it inside their browser (down to a max of 1200px). This saves mobile data for the user and prevents your database from filling up with massive 10MB files.</li>
+        <li><strong>The Queue:</strong> The compressed photo is sent to God Mode / your backend Sheet with an "Awaiting Approval" status.</li>
+        <li><strong>Going Live:</strong> Once the Lead Elf reviews and approves the photo, it immediately joins the public gallery.</li>
+      </ul>
+
+      <h3 class="sub-title">✨ Dynamic Polaroids & Time Machine</h3>
+      <p>The gallery isn't just a static grid. Each approved photo is rendered as a stylized, slightly tilted Polaroid. To keep the gallery feeling fresh, the system applies a randomly selected festive caption (e.g., "Making memories!", "Sleighing it!", "Sparkle and shine!") from a pool of 50+ unique phrases.</p>
+      <p>If your database contains approved photos from previous years, the <strong>⏳ Archive Time Machine</strong> dropdown automatically appears at the top of the page, allowing the community to browse past seasons.</p>
+
+      <div class="callout callout-tip">
+        <span class="callout-icon">💡</span>
+        <div class="callout-body">
+          <strong>Promoting the Memory Book</strong>
+          <p>The best time to push the Memory Book is the morning after a route, or at the very end of the season. Link to it from your <em>Public Thank You Page</em> and social media posts to encourage families to upload their favourite snaps.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="magic-mailbox" class="section">
+      <div class="section-header">
+        <div class="section-num">15</div>
+        <div class="section-title-block">
+          <span class="section-icon">🎙️</span>
+          <h2 class="section-title">Magic Mailbox & Santa Studio</h2>
+          <span class="section-desc">Receive voice messages from children and reply with magical audio emails</span>
+        </div>
+      </div>
+
+      <p>The Magic Mailbox is an interactive web app where children can hit record and send a real voice message directly to "Lapland" (your backend). To maintain the magic, volunteers act as elves and use the <strong>Santa Studio</strong> dashboard to listen and reply.</p>
+
+      <h3 class="sub-title">🎙️ The Public Mailbox</h3>
+      <ul class="bullet-list">
+        <li><strong>No App Required:</strong> Families open the link, grant microphone access, and record their wishlist.</li>
+        <li><strong>Secure Storage:</strong> Audio files are securely uploaded directly to a private folder in your Google Drive. They are never made public.</li>
+        <li><strong>Parental Consent:</strong> GDPR-compliant tickboxes ensure parents consent to the recording and provide their email address for the reply.</li>
+      </ul>
+
+      <h3 class="sub-title">🎧 Santa Studio (Volunteer Dashboard)</h3>
+      <p>Santa Studio is a secure portal (protected by the God Mode password) where your "Elves" process the incoming messages.</p>
+      
+      <div class="callout callout-info">
+        <span class="callout-icon">ℹ️</span>
+        <div class="callout-body">
+          <strong>The Concurrency Engine</strong>
+          <p>If multiple elves are working at the same time, the system prevents them from answering the same child. When an elf clicks on a message, it is instantly <strong>"Claimed"</strong> across all devices. Claims expire after 10 minutes to prevent locked messages if an elf closes their browser.</p>
+        </div>
+      </div>
+
+      <ul class="bullet-list">
+        <li><strong>Listen & Record:</strong> Elves play the child's message, then hold the record button to reply in their best Santa (or Elf) voice.</li>
+        <li><strong>Automated Delivery:</strong> Once submitted, the system generates a branded HTML email, attaches a secure link to the audio reply, and emails it directly to the parents.</li>
+        <li><strong>Flagging System:</strong> If a message is inappropriate, blank, or concerning, elves can "Flag" it to hide it from the main queue and notify the Lead Elf.</li>
+      </ul>
+    </section>
+
+    <hr class="divider">
+
+    <div style="text-align:center; padding: 32px 0 16px;">
+      <div style="font-size: 64px; margin-bottom: 16px;">🎅⚡</div>
+      <div style="font-family:'Bebas Neue',sans-serif; font-size:36px; letter-spacing:2px; color:#fff; margin-bottom:10px;">YOU'RE READY TO FLY</div>
+      <p style="color:var(--text-muted); max-width:460px; margin:0 auto; font-size:14px;">All systems armed. Share the tracker, brief your elves, and bring a little Christmas magic to your streets.</p>
+    </div>
+
+  </div>
+
+  <footer class="guide-footer">
+    <div class="footer-brand">🎅 TurboSanta</div>
+    <div class="footer-meta">Comprehensive Onboarding Guide · v3.9 · Updated September 2026<br>Beverley Round Table · Built with Apps Script, Firebase &amp; Cloudflare Pages</div>
+  </footer>
+
+</div>
+
+<script>
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.nav-link');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(link => { link.style.color = ''; link.style.borderLeftColor = ''; link.style.background = ''; });
+        const active = document.querySelector(`.nav-link[href="#${entry.target.id}"]`);
+        if (active) {
+          active.style.color = 'var(--gold)';
+          active.style.borderLeftColor = 'var(--gold)';
+          active.style.background = 'var(--gold-glow)';
+        }
+      }
+    });
+  }, { threshold: 0.3, rootMargin: '-20% 0px -60% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+</script>
+
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "Santa Sleigh Live Tracker",
+  "short_name": "Santa Tracker",
+  "description": "Follow Santa live on his journey and check the route schedule.",
+  "start_url": "/?source=pwa",
+  "display": "standalone",
+  "background_color": "#1D1D1A",
+  "theme_color": "#FBAF33",
+  "icons": [
+    {
+      "src": "https://brt-23f.pages.dev/icons/RTBI_Santa.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://brt-23f.pages.dev/icons/RTBI_Santa.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

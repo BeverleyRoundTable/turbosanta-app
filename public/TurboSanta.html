@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      padding: 15px; 
+      background: #f7f7f7;
+    }
+    h2 {
+      margin-top: 0;
+    }
+    .good { 
+      color: #0a0; 
+      font-weight: bold; 
+    }
+    .warn { 
+      color: #d69300; 
+      font-weight: bold; 
+    }
+    .bad  { 
+      color: #d31c1c; 
+      font-weight: bold; 
+    }
+    .row { 
+      margin-bottom: 12px; 
+      padding: 10px; 
+      border-radius: 8px;
+      border: 1px solid #ddd; 
+      background: white; 
+    }
+    code {
+      background: #eee;
+      padding: 2px 4px;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>🎄 Turbo Santa – Onboarding Checker</h2>
+<p>Turbo Santa has inspected your spreadsheet. Here are any issues found:</p>
+
+<div id="results">Checking your setup…</div>
+
+<script>
+google.script.run
+  .withSuccessHandler(renderResults)
+  .runOnboardingCheck();
+
+function renderResults(report) {
+  const container = document.getElementById("results");
+  container.innerHTML = "";
+
+  // ---------------------------
+  // No issues at all
+  // ---------------------------
+  if (report.critical.length === 0 && report.warnings.length === 0) {
+    container.innerHTML = `
+      <p class='good'>
+        ✔ Everything looks perfect!  
+        Turbo Santa approves your sleigh setup. 🎅✨
+      </p>`;
+    return;
+  }
+
+  // ---------------------------
+  // Critical issues
+  // ---------------------------
+  if (report.critical.length > 0) {
+    container.innerHTML += `<h3 class='bad'>❌ Critical Issues</h3>`;
+    report.critical.forEach(i => {
+      container.innerHTML += `
+        <div class="row bad">
+          <strong>${i.section}</strong><br>
+          Missing: <code>${i.field}</code><br>
+          Example value: <code>${i.example}</code>
+        </div>`;
+    });
+  }
+
+  // ---------------------------
+  // Optional / recommended warnings
+  // ---------------------------
+  if (report.warnings.length > 0) {
+    container.innerHTML += `<h3 class='warn'>⚠ Optional / Recommended Fixes</h3>`;
+    report.warnings.forEach(i => {
+      container.innerHTML += `
+        <div class="row warn">
+          <strong>${i.section}</strong><br>
+          Missing: <code>${i.field}</code><br>
+          Suggested example: <code>${i.example}</code>
+        </div>`;
+    });
+  }
+}
+</script>
+
+</body>
+</html>
+

@@ -1,0 +1,1787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TurboSanta — Tracker</title>
+  
+  <link id="dynamic-manifest" rel="manifest" href="">
+  <meta name="theme-color" content="#0d0d0b">
+  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/icons/RTBI_Santa.png">
+  
+  <!-- FIX 1: Removed unused DM Mono font family — saves ~20-40KB and a render-blocking request -->
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.7.0/gpx.min.js"></script>
+
+  <style>
+    /* ── ROUND TABLE BRAND VARIABLES (NATIONAL SYNC) ── */
+    :root {
+      /* National Colors */
+      --gold: #FBAF33;
+      --gold-dim: rgba(251,175,51,0.12);
+      --gold-glow: rgba(251,175,51,0.25);
+      --dark: #0d0d0b;
+      --surface: #161614;
+      --surface-2: #1e1e1b;
+      --surface-3: #252522;
+      --border: rgba(255,255,255,0.08);
+      --border-gold: rgba(251,175,51,0.2);
+      --text: #eaeae5;
+      --text-dim: rgba(255,255,255,0.55);
+
+      /* Legacy Tracker Mappings (prevents your CSS from breaking) */
+      --rt-gold: var(--gold);
+      --rt-grey: var(--dark);
+
+      /* Tracker UI Layout */
+      --ui-bottom-safe: 72px;
+      --donate-bottom: calc(var(--ui-bottom-safe) + 120px);
+      --info-bottom: var(--ui-bottom-safe);
+    }
+    @supports(padding:env(safe-area-inset-bottom)){ 
+      :root{
+        --ui-bottom-safe: calc(88px + env(safe-area-inset-bottom));
+        --donate-bottom: calc(var(--ui-bottom-safe) + 120px);
+        --info-bottom: var(--ui-bottom-safe);
+      } 
+    }
+
+   /* ── BASE STYLES ── */
+    html, body { 
+      margin: 0; padding: 0; height: 100%; 
+      background: var(--dark); 
+      color: var(--text); 
+      font-family: 'DM Sans', sans-serif; 
+      overflow: hidden; 
+      -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
+    }
+    #map { position: absolute; inset: 0; z-index: 100; }
+    body.dim-ui #map { filter: brightness(0.85); transition: filter 600ms ease; }
+
+    /* ── SNOW EFFECTS ── */
+    #snow { position:fixed; inset:0; pointer-events:none; z-index:1500; opacity:0; transition:opacity 800ms ease; }
+    body.snowing #snow { opacity:1; filter:drop-shadow(0 0 4px white); }
+    body::after { content:''; position:fixed; inset:0; background:radial-gradient(circle,transparent 40%,rgba(0,0,0,0.6) 100%); pointer-events:none; opacity:0; transition:opacity 1.5s ease; z-index:1400; }
+    body.snowing::after { opacity:1; }
+
+        /* ── DYNAMIC STATUS BOX ── */
+    .status-popup { 
+      position: absolute; top: 20px; left: 50%; transform: translateX(-50%); 
+      background: rgba(29, 29, 26, 0.95);
+      border: 1px solid var(--border);
+      color: var(--text); padding: 12px 18px; font-size: 1.05em; font-weight: 800; 
+      border-radius: 14px;
+      max-width: 90%; box-shadow: 0 4px 24px rgba(0,0,0,0.5); 
+      z-index: 4000; text-align: center; transition: all 0.4s ease; line-height: 1.4;
+      overflow: hidden; 
+    }
+
+    .status-popup::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 4px;
+      background: var(--rt-gold);
+      width: var(--progress, 0%);
+      transition: width 1s ease-in-out;
+      box-shadow: 0 0 10px rgba(251, 175, 51, 0.8);
+      z-index: 0;
+    }
+
+    .status-popup.is-announcement {
+      background: rgba(29, 29, 26, 0.95) !important; color: var(--rt-gold) !important; 
+      border: 1px solid var(--rt-gold) !important; font-weight: 900 !important;
+      text-transform: uppercase; letter-spacing: 0.05em; animation: alertPulse 1.5s infinite; 
+    }
+    @keyframes alertPulse {
+      0% { box-shadow: 0 0 0 0 rgba(251, 175, 51, 0.5); transform: translateX(-50%) scale(1); }
+      50% { box-shadow: 0 0 0 15px rgba(251, 175, 51, 0); transform: translateX(-50%) scale(1.02); }
+      100% { box-shadow: 0 0 0 0 rgba(251, 175, 51, 0); transform: translateX(-50%) scale(1); }
+    }
+
+    .status-popup.is-user-msg {
+      background: rgba(45, 15, 60, 0.95) !important; color: #e6c2ff !important; 
+      border: 1px solid #c88bff !important; font-weight: 900 !important;
+      animation: userPulse 1.5s infinite; 
+    }
+    @keyframes userPulse {
+      0% { box-shadow: 0 0 0 0 rgba(200, 139, 255, 0.6); transform: translateX(-50%) scale(1); }
+      50% { box-shadow: 0 0 0 15px rgba(200, 139, 255, 0); transform: translateX(-50%) scale(1.02); }
+      100% { box-shadow: 0 0 0 0 rgba(200, 139, 255, 0); transform: translateX(-50%) scale(1); }
+    }
+
+    /* ── BOTTOM CONTROLS ── */
+    .info-popup { 
+      position: fixed; bottom: var(--info-bottom); left: 50%; transform: translateX(-50%); 
+      background: rgba(29, 29, 26, 0.95); border: 1px solid var(--border);
+      padding: 10px 14px; border-radius: 14px; display: flex; align-items: center; gap: 12px; 
+      font-size: .85em; font-weight: 800; z-index: 2000; max-width: calc(100vw - 32px); 
+      box-sizing: border-box; box-shadow: 0 4px 24px rgba(0,0,0,0.5); transition: opacity 600ms ease;
+    }
+    .btn { 
+      background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--border); 
+      border-radius: 10px; padding: 7px 12px; cursor: pointer; font-weight: 800; 
+      font-family: inherit; transition: all 0.2s ease; 
+      -webkit-tap-highlight-color: transparent;
+      outline: none;
+    }
+    @media (hover: hover) {
+      .btn:hover { background: var(--surface); color: var(--text); }
+    }
+    .btn:active { transform: scale(0.96); border-color: var(--rt-gold); color: var(--rt-gold); }
+    .btn.locked { opacity: 0.4; pointer-events: none; filter: grayscale(1); }
+
+    /* ── DONATE BUTTON & INSTALL OVERLAY ── */
+    .donate-box { 
+      position: fixed; bottom: var(--donate-bottom); left: 50%; transform: translateX(-50%); 
+      width: 70%; max-width: 420px; z-index: 2000; transition: opacity 600ms ease; 
+    }
+
+    .donate-btn { 
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      letter-spacing: 1.5px;
+      background: var(--rt-gold); color: #000000; border: 2px solid var(--rt-gold); 
+      display: flex; align-items: center; justify-content: center;
+      height: 58px; padding: 0; box-sizing: border-box; width: 100%;
+      border-radius: 16px; 
+      font-weight: 900; text-decoration: none; box-shadow: 0 4px 16px rgba(0,0,0,.4); 
+      transition: background 0.5s ease; position: relative; z-index: 1; 
+    }
+
+    .install-overlay {
+      position: absolute; top: 0; left: 0; bottom: 0; right: 0; 
+      width: 100%; z-index: 2005; 
+      opacity: 0; pointer-events: none; transition: opacity 0.8s ease;
+    }
+    .install-overlay.visible { opacity: 1; pointer-events: auto; }
+
+    .override-install-btn {
+      font-family: 'DM Sans', sans-serif; 
+      font-size: 1.05em;
+      letter-spacing: 0;
+      border: 2px solid #fff;
+      box-shadow: none;
+      cursor: pointer;
+    }
+
+    /* ── WAVE ANIMATION ── */
+    .wave-emoji {
+      position: fixed; font-size: 3.5em; pointer-events: none; z-index: 9999;
+      animation: floatWave 1.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    }
+    @keyframes floatWave {
+      0% { opacity: 1; transform: translateY(0) scale(0.8) rotate(0deg); }
+      30% { transform: translateY(-40px) scale(1.2) rotate(20deg); }
+      60% { transform: translateY(-70px) scale(1.2) rotate(-15deg); }
+      100% { opacity: 0; transform: translateY(-120px) scale(1) rotate(10deg); }
+    }
+
+    /* ── UI UTILITIES ── */
+    body.dim-ui .donate-box, body.dim-ui .info-popup, body.dim-ui .status-popup { opacity: 0.45; filter: saturate(0.85); }
+    body.dim-ui .donate-box:hover, body.dim-ui .info-popup:hover, body.dim-ui .status-popup:hover { opacity: 0.75; }
+    .status-dot { width: 12px; aspect-ratio: 1/1; border-radius: 50%; flex-shrink: 0; display: none; }
+    .dot-moving { background: #2cff4e; animation: pulse 1.4s infinite; }
+    .dot-stopped { background: var(--rt-gold); }
+    @keyframes pulse { 
+      0% { box-shadow: 0 0 0 0 rgba(44,255,78,.6); } 
+      70% { box-shadow: 0 0 0 10px rgba(44,255,78,0); } 
+      100% { box-shadow: 0 0 0 0 rgba(44,255,78,0); } 
+    }
+    .logo-overlay { position: relative; width: 48px; max-width: 18vw; pointer-events: none; opacity: .9; filter: drop-shadow(0 2px 6px rgba(0,0,0,.5)); }
+    
+    #loadingCover { position: fixed; inset: 0; background: var(--rt-grey); display: flex; align-items: center; justify-content: center; z-index: 6000; }
+    #loadingSpinner { width: 52px; height: 52px; border-radius: 50%; border: 4px solid var(--border); border-top-color: var(--rt-gold); animation: spin .9s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── MODALS ── */
+    /* FIX 6: Removed backdrop-filter: blur(4px) — expensive compositing on mobile, marginal visual benefit */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 5000; align-items: center; justify-content: center; padding: 20px; }
+    .modal-box { background: var(--surface); padding: 24px; border-radius: 20px; width: 100%; max-width: 340px; text-align: center; border: 1px solid var(--border); box-shadow: 0 10px 40px rgba(0,0,0,0.6); animation: slideUp 0.3s cubic-bezier(0.16,1,0.3,1); }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .modal-title { 
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 26px;
+      font-weight: 800; 
+      letter-spacing: 1.5px;
+      margin: 0 0 8px 0; 
+      color: var(--rt-gold); 
+    }
+    .modal-desc { font-size: 0.9em; color: var(--text-dim); margin-bottom: 20px; line-height: 1.4; }
+    .modal-input { width: 100%; padding: 14px; margin-bottom: 20px; background: var(--surface-2); border: 2px solid var(--border); border-radius: 12px; color: var(--text); font-size: 16px; box-sizing: border-box; text-align: center; font-family: inherit; }
+    .modal-input:focus { outline: none; border-color: var(--rt-gold); }
+    .modal-btns { display: flex; gap: 12px; }
+    .btn-full { flex: 1; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 0.95em; cursor: pointer; border: none; transition: transform 0.1s; font-family: inherit; }
+    .btn-full:active { transform: scale(0.96); }
+    .btn-cancel { background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--border); }
+    .btn-confirm { background: var(--rt-gold); color: #000; box-shadow: 0 4px 12px rgba(251,175,51,0.3); }
+
+    /* ── TOAST MESSAGES ── */
+    .toast-box { display: none; position: fixed; left: 50%; bottom: calc(var(--donate-bottom) + 80px); transform: translateX(-50%); background: rgba(251, 175, 51, 0.95); color: #000; padding: 14px 20px; font-weight: 800; border-radius: 22px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); z-index: 6000; pointer-events: none; max-width: min(90vw,420px); text-align: center; line-height: 1.3; }
+    .toast-visible { display: block; }
+
+    /* ── KIOSK MODE ── */
+    body.kiosk { --kiosk-bottom: 56px; cursor: none; }
+    body.kiosk .kiosk-sponsor { bottom: var(--kiosk-bottom); }
+    body.kiosk .kiosk-banner { bottom: calc(var(--kiosk-bottom) + 64px); }
+    body.kiosk .toast-box, body.kiosk .status-popup:not(.is-announcement), body.kiosk #statusDot, body.kiosk .leaflet-control-zoom, body.kiosk .info-popup { display: none !important; }
+    body.kiosk .leaflet-container { -webkit-tap-highlight-color: transparent; }
+    body.kiosk .leaflet-container *, body.kiosk .leaflet-interactive:focus, body.kiosk .leaflet-interactive { outline: none !important; pointer-events: none; }
+    .kiosk-banner { position: fixed; bottom: calc(var(--kiosk-bottom) + 64px); left: 50%; transform: translateX(-50%) translateY(-6px); background: rgba(29, 29, 26, 0.96); border: 1px solid var(--border); color: var(--text); padding: 16px 36px; border-radius: 999px; font-size: 1.25em; font-weight: 900; letter-spacing: 0.4px; box-shadow: 0 8px 28px rgba(0,0,0,0.55); z-index: 4500; pointer-events: none; opacity: 0; transition: opacity 0.6s ease, transform 0.6s ease; text-align: center; display: none; }
+    body.kiosk .kiosk-banner { display: block; }
+    .kiosk-banner.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .kiosk-banner.live { animation: kioskPulse 2.8s ease-in-out infinite; }
+    .kiosk-subtitle { font-size: 0.75em; opacity: 0.85; margin-top: 4px; text-align: center; color: var(--rt-gold); }
+    @keyframes kioskPulse { 0%,100%{box-shadow:0 8px 28px rgba(0,0,0,0.55)} 50%{box-shadow:0 8px 34px rgba(251, 175, 51, 0.4)} }
+    
+    .kiosk-sponsor { position: fixed; bottom: var(--kiosk-bottom); left: 50%; transform: translateX(-50%) translateY(6px); background: rgba(29, 29, 26, 0.95); border: 1px solid var(--border); padding: 10px 18px; border-radius: 14px; display: flex; align-items: center; gap: 12px; z-index: 4400; box-shadow: 0 6px 22px rgba(0,0,0,0.55); opacity: 0; pointer-events: none; transition: opacity 0.6s ease, transform 0.6s ease; }
+    .kiosk-sponsor.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .kiosk-sponsor span { font-size: 0.75em; font-weight: 700; color: var(--text-dim); white-space: nowrap; }
+    .kiosk-sponsor img { max-height: 34px; max-width: 160px; object-fit: contain; }
+    
+    @media(max-height:700px){ 
+      :root{ --ui-bottom-safe: calc(64px + env(safe-area-inset-bottom)); }
+      .donate-box{ width: 85%; max-width: 360px; }
+      .info-popup{ font-size: .8em; padding: 8px 12px; }
+      .status-popup{ font-size: .95em; padding: 12px 16px; } 
+    }
+    
+        @media(max-width: 480px) { 
+      .donate-box {
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 165px) !important;
+    }
+
+      .info-popup { 
+        width: calc(100vw - 16px); 
+        padding: 8px 6px; 
+        gap: 4px; 
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 85px) !important; 
+      }
+
+      .toast-box { 
+        font-size: 0.9em; 
+        padding: 12px 16px; 
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 235px) !important; 
+      } 
+
+      .info-popup .btn {
+        flex: 1; 
+        padding: 8px 2px; 
+        font-size: 0.9em; 
+        white-space: nowrap; 
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .status-dot {
+        width: 10px;
+        margin-right: 2px;
+      }
+    }
+    
+    .ios-install-prompt {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(29, 29, 26, 0.95);
+      border: 1px solid var(--rt-gold);
+      color: #fff;
+      padding: 16px;
+      border-radius: 16px;
+      font-size: 0.9em;
+      font-weight: 700;
+      text-align: center;
+      z-index: 9999;
+      width: 85%;
+      max-width: 340px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+      opacity: 0;
+      transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+    }
+    .ios-install-prompt.visible {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .ios-install-prompt .close-btn {
+      position: absolute;
+      top: 4px;
+      right: 10px;
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-size: 1.5em;
+      cursor: pointer;
+    }
+
+    /* ── ELF CAM POLAROIDS ── */
+    .polaroid {
+      position: fixed;
+      background: #fff;
+      padding: 8px 8px 24px 8px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+      z-index: 9000;
+      pointer-events: none; 
+      opacity: 0;
+      animation: polaroidFade 10s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      max-width: 280px;
+      border-radius: 4px;
+    }
+    .polaroid img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 2px;
+      border: 1px solid rgba(0,0,0,0.1);
+      min-height: 150px;
+      background: #f0f0f0;
+    }
+    .polaroid-caption {
+      color: #111;
+      font-family: 'Open Sans', sans-serif;
+      font-weight: 900;
+      font-size: 1.0em;
+      text-align: center;
+      margin-top: 10px;
+      letter-spacing: 0.5px;
+    }
+    @keyframes polaroidFade {
+      0% { opacity: 0; transform: scale(0.6) translateY(40px) rotate(var(--rotStart)); }
+      10% { opacity: 1; transform: scale(1) translateY(0) rotate(var(--rotMid)); }
+      85% { opacity: 1; transform: scale(1) translateY(0) rotate(var(--rotMid)); }
+      100% { opacity: 0; transform: scale(0.9) translateY(-30px) rotate(var(--rotEnd)); }
+    }
+    @media (max-width: 600px) {
+      .polaroid { max-width: 160px; padding: 5px 5px 16px 5px; }
+      .polaroid-caption { font-size: 0.85em; margin-top: 6px; }
+    }
+    
+    /* ── DRIVER MODE (SAT NAV) ── */
+    .driver-mode {
+      max-width: 500px;
+      margin: 0 auto;
+      position: relative;
+      border-left: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      box-shadow: 0 0 40px rgba(0,0,0,0.8);
+    }
+
+    .driver-progress-box {
+      font-family: 'Bebas Neue', sans-serif;
+      letter-spacing: 2px;
+      display: none;
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(29, 29, 26, 0.95);
+      border: 3px solid var(--rt-gold);
+      color: var(--rt-gold);
+      padding: 14px 40px;
+      font-size: 3em;
+      font-weight: 900;
+      border-radius: 24px;
+      z-index: 5000;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8), inset 0 0 15px rgba(251, 175, 51, 0.2);
+      text-align: center;
+      pointer-events: none;
+    }
+    body.driver-mode.nav-active .driver-progress-box {
+      display: block; 
+    }
+    
+    body.driver-mode .donate-box,
+    body.driver-mode .info-popup,
+    body.driver-mode .install-overlay,
+    body.driver-mode .ios-install-prompt {
+      display: none !important;
+    }
+
+    /* ── TWITCH PLAYER OVERLAY ── */
+    .twitch-container {
+      position: fixed;
+      bottom: calc(var(--info-bottom) + 30px); 
+      right: 24px;
+      width: 640px;
+      height: 360px;
+      background: var(--surface-2);
+      border: 2px solid var(--rt-gold);
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+      z-index: 3000;
+      overflow: hidden;
+      transform: translateX(120%); 
+      opacity: 0;
+      transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+    }
+    .twitch-container.visible {
+      transform: translateX(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .twitch-container iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    
+    @media (max-width: 768px) {
+      .twitch-container {
+        width: calc(100vw - 32px);
+        right: 16px;
+        left: 16px;
+        height: 200px;
+        bottom: calc(var(--info-bottom) + 110px);
+        transform: translateY(150%);
+      }
+      .twitch-container.visible {
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="loadingCover"><div id="loadingSpinner"></div></div>
+  <div class="status-popup" id="statusBox">🔍 Searching for Santa…</div>
+  
+  <div class="donate-box" id="donateBox">
+    <a id="donateLink" class="donate-btn" target="_blank">🎁 DONATE & SUPPORT US</a>
+  
+    <div class="install-overlay" id="installOverlayBox">
+      <button id="installAppBtn" class="donate-btn override-install-btn">📲 Add App to Home Screen</button>
+    </div>
+  </div>
+
+  <div id="iosPrompt" class="ios-install-prompt">
+    <button class="close-btn" id="iosCloseBtn">&times;</button>
+    To install this tracker, tap the <strong>Share</strong> icon below <br>
+    (the square with an arrow) and select <br>
+    <span style="color: var(--rt-gold);">"Add to Home Screen"</span>
+  </div>
+
+  <div class="info-popup">
+    <div id="statusDot" class="status-dot"></div>
+    <button class="btn" id="followBtn">Follow: ON</button>
+    <button class="btn" id="recenterBtn">Re-centre</button>
+    <button class="btn" id="notifyBtn">🔔 Notify Me</button>
+    
+    <button class="btn" id="twitchBtn" style="display: none; border-color: var(--rt-gold); color: var(--rt-gold);">📺 Cam: OFF</button>
+    
+    <button class="btn" id="msgBtn" style="display: none;">💬 Msg Santa</button>
+    <div id="toast" class="toast-box"></div>
+  </div>
+
+  <div id="twitchBox" class="twitch-container">
+    <div style="padding: 10px; text-align: center; color: var(--text-dim); font-size: 12px; height: 100%; display: flex; align-items: center; justify-content: center;">
+      Loading Sleigh Cam...
+    </div>
+  </div>
+
+  <div id="emailModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-title">🔔 Get Notified</div>
+      <div class="modal-desc">Want to know when Santa is nearby? Enter your email below (optional).</div>
+      <input type="email" id="subEmail" class="modal-input" placeholder="santa@example.com">
+      <div class="modal-btns">
+        <button class="btn-full btn-cancel" id="modalCancelBtn">Cancel</button>
+        <button class="btn-full btn-confirm" id="modalConfirmBtn">Notify Me</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="msgModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">💬 Message Santa</div>
+    <div class="modal-desc">Send a quick message to the sleigh (max 50 chars). Shows on the tracker if the Elves approve!</div>
+    <input type="text" id="userMsgInput" class="modal-input" placeholder="e.g., We are outside waiting!" maxlength="50">
+    <div class="modal-btns">
+      <button class="btn-full btn-cancel" id="msgCancelBtn">Cancel</button>
+      <button class="btn-full btn-confirm" id="msgConfirmBtn">Send</button>
+    </div>
+  </div>
+</div>
+
+  <div id="kioskBanner" class="kiosk-banner"></div>
+  <div id="kioskSponsor" class="kiosk-sponsor"></div>
+  <div id="map"></div>
+  <canvas id="snow"></canvas>
+  
+  <div id="driverProgressBox" class="driver-progress-box">0%</div>
+  
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+
+      // ⭐ DYNAMIC MANIFEST
+      const dynamicManifest = {
+        "name": "Santa Sleigh Tracker",
+        "short_name": "Santa Tracker",
+        "description": "Live GPS tracking for the local Round Table Santa Sleigh.",
+        "start_url": window.location.href,
+        "display": "standalone",
+        "background_color": "#1D1D1A",
+        "theme_color": "#FBAF33",
+        "icons": [
+          {
+            "src": "https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/icons/RTBI_Santa.png", 
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+          },
+          {
+            "src": "https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/icons/RTBI_Santa.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+          }
+        ]
+      };
+      
+      const manifestBlob = new Blob([JSON.stringify(dynamicManifest)], { type: 'application/json' });
+      const manifestUrl = URL.createObjectURL(manifestBlob);
+      document.getElementById('dynamic-manifest').setAttribute('href', manifestUrl);
+      // FIX 5: Revoke the blob URL after the browser has consumed it (next microtask)
+      setTimeout(() => URL.revokeObjectURL(manifestUrl), 0);
+      
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+      if (isIOS && !isStandalone) {
+        const iosPrompt = document.getElementById('iosPrompt');
+        setTimeout(() => {
+          if(iosPrompt) iosPrompt.classList.add('visible');
+        }, 3000);
+
+        document.getElementById('iosCloseBtn').addEventListener('click', () => {
+          iosPrompt.classList.remove('visible');
+        });
+      }
+
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js').catch(() => {});
+        });
+      }
+
+      let deferredPrompt;
+      let installTimeout;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        
+        const overlay = document.getElementById('installOverlayBox');
+        overlay.classList.add('visible');
+        
+        installTimeout = setTimeout(() => {
+          overlay.classList.remove('visible');
+        }, 10000);
+      });
+
+      document.getElementById('installAppBtn').addEventListener('click', async () => {
+        const overlay = document.getElementById('installOverlayBox');
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          overlay.classList.remove('visible');
+          deferredPrompt = null;
+          clearTimeout(installTimeout);
+        }
+      });
+
+      const AppConfig = {
+        API: {
+          REFRESH_MS: 6000,
+          REFRESH_MAX_MS: 60000,     // FIX 4: Backoff ceiling
+          STALE_MS: 5 * 60 * 1000,
+          MOTION_WINDOW_MS: 60 * 1000,
+          MOVE_THRESHOLD_METERS: 8,
+          MIN_FIXES_FOR_ETA: 3,
+          MIN_ETA_WINDOW_MS: 15 * 1000,
+        },
+        NOTIFICATIONS: {
+          NEAR_DISTANCE_METERS: 250,
+          PASSED_DISTANCE_OFFSET: 150
+        },
+        GPX: { 
+          AHEAD: 80, 
+          BACK: 5, 
+          EARLY_EXIT_METERS: 25 
+        },
+        SNOW: {
+          ETA_MINUTES_MAX: 15,
+          LEVELS: { LIGHT: 1, HEAVY: 2, BLIZZARD: 3 },
+          MOBILE_BASE_COUNT: 30,
+          DESKTOP_BASE_COUNT: 60,
+          MULTIPLIERS: [0, 1, 2.5, 5]
+        },
+        BATTERY: {
+          LOW: 0.4,
+          CRITICAL: 0.2,
+          FRAME_SKIP: { LOW: 2, CRITICAL: 3 }
+        },
+        LOCATIONS: {
+          LAPLAND: [66.5436, 25.8473]
+        },
+        ICONS: {
+          PREVIEW: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-grey.png",
+          CONFIRMED: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+          FALLBACK_LIVE: "https://i.ibb.co/Qj3vDbSR/Santa-Marker-11.png",
+          FALLBACK_START: "https://i.ibb.co/PzDYmwzZ/Santa-Marker-4.png",
+          FALLBACK_END: "https://i.ibb.co/39WF0kBd/Santa-Marker-5.png",
+          BROWSER_ICON: "https://i.ibb.co/6cZwpb07/Santa-Marker.png"
+        }
+      };
+
+      const AppState = {
+        map: null,
+        marker: null,
+        notifyMarker: null,
+        gpxRoute: null,
+        lastFix: null,
+        recentFixes: [],
+        routeFixes: [],
+        flags: {
+          follow: true,
+          firstFix: true,
+          isKiosk: false,
+          gpxLoaded: false,
+          snowActive: false,
+          pageVisible: !document.hidden,
+          awaitingPin: false,
+          browserNotified: sessionStorage.getItem("SANTA_BROWSER_NOTIFIED") === "1",
+          hasPassedSticky: sessionStorage.getItem("SANTA_HAS_PASSED") === "1"
+        },
+        vars: {
+          apiUrl: null,
+          sleighName: "Santa Sleigh",
+          staleSince: null,
+          lastSnapIndex: 0,
+          snowflakes: [],
+          animRaf: null,
+          pendingSubscription: null,
+          notifyLatLng: null,
+          lastVisualPos: null,
+          escapeListener: null,
+          lastElfCamUrl: null,
+          lastSeenMsgTs: Number(sessionStorage.getItem('SANTA_LAST_MSG_TS')) || 0,
+          pollTimer: null,            // FIX 2: Track the polling timeout
+          consecutiveErrors: 0        // FIX 4: Error counter for backoff
+        },
+        dom: {
+          loading: document.getElementById("loadingCover"),
+          statusBox: document.getElementById("statusBox"),
+          followBtn: document.getElementById("followBtn"),
+          recenterBtn: document.getElementById("recenterBtn"),
+          notifyBtn: document.getElementById("notifyBtn"),
+          msgBtn: document.getElementById("msgBtn"),
+          statusDot: document.getElementById("statusDot"),
+          donateLink: document.getElementById("donateLink"),
+          donateBox: document.getElementById("donateBox"),
+          kioskBanner: document.getElementById("kioskBanner"),
+          sponsorBox: document.getElementById("kioskSponsor"),
+          toast: document.getElementById("toast"),
+          snowCanvas: document.getElementById("snow")
+        }
+      };
+
+      // FIX 2: Central scheduler — clears any existing timer before setting a new one
+      function scheduleNextPoll() {
+        if (AppState.vars.pollTimer) clearTimeout(AppState.vars.pollTimer);
+        // FIX 4: Exponential backoff on consecutive errors, capped at REFRESH_MAX_MS
+        const delay = Math.min(
+          AppConfig.API.REFRESH_MS * Math.pow(2, AppState.vars.consecutiveErrors),
+          AppConfig.API.REFRESH_MAX_MS
+        );
+        AppState.vars.pollTimer = setTimeout(updateTracker, delay);
+      }
+
+      const Utils = {
+        validPos: (lat, lng) => typeof lat === "number" && !isNaN(lat) && typeof lng === "number" && !isNaN(lng),
+        lerp: (a, b, t) => a + (b - a) * t,
+        easeOutCubic: (t) => 1 - Math.pow(1 - t, 3),
+        isValidImageUrl(url) {
+          if (!url || typeof url !== 'string') return false;
+          try { const parsed = new URL(url); return ['http:', 'https:', 'data:'].includes(parsed.protocol); }
+          catch { return false; }
+        },
+        async loadJSON(url) {
+          const r = await fetch(url, { cache: "no-store" });
+          if (!r.ok) throw new Error(`Fetch failed: ${r.status}`);
+          return r.json();
+        },
+        haversineMeters(a, b) {
+          const R = 6371000;
+          const dLat = (b.lat - a.lat) * Math.PI / 180;
+          const dLng = (b.lng - a.lng) * Math.PI / 180;
+          const s = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+          return 2 * R * Math.asin(Math.sqrt(s));
+        },
+        calculateSpeed(fixes) {
+          if (fixes.length < AppConfig.API.MIN_FIXES_FOR_ETA) return null;
+          const first = fixes[0];
+          const last = fixes[fixes.length - 1];
+          const elapsed = last.ts - first.ts;
+          if (elapsed < AppConfig.API.MIN_ETA_WINDOW_MS) return null;
+          const dist = last.cumulative - first.cumulative;
+          const speed = dist / (elapsed / 1000);
+          return Math.min(Math.max(speed, 0.3), 31);
+        },
+        calculateRouteSpeed(routeFixes) {
+          if (routeFixes.length < AppConfig.API.MIN_FIXES_FOR_ETA) return null;
+          const first = routeFixes[0];
+          const last = routeFixes[routeFixes.length - 1];
+          const elapsed = last.ts - first.ts;
+          if (elapsed < AppConfig.API.MIN_ETA_WINDOW_MS) return null;
+          const dist = last.routeDist - first.routeDist;
+          if (dist <= 0) return null;
+          const speed = dist / (elapsed / 1000);
+          return Math.min(Math.max(speed, 0.1), 31);
+        },
+        toggleFollowControls(enable) {
+          const { followBtn, recenterBtn } = AppState.dom;
+          if (enable) { 
+            followBtn.classList.remove("locked"); 
+            recenterBtn.classList.remove("locked");
+          } else { 
+            followBtn.classList.add("locked"); 
+            recenterBtn.classList.add("locked"); 
+          }
+        }
+      };
+
+      let batteryState = { supported: false, charging: true, level: 1 };
+      if ("getBattery" in navigator) {
+        navigator.getBattery().then(battery => {
+          batteryState.supported = true;
+          const update = () => { batteryState.charging = battery.charging; batteryState.level = battery.level; };
+          update();
+          battery.addEventListener("chargingchange", update);
+          battery.addEventListener("levelchange", update);
+        });
+      }
+
+      let wakeLock = null;
+      async function requestWakeLock() {
+        try { if ("wakeLock" in navigator) { wakeLock = await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release", () => setTimeout(requestWakeLock, 2000)); } } catch(e) {}
+      }
+
+      // FIX 3: Throttled panTo — only fires once during the animation, not every frame
+      function animateMarkerTo(targetLat, targetLng) {
+        if (!AppState.marker) return;
+        const startLL = AppState.marker.getLatLng();
+        const start = { lat: startLL.lat, lng: startLL.lng };
+        const end = { lat: targetLat, lng: targetLng };
+        const startTime = performance.now();
+        const duration = 900;
+        let hasPanned = false; // FIX 3: One-shot pan flag
+
+        if (AppState.vars.animRaf) cancelAnimationFrame(AppState.vars.animRaf);
+
+        function step(now) {
+          const t = Math.min(1, (now - startTime) / duration);
+          const e = Utils.easeOutCubic(t);
+          const lat = Utils.lerp(start.lat, end.lat, e);
+          const lng = Utils.lerp(start.lng, end.lng, e);
+          const ll = L.latLng(lat, lng);
+          AppState.marker.setLatLng(ll);
+          AppState.vars.lastVisualPos = { lat: ll.lat, lng: ll.lng };
+
+          // FIX 3: Pan the map once at the start, then let Leaflet's own animation carry it
+          if ((AppState.flags.follow || AppState.flags.isKiosk) && !AppState.flags.firstFix && !hasPanned) {
+            AppState.map.panTo([end.lat, end.lng], { animate: true, duration: 0.9 });
+            hasPanned = true;
+          }
+
+          if (t < 1) { AppState.vars.animRaf = requestAnimationFrame(step); }
+          else { AppState.vars.animRaf = null; }
+        }
+        AppState.vars.animRaf = requestAnimationFrame(step);
+      }
+
+      function pushFix(lat, lng, ts) {
+        const fixes = AppState.recentFixes;
+        const last = fixes[fixes.length - 1];
+        const dist = last ? Utils.haversineMeters(last, { lat, lng }) : 0;
+        fixes.push({ lat, lng, ts, cumulative: (last?.cumulative || 0) + dist });
+        const cutoff = ts - AppConfig.API.MOTION_WINDOW_MS;
+        while (fixes.length && fixes[0].ts < cutoff) fixes.shift();
+      }
+
+      function pushRouteFix(routeDist, ts) {
+        const fixes = AppState.routeFixes;
+        fixes.push({ routeDist, ts });
+        const cutoff = ts - AppConfig.API.MOTION_WINDOW_MS;
+        while (fixes.length && fixes[0].ts < cutoff) fixes.shift();
+      }
+
+      function isSleighMoving() {
+        if (AppState.recentFixes.length < 2) return false;
+        const first = AppState.recentFixes[0];
+        const last = AppState.recentFixes[AppState.recentFixes.length - 1];
+        return (last.cumulative - first.cumulative) >= AppConfig.API.MOVE_THRESHOLD_METERS;
+      }
+
+      async function loadGpxRoute(url) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          const res = await fetch(url, { cache: "no-store", signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (!res.ok) throw new Error("GPX fetch failed");
+          const text = await res.text();
+          const xml = new DOMParser().parseFromString(text, "text/xml");
+          const pts = [...xml.getElementsByTagName("trkpt")];
+          if (pts.length < 2) throw new Error("GPX too short");
+          let dist = 0; let route = [];
+          for (let i = 0; i < pts.length; i++) {
+            const lat = parseFloat(pts[i].getAttribute("lat"));
+            const lng = parseFloat(pts[i].getAttribute("lon"));
+            if (i > 0) dist += Utils.haversineMeters(route[i - 1], { lat, lng });
+            route.push({ lat, lng, dist, index: i }); 
+          }
+          AppState.gpxRoute = route;
+          AppState.flags.gpxLoaded = true;
+          AppState.vars.lastSnapIndex = 0;
+        } catch (e) {
+          AppState.flags.gpxLoaded = false;
+          AppState.dom.notifyBtn.style.display = "none";
+        }
+      }
+
+      function snapToGpxIndex(pos, searchOpts) {
+        if (!AppState.gpxRoute) return null;
+        const { AHEAD, BACK, EARLY_EXIT_METERS } = searchOpts || AppConfig.GPX;
+        const isGlobalSearch = !searchOpts;
+        const start = isGlobalSearch ? 0 : Math.max(0, AppState.vars.lastSnapIndex - BACK);
+        const end = isGlobalSearch ? AppState.gpxRoute.length - 1 : Math.min(AppState.gpxRoute.length - 1, AppState.vars.lastSnapIndex + AHEAD);
+        let bestIndex = isGlobalSearch ? 0 : AppState.vars.lastSnapIndex;
+        let bestDist = Infinity;
+        for (let i = start; i <= end; i++) {
+          const d = Utils.haversineMeters(pos, AppState.gpxRoute[i]);
+          if (d < bestDist) { bestDist = d; bestIndex = i; }
+          if (!isGlobalSearch && i > AppState.vars.lastSnapIndex && d > bestDist + EARLY_EXIT_METERS) break;
+        }
+        if (!isGlobalSearch) AppState.vars.lastSnapIndex = bestIndex;
+        return { point: AppState.gpxRoute[bestIndex], distance: bestDist };
+      }
+
+      function setDimUI(dim) { document.body.classList.toggle("dim-ui", !!dim); }
+
+      function showToast(message) {
+        if (AppState.flags.isKiosk) return;
+        const t = AppState.dom.toast;
+        t.textContent = message;
+        t.classList.add("toast-visible");
+        setTimeout(() => t.classList.remove("toast-visible"), 4000);
+      }
+
+      const SnowSystem = {
+        _rafId: null, // FIX: Track snow RAF for clean cancellation
+        resize() { AppState.dom.snowCanvas.width = window.innerWidth; AppState.dom.snowCanvas.height = window.innerHeight; },
+        create(level) {
+          const isMobile = window.innerWidth < 600;
+          const baseCount = isMobile ? AppConfig.SNOW.MOBILE_BASE_COUNT : AppConfig.SNOW.DESKTOP_BASE_COUNT;
+          const count = Math.floor(baseCount * AppConfig.SNOW.MULTIPLIERS[level]);
+          AppState.vars.snowflakes = Array.from({ length: count }, () => ({
+            x: Math.random() * AppState.dom.snowCanvas.width,
+            y: Math.random() * AppState.dom.snowCanvas.height,
+            radius: Math.random() * 3 + 1,
+            speed: ((Math.random() * 1 + 0.5) + (Math.random() * 1.5)) * (level === 3 ? 1.3 : 1),
+            swayOffset: Math.random() * Math.PI * 2,
+            swaySpeed: Math.random() * 0.02 + 0.005
+          }));
+        },
+        draw() {
+          if (!AppState.flags.snowActive || !AppState.flags.pageVisible) return;
+          let frameSkip = 0;
+          if (batteryState.supported && !batteryState.charging) {
+            if (batteryState.level <= AppConfig.BATTERY.CRITICAL) frameSkip = AppConfig.BATTERY.FRAME_SKIP.CRITICAL;
+            else if (batteryState.level <= AppConfig.BATTERY.LOW) frameSkip = AppConfig.BATTERY.FRAME_SKIP.LOW;
+          }
+          SnowSystem._frame = (SnowSystem._frame || 0) + 1;
+          if (frameSkip && SnowSystem._frame % (frameSkip + 1) !== 0) { SnowSystem._rafId = requestAnimationFrame(SnowSystem.draw); return; }
+          const ctx = AppState.dom.snowCanvas.getContext("2d");
+          ctx.clearRect(0, 0, AppState.dom.snowCanvas.width, AppState.dom.snowCanvas.height);
+          ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+          ctx.beginPath();
+          for (const f of AppState.vars.snowflakes) {
+            f.y += f.speed; f.swayOffset += f.swaySpeed; f.x += Math.sin(f.swayOffset) * 0.5;
+            if (f.y > AppState.dom.snowCanvas.height) { f.y = -10; f.x = Math.random() * AppState.dom.snowCanvas.width; }
+            if (f.x > AppState.dom.snowCanvas.width) f.x = 0;
+            if (f.x < 0) f.x = AppState.dom.snowCanvas.width;
+            ctx.moveTo(f.x, f.y); ctx.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
+          }
+          ctx.fill();
+          SnowSystem._rafId = requestAnimationFrame(SnowSystem.draw);
+        },
+        setLevel(on, level) {
+          if (!on) {
+            if (AppState.flags.snowActive) {
+              AppState.flags.snowActive = false;
+              // FIX: Cancel the pending snow RAF immediately instead of relying on guard clause
+              if (SnowSystem._rafId) { cancelAnimationFrame(SnowSystem._rafId); SnowSystem._rafId = null; }
+              document.body.classList.remove("snowing");
+              const ctx = AppState.dom.snowCanvas.getContext("2d");
+              ctx.clearRect(0, 0, AppState.dom.snowCanvas.width, AppState.dom.snowCanvas.height);
+            }
+            return;
+          }
+          if (AppState.currentSnowLevel !== level) { AppState.currentSnowLevel = level; SnowSystem.create(level); }
+          if (!AppState.flags.snowActive) { AppState.flags.snowActive = true; document.body.classList.add("snowing"); SnowSystem.draw(); }
+        }
+      };
+
+      function showNotifyMarker(lat, lng, confirmed) {
+        if (AppState.notifyMarker) AppState.map.removeLayer(AppState.notifyMarker);
+        const iconUrl = confirmed ? AppConfig.ICONS.CONFIRMED : AppConfig.ICONS.PREVIEW;
+        AppState.notifyMarker = L.marker([lat, lng], {
+          icon: L.icon({ iconUrl, iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png", shadowSize: [41, 41] }),
+          interactive: true
+        }).addTo(AppState.map);
+        if (!confirmed) {
+          AppState.notifyMarker.bindPopup("📍 Tap this pin again to confirm").openPopup();
+          AppState.notifyMarker.once("click", () => {
+            AppState.flags.awaitingPin = false;
+            showNotifyMarker(lat, lng, true);
+            sessionStorage.setItem("SANTA_NOTIFY_POINT", JSON.stringify({ lat, lng }));
+            AppState.vars.pendingSubscription = { lat, lng };
+            AppState.vars.notifyLatLng = { lat, lng };
+            document.getElementById("emailModal").style.display = "flex";
+            document.getElementById("subEmail").focus();
+          });
+        }
+      }
+
+      function fireBrowserNotification(title, body) {
+        if (!("Notification" in window)) return;
+        if (Notification.permission !== "granted") return;
+        try { new Notification(title, { body, icon: AppConfig.ICONS.BROWSER_ICON, requireInteraction: true }); } catch (e) {}
+      }
+
+      // ⭐ ELF CAM POLAROID ENGINE
+      function triggerPolaroid(imgSrc, captionText = "Live from the Sleigh!") {
+        if (!AppState.flags.pageVisible) return;
+
+        const p = document.createElement("div");
+        p.className = "polaroid";
+
+        const isMobile = window.innerWidth < 600;
+        const isLeft = Math.random() > 0.5;
+
+        const TOP_SAFE    = 90;
+        const BOTTOM_SAFE = isMobile ? 230 : 210;
+        const POLAROID_H  = isMobile ? 180 : 300;
+
+        const availableH = window.innerHeight - TOP_SAFE - BOTTOM_SAFE - POLAROID_H;
+        const safeTop = TOP_SAFE + (availableH > 0 ? Math.random() * availableH : 0);
+
+        if (isMobile) {
+          p.style.left  = isLeft ? "22px" : "auto";
+          p.style.right = isLeft ? "auto" : "22px";
+        } else {
+          p.style.left  = isLeft ? (Math.random() * 6 + 1) + "%" : "auto";
+          p.style.right = isLeft ? "auto" : (Math.random() * 6 + 1) + "%";
+        }
+
+        p.style.top = safeTop + "px";
+
+        const maxRot = isMobile ? 6 : 12;
+        const rot = Math.random() * (maxRot * 2) - maxRot;
+        p.style.setProperty("--rotStart", (rot * 2) + "deg");
+        p.style.setProperty("--rotMid",   rot + "deg");
+        p.style.setProperty("--rotEnd",   (rot * 0.5) + "deg");
+
+        p.innerHTML = `<img src="${imgSrc}" alt="Elf Cam"><div class="polaroid-caption">${captionText}</div>`;
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 10000);
+      }
+        
+      async function updateTracker() {
+        try {
+          const now = Date.now();
+          
+          // 1. THROTTLE SETTINGS (Only hit Google Apps Script every 60 seconds)
+          if (!AppState.vars.lastSettingsFetch || now - AppState.vars.lastSettingsFetch > 60000) {
+            AppState.vars.latestApiData = await Utils.loadJSON(AppState.vars.apiUrl);
+            AppState.vars.lastSettingsFetch = now;
+          }
+          const latestApiData = AppState.vars.latestApiData;
+          
+          const rawElfCamUrl = latestApiData.settings?.elf_cam_url;
+          
+          if (rawElfCamUrl && rawElfCamUrl !== AppState.vars.lastElfCamUrl && Utils.isValidImageUrl(rawElfCamUrl)) {
+              if (AppState.flags.pageVisible) {
+                  AppState.vars.lastElfCamUrl = rawElfCamUrl; 
+                  
+                  let finalImgUrl = rawElfCamUrl;
+                  if (finalImgUrl.includes("drive.google.com")) {
+                    try {
+                        const urlObj = new URL(finalImgUrl);
+                        const fileId = urlObj.searchParams.get("id");
+                        if (fileId) {
+                            finalImgUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`;
+                        }
+                    } catch(e) {}
+                  }
+                  
+                  console.log("📸 Displaying Elf Cam:", finalImgUrl);
+                  triggerPolaroid(finalImgUrl, "Live from the Sleigh!");
+              }
+          }
+
+          // 2. DIRECT FIREBASE FETCH
+          if (!AppState.vars.firebaseUrl) throw new Error("No Firebase URL found");
+          
+          let data = await Utils.loadJSON(AppState.vars.firebaseUrl + "/location/current.json");
+          
+          if (data && typeof data === "object" && !data.lat) {
+            const first = Object.values(data)[0];
+            if (first && typeof first === "object") data = first;
+          }
+
+          if (!data || !Utils.validPos(data.lat, data.lng)) throw new Error("Invalid Coords");
+
+          // FIX 4: Reset error counter on successful fetch
+          AppState.vars.consecutiveErrors = 0;
+
+          const ts = new Date(data.ts).getTime();
+          const age = Date.now() - ts;
+          const isFresh = age <= AppConfig.API.STALE_MS;
+
+          if (AppState.flags.isKiosk) {
+            AppState.dom.kioskBanner.classList.toggle("live", isFresh);
+            const statusEl = document.getElementById("kioskStatus");
+            if (statusEl) statusEl.textContent = isFresh ? "🎅 LIVE TRACKING" : "🎄 PREPARING IN LAPLAND";
+            if (AppState.dom.sponsorBox) {
+              AppState.dom.sponsorBox.classList.toggle("visible", isFresh && !!AppState.vars.todayRoute?.sponsorUrl);
+            }
+          }
+
+          if (!isFresh) {
+            if (!AppState.vars.staleSince) AppState.vars.staleSince = ts;
+            if (Date.now() - AppState.vars.staleSince > AppConfig.API.STALE_MS) {
+              AppState.marker.setLatLng(AppConfig.LOCATIONS.LAPLAND);
+              if (AppState.flags.follow) AppState.map.setView(AppConfig.LOCATIONS.LAPLAND, 5, { animate: true, duration: 2 });
+              AppState.dom.statusBox.textContent = "🎄 Santa is in Lapland preparing for Christmas!";
+              AppState.dom.statusBox.classList.remove("is-announcement", "is-user-msg");
+              AppState.dom.statusDot.style.display = "none";
+              setDimUI(false);
+              AppState.flags.firstFix = true;
+              scheduleNextPoll(); // FIX 2
+              return;
+            }
+            if (AppState.lastFix) {
+              animateMarkerTo(AppState.lastFix.lat, AppState.lastFix.lng);
+              AppState.dom.statusBox.textContent = "🎄 Santa has stopped to spread cheer!";
+              AppState.dom.statusBox.classList.remove("is-announcement", "is-user-msg");
+              AppState.dom.statusDot.style.display = "block";
+              AppState.dom.statusDot.className = "status-dot dot-stopped";
+              setDimUI(false);
+              scheduleNextPoll(); // FIX 2
+              return;
+            }
+          } else {
+            AppState.vars.staleSince = null;
+            AppState.lastFix = { lat: data.lat, lng: data.lng };
+          }
+
+          let visualPos = { lat: data.lat, lng: data.lng };
+
+          if (AppState.flags.gpxLoaded) {
+            const snap = snapToGpxIndex(visualPos, AppConfig.GPX);
+            if (snap && snap.distance < 50) { visualPos = snap.point; }
+
+            if (AppState.gpxRoute && AppState.gpxRoute.length > 1) {
+              const bestPoint = snapToGpxIndex(visualPos, null); 
+
+              if (bestPoint && bestPoint.distance <= 50) {
+                const percentComplete = Math.min(100, Math.round((bestPoint.point.index || AppState.vars.lastSnapIndex) / (AppState.gpxRoute.length - 1) * 100));
+                
+                AppState.dom.statusBox.style.setProperty('--progress', `${percentComplete}%`);
+                
+                if (AppState.flags.isDriver) {
+                  const bigBox = document.getElementById("driverProgressBox");
+                  if (bigBox) bigBox.textContent = `${percentComplete}%`;
+                }
+              } else {
+                AppState.dom.statusBox.style.setProperty('--progress', `0%`);
+                
+                if (AppState.flags.isDriver) {
+                  const bigBox = document.getElementById("driverProgressBox");
+                  if (bigBox) bigBox.textContent = `OFF ROUTE`;
+                }
+              }
+            }
+
+            // PAC-MAN ROUTE ERASER
+            if (AppState.dynamicRouteRemainingMain) {
+              const idx = AppState.vars.lastSnapIndex;
+              const completedPts = AppState.gpxRoute.slice(0, idx + 1).map(p => [p.lat, p.lng]);
+              const remainingPts = AppState.gpxRoute.slice(idx).map(p => [p.lat, p.lng]);
+              AppState.dynamicRouteCompleted.setLatLngs(completedPts);
+              AppState.dynamicRouteRemainingMain.setLatLngs(remainingPts);
+              AppState.dynamicRouteRemainingGlow.setLatLngs(remainingPts);
+            }
+          }
+
+          animateMarkerTo(visualPos.lat, visualPos.lng);
+          pushFix(data.lat, data.lng, Date.now());
+
+          // ── STICKY PASS & SNOW CONTROL ──
+          
+          let etaSeconds = null;
+
+          if (AppState.flags.hasPassedSticky) {
+             // Already passed — keep status locked
+          }
+          else if (AppState.vars.notifyLatLng && AppState.flags.gpxLoaded && isFresh) {
+            const santaSnap = snapToGpxIndex({ lat: data.lat, lng: data.lng }, AppConfig.GPX);
+
+            if (santaSnap) {
+              const userPos = AppState.vars.notifyLatLng;
+              const savedSnapIdx = AppState.vars.lastSnapIndex;
+              const userSnap = snapToGpxIndex(userPos, null);
+              AppState.vars.lastSnapIndex = savedSnapIdx;
+
+              pushRouteFix(santaSnap.point.dist, Date.now());
+
+              if (userSnap) {
+                const totalRouteDist = AppState.gpxRoute[AppState.gpxRoute.length - 1].dist;
+                const isUserNearEnd = userSnap.point.dist > (totalRouteDist - AppConfig.NOTIFICATIONS.PASSED_DISTANCE_OFFSET);
+                const santaReachedEnd = santaSnap.point.dist >= (totalRouteDist - 10);
+
+                if (
+                  (santaSnap.point.dist > userSnap.point.dist + AppConfig.NOTIFICATIONS.PASSED_DISTANCE_OFFSET) ||
+                  (isUserNearEnd && santaReachedEnd)
+                ) {
+                  AppState.flags.hasPassedSticky = true;
+                  sessionStorage.setItem("SANTA_HAS_PASSED", "1");
+                } else {
+                  const remaining = Math.max(0, userSnap.point.dist - santaSnap.point.dist);
+                  const routeSpeed = Utils.calculateRouteSpeed(AppState.routeFixes);
+                  const rawSpeed = Utils.calculateSpeed(AppState.recentFixes);
+                  const effectiveSpeed = (routeSpeed && routeSpeed > 0.3) ? routeSpeed
+                                       : (rawSpeed && rawSpeed > 0.5) ? rawSpeed
+                                       : 1.4;
+                  etaSeconds = remaining / effectiveSpeed;
+                }
+              }
+            }
+          }
+
+          const etaMinutes = isFinite(etaSeconds) ? etaSeconds / 60 : Infinity;
+
+          // Snow Logic
+          let snowLevel = 0;
+          let triggerSnow = false;
+
+          if (AppState.vars.notifyLatLng && !AppState.flags.hasPassedSticky && etaSeconds !== null && isFresh) {
+             if (etaMinutes < 15) {
+                triggerSnow = true;
+                if (etaMinutes < 3) snowLevel = 3;
+                else if (etaMinutes < 8) snowLevel = 2;
+                else snowLevel = 1;
+             }
+          }
+
+          if (AppState.flags.hasPassedSticky) { triggerSnow = false; snowLevel = 0; }
+
+          const { maxLevel } = function(){
+             if (batteryState.supported && !batteryState.charging) {
+               if(batteryState.level <= AppConfig.BATTERY.CRITICAL) return { maxLevel: 1 };
+               if(batteryState.level <= AppConfig.BATTERY.LOW) return { maxLevel: 2 };
+             }
+             return { maxLevel: 3 };
+          }();
+
+          SnowSystem.setLevel(triggerSnow, Math.min(snowLevel, maxLevel));
+
+          // Status Text & Dimming
+          const moving = isSleighMoving();
+          AppState.dom.statusDot.style.display = "block";
+          AppState.dom.statusDot.className = moving ? "status-dot dot-moving" : "status-dot dot-stopped";
+
+          const msgBtnEl = AppState.dom.msgBtn;
+          if (msgBtnEl) {
+            msgBtnEl.style.display = (AppState.vars.todayRoute && isFresh && !AppState.flags.isKiosk) ? "inline-block" : "none";
+          }
+
+          // PA SYSTEM & USER MESSAGE OVERRIDES
+          const liveMsg = latestApiData.settings?.live_announcement;
+          const userMsg = latestApiData.settings?.user_announcement;
+          const userMsgTs = Number(String(latestApiData.settings?.user_announcement_ts).replace(/\D/g, '')) || 0;
+
+          if (userMsg && userMsgTs !== AppState.vars.lastSeenMsgTs) {
+            AppState.vars.lastSeenMsgTs = userMsgTs;
+            sessionStorage.setItem('SANTA_LAST_MSG_TS', String(userMsgTs));
+
+            const MSG_MAX_AGE_MS = 30 * 60 * 1000;
+            if (userMsgTs && (Date.now() - userMsgTs) < MSG_MAX_AGE_MS) {
+              AppState.vars.localMsgStartTime = Date.now();
+            }
+          }
+
+          const isUserMsgActive = userMsg && AppState.vars.localMsgStartTime && (Date.now() - AppState.vars.localMsgStartTime < 20000);
+
+          if (liveMsg && liveMsg.trim() !== "") {
+            AppState.dom.statusBox.textContent = `📢 ${liveMsg}`;
+            AppState.dom.statusBox.classList.add("is-announcement");
+            AppState.dom.statusBox.classList.remove("is-user-msg");
+            setDimUI(false);
+          } else if (isUserMsgActive) {
+            AppState.dom.statusBox.textContent = `💬 ${userMsg}`;
+            AppState.dom.statusBox.classList.add("is-user-msg");
+            AppState.dom.statusBox.classList.remove("is-announcement");
+            setDimUI(false);
+          } else {
+            AppState.dom.statusBox.classList.remove("is-announcement");
+            AppState.dom.statusBox.classList.remove("is-user-msg");
+
+            if (AppState.flags.hasPassedSticky) {
+              AppState.dom.statusBox.textContent = "🎄 Santa has just been here!";
+              setDimUI(false);
+            } else if (etaSeconds !== null && !moving) {
+              AppState.dom.statusBox.textContent = "🎄 Santa has stopped nearby!";
+              setDimUI(false);
+            } else if (etaSeconds !== null) {
+              const mins = etaSeconds / 60;
+              let etaText;
+              if (mins < 2) etaText = "🎅 Santa is nearly here!";
+              else if (mins < 4) etaText = "🎅 Santa is ~3 mins away!";
+              else if (mins < 7) etaText = "🎅 Santa is ~5 mins away!";
+              else if (mins < 12) etaText = "🎅 Santa is ~10 mins away!";
+              else etaText = "🎅 Santa is ~15 mins away!";
+              AppState.dom.statusBox.textContent = etaText;
+              setDimUI(mins > 45);
+            } else if (moving) {
+              AppState.dom.statusBox.textContent = "🎅 Santa is out spreading joy!";
+              setDimUI(false);
+            } else {
+              AppState.dom.statusBox.textContent = "🎄 Santa has stopped to spread cheer!";
+              setDimUI(false);
+            }
+          }
+
+          // Browser Notification
+          if (AppState.vars.notifyLatLng && !AppState.flags.browserNotified && !AppState.flags.hasPassedSticky) {
+             const straightDist = Utils.haversineMeters({ lat: data.lat, lng: data.lng }, AppState.vars.notifyLatLng);
+             const isSmartEta = (etaSeconds !== null && etaSeconds < 180);
+             const isCloseFallback = straightDist < AppConfig.NOTIFICATIONS.NEAR_DISTANCE_METERS && (etaSeconds === null || etaSeconds < 600);
+             if (isSmartEta || isCloseFallback) {
+                AppState.flags.browserNotified = true;
+                sessionStorage.setItem("SANTA_BROWSER_NOTIFIED", "1");
+                fireBrowserNotification("🎅 Santa is nearly here!", "He's approaching your location! 🎄");
+             }
+          }
+
+          if (AppState.flags.firstFix) {
+             const zoom = AppState.flags.isKiosk ? 15 : 16;
+             AppState.map.setView(visualPos, zoom);
+             AppState.flags.firstFix = false;
+          }
+
+        } catch (e) {
+          // FIX 4: Increment error counter for exponential backoff
+          AppState.vars.consecutiveErrors++;
+
+          if (AppState.lastFix) {
+            animateMarkerTo(AppState.lastFix.lat, AppState.lastFix.lng);
+            AppState.dom.statusBox.textContent = "🎅 Santa is nearby…";
+            AppState.dom.statusDot.style.display = "none";
+            setDimUI(false);
+          }
+        }
+        scheduleNextPoll(); // FIX 2: Single exit point for scheduling
+      }
+
+      async function init() {
+        const params = new URLSearchParams(location.search);
+        AppState.flags.isKiosk = params.get("kiosk") === "1" || sessionStorage.getItem("SANTA_KIOSK") === "1";
+        if (params.get("kiosk") === "1") sessionStorage.setItem("SANTA_KIOSK", "1");
+
+        if (AppState.flags.isKiosk) document.body.classList.add("kiosk");
+
+        // ---------------------------------------------------------
+        // 🧭 SAT-NAV DRIVER + SECURE BEACON MODE
+        // ---------------------------------------------------------
+        AppState.flags.isDriver = params.get("driver") === "1";
+
+        if (AppState.flags.isDriver) {
+          document.body.classList.add("driver-mode");
+          
+          const navBtn = document.createElement("button");
+          navBtn.innerHTML = "🧭 START SAT-NAV & BEACON";
+          navBtn.style.cssText = "position:absolute; bottom:80px; left:10%; width:80%; padding:20px; font-size:20px; font-weight:900; background:#d31c1c; color:#fff; border-radius:16px; z-index:9999; border:none; box-shadow:0 10px 40px rgba(0,0,0,0.6); cursor:pointer;";
+          document.body.appendChild(navBtn);
+
+          // --- BEACON OFFLINE QUEUE (IndexedDB) ---
+          const BeaconDB = {
+            db: null, sent: 0, depth: 0,
+            init: () => new Promise((resolve) => {
+              const req = indexedDB.open("TurboBeacon", 1);
+              req.onupgradeneeded = e => { if(!e.target.result.objectStoreNames.contains("q")) e.target.result.createObjectStore("q", {keyPath:"id", autoIncrement:true}); };
+              req.onsuccess = () => { BeaconDB.db = req.result; resolve(); };
+              req.onerror = () => resolve();
+            }),
+            add: (p) => new Promise(res => { if(!BeaconDB.db) return res(); const tx = BeaconDB.db.transaction("q","readwrite"); tx.objectStore("q").add({p, t:Date.now()}); tx.oncomplete=()=>{ BeaconDB.updateUI(); res(); }; }),
+            getAll: () => new Promise(res => { if(!BeaconDB.db) return res([]); const tx = BeaconDB.db.transaction("q","readonly"); const req = tx.objectStore("q").getAll(); req.onsuccess=()=>res(req.result||[]); }),
+            del: (id) => new Promise(res => { if(!BeaconDB.db) return res(); const tx = BeaconDB.db.transaction("q","readwrite"); tx.objectStore("q").delete(id); tx.oncomplete=res; }),
+            updateUI: async () => {
+              if(!BeaconDB.db) return;
+              BeaconDB.depth = (await BeaconDB.getAll()).length;
+              const qEl = document.getElementById('txQueued');
+              if(qEl) qEl.textContent = BeaconDB.depth;
+              const pill = document.getElementById('txPill');
+              if(pill) {
+                 if (BeaconDB.depth > 0) { pill.style.borderColor = "#ffab00"; pill.style.color = "#ffab00"; document.getElementById('txState').textContent = "📦 BUFFERING"; }
+                 else { pill.style.borderColor = "#00e676"; pill.style.color = "#00e676"; document.getElementById('txState').textContent = "📡 LIVE"; }
+              }
+            },
+            flush: async (url) => {
+              if (BeaconDB.depth === 0 || !navigator.onLine) return;
+              const items = await BeaconDB.getAll();
+              if (!items.length) return;
+              items.sort((a,b) => a.t - b.t);
+              for (const it of items) {
+                if (Date.now() - it.t > 90*60*1000) { await BeaconDB.del(it.id); continue; }
+                try {
+                  const r = await fetch(url, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(it.p) });
+                  if (r.ok) { await BeaconDB.del(it.id); BeaconDB.sent++; document.getElementById('txSent').textContent = BeaconDB.sent; } 
+                  else break;
+                } catch { break; }
+              }
+              BeaconDB.updateUI();
+            }
+          };
+
+          navBtn.onclick = async () => {
+            let secret = sessionStorage.getItem('beaconSecret');
+            if (!secret) {
+              secret = prompt("📡 Beacon Authorization\nEnter the God Mode password:");
+              if (!secret) return;
+            }
+
+            navBtn.textContent = "⏳ Verifying...";
+            let gpsLoggerUrl = null;
+
+            try {
+              const sep = AppState.vars.apiUrl.includes('?') ? '&' : '?';
+              const res = await fetch(`${AppState.vars.apiUrl}${sep}function=verifyGodMode&secret=${encodeURIComponent(secret)}`);
+              const result = await res.json();
+              
+              if (!result.valid) { alert("❌ Access Denied."); navBtn.textContent = "🧭 START SAT-NAV & BEACON"; sessionStorage.removeItem('beaconSecret'); return; }
+              
+              sessionStorage.setItem('beaconSecret', secret);
+              navBtn.textContent = "⏳ Fetching Config...";
+
+              const cfgRes = await fetch(`${AppState.vars.apiUrl}${sep}function=getBeaconConfig&secret=${encodeURIComponent(secret)}`);
+              const cfg = await cfgRes.json();
+              if (cfg.error || !cfg.gpsLoggerUrl) throw new Error(cfg.error || "Missing URL");
+              gpsLoggerUrl = cfg.gpsLoggerUrl;
+
+            } catch (e) {
+              alert("❌ Setup failed: " + e.message);
+              navBtn.textContent = "🧭 START SAT-NAV & BEACON";
+              return;
+            }
+
+            await BeaconDB.init();
+            await BeaconDB.updateUI();
+            setInterval(() => BeaconDB.flush(gpsLoggerUrl), 5000);
+
+            navBtn.style.display = "none";
+            document.body.classList.add("nav-active");
+            requestWakeLock();
+            
+            AppState.dom.statusBox.textContent = "🧭 Sat-Nav & Beacon Active.";
+            AppState.dom.statusBox.style.color = "#00e676";
+            AppState.map.setZoom(18);
+
+            const txPill = document.createElement("div");
+            txPill.id = "txPill";
+            txPill.style.cssText = "position:absolute; top:120px; left:50%; transform:translateX(-50%); background:rgba(29, 29, 26, 0.95); border:1px solid #00e676; color:#00e676; padding:6px 14px; border-radius:12px; font-weight:900; font-size:0.85em; z-index:4500; box-shadow:0 4px 12px rgba(0,0,0,0.5); display:flex; gap:10px; pointer-events:none;";
+            txPill.innerHTML = `<span id="txState">📡 LIVE</span> <span>Tx: <span id="txSent">0</span></span> <span>Q: <span id="txQueued">0</span></span>`;
+            document.body.appendChild(txPill);
+            
+            const driverMarker = L.marker([0,0], {
+              icon: L.divIcon({
+                className: 'driver-arrow',
+                html: '<div style="width:0; height:0; border-left:14px solid transparent; border-right:14px solid transparent; border-bottom:34px solid #007AFF; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.5)); transform-origin: 50% 100%;"></div>',
+                iconSize: [28, 34], iconAnchor: [14, 17]
+              }),
+              zIndexOffset: 1000
+            }).addTo(AppState.map);
+
+            navigator.geolocation.watchPosition(async (pos) => {
+              const lat = pos.coords.latitude;
+              const lng = pos.coords.longitude;
+              const heading = pos.coords.heading || 0; 
+              
+              let visualPos = { lat, lng };
+
+              if (AppState.flags.gpxLoaded && AppState.gpxRoute) {
+                const snap = snapToGpxIndex(visualPos, null); 
+                if (snap && snap.distance < 20) { visualPos = snap.point; }
+              }
+
+              const ll = L.latLng(visualPos.lat, visualPos.lng);
+              driverMarker.setLatLng(ll);
+              AppState.map.panTo(ll, { animate: true, duration: 1 });
+              
+              const arrowDiv = driverMarker.getElement().querySelector('div');
+              if (arrowDiv && pos.coords.speed > 1) { arrowDiv.style.transform = `rotate(${heading}deg)`; }
+
+              const payload = { lat, lng, ts: new Date().toISOString() };
+              try {
+                const r = await fetch(gpsLoggerUrl, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
+                if (!r.ok) throw new Error("HTTP " + r.status);
+                BeaconDB.sent++;
+                document.getElementById('txSent').textContent = BeaconDB.sent;
+                if(BeaconDB.depth === 0) { txPill.style.borderColor = "#00e676"; txPill.style.color = "#00e676"; document.getElementById('txState').textContent = "📡 LIVE"; }
+              } catch(e) {
+                await BeaconDB.add(payload);
+              }
+
+            }, (err) => {
+              alert("GPS Error: Please ensure Location Services are turned on.");
+            }, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+          };
+        }
+        // ---------------------------------------------------------
+        
+        AppState.vars.apiUrl = params.get("api") || localStorage.getItem("SANTA_API") || sessionStorage.getItem("SANTA_API");
+        if (!AppState.vars.apiUrl) { alert("Missing ?api=URL"); return; }
+        localStorage.setItem("SANTA_API", AppState.vars.apiUrl);
+        sessionStorage.setItem("SANTA_API", AppState.vars.apiUrl);
+
+        requestWakeLock();
+        setInterval(() => { if (document.visibilityState === "visible") requestWakeLock(); }, 60000);
+
+        const apiData = await Utils.loadJSON(AppState.vars.apiUrl);
+        AppState.vars.firebaseUrl = apiData.tracker?.firebase_url ? apiData.tracker.firebase_url.replace(/\/$/, "") : null;
+        
+        const settings = apiData.settings || {};
+        AppState.vars.sleighName = settings.sleigh_display_name || "Santa Sleigh";
+
+        const today = new Date().toISOString().slice(0, 10);
+        const route = (apiData.routes || []).find(r => r.date === today && r.gpxUrl) || null;
+        AppState.vars.todayRoute = route;
+
+        // ── TWITCH LOGIC ──
+        const twitchEnabled = String(settings.enable_twitch || "").toUpperCase() === "TRUE";
+        const twitchChannel = settings.twitch_channel;
+        if (twitchEnabled && twitchChannel && twitchChannel.trim() !== "" && !AppState.flags.isKiosk && !AppState.flags.isDriver) {
+          const twitchBtn = document.getElementById('twitchBtn');
+          const twitchBox = document.getElementById('twitchBox');
+          let twitchLoaded = false;
+          
+          twitchBtn.style.display = "inline-block";
+          
+          twitchBtn.addEventListener('click', () => {
+            const isVisible = twitchBox.classList.contains('visible');
+            
+            if (isVisible) {
+              twitchBox.classList.remove('visible');
+              twitchBtn.textContent = "📺 Cam: OFF";
+              twitchBtn.style.background = "var(--surface-2)";
+              twitchBtn.style.color = "var(--rt-gold)";
+            } else {
+              twitchBox.classList.add('visible');
+              twitchBtn.textContent = "📺 Cam: LIVE";
+              twitchBtn.style.background = "var(--gold-glow)";
+              twitchBtn.style.color = "var(--rt-gold)";
+              
+              if (!twitchLoaded) {
+                const parentDomain = window.location.hostname || "localhost";
+                twitchBox.innerHTML = `<iframe src="https://player.twitch.tv/?channel=${encodeURIComponent(twitchChannel)}&parent=${parentDomain}&muted=true" frameborder="0" allowfullscreen="true" scrolling="no" allow="autoplay; fullscreen"></iframe>`;
+                twitchLoaded = true;
+              }
+            }
+          });
+        }
+
+        const don = apiData.donations || {};
+        if (settings.donate_url && !AppState.flags.isKiosk) {
+          const btn = AppState.dom.donateLink;
+          btn.href = settings.donate_url;
+          AppState.dom.donateBox.style.display = "block";
+          if (don.target && don.target > 0) {
+            const pct = Math.min(100, Math.max(0, Math.round((don.total / don.target) * 100)));
+            btn.style.background = `linear-gradient(90deg, #FBAF33 ${pct}%, rgba(251, 175, 51, 0.3) ${pct}%)`;
+          }
+        } else {
+          AppState.dom.donateBox.style.display = "none";
+        }
+
+        fetch(`${AppState.vars.apiUrl}?function=logView&ua=${encodeURIComponent(navigator.userAgent)}&source=web&route=${encodeURIComponent(AppState.vars.todayRoute ? AppState.vars.todayRoute.routeName : 'Unassigned')}`, { keepalive: true });
+
+        if (AppState.flags.isKiosk && AppState.dom.kioskBanner) {
+          const statusDiv = document.createElement('div');
+          statusDiv.id = 'kioskStatus';
+          statusDiv.textContent = '🎄 PREPARING IN LAPLAND';
+          const subtitleDiv = document.createElement('div');
+          subtitleDiv.className = 'kiosk-subtitle';
+          subtitleDiv.textContent = AppState.vars.sleighName;
+          AppState.dom.kioskBanner.innerHTML = '';
+          AppState.dom.kioskBanner.appendChild(statusDiv);
+          AppState.dom.kioskBanner.appendChild(subtitleDiv);
+          AppState.dom.kioskBanner.classList.add("visible");
+        }
+
+        if (!route) {
+          AppState.dom.notifyBtn.style.display = "none";
+        } else {
+          await loadGpxRoute(route.gpxUrl);
+        }
+
+        AppState.map = L.map("map", { zoomControl: !AppState.flags.isKiosk })
+          .setView(AppConfig.LOCATIONS.LAPLAND, AppState.flags.isKiosk ? 6 : 5);
+
+        AppState.map.on("zoomend", () => {
+          if (!AppState.dynamicRouteRemainingMain) return;
+
+          const z = AppState.map.getZoom();
+
+          const mainWeight = z >= 17 ? 5 : z >= 15 ? 4 : 3;
+          const glowWeight = mainWeight + 3;
+
+          AppState.dynamicRouteRemainingMain.setStyle({ weight: mainWeight });
+          AppState.dynamicRouteCompleted.setStyle({ weight: mainWeight });
+          AppState.dynamicRouteRemainingGlow.setStyle({ weight: glowWeight });
+        });
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(AppState.map);
+
+        if (AppState.flags.isKiosk) {
+           const m = AppState.map;
+           m.dragging.disable(); m.scrollWheelZoom.disable(); m.doubleClickZoom.disable();
+           m.boxZoom.disable(); m.keyboard.disable(); m.touchZoom.disable();
+           AppState.dom.followBtn.style.display = "none";
+           AppState.dom.recenterBtn.style.display = "none";
+           AppState.dom.notifyBtn.style.display = "none";
+           if(AppState.dom.msgBtn) AppState.dom.msgBtn.style.display = "none";
+           AppState.dom.donateBox.style.display = "none";
+        }
+
+        // ── DYNAMIC PAC-MAN ROUTE LAYERS ──
+        if (route && AppState.flags.gpxLoaded && AppState.gpxRoute && AppState.gpxRoute.length > 0) {
+          const allLatLngs = AppState.gpxRoute.map(p => [p.lat, p.lng]);
+          
+          AppState.dynamicRouteCompleted = L.polyline([], { color: "#808080", weight: 4, opacity: 0.5, dashArray: "8, 8" }).addTo(AppState.map);
+          AppState.dynamicRouteRemainingGlow = L.polyline(allLatLngs, { color: "#ffd700", weight: 7, opacity: 0.45 }).addTo(AppState.map);
+          AppState.dynamicRouteRemainingMain = L.polyline(allLatLngs, { color: "#d31c1c", weight: 4, opacity: 0.95 }).addTo(AppState.map);
+
+          const startPt = AppState.gpxRoute[0];
+          const endPt = AppState.gpxRoute[AppState.gpxRoute.length - 1];
+
+          L.marker([startPt.lat, startPt.lng], { icon: L.icon({ iconUrl: settings.sleigh_icon_start || AppConfig.ICONS.FALLBACK_START, iconSize: [48, 48], iconAnchor: [24, 48] }) }).addTo(AppState.map);
+          L.marker([endPt.lat, endPt.lng], { icon: L.icon({ iconUrl: settings.sleigh_icon_end || AppConfig.ICONS.FALLBACK_END, iconSize: [48, 48], iconAnchor: [24, 48] }) }).addTo(AppState.map);
+          
+          AppState.map.fire("zoomend");
+        }
+        
+        if (AppState.flags.isKiosk && route?.sponsorUrl && Utils.isValidImageUrl(route.sponsorUrl)) {
+          const span = document.createElement('span');
+          span.textContent = 'Proudly sponsored by';
+          const img = document.createElement('img');
+          img.src = route.sponsorUrl;
+          img.alt = 'Sponsor';
+          AppState.dom.sponsorBox.innerHTML = '';
+          AppState.dom.sponsorBox.appendChild(span);
+          AppState.dom.sponsorBox.appendChild(img);
+        }
+
+        if (!AppState.flags.isKiosk) {
+           const savedPin = sessionStorage.getItem("SANTA_NOTIFY_POINT");
+           if (savedPin) {
+             try {
+               const p = JSON.parse(savedPin);
+               AppState.flags.browserNotified = false;
+               sessionStorage.removeItem("SANTA_BROWSER_NOTIFIED");
+               AppState.vars.notifyLatLng = { lat: p.lat, lng: p.lng };
+               showNotifyMarker(p.lat, p.lng, true);
+             } catch(e) {}
+           }
+        }
+
+        AppState.map.on("click", e => {
+           if (!AppState.flags.awaitingPin) return;
+           const { lat, lng } = e.latlng;
+           showNotifyMarker(lat, lng, false);
+           AppState.dom.statusBox.textContent = "📍 Pin moved — tap again to confirm";
+        });
+
+        if (settings.logo_overlay_url && Utils.isValidImageUrl(settings.logo_overlay_url)) {
+          const posMap = { "top-left": "topleft", "top-right": "topright", "bottom-left": "bottomleft", "bottom-right": "bottomright", "center": "topright" };
+          const LogoControl = L.control({ position: posMap[settings.logo_overlay_position] || "bottomright" });
+          LogoControl.onAdd = () => { const img = L.DomUtil.create("img"); img.src = settings.logo_overlay_url; img.className = "logo-overlay"; return img; };
+          LogoControl.addTo(AppState.map);
+        }
+
+        AppState.marker = L.marker(AppConfig.LOCATIONS.LAPLAND, {
+          icon: L.icon({ iconUrl: settings.sleigh_icon_live || AppConfig.ICONS.FALLBACK_LIVE, iconSize: [64, 64], iconAnchor: [32, 60] })
+        }).addTo(AppState.map);
+
+        AppState.dom.followBtn.onclick = () => {
+           AppState.flags.follow = !AppState.flags.follow;
+           AppState.dom.followBtn.textContent = "Follow: " + (AppState.flags.follow ? "ON" : "OFF");
+        };
+
+        AppState.dom.recenterBtn.onclick = () => {
+           AppState.flags.follow = true;
+           AppState.dom.followBtn.textContent = "Follow: ON";
+           AppState.map.panTo(AppState.marker.getLatLng());
+        };
+
+        AppState.dom.notifyBtn.onclick = () => {
+          AppState.flags.follow = false;
+          AppState.dom.followBtn.textContent = "Follow: OFF";
+          AppState.flags.browserNotified = false;
+          AppState.flags.hasPassedSticky = false;
+          AppState.routeFixes = [];
+          sessionStorage.removeItem("SANTA_BROWSER_NOTIFIED");
+          sessionStorage.removeItem("SANTA_EMAIL_SUBSCRIBED");
+          sessionStorage.removeItem("SANTA_NOTIFY_POINT");
+          sessionStorage.removeItem("SANTA_HAS_PASSED");
+          if (AppState.notifyMarker) { AppState.map.removeLayer(AppState.notifyMarker); }
+          AppState.notifyMarker = null;
+          AppState.vars.notifyLatLng = null;
+          
+          if (AppState.vars.escapeListener) { document.removeEventListener("keydown", AppState.vars.escapeListener); }
+          AppState.vars.escapeListener = (e) => {
+            if (e.key === "Escape" && AppState.flags.awaitingPin) {
+              AppState.flags.awaitingPin = false;
+              if (AppState.notifyMarker) AppState.map.removeLayer(AppState.notifyMarker);
+              AppState.dom.statusBox.textContent = "";
+              Utils.toggleFollowControls(true);
+              document.removeEventListener("keydown", AppState.vars.escapeListener);
+              AppState.vars.escapeListener = null;
+            }
+          };
+          document.addEventListener("keydown", AppState.vars.escapeListener);
+
+          AppState.flags.awaitingPin = true;
+          AppState.dom.statusBox.textContent = "📍 Locating you...";
+
+          if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                const userLat = position.coords.latitude;
+                const userLng = position.coords.longitude;
+                
+                AppState.map.setView([userLat, userLng], 17);
+                showNotifyMarker(userLat, userLng, false);
+                AppState.dom.statusBox.textContent = "📍 Is this your house? Tap the pin to confirm.";
+              },
+              (error) => {
+                AppState.dom.statusBox.textContent = "📍 Tap the map to place your pin...";
+              },
+              { enableHighAccuracy: true, timeout: 5000 }
+            );
+          } else {
+            AppState.dom.statusBox.textContent = "📍 Tap the map to place your pin...";
+          }
+        };
+
+        // ⭐ MESSAGE BUTTON LOGIC
+        if (AppState.dom.msgBtn) {
+          AppState.dom.msgBtn.onclick = () => {
+            document.getElementById('msgModal').style.display = 'flex';
+            document.getElementById('userMsgInput').focus();
+          };
+        }
+        document.getElementById('msgCancelBtn').onclick = () => {
+          document.getElementById('msgModal').style.display = 'none';
+        };
+        document.getElementById('msgConfirmBtn').onclick = () => {
+          const input = document.getElementById('userMsgInput');
+          const msg = input.value.trim();
+          if (!msg) return;
+          document.getElementById('msgModal').style.display = 'none';
+          showToast("Sending message to the elves...");
+          fetch(AppState.vars.apiUrl, {
+            method: 'POST',
+            body: JSON.stringify({
+              action: "submitUserMessage",
+              message: msg,
+              routeName: AppState.vars.todayRoute?.routeName || ''
+            })
+          }).then(r => r.json()).then(d => {
+            if (d.ok) showToast("💬 Sent! Waiting for Elf approval...");
+            else showToast("❌ " + (d.error || "Failed to send."));
+          }).catch(() => showToast("❌ Network error."));
+          input.value = '';
+        };
+
+        document.getElementById("modalCancelBtn").addEventListener("click", () => {
+          document.getElementById("emailModal").style.display = "none";
+          AppState.dom.statusBox.textContent = "Tap the pin to try again";
+          if (AppState.vars.escapeListener) { 
+            document.removeEventListener("keydown", AppState.vars.escapeListener); 
+            AppState.vars.escapeListener = null; 
+          }
+        });
+        
+        document.getElementById("modalConfirmBtn").addEventListener("click", () => {
+          const email = document.getElementById("subEmail").value.trim();
+          document.getElementById("emailModal").style.display = "none";
+          if (AppState.vars.escapeListener) { document.removeEventListener("keydown", AppState.vars.escapeListener); AppState.vars.escapeListener = null; }
+          Utils.toggleFollowControls(true);
+
+          if (sessionStorage.getItem("SANTA_EMAIL_SUBSCRIBED") === "1") { showToast("🎅 You're already signed up!"); return; }
+
+          AppState.dom.statusBox.textContent = "🔔 Saving your notification...";
+
+          if (!AppState.vars.pendingSubscription) { showToast("❌ Error: No location selected."); return; }
+
+          const url = `${AppState.vars.apiUrl}?function=subscribe&lat=${AppState.vars.pendingSubscription.lat}&lng=${AppState.vars.pendingSubscription.lng}&email=${encodeURIComponent(email)}`;
+
+          fetch(url).then(r=>r.json()).then(d => {
+            if (d.ok) {
+               sessionStorage.setItem("SANTA_EMAIL_SUBSCRIBED", "1");
+               const msg = email ? "🎅 You're signed up! We'll email you when Santa is close." : "🎅 You're signed up! Keep this page open for alerts.";
+               showToast(msg);
+               AppState.dom.statusBox.textContent = "";
+               if (AppState.notifyMarker) { AppState.map.removeLayer(AppState.notifyMarker); AppState.notifyMarker = null; }
+               AppState.vars.pendingSubscription = null;
+            } else {
+               showToast("❌ Error saving notification.");
+               AppState.dom.statusBox.textContent = "❌ Failed to save.";
+            }
+          }).catch(() => {
+            showToast("❌ Network error.");
+            AppState.dom.statusBox.textContent = "❌ Connection failed.";
+          });
+        });
+
+        AppState.dom.loading.style.display = "none";
+        SnowSystem.resize();
+        window.addEventListener("resize", SnowSystem.resize);
+        updateTracker();
+        window.SantaDebug = { AppState, SnowSystem, animateMarkerTo, Utils, AppConfig };
+      }
+
+      document.addEventListener("visibilitychange", () => {
+        AppState.flags.pageVisible = !document.hidden;
+        if (AppState.flags.pageVisible) {
+          if (AppState.flags.isKiosk) requestWakeLock();
+          if (AppState.vars.lastVisualPos && AppState.marker) { AppState.marker.setLatLng(AppState.vars.lastVisualPos); }
+          if (AppState.flags.snowActive) SnowSystem.draw();
+          // FIX 2: Clear any stale timer before triggering an immediate refresh
+          if (AppState.vars.pollTimer) clearTimeout(AppState.vars.pollTimer);
+          updateTracker();
+        }
+      });
+
+      init();
+    });
+  </script>
+</body>
+</html>

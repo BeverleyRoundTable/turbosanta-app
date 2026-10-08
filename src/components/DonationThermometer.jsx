@@ -146,9 +146,9 @@ export default function DonationThermometer({ tableData }) {
         </div>
 
         <a
-          href="mailto:beverley247@roundtable.org.uk?subject=Santa%20Sleigh%20Volunteer%20Offer"
+          href={`/crew.html?table=${tableData?.table?.slug || 'beverley'}`}
           className="btn-secondary"
-          style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}
+          style={{ borderColor: 'var(--primary)', color: 'var(--primary)', textDecoration: 'none' }}
         >
           <span>Volunteer Now</span>
           <ArrowRight size={18} />

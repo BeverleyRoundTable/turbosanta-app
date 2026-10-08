@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TurboSanta — Snowman Maker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    /* Fallback variables, updated dynamically by applyTheme() */
+    --primary: #FBAF33;
+    --primary-rgb: 251, 175, 51;
+    --on-primary: #000000;
+    
+    --primary-dim: rgba(var(--primary-rgb), 0.12);
+    --primary-glow: rgba(var(--primary-rgb), 0.25);
+    --border-primary: rgba(var(--primary-rgb), 0.2);
+    
+    --dark: #0d0d0b;
+    --surface: #161614;
+    --surface-2: #1e1e1b;
+    --surface-3: #252522;
+    --border: rgba(255,255,255,0.08);
+    --text: #eaeae5;
+    --text-dim: rgba(255,255,255,0.55);
+    --text-muted: rgba(255,255,255,0.3);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: 'DM Sans', sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  .wrapper {
+    max-width: 1000px;
+    margin: 40px auto;
+    padding: 32px;
+    background: var(--surface);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+  }
+
+  .hero {
+    text-align: center;
+    margin-bottom: 40px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+    background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(var(--primary-rgb), 0.06) 0%, transparent 70%);
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    background: var(--primary-dim);
+    color: var(--primary);
+    border: 1px solid var(--border-primary);
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(40px, 6vw, 64px);
+    letter-spacing: 3px;
+    line-height: 0.9;
+    color: #fff;
+    margin: 0 0 12px 0;
+  }
+
+  h1 span {
+    color: var(--primary);
+  }
+
+  .builder {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 32px;
+    align-items: start;
+  }
+
+  .group {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .group h3 {
+    margin: 0 0 12px 0;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+  }
+
+  .options {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .options button {
+    background: var(--surface-3);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .options button:hover {
+    border-color: var(--primary);
+    color: #fff;
+  }
+
+  .options button:active {
+    transform: scale(0.96);
+  }
+
+  .options button.active {
+    background: var(--primary);
+    color: var(--on-primary);
+    border-color: var(--primary);
+  }
+
+  .canvas-wrap {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    display: flex;
+    justify-content: center;
+  }
+
+  canvas {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+
+  .download {
+    text-align: center;
+    margin-top: 32px;
+  }
+
+  .download button {
+    background: var(--primary);
+    color: var(--on-primary);
+    border: none;
+    padding: 16px 32px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: transform 0.1s, filter 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .download button:hover {
+    filter: brightness(0.92);
+    transform: translateY(-2px);
+  }
+
+  .download button:active {
+    transform: translateY(0);
+  }
+  
+  /* Iframe / Embed Overrides */
+  body.embed {
+    width: 100%;
+    overflow-x: hidden;
+    background: transparent;
+  }
+
+  body.embed .wrapper {
+    margin: 0 auto;
+    border: none;
+    box-shadow: none;
+    background: transparent;
+    padding: 16px 0;
+  }
+</style>
+</head>
+
+<body>
+<div class="wrapper">
+  
+  <header class="hero">
+    <div class="hero-badge">☃️ Workshop</div>
+    <h1>BUILD YOUR <span>SNOWMAN</span></h1>
+  </header>
+
+  <div class="builder">
+    <div>
+
+      <div class="group">
+        <h3>🎩 Hat</h3>
+        <div class="options" data-key="hat">
+          <button class="active" data-value="top">Top Hat</button>
+          <button data-value="beanie">Beanie</button>
+          <button data-value="santa">Santa Hat</button>
+          <button data-value="none">None</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <h3>👀 Eyes</h3>
+        <div class="options" data-key="eyes">
+          <button class="active" data-value="coal">Coal</button>
+          <button data-value="hearts">❤️ Hearts</button>
+          <button data-value="stars">⭐ Stars</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <h3>🥕 Nose</h3>
+        <div class="options" data-key="nose">
+          <button class="active" data-value="carrot">Carrot</button>
+          <button data-value="candy">🍬 Sweet</button>
+          <button data-value="button">🔴 Button</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <h3>🧣 Scarf</h3>
+        <div class="options" data-key="scarf">
+          <button class="active" data-value="red">Red</button>
+          <button data-value="blue">Blue</button>
+          <button data-value="green">Green</button>
+          <button data-value="purple">Purple</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <h3>🎽 Body</h3>
+        <div class="options" data-key="body">
+          <button class="active" data-value="buttons">Buttons</button>
+          <button data-value="jumper">Jumper</button>
+          <button data-value="badge">Badge</button>
+          <button data-value="none">None</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <h3>🧤 Hands</h3>
+        <div class="options" data-key="hands">
+          <button class="active" data-value="none">None</button>
+          <button data-value="mittens">Mittens</button>
+          <button data-value="present">🎁 Present</button>
+          <button data-value="broom">🧹 Broom</button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="canvas-wrap">
+      <canvas id="canvas" width="600" height="800"></canvas>
+    </div>
+  </div>
+
+  <div class="download">
+    <button onclick="goToFrame()">➡️ Step 2: Add your face</button>
+  </div>
+
+</div>
+
+<script>
+const isEmbedded = window.self !== window.top;
+if (isEmbedded) {
+  document.body.classList.add("embed");
+}
+
+let PRIMARY_COLOR = "#FBAF33"; // Synchronized with API theme
+
+/* ---------- THEME & API SETUP ---------- */
+const params = new URLSearchParams(location.search);
+let API_URL = params.get("api") || localStorage.getItem("SANTA_API") || sessionStorage.getItem("SANTA_API");
+
+if (API_URL) {
+  localStorage.setItem("SANTA_API", API_URL); 
+  sessionStorage.setItem("SANTA_API", API_URL);
+  
+  const WORKER_URL = "https://santaproxy.beverley247.workers.dev/";
+  const DATA_URL = `${WORKER_URL}?ttl=30&target=${encodeURIComponent(API_URL)}`;
+  
+  fetch(DATA_URL)
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.settings) applyTheme(data.settings);
+    })
+    .catch(e => console.warn("Failed to load theme for snowman", e));
+}
+
+function parseColor(v) {
+  if (typeof v !== 'string') return null;
+  const s = v.trim();
+  const hex = /^#([0-9a-f]{3,8})$/i.exec(s);
+  if (hex) {
+    let h = hex[1];
+    if (h.length === 3 || h.length === 4) h = h.split('').map(c => c + c).join('');
+    if (h.length !== 6 && h.length !== 8) return null;
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+  try {
+    if (/var\(|url\(|expression/i.test(s)) return null;
+    if (!(window.CSS && CSS.supports && CSS.supports('color', s))) return null;
+    const ctx = document.createElement('canvas').getContext('2d');
+    ctx.fillStyle = '#000000';
+    ctx.fillStyle = s;
+    const out = ctx.fillStyle;
+    if (out.charAt(0) === '#') return parseColor(out);
+    const rgb = /^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(out);
+    return rgb ? [+rgb[1], +rgb[2], +rgb[3]] : null;
+  } catch (e) { return null; }
+}
+
+function readableTextOn(rgb) {
+  const lin = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  const L = 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]);
+  return ((L + 0.05) / 0.05) >= (1.05 / (L + 0.05)) ? '#000000' : '#ffffff';
+}
+
+function applyTheme(settings) {
+  const root = document.documentElement;
+  const raw = settings && settings.primary_color;
+  const rgb = parseColor(raw);
+  
+  if (rgb) {
+    PRIMARY_COLOR = String(raw).trim();
+    root.style.setProperty('--primary', PRIMARY_COLOR);
+    root.style.setProperty('--primary-rgb', rgb.join(', '));
+    root.style.setProperty('--on-primary', readableTextOn(rgb));
+    draw(); // Redraw canvas to update the badge color
+  } else {
+    PRIMARY_COLOR = "#FBAF33";
+    root.style.removeProperty('--primary');
+    root.style.removeProperty('--primary-rgb');
+    root.style.removeProperty('--on-primary');
+    draw();
+  }
+}
+
+/* ---------- BUILDER LOGIC ---------- */
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const snowman = {
+  hat:"top", eyes:"coal", nose:"carrot", scarf:"red",
+  body:"buttons", hands:"none"
+};
+
+const HEAD_Y=200, EYE_Y=175, L=270, R=330;
+
+document.querySelectorAll(".options button").forEach(btn=>{
+  btn.onclick=()=>{
+    const k=btn.parentElement.dataset.key;
+    snowman[k]=btn.dataset.value;
+    btn.parentElement.querySelectorAll("button").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    draw();
+  };
+});
+
+function draw(){
+  ctx.clearRect(0,0,600,800);
+
+  // body
+  ball(300,560,140); ball(300,360,110); ball(300,HEAD_Y,90);
+  arms(); bodyAccessory(); handAccessory();
+
+  // face
+  if(snowman.eyes==="coal"){ eye(L,EYE_Y); eye(R,EYE_Y); }
+  else{ emoji(snowman.eyes==="hearts"?"❤️":"⭐",L-12,EYE_Y+12); emoji(snowman.eyes==="hearts"?"❤️":"⭐",R-12,EYE_Y+12); }
+
+  snowman.nose==="carrot"?carrot():emoji(snowman.nose==="candy"?"🍬":"🔴",288,215);
+
+  // scarf
+  ctx.fillStyle={red:"#d31c1c",blue:"#2563eb",green:"#16a34a",purple:"#7c3aed"}[snowman.scarf];
+  ctx.fillRect(190,260,220,28);
+
+  // hat
+  if(snowman.hat==="top") topHat();
+  if(snowman.hat==="beanie") beanie();
+  if(snowman.hat==="santa") santaHat();
+  
+  sendHeight(20);
+}
+
+function ball(x,y,r){ ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle="#fff"; ctx.fill(); }
+function eye(x,y){ ctx.beginPath(); ctx.arc(x,y,6,0,Math.PI*2); ctx.fillStyle="#000"; ctx.fill(); }
+function emoji(t,x,y){ ctx.font="32px system-ui"; ctx.fillText(t,x,y); }
+
+function carrot(){ ctx.fillStyle="#ff7a00"; ctx.beginPath(); ctx.moveTo(300,HEAD_Y); ctx.lineTo(340,HEAD_Y+8); ctx.lineTo(300,HEAD_Y+16); ctx.fill(); }
+
+function topHat(){ ctx.fillStyle="#000"; ctx.fillRect(240,60,120,70); ctx.fillRect(220,130,160,12); }
+function beanie(){ ctx.fillStyle="#3b82f6"; ctx.beginPath(); ctx.arc(300,110,60,Math.PI,0); ctx.fill(); }
+function santaHat(){
+  ctx.fillStyle="#d31c1c";
+  ctx.beginPath(); ctx.moveTo(220,120); ctx.quadraticCurveTo(300,40,380,120); ctx.fill();
+  ctx.fillStyle="#fff"; ctx.fillRect(220,120,160,16);
+  ctx.beginPath(); ctx.arc(380,120,10,0,Math.PI*2); ctx.fill();
+}
+
+function arms(){
+  ctx.strokeStyle="#5b3a1e"; ctx.lineWidth=6;
+  ctx.beginPath(); ctx.moveTo(180,320); ctx.lineTo(120,280); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(420,320); ctx.lineTo(480,280); ctx.stroke();
+}
+
+function bodyAccessory(){
+  if(snowman.body==="buttons"){
+    dot(300,300);
+    dot(300,340);
+    dot(300,380);
+  }
+
+  if(snowman.body==="jumper"){
+    jumper();
+  }
+
+  if(snowman.body==="badge"){
+    ctx.fillStyle = PRIMARY_COLOR; // Dynamically uses the theme color
+    ctx.beginPath();
+    ctx.arc(330,320,14,0,Math.PI*2);
+    ctx.fill();
+  }
+}
+
+function jumper(){
+  const cx = 300;
+  const cy = 360;
+  const r  = 110;
+
+  ctx.save();
+
+  // clip strictly to middle snowball
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.clip();
+
+  // === base fill ===
+  ctx.fillStyle = "#2563eb";
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  // === lighter horizontal stripe ===
+  ctx.fillStyle = "#3b82f6";
+  ctx.beginPath();
+  ctx.ellipse(cx, cy - 5, r, 26, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // === darker lower shading ===
+  ctx.fillStyle = "#1e40af";
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + 30, r, 30, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // === knit texture ===
+  ctx.fillStyle = "rgba(255,255,255,0.15)";
+  for(let y = cy - r + 14; y < cy + r; y += 14){
+    for(let x = cx - r + 14; x < cx + r; x += 14){
+      if(Math.hypot(x - cx, y - cy) < r - 6){
+        ctx.beginPath();
+        ctx.arc(x + (y % 8), y, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  ctx.restore();
+}
+
+function handAccessory(){
+  if(snowman.hands==="mittens"){ mitten(120,280); mitten(480,280); }
+  if(snowman.hands==="present"){ ctx.fillStyle="#16a34a"; ctx.fillRect(460,260,30,30); ctx.strokeStyle="#fff"; ctx.strokeRect(460,260,30,30); }
+  if(snowman.hands==="broom"){
+    ctx.strokeStyle="#8b5a2b"; ctx.lineWidth=6;
+    ctx.beginPath(); ctx.moveTo(120,280); ctx.lineTo(120,220); ctx.stroke();
+    ctx.fillStyle="#facc15"; ctx.fillRect(110,210,20,12);
+  }
+}
+
+function dot(x,y){ ctx.beginPath(); ctx.arc(x,y,6,0,Math.PI*2); ctx.fillStyle="#000"; ctx.fill(); }
+function mitten(x,y){ ctx.beginPath(); ctx.arc(x,y,14,0,Math.PI*2); ctx.fillStyle="#d31c1c"; ctx.fill(); }
+
+function downloadPNG(){
+  const a=document.createElement("a");
+  a.download="my-snowman.png";
+  a.href=canvas.toDataURL("image/png");
+  a.click();
+}
+
+function goToFrame(){
+  // export the snowman canvas as transparent PNG
+  const png = canvas.toDataURL("image/png");
+
+  // store in localStorage for the next page
+  localStorage.setItem("snowmanPNG", png);
+
+  // go to the frame page (passes the API parameter to maintain theme)
+  let targetUrl = "snowman_frame.html";
+  if (API_URL) targetUrl += "?api=" + encodeURIComponent(API_URL);
+  window.location.href = targetUrl;
+}
+
+draw();
+  
+</script>
+
+<script>
+function sendHeight(extra = 20) {
+  const wrapper = document.querySelector(".wrapper");
+  if (!wrapper) return;
+
+  const rect = wrapper.getBoundingClientRect();
+  const height = Math.ceil(rect.height) + extra;
+
+  parent.postMessage({ snowmanFrameHeight: height }, "*");
+}
+
+// initial load
+window.addEventListener("load", () => sendHeight());
+
+// resize (desktop + mobile)
+window.addEventListener("resize", () => sendHeight());
+
+</script>
+  
+</body>
+</html>

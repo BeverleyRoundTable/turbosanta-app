@@ -368,7 +368,10 @@
 </div>
 
 <script>
-const API = new URLSearchParams(location.search).get('api') || '';
+const params = new URLSearchParams(location.search);
+const tableSlug = params.get('table') || 'beverley';
+const API = params.get('api') || '';
+const WORKER_URL = 'https://turbosanta-api.beverley247.workers.dev';
 let globalDonateUrl = "";
 
 // --- THEME FROM THE API ---
@@ -436,29 +439,43 @@ function saveTheme(api, color) {
 if (API) loadCachedTheme(API);
 
 document.addEventListener("DOMContentLoaded", () => {
-  if (!API) {
-    document.getElementById('initArea').innerHTML = 
-      '<div class="error-msg">Missing <strong>?api=</strong> parameter.<br><br><code>crew.html?api=YOUR_API_URL</code></div>';
-  } else {
-    init();
-  }
+  init();
 });
 
 async function init() {
   try {
-    const res = await fetch(`${API}?function=getRoutes`);
-    const data = await res.json();
+    let data;
+    if (API) {
+      const res = await fetch(`${API}?function=getRoutes`);
+      data = await res.json();
+      globalDonateUrl = data.settings?.donate_url || "";
+    } else {
+      // 🚀 High-speed TurboSanta D1 Cloudflare Worker API
+      const res = await fetch(`${WORKER_URL}/api/payload?table=${encodeURIComponent(tableSlug)}`);
+      data = await res.json();
+      if (data && data.table) {
+        data.settings = data.table;
+        globalDonateUrl = data.table.donate_url || "";
+      }
+      if (data && data.routes) {
+        data.routes = data.routes.map(r => ({
+          ...r,
+          routeName: r.name || r.routeName,
+          "Start Time": r.start_time || "18:00",
+          "End Time": r.end_time || "20:30"
+        }));
+      }
+    }
 
     if (data && data.settings) {
-      try { applyTheme(data.settings); saveTheme(API, data.settings.primary_color); } catch (e) { console.warn('Theme not applied:', e); }
+      try { applyTheme(data.settings); saveTheme(API || tableSlug, data.settings.primary_color); } catch (e) { console.warn('Theme not applied:', e); }
     }
     
     if(!data.routes) throw new Error("Invalid API response");
 
-    globalDonateUrl = data.settings?.donate_url || "";
-
     // ── CREW ALERT: read on init and start polling ──
-    updateCrewAlertBanner(data.settings?.crew_alert || '');
+    const alertMsg = (data.settings && (data.settings.crew_alert || data.settings.live_announcement)) || '';
+    updateCrewAlertBanner(alertMsg);
     setInterval(pollCrewAlert, 15000);
 
     populateRouteDropdowns(data.routes);
@@ -501,9 +518,17 @@ function updateCrewAlertBanner(msg) {
 async function pollCrewAlert() {
   if (document.visibilityState !== 'visible') return;
   try {
-    const res = await fetch(`${API}?function=getRoutes`);
-    const data = await res.json();
-    updateCrewAlertBanner(data.settings?.crew_alert || '');
+    let alertMsg = '';
+    if (API) {
+      const res = await fetch(`${API}?function=getRoutes`);
+      const data = await res.json();
+      alertMsg = data.settings?.crew_alert || '';
+    } else {
+      const res = await fetch(`${WORKER_URL}/api/payload?table=${encodeURIComponent(tableSlug)}`);
+      const data = await res.json();
+      alertMsg = data.table?.crew_alert || data.table?.live_announcement || '';
+    }
+    updateCrewAlertBanner(alertMsg);
   } catch(e) { /* silent fail — don't disrupt the crew */ }
 }
 
@@ -512,13 +537,13 @@ function openQR(type) {
   let url, heading, subtitle;
 
   if (type === 'giftaid') {
-    const base = location.origin + '/sleigh/gift_aid';
-    url = base + '?api=' + encodeURIComponent(API);
+    const base = location.origin + '/gift_aid.html';
+    url = API ? (base + '?api=' + encodeURIComponent(API)) : `${base}?table=${encodeURIComponent(tableSlug)}`;
     heading = 'GIFT <span>AID</span>';
     subtitle = 'Boost your donation by 25% — scan to declare';
   } else {
     if (!globalDonateUrl) {
-      alert("No donation URL is set in your Settings sheet!");
+      alert("No donation URL is set in your Settings!");
       return;
     }
     url = globalDonateUrl;
@@ -547,11 +572,19 @@ async function switchTab(btn) {
       btn.innerText = "Verifying...";
       
       try {
-        const sep = API.includes('?') ? '&' : '?';
-        const check = await fetch(`${API}${sep}function=verifyGodMode&secret=${encodeURIComponent(secret)}`);
-        const result = await check.json();
+        let isValid = false;
+        if (API) {
+          const sep = API.includes('?') ? '&' : '?';
+          const check = await fetch(`${API}${sep}function=verifyGodMode&secret=${encodeURIComponent(secret)}`);
+          const result = await check.json();
+          isValid = Boolean(result.valid);
+        } else {
+          const check = await fetch(`${WORKER_URL}/api/auth/verify?table=${encodeURIComponent(tableSlug)}&secret=${encodeURIComponent(secret)}`);
+          const result = await check.json();
+          isValid = Boolean(result.valid);
+        }
         
-        if (!result.valid) {
+        if (!isValid) {
           alert("Access Denied. Incorrect Password.");
           btn.innerText = originalText;
           return;
@@ -614,8 +647,16 @@ async function submitVolunteer(e) {
   };
 
   try {
-    await fetch(API, { method: "POST", body: JSON.stringify(payload) });
-    alert("Thanks for signing up! You've been added to the roster.");
+    if (API) {
+      await fetch(API, { method: "POST", body: JSON.stringify(payload) });
+    } else {
+      await fetch(`${WORKER_URL}/api/volunteers?table=${encodeURIComponent(tableSlug)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+    }
+    alert("Thanks for signing up! You've been added to the volunteer roster.");
     document.getElementById('signupForm').reset();
   } catch (err) {
     alert("Something went wrong. Please check your connection and try again.");
@@ -646,16 +687,34 @@ async function loadRouteData() {
   document.getElementById('crewContainer').innerHTML = '<div class="status"><div class="spinner"></div></div>';
 
   try {
-    // Append the secret to both admin endpoints
-    const [checklistRes, volRes] = await Promise.all([
-      fetch(`${API}?function=getChecklist&route=${routeName}&secret=${encodeURIComponent(secret)}`),       fetch(`${API}?function=getVolunteers&route=${routeName}&secret=${encodeURIComponent(secret)}`)
-    ]);
+    let checklistPayload = { tasks: [], data: {} };
+    let volData = [];
 
-    const checklistPayload = await checklistRes.json();
-    const volData = await volRes.json();
+    if (API) {
+      // Append the secret to both admin endpoints
+      const [checklistRes, volRes] = await Promise.all([
+        fetch(`${API}?function=getChecklist&route=${encodeURIComponent(routeName)}&secret=${encodeURIComponent(secret)}`),
+        fetch(`${API}?function=getVolunteers&route=${encodeURIComponent(routeName)}&secret=${encodeURIComponent(secret)}`)
+      ]);
+      checklistPayload = await checklistRes.json();
+      volData = await volRes.json();
+    } else {
+      const volRes = await fetch(`${WORKER_URL}/api/volunteers?table=${encodeURIComponent(tableSlug)}&route=${encodeURIComponent(routeName)}&secret=${encodeURIComponent(secret)}`);
+      volData = await volRes.json();
+      checklistPayload = {
+        tasks: [
+          "Vehicle & Hitch Safety Inspection",
+          "Sound System & Festive Playlist Ready",
+          "Collection Buckets & Sealed Tins Loaded",
+          "Hi-Vis Vests & Torch Inspection",
+          "Route & Safety Walkers Briefing"
+        ],
+        data: {}
+      };
+    }
 
-    renderChecklist(routeName, checklistPayload.tasks, checklistPayload.data);
-    renderCrew(volData);
+    renderChecklist(routeName, checklistPayload.tasks || [], checklistPayload.data || {});
+    renderCrew(Array.isArray(volData) ? volData : (volData.volunteers || []));
   } catch (e) {
     document.getElementById('checklistContainer').innerHTML = `<p style="color:var(--red); font-family:'Open Sans',monospace; font-size:12px;">Error loading data.</p>`;
     document.getElementById('crewContainer').innerHTML = ``;
@@ -697,10 +756,15 @@ async function updateChecklistItem(routeName, item, isChecked) {
   };
 
   try {
-    const response = await fetch(API, { method: "POST", body: JSON.stringify(payload) });
+    const targetUrl = API || `${WORKER_URL}/api/volunteers/checklist?table=${encodeURIComponent(tableSlug)}`;
+    const response = await fetch(targetUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
     const result = await response.json();
     if(!result.ok) {
-        alert("Blocked: " + result.error);
+        alert("Blocked: " + (result.error || "Update failed"));
         document.getElementById(`chk_${item.replace(/\s+/g, '')}`).checked = !isChecked;
     }
   } catch (err) {
@@ -722,11 +786,11 @@ function renderCrew(volunteers) {
     const div = document.createElement('div');
     div.className = 'vol-card';
     
-    const name = vol["Volunteer Name"] || "Unknown";
-    const role = vol["Role"] || "Volunteer";
-    const phone = vol["Phone Number"] || "No number";
-    const status = vol["Check-in Status"] || "Pending";
-    const routeName = vol["RouteName"];
+    const name = vol["Volunteer Name"] || vol.name || "Unknown";
+    const role = vol["Role"] || vol.role || "Volunteer";
+    const phone = vol["Phone Number"] || vol.phone || "No number";
+    const status = vol["Check-in Status"] || vol.status || "Confirmed";
+    const routeName = vol["RouteName"] || vol.route_name;
 
     // Update inline styles to match the new dark theme
     const btnStyle = status === "Checked In" 
@@ -771,11 +835,16 @@ async function checkInVolunteer(btn, routeName, volName, role) {
   };
 
   try {
-    const response = await fetch(API, { method: "POST", body: JSON.stringify(payload) });
+    const targetUrl = API || `${WORKER_URL}/api/volunteers/checkin?table=${encodeURIComponent(tableSlug)}`;
+    const response = await fetch(targetUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
     const result = await response.json();
     
     if(!result.ok) {
-        alert("Blocked: " + result.error);
+        alert("Blocked: " + (result.error || "Check-in failed"));
         btn.innerText = "Tap to Check-in";
         return;
     }
@@ -795,7 +864,7 @@ async function checkInVolunteer(btn, routeName, volName, role) {
   }
 }
 
-  async function closeRoute() {
+async function closeRoute() {
   const routeName = document.getElementById('opsRouteSelect').value;
   if (!routeName) return alert("Please select a route first.");
 
@@ -804,7 +873,7 @@ async function checkInVolunteer(btn, routeName, volName, role) {
 
   const btn = document.getElementById('closeRouteBtn');
   const originalText = btn.innerText;
-  btn.innerText = "Processing & Sending Emails...";
+  btn.innerText = "Processing...";
   btn.disabled = true;
 
   const secret = sessionStorage.getItem('opsSecret') || '';
@@ -816,13 +885,18 @@ async function checkInVolunteer(btn, routeName, volName, role) {
   };
 
   try {
-    const response = await fetch(API, { method: "POST", body: JSON.stringify(payload) });
+    const targetUrl = API || `${WORKER_URL}/api/volunteers/close-route?table=${encodeURIComponent(tableSlug)}`;
+    const response = await fetch(targetUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
     const result = await response.json();
 
     if(!result.ok) {
-      alert("Error: " + result.error);
+      alert("Error: " + (result.error || "Failed to close route"));
     } else {
-      alert(`Route Closed Successfully!\n\nSent thank-you emails to ${result.emailsSent} volunteers.`);
+      alert(`Route Closed Successfully!\n\n${result.message || 'Updated status.'}`);
     }
   } catch (err) {
     console.error(err);

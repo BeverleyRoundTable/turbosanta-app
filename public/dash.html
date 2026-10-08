@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Turbo Santa - Magical Catch</title>
+    <style>
+        /* ==========================================================================
+           RESPONSIVE CONTAINER & CSS RESET
+           ========================================================================== */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #08101a; /* Deep winter night */
+            overflow: hidden; 
+            /* CRITICAL: touch-action: none prevents browser pull-to-refresh, 
+               swipe-to-go-back, and double-tap zooming during gameplay */
+            touch-action: none; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: sans-serif;
+        }
+
+        #gameContainer {
+            width: 100%;
+            max-width: 500px; /* Constrain on tablets/desktops to maintain portrait feel */
+            height: 100%;
+            max-height: 850px;
+            position: relative;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* Automatically scales cleanly while maintaining aspect ratio */
+            image-rendering: pixelated; /* Keeps pre-rendered off-screen canvases crisp */
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <script>
+        /**
+         * ==========================================================================
+         * TURBO SANTA: MAGICAL CATCH
+         * ==========================================================================
+         * A gentle, forgiving drag-to-catch game designed for 7 to 9-year-olds.
+         * Features large hitboxes, slow gravity, and intuitive 1:1 finger tracking.
+         * 
+         * HIGH-PERFORMANCE RENDERING OPTIMIZATIONS IMPLEMENTED:
+         * 1. Off-screen Canvas Pre-rendering: Text and Emojis are drawn ONCE during init
+         *    to hidden canvases, then stamped onto the main canvas using `drawImage`. 
+         *    (Canvas API text/emoji rendering is notoriously slow inside a 60fps loop).
+         * 2. Strict Object Pooling: All arrays (snow, items, particles) are pre-allocated.
+         *    We toggle an `.active` boolean instead of using `new Object()`, `Array.push()`,
+         *    or `Array.splice()`. This totally eliminates Garbage Collection (GC) pauses.
+         * 3. Bitwise Integer Coercion: `x | 0` is applied to all `drawImage` coordinates. 
+         *    This forcibly truncates decimals, ensuring the browser renders strictly on 
+         *    whole pixels, bypassing expensive sub-pixel anti-aliasing calculations.
+         * 4. Opaque Main Canvas Context: initialized with `{ alpha: false }`.
+         * ==========================================================================
+         */
+
+        // --- GAME CONSTANTS ---
+        const GAME_WIDTH = 400;
+        const GAME_HEIGHT = 600;
+        const FPS = 60;
+        const FRAME_TIME = 1000 / FPS;
+
+        const STATE_MENU = 0;
+        const STATE_PLAYING = 1;
+        const STATE_GAMEOVER = 2;
+
+        // --- GLOBALS ---
+        const canvas = document.getElementById('gameCanvas');
+        // Optimize context by disabling alpha blending against the DOM background
+        const ctx = canvas.getContext('2d', { alpha: false }); 
+        canvas.width = GAME_WIDTH;
+        canvas.height = GAME_HEIGHT;
+
+        let gameState = STATE_MENU;
+        let score = 0;
+        let lives = 3;
+        let lastTime = 0;
+        let accumulator = 0;
+
+        // --- PRE-RENDERED ASSET CACHE ---
+        const sprites = {};
+        const textSprites = {};
+        const digits = [];
+
+        /**
+         * Utility: Renders an Emoji to an off-screen canvas.
+         */
+        function renderEmoji(emoji, size) {
+            const c = document.createElement('canvas');
+            c.width = size;
+            c.height = size;
+            const cx = c.getContext('2d');
+            cx.font = `${size * 0.8}px sans-serif`;
+            cx.textAlign = 'center';
+            cx.textBaseline = 'middle';
+            // Slight vertical offset for vertical centering consistency across OS
+            cx.fillText(emoji, size / 2 | 0, (size / 2 + size * 0.05) | 0);
+            return c;
+        }
+
+        /**
+         * Utility: Combines Santa and Sleigh into one pre-rendered sprite to save draw calls.
+         */
+        function renderSantaSleigh() {
+            const c = document.createElement('canvas');
+            c.width = 90;
+            c.height = 90;
+            const cx = c.getContext('2d');
+            cx.font = `50px sans-serif`;
+            cx.textAlign = 'center';
+            cx.textBaseline = 'middle';
+            // Draw Santa a bit higher, then Sleigh overlapping
+            cx.fillText('🎅', 45, 35);
+            cx.font = `60px sans-serif`;
+            cx.fillText('🛷', 45, 60);
+            return c;
+        }
+
+        /**
+         * Utility: Pre-renders text to avoid text layout calculations in the game loop.
+         */
+        function renderText(text, size, color, isBold = true) {
+            const c = document.createElement('canvas');
+            const cx = c.getContext('2d');
+            const fontStr = `${isBold ? 'bold ' : ''}${size}px sans-serif`;
+            cx.font = fontStr;
+            const metrics = cx.measureText(text);
+            c.width = Math.ceil(metrics.width) + 4;
+            c.height = size + 12;
+            cx.font = fontStr; // Re-apply after resize
+            cx.fillStyle = color;
+            cx.textBaseline = 'top';
+            cx.fillText(text, 2, 2);
+            return c;
+        }
+
+        /**
+         * Utility: Pre-renders the complex gradient background and static moon
+         * so we only draw ONE image per frame instead of generating gradients.
+         */
+        function renderBackground() {
+            const c = document.createElement('canvas');
+            c.width = GAME_WIDTH;
+            c.height = GAME_HEIGHT;
+            const cx = c.getContext('2d');
+            
+            const grad = cx.createLinearGradient(0, 0, 0, GAME_HEIGHT);
+            grad.addColorStop(0, '#0a1931'); // Very dark blue
+            grad.addColorStop(1, '#150e56'); // Deep magical purple
+            cx.fillStyle = grad;
+            cx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+            
+            // Magical Moon
+            cx.fillStyle = '#fde047';
+            cx.beginPath(); cx.arc(330, 100, 50, 0, Math.PI * 2); cx.fill();
+            // Moon crater/cutout illusion
+            cx.fillStyle = '#0a1931'; 
+            cx.beginPath(); cx.arc(315, 85, 45, 0, Math.PI * 2); cx.fill();
+
+            return c;
+        }
+
+        /**
+         * Bootstraps all pre-rendered graphics into memory.
+         */
+        function initAssets() {
+            sprites.sleigh = renderSantaSleigh();
+            sprites.present = renderEmoji('🎁', 45);
+            sprites.star = renderEmoji('⭐', 40);
+            sprites.heart = renderEmoji('❤️', 30);
+            sprites.emptyHeart = renderEmoji('🖤', 30);
+            sprites.bg = renderBackground();
+
+            textSprites.title1 = renderText('TURBO', 55, '#ffffff');
+            textSprites.title2 = renderText('SANTA', 70, '#ff3b3b');
+            textSprites.tapToStart = renderText('Tap to Catch!', 28, '#fde047');
+            textSprites.gameOver = renderText('GAME OVER', 55, '#ff3b3b');
+            textSprites.tapToRestart = renderText('Tap to Play Again', 24, '#ffffff');
+            textSprites.score = renderText('Score: ', 24, '#ffffff');
+            
+            // The requested Lore/Easter Egg
+            textSprites.lore = renderText('Delivering smiles since 1927', 16, '#7ea1c4', false);
+
+            for (let i = 0; i < 10; i++) {
+                digits[i] = renderText(i.toString(), 26, '#fde047');
+            }
+        }
+
+        // --- OBJECT POOLS ---
+        // Pre-allocate everything. No dynamic array growth during gameplay.
+        
+        const MAX_ITEMS = 12; // Keeps screen clean for kids, prevents overwhelming them
+        const itemPool = Array.from({ length: MAX_ITEMS }, () => ({
+            x: 0, y: 0, speed: 0, type: 0, active: false // type 0 = present, 1 = star
+        }));
+
+        const MAX_SNOW = 50;
+        const snowPool = Array.from({ length: MAX_SNOW }, () => ({
+            x: 0, y: 0, speed: 0, size: 0, active: false
+        }));
+
+        const MAX_PARTICLES = 20;
+        const particlePool = Array.from({ length: MAX_PARTICLES }, () => ({
+            x: 0, y: 0, vx: 0, vy: 0, life: 0, active: false
+        }));
+
+        // Player State
+        const sleigh = {
+            x: GAME_WIDTH / 2 - 45,
+            y: GAME_HEIGHT - 110,
+            w: 90,
+            h: 90,
+            targetX: GAME_WIDTH / 2 - 45
+        };
+
+        // --- GAME LOGIC FUNCTIONS ---
+
+        function spawnSnow() {
+            for (let i = 0; i < snowPool.length; i++) {
+                const s = snowPool[i];
+                s.x = (Math.random() * GAME_WIDTH) | 0;
+                s.y = (Math.random() * GAME_HEIGHT) | 0;
+                s.speed = (Math.random() * 0.8 + 0.4); // Very gentle snowfall
+                s.size = (Math.random() * 3 + 1) | 0;
+                s.active = true;
+            }
+        }
+
+        function spawnItem() {
+            for (let i = 0; i < itemPool.length; i++) {
+                const item = itemPool[i];
+                if (!item.active) {
+                    // Keep items comfortably within screen bounds
+                    item.x = (Math.random() * (GAME_WIDTH - 60)) + 15 | 0;
+                    item.y = -50;
+                    
+                    // Relaxed pacing: base speed is very slow, scales gently
+                    item.speed = 1.2 + (Math.random() * 1.0) + (score * 0.005);
+                    
+                    // 20% chance for a bonus star instead of a present
+                    item.type = Math.random() > 0.8 ? 1 : 0; 
+                    item.active = true;
+                    break;
+                }
+            }
+        }
+
+        function spawnParticles(px, py) {
+            let spawned = 0;
+            for (let i = 0; i < particlePool.length; i++) {
+                const p = particlePool[i];
+                if (!p.active) {
+                    p.x = px + 20;
+                    p.y = py + 20;
+                    p.vx = (Math.random() - 0.5) * 4;
+                    p.vy = (Math.random() - 0.5) * 4;
+                    p.life = 1.0; // Alpha fades from 1.0 to 0
+                    p.active = true;
+                    spawned++;
+                    if (spawned > 4) break; // 5 particles per catch
+                }
+            }
+        }
+
+        function resetGame() {
+            score = 0;
+            lives = 3;
+            sleigh.targetX = GAME_WIDTH / 2 - (sleigh.w / 2);
+            sleigh.x = sleigh.targetX;
+            
+            for (let i = 0; i < itemPool.length; i++) itemPool[i].active = false;
+            for (let i = 0; i < particlePool.length; i++) particlePool[i].active = false;
+        }
+
+        function update() {
+            // 1. Update Parallax Snow
+            for (let i = 0; i < snowPool.length; i++) {
+                const s = snowPool[i];
+                if (s.active) {
+                    s.y += s.speed;
+                    if (s.y > GAME_HEIGHT) {
+                        s.y = -10;
+                        s.x = (Math.random() * GAME_WIDTH) | 0;
+                    }
+                }
+            }
+
+            // 2. Update Particles (Catch effect)
+            for (let i = 0; i < particlePool.length; i++) {
+                const p = particlePool[i];
+                if (p.active) {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life -= 0.05;
+                    if (p.life <= 0) p.active = false;
+                }
+            }
+
+            if (gameState === STATE_PLAYING) {
+                // Smooth Sleigh Movement using Linear Interpolation (Lerp)
+                // This makes the sleigh glide to the finger rather than snapping instantly
+                sleigh.x += (sleigh.targetX - sleigh.x) * 0.15;
+
+                // Restrict sleigh to screen bounds
+                if (sleigh.x < -10) sleigh.x = -10;
+                if (sleigh.x > GAME_WIDTH - sleigh.w + 10) sleigh.x = GAME_WIDTH - sleigh.w + 10;
+
+                // 3. Update Falling Items
+                let activeItems = 0;
+                for (let i = 0; i < itemPool.length; i++) {
+                    const item = itemPool[i];
+                    if (item.active) {
+                        activeItems++;
+                        item.y += item.speed;
+
+                        // Collision Detection: Forgiving hitbox tailored for young kids
+                        // We check if the center of the item falls within the sleigh's bucket area
+                        const hitX = (item.x + 22 > sleigh.x + 10) && (item.x + 22 < sleigh.x + sleigh.w - 10);
+                        const hitY = (item.y + 35 > sleigh.y + 30) && (item.y < sleigh.y + sleigh.h);
+
+                        if (hitX && hitY) {
+                            item.active = false;
+                            score += (item.type === 1) ? 25 : 10;
+                            spawnParticles(item.x, item.y);
+                        } else if (item.y > GAME_HEIGHT) {
+                            item.active = false;
+                            // Only lose a life if you miss a REQUIRED present (type 0)
+                            // Missing a bonus star (type 1) does not penalize the player
+                            if (item.type === 0) {
+                                lives--;
+                                if (lives <= 0) gameState = STATE_GAMEOVER;
+                            }
+                        }
+                    }
+                }
+
+                // Spawner Logic
+                // Randomness ensures organic pacing, very slightly increasing density over time
+                if (activeItems < MAX_ITEMS && Math.random() < 0.015 + (score * 0.0001)) {
+                    spawnItem();
+                }
+            }
+        }
+
+        // --- RENDERING FUNCTIONS ---
+
+        /**
+         * Helper: Draws pre-rendered sprite using Bitwise OR (| 0)
+         * to force integer coordinates.
+         */
+        function drawSprite(sprite, x, y) {
+            ctx.drawImage(sprite, x | 0, y | 0);
+        }
+
+        /**
+         * Helper: Draws dynamically updated score using pre-rendered digit sprites.
+         */
+        function drawScoreNumber(num, x, y) {
+            const str = num.toString();
+            let curX = x | 0;
+            for (let i = 0; i < str.length; i++) {
+                const spr = digits[parseInt(str[i], 10)];
+                ctx.drawImage(spr, curX, y | 0);
+                curX += spr.width - 2; // Slight kerning overlap
+            }
+        }
+
+        function draw() {
+            // 1. Draw static background
+            drawSprite(sprites.bg, 0, 0);
+
+            // 2. Draw Snow (Direct canvas rectangles are exceptionally fast, no need for sprites here)
+            ctx.fillStyle = '#ffffff';
+            for (let i = 0; i < snowPool.length; i++) {
+                const s = snowPool[i];
+                if (s.active) {
+                    ctx.globalAlpha = s.size > 2 ? 0.7 : 0.3;
+                    ctx.fillRect(s.x | 0, s.y | 0, s.size | 0, s.size | 0);
+                }
+            }
+            ctx.globalAlpha = 1.0;
+
+            // 3. Draw Items
+            for (let i = 0; i < itemPool.length; i++) {
+                const item = itemPool[i];
+                if (item.active) {
+                    drawSprite(item.type === 1 ? sprites.star : sprites.present, item.x, item.y);
+                }
+            }
+
+            // 4. Draw Catch Particles
+            ctx.fillStyle = '#fde047'; // Star yellow
+            for (let i = 0; i < particlePool.length; i++) {
+                const p = particlePool[i];
+                if (p.active) {
+                    ctx.globalAlpha = p.life;
+                    ctx.fillRect(p.x | 0, p.y | 0, 4, 4);
+                }
+            }
+            ctx.globalAlpha = 1.0;
+
+            // 5. Draw Sleigh
+            if (gameState === STATE_PLAYING || gameState === STATE_GAMEOVER) {
+                drawSprite(sprites.sleigh, sleigh.x, sleigh.y);
+            }
+
+            // 6. Draw UI Overlays based on state
+            if (gameState === STATE_MENU) {
+                drawSprite(textSprites.title1, (GAME_WIDTH - textSprites.title1.width) / 2, 100);
+                drawSprite(textSprites.title2, (GAME_WIDTH - textSprites.title2.width) / 2, 155);
+                
+                // Simple blink effect tied to system time (no state variable needed)
+                if (Math.floor(Date.now() / 600) % 2 === 0) {
+                    drawSprite(textSprites.tapToStart, (GAME_WIDTH - textSprites.tapToStart.width) / 2, 350);
+                }
+                
+                drawSprite(textSprites.lore, (GAME_WIDTH - textSprites.lore.width) / 2, GAME_HEIGHT - 50);
+
+            } else if (gameState === STATE_PLAYING) {
+                // Score text and digits
+                drawSprite(textSprites.score, 15, 15);
+                drawScoreNumber(score, 15 + textSprites.score.width, 15);
+
+                // Lives (Hearts display)
+                for (let i = 0; i < 3; i++) {
+                    const hSpr = i < lives ? sprites.heart : sprites.emptyHeart;
+                    drawSprite(hSpr, GAME_WIDTH - 45 - (i * 35), 12);
+                }
+
+            } else if (gameState === STATE_GAMEOVER) {
+                drawSprite(textSprites.gameOver, (GAME_WIDTH - textSprites.gameOver.width) / 2, 180);
+                
+                drawSprite(textSprites.score, (GAME_WIDTH - textSprites.score.width) / 2 - 25, 260);
+                drawScoreNumber(score, (GAME_WIDTH / 2) + 20, 260);
+
+                if (Math.floor(Date.now() / 600) % 2 === 0) {
+                    drawSprite(textSprites.tapToRestart, (GAME_WIDTH - textSprites.tapToRestart.width) / 2, 380);
+                }
+                
+                drawSprite(textSprites.lore, (GAME_WIDTH - textSprites.lore.width) / 2, GAME_HEIGHT - 50);
+            }
+        }
+
+        // --- MAIN GAME LOOP ---
+        // Utilizes a fixed timestep accumulator for smooth physics regardless of device refresh rate
+        function loop(timestamp) {
+            let deltaTime = timestamp - lastTime;
+            lastTime = timestamp;
+            
+            // Cap deltaTime to prevent "spiral of death" if tab is backgrounded
+            if (deltaTime > 250) deltaTime = 250;
+            accumulator += deltaTime;
+
+            while (accumulator >= FRAME_TIME) {
+                update();
+                accumulator -= FRAME_TIME;
+            }
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        // --- INPUT HANDLING ---
+        
+        function setSleighTarget(e) {
+            // Normalize coordinate to canvas internal resolution vs visual CSS scaled resolution
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const scaleX = canvas.width / rect.width;
+            const x = (clientX - rect.left) * scaleX;
+            // Target the center of the sleigh to the finger
+            sleigh.targetX = x - (sleigh.w / 2); 
+        }
+
+        function handleInputStart(e) {
+            e.preventDefault(); // Lock browser UI behaviors
+            if (gameState === STATE_MENU) {
+                gameState = STATE_PLAYING;
+                resetGame();
+            } else if (gameState === STATE_PLAYING) {
+                setSleighTarget(e);
+            } else if (gameState === STATE_GAMEOVER) {
+                // Return to menu
+                gameState = STATE_MENU;
+            }
+        }
+
+        // Listeners for intuitive dragging mechanics (Touch & Mouse unified)
+        // `{ passive: false }` is strictly required to allow `e.preventDefault()` on modern browsers
+        canvas.addEventListener('mousedown', handleInputStart, { passive: false });
+        canvas.addEventListener('mousemove', (e) => { 
+            if (gameState === STATE_PLAYING && e.buttons > 0) setSleighTarget(e); 
+        }, { passive: false });
+        
+        canvas.addEventListener('touchstart', handleInputStart, { passive: false });
+        canvas.addEventListener('touchmove', (e) => { 
+            e.preventDefault(); // Stop page scrolling
+            if (gameState === STATE_PLAYING) setSleighTarget(e); 
+        }, { passive: false });
+
+        // --- BOOTSTRAP ---
+        window.onload = () => {
+            initAssets();
+            spawnSnow();
+            lastTime = performance.now();
+            requestAnimationFrame(loop);
+        };
+    </script>
+</body>
+</html>

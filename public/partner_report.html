@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Partner Impact Report | Beverley Round Table</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- Fonts & Chart.js -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  
+  <style>
+    /* --- EUROSTILE FONT INJECTION --- */
+    @font-face {
+        font-family: 'Eurostile';
+        src: url('https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+        font-weight: 700;
+        font-style: normal;
+        font-display: swap;
+    }
+
+    body { 
+      background-color: #1D1D1A;
+      /* Matched perfectly to main BRT site hero-pattern (0.1 opacity) */
+      background-image: radial-gradient(rgba(251, 175, 51, 0.1) 2px, transparent 2px);
+      background-size: 30px 30px;
+      background-attachment: fixed;
+      color: #FFFFFF; 
+      font-family: 'Open Sans', sans-serif; 
+      text-align: center; 
+      padding: 40px 20px; 
+      margin: 0;
+      min-height: 100vh;
+    }
+
+    ::selection {
+        background-color: #FBAF33;
+        color: #1D1D1A;
+    }
+
+    ::-webkit-scrollbar {
+        width: 10px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #1D1D1A;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #FBAF33;
+        border-radius: 5px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #d99326;
+    }
+
+    .header-logo {
+      max-height: 80px;
+      margin-bottom: 15px;
+      display: inline-block; 
+      filter: drop-shadow(0 0 10px rgba(251, 175, 51, 0.2)); 
+    }
+    
+    h1 { 
+      font-family: 'Eurostile', sans-serif; 
+      font-size: 64px; 
+      color: #FBAF33; 
+      text-transform: uppercase;
+      letter-spacing: 2px; 
+      margin: 0 0 5px 0; 
+      line-height: 1;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+    }
+    
+    .subtitle { 
+      color: #9ca3af; 
+      font-size: 18px; 
+      margin-bottom: 40px; 
+      text-transform: uppercase; 
+      letter-spacing: 2px; 
+      font-weight: 700;
+    }
+    
+    .grid { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
+      gap: 20px; 
+      max-width: 1000px; 
+      margin: 0 auto 30px; 
+    }
+    
+    .card { 
+      background: rgba(255, 255, 255, 0.05); 
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.1); 
+      border-radius: 24px; 
+      padding: 25px 20px; 
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4); 
+      transition: border-color 0.3s ease, transform 0.3s ease;
+      container-type: inline-size;
+    }
+    
+    .card:hover {
+      border-color: rgba(251, 175, 51, 0.5);
+    }
+
+    /* Base responsive size for all standard numbers */
+    .card .number { 
+      font-family: 'Eurostile', sans-serif; 
+      font-size: clamp(24px, 15cqi, 42px);
+      color: #FFFFFF; 
+      line-height: 1.1; 
+      margin-bottom: 5px; 
+      text-transform: uppercase;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+
+    /* Specific class for heavy text to ensure it wraps safely */
+    .card .number.text-long {
+      font-size: clamp(16px, 10cqi, 26px);
+      word-wrap: break-word; 
+      white-space: normal;
+      padding-top: 8px;
+    }
+    
+    .card .number.gold { color: #FBAF33; }
+    
+    .card .subtext {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-bottom: 8px;
+    }
+    
+    .card .label { 
+      font-size: 13px; 
+      color: #d1d5db; 
+      text-transform: uppercase; 
+      font-weight: 700; 
+      letter-spacing: 1px; 
+    }
+    
+    .chart-container { 
+      max-width: 1000px; 
+      margin: 0 auto; 
+      background: rgba(255, 255, 255, 0.05); 
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.1); 
+      border-radius: 24px; 
+      padding: 30px; 
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4); 
+      text-align: left; 
+    }
+    
+    .chart-container h2 { 
+      font-family: 'Eurostile', sans-serif; 
+      font-size: 32px; 
+      color: #FFFFFF; 
+      text-transform: uppercase;
+      margin-top: 0; 
+      margin-bottom: 20px; 
+      letter-spacing: 1px; 
+    }
+    
+    .canvas-wrapper {
+      position: relative;
+      height: 300px;
+      width: 100%;
+    }
+
+    /* Responsive scaling for percentage/decimal stats like Engagement Rate */
+    .card .number.percentage {
+      font-size: clamp(20px, 12cqi, 36px);
+    }
+    
+  </style>
+</head>
+<body>
+
+  <!-- BRT Logo locked in as the default -->
+  <img id="headerLogo" class="header-logo" src="https://brt-23f.pages.dev/icons/BRTLogo.png" alt="BRT Logo">
+  
+  <h1>Impact</h1>
+  <div class="subtitle" id="sponsorName">Loading Report...</div>
+
+  <!-- Cleaned-up Stats Grid -->
+  <div class="grid" id="statsGrid" style="display:none;">
+    <div class="card">
+      <div class="number gold" id="valClicks">0</div>
+      <div class="subtext" id="valClicksBreakdown">Site: 0 | Map: 0</div>
+      <div class="label">Total Link Clicks</div>
+    </div>
+    <div class="card">
+      <!-- Split Views HTML Applied Here -->
+      <div class="number" id="valViews">0</div>
+      <div class="subtext" id="valViewsBreakdown">Site: 0 | Map: 0</div>
+      <div class="label">Total Combined Views</div>
+    </div>
+    <div class="card">
+      <div class="number" id="valSocial">0</div>
+      <div class="subtext">All Combined Channels</div>
+      <div class="label">Total Social Reach</div>
+    </div>
+    <div class="card">
+      <!-- text-long class applied here -->
+      <div class="number text-long" id="valRoute">TBC</div>
+      <div class="subtext">Highest Engagement</div>
+      <div class="label">Popular Route</div>
+    </div>
+    <div class="card">
+      <div class="number" id="valDevice">0%</div>
+      <div class="subtext">Mobile / Desktop Split</div>
+      <div class="label">Device Access</div>
+    </div>
+    <div class="card">
+  <div class="number gold percentage" id="valCTR">0.0%</div>
+  <div class="subtext" id="valCTRBreakdown">Clicks ÷ Views Ratio</div>
+  <div class="label">Engagement Rate</div>
+</div>
+  </div>
+
+  <!-- Daily Click Chart -->
+  <div class="chart-container" id="chartCard" style="display:none;">
+    <h2>Daily Engagement Timeline</h2>
+    <div class="canvas-wrapper">
+      <canvas id="clickChart"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "/api"; // Replace with your actual Google Apps Script Web App URL
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const sponsor = urlParams.get('sponsor') || 'Global Partner';
+
+    document.getElementById('sponsorName').innerText = `${sponsor} x Beverley Round Table`;
+
+    fetch(`${API_URL}?sponsor=${encodeURIComponent(sponsor)}`)
+      .then(res => res.json())
+      .then(data => {
+        
+       // Clicks Population
+        document.getElementById('valClicks').innerText = (data.sponsorClicks || 0).toLocaleString();
+        const siteC = data.carrdClicks || 0;
+        const appC = data.trackerClicks || 0;
+        document.getElementById('valClicksBreakdown').innerText = `Site: ${siteC} | Tracker Map: ${appC}`;
+        
+        // Split Views Logic Applied Here
+        document.getElementById('valViews').innerText = (data.totalViews || 0).toLocaleString();
+        const siteV = data.siteViews || 0;
+        const appV = data.trackerViews || 0;
+        document.getElementById('valViewsBreakdown').innerText = `Site: ${siteV.toLocaleString()} | Map: ${appV.toLocaleString()}`;
+        
+        // Remaining Data Population
+        document.getElementById('valSocial').innerText = (data.socialReach || 0).toLocaleString();
+        document.getElementById('valRoute').innerText = data.popularRoute || 'TBC';
+        document.getElementById('valDevice').innerText = data.deviceSplit || '0%';
+
+        // ----------------------------------------------------
+        // TRUE ISOLATED ENGAGEMENT RATE (CTR) LOGIC
+        // ----------------------------------------------------
+        const siteCTR = siteV > 0 ? ((siteC / siteV) * 100).toFixed(2) : "0.00";
+        const appCTR = appV > 0 ? ((appC / appV) * 100).toFixed(2) : "0.00";
+
+        const ctrCard = document.getElementById('valCTR');
+        const ctrSubtext = document.getElementById('valCTRBreakdown');
+
+        // 1. Sponsor is ONLY on the Main Site (Build Partners)
+        if (siteC > 0 && appC === 0) {
+            ctrCard.innerText = `${siteCTR}%`;
+            ctrSubtext.innerText = `Based purely on Site Views`;
+        } 
+        // 2. Sponsor is ONLY in the Tracker App (Route Sponsors)
+        else if (appC > 0 && siteC === 0) {
+            ctrCard.innerText = `${appCTR}%`;
+            ctrSubtext.innerText = `Based purely on App Views`;
+        } 
+        // 3. Sponsor is on BOTH (or neither yet)
+        else {
+            const blendedCTR = data.totalViews > 0 ? ((data.sponsorClicks / data.totalViews) * 100).toFixed(2) : "0.00";
+            ctrCard.innerText = `${blendedCTR}%`;
+            ctrSubtext.innerText = `Site: ${siteCTR}% | App: ${appCTR}%`;
+        }
+
+        document.getElementById('statsGrid').style.display = 'grid';
+
+        // Render Chart
+        if (data.chartLabels && data.chartLabels.length > 0) {
+          document.getElementById('chartCard').style.display = 'block';
+          
+          const ctx = document.getElementById('clickChart').getContext('2d');
+          
+          Chart.defaults.font.family = "'Open Sans', sans-serif";
+          Chart.defaults.color = 'rgba(255,255,255,0.5)';
+          
+          new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: data.chartLabels,
+              datasets: [{
+                label: 'Link Clicks',
+                data: data.chartData,
+                backgroundColor: 'rgba(251,175,51,0.25)', 
+                borderColor: '#FBAF33',                  
+                borderWidth: 2,
+                borderRadius: 4
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: {
+                x: {
+                  grid: { color: 'rgba(255,255,255,0.05)' },
+                  ticks: { font: { weight: '700' } }
+                },
+                y: {
+                  grid: { color: 'rgba(255,255,255,0.05)' },
+                  beginAtZero: true,
+                  ticks: { 
+                    stepSize: 1,
+                    font: { family: "'Open Sans', sans-serif", weight: '600' }
+                  }
+                }
+              }
+            }
+          });
+        }
+      })
+      .catch(err => {
+        document.getElementById('sponsorName').innerText = "Error loading report.";
+        console.error("Error fetching data:", err);
+      });
+  </script>
+</body>
+</html>

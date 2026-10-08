@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>>TurboSanta — Adopt a Reindeer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=Mountains+of+Christmas:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ═══════════════════════════════════════ */
+  /* TURBOSANTA DESIGN SYSTEM */
+  /* ═══════════════════════════════════════ */
+  :root {
+    --gold: #FBAF33;
+    --gold-dim: rgba(251,175,51,0.12);
+    --gold-glow: rgba(251,175,51,0.25);
+    --dark: #0d0d0b;
+    --surface: #161614;
+    --surface-2: #1e1e1b;
+    --surface-3: #252522;
+    --border: rgba(255,255,255,0.08);
+    --border-gold: rgba(251,175,51,0.2);
+    --red: #D31C1C;
+    --green: #2ecc71;
+    --text: #eaeae5;
+    --text-dim: rgba(255,255,255,0.55);
+    --text-muted: rgba(255,255,255,0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: transparent; /* Makes the body background transparent for seamless embedding */
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app { 
+      max-width: 800px; 
+      margin: 0 auto; 
+      padding: 48px 24px 64px; 
+      /* Optional: You can add a subtle background here if you want the app content to have a distinct area on transparent embeds */
+  }
+
+  header { text-align: center; margin-bottom: 40px; }
+
+  header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px; 
+    letter-spacing: 2px; 
+    color: #fff;
+    line-height: 1;
+  }
+  
+  header h1 span {
+    color: var(--gold);
+  }
+
+  header p { 
+    color: var(--text-dim); 
+    margin-top: 12px; 
+    font-size: 15px; 
+  }
+
+  /* ── FORM ── */
+  .form-panel {
+    background: var(--surface); 
+    border: 1px solid var(--border);
+    border-radius: 14px; 
+    padding: 28px; 
+    margin-bottom: 24px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  }
+
+  .form-panel h3 {
+    font-size: 11px; 
+    font-weight: 700; 
+    text-transform: uppercase;
+    letter-spacing: 1.5px; 
+    color: var(--text-muted); 
+    margin-bottom: 16px;
+  }
+
+  .field { margin-bottom: 16px; }
+
+  .field label {
+    display: block; 
+    font-size: 12px; 
+    font-weight: 700;
+    color: var(--text-dim); 
+    margin-bottom: 8px;
+  }
+
+  .field input {
+    width: 100%; 
+    background: var(--surface-2); 
+    border: 1px solid var(--border);
+    border-radius: 8px; 
+    padding: 14px 16px; 
+    color: #fff;
+    font-family: 'DM Mono', monospace; 
+    font-size: 16px; 
+    outline: none;
+    transition: border 0.2s;
+  }
+
+  .field input:focus { 
+    border-color: var(--gold); 
+    box-shadow: 0 0 0 3px var(--gold-glow);
+  }
+
+  /* ── REINDEER GRID ── */
+  .reindeer-grid {
+    display: grid; 
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px; 
+    margin-bottom: 16px;
+  }
+
+  .reindeer-card {
+    background: var(--surface-2); 
+    border: 1px solid var(--border);
+    border-radius: 12px; 
+    padding: 16px 10px; 
+    text-align: center;
+    cursor: pointer; 
+    transition: all 0.15s;
+  }
+
+  .reindeer-card:hover { 
+    background: rgba(251,175,51,0.03);
+    border-color: var(--border-gold); 
+    transform: translateY(-2px); 
+  }
+
+  .reindeer-card.selected {
+    border-color: var(--gold); 
+    background: var(--gold-dim);
+    box-shadow: 0 4px 16px var(--gold-glow);
+  }
+
+  .reindeer-card .emoji { font-size: 32px; margin-bottom: 8px; }
+
+  .reindeer-card .name {
+    font-size: 15px; 
+    font-weight: 700; 
+    color: #fff;
+  }
+
+  .reindeer-card .trait {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; 
+    color: var(--text-dim); 
+    margin-top: 6px;
+  }
+
+  .random-btn {
+    width: 100%; 
+    padding: 14px; 
+    background: var(--surface-2);
+    border: 1px dashed var(--border-gold); 
+    border-radius: 10px;
+    color: var(--gold); 
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px; 
+    font-weight: 700; 
+    cursor: pointer;
+    transition: all 0.15s; 
+    margin-bottom: 20px;
+  }
+
+  .random-btn:hover { 
+    background: var(--gold-dim); 
+    border-style: solid;
+  }
+
+  .btn-row { display: flex; gap: 12px; justify-content: center; }
+
+  .btn {
+    font-family: 'DM Sans', sans-serif; 
+    font-weight: 700; 
+    font-size: 15px;
+    border: none; 
+    border-radius: 8px; 
+    padding: 16px 32px; 
+    cursor: pointer;
+    transition: transform 0.1s, background 0.2s;
+  }
+
+  .btn:active { transform: scale(0.97); }
+
+  .btn-gold {
+    background: var(--gold); 
+    color: #000;
+  }
+
+  .btn-gold:hover:not(:disabled) {
+    background: #e59d28;
+  }
+
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── PREVIEW ── */
+  .preview-area { text-align: center; margin-top: 32px; }
+
+  .preview-area img {
+    max-width: 100%; 
+    border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+    border: 1px solid var(--border);
+  }
+
+  .preview-label {
+    font-size: 11px; 
+    color: var(--gold); 
+    margin-bottom: 12px;
+    font-weight: 700; 
+    text-transform: uppercase; 
+    letter-spacing: 1.5px;
+  }
+
+  .btn-ghost {
+    background: var(--surface-2); 
+    color: #fff; 
+    border: 1px solid var(--border);
+  }
+  
+  .btn-ghost:hover {
+    background: var(--surface-3);
+  }
+
+  /* ── OFFSCREEN ── */
+  .render-area { position: fixed; left: -9999px; top: 0; }
+
+  /* ═══════════════════════════
+     CERTIFICATE DESIGN (Light Theme)
+     ═══════════════════════════ */
+  .cert {
+    width: 1080px; height: 1080px;
+    position: relative; overflow: hidden;
+    font-family: 'DM Sans', sans-serif;
+    background: #faf8f2;
+    color: #1D1D1A;
+  }
+
+  .cert-border {
+    position: absolute; inset: 16px;
+    border: 4px solid #FBAF33;
+    border-radius: 16px;
+    pointer-events: none;
+  }
+
+  .cert-border-inner {
+    position: absolute; inset: 24px;
+    border: 1px solid rgba(251,175,51,0.4);
+    border-radius: 12px;
+    pointer-events: none;
+  }
+
+  .cert-corner { position: absolute; font-size: 28px; opacity: 0.3; color: #FBAF33; }
+  .cert-corner.tl { top: 32px; left: 36px; }
+  .cert-corner.tr { top: 32px; right: 36px; }
+  .cert-corner.bl { bottom: 32px; left: 36px; }
+  .cert-corner.br { bottom: 32px; right: 36px; }
+
+  .cert-content {
+    position: relative; z-index: 2;
+    height: 100%; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 60px 80px;
+  }
+
+  .cert-logo {
+    width: 80px; height: 80px; border-radius: 16px;
+    object-fit: contain; margin-bottom: 16px;
+  }
+
+  .cert-sleigh-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px; font-weight: 700; color: #888;
+    text-transform: uppercase; letter-spacing: 2px;
+    margin-bottom: 24px;
+  }
+
+  .cert-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 64px; letter-spacing: 2px; color: #D31C1C;
+    line-height: 1; margin-bottom: 8px;
+  }
+
+  .cert-subtitle {
+    font-family: 'Mountains of Christmas', cursive;
+    font-size: 32px; font-weight: 700; color: #555;
+    margin-bottom: 32px;
+  }
+
+  .cert-reindeer-emoji { font-size: 72px; margin-bottom: 16px; }
+
+  .cert-reindeer-name {
+    font-family: 'Mountains of Christmas', cursive;
+    font-size: 64px; font-weight: 700; color: #FBAF33;
+    margin-bottom: 8px; line-height: 1;
+  }
+
+  .cert-reindeer-trait {
+    font-family: 'DM Mono', monospace;
+    font-size: 16px; color: #888;
+    margin-bottom: 32px;
+  }
+
+  .cert-adopted-by {
+    font-size: 12px; font-weight: 700; color: #aaa;
+    text-transform: uppercase; letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+
+  .cert-person-name {
+    font-family: 'Mountains of Christmas', cursive;
+    font-size: 56px; font-weight: 700; color: #1D1D1A;
+    margin-bottom: 24px; line-height: 1;
+  }
+
+  .cert-divider {
+    width: 80px; height: 3px;
+    background: linear-gradient(90deg, #D31C1C, #FBAF33);
+    border-radius: 2px; margin: 0 auto 20px;
+  }
+
+  .cert-pledge {
+    font-size: 15px; color: #666; max-width: 500px;
+    line-height: 1.6; margin-bottom: 24px;
+  }
+
+  .cert-year {
+    font-family: 'DM Mono', monospace;
+    font-size: 16px; font-weight: 500; color: #FBAF33;
+    background: rgba(251,175,51,0.1);
+    padding: 8px 24px; border-radius: 100px;
+    letter-spacing: 1px;
+  }
+
+  .cert-watermark {
+    position: absolute; bottom: 24px; left: 0; right: 0;
+    text-align: center; font-family: 'DM Mono', monospace;
+    font-size: 11px; color: #ccc;
+    letter-spacing: 1px; text-transform: uppercase;
+  }
+
+  /* ── SNOWFLAKES ── */
+  .cert-snow {
+    position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+  }
+
+  .cert-snow span {
+    position: absolute; color: rgba(200,200,200,0.25);
+    font-size: 18px;
+  }
+
+  @media (max-width: 600px) {
+    .reindeer-grid { grid-template-columns: repeat(2, 1fr); }
+    header h1 { font-size: 36px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>🦌 ADOPT A <span>REINDEER</span></h1>
+    <p>Choose your reindeer and get an official adoption certificate!</p>
+  </header>
+
+  <div class="form-panel">
+    <h3>Your Name</h3>
+    <div class="field">
+      <input type="text" id="personName" placeholder="Enter your name..." maxlength="30">
+    </div>
+  </div>
+
+  <div class="form-panel">
+    <h3>Choose Your Reindeer</h3>
+    <button class="random-btn" onclick="randomReindeer()">🎲 Pick a Random Reindeer!</button>
+    <div class="reindeer-grid" id="reindeerGrid"></div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-gold" id="generateBtn" onclick="generate()" disabled>Create Certificate</button>
+  </div>
+
+  <div class="preview-area" id="previewArea"></div>
+</div>
+
+<div class="render-area" id="renderArea"></div>
+
+<script>
+const API = new URLSearchParams(location.search).get('api') || '';
+
+const REINDEER = [
+  { name: 'Dasher', emoji: '🦌', trait: 'The fastest of them all' },
+  { name: 'Dancer', emoji: '🦌', trait: 'Graceful and elegant' },
+  { name: 'Prancer', emoji: '🦌', trait: 'Full of energy and bounce' },
+  { name: 'Vixen', emoji: '🦌', trait: 'Clever and quick-witted' },
+  { name: 'Comet', emoji: '🦌', trait: 'Bright as a shooting star' },
+  { name: 'Cupid', emoji: '🦌', trait: 'Spreads love everywhere' },
+  { name: 'Donner', emoji: '🦌', trait: 'Strong and powerful' },
+  { name: 'Blitzen', emoji: '🦌', trait: 'Fast as lightning' },
+  { name: 'Rudolph', emoji: '🔴', trait: 'The most famous reindeer of all' },
+];
+
+let selectedReindeer = null;
+let settings = {};
+
+// Load settings if API provided
+if (API) {
+  fetch(API).then(r => r.json()).then(data => {
+    settings = data.settings || {};
+  }).catch(() => {});
+}
+
+// Build reindeer grid
+function renderGrid() {
+  const grid = document.getElementById('reindeerGrid');
+  grid.innerHTML = REINDEER.map((r, i) => `
+    <div class="reindeer-card" id="rc-${i}" onclick="selectReindeerCard(${i})">
+      <div class="emoji">${r.emoji}</div>
+      <div class="name">${r.name}</div>
+      <div class="trait">${r.trait}</div>
+    </div>
+  `).join('');
+}
+
+renderGrid();
+
+function selectReindeerCard(idx) {
+  selectedReindeer = REINDEER[idx];
+  document.querySelectorAll('.reindeer-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById(`rc-${idx}`).classList.add('selected');
+  updateBtn();
+}
+
+function randomReindeer() {
+  const idx = Math.floor(Math.random() * REINDEER.length);
+  selectReindeerCard(idx);
+  // Scroll to the selected one
+  document.getElementById(`rc-${idx}`).scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function updateBtn() {
+  const name = document.getElementById('personName').value.trim();
+  document.getElementById('generateBtn').disabled = !(name && selectedReindeer);
+}
+
+document.getElementById('personName').addEventListener('input', updateBtn);
+
+// Generate snowflake positions (deterministic for html2canvas)
+function snowflakeHtml() {
+  const flakes = [];
+  for (let i = 0; i < 30; i++) {
+    const left = (i * 37 + 13) % 100;
+    const top = (i * 53 + 7) % 100;
+    const size = 12 + (i % 4) * 6;
+    flakes.push(`<span style="left:${left}%;top:${top}%;font-size:${size}px;">❄</span>`);
+  }
+  return flakes.join('');
+}
+
+async function generate() {
+  const personName = document.getElementById('personName').value.trim();
+  if (!personName || !selectedReindeer) return;
+
+  const logo = settings.logo_overlay_url || '';
+  const sleighName = settings.sleigh_display_name || settings.sleigh_name || '';
+  const year = settings.wrap_year || new Date().getFullYear();
+
+  const certHtml = `
+    <div class="cert-snow">${snowflakeHtml()}</div>
+    <div class="cert-border"></div>
+    <div class="cert-border-inner"></div>
+    <div class="cert-corner tl">❄</div>
+    <div class="cert-corner tr">❄</div>
+    <div class="cert-corner bl">❄</div>
+    <div class="cert-corner br">❄</div>
+    <div class="cert-content">
+      ${logo ? `<img class="cert-logo" src="${logo}" crossorigin="anonymous">` : ''}
+      ${sleighName ? `<div class="cert-sleigh-name">${sleighName}</div>` : ''}
+      <div class="cert-title">Reindeer Adoption</div>
+      <div class="cert-subtitle">Official Certificate</div>
+      <div class="cert-reindeer-emoji">${selectedReindeer.emoji}</div>
+      <div class="cert-reindeer-name">${selectedReindeer.name}</div>
+      <div class="cert-reindeer-trait">"${selectedReindeer.trait}"</div>
+      <div class="cert-adopted-by">Has been officially adopted by</div>
+      <div class="cert-person-name">${personName}</div>
+      <div class="cert-divider"></div>
+      <div class="cert-pledge">
+        By adopting ${selectedReindeer.name}, you pledge to keep the Christmas spirit alive,
+        spread kindness in your community, and always leave a mince pie out for Santa.
+      </div>
+      <div class="cert-year">Christmas ${year}</div>
+    </div>
+    <div class="cert-watermark">Powered by TurboSanta National</div>
+  `;
+
+  const renderArea = document.getElementById('renderArea');
+  renderArea.innerHTML = `<div class="cert" id="certCapture">${certHtml}</div>`;
+
+  // Wait for images + fonts
+  const imgs = renderArea.querySelectorAll('img');
+  await Promise.all([...imgs].map(img => new Promise(resolve => {
+    if (img.complete) return resolve();
+    img.onload = resolve;
+    img.onerror = resolve;
+    setTimeout(resolve, 3000);
+  })));
+  await new Promise(r => setTimeout(r, 400));
+
+  const el = document.getElementById('certCapture');
+
+  try {
+    const canvas = await html2canvas(el, {
+      scale: 1, useCORS: true, allowTaint: true,
+      backgroundColor: '#faf8f2', logging: false,
+      width: el.offsetWidth, height: el.offsetHeight
+    });
+
+    const maxW = Math.min(window.innerWidth * 0.85, 600);
+    const preview = document.getElementById('previewArea');
+    preview.innerHTML = `
+      <div class="preview-label">Your Certificate</div>
+      <img src="${canvas.toDataURL('image/png')}" style="width:${maxW}px;">
+      <div class="btn-row" style="margin-top:20px;">
+        <button class="btn btn-gold" onclick="downloadCert(this)" data-url="${canvas.toDataURL('image/png')}">⬇ Download</button>
+        <button class="btn btn-ghost" onclick="generate()">Regenerate</button>
+      </div>
+    `;
+
+    preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch(e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+function downloadCert(btn) {
+  const link = document.createElement('a');
+  link.download = `reindeer_adoption_${selectedReindeer.name.toLowerCase()}.png`;
+  link.href = btn.dataset.url;
+  link.click();
+}
+</script>
+</body>
+</html>

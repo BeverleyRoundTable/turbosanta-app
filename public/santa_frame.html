@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TurboSanta — Santa’s Been Generator</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ═══════════════════════════════════════ */
+  /* TURBOSANTA DESIGN SYSTEM */
+  /* ═══════════════════════════════════════ */
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  :root {
+    /* Fallback variables, updated dynamically by applyTheme() */
+    --primary: #FBAF33;
+    --primary-rgb: 251, 175, 51;
+    --on-primary: #000000;
+    
+    --primary-dim: rgba(var(--primary-rgb), 0.12);
+    --primary-glow: rgba(var(--primary-rgb), 0.25);
+    --border-primary: rgba(var(--primary-rgb), 0.3);
+    
+    --dark: #0d0d0b;
+    --surface: #161614;
+    --surface-2: #1e1e1b;
+    --surface-3: #252522;
+    --border: rgba(255,255,255,0.08);
+    --text: #eaeae5;
+    --text-dim: rgba(255,255,255,0.55);
+    --text-muted: rgba(255,255,255,0.3);
+  }
+
+  body {
+    margin: 0;
+    padding: 16px 12px;
+    font-family: 'DM Sans', sans-serif;
+    background: transparent; /* Keep transparent for iframe embedding */
+    text-align: center;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .card {
+    background: var(--surface);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    padding: 40px 32px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+    max-width: 600px;
+    margin: 0 auto;
+    transition: box-shadow 0.3s ease;
+  }
+  
+  .card h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    letter-spacing: 2px;
+    color: #fff;
+    margin-top: 0;
+    margin-bottom: 8px;
+    line-height: 1;
+  }
+
+  .card h2 span {
+    color: var(--primary);
+  }
+
+  .helper-text {
+    font-size: 15px;
+    color: var(--text-dim);
+    margin-top: 0;
+    margin-bottom: 32px;
+    font-weight: 500;
+  }
+
+  /* ── UPLOAD AREA ── */
+  .upload-label {
+    display: inline-block;
+    margin: 0 auto 16px;
+    padding: 16px 32px;
+    border-radius: 12px;
+    background: var(--surface-2);
+    border: 1px dashed var(--border-primary);
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--primary);
+    transition: all 0.2s ease;
+    width: 100%;
+    max-width: 320px;
+  }
+
+  .upload-label:hover, .upload-label:focus-within {
+    background: var(--primary-dim);
+    border-style: solid;
+  }
+
+  .upload-label:active {
+    transform: scale(0.97);
+  }
+
+  .upload-label input {
+    display: none;
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    border: none;
+    border-radius: 8px;
+    padding: 16px 24px;
+    cursor: pointer;
+    transition: transform 0.1s, filter 0.2s, background 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+  }
+
+  .btn:active:not(:disabled) { transform: scale(0.97); }
+  .btn:disabled { 
+    opacity: 0.4; 
+    cursor: not-allowed; 
+    background: var(--surface-3);
+    color: var(--text-muted);
+  }
+
+  .btn-primary { background: var(--primary); color: var(--on-primary); }
+  .btn-primary:hover:not(:disabled) { filter: brightness(0.92); }
+
+  .btn-ghost {
+    background: var(--surface-2);
+    color: #fff;
+    border: 1px solid var(--border);
+    text-decoration: none;
+  }
+  .btn-ghost:hover { background: var(--surface-3); }
+
+  /* Actions row */
+  .actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 24px;
+  }
+
+  #download {
+    display: none;
+  }
+
+  canvas {
+    display: none;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes santaGlow {
+    0%   { box-shadow: 0 16px 40px rgba(0,0,0,0.5), 0 0 0 rgba(var(--primary-rgb), 0); }
+    50%  { box-shadow: 0 16px 40px rgba(0,0,0,0.5), 0 0 30px var(--primary-glow); }
+    100% { box-shadow: 0 16px 40px rgba(0,0,0,0.5), 0 0 0 rgba(var(--primary-rgb), 0); }
+  }
+
+  .card.success {
+    animation: santaGlow 1.4s ease-out;
+  }
+
+  @keyframes buttonPulse {
+    0%   { transform: scale(1); box-shadow: 0 0 0 rgba(var(--primary-rgb), 0.0); }
+    50%  { transform: scale(1.04); box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.4); }
+    100% { transform: scale(1); box-shadow: 0 0 0 rgba(var(--primary-rgb), 0.0); }
+  }
+
+  button.success {
+    animation: buttonPulse 0.9s ease-out;
+  }
+
+  @media (max-width: 600px) {
+    .card { padding: 24px 16px; }
+    .card h2 { font-size: 36px; }
+    .helper-text { margin-bottom: 20px; font-size: 14px; }
+    .upload-label { padding: 12px 24px; }
+    .btn { padding: 14px 20px; }
+  }
+  
+</style>
+</head>
+
+<body>
+
+<div class="card">
+  <h2>SANTA'S <span>BEEN!</span></h2>
+  
+  <p class="helper-text">
+    Stand in the middle — Santa will do the rest 🎄
+  </p>
+
+  <label class="upload-label">
+    📸 Upload your photo
+    <input id="photoInput" type="file" accept="image/*">
+  </label>
+
+  <div class="actions">
+    <button class="btn btn-primary" id="generateBtn" onclick="generate()" disabled>
+      Create Image
+    </button>
+
+    <a class="btn btn-ghost" id="download" download="santas_been.png">⬇ Download image</a>
+  </div>
+
+  <canvas id="canvas" width="1000" height="1000"></canvas>
+</div>
+
+<script>
+/* ---------- THEME & API SETUP ---------- */
+const params = new URLSearchParams(location.search);
+let API_URL = params.get("api") || localStorage.getItem("SANTA_API") || sessionStorage.getItem("SANTA_API");
+
+if (API_URL) {
+  localStorage.setItem("SANTA_API", API_URL); 
+  sessionStorage.setItem("SANTA_API", API_URL);
+  
+  const WORKER_URL = "https://santaproxy.beverley247.workers.dev/";
+  const DATA_URL = `${WORKER_URL}?ttl=30&target=${encodeURIComponent(API_URL)}`;
+  
+  fetch(DATA_URL)
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.settings) applyTheme(data.settings);
+    })
+    .catch(e => console.warn("Failed to load theme for santa frame", e));
+}
+
+function parseColor(v) {
+  if (typeof v !== 'string') return null;
+  const s = v.trim();
+  const hex = /^#([0-9a-f]{3,8})$/i.exec(s);
+  if (hex) {
+    let h = hex[1];
+    if (h.length === 3 || h.length === 4) h = h.split('').map(c => c + c).join('');
+    if (h.length !== 6 && h.length !== 8) return null;
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+  try {
+    if (/var\(|url\(|expression/i.test(s)) return null;
+    if (!(window.CSS && CSS.supports && CSS.supports('color', s))) return null;
+    const ctx = document.createElement('canvas').getContext('2d');
+    ctx.fillStyle = '#000000';
+    ctx.fillStyle = s;
+    const out = ctx.fillStyle;
+    if (out.charAt(0) === '#') return parseColor(out);
+    const rgb = /^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(out);
+    return rgb ? [+rgb[1], +rgb[2], +rgb[3]] : null;
+  } catch (e) { return null; }
+}
+
+function readableTextOn(rgb) {
+  const lin = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  const L = 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]);
+  return ((L + 0.05) / 0.05) >= (1.05 / (L + 0.05)) ? '#000000' : '#ffffff';
+}
+
+function applyTheme(settings) {
+  const root = document.documentElement;
+  const raw = settings && settings.primary_color;
+  const rgb = parseColor(raw);
+  
+  if (rgb) {
+    root.style.setProperty('--primary', String(raw).trim());
+    root.style.setProperty('--primary-rgb', rgb.join(', '));
+    root.style.setProperty('--on-primary', readableTextOn(rgb));
+  } else {
+    root.style.removeProperty('--primary');
+    root.style.removeProperty('--primary-rgb');
+    root.style.removeProperty('--on-primary');
+  }
+}
+
+/* ---------- GENERATOR LOGIC ---------- */
+const FRAME_SRC = "https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/sleigh/santa_frame.png";
+const FRAME = { x: 230, y: 230, size: 540 };
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+ctx.imageSmoothingQuality = "high";
+
+const frameImg = new Image();
+frameImg.crossOrigin = "anonymous";
+frameImg.src = FRAME_SRC;
+
+const photoInput = document.getElementById("photoInput");
+const generateBtn = document.getElementById("generateBtn");
+const downloadLink = document.getElementById("download");
+
+photoInput.addEventListener("change", () => {
+  generateBtn.disabled = !photoInput.files.length;
+});
+
+function generate(){
+  if (!photoInput.files.length) return;
+
+  generateBtn.disabled = true;
+  generateBtn.textContent = "Creating image…";
+
+  const photo = new Image();
+  photo.onload = () => draw(photo);
+  photo.src = URL.createObjectURL(photoInput.files[0]);
+}
+  
+function drawTimestamp() {
+  const date = new Date();
+  const label =
+    "SANTA VISITED • " +
+    date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    }).toUpperCase();
+
+  ctx.save();
+
+  // Using DM Mono for a modern, camera-stamp aesthetic
+  ctx.font = "700 20px 'DM Mono', monospace";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "bottom";
+
+  // subtle shadow for legibility
+  ctx.shadowColor = "rgba(0,0,0,0.5)";
+  ctx.shadowBlur = 6;
+  ctx.shadowOffsetY = 2;
+
+  ctx.fillStyle = "rgba(255,255,255,0.9)";
+  ctx.fillText(label, 960, 960);
+
+  ctx.restore();
+}
+
+function draw(photo){
+  ctx.clearRect(0, 0, 1000, 1000);
+
+  const INSET = 8;
+  const NUDGE = 0.08;
+
+  const srcSize = Math.min(photo.width, photo.height);
+  const srcX = (photo.width - srcSize) / 2;
+  const srcY = Math.max(0, (photo.height - srcSize) / 2 - srcSize * NUDGE);
+
+  const destX = FRAME.x + INSET;
+  const destY = FRAME.y + INSET;
+  const destSize = FRAME.size - INSET * 2;
+
+  // Soft printed-photo shadow
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.2)";
+  ctx.shadowBlur = 16;
+  ctx.shadowOffsetY = 8;
+
+  ctx.drawImage(
+    photo,
+    srcX, srcY, srcSize, srcSize,
+    destX, destY, destSize, destSize
+  );
+
+  ctx.restore();
+
+  // Frame on top
+  ctx.drawImage(frameImg, 0, 0, 1000, 1000);
+  
+  // Wait a tiny bit to ensure the custom fonts have loaded before stamping text
+  document.fonts.ready.then(() => {
+    drawTimestamp();
+
+    // Export
+    downloadLink.href = canvas.toDataURL("image/png");
+
+    // ⭐ Auto filename with date
+    downloadLink.download =
+      "santas_been_" +
+      new Date().toISOString().slice(0, 10) +
+      ".png";
+
+    setTimeout(() => {
+      downloadLink.style.display = "inline-flex";
+    }, 150);
+
+    generateBtn.disabled = false;
+    generateBtn.textContent = "Create another image";
+
+    // ✨ Success pulse
+    const card = document.querySelector(".card");
+    const btn  = document.getElementById("generateBtn");
+
+    if (card) {
+      card.classList.add("success");
+      setTimeout(() => card.classList.remove("success"), 1500);
+    }
+
+    if (btn) {
+      btn.classList.add("success");
+      setTimeout(() => btn.classList.remove("success"), 900);
+    }
+
+    sendHeight(40); // 🔑 FORCE iframe resize after content change
+  });
+}
+  
+/* ---------- iframe auto-height ---------- */
+function sendHeight(extra = 0){
+  const card = document.querySelector('.card');
+  if (!card) return;
+  
+  // Calculate true height: card height + 32px (for the 16px top & bottom body padding)
+  const h = card.offsetHeight + 32 + extra;
+  parent.postMessage({ santasBeenHeight: h }, "*");
+}
+
+window.addEventListener("load", () => {
+  sendHeight(30);
+  setTimeout(() => sendHeight(30), 150);
+  setTimeout(() => sendHeight(30), 350);
+});
+
+// Use ResizeObserver on the card instead of listening to window resizes. 
+// This only fires when the actual content changes size, breaking the loop!
+const resizeObserver = new ResizeObserver(() => sendHeight(30));
+resizeObserver.observe(document.querySelector('.card'));
+
+// Watch for elements being added/removed
+const observer = new MutationObserver(() => sendHeight(30));
+observer.observe(document.body, { childList: true, subtree: true });
+  
+</script>
+
+</body>
+</html>

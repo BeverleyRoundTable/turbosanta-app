@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>TurboSanta — Magic Mailbox</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --gold: #FBAF33;
+    --gold-dim: rgba(251,175,51,0.12);
+    --gold-glow: rgba(251,175,51,0.25);
+    --dark: #0d0d0b;
+    --surface: #161614;
+    --surface-2: #1e1e1b;
+    --surface-3: #252522;
+    --border: rgba(255,255,255,0.08);
+    --border-gold: rgba(251,175,51,0.2);
+    --red: #D31C1C;
+    --green: #2ecc71;
+    --text: #eaeae5;
+    --text-dim: rgba(255,255,255,0.55);
+    --text-muted: rgba(255,255,255,0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    /* FIXED: Made background transparent to support varied host website colors */
+    background: transparent; 
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    /* Optional: If you want to keep the radial glow but still be transparent, 
+       you can leave this in, but it might clash with bright host sites. 
+       Usually better to let the host site dictate the background. */
+    /* background:
+      radial-gradient(ellipse 600px 400px at 50% 0%, rgba(251,175,51,0.08), transparent 60%),
+      var(--dark); */
+  }
+
+  .app { 
+      max-width: 600px; 
+      margin: 0 auto; 
+      padding: 40px 24px 64px; 
+  }
+
+  header { text-align: center; margin-bottom: 32px; }
+  header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 56px; letter-spacing: 2px; color: #fff;
+    line-height: 1; margin-bottom: 8px;
+  }
+  header h1 span { color: var(--gold); }
+  header p { color: var(--text-dim); font-size: 15px; font-weight: 500; }
+
+  .panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 28px; margin-bottom: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  }
+  .panel h3 {
+    font-family: 'Bebas Neue', sans-serif; font-size: 28px;
+    letter-spacing: 1px; color: #fff; margin-bottom: 12px; line-height: 1;
+  }
+  .panel p.intro {
+    color: var(--text-dim); font-size: 14px; line-height: 1.6; margin-bottom: 24px;
+  }
+
+  .field { margin-bottom: 18px; }
+  .field label {
+    display: block; font-family: 'DM Mono', monospace; font-size: 11px;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-muted); margin-bottom: 8px;
+  }
+  .field input {
+    width: 100%; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 16px; color: #fff;
+    font-family: 'DM Mono', monospace; font-size: 15px; outline: none;
+    transition: all 0.2s;
+  }
+  .field input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-glow); }
+  .field input::placeholder { color: var(--text-muted); font-family: 'DM Sans', sans-serif; }
+
+  /* ── RECORD BUTTON (the big one) ── */
+  .record-stage {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 24px 0 12px;
+  }
+  .record-btn {
+    width: 168px; height: 168px; border-radius: 50%;
+    border: 4px solid var(--border-gold);
+    background: radial-gradient(circle at 30% 30%, #2a2a26, var(--surface-2));
+    color: var(--gold);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px; letter-spacing: 1.5px;
+    cursor: pointer; transition: all 0.2s;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px;
+    box-shadow: 0 0 0 0 var(--gold-glow);
+  }
+  .record-btn:hover { border-color: var(--gold); transform: scale(1.02); }
+  .record-btn:active { transform: scale(0.97); }
+  .record-btn .mic { font-size: 56px; line-height: 1; }
+  .record-btn.recording {
+    border-color: var(--red);
+    background: radial-gradient(circle at 30% 30%, #3a1818, #1f0d0d);
+    color: #fff;
+    animation: recordPulse 1.2s infinite;
+  }
+  .record-btn.recording .mic { color: var(--red); }
+  @keyframes recordPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(211,28,28,0.4); }
+    50%      { box-shadow: 0 0 0 18px rgba(211,28,28,0); }
+  }
+
+  .timer-row {
+    margin-top: 18px;
+    font-family: 'DM Mono', monospace; font-size: 28px; font-weight: 700;
+    color: var(--text-dim); letter-spacing: 2px;
+  }
+  .timer-row .max { color: var(--text-muted); font-size: 16px; }
+
+  .progress-bar {
+    width: 100%; max-width: 320px; height: 4px; background: var(--surface-3);
+    border-radius: 2px; margin-top: 14px; overflow: hidden;
+  }
+  .progress-bar > div {
+    height: 100%; background: var(--gold); width: 0%;
+    transition: width 0.3s linear;
+  }
+
+  .hint {
+    color: var(--text-muted); font-size: 13px; margin-top: 18px; text-align: center;
+    line-height: 1.5;
+  }
+
+  /* ── PLAYBACK PREVIEW ── */
+  .playback {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px; margin-top: 20px;
+  }
+  .playback audio { width: 100%; margin-top: 8px; }
+  .playback-label {
+    font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1.5px; color: var(--gold);
+  }
+
+  /* ── AGREEMENTS ── */
+  .agreement-block {
+    margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border);
+  }
+  .agreement-block .label-gold {
+    display: block; font-family: 'DM Mono', monospace; font-size: 11px;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--gold); margin-bottom: 12px;
+  }
+  .agreement-item { display: flex; align-items: flex-start; margin-bottom: 12px; }
+  .agreement-item input {
+    width: 18px; height: 18px; margin-right: 12px; margin-top: 2px;
+    accent-color: var(--gold); cursor: pointer; flex-shrink: 0;
+  }
+  .agreement-item label {
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    color: var(--text-dim); font-weight: 400; cursor: pointer;
+    margin-bottom: 0; line-height: 1.5;
+  }
+
+  .consent-text {
+    font-size: 12px; color: var(--text-muted); line-height: 1.6;
+    margin-top: 8px; padding: 12px; background: var(--surface-2);
+    border-radius: 6px; border-left: 2px solid var(--border-gold);
+  }
+
+  /* ── BUTTONS ── */
+  .btn-row { display: flex; gap: 12px; margin-top: 24px; }
+  .btn {
+    flex: 1; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 15px;
+    border: none; border-radius: 8px; padding: 16px 20px; cursor: pointer;
+    transition: transform 0.1s, background 0.2s; text-align: center;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-gold { background: var(--gold); color: #000; }
+  .btn-gold:hover:not(:disabled) { background: #e59d28; }
+  .btn-gold:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-ghost {
+    background: var(--surface-2); color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { color: #fff; border-color: var(--gold); }
+
+  /* ── STATUS / SUCCESS ── */
+  .status { text-align: center; padding: 48px 20px; color: var(--text-dim); font-size: 14px; font-weight: 500; }
+  .spinner {
+    width: 36px; height: 36px; border: 3px solid var(--border);
+    border-top-color: var(--gold); border-radius: 50%;
+    animation: spin 0.7s linear infinite; margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error-msg { text-align: center; padding: 60px 24px; color: var(--red); }
+
+  .success-card { text-align: center; padding: 32px 16px; }
+  .success-card .star { font-size: 64px; margin-bottom: 12px; line-height: 1; }
+  .success-card h2 {
+    font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: var(--gold);
+    letter-spacing: 1.5px; margin-bottom: 12px; line-height: 1;
+  }
+  .success-card p {
+    color: var(--text-dim); font-size: 15px; line-height: 1.6;
+    max-width: 380px; margin: 0 auto 20px;
+  }
+
+  .closed-card {
+    text-align: center; padding: 36px 24px;
+  }
+  .closed-card .icon { font-size: 56px; margin-bottom: 8px; }
+  .closed-card h2 {
+    font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: #fff;
+    letter-spacing: 1.5px; margin-bottom: 8px;
+  }
+  .closed-card p { color: var(--text-dim); font-size: 14px; line-height: 1.6; }
+
+  .closed-donate {
+    display: inline-block; margin-top: 24px; padding: 14px 28px;
+    background: var(--gold); color: #000; font-weight: 700; font-size: 15px;
+    border-radius: 8px; text-decoration: none;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .closed-donate:hover { background: #e59d28; }
+  .closed-donate:active { transform: scale(0.97); }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <h1>🎅 MAGIC <span>MAILBOX</span></h1>
+    <p>Record a message — Santa will write back!</p>
+  </header>
+
+  <div id="initArea">
+    <div class="status"><div class="spinner"></div>Connecting to Lapland...</div>
+  </div>
+
+  <!-- ── STEP 1: RECORD ────────────────────────────────────── -->
+  <div id="recordStep" class="panel hidden">
+    <h3>Step 1 — Tell Santa</h3>
+    <p class="intro">
+      Tap the big button and speak to Santa. Tell him your name, what you'd like for Christmas, or just say hello! You have up to <strong>20 seconds</strong>.
+    </p>
+
+    <div class="record-stage">
+      <button id="recordBtn" class="record-btn" type="button" onclick="toggleRecord()">
+        <div class="mic">🎙️</div>
+        <div id="recordLabel">TAP TO RECORD</div>
+      </button>
+
+      <div class="timer-row">
+        <span id="timer">00</span><span class="max">/20s</span>
+      </div>
+      <div class="progress-bar"><div id="progressFill"></div></div>
+      <div class="hint">Make sure your grown-up knows you're sending Santa a message!</div>
+    </div>
+
+    <div id="playback" class="playback hidden">
+      <div class="playback-label">🎧 Listen back</div>
+      <audio id="audioPreview" controls></audio>
+      <div class="btn-row">
+        <button class="btn btn-ghost" type="button" onclick="resetRecording()">🔄 Re-record</button>
+        <button class="btn btn-gold" type="button" onclick="goToDetails()">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 2: GROWN-UP DETAILS + CONSENT ────────────────── -->
+  <div id="detailsStep" class="panel hidden">
+    <h3>Step 2 — Grown-up details</h3>
+    <p class="intro">
+      Santa needs your grown-up's email address so he can send his magical reply. Only the person reading this message can see it.
+    </p>
+
+    <form id="detailsForm" onsubmit="submitMessage(event)">
+      <div class="field">
+        <label>Child's First Name</label>
+        <input type="text" id="childName" required maxlength="40" placeholder="e.g. Olivia">
+      </div>
+
+      <div class="field">
+        <label>Grown-up's Email Address</label>
+        <input type="email" id="parentEmail" required placeholder="parent@example.com">
+      </div>
+
+      <div class="agreement-block">
+        <span class="label-gold">A note for parents &amp; guardians</span>
+        <div id="consentTextHolder" class="consent-text"></div>
+
+        <div class="agreement-item" style="margin-top: 16px;">
+          <input type="checkbox" id="consentParent" required>
+          <label for="consentParent">
+            I am the parent or guardian of this child and I consent to this recording being sent to a Round Table volunteer for the purpose of receiving a personal reply.
+          </label>
+        </div>
+
+        <div class="agreement-item">
+          <input type="checkbox" id="consentRetain" required>
+          <label for="consentRetain">
+            I understand the recording will be permanently deleted within 30 days and my email is used only to send Santa's reply.
+          </label>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-ghost" type="button" onclick="backToRecord()">← Back</button>
+        <button id="submitBtn" class="btn btn-gold" type="submit">📬 Send to Santa</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ── SUCCESS ───────────────────────────────────────────── -->
+  <div id="successStep" class="panel hidden">
+    <div class="success-card">
+      <div class="star">🌟</div>
+      <h2>SANTA GOT YOUR MESSAGE!</h2>
+      <p>
+        He's busy with the elves right now, but he'll write back to your grown-up by email <strong>within 48 hours</strong>. Keep your eyes peeled!
+      </p>
+      <p style="font-size:13px; color:var(--text-muted);">
+        🎄 Merry Christmas from <span id="sleighName">Santa Sleigh</span>!
+      </p>
+    </div>
+  </div>
+
+  <!-- ── CLOSED / DISABLED ─────────────────────────────────── -->
+  <div id="closedStep" class="panel hidden">
+    <div class="closed-card">
+      <div class="icon">📭</div>
+      <h2>Mailbox Closed</h2>
+      <p>Santa's mailbox is closed at the moment. It opens during sleigh nights — keep an eye on the tracker!</p>
+      <a id="closedDonate" class="closed-donate hidden" href="#" target="_blank">
+        🎁 Donate to support good causes
+      </a>
+    </div>
+  </div>
+
+  <!-- ── CAPACITY FULL ─────────────────────────────────────── -->
+  <div id="fullStep" class="panel hidden">
+    <div class="closed-card">
+      <div class="icon">📬</div>
+      <h2>Santa's Sack is Full!</h2>
+      <p>Santa has had so many messages tonight that his sack is full! Try again on the next sleigh night — there'll be plenty of room.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API   = new URLSearchParams(location.search).get('api')   || '';
+const ROUTE = new URLSearchParams(location.search).get('route') || '';
+
+let mediaRecorder = null;
+let audioChunks   = [];
+let audioBlob     = null;
+let audioUrl      = null;
+let recordingTimer = null;
+let recordingSeconds = 0;
+const MAX_SECONDS = 20;
+let mailboxCapacity = 999;
+let mailboxCount = 0;
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (!API) {
+    document.getElementById('initArea').innerHTML =
+      '<div class="error-msg">Missing <strong>?api=</strong> parameter.</div>';
+    return;
+  }
+  init();
+});
+
+async function init() {
+  try {
+    const res = await fetch(`${API}?function=getRoutes`);
+    const data = await res.json();
+    if (!data.settings) throw new Error("Couldn't reach Lapland.");
+
+    const enabled = String(data.settings.enable_magic_mailbox || '').toUpperCase() === 'TRUE';
+
+    // Set sleigh name in success message
+    document.getElementById('sleighName').textContent =
+      data.settings.sleigh_display_name || 'Santa Sleigh';
+
+    // Wire up donate link on closed card if URL exists
+    const donateUrl = (data.settings.donate_url || '').trim();
+    if (donateUrl) {
+      const dBtn = document.getElementById('closedDonate');
+      dBtn.href = donateUrl;
+      dBtn.classList.remove('hidden');
+    }
+
+    if (!enabled) {
+      document.getElementById('initArea').classList.add('hidden');
+      document.getElementById('closedStep').classList.remove('hidden');
+      return;
+    }
+
+    // Route-window check — open only when a route is today or within 10 days
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+    const routeDates = (data.routes || []).map(r => new Date(r.date));
+    const hasRouteToday = (data.routes || []).some(r => r.date === todayStr);
+    const futureRoutes = routeDates.filter(d => d > now).sort((a, b) => a - b);
+    const daysUntilNext = futureRoutes.length > 0
+      ? (futureRoutes[0] - now) / (1000 * 60 * 60 * 24)
+      : Infinity;
+
+    if (!hasRouteToday && daysUntilNext >= 10) {
+      document.getElementById('initArea').classList.add('hidden');
+      document.getElementById('closedStep').classList.remove('hidden');
+      return;
+    }
+
+    // Capacity check (optional setting)
+    mailboxCapacity = parseInt(data.settings.magic_mailbox_capacity, 10) || 999;
+
+    // Quick capacity ping
+    try {
+      const cap = await fetch(`${API}?function=getMailboxCapacity`);
+      const capData = await cap.json();
+      mailboxCount = capData.todayCount || 0;
+
+      if (mailboxCount >= mailboxCapacity) {
+        document.getElementById('initArea').classList.add('hidden');
+        document.getElementById('fullStep').classList.remove('hidden');
+        return;
+      }
+    } catch(e) { /* non-fatal */ }
+
+    // Consent text from settings (per-chapter customisable)
+    const defaultConsent =
+      `Recordings are sent to a Round Table volunteer who personally records a reply, just like a video message. Audio is stored securely on the chapter's private Google Drive and deleted within 30 days. Your email is used solely to send the reply and is never shared.`;
+    document.getElementById('consentTextHolder').textContent =
+      data.settings.magic_mailbox_consent_text || defaultConsent;
+
+    document.getElementById('initArea').classList.add('hidden');
+    document.getElementById('recordStep').classList.remove('hidden');
+
+  } catch(err) {
+    document.getElementById('initArea').innerHTML =
+      `<div class="error-msg">Connection Failed: ${err.message}</div>`;
+  }
+}
+
+// ── RECORDING ──────────────────────────────────────────────
+
+async function toggleRecord() {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    stopRecording();
+  } else {
+    await startRecording();
+  }
+}
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    // Pick best mime type the browser supports
+    const mimeOptions = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];
+    let chosenMime = '';
+    for (const m of mimeOptions) {
+      if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) { chosenMime = m; break; }
+    }
+    mediaRecorder = chosenMime
+      ? new MediaRecorder(stream, { mimeType: chosenMime })
+      : new MediaRecorder(stream);
+
+    audioChunks = [];
+
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) audioChunks.push(e.data);
+    };
+
+    mediaRecorder.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      const type = mediaRecorder.mimeType || 'audio/webm';
+      audioBlob = new Blob(audioChunks, { type });
+      audioUrl = URL.createObjectURL(audioBlob);
+      const audioEl = document.getElementById('audioPreview');
+      audioEl.src = audioUrl;
+      document.getElementById('playback').classList.remove('hidden');
+
+      // Reset UI
+      const btn = document.getElementById('recordBtn');
+      btn.classList.remove('recording');
+      btn.querySelector('.mic').textContent = '✅';
+      document.getElementById('recordLabel').textContent = 'RECORDED!';
+    };
+
+    mediaRecorder.start();
+
+    // UI: recording state
+    const btn = document.getElementById('recordBtn');
+    btn.classList.add('recording');
+    btn.querySelector('.mic').textContent = '⏹️';
+    document.getElementById('recordLabel').textContent = 'TAP TO STOP';
+    document.getElementById('playback').classList.add('hidden');
+
+    recordingSeconds = 0;
+    document.getElementById('timer').textContent = '00';
+    document.getElementById('progressFill').style.width = '0%';
+
+    recordingTimer = setInterval(() => {
+      recordingSeconds++;
+      document.getElementById('timer').textContent = String(recordingSeconds).padStart(2, '0');
+      document.getElementById('progressFill').style.width = (recordingSeconds / MAX_SECONDS * 100) + '%';
+      if (recordingSeconds >= MAX_SECONDS) stopRecording();
+    }, 1000);
+
+  } catch (err) {
+    alert("Couldn't access your microphone.\n\nPlease check the browser is allowed to use the microphone, then try again.");
+    console.error(err);
+  }
+}
+
+function stopRecording() {
+  clearInterval(recordingTimer);
+  recordingTimer = null;
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+  }
+}
+
+function resetRecording() {
+  audioBlob = null;
+  audioChunks = [];
+  if (audioUrl) { URL.revokeObjectURL(audioUrl); audioUrl = null; }
+  document.getElementById('audioPreview').removeAttribute('src');
+  document.getElementById('playback').classList.add('hidden');
+  document.getElementById('timer').textContent = '00';
+  document.getElementById('progressFill').style.width = '0%';
+  const btn = document.getElementById('recordBtn');
+  btn.classList.remove('recording');
+  btn.querySelector('.mic').textContent = '🎙️';
+  document.getElementById('recordLabel').textContent = 'TAP TO RECORD';
+}
+
+// ── STEP NAVIGATION ────────────────────────────────────────
+
+function goToDetails() {
+  if (!audioBlob) {
+    alert("Please record a message first!");
+    return;
+  }
+  document.getElementById('recordStep').classList.add('hidden');
+  document.getElementById('detailsStep').classList.remove('hidden');
+}
+
+function backToRecord() {
+  document.getElementById('detailsStep').classList.add('hidden');
+  document.getElementById('recordStep').classList.remove('hidden');
+}
+
+// ── SUBMIT ─────────────────────────────────────────────────
+
+async function submitMessage(e) {
+  e.preventDefault();
+
+  if (!audioBlob) {
+    alert("Recording missing — please go back and record again.");
+    return;
+  }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = "📬 Sending to Lapland...";
+
+  try {
+    const audioData = await blobToBase64(audioBlob);
+
+    const payload = {
+      action: 'submitMagicMailbox',
+      childName: document.getElementById('childName').value.trim(),
+      parentEmail: document.getElementById('parentEmail').value.trim(),
+      audioData: audioData,
+      audioMime: audioBlob.type || 'audio/webm',
+      consentParent: document.getElementById('consentParent').checked,
+      consentRetain: document.getElementById('consentRetain').checked
+    };
+
+    const res = await fetch(API, { method: 'POST', body: JSON.stringify(payload) });
+    const result = await res.json();
+
+    if (!result.ok) {
+      throw new Error(result.error || 'Unknown error');
+    }
+
+    document.getElementById('detailsStep').classList.add('hidden');
+    document.getElementById('successStep').classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  } catch (err) {
+    alert("Hmm, the elves dropped your letter! Please check your connection and try again.\n\n(" + err.message + ")");
+    btn.disabled = false;
+    btn.textContent = "📬 Send to Santa";
+  }
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onloadend = () => resolve(r.result);
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TurboSanta — Santa Studio</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --gold: #FBAF33;
+    --gold-dim: rgba(251,175,51,0.12);
+    --gold-glow: rgba(251,175,51,0.25);
+    --dark: #0d0d0b;
+    --surface: #161614;
+    --surface-2: #1e1e1b;
+    --surface-3: #252522;
+    --border: rgba(255,255,255,0.08);
+    --border-gold: rgba(251,175,51,0.2);
+    --red: #D31C1C;
+    --green: #2ecc71;
+    --blue: #4fa9ff;
+    --text: #eaeae5;
+    --text-dim: rgba(255,255,255,0.55);
+    --text-muted: rgba(255,255,255,0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app { max-width: 720px; margin: 0 auto; padding: 40px 24px 64px; }
+
+  header { text-align: center; margin-bottom: 20px; }
+  header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px; letter-spacing: 2px; color: #fff;
+    line-height: 1; margin-bottom: 8px;
+  }
+  header h1 span { color: var(--gold); }
+  header p { color: var(--text-dim); font-size: 14px; font-weight: 500; }
+
+  /* ── LOGGED IN STRIP ── */
+  .logged-in-strip {
+    display: flex; justify-content: center; align-items: center; gap: 10px;
+    margin-bottom: 22px; font-size: 13px; color: var(--text-dim);
+  }
+  .logged-in-strip .name {
+    color: var(--gold); font-weight: 700; font-family: 'DM Mono', monospace;
+    letter-spacing: 1px;
+  }
+  .logged-in-strip a {
+    color: var(--text-muted); text-decoration: none;
+    border-bottom: 1px dashed var(--text-muted); cursor: pointer;
+    font-size: 11px; padding-bottom: 1px;
+  }
+  .logged-in-strip a:hover { color: var(--gold); border-bottom-color: var(--gold); }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    margin-bottom: 16px;
+  }
+  .stat-tile {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 12px; text-align: center;
+  }
+  .stat-tile .num {
+    font-family: 'Bebas Neue', sans-serif; font-size: 32px;
+    color: var(--gold); line-height: 1;
+  }
+  .stat-tile .label {
+    font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted);
+    margin-top: 6px;
+  }
+
+  /* ── TAB ROW ── */
+  .tab-row {
+    display: flex; gap: 12px; margin-bottom: 16px; justify-content: center;
+  }
+  .tab-btn {
+    font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px;
+    padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text-dim); cursor: pointer;
+    transition: all 0.2s; flex: 1; max-width: 240px; text-align: center;
+  }
+  .tab-btn:hover { border-color: var(--border-gold); color: #fff; }
+  .tab-btn.active { border-color: var(--gold); background: var(--gold); color: #000; }
+  .tab-btn .count {
+    font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 700;
+    background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 10px; margin-left: 6px;
+  }
+  .tab-btn:not(.active) .count { background: var(--surface-3); }
+
+  /* ── PANELS ── */
+  .panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 24px; margin-bottom: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  }
+  .panel h3 {
+    font-family: 'Bebas Neue', sans-serif; font-size: 26px;
+    letter-spacing: 1px; color: #fff; margin-bottom: 16px; line-height: 1;
+  }
+  .panel-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 16px;
+  }
+  .panel-header h3 { margin-bottom: 0; }
+
+  /* ── QUEUE CARD ── */
+  .msg-card {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-left: 4px solid var(--gold);
+    border-radius: 10px; padding: 16px; margin-bottom: 12px;
+    transition: all 0.2s;
+  }
+  .msg-card.expanded {
+    border-color: var(--gold);
+    background: var(--surface-3);
+    box-shadow: 0 0 0 3px var(--gold-glow);
+  }
+  .msg-card.replied { border-left-color: var(--green); }
+  .msg-card.flagged { border-left-color: var(--red); }
+  .msg-card.claimed-other { border-left-color: var(--blue); opacity: 0.55; }
+  .msg-card.claimed-mine { border-left-color: var(--gold); background: rgba(251,175,51,0.04); }
+
+  .msg-summary {
+    display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer; gap: 10px;
+  }
+  .msg-summary.locked { cursor: not-allowed; }
+  .msg-meta { flex: 1; min-width: 0; }
+  .msg-meta strong {
+    display: block; color: #fff; font-size: 16px; font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .msg-meta span {
+    font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-dim);
+  }
+  .msg-meta .claim-line {
+    display: block; margin-top: 4px;
+    font-family: 'DM Mono', monospace; font-size: 11px;
+  }
+  .claim-line.mine { color: var(--gold); }
+  .claim-line.other { color: var(--blue); }
+
+  .pill {
+    font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px;
+    padding: 4px 10px; border-radius: 12px; flex-shrink: 0;
+  }
+  .pill-pending { background: var(--gold-dim); color: var(--gold); }
+  .pill-replied { background: rgba(46,204,113,0.15); color: var(--green); }
+  .pill-flagged { background: rgba(211,28,28,0.15); color: var(--red); }
+  .pill-claimed { background: rgba(79,169,255,0.15); color: var(--blue); }
+
+  /* ── EXPANDED REPLY UI ── */
+  .reply-area { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
+  .reply-area .label {
+    display: block; font-family: 'DM Mono', monospace; font-size: 11px;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-muted); margin-bottom: 8px;
+  }
+  .reply-area .label.gold { color: var(--gold); }
+  .reply-area .label.green { color: var(--green); }
+
+  .audio-wrap {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px; margin-bottom: 18px;
+  }
+  .audio-wrap audio { width: 100%; }
+
+  .update-banner {
+    background: rgba(46,204,113,0.08); border: 1px solid rgba(46,204,113,0.25);
+    border-radius: 8px; padding: 12px 14px; margin-bottom: 16px;
+    font-size: 13px; color: var(--green); line-height: 1.5;
+  }
+  .update-banner strong { color: #fff; }
+
+  /* ── RECORDER ── */
+  .recorder {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 18px; margin-bottom: 16px;
+    text-align: center;
+  }
+  .rec-btn {
+    width: 96px; height: 96px; border-radius: 50%;
+    border: 3px solid var(--border-gold);
+    background: radial-gradient(circle at 30% 30%, #2a2a26, var(--surface-2));
+    color: var(--gold); cursor: pointer; transition: all 0.2s;
+    font-size: 36px; line-height: 1;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .rec-btn:hover { border-color: var(--gold); transform: scale(1.04); }
+  .rec-btn:active { transform: scale(0.95); }
+  .rec-btn.recording {
+    border-color: var(--red);
+    background: radial-gradient(circle at 30% 30%, #3a1818, #1f0d0d);
+    color: #fff;
+    animation: recPulse 1.2s infinite;
+  }
+  @keyframes recPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(211,28,28,0.4); }
+    50%      { box-shadow: 0 0 0 12px rgba(211,28,28,0); }
+  }
+
+  .rec-status {
+    margin-top: 14px;
+    font-family: 'DM Mono', monospace; font-size: 13px;
+    color: var(--text-dim); letter-spacing: 1px;
+  }
+  .rec-timer {
+    font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 700;
+    color: var(--text); margin-top: 8px;
+  }
+
+  /* ── BUTTONS ── */
+  .btn-row { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+  .btn {
+    flex: 1; min-width: 120px;
+    font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 14px;
+    border: none; border-radius: 8px; padding: 12px 16px; cursor: pointer;
+    transition: transform 0.1s, background 0.2s; text-align: center;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-gold  { background: var(--gold); color: #000; }
+  .btn-gold:hover:not(:disabled) { background: #e59d28; }
+  .btn-green { background: var(--green); color: #000; }
+  .btn-red   { background: var(--red); color: #fff; }
+  .btn-ghost {
+    background: var(--surface-2); color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { color: #fff; border-color: var(--gold); }
+  .btn-flag {
+    background: var(--surface-2); color: var(--red); border: 1px solid rgba(211,28,28,0.3);
+    flex: 0 0 auto; max-width: 100px;
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── FIELDS ── */
+  .field { margin-bottom: 18px; }
+  .field label {
+    display: block; font-family: 'DM Mono', monospace; font-size: 11px;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-muted); margin-bottom: 8px;
+  }
+  .field select, .field input {
+    width: 100%; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 16px; color: #fff;
+    font-family: 'DM Mono', monospace; font-size: 15px; outline: none;
+    transition: all 0.2s;
+  }
+  .field select:focus, .field input:focus {
+    border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-glow);
+  }
+  .field select option { background: var(--surface-2); color: var(--text); }
+
+  /* ── SMALL UI ── */
+  #refreshBtn {
+    background: var(--surface-2); border: 1px solid var(--border);
+    color: var(--text-dim); padding: 8px 14px; border-radius: 6px; cursor: pointer;
+    font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px; transition: 0.2s;
+  }
+  #refreshBtn:hover { border-color: var(--gold); color: var(--gold); }
+
+  .status { text-align: center; padding: 36px 20px; color: var(--text-dim); font-size: 14px; }
+  .spinner {
+    width: 32px; height: 32px; border: 3px solid var(--border);
+    border-top-color: var(--gold); border-radius: 50%;
+    animation: spin 0.7s linear infinite; margin: 0 auto 14px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error-msg { text-align: center; padding: 60px 24px; color: var(--red); }
+  .error-msg code { background: var(--surface-2); padding: 4px 10px; border-radius: 6px; font-family: 'DM Mono', monospace; }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+  .empty-state .icon { font-size: 48px; margin-bottom: 8px; }
+  .empty-state h4 { color: var(--text-dim); font-size: 16px; margin-bottom: 6px; }
+  .empty-state p { font-size: 13px; }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <h1>🎅 SANTA <span>STUDIO</span></h1>
+    <p>Magic Mailbox replies</p>
+  </header>
+
+  <div id="initArea">
+    <div class="status"><div class="spinner"></div>Connecting...</div>
+  </div>
+
+  <!-- ── NAME PICKER (after auth) ─────────────────────────── -->
+  <div id="namePickerStep" class="panel hidden">
+    <h3>Who's playing Santa today?</h3>
+    <p style="font-size: 13px; color: var(--text-dim); line-height: 1.6; margin-bottom: 20px;">
+      Pick your name so other Santas can see who's working on each reply, and so you can keep track of your own claimed messages.
+    </p>
+    <form id="namePickerForm" onsubmit="confirmName(event)">
+      <div class="field">
+        <label>I am...</label>
+        <select id="volunteerSelect" required>
+          <option value="">-- Choose your name --</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-gold" style="width: 100%;">Enter Studio →</button>
+    </form>
+  </div>
+
+  <!-- ── MAIN APP ─────────────────────────────────────────── -->
+  <div id="mainApp" class="hidden">
+
+    <div class="logged-in-strip">
+      <span>Signed in as <span class="name" id="currentVolunteer">—</span></span>
+      <span style="color: var(--text-muted);">·</span>
+      <a id="switchUserLink">Switch volunteer</a>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-bar">
+      <div class="stat-tile"><div class="num" id="statPending">0</div><div class="label">Pending</div></div>
+      <div class="stat-tile"><div class="num" id="statMine">0</div><div class="label">My replies</div></div>
+      <div class="stat-tile"><div class="num" id="statTotal">0</div><div class="label">Replied today</div></div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tab-row">
+      <button class="tab-btn active" data-tab="pending" onclick="switchTab(this)">
+        Pending <span class="count" id="tabPendingCount">0</span>
+      </button>
+      <button class="tab-btn" data-tab="replied" onclick="switchTab(this)">
+        Replied today <span class="count" id="tabRepliedCount">0</span>
+      </button>
+    </div>
+
+    <!-- QUEUE -->
+    <div class="panel">
+      <div class="panel-header">
+        <h3 id="queueHeading">Pending Messages</h3>
+        <button id="refreshBtn" onclick="loadQueue()">🔄 Refresh</button>
+      </div>
+      <div id="queueContainer">
+        <div class="status"><div class="spinner"></div>Loading queue...</div>
+      </div>
+    </div>
+
+    <!-- HOW IT WORKS -->
+    <div class="panel" style="background: var(--surface-2);">
+      <h3 style="font-size: 22px;">How it works</h3>
+      <p style="font-size: 13px; color: var(--text-dim); line-height: 1.6;">
+        🎧 <strong>Tap a card</strong> to claim &amp; expand it — other Santas will see it's yours.<br>
+        ▶️ <strong>Listen</strong> to the child's message — note their name and what they wished for.<br>
+        🎙️ <strong>Tap record</strong> and reply as Santa. Warm, magical, around 30 seconds.<br>
+        ✉️ <strong>Send</strong> when you're happy — the parent gets an email link.<br>
+        🔄 <strong>Made an error?</strong> Switch to "Replied today" to re-record any reply you've sent.<br>
+        🚩 <strong>Flag</strong> anything inappropriate so the Lead Elf can review.
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const API = new URLSearchParams(location.search).get('api') || '';
+
+let secret = '';
+let volunteerName = '';
+let pending = [];
+let repliedToday = [];
+let santaVolunteers = [];
+let currentTab = 'pending';
+let currentExpandedId = null;
+let heartbeatTimer = null; // Refreshes claim on expanded card every 30s
+
+const recState = new Map();
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (!API) {
+    document.getElementById('initArea').innerHTML =
+      '<div class="error-msg">Missing <strong>?api=</strong> parameter.<br><br><code>santa_studio.html?api=YOUR_API_URL</code></div>';
+    return;
+  }
+  init();
+});
+
+async function init() {
+  secret = sessionStorage.getItem('opsSecret') || '';
+
+  if (!secret) {
+    secret = prompt("🎅 Santa Studio Authorization\n\nEnter the Master Password:");
+    if (!secret) {
+      document.getElementById('initArea').innerHTML =
+        '<div class="error-msg">Password required to access Santa Studio.</div>';
+      return;
+    }
+  }
+
+  try {
+    const sep = API.includes('?') ? '&' : '?';
+    const check = await fetch(`${API}${sep}function=verifyGodMode&secret=${encodeURIComponent(secret)}`);
+    const result = await check.json();
+    if (!result.valid) {
+      sessionStorage.removeItem('opsSecret');
+      document.getElementById('initArea').innerHTML =
+        '<div class="error-msg">❌ Access Denied. Reload to try again.</div>';
+      return;
+    }
+    sessionStorage.setItem('opsSecret', secret);
+  } catch(e) {
+    document.getElementById('initArea').innerHTML =
+      `<div class="error-msg">Connection failed: ${e.message}</div>`;
+    return;
+  }
+
+  // First fetch — also gives us santaVolunteers list
+  try {
+    const res = await fetch(`${API}?function=getMagicMailboxQueue&secret=${encodeURIComponent(secret)}`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    pending = data.pending || [];
+    repliedToday = data.repliedToday || [];
+    santaVolunteers = data.santaVolunteers || [];
+    renderStats(data.stats || {});
+  } catch(e) {
+    document.getElementById('initArea').innerHTML =
+      `<div class="error-msg">Failed to load queue: ${e.message}</div>`;
+    return;
+  }
+
+  document.getElementById('initArea').classList.add('hidden');
+  volunteerName = localStorage.getItem('santaVolunteer') || '';
+
+  // If stored name isn't in current list, force re-pick
+  if (volunteerName && santaVolunteers.length && !santaVolunteers.includes(volunteerName)) {
+    localStorage.removeItem('santaVolunteer');
+    volunteerName = '';
+  }
+
+  if (!volunteerName) {
+    showNamePicker();
+  } else {
+    enterStudio();
+  }
+}
+
+function showNamePicker() {
+  const select = document.getElementById('volunteerSelect');
+  select.innerHTML = '<option value="">-- Choose your name --</option>';
+
+  if (santaVolunteers.length === 0) {
+    document.getElementById('namePickerStep').innerHTML = `
+      <h3>Who's playing Santa today?</h3>
+      <p style="font-size: 13px; color: var(--text-dim); line-height: 1.6; margin-bottom: 20px;">
+        No volunteer list configured yet. Type your first name below.
+        <br><span style="color:var(--text-muted); font-size:12px;">Tip: Lead Elf can set up the list in Settings sheet column W.</span>
+      </p>
+      <form onsubmit="confirmFreeName(event)">
+        <div class="field">
+          <label>Your first name</label>
+          <input type="text" id="freeName" required maxlength="40" placeholder="e.g. Ben">
+        </div>
+        <button type="submit" class="btn btn-gold" style="width: 100%;">Enter Studio →</button>
+      </form>`;
+  } else {
+    santaVolunteers.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v;
+      opt.textContent = v;
+      select.appendChild(opt);
+    });
+  }
+
+  document.getElementById('namePickerStep').classList.remove('hidden');
+}
+
+function confirmName(e) {
+  e.preventDefault();
+  const name = document.getElementById('volunteerSelect').value;
+  if (!name) return;
+  volunteerName = name;
+  localStorage.setItem('santaVolunteer', name);
+  document.getElementById('namePickerStep').classList.add('hidden');
+  enterStudio();
+}
+
+function confirmFreeName(e) {
+  e.preventDefault();
+  const name = document.getElementById('freeName').value.trim();
+  if (!name) return;
+  volunteerName = name;
+  localStorage.setItem('santaVolunteer', name);
+  document.getElementById('namePickerStep').classList.add('hidden');
+  enterStudio();
+}
+
+function enterStudio() {
+  document.getElementById('mainApp').classList.remove('hidden');
+  document.getElementById('currentVolunteer').textContent = volunteerName;
+  document.getElementById('switchUserLink').addEventListener('click', () => {
+    if (!confirm("Switch volunteer? You'll need to pick a name again.")) return;
+    stopHeartbeat();
+    localStorage.removeItem('santaVolunteer');
+    location.reload();
+  });
+  renderQueue();
+
+  // Stop the heartbeat when the volunteer closes the tab — claim then
+  // goes stale naturally after 10 minutes
+  window.addEventListener('beforeunload', stopHeartbeat);
+
+  setInterval(() => {
+    if (!currentExpandedId && document.visibilityState === 'visible') loadQueue();
+  }, 60000);
+}
+
+// ── LOAD QUEUE ─────────────────────────────────────────────
+
+async function loadQueue() {
+  try {
+    const res = await fetch(`${API}?function=getMagicMailboxQueue&secret=${encodeURIComponent(secret)}`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    pending = data.pending || [];
+    repliedToday = data.repliedToday || [];
+    renderStats(data.stats || {});
+    renderQueue();
+  } catch(e) {
+    document.getElementById('queueContainer').innerHTML =
+      `<p style="color:var(--red); font-family:'DM Mono', monospace; font-size:12px;">Error loading queue: ${e.message}</p>`;
+  }
+}
+
+function renderStats(stats) {
+  document.getElementById('statPending').textContent = stats.pending || 0;
+  document.getElementById('statTotal').textContent = stats.repliedToday || 0;
+  const mine = (repliedToday || []).filter(m => m.claimedBy === volunteerName).length;
+  document.getElementById('statMine').textContent = mine;
+  document.getElementById('tabPendingCount').textContent = (pending || []).length;
+  document.getElementById('tabRepliedCount').textContent = (repliedToday || []).length;
+}
+
+function switchTab(btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentTab = btn.dataset.tab;
+  document.getElementById('queueHeading').textContent =
+    currentTab === 'pending' ? 'Pending Messages' : 'Replied Today';
+  currentExpandedId = null;
+  stopHeartbeat();
+  renderQueue();
+}
+
+function renderQueue() {
+  const container = document.getElementById('queueContainer');
+  const list = currentTab === 'pending' ? pending : repliedToday;
+
+  if (!list.length) {
+    container.innerHTML = currentTab === 'pending' ? `
+      <div class="empty-state">
+        <div class="icon">📭</div>
+        <h4>Nothing pending</h4>
+        <p>No new messages right now. Tap refresh after the next sleigh night!</p>
+      </div>` : `
+      <div class="empty-state">
+        <div class="icon">✅</div>
+        <h4>No replies yet today</h4>
+        <p>Replies you send today appear here so you can re-record if needed.</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = '';
+  list.forEach(msg => container.appendChild(buildCard(msg, currentTab)));
+}
+
+function buildCard(msg, mode) {
+  const card = document.createElement('div');
+  card.className = 'msg-card';
+  card.dataset.id = msg.id;
+
+  const ago = timeAgo(msg.timestamp);
+  const childName = msg.childName || 'A child';
+
+  const claimedBy = msg.claimedBy || '';
+  const isMine = claimedBy && claimedBy === volunteerName;
+  const isOtherClaim = claimedBy && claimedBy !== volunteerName && mode === 'pending';
+
+  let pillHtml, claimLineHtml = '', cardClass = '';
+
+  if (mode === 'pending') {
+    if (isOtherClaim) {
+      pillHtml = `<span class="pill pill-claimed">Claimed</span>`;
+      claimLineHtml = `<span class="claim-line other">🔒 Claimed by ${escapeHtml(claimedBy)}</span>`;
+      cardClass = 'claimed-other';
+    } else if (isMine) {
+      pillHtml = `<span class="pill pill-pending">Mine</span>`;
+      claimLineHtml = `<span class="claim-line mine">✋ You're working on this</span>`;
+      cardClass = 'claimed-mine';
+    } else {
+      pillHtml = `<span class="pill pill-pending">Pending</span>`;
+    }
+  } else {
+    pillHtml = `<span class="pill pill-replied">Replied</span>`;
+    claimLineHtml = claimedBy ? `<span class="claim-line">📬 By ${escapeHtml(claimedBy)}</span>` : '';
+  }
+  if (cardClass) card.classList.add(cardClass);
+
+  const summaryClick = isOtherClaim
+    ? `onclick="alertOtherClaim('${escapeHtml(claimedBy)}')"`
+    : `onclick="toggleCard('${msg.id}', '${mode}')"`;
+  const summaryClass = isOtherClaim ? 'msg-summary locked' : 'msg-summary';
+
+  card.innerHTML = `
+    <div class="${summaryClass}" ${summaryClick}>
+      <div class="msg-meta">
+        <strong>${escapeHtml(childName)}</strong>
+        <span>${ago}</span>
+        ${claimLineHtml}
+      </div>
+      ${pillHtml}
+    </div>
+    <div class="reply-area hidden" id="reply-${msg.id}"></div>
+  `;
+  return card;
+}
+
+function alertOtherClaim(name) {
+  alert(`This message has been claimed by ${name}. Wait for them to finish, or use the "Replied today" tab to re-record any reply that needs fixing.`);
+}
+
+// ── EXPAND/COLLAPSE ────────────────────────────────────────
+
+async function toggleCard(id, mode) {
+  const card = document.querySelector(`.msg-card[data-id="${id}"]`);
+  if (!card) return;
+  const replyArea = document.getElementById(`reply-${id}`);
+  const expanded = card.classList.contains('expanded');
+
+  document.querySelectorAll('.msg-card').forEach(c => c.classList.remove('expanded'));
+  document.querySelectorAll('.reply-area').forEach(r => r.classList.add('hidden'));
+
+  if (expanded) {
+    currentExpandedId = null;
+    stopHeartbeat();
+    return;
+  }
+
+  if (mode === 'pending') {
+    const msg = pending.find(m => m.id === id);
+    const alreadyMine = msg && msg.claimedBy === volunteerName;
+
+    if (!alreadyMine) {
+      try {
+        const claimRes = await fetch(API, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'claimMagicMailbox',
+            messageId: id,
+            volunteer: volunteerName,
+            secret
+          })
+        });
+        const claimData = await claimRes.json();
+        if (!claimData.ok) {
+          alert(`Couldn't claim that message: ${claimData.error || 'Unknown error'}`);
+          loadQueue();
+          return;
+        }
+        if (msg) { msg.claimedBy = volunteerName; msg.claimedAt = new Date().toISOString(); }
+        card.classList.add('claimed-mine');
+      } catch(e) {
+        alert("Network error claiming message: " + e.message);
+        return;
+      }
+    }
+  }
+
+  card.classList.add('expanded');
+  replyArea.innerHTML = buildReplyAreaHtml(id, mode);
+  replyArea.classList.remove('hidden');
+  currentExpandedId = id;
+
+  // Start the heartbeat for pending claims (no need to refresh "Replied" rows)
+  if (mode === 'pending') startHeartbeat(id);
+
+  loadIncomingAudio(id);
+}
+
+// ── HEARTBEAT ──────────────────────────────────────────────
+// While a Pending card is expanded, ping the server every 30s
+// to refresh ClaimedAt. Without this, after 10 minutes the
+// claim goes stale and another Santa can take it.
+
+function startHeartbeat(id) {
+  stopHeartbeat();
+  // Fire one immediately so the claim is freshened straight away
+  sendHeartbeat(id);
+  heartbeatTimer = setInterval(() => sendHeartbeat(id), 30000);
+}
+
+function stopHeartbeat() {
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+}
+
+async function sendHeartbeat(id) {
+  // Skip if tab is hidden — saves traffic and lets the claim go stale
+  // naturally if the volunteer truly walked away
+  if (document.visibilityState !== 'visible') return;
+
+  try {
+    const res = await fetch(API, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'heartbeatMagicMailbox',
+        messageId: id,
+        volunteer: volunteerName,
+        secret
+      })
+    });
+    const data = await res.json();
+    // If someone else nicked the claim (e.g. came back from "tab was asleep"),
+    // collapse the card and reload the queue so the volunteer sees the truth
+    if (!data.ok && data.takenBy) {
+      stopHeartbeat();
+      currentExpandedId = null;
+      alert(`This message was reassigned to ${data.takenBy} while you were away.`);
+      loadQueue();
+    }
+  } catch (e) {
+    // Silent fail — network blip shouldn't disrupt the volunteer
+    console.warn('Heartbeat failed:', e.message);
+  }
+}
+
+function buildReplyAreaHtml(id, mode) {
+  const isUpdate = mode === 'replied';
+  const recordHeader = isUpdate
+    ? `<span class="label gold">🎙️ Re-record Santa's reply</span>`
+    : `<span class="label gold">🎙️ Record Santa's reply (~30 seconds)</span>`;
+
+  const updateBanner = isUpdate ? `
+    <div class="update-banner">
+      <strong>Re-recording:</strong> The previous reply has been sent.
+      Sending a new recording will replace it and email the parent the updated version.
+    </div>` : '';
+
+  const sendLabel = isUpdate ? '✉️ Send Updated Reply' : '✉️ Send to Parent';
+  const flagBtn = mode === 'pending'
+    ? `<button class="btn btn-flag" onclick="flagMessage('${id}')">🚩 Flag</button>` : '';
+  const releaseBtn = mode === 'pending'
+    ? `<button class="btn btn-ghost" style="flex: 0 0 auto; max-width: 110px;" onclick="releaseMessage('${id}')">↩️ Release</button>` : '';
+
+  return `
+    ${updateBanner}
+    <span class="label">🎧 The child's message</span>
+    <div class="audio-wrap">
+      <audio controls preload="none" id="incoming-audio-${id}" data-loaded="0"></audio>
+    </div>
+
+    ${recordHeader}
+    <div class="recorder">
+      <button class="rec-btn" id="rec-btn-${id}" onclick="toggleRecording('${id}')">🎙️</button>
+      <div class="rec-status" id="rec-status-${id}">Tap to start</div>
+      <div class="rec-timer" id="rec-timer-${id}">00s</div>
+    </div>
+
+    <div id="reply-preview-${id}" class="audio-wrap hidden">
+      <span class="label">Preview reply</span>
+      <audio controls id="reply-audio-${id}"></audio>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="resetCardRecording('${id}')">🔄 Re-record</button>
+      <button class="btn btn-gold" id="send-${id}" onclick="sendReply('${id}', ${isUpdate})" disabled>${sendLabel}</button>
+      ${flagBtn}
+      ${releaseBtn}
+    </div>
+  `;
+}
+
+async function loadIncomingAudio(id) {
+  const audioEl = document.getElementById(`incoming-audio-${id}`);
+  if (!audioEl || audioEl.dataset.loaded === '1') return;
+  audioEl.dataset.loaded = '1';
+
+  try {
+    const res = await fetch(`${API}?function=getMagicMailboxAudio&id=${encodeURIComponent(id)}&secret=${encodeURIComponent(secret)}`);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Failed to load audio');
+    audioEl.src = `data:${data.mime};base64,${data.audio}`;
+  } catch (e) {
+    audioEl.outerHTML = `<p style="color:var(--red); font-size:13px; font-family:'DM Mono',monospace;">⚠️ Could not load audio: ${e.message}</p>`;
+  }
+}
+
+// ── RELEASE A CLAIM ───────────────────────────────────────
+
+async function releaseMessage(id) {
+  if (!confirm("Release this claim? Another Santa will be able to pick it up.")) return;
+  try {
+    const res = await fetch(API, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'releaseMagicMailbox',
+        messageId: id,
+        volunteer: volunteerName,
+        secret
+      })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Unknown error');
+
+    const state = recState.get(id);
+    if (state) {
+      if (state.url) URL.revokeObjectURL(state.url);
+      if (state.timer) clearInterval(state.timer);
+      if (state.stream) state.stream.getTracks().forEach(t => t.stop());
+      recState.delete(id);
+    }
+    currentExpandedId = null;
+    stopHeartbeat();
+    loadQueue();
+  } catch (err) {
+    alert("Failed to release: " + err.message);
+  }
+}
+
+// ── RECORDING (per card) ───────────────────────────────────
+
+async function toggleRecording(id) {
+  let state = recState.get(id);
+
+  if (state && state.recorder && state.recorder.state === 'recording') {
+    stopCardRecording(id);
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    const mimeOptions = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];
+    let chosenMime = '';
+    for (const m of mimeOptions) {
+      if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) { chosenMime = m; break; }
+    }
+    const recorder = chosenMime
+      ? new MediaRecorder(stream, { mimeType: chosenMime })
+      : new MediaRecorder(stream);
+
+    state = { recorder, chunks: [], stream, blob: null, url: null, seconds: 0, timer: null };
+    recState.set(id, state);
+
+    recorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) state.chunks.push(e.data); };
+    recorder.onstop = () => {
+      state.stream.getTracks().forEach(t => t.stop());
+      const type = recorder.mimeType || 'audio/webm';
+      state.blob = new Blob(state.chunks, { type });
+      state.url = URL.createObjectURL(state.blob);
+
+      const previewWrap = document.getElementById(`reply-preview-${id}`);
+      const previewAudio = document.getElementById(`reply-audio-${id}`);
+      previewAudio.src = state.url;
+      previewWrap.classList.remove('hidden');
+
+      document.getElementById(`rec-btn-${id}`).classList.remove('recording');
+      document.getElementById(`rec-btn-${id}`).textContent = '✅';
+      document.getElementById(`rec-status-${id}`).textContent = 'Recorded! Listen back below.';
+      document.getElementById(`send-${id}`).disabled = false;
+    };
+
+    recorder.start();
+    document.getElementById(`rec-btn-${id}`).classList.add('recording');
+    document.getElementById(`rec-btn-${id}`).textContent = '⏹️';
+    document.getElementById(`rec-status-${id}`).textContent = 'Recording... tap to stop';
+
+    state.seconds = 0;
+    state.timer = setInterval(() => {
+      state.seconds++;
+      document.getElementById(`rec-timer-${id}`).textContent = String(state.seconds).padStart(2, '0') + 's';
+      if (state.seconds >= 90) stopCardRecording(id);
+    }, 1000);
+
+  } catch (err) {
+    alert("Microphone access denied. Please enable microphone permissions in your browser.");
+    console.error(err);
+  }
+}
+
+function stopCardRecording(id) {
+  const state = recState.get(id);
+  if (!state) return;
+  if (state.timer) { clearInterval(state.timer); state.timer = null; }
+  if (state.recorder && state.recorder.state !== 'inactive') state.recorder.stop();
+}
+
+function resetCardRecording(id) {
+  const state = recState.get(id);
+  if (state) {
+    if (state.url) URL.revokeObjectURL(state.url);
+    if (state.timer) clearInterval(state.timer);
+    if (state.stream) state.stream.getTracks().forEach(t => t.stop());
+  }
+  recState.delete(id);
+  const btn = document.getElementById(`rec-btn-${id}`);
+  if (btn) { btn.classList.remove('recording'); btn.textContent = '🎙️'; }
+  const status = document.getElementById(`rec-status-${id}`);
+  if (status) status.textContent = 'Tap to start';
+  const timer = document.getElementById(`rec-timer-${id}`);
+  if (timer) timer.textContent = '00s';
+  const preview = document.getElementById(`reply-preview-${id}`);
+  if (preview) preview.classList.add('hidden');
+  const send = document.getElementById(`send-${id}`);
+  if (send) send.disabled = true;
+}
+
+// ── SEND REPLY ─────────────────────────────────────────────
+
+async function sendReply(id, isUpdate) {
+  const state = recState.get(id);
+  if (!state || !state.blob) {
+    alert("No reply recorded yet!");
+    return;
+  }
+
+  const sendBtn = document.getElementById(`send-${id}`);
+  sendBtn.disabled = true;
+  sendBtn.textContent = "📬 Sending...";
+
+  try {
+    const audioData = await blobToBase64(state.blob);
+
+    const payload = {
+      action: 'submitSantaReply',
+      messageId: id,
+      audioData: audioData,
+      audioMime: state.blob.type || 'audio/webm',
+      volunteer: volunteerName,
+      isUpdate: !!isUpdate,
+      secret: secret
+    };
+
+    const res = await fetch(API, { method: 'POST', body: JSON.stringify(payload) });
+    const result = await res.json();
+
+    if (!result.ok) throw new Error(result.error || 'Unknown error');
+
+    if (state.url) URL.revokeObjectURL(state.url);
+    recState.delete(id);
+
+    currentExpandedId = null;
+    stopHeartbeat();
+    setTimeout(loadQueue, 800);
+
+  } catch (err) {
+    alert("Failed to send reply: " + err.message);
+    sendBtn.disabled = false;
+    sendBtn.textContent = isUpdate ? "✉️ Send Updated Reply" : "✉️ Send to Parent";
+  }
+}
+
+// ── FLAG ──────────────────────────────────────────────────
+
+async function flagMessage(id) {
+  const reason = prompt("Why are you flagging this message? (Optional but helpful for the Lead Elf)");
+  if (reason === null) return;
+
+  try {
+    const payload = {
+      action: 'flagMagicMailbox',
+      messageId: id,
+      reason: reason || 'No reason given',
+      volunteer: volunteerName,
+      secret: secret
+    };
+    const res = await fetch(API, { method: 'POST', body: JSON.stringify(payload) });
+    const result = await res.json();
+    if (!result.ok) throw new Error(result.error || 'Unknown error');
+    currentExpandedId = null;
+    stopHeartbeat();
+    setTimeout(loadQueue, 600);
+  } catch (err) {
+    alert("Failed to flag: " + err.message);
+  }
+}
+
+// ── HELPERS ────────────────────────────────────────────────
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onloadend = () => resolve(r.result);
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
+}
+
+function timeAgo(iso) {
+  if (!iso) return 'just now';
+  const then = new Date(iso).getTime();
+  if (isNaN(then)) return 'recently';
+  const diff = Date.now() - then;
+  const mins = Math.round(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + ' min ago';
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return hrs + ' hr ago';
+  const days = Math.round(hrs / 24);
+  return days + ' day' + (days > 1 ? 's' : '') + ' ago';
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  }[c]));
+}
+</script>
+</body>
+</html>

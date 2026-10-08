@@ -104,7 +104,7 @@ export async function sendElfChatMessage(message, tableData) {
   }
 
   if (lower.includes("volunteer") || lower.includes("help") || lower.includes("join") || lower.includes("bucket")) {
-    return `🎄 We would LOVE to have your help! We're always looking for enthusiastic elves to be bucket collectors, safety walkers, navigators, and drivers. Tap the "Volunteer Now" banner in the donations section or contact us on social media to join the sleigh crew! 🎅👋`;
+    return `🎄 We would LOVE to have your help! We're always looking for enthusiastic elves to be bucket collectors, safety walkers, navigators, and drivers. Tap the "Volunteer Now" banner or register on our [Crew Hub](/crew.html?table=beverley) to pick your route and join the sleigh crew! 🎅👋`;
   }
 
   if (lower.includes("round table")) {

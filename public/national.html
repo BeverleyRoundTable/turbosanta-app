@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TurboSanta — Round Table Leaderboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --gold: #FBAF33;
+      --gold-dim: rgba(251,175,51,0.12);
+      --gold-glow: rgba(251,175,51,0.25);
+      --dark: #0d0d0b;
+      --surface: #161614;
+      --surface-2: #1e1e1b;
+      --surface-3: #252522;
+      --border: rgba(255,255,255,0.08);
+      --border-gold: rgba(251,175,51,0.2);
+      --red: #D31C1C;
+      --red-dim: rgba(211,28,28,0.15);
+      --green: #2ecc71;
+      --green-dim: rgba(46,204,113,0.12);
+      --blue: #4a9eff;
+      --text: #eaeae5;
+      --text-dim: rgba(255,255,255,0.55);
+      --text-muted: rgba(255,255,255,0.3);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--dark);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* GATEKEEPER / LOGIN SCREEN */
+    #gatekeeper {
+      position: fixed;
+      inset: 0;
+      background: var(--dark);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .gate-box {
+      background: var(--surface);
+      border: 1px solid var(--border-gold);
+      padding: 48px 40px;
+      border-radius: 16px;
+      text-align: center;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+    }
+
+    .gate-box h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 36px;
+      letter-spacing: 2px;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .gate-box h2 span { color: var(--gold); }
+    
+    .gate-box p {
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-bottom: 24px;
+    }
+
+    .gate-box input {
+      width: 100%;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 14px 16px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-family: 'DM Mono', monospace;
+      text-align: center;
+      outline: none;
+      transition: border 0.2s;
+      margin-bottom: 12px;
+    }
+
+    .gate-box input:focus {
+      border-color: var(--gold);
+    }
+
+    .gate-box button {
+      width: 100%;
+      background: var(--gold);
+      color: #000;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.1s, background 0.2s;
+    }
+
+    .gate-box button:hover {
+      background: #e59d28;
+      transform: translateY(-1px);
+    }
+
+    .gate-error {
+      color: var(--red);
+      font-size: 12px;
+      margin-bottom: 12px;
+      display: none;
+      font-weight: 600;
+    }
+
+    /* HEADER CONTROLS */
+    .top-controls {
+      position: absolute;
+      top: 24px;
+      right: 32px;
+      z-index: 10;
+    }
+
+    .season-select {
+      background: var(--surface-2);
+      color: var(--gold);
+      border: 1px solid var(--border-gold);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FBAF33' viewBox='0 0 16 16'%3E%3Cpath d='M4.2 6l3.8 4 3.8-4z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 32px;
+    }
+
+    .season-select:hover {
+      background-color: var(--surface-3);
+    }
+
+    /* HERO & TICKER */
+    .ticker-wrap {
+      display: none;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border-gold);
+      padding: 10px 24px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--gold);
+      font-weight: 600;
+    }
+
+    .hero {
+      position: relative;
+      padding: 64px 32px 48px;
+      text-align: center;
+      overflow: hidden;
+      border-bottom: 1px solid var(--border);
+      background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(251,175,51,0.06) 0%, transparent 70%);
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      background: var(--gold-dim);
+      color: var(--gold);
+      border: 1px solid var(--border-gold);
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(48px, 8vw, 88px);
+      letter-spacing: 4px;
+      line-height: 0.9;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--gold); }
+
+    .hero-sub {
+      font-size: 16px;
+      color: var(--text-dim);
+      max-width: 520px;
+      margin: 0 auto 32px;
+      line-height: 1.6;
+    }
+
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* STAT CARDS */
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 24px;
+      text-align: center;
+      min-width: 130px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      opacity: 0.4;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 34px;
+      color: var(--gold);
+      line-height: 1;
+      letter-spacing: 1px;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 24px 60px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 48px 0 24px;
+    }
+
+    .section-head::before {
+      content: '';
+      width: 4px;
+      height: 28px;
+      background: var(--gold);
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .section-head h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      letter-spacing: 2px;
+      color: #fff;
+    }
+
+    .section-icon { font-size: 24px; }
+
+    .view-toggle {
+      display: flex;
+      gap: 8px;
+      background: var(--surface-2);
+      padding: 6px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      width: fit-content;
+    }
+
+    .view-btn {
+      background: transparent;
+      color: var(--text-muted);
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .view-btn.active {
+      background: var(--surface);
+      color: var(--gold);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      border: 1px solid var(--border-gold);
+    }
+
+    #nationalMap {
+      height: 600px;
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      display: none; 
+      z-index: 1;
+    }
+
+    .leaflet-popup-content-wrapper {
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border-gold);
+      border-radius: 8px;
+    }
+
+    .leaflet-popup-tip { background: var(--surface-2); }
+    .map-popup-title { color: var(--gold); font-weight: 800; font-size: 14px; margin-bottom: 4px; }
+
+    /* LEADERBOARD TABLE */
+    .lb-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .lb-header {
+      display: grid;
+      grid-template-columns: 40px 1.2fr 85px 85px 80px 85px 70px 70px 70px 75px;
+      padding: 12px 20px;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .lb-row {
+      display: grid;
+      grid-template-columns: 40px 1.2fr 85px 85px 80px 85px 70px 70px 70px 75px;
+      padding: 14px 20px;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+
+    .lb-row:last-child { border-bottom: none; }
+    .lb-row:hover { background: rgba(251,175,51,0.03); }
+
+    .lb-rank {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      color: var(--text-muted);
+    }
+
+    .lb-row:nth-child(1) .lb-rank { color: var(--gold); }
+    .lb-row:nth-child(2) .lb-rank { color: #c0c0c0; }
+    .lb-row:nth-child(3) .lb-rank { color: #cd7f32; }
+
+    .lb-name {
+      font-weight: 700;
+      font-size: 14px;
+      color: #fff;
+    }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 4px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 2px;
+      margin-top: 4px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--gold);
+      border-radius: 2px;
+    }
+
+    .lb-val {
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      color: var(--text);
+      text-align: right;
+    }
+
+    .lb-val.gold { color: var(--gold); font-weight: 700; }
+    .lb-header span:nth-child(n+3), .lb-row .lb-val { text-align: right; }
+
+    /* CHARTS */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+    }
+
+    .chart-card.full-width { grid-column: 1 / -1; }
+
+    .chart-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 260px;
+    }
+
+    .loading-wrap {
+      text-align: center;
+      padding: 80px 20px;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-text { font-size: 14px; color: var(--text-dim); }
+
+    .error-card {
+      background: var(--red-dim);
+      border: 1px solid rgba(211,28,28,0.3);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-top: 8px;
+      font-size: 12px;
+      color: #f5a5a5;
+    }
+
+    .table-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      padding: 3px 8px;
+      border-radius: 10px;
+    }
+
+    .status-live { background: var(--green-dim); color: var(--green); }
+    .status-hist { background: var(--blue); color: #fff; }
+    .status-off { background: rgba(255,255,255,0.05); color: var(--text-muted); }
+
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .footer-brand {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 20px;
+      letter-spacing: 2px;
+      color: var(--gold);
+    }
+
+    .footer-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: right;
+    }
+
+    .refresh-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .refresh-pill:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    @media (max-width: 768px) {
+      .top-controls { top: 16px; right: 16px; }
+      .hero { padding: 80px 20px 32px; }
+      .hero-stats { gap: 8px; }
+      .stat-card { min-width: 100px; padding: 14px 16px; }
+      .stat-value { font-size: 28px; }
+      .container { padding: 24px 16px 48px; }
+      .charts-grid { grid-template-columns: 1fr; }
+      .lb-header, .lb-row { grid-template-columns: 36px 1fr 90px; }
+      
+      .lb-header span:nth-child(3),
+      .lb-header span:nth-child(4),
+      .lb-header span:nth-child(5),
+      .lb-header span:nth-child(7),
+      .lb-header span:nth-child(8),
+      .lb-header span:nth-child(9),
+      .lb-header span:nth-child(10),
+      .lb-row .lb-val:nth-child(3),
+      .lb-row .lb-val:nth-child(4),
+      .lb-row .lb-val:nth-child(5),
+      .lb-row .lb-val:nth-child(7),
+      .lb-row .lb-val:nth-child(8),
+      .lb-row .lb-val:nth-child(9),
+      .lb-row .lb-val:nth-child(10) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="gatekeeper">
+    <div class="gate-box">
+      <h2>TURBO<span>SANTA</span><br>NATIONAL</h2>
+      <p>Authorized access required.</p>
+      <div id="passError" class="gate-error">Incorrect password. Please try again.</div>
+      <input type="password" id="passInput" placeholder="Enter Master Password" onkeypress="if(event.key === 'Enter') checkPassword()">
+      <button onclick="checkPassword()">UNLOCK LEADERBOARD</button>
+    </div>
+  </div>
+
+  <div id="appContainer" style="display: none;">
+    
+    <div class="top-controls">
+      <select id="seasonSelect" class="season-select" onchange="changeSeason()"></select>
+    </div>
+
+    <div id="tickerWrap" class="ticker-wrap">
+      📢 <span id="tickerText"></span>
+    </div>
+
+    <header class="hero">
+      <div class="hero-badge" id="seasonBadge">🎅 Season...</div>
+      <h1>TURBO<span>SANTA</span><br>NATIONAL</h1>
+      <p class="hero-sub" id="heroSubText">Live leaderboard tracking every Round Table Santa Sleigh across the country. Updated every 60 seconds.</p>
+
+      <div class="hero-stats" id="heroStats">
+        <div class="stat-card">
+          <div class="stat-label">Tables Live</div>
+          <div class="stat-value" id="totalTables">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Gross Raised</div>
+          <div class="stat-value" id="totalRaised">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Expenses</div>
+          <div class="stat-value" style="color: var(--red);" id="totalExpenses">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Net for Charity</div>
+          <div class="stat-value" style="color: var(--green);" id="totalNet">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Views</div>
+          <div class="stat-value" id="totalViews">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Routes Done</div>
+          <div class="stat-value" id="totalRoutes">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Streets Done</div>
+          <div class="stat-value" id="totalStreets">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Messages</div>
+          <div class="stat-value" id="totalMessages">—</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="container">
+
+      <div id="loadingState" class="loading-wrap">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loadingText">Fetching data from all Round Tables…</div>
+      </div>
+
+      <div id="mainContent" style="display:none;">
+
+        <div class="section-head" style="justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span class="section-icon">🏆</span>
+            <h2>Live Tracker & Leaderboard</h2>
+          </div>
+          
+          <div class="view-toggle">
+            <button id="btnListView" class="view-btn active" onclick="switchView('list')">📋 Leaderboard</button>
+            <button id="btnMapView" class="view-btn" onclick="switchView('map')">🗺️ National Map</button>
+          </div>
+        </div>
+
+        <div id="listViewContainer" class="lb-wrap">
+          <div class="lb-header">
+            <span>#</span>
+            <span>Table</span>
+            <span>Gross</span>
+            <span>Gift Aid</span>
+            <span>Exp.</span>
+            <span>Net</span>
+            <span>Views</span>
+            <span>Routes</span>
+            <span>Streets</span>
+            <span>Msgs</span>
+          </div>
+          <div id="leaderboardBody"></div>
+        </div>
+
+        <div id="nationalMap"></div>
+
+        <div class="section-head">
+          <span class="section-icon">📊</span>
+          <h2>Breakdown</h2>
+        </div>
+
+        <div class="charts-grid">
+          <div class="chart-card full-width">
+            <div class="chart-title">Donations by Table (£)</div>
+            <div class="chart-container"><canvas id="donationsChart"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Tracker Views</div>
+            <div class="chart-container"><canvas id="viewsChart"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Streets Visited</div>
+            <div class="chart-container"><canvas id="streetsChart"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Routes Completed</div>
+            <div class="chart-container"><canvas id="routesChart"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Messages to Santa</div>
+            <div class="chart-container"><canvas id="messagesChart"></canvas></div>
+          </div>
+        </div>
+
+        <div id="errorList"></div>
+
+      </div>
+    </div>
+
+    <footer class="footer">
+      <div class="footer-brand">🎅 TurboSanta National</div>
+      <div>
+        <span class="refresh-pill" onclick="loadAll(true, false)">🔄 Refresh Now</span>
+      </div>
+      <div class="footer-meta" id="footerMeta">
+        Last updated: <span id="lastUpdated">—</span><br>
+        Auto-refreshes every 60s during live season
+      </div>
+    </footer>
+  </div>
+
+<script>
+const REGISTRY_URL = "https://script.google.com/macros/s/AKfycbydqxlwWkD7Kh7IJisZSiweBBbsXDy7smUxpOvT5eLVQxsDO2PqwrJyQI_3y4kwnJB6/exec";
+const REFRESH_INTERVAL_MS = 60000;
+const FETCH_TIMEOUT_MS = 35000;
+const SYSTEM_START_YEAR = 2024;
+
+let tables = [];
+let results = [];
+let charts = {};
+let refreshTimer = null;
+let currentMode = "live";
+let natMap = null;
+let sleighMarkers = {};
+let gpxLayers = {};
+
+async function checkPassword() {
+  const input = document.getElementById('passInput').value.trim();
+  if (!input) return;
+
+  // 1. Route authentication through santaproxy to bypass CORS
+  const targetScript = `${REGISTRY_URL}?secret=${encodeURIComponent(input)}`;
+  const authUrl = `https://santaproxy.beverley247.workers.dev/?ttl=0&target=${encodeURIComponent(targetScript)}`;
+
+  const btn = document.querySelector('.gate-box button');
+  const originalBtnText = btn.textContent;
+  
+  btn.disabled = true;
+  btn.textContent = "CONNECTING..."; // ⭐ Visual feedback
+  document.getElementById('passInput').disabled = true;
+  document.getElementById('passError').style.display = 'none';
+  
+  try {
+    const res = await fetch(authUrl);
+    const text = await res.text();
+    
+    // ⭐ Check if response is an HTML error page (Cloudflare / Google timeout)
+    if (text.trim().startsWith('<') || text.includes('<!DOCTYPE html>')) {
+      console.error("Server returned HTML instead of JSON:", text);
+      throw new Error("Server gateway timeout or Google Apps Script error. Check console.");
+    }
+    
+    // 2. Safely parse JSON response
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (jsonErr) {
+      console.error("Auth endpoint did not return valid JSON. Response body:", text);
+      throw new Error("Server returned invalid response (not JSON)");
+    }
+    
+    // 3. Check for backend access denial
+    if (data.error === "Access Denied") {
+      document.getElementById('passError').textContent = "Incorrect password. Please try again.";
+      document.getElementById('passError').style.display = 'block';
+      document.getElementById('passInput').value = '';
+      document.getElementById('passInput').disabled = false;
+      document.getElementById('passInput').focus();
+      btn.disabled = false;
+      btn.textContent = originalBtnText;
+      return;
+    }
+
+    if (data.error) {
+      document.getElementById('passError').textContent = `Error: ${data.error}`;
+      document.getElementById('passError').style.display = 'block';
+      document.getElementById('passInput').disabled = false;
+      btn.disabled = false;
+      btn.textContent = originalBtnText;
+      return;
+    }
+
+    // 4. Auth success - store session and reveal dashboard
+    localStorage.setItem('national_auth', input);
+    document.getElementById('gatekeeper').style.display = 'none';
+    document.getElementById('appContainer').style.display = 'block';
+    
+    // 5. Launch app independently so render errors don't trigger password error screen
+    startApp(data.tables || data).catch(appErr => {
+      console.error("Error rendering dashboard content:", appErr);
+    });
+
+  } catch (err) {
+    // Log the exact error to DevTools Console for debugging
+    console.error("checkPassword error:", err);
+    
+    document.getElementById('passError').textContent = err.message || "Network error. Check your connection.";
+    document.getElementById('passError').style.display = 'block';
+    document.getElementById('passInput').disabled = false;
+    btn.disabled = false;
+    btn.textContent = originalBtnText;
+  }
+}
+
+function getActiveSeasonYear() {
+  const now = new Date();
+  const m = now.getMonth();
+  const y = now.getFullYear();
+  return m < 6 ? y - 1 : y; 
+}
+
+function buildSeasonDropdown() {
+  const select = document.getElementById('seasonSelect');
+  select.innerHTML = '<option value="live">Live Season</option>';
+  const activeYear = getActiveSeasonYear();
+  for (let yr = activeYear; yr >= SYSTEM_START_YEAR; yr--) {
+    select.innerHTML += `<option value="${yr}">${yr} Season</option>`;
+  }
+}
+
+function updateSeasonBadge(mode) {
+  if (mode === "live") {
+    const displayYear = new Date().getFullYear();
+    document.getElementById('seasonBadge').innerText = `🎅 ${displayYear} Sleigh`;
+    document.getElementById('heroSubText').innerText = "Live leaderboard tracking every Round Table Santa Sleigh across the country. Updated every 60 seconds.";
+    document.getElementById('footerMeta').innerHTML = `Last updated: <span id="lastUpdated">—</span><br>Auto-refreshes every 60s during live season`;
+  } else {
+    document.getElementById('seasonBadge').innerText = `🕰️ Historical: ${mode}`;
+    document.getElementById('heroSubText').innerText = `Viewing frozen snapshot data for the ${mode} Christmas Season.`;
+    document.getElementById('footerMeta').innerHTML = `Historical Data View<br>Auto-refresh disabled`;
+  }
+}
+
+function changeSeason() {
+  currentMode = document.getElementById('seasonSelect').value;
+  updateSeasonBadge(currentMode);
+  
+  try {
+    Object.values(charts).forEach(c => { if (c && typeof c.destroy === 'function') c.destroy(); });
+  } catch (e) {}
+  charts = {};
+  
+  loadAll(false, false); 
+}
+
+async function startApp(initialTables) {
+  tables = initialTables;
+  buildSeasonDropdown();          
+  updateSeasonBadge(currentMode);
+  
+  // Always fetch the fully aggregated national summary immediately on login
+  await loadAll(false, false); 
+  
+  refreshTimer = setInterval(() => {
+    if (currentMode === "live") loadAll(true, true); // ⭐ SILENT BACKGROUND REFRESH
+  }, REFRESH_INTERVAL_MS);
+}
+
+async function fetchWithTimeout(url, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timer);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    clearTimeout(timer);
+    throw err;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// DATA EXTRACTION (FIXED & EXPANDED)
+// ═══════════════════════════════════════════════════════════
+function extractLiveTableData(table, apiData) {
+  const routes = apiData.routes || [];
+  const settings = apiData.settings || {};
+  const messageStats = apiData.messageStats || {};
+  const donations = apiData.donations || {};
+  const giftAid = apiData.giftAid ? (parseFloat(apiData.giftAid.giftAid) || 0) : 0;
+  const expenses = parseFloat(apiData.expenses) || 0;
+
+  const activeSeasonYear = getActiveSeasonYear();
+
+  function isThisSeason(dateString) {
+    if (!dateString) return false;
+    const d = new Date(dateString);
+    const dateY = d.getFullYear();
+    const dateM = d.getMonth();
+    return (dateY === activeSeasonYear && dateM >= 6) || (dateY === activeSeasonYear + 1 && dateM < 6);
+  }
+
+  const now = new Date();
+  const todayIso = now.toISOString().slice(0, 10);
+
+  let streetCount = 0;
+  let totalViews = 0;
+  let routeRaisedSum = 0;
+  const completedRoutes = [];
+
+  const todayRoute = routes.find(r => r.date === todayIso);
+
+  routes.forEach(r => {
+    if (isThisSeason(r.date)) {
+      const rDate = new Date(r.date);
+      // ⭐ FIX: Only count completed or today's routes
+      if (rDate <= now) {
+        completedRoutes.push(r);
+        if (r.streets) {
+          const streets = String(r.streets).split(',').map(s => s.trim()).filter(Boolean);
+          streetCount += streets.length;
+        }
+        if (r.views) {
+          totalViews += (parseInt(r.views) || 0);
+        }
+        routeRaisedSum += (parseFloat(r.raised) || 0);
+      }
+    }
+  });
+
+  // ⭐ FIX: Use apiData.donations.total (Donations!B2) instead of capping at ledger length
+  const totalRaised = (donations.total !== undefined && donations.total !== null && donations.total !== 0)
+    ? parseFloat(donations.total)
+    : routeRaisedSum;
+
+  const target = parseFloat(donations.target) || 0;
+  const displayName = settings.sleigh_display_name || table.name;
+
+  return {
+    id: table.id,
+    name: displayName,
+    api: String(table.api).trim(),
+    raised: totalRaised,
+    target: target,
+    giftAid: giftAid,             
+    expenses: expenses,
+    netRaised: (totalRaised + giftAid) - expenses,
+    views: totalViews,         
+    routes: completedRoutes.length, 
+    streets: streetCount,      
+    messages: messageStats.total || 0,
+    ok: true,
+    donateUrl: settings.donate_url || null,
+    announcement: settings.live_announcement || null,
+    todayGpx: todayRoute ? todayRoute.gpxUrl : null,
+    todayRouteName: todayRoute ? todayRoute.routeName : null,
+    todayStartTime: todayRoute ? todayRoute["Start Time"] : null,
+    todayEndTime: todayRoute ? todayRoute["End Time"] : null,
+    todaySponsor: todayRoute ? todayRoute.sponsorName : null,
+    iconUrl: settings.sleigh_icon_live || "https://i.ibb.co/Qj3vDbSR/Santa-Marker-11.png"
+  };
+}
+
+function extractHistoricalTableData(table, historyArray, targetYear) {
+  const seasonData = historyArray.find(h => {
+     const hYear = String(h.year).trim();
+     const tYear = String(targetYear).trim();
+     return hYear === tYear || hYear.includes(tYear); 
+  });
+  
+  if (!seasonData) {
+     return {
+        id: table.id, name: table.name, api: String(table.api).trim(),
+        raised: 0, target: 0, expenses: 0, netRaised: 0, views: 0, routes: 0, streets: 0, messages: 0,
+        ok: true
+     };
+  }
+  
+  return {
+     id: table.id,
+     name: table.name,
+     api: String(table.api).trim(),
+     raised: parseFloat(seasonData.raised) || 0,
+     target: 0,
+     expenses: parseFloat(seasonData.expenses) || 0,
+     netRaised: parseFloat(seasonData.netRaised) || 0,
+     views: parseInt(seasonData.totalViews) || parseInt(seasonData.peakViewers) || 0, 
+     routes: parseInt(seasonData.routes) || 0,
+     streets: parseInt(seasonData.streets) || 0,
+     messages: parseInt(seasonData.messages) || 0,
+     ok: true
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+// FETCH ALL (SILENT REFRESH SUPPORT)
+// ═══════════════════════════════════════════════════════════
+async function loadAll(fetchRegistry = true, isBackground = false) {
+  if (!isBackground) {
+    document.getElementById('loadingState').style.display = 'block';
+    document.getElementById('mainContent').style.display = 'none';
+  }
+
+  const savedPass = localStorage.getItem('national_auth');
+  
+  if (!savedPass) {
+    // If password is lost, force back to login gatekeeper
+    document.getElementById('gatekeeper').style.display = 'flex';
+    document.getElementById('appContainer').style.display = 'none';
+    return;
+  }
+  
+  try {
+    // 1. Single fetch to Cloudflare Worker, passing the master password and season mode
+    const targetScript = `${REGISTRY_URL}?function=getNationalSummary&secret=${encodeURIComponent(savedPass)}&mode=${currentMode}`;
+    const fastTrackUrl = `https://santaproxy.beverley247.workers.dev/?ttl=60&target=${encodeURIComponent(targetScript)}`;
+
+    // 2. The payload arrives fully aggregated
+    const payload = await fetchWithTimeout(fastTrackUrl, FETCH_TIMEOUT_MS);
+    
+    if (payload.error) {
+      if (payload.error === "Access Denied" || payload.error.includes("Secret")) {
+        localStorage.removeItem('national_auth');
+        document.getElementById('gatekeeper').style.display = 'flex';
+        document.getElementById('appContainer').style.display = 'none';
+        return;
+      }
+      throw new Error(payload.error);
+    }
+
+    // 3. Apply the results directly
+    results = payload.tables || [];
+    const errors = payload.errors || [];
+    
+    results.sort((a, b) => b.netRaised - a.netRaised);
+    render(results, errors, isBackground);
+
+  } catch (err) {
+    console.error("National fetch failed:", err);
+    // Display error message in the UI so it doesn't fail silently
+    const errorEl = document.getElementById('errorList');
+    if (errorEl) {
+      errorEl.innerHTML = `<div class="error-card"><strong>Connection Error:</strong> ${escHtml(err.message || "Failed to load national data. Please try again.")}</div>`;
+    }
+  }
+
+  if (!isBackground) {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
+  }
+  
+  if (currentMode === "live") {
+     document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString('en-GB');
+  }
+}
+  
+function render(data, errors, isBackground) {
+  renderHeroStats(data);
+  renderTicker(data);
+  renderLeaderboard(data);
+  renderCharts(data);
+  renderErrors(errors);
+
+  if (natMap && currentMode === "live") {
+    renderMap(data);
+  }
+}
+
+function renderHeroStats(data) {
+  const liveTables = currentMode === "live" 
+      ? data.filter(d => d.ok).length 
+      : data.filter(d => d.raised > 0 || d.routes > 0).length;
+
+  const totalRaised = data.reduce((s, d) => s + d.raised, 0);
+  const totalExpenses = data.reduce((s, d) => s + d.expenses, 0);
+  const totalNet = data.reduce((s, d) => s + d.netRaised, 0);
+  const totalViews = data.reduce((s, d) => s + d.views, 0);
+  const totalRoutes = data.reduce((s, d) => s + d.routes, 0);
+  const totalStreets = data.reduce((s, d) => s + d.streets, 0);
+  const totalMessages = data.reduce((s, d) => s + d.messages, 0);
+
+  document.getElementById('totalTables').textContent = liveTables.toLocaleString('en-GB');
+  document.getElementById('totalRaised').textContent = '£' + Math.round(totalRaised).toLocaleString('en-GB');
+  document.getElementById('totalExpenses').textContent = '£' + Math.round(totalExpenses).toLocaleString('en-GB');
+  document.getElementById('totalNet').textContent = '£' + Math.round(totalNet).toLocaleString('en-GB');
+  document.getElementById('totalViews').textContent = totalViews.toLocaleString('en-GB');
+  document.getElementById('totalRoutes').textContent = totalRoutes.toLocaleString('en-GB');
+  document.getElementById('totalStreets').textContent = totalStreets.toLocaleString('en-GB');
+  document.getElementById('totalMessages').textContent = totalMessages.toLocaleString('en-GB');
+}
+
+function renderTicker(data) {
+  const announcements = data.filter(d => d.announcement).map(d => `<b>${escHtml(d.name)}:</b> ${escHtml(d.announcement)}`);
+  const wrap = document.getElementById('tickerWrap');
+  const txt = document.getElementById('tickerText');
+  if (announcements.length > 0 && currentMode === "live") {
+    txt.innerHTML = announcements.join(' &nbsp;•&nbsp; ');
+    wrap.style.display = 'block';
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+
+function renderLeaderboard(data) {
+  const body = document.getElementById('leaderboardBody');
+  body.innerHTML = '';
+
+  data.forEach((d, i) => {
+    let statusHtml = '';
+    if (currentMode === "live") {
+       statusHtml = d.ok ? '<span class="table-status status-live">● Connected</span>' : '<span class="table-status status-off">● Offline</span>';
+    } else {
+       statusHtml = (d.raised > 0 || d.routes > 0) ? '<span class="table-status status-hist">✔ Archived</span>' : '<span class="table-status status-off">No Data</span>';
+    }
+
+    let progressHtml = '';
+    if (d.target > 0) {
+      const pct = Math.min(Math.round((d.raised / d.target) * 100), 100);
+      progressHtml = `<div class="progress-bar-bg" title="Goal: £${d.target.toLocaleString()} (${pct}%)"><div class="progress-bar-fill" style="width: ${pct}%;"></div></div>`;
+    }
+
+    body.innerHTML += `
+      <div class="lb-row">
+        <div class="lb-rank">${i + 1}</div>
+        <div class="lb-name">${escHtml(d.name)} ${statusHtml} ${progressHtml}</div>
+        <div class="lb-val" style="color: #aaa;">£${Math.round(d.raised || 0).toLocaleString('en-GB')}</div>
+        <div class="lb-val" style="color: var(--green);">+£${Math.round(d.giftAid || 0).toLocaleString('en-GB')}</div>
+        <div class="lb-val" style="color: var(--red);">£${Math.round(d.expenses || 0).toLocaleString('en-GB')}</div>
+        <div class="lb-val gold" style="font-size: 15px;">£${Math.round(d.netRaised || 0).toLocaleString('en-GB')}</div>
+        <div class="lb-val">${(d.views || 0).toLocaleString()}</div>
+        <div class="lb-val">${(d.routes || 0).toLocaleString()}</div>
+        <div class="lb-val">${(d.streets || 0).toLocaleString()}</div>
+        <div class="lb-val">${(d.messages || 0).toLocaleString()}</div>
+      </div>
+    `;
+  });
+}
+
+function renderCharts(data) {
+  const labels = data.map(d => shortenName(d.name));
+  
+  const getColors = (baseRgb, arr) => {
+    return arr.map((_, i) => {
+      const factor = 1 - (i * 0.12);
+      return `rgba(${baseRgb}, ${Math.max(factor, 0.3)})`;
+    });
+  };
+
+  const chartDefaults = {
+    indexAxis: 'y',
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1e1e1b',
+        borderColor: 'rgba(251,175,51,0.3)',
+        borderWidth: 1,
+        titleFont: { family: 'DM Sans', weight: '700' },
+        bodyFont: { family: 'DM Mono' },
+        titleColor: '#FBAF33',
+        bodyColor: '#eaeae5',
+        padding: 10,
+        cornerRadius: 8
+      }
+    }
+  };
+
+  Object.values(charts).forEach(c => { if (c && typeof c.destroy === 'function') c.destroy(); });
+  charts = {};
+
+  charts.donations = new Chart(document.getElementById('donationsChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data: data.map(d => d.raised), backgroundColor: getColors('251, 175, 51', data), borderRadius: 6, barThickness: 24 }] },
+    options: { ...chartDefaults, scales: { x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { family: 'DM Mono', size: 11 }, callback: v => '£' + v.toLocaleString() } }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'DM Sans', size: 12, weight: '600' } } } } }
+  });
+
+  charts.views = new Chart(document.getElementById('viewsChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data: data.map(d => d.views), backgroundColor: getColors('156, 39, 176', data), borderRadius: 6, barThickness: 24 }] },
+    options: { ...chartDefaults, scales: { x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { family: 'DM Mono', size: 11 } } }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'DM Sans', size: 12, weight: '600' } } } } }
+  });
+
+  charts.streets = new Chart(document.getElementById('streetsChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data: data.map(d => d.streets), backgroundColor: getColors('46, 204, 113', data), borderRadius: 6, barThickness: 24 }] },
+    options: { ...chartDefaults, scales: { x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { family: 'DM Mono', size: 11 } } }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'DM Sans', size: 12, weight: '600' } } } } }
+  });
+
+  charts.routes = new Chart(document.getElementById('routesChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data: data.map(d => d.routes), backgroundColor: getColors('74, 158, 255', data), borderRadius: 6, barThickness: 24 }] },
+    options: { ...chartDefaults, scales: { x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { family: 'DM Mono', size: 11 } } }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'DM Sans', size: 12, weight: '600' } } } } }
+  });
+
+  charts.messages = new Chart(document.getElementById('messagesChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data: data.map(d => d.messages), backgroundColor: getColors('211, 28, 28', data), borderRadius: 6, barThickness: 24 }] },
+    options: { ...chartDefaults, scales: { x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { family: 'DM Mono', size: 11 } } }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'DM Sans', size: 12, weight: '600' } } } } }
+  });
+}
+
+function renderErrors(errors) {
+  const el = document.getElementById('errorList');
+  if (errors.length === 0 || currentMode !== "live") { 
+      el.innerHTML = ''; 
+      return; 
+  }
+
+  el.innerHTML = `
+    <div class="section-head" style="margin-top:32px;">
+      <span class="section-icon">⚠️</span>
+      <h2>Connection Issues</h2>
+    </div>
+    ${errors.map(e => `<div class="error-card"><strong>${escHtml(e.name)}</strong> —${escHtml(e.error)}</div>`).join('')}
+  `;
+}
+
+function escHtml(str) {
+  return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function shortenName(name) {
+  return name.replace(/\s*Round\s*Table\s*/i, '').replace(/\s*Santa\s*Sleigh\s*/i, '').trim() || name;
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAP ENGINE (USING PROXY FIREBASE)
+// ═══════════════════════════════════════════════════════════
+function switchView(view) {
+  const listBtn = document.getElementById('btnListView');
+  const mapBtn = document.getElementById('btnMapView');
+  const listContainer = document.getElementById('listViewContainer');
+  const mapContainer = document.getElementById('nationalMap');
+
+  if (view === 'map') {
+    mapBtn.classList.add('active');
+    listBtn.classList.remove('active');
+    listContainer.style.display = 'none';
+    mapContainer.style.display = 'block';
+    
+    if (!natMap) {
+      natMap = L.map('nationalMap').setView([54.0, -2.5], 6);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(natMap);
+    }
+    natMap.invalidateSize();
+    
+    if (currentMode === "live") {
+      renderMap(results);
+    }
+  } else {
+    listBtn.classList.add('active');
+    mapBtn.classList.remove('active');
+    listContainer.style.display = 'block';
+    mapContainer.style.display = 'none';
+  }
+}
+
+async function renderMap(data) {
+  if (!natMap || currentMode !== "live") return;
+
+  const activeTables = data.filter(d => d.ok);
+
+  for (const table of activeTables) {
+    if (table.lat && table.lng) {
+      const isFresh = table.gps_ts ? (Date.now() - new Date(table.gps_ts).getTime()) < (5 * 60 * 1000) : false;
+      
+      if (isFresh) {
+        const locationText = table.roadName ? `<div style="font-size:12px; color:#2ecc71; margin-top:4px;">📍 Currently on: <b>${escHtml(table.roadName)}</b></div>` : '';
+        const routeInfo = table.todayRouteName ? `<div style="font-size:12px; color:#bbb; margin-top:2px;">Tonight: <b>${escHtml(table.todayRouteName)}</b></div>` : '';
+        const donateBtn = table.donateUrl ? `<a href="${escHtml(table.donateUrl)}" target="_blank" style="display:inline-block; margin-top:8px; padding:4px 10px; background:#FBAF33; color:#000; text-decoration:none; font-weight:bold; font-size:11px; border-radius:4px;">🎁 Donate to this Sleigh</a>` : '';
+
+        const popupContent = `
+          <div class="map-popup-title">${escHtml(table.name)}</div>
+          ${routeInfo}
+          ${locationText}
+          <div style="font-family: 'DM Mono', monospace; font-size: 12px; margin-top:4px;">Raised: <b>£${Math.round(table.raised).toLocaleString('en-GB')}</b></div>
+          ${donateBtn}
+        `;
+
+        if (!sleighMarkers[table.id]) {
+          const icon = L.icon({ 
+            iconUrl: table.iconUrl || "https://i.ibb.co/Qj3vDbSR/Santa-Marker-11.png", 
+            iconSize: [64, 64], 
+            iconAnchor: [32, 60],
+            popupAnchor: [0, -50]
+          });
+          
+          sleighMarkers[table.id] = L.marker([table.lat, table.lng], { icon }).addTo(natMap);
+          sleighMarkers[table.id].bindPopup(popupContent);
+        } else {
+          sleighMarkers[table.id].setLatLng([table.lat, table.lng]);
+          sleighMarkers[table.id].setPopupContent(popupContent);
+        }
+      } else {
+        if (sleighMarkers[table.id]) {
+          natMap.removeLayer(sleighMarkers[table.id]);
+          delete sleighMarkers[table.id];
+        }
+      }
+    }
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TurboSanta — Sleigh Routes</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+    /* ═══════════════════════════════════════ */
+    /* TURBOSANTA DESIGN SYSTEM */
+    /* ═══════════════════════════════════════ */
+    :root {
+      --gold: #FBAF33;
+      --gold-dim: rgba(251,175,51,0.12);
+      --gold-glow: rgba(251,175,51,0.25);
+      --dark: #0d0d0b;
+      --surface: #161614;
+      --surface-2: #1e1e1b;
+      --surface-3: #252522;
+      --border: rgba(255,255,255,0.08);
+      --border-gold: rgba(251,175,51,0.2);
+      --text: #eaeae5;
+      --text-dim: rgba(255,255,255,0.55);
+      --text-muted: rgba(255,255,255,0.3);
+      --red: #D31C1C;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+        background: transparent; 
+        color: var(--text);
+        font-family: 'DM Sans', sans-serif;
+        margin: 0;
+        padding: 0;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    #routes-root {
+        max-width: 980px;
+        /* FIXED: Added 40px margin to the bottom to give the shadow room to render without getting chopped off by the iframe */
+        margin: 0 auto 40px;
+        padding: 32px 24px 40px;
+        background: var(--surface);
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+    }
+
+    h1 {
+        text-align: center;
+        padding: 8px 0 24px;
+        margin: 0;
+        font-family: 'Bebas Neue', sans-serif;
+        font-size: 56px;
+        letter-spacing: 2px;
+        color: #fff;
+        line-height: 1;
+    }
+    
+    h1 span {
+        color: var(--gold);
+    }
+
+    #tonights-route,
+    #all-routes {
+        max-width: 950px;
+        margin: 0 auto;
+        padding: 0;
+    }
+
+    /* Modern route card */
+    .santa-route-card {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 32px;
+        margin: 24px 0;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    
+    .santa-route-card:hover {
+        border-color: var(--border-gold);
+    }
+
+    /* Highlight card for Tonight/Next */
+    .santa-route-card--highlight {
+        border: 1px solid var(--gold);
+        background: rgba(251,175,51,0.03);
+        box-shadow: 0 0 30px var(--gold-glow);
+    }
+
+    /* Card layout */
+    .santa-route-main {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    .santa-route-text h3 {
+        font-family: 'Bebas Neue', sans-serif;
+        font-size: 36px;
+        letter-spacing: 1px;
+        color: #fff;
+        margin: 0 0 8px;
+        text-align: left;
+        line-height: 1;
+    }
+
+    .santa-route-date {
+        font-family: 'DM Mono', monospace;
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: var(--gold);
+        margin-bottom: 16px;
+    }
+
+    .santa-route-streets {
+        font-size: 15px;
+        color: var(--text-dim);
+        line-height: 1.6;
+        margin-bottom: 24px;
+    }
+
+    /* Buttons */
+    .santa-route-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .santa-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--gold);
+        padding: 14px 24px;
+        border-radius: 8px;
+        color: #000000;
+        font-weight: 700;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 14px;
+        text-decoration: none;
+        transition: transform 0.1s ease, background 0.2s ease;
+        border: none;
+        cursor: pointer;
+        text-align: center;
+    }
+
+    .santa-btn:hover {
+        background: #e59d28;
+    }
+
+    .santa-btn:active {
+        transform: scale(0.96);
+    }
+
+    .santa-btn--ghost {
+        background: var(--surface-3);
+        border: 1px solid var(--border);
+        color: #fff;
+    }
+    
+    .santa-btn--ghost:hover {
+        background: rgba(255,255,255,0.05);
+    }
+
+    /* Map preview */
+    .santa-route-map > img,
+    .santa-preview {
+        width: 100%;
+        max-width: 480px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+        display: block;
+        margin: 0 auto;
+    }
+
+    /* Sponsor */
+    .santa-route-sponsor {
+        text-align: center;
+        margin-top: 24px;
+        font-family: 'DM Mono', monospace;
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+    }
+
+    .santa-route-sponsor img {
+        height: 36px;
+        width: auto;
+        max-width: 220px;
+        display: block;
+        margin: 12px auto 0;
+        border-radius: 6px;
+        object-fit: contain;
+    }
+
+    /* Section titles */
+    .santa-section-title {
+        text-align: center;
+        font-family: 'Bebas Neue', sans-serif;
+        font-size: 42px;
+        letter-spacing: 1.5px;
+        color: var(--text-dim);
+        margin: 48px 0 16px;
+        line-height: 1;
+    }
+
+    /* Full width section separator */
+    .route-divider {
+        width: 100%;
+        max-width: 200px;
+        margin: 40px auto 24px;
+        border: 0;
+        border-bottom: 2px solid var(--border);
+    }
+
+    /* Desktop layout */
+    @media (min-width: 750px) {
+        .santa-route-main {
+            flex-direction: row;
+        }
+        .santa-route-text {
+            flex: 1;
+        }
+        .santa-route-map {
+            flex: 1;
+        }
+    }
+
+    @keyframes routeGlow {
+      0%   { box-shadow: 0 0 0 rgba(251, 175, 51, 0); }
+      50%  { box-shadow: 0 0 24px var(--gold-glow); }
+      100% { box-shadow: 0 0 0 rgba(251, 175, 51, 0); }
+    }
+
+    .santa-route-card.pulse {
+      animation: routeGlow 1.2s ease-out;
+    }
+
+    @media (max-width: 600px) {
+        #routes-root { padding: 32px 16px; }
+        .santa-route-card { padding: 24px; }
+        header h1 { font-size: 48px; }
+    }
+</style>
+</head>
+
+<body>
+
+<div id="routes-root">
+
+  <h1>🎅 SLEIGH <span>ROUTES</span></h1>
+
+  <div id="tonights-route"></div>
+
+  <hr class="route-divider">
+
+  <div id="all-routes"></div>
+
+</div>
+
+<script>
+(function () {
+    const s = document.createElement("script");
+    s.src = "https://brt-23f.pages.dev/sleigh/routes.js?v=" + Date.now();
+    document.body.appendChild(s);
+})();
+</script>
+
+<script>
+  function sendHeight() {
+    const height = document.documentElement.scrollHeight;
+    parent.postMessage({ routesHeight: height }, "*");
+  }
+
+  window.onload = sendHeight;
+
+  const observer = new MutationObserver(sendHeight);
+  observer.observe(document.body, { childList: true, subtree: true });
+
+  window.addEventListener("resize", sendHeight);
+</script>
+
+</body>
+</html>
