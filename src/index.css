@@ -1,0 +1,155 @@
+:root {
+  --primary: #FBAF33;
+  --accent: #FFFFFF;
+  --bg-dark: #1D1D1A;
+  --bg-card: #151513;
+  --bg-card-subtle: #1c1c18;
+  --text-main: #FFFFFF;
+  --text-muted: rgba(255, 255, 255, 0.7);
+  --border: rgba(255, 255, 255, 0.15);
+  --on-primary: #000000;
+  --success: #22c55e;
+  --alert: #d31c1c;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-family: 'Open Sans', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  line-height: 1.6;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-color: var(--bg-dark);
+  background-image: 
+    linear-gradient(180deg, rgba(29, 29, 26, 0.88) 0%, rgba(0, 0, 0, 0.96) 100%),
+    url('https://brt-23f.pages.dev/icons/site_background.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+h1, h2, h3, h4, .brand-font {
+  font-family: 'Eurostile', 'Open Sans', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0d0d0b;
+}
+::-webkit-scrollbar-thumb {
+  background: #33332d;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* Animations */
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 0.4; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2s infinite ease-in-out;
+}
+
+/* Buttons */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 28px;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-family: 'Eurostile', 'Open Sans', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 4px 15px rgba(251, 175, 51, 0.25);
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+  box-shadow: 0 6px 20px rgba(251, 175, 51, 0.4);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 22px;
+  background: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  font-family: 'Eurostile', 'Open Sans', sans-serif;
+  font-size: 16px;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(251, 175, 51, 0.05);
+}
+
+/* Leaflet Customization Matching tracker.html */
+.leaflet-container {
+  font-family: 'Open Sans', sans-serif !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: #151513 !important;
+  color: #ffffff !important;
+  border: 1px solid var(--primary) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7) !important;
+}
+
+.leaflet-popup-tip {
+  background: #151513 !important;
+  border: 1px solid var(--primary) !important;
+}
+
+.leaflet-control-zoom a {
+  background-color: #151513 !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+.leaflet-control-zoom a:hover {
+  background-color: var(--primary) !important;
+  color: #000000 !important;
+}

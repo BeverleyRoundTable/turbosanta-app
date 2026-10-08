@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TurboSanta — Route Planner</title>
+<meta name="theme-color" content="#0d0d0b">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" href="https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.woff2" as="font" type="font/woff2" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+<style>
+  /* ═══════════════════════════════════════ */
+  /* TURBOSANTA DESIGN SYSTEM */
+  /* ═══════════════════════════════════════ */
+  @font-face {
+    font-family: 'Eurostile';
+    src: url('https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  :root {
+    --primary: #FBAF33;
+    --primary-rgb: 251, 175, 51;
+    --on-primary: #000000;
+    --primary-dim: rgba(var(--primary-rgb), 0.12);
+    --primary-glow: rgba(var(--primary-rgb), 0.25);
+    
+    --dark: #0d0d0b;
+    --surface: #161614;
+    --surface-2: #1e1e1b;
+    --surface-3: #252522;
+    --border: rgba(255,255,255,0.08);
+    --border-primary: rgba(var(--primary-rgb), 0.2);
+    --red: #D31C1C;
+    --green: #2ecc71;
+    --blue: #4a9eff;
+    --text: #eaeae5;
+    --text-dim: rgba(255,255,255,0.55);
+    --text-muted: rgba(255,255,255,0.3);
+  }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: 'Open Sans', sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app { 
+    display: flex; 
+    flex-direction: column; 
+    height: 100vh; 
+    width: 100vw;
+  }
+  
+  /* ── TOP BAR ── */
+  .top-bar {
+    padding: 16px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    z-index: 1000;
+  }
+  
+  .top-bar h1 {
+    font-family: 'Eurostile', 'Open Sans', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    line-height: 1;
+    color: #fff;
+    margin: 0;
+  }
+  
+  .top-bar h1 span { color: var(--primary); }
+  .top-bar-right { display: flex; align-items: center; gap: 16px; }
+  
+  .mode-toggle {
+    display: flex;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  
+  .mode-btn {
+    padding: 10px 16px;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    transition: all 0.2s;
+  }
+  
+  .mode-btn:hover { color: #fff; background: var(--surface-3); }
+  .mode-btn.active { background: var(--primary); color: var(--on-primary); }
+
+  /* ── LAYOUT ── */
+  .main { 
+    display: flex; 
+    flex: 1; 
+    height: calc(100vh - 65px);
+    width: 100%;
+    position: relative;
+  }
+
+  .sidebar {
+    width: 400px;
+    background: var(--surface);
+    flex-shrink: 0;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    z-index: 500;
+  }
+  
+  .map-area { 
+    flex: 1; 
+    position: relative; 
+    height: 100%;
+    width: 100%;
+  }
+
+  #map { 
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #000; 
+  }
+
+  /* ── SIDEBAR SECTIONS ── */
+  .sb-section { padding: 24px; border-bottom: 1px solid var(--border); }
+  
+  .sb-label {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* ── DROPZONE ── */
+  .dropzone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 32px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    background: var(--surface-2);
+  }
+  .dropzone:hover, .dropzone.dragover {
+    border-color: var(--primary);
+    background: var(--primary-dim);
+  }
+  .dropzone-icon { font-size: 32px; margin-bottom: 8px; display: block; }
+  .dropzone-text { font-size: 13px; font-weight: 600; color: var(--text-dim); }
+  .dropzone-text em { color: var(--primary); font-style: normal; }
+  .dropzone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+  .file-badge {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 16px; margin-top: 12px;
+  }
+  .file-badge-icon { font-size: 20px; }
+  .file-badge-info { flex: 1; }
+  .file-badge-name { font-size: 13px; font-weight: 700; color: #fff; }
+  .file-badge-meta { font-family: 'Open Sans', sans-serif; font-size: 10px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+  .file-badge-clear { background: none; border: none; color: var(--red); cursor: pointer; font-size: 16px; padding: 4px; }
+
+  /* ── PLACE MODE UI ── */
+  .place-info {
+    background: rgba(var(--primary-rgb),0.05);
+    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+  .place-info strong { color: var(--primary); }
+
+  .profile-row { display: flex; gap: 8px; margin-top: 16px; }
+  .profile-btn {
+    flex: 1; padding: 10px 8px; border-radius: 6px;
+    font-family: 'Open Sans', sans-serif; font-size: 13px; font-weight: 700;
+    cursor: pointer; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text-dim);
+    transition: all 0.15s; text-align: center;
+  }
+  .profile-btn:hover { background: var(--surface-3); color: #fff; }
+  .profile-btn.active {
+    background: var(--primary-dim); color: var(--primary); border-color: var(--border-primary);
+  }
+
+  /* ── STATS GRID ── */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 16px;
+  }
+  .stat-value {
+    font-family: 'Eurostile', 'Open Sans', sans-serif; font-size: 32px; letter-spacing: 1px;
+    color: #fff; line-height: 1; margin-bottom: 4px;
+  }
+  .stat-label {
+    font-family: 'Open Sans', sans-serif; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted);
+  }
+  .stat-value.primary { color: var(--primary); }
+
+  /* ── SLIDERS & SELECTS ── */
+  .speed-row { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+  .speed-row label { font-family: 'Open Sans', sans-serif; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+  .speed-row input[type=range] { flex: 1; accent-color: var(--primary); }
+  .speed-val { font-family: 'Open Sans', sans-serif; font-size: 12px; font-weight: 700; color: var(--primary); min-width: 48px; text-align: right; }
+
+  .density-row { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+  .density-row label { font-family: 'Open Sans', sans-serif; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+  .density-row select {
+    flex: 1; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px 12px; color: #fff; font-family: 'Open Sans', sans-serif;
+    font-size: 13px; font-weight: 600; outline: none; cursor: pointer;
+  }
+
+  /* ── LISTS (STREETS / WAYPOINTS) ── */
+  .street-list, .wp-list { max-height: 240px; overflow-y: auto; margin-top: 12px; padding-right: 12px; }
+  .street-item, .wp-item {
+    display: flex; align-items: center; gap: 12px; padding: 8px 0;
+    border-bottom: 1px solid var(--border); font-size: 13px;
+  }
+  .street-item:last-child, .wp-item:last-child { border-bottom: none; }
+  
+  .street-num, .wp-idx {
+    font-family: 'Open Sans', sans-serif; font-size: 11px; color: var(--primary);
+    font-weight: 700; min-width: 20px; text-align: right;
+  }
+  .street-name { font-weight: 600; color: #fff; flex: 1; }
+  .wp-coords { color: var(--text-dim); font-family: 'Open Sans', monospace; font-size: 12px; flex: 1; }
+  .street-loading { text-align: center; padding: 20px; color: var(--text-dim); font-size: 13px; }
+
+  .wp-del {
+    background: none; border: none; color: var(--red); cursor: pointer;
+    font-size: 14px; padding: 4px; opacity: 0.6; transition: 0.2s;
+  }
+  .wp-del:hover { opacity: 1; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    padding: 12px 16px; border-radius: 12px; font-weight: 900; font-size: 14px;
+    font-family: 'Eurostile', 'Open Sans', sans-serif; letter-spacing: 1px; text-transform: uppercase; 
+    cursor: pointer; border: none; transition: transform 0.1s, filter 0.2s; width: 100%; text-align: center;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--primary); color: var(--on-primary); }
+  .btn-primary:hover { filter: brightness(0.92); }
+  .btn-dim { background: var(--surface-2); color: #fff; border: 1px solid var(--border); }
+  .btn-dim:hover { background: var(--surface-3); }
+  .btn-red { background: rgba(211,28,28,0.15); color: var(--red); border: 1px solid rgba(211,28,28,0.3); }
+  .btn-red:hover { background: rgba(211,28,28,0.25); }
+  .btn-sm { padding: 10px 14px; font-size: 13px; width: auto; }
+  .btn-row { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+
+  /* ── PROGRESS BAR ── */
+  .progress { height: 4px; background: var(--surface-2); border-radius: 2px; margin-top: 12px; overflow: hidden; }
+  .progress-bar { height: 100%; background: var(--primary); transition: width 0.3s; }
+
+  /* ── MAP OVERLAYS ── */
+  .map-legend {
+    position: absolute; bottom: 20px; left: 20px; z-index: 1000;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px 16px; font-size: 12px; color: var(--text-dim);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  }
+  .map-legend strong {
+    color: #fff; display: block; margin-bottom: 4px; font-size: 14px; font-weight: 700;
+  }
+
+  .map-toast {
+    position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000;
+    background: var(--primary); color: var(--on-primary); padding: 8px 20px; border-radius: 100px;
+    font-family: 'Open Sans', sans-serif; font-size: 11px; font-weight: 700; 
+    text-transform: uppercase; letter-spacing: 1px; pointer-events: none; display: none;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  }
+
+  .routing-spinner {
+    position: absolute; top: 20px; right: 20px; z-index: 1000;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 100px; padding: 8px 16px; font-family: 'Open Sans', sans-serif;
+    font-size: 11px; color: var(--primary); font-weight: 700; display: none; align-items: center; gap: 10px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5); text-transform: uppercase; letter-spacing: 1px;
+  }
+  .mini-spin {
+    width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--primary);
+    border-radius: 50%; animation: spin 0.6s linear infinite; flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .wp-count { font-family: 'Open Sans', sans-serif; font-size: 11px; color: var(--primary); font-weight: 700; }
+  .leaflet-top, .leaflet-bottom { z-index: 500 !important; }
+
+  /* ── WAYPOINT STOPS UI ── */
+  .wp-item { flex-direction: column; align-items: stretch; }
+  .wp-header { display: flex; align-items: center; gap: 12px; width: 100%; }
+  .wp-stop-panel { 
+    margin-top: 8px; margin-left: 32px; padding: 8px; 
+    background: rgba(0,0,0,0.2); border-radius: 6px; 
+    border: 1px solid var(--border-primary); 
+  }
+  .wp-stop-toggle { 
+    display: flex; align-items: center; gap: 6px; 
+    font-size: 11px; font-weight: 700; color: var(--primary); 
+    text-transform: uppercase; cursor: pointer; 
+  }
+  .wp-stop-input { 
+    margin-top: 6px; width: 100%; background: var(--surface); 
+    border: 1px solid var(--border); color: #fff; 
+    padding: 6px 8px; border-radius: 4px; 
+    font-family: inherit; font-size: 12px; 
+  }
+  .wp-stop-input:focus { outline: none; border-color: var(--primary); }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="top-bar">
+    <h1>🗺️ ROUTE <span>PLANNER</span></h1>
+    <div class="top-bar-right">
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="modeUpload" onclick="setMode('upload')">📂 Upload GPX</button>
+        <button class="mode-btn" id="modePlace" onclick="setMode('place')">📍 Build Route</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="sidebar">
+
+      <div class="sb-section" id="uploadSection">
+        <div class="sb-label">Load Existing GPX</div>
+        <div class="dropzone" id="dropzone">
+          <input type="file" accept=".gpx" id="fileInput">
+          <span class="dropzone-icon">📂</span>
+          <div class="dropzone-text">Drag &amp; drop <em>.gpx</em> or tap to browse</div>
+        </div>
+        <div id="fileBadge" style="display:none"></div>
+      </div>
+
+      <div class="sb-section" id="placeSection" style="display:none">
+        <div class="sb-label">Build Route <span class="wp-count" id="wpCount">0 pts</span></div>
+        <div class="place-info">
+          <strong>Click the map</strong> to place waypoints. The route auto-snaps to real roads between each point.<br>
+          <strong>Drag</strong> markers to adjust. <strong>Right-click</strong> to delete.
+        </div>
+        <div class="profile-row">
+          <button class="profile-btn active" data-profile="foot" onclick="setProfile(this)">🚶 Walking</button>
+          <button class="profile-btn" data-profile="driving" onclick="setProfile(this)">🚗 Driving</button>
+          <button class="profile-btn" data-profile="bike" onclick="setProfile(this)">🚴 Cycling</button>
+        </div>
+        <div class="wp-list" id="wpList"></div>
+        <div class="btn-row" style="justify-content: center;">
+          <button class="btn btn-dim btn-sm" onclick="undoWaypoint()">↩ Undo</button>
+          <button class="btn btn-red btn-sm" onclick="clearAllWaypoints()">✕ Clear All</button>
+        </div>
+      </div>
+
+      <div class="sb-section" id="statsSection" style="display:none">
+        <div class="sb-label">Route Stats</div>
+        <div class="stats-grid">
+          <div class="stat"><div class="stat-value primary" id="statDist">—</div><div class="stat-label">Distance</div></div>
+          <div class="stat"><div class="stat-value" id="statWaypoints">—</div><div class="stat-label">Waypoints</div></div>
+          <div class="stat"><div class="stat-value primary" id="statTime">—</div><div class="stat-label">Est. Time</div></div>
+          <div class="stat"><div class="stat-value" id="statDense">—</div><div class="stat-label">Export Points</div></div>
+        </div>
+        <div class="speed-row">
+          <label>Speed</label>
+          <input type="range" id="speedSlider" min="1" max="10" step="0.5" value="3">
+          <span class="speed-val" id="speedVal">3 mph</span>
+        </div>
+        <div class="density-row">
+          <label>Density</label>
+          <select id="densitySelect">
+            <option value="5">5m (ultra-dense)</option>
+            <option value="10" selected>10m (recommended)</option>
+            <option value="15">15m</option>
+            <option value="20">20m</option>
+            <option value="50">50m (sparse)</option>
+          </select>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="exportDenseGPX()">⬇ Export Dense GPX</button>
+        </div>
+      </div>
+
+      <div class="sb-section" id="streetsSection" style="display:none">
+        <div class="sb-label">Detected Streets <span class="wp-count" id="streetCountLabel">0</span></div>
+        <div id="streetStatus" class="street-loading">Waiting for route…</div>
+        <div id="progressWrap" style="display:none"><div class="progress"><div class="progress-bar" id="progressBar" style="width:0%"></div></div></div>
+        <div class="street-list" id="streetList"></div>
+        <div class="btn-row" id="streetActions" style="display:none">
+          <button class="btn btn-primary btn-sm" style="flex:1;" onclick="copyStreets()">📋 Copy for Sheet</button>
+          <button class="btn btn-dim btn-sm" onclick="copyCSV()">📄 CSV</button>
+          <button class="btn btn-dim btn-sm" onclick="detectStreets()">🔄 Re-scan</button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="map-area">
+      <div id="map"></div>
+      <div class="map-toast" id="mapToast">Click the map to place waypoints</div>
+      <div class="routing-spinner" id="routingSpinner"><div class="mini-spin"></div>Snapping to roads…</div>
+      <div class="map-legend" id="mapLegend" style="display:none">
+        <strong>Route Preview</strong>
+        <span id="legendText">—</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let mode = 'upload';
+let routingProfile = 'foot';
+let waypoints = [];
+let snappedGeometry = [];
+let uploadedPoints = [];
+let detectedStreets = [];
+let roadNameMap = [];
+let geocodeAbort = false;
+let routingInProgress = false;
+
+let snappedLayer = null;
+let uploadLayer = null;
+let waypointMarkers = [];
+let existingRouteLayers = [];
+
+const routingServers = {
+  driving: 'https://routing.openstreetmap.de/routed-car/route/v1/driving',
+  foot: 'https://routing.openstreetmap.de/routed-foot/route/v1/driving',
+  bike: 'https://routing.openstreetmap.de/routed-bike/route/v1/driving'
+};
+
+// MAP INITIALIZATION
+const map = L.map('map', { zoomControl: true, preferCanvas: true }).setView([52.4708, -1.9207], 15);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap', maxZoom: 19
+}).addTo(map);
+
+// Trigger size recount after map loads to eliminate zero-height layout rendering bugs
+setTimeout(() => { map.invalidateSize(); }, 200);
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('modeUpload').classList.toggle('active', m === 'upload');
+  document.getElementById('modePlace').classList.toggle('active', m === 'place');
+  document.getElementById('uploadSection').style.display = m === 'upload' ? 'block' : 'none';
+  document.getElementById('placeSection').style.display = m === 'place' ? 'block' : 'none';
+  document.getElementById('mapToast').style.display = m === 'place' ? 'block' : 'none';
+  map.getContainer().style.cursor = m === 'place' ? 'crosshair' : '';
+}
+
+function setProfile(btn) {
+  document.querySelectorAll('.profile-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  routingProfile = btn.dataset.profile;
+  if (waypoints.length >= 2) routeAllWaypoints();
+}
+
+map.on('click', async e => {
+  if (mode !== 'place') return;
+  const { lat, lng } = e.latlng;
+  addWaypointMarker(lat, lng);
+  waypoints.push({ lat, lng, isStop: false, stopName: '' }); 
+  updateWpUI();
+  if (waypoints.length >= 2) await routeAllWaypoints();
+  updateStats();
+});
+
+function updateWpUI() {
+  document.getElementById('wpCount').textContent = waypoints.length + ' pts';
+  const list = document.getElementById('wpList');
+  list.innerHTML = waypoints.map((w, i) => `
+    <div class="wp-item">
+      <div class="wp-header">
+        <span class="wp-idx">${i + 1}</span>
+        <span class="wp-coords">${w.lat.toFixed(5)}, ${w.lng.toFixed(5)}</span>
+        <button class="wp-del" onclick="deleteWpIndex(${i})" title="Remove">✕</button>
+      </div>
+      <div class="wp-stop-panel">
+        <label class="wp-stop-toggle">
+          <input type="checkbox" onchange="toggleStop(${i}, this.checked)" ${w.isStop ? 'checked' : ''}>
+          Mark as Planned Stop
+        </label>
+        <input type="text" class="wp-stop-input" placeholder="e.g., The Dog & Duck Pub" 
+               value="${w.stopName}" oninput="updateStopName(${i}, this.value)" 
+               style="display: ${w.isStop ? 'block' : 'none'}">
+      </div>
+    </div>
+  `).join('');
+}
+
+window.toggleStop = function(index, isChecked) {
+  waypoints[index].isStop = isChecked;
+  updateWpUI();
+  updateMarkerVisual(index);
+};
+
+window.updateStopName = function(index, name) {
+  waypoints[index].stopName = name;
+};
+
+function updateMarkerVisual(index) {
+  const marker = waypointMarkers[index];
+  if (!marker) return;
+  const isFirst = index === 0;
+  const w = waypoints[index];
+  
+  const visualHtml = w.isStop 
+    ? `<div style="background:var(--red); width:14px; height:14px; border:2px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,0.5);"></div>`
+    : `<div style="background:${isFirst ? 'var(--green)' : 'var(--primary)'}; width:${isFirst ? 16 : 12}px; height:${isFirst ? 16 : 12}px; border-radius:50%; border:2px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,0.5);"></div>`;
+
+  marker.setIcon(L.divIcon({
+    className: '',
+    html: visualHtml,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8]
+  }));
+}
+
+function addWaypointMarker(lat, lng) {
+  const idx = waypointMarkers.length;
+  const isFirst = idx === 0;
+  const color = isFirst ? 'var(--green)' : 'var(--primary)';
+
+  const marker = L.marker([lat, lng], {
+    draggable: true,
+    icon: L.divIcon({
+      className: '',
+      html: `<div style="background:${color};width:${isFirst ? 16 : 12}px;height:${isFirst ? 16 : 12}px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.5);position:relative;z-index:${1000-idx}"></div>`,
+      iconSize: [16, 16], iconAnchor: [8, 8]
+    }),
+    zIndexOffset: isFirst ? 1000 : 500 - idx
+  }).addTo(map);
+
+  marker.bindTooltip(`Waypoint ${idx + 1}`, { direction: 'top', offset: [0, -8] });
+
+  marker.on('dragend', async () => {
+    const pos = marker.getLatLng();
+    const i = waypointMarkers.indexOf(marker);
+    if (i >= 0) {
+      waypoints[i].lat = pos.lat;
+      waypoints[i].lng = pos.lng;
+      updateWpUI();
+      if (waypoints.length >= 2) await routeAllWaypoints();
+      updateStats();
+    }
+  });
+
+  marker.on('contextmenu', async e => {
+    L.DomEvent.preventDefault(e);
+    const i = waypointMarkers.indexOf(marker);
+    if (i >= 0) {
+      map.removeLayer(marker);
+      waypointMarkers.splice(i, 1);
+      waypoints.splice(i, 1);
+      updateWpUI();
+      if (waypoints.length >= 2) await routeAllWaypoints();
+      else clearSnappedRoute();
+      updateStats();
+    }
+  });
+
+  waypointMarkers.push(marker);
+}
+
+function undoWaypoint() {
+  if (waypointMarkers.length === 0) return;
+  const m = waypointMarkers.pop();
+  map.removeLayer(m);
+  waypoints.pop();
+  updateWpUI();
+  if (waypoints.length >= 2) routeAllWaypoints();
+  else clearSnappedRoute();
+  updateStats();
+}
+
+function clearAllWaypoints() {
+  waypointMarkers.forEach(m => map.removeLayer(m));
+  waypointMarkers = [];
+  waypoints = [];
+  detectedStreets = [];
+  document.getElementById('streetList').innerHTML = '';
+  document.getElementById('streetCountLabel').textContent = '0';
+  document.getElementById('streetActions').style.display = 'none';
+  document.getElementById('streetStatus').textContent = 'Waiting for route…';
+  document.getElementById('progressWrap').style.display = 'none';
+  clearSnappedRoute();
+  updateWpUI();
+  updateStats();
+}
+
+window.deleteWpIndex = async function(i) {
+  if (i >= 0 && i < waypointMarkers.length) {
+    map.removeLayer(waypointMarkers[i]);
+    waypointMarkers.splice(i, 1);
+    waypoints.splice(i, 1);
+    updateWpUI();
+    if (waypoints.length >= 2) await routeAllWaypoints();
+    else clearSnappedRoute();
+    updateStats();
+  }
+}
+
+async function routeAllWaypoints() {
+  if (waypoints.length < 2) return;
+  if (routingInProgress) return;
+  routingInProgress = true;
+
+  const spinner = document.getElementById('routingSpinner');
+  spinner.style.display = 'flex';
+
+  try {
+    const coords = waypoints.map(w => `${w.lng},${w.lat}`).join(';');
+    const baseUrl = routingServers[routingProfile];
+    const url = `${baseUrl}/${coords}?overview=full&geometries=geojson&steps=true`;
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data.code !== 'Ok' || !data.routes || !data.routes[0]) {
+      snappedGeometry = waypoints.map(w => [w.lat, w.lng]);
+      drawSnappedRoute();
+      return;
+    }
+
+    const geojsonCoords = data.routes[0].geometry.coordinates;
+    snappedGeometry = geojsonCoords.map(c => [c[1], c[0]]);
+
+    roadNameMap = new Array(snappedGeometry.length).fill('');
+    try {
+      let geomIdx = 0;
+      for (const leg of (data.routes[0].legs || [])) {
+        for (const step of (leg.steps || [])) {
+          const stepName = (step.name || '').trim();
+          const stepGeomLen = step.geometry?.coordinates?.length || 0;
+          for (let g = 0; g < stepGeomLen && geomIdx < roadNameMap.length; g++, geomIdx++) {
+            roadNameMap[geomIdx] = stepName;
+          }
+        }
+      }
+    } catch(e) { console.warn(e); }
+
+    const osrmStreets = [];
+    const seenOsrm = new Set();
+    (data.routes[0].legs || []).forEach(leg => {
+      (leg.steps || []).forEach(step => {
+        const name = (step.name || '').trim();
+        if (name && name !== '' && !seenOsrm.has(name.toLowerCase())) {
+          seenOsrm.add(name.toLowerCase());
+          osrmStreets.push(name);
+        }
+      });
+    });
+
+    if (osrmStreets.length > 0) {
+      detectedStreets = osrmStreets;
+      const streetList = document.getElementById('streetList');
+      streetList.innerHTML = osrmStreets.map((s, i) =>
+        `<div class="street-item"><span class="street-num">${i + 1}</span><span class="street-name">${s}</span></div>`
+      ).join('');
+      document.getElementById('streetCountLabel').textContent = osrmStreets.length;
+      document.getElementById('streetStatus').textContent = `Done — ${osrmStreets.length} street${osrmStreets.length !== 1 ? 's' : ''} detected (via routing)`;
+      document.getElementById('streetStatus').style.display = 'block';
+      document.getElementById('progressWrap').style.display = 'none';
+      document.getElementById('streetActions').style.display = 'flex';
+    }
+
+    drawSnappedRoute();
+
+  } catch (e) {
+    snappedGeometry = waypoints.map(w => [w.lat, w.lng]);
+    drawSnappedRoute();
+  } finally {
+    routingInProgress = false;
+    spinner.style.display = 'none';
+  }
+}
+
+function drawSnappedRoute() {
+  if (snappedLayer) map.removeLayer(snappedLayer);
+  if (snappedGeometry.length < 2) return;
+
+  snappedLayer = L.polyline(snappedGeometry, {
+    color: '#D31C1C', weight: 4, opacity: 0.9
+  }).addTo(map);
+
+  updateStats();
+  if (detectedStreets.length === 0) detectStreets();
+}
+
+function clearSnappedRoute() {
+  if (snappedLayer) { map.removeLayer(snappedLayer); snappedLayer = null; }
+  snappedGeometry = [];
+  document.getElementById('statsSection').style.display = 'none';
+  document.getElementById('streetsSection').style.display = 'none';
+  document.getElementById('mapLegend').style.display = 'none';
+}
+
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.remove('dragover'); if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', e => { if (e.target.files.length) loadFile(e.target.files[0]); });
+
+function loadFile(file) {
+  if (!file.name.toLowerCase().endsWith('.gpx')) { alert('Please upload a .gpx file'); return; }
+  const reader = new FileReader();
+  reader.onload = e => parseGPX(e.target.result, file.name, file.size);
+  reader.readAsText(file);
+}
+
+function parseGPX(text, name, size) {
+  abortGeocode();
+  const parser = new DOMParser();
+  const gpx = parser.parseFromString(text, 'text/xml');
+  const pts = [];
+  const nodes = gpx.querySelectorAll('trkpt');
+  const fallback = nodes.length ? nodes : gpx.querySelectorAll('rtept').length ? gpx.querySelectorAll('rtept') : gpx.querySelectorAll('wpt');
+  fallback.forEach(pt => {
+    const lat = parseFloat(pt.getAttribute('lat'));
+    const lon = parseFloat(pt.getAttribute('lon'));
+    if (!isNaN(lat) && !isNaN(lon)) pts.push([lat, lon]);
+  });
+  if (pts.length < 2) { alert('GPX needs at least 2 points.'); return; }
+
+  uploadedPoints = pts;
+  snappedGeometry = [];
+
+  if (uploadLayer) map.removeLayer(uploadLayer);
+  uploadLayer = L.polyline(pts, { color: '#D31C1C', weight: 4, opacity: 0.9 }).addTo(map);
+  map.fitBounds(uploadLayer.getBounds(), { padding: [40, 40] });
+
+  document.getElementById('fileBadge').style.display = 'block';
+  document.getElementById('fileBadge').innerHTML = `<div class="file-badge">
+    <span class="file-badge-icon">📍</span>
+    <div class="file-badge-info"><div class="file-badge-name">${name}</div><div class="file-badge-meta">${pts.length} pts · ${(size/1024).toFixed(1)} KB</div></div>
+    <button class="file-badge-clear" onclick="clearUpload()">✕</button>
+  </div>`;
+
+  updateStats();
+  detectStreets();
+}
+
+function clearUpload() {
+  abortGeocode();
+  if (uploadLayer) { map.removeLayer(uploadLayer); uploadLayer = null; }
+  uploadedPoints = [];
+  document.getElementById('fileBadge').style.display = 'none';
+  document.getElementById('statsSection').style.display = 'none';
+  document.getElementById('streetsSection').style.display = 'none';
+  document.getElementById('mapLegend').style.display = 'none';
+  fileInput.value = '';
+}
+
+function getActivePoints() {
+  if (mode === 'upload' && uploadedPoints.length > 0) return uploadedPoints;
+  if (snappedGeometry.length > 0) return snappedGeometry;
+  return [];
+}
+
+function updateStats() {
+  const pts = getActivePoints();
+  if (pts.length < 2) {
+    document.getElementById('statsSection').style.display = 'none';
+    document.getElementById('streetsSection').style.display = 'none';
+    document.getElementById('mapLegend').style.display = 'none';
+    return;
+  }
+
+  const distKm = calcDist(pts);
+  const distMi = distKm * 0.621371;
+  const density = parseInt(document.getElementById('densitySelect').value);
+  const dense = densifyPoints(pts, density);
+
+  document.getElementById('statDist').textContent = distMi < 0.1 ? `${Math.round(distKm * 1000)}m` : `${distMi.toFixed(2)} mi`;
+  document.getElementById('statWaypoints').textContent = mode === 'place' ? waypoints.length : uploadedPoints.length;
+  document.getElementById('statDense').textContent = dense.length.toLocaleString();
+  updateTime(distMi);
+
+  document.getElementById('statsSection').style.display = 'block';
+  document.getElementById('streetsSection').style.display = 'block';
+  document.getElementById('mapLegend').style.display = 'block';
+  document.getElementById('legendText').textContent = `${distMi.toFixed(2)} mi · ${dense.length} export pts`;
+}
+
+const speedSlider = document.getElementById('speedSlider');
+const speedVal = document.getElementById('speedVal');
+speedSlider.addEventListener('input', () => {
+  speedVal.textContent = `${speedSlider.value} mph`;
+  const pts = getActivePoints();
+  if (pts.length > 1) updateTime(calcDist(pts) * 0.621371);
+});
+document.getElementById('densitySelect').addEventListener('change', updateStats);
+
+function updateTime(distMi) {
+  const mins = Math.round((distMi / parseFloat(speedSlider.value)) * 60);
+  document.getElementById('statTime').textContent = mins < 60 ? `${mins} min` : `${Math.floor(mins/60)}h ${mins%60}m`;
+}
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371; const dLat = (lat2-lat1)*Math.PI/180; const dLon = (lon2-lon1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+function calcDist(pts) { let t=0; for(let i=1;i<pts.length;i++) t+=haversine(pts[i-1][0],pts[i-1][1],pts[i][0],pts[i][1]); return t; }
+
+function densifyPoints(points, intervalM) {
+  if (points.length < 2) return [...points];
+  const dense = [points[0]];
+  for (let i = 1; i < points.length; i++) {
+    const [lat1, lon1] = points[i-1];
+    const [lat2, lon2] = points[i];
+    const seg = haversine(lat1, lon1, lat2, lon2) * 1000;
+    if (seg <= intervalM) { dense.push(points[i]); continue; }
+    const n = Math.ceil(seg / intervalM);
+    for (let s = 1; s <= n; s++) {
+      const t = s / n;
+      dense.push([lat1+(lat2-lat1)*t, lon1+(lon2-lon1)*t]);
+    }
+  }
+  return dense;
+}
+
+function densifyWithNames(points, intervalM, names) {
+  if (points.length < 2) return { points: [...points], names: names.length ? [names[0]] : [''] };
+  const denseP = [points[0]];
+  const denseN = [names[0] || ''];
+  for (let i = 1; i < points.length; i++) {
+    const [lat1, lon1] = points[i-1];
+    const [lat2, lon2] = points[i];
+    const roadName = names[i] || names[i-1] || '';
+    const seg = haversine(lat1, lon1, lat2, lon2) * 1000;
+    if (seg <= intervalM) { denseP.push(points[i]); denseN.push(roadName); continue; }
+    const n = Math.ceil(seg / intervalM);
+    for (let s = 1; s <= n; s++) {
+      const t = s / n;
+      denseP.push([lat1+(lat2-lat1)*t, lon1+(lon2-lon1)*t]);
+      denseN.push(roadName);
+    }
+  }
+  return { points: denseP, names: denseN };
+}
+
+function escXml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function exportDenseGPX() {
+  const pts = getActivePoints();
+  if (pts.length < 2) { alert('Build or upload a route first.'); return; }
+
+  const density = parseInt(document.getElementById('densitySelect').value);
+  const hasNames = roadNameMap.length === pts.length && roadNameMap.some(n => n);
+  let dense, denseNames;
+
+  if (hasNames) {
+    const result = densifyWithNames(pts, density, roadNameMap);
+    dense = result.points;
+    denseNames = result.names;
+  } else {
+    dense = densifyPoints(pts, density);
+    denseNames = null;
+  }
+
+  let wptTags = '';
+  waypoints.forEach((w, i) => {
+    if (w.isStop) {
+      const defaultName = `Stop ${i + 1}`;
+      wptTags += `  <wpt lat="${w.lat.toFixed(7)}" lon="${w.lng.toFixed(7)}">\n    <name>${escXml(w.stopName || defaultName)}</name>\n  </wpt>\n`;
+    }
+  });
+
+  const trkpts = dense.map((p, i) => {
+    const nameTag = denseNames && denseNames[i] ? `\n        <name>${escXml(denseNames[i])}</name>` : '';
+    return `      <trkpt lat="${p[0].toFixed(7)}" lon="${p[1].toFixed(7)}">${nameTag}\n      </trkpt>`;
+  }).join('\n');
+
+  const gpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="TurboSanta Route Planner">
+${wptTags}  <trk>
+    <name>TurboSanta Route (${density}m density)</name>
+    <trkseg>
+${trkpts}
+    </trkseg>
+  </trk>
+</gpx>`;
+
+  const blob = new Blob([gpx], { type: 'application/gpx+xml' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `route_${density}m_dense.gpx`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function abortGeocode() { geocodeAbort = true; setTimeout(() => geocodeAbort = false, 100); }
+
+async function detectStreets() {
+  const pts = getActivePoints();
+  if (pts.length < 2) return;
+
+  abortGeocode();
+  await new Promise(r => setTimeout(r, 150));
+  geocodeAbort = false;
+
+  const status = document.getElementById('streetStatus');
+  const progressWrap = document.getElementById('progressWrap');
+  const progressBar = document.getElementById('progressBar');
+  const streetList = document.getElementById('streetList');
+
+  status.textContent = 'Detecting streets…'; status.style.display = 'block';
+  progressWrap.style.display = 'block'; progressBar.style.width = '0%';
+  streetList.innerHTML = ''; detectedStreets = [];
+  document.getElementById('streetActions').style.display = 'none';
+
+  const samples = sampleRoute(pts, 40);
+  const seen = new Set();
+
+  for (let i = 0; i < samples.length; i++) {
+    if (geocodeAbort) return;
+    const pct = Math.round((i / samples.length) * 100);
+    progressBar.style.width = pct + '%';
+    status.textContent = `Detecting… ${pct}% (${detectedStreets.length} found)`;
+
+    let attempts = 0;
+    const maxAttempts = 3;
+    let success = false;
+
+    while (attempts < maxAttempts && !success && !geocodeAbort) {
+      attempts++;
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${samples[i][0]}&lon=${samples[i][1]}&zoom=17&addressdetails=1&countrycodes=gb,ie&email=turbosanta@beverleyroundtable.co.uk`,
+          { headers: { 'Accept-Language': 'en' }, signal: controller.signal }
+        );
+        clearTimeout(timeout);
+
+        if (res.status === 429) {
+          await new Promise(r => setTimeout(r, 2000 * attempts));
+          continue;
+        }
+
+        if (!res.ok) continue;
+
+        const data = await res.json();
+        if (data.error) continue;
+
+        const addr = data?.address || {};
+        const road = addr.road || addr.residential || addr.pedestrian || addr.footway || addr.cycleway || addr.path || addr.street;
+        const cleanRoad = road ? road.trim() : '';
+        if (cleanRoad && !seen.has(cleanRoad.toLowerCase())) {
+          seen.add(cleanRoad.toLowerCase());
+          detectedStreets.push(cleanRoad);
+          const div = document.createElement('div');
+          div.className = 'street-item';
+          div.innerHTML = `<span class="street-num">${detectedStreets.length}</span><span class="street-name">${cleanRoad}</span>`;
+          streetList.appendChild(div);
+        }
+        success = true;
+
+      } catch(e) {
+        if (attempts < maxAttempts) {
+          await new Promise(r => setTimeout(r, 1500 * attempts));
+        }
+      }
+    }
+
+    if (i < samples.length - 1) await new Promise(r => setTimeout(r, 1100));
+  }
+
+  progressBar.style.width = '100%';
+  status.textContent = `Done — ${detectedStreets.length} street${detectedStreets.length !== 1 ? 's' : ''} detected`;
+  document.getElementById('streetCountLabel').textContent = detectedStreets.length;
+  if (detectedStreets.length > 0) document.getElementById('streetActions').style.display = 'flex';
+}
+
+function sampleRoute(pts, intervalM) {
+  const s = [pts[0]]; let a = 0;
+  for (let i = 1; i < pts.length; i++) {
+    a += haversine(pts[i-1][0], pts[i-1][1], pts[i][0], pts[i][1]) * 1000;
+    if (a >= intervalM) { s.push(pts[i]); a = 0; }
+  }
+  if (s[s.length-1] !== pts[pts.length-1]) s.push(pts[pts.length-1]);
+  return s;
+}
+
+function copyStreets() {
+  if (!detectedStreets.length) return;
+  navigator.clipboard.writeText(detectedStreets.join(', ')).then(() =>
+    alert(`Copied ${detectedStreets.length} streets.`));
+}
+function copyCSV() {
+  if (!detectedStreets.length) return;
+  navigator.clipboard.writeText(`#,Street\n${detectedStreets.map((s,i)=>`${i+1},"${s}"`).join('\n')}`).then(() => alert('Copied as CSV.'));
+}
+
+// ═══════════════════════════════════════
+// EXISTING ROUTES (API INTEGRATION)
+// ═══════════════════════════════════════
+const params = new URLSearchParams(location.search);
+let API_URL = params.get("api") || localStorage.getItem("SANTA_API") || sessionStorage.getItem("SANTA_API");
+
+if (API_URL) {
+  localStorage.setItem("SANTA_API", API_URL); 
+  sessionStorage.setItem("SANTA_API", API_URL);
+}
+
+const WORKER_URL = "https://santaproxy.beverley247.workers.dev/";
+const DATA_URL = API_URL ? `${WORKER_URL}?ttl=30&target=${encodeURIComponent(API_URL)}` : null;
+
+function normaliseUrl(url) {
+  const u = String(url || '').trim();
+  if (!u) return '';
+  if (/^https?:\/\//i.test(u)) return u;
+  if (u.startsWith('//')) return 'https:' + u;
+  return 'https://' + u.replace(/^\/+/, '');
+}
+
+const COLOUR_TIERS = [
+  { s: 90, l: 55 }, { s: 85, l: 38 }, { s: 80, l: 70 }, { s: 95, l: 46 }
+];
+function routeColour(index) {
+  const hue = Math.round((index * 137.508) % 360);
+  const tier = COLOUR_TIERS[Math.floor(index / 8) % COLOUR_TIERS.length];
+  return `hsl(${hue}, ${tier.s}%, ${tier.l}%)`;
+}
+
+async function loadExistingRoutes() {
+  if (!DATA_URL) return;
+  try {
+    const res = await fetch(DATA_URL, { cache: "no-store" });
+    const data = await res.json();
+    const routes = (data.routes || []).filter(r => r.gpxUrl);
+
+    for (let i = 0; i < routes.length; i++) {
+      const route = routes[i];
+      try {
+        const gpxRes = await fetch(normaliseUrl(route.gpxUrl), { cache: "no-store" });
+        if (!gpxRes.ok) continue;
+        const gpxText = await gpxRes.text();
+
+        const parser = new DOMParser();
+        const gpx = parser.parseFromString(gpxText, 'text/xml');
+        const pts = [];
+        
+        const nodes = gpx.querySelectorAll('trkpt').length ? gpx.querySelectorAll('trkpt') : (gpx.querySelectorAll('rtept').length ? gpx.querySelectorAll('rtept') : gpx.querySelectorAll('wpt'));
+        
+        nodes.forEach(pt => {
+          const lat = parseFloat(pt.getAttribute('lat'));
+          const lon = parseFloat(pt.getAttribute('lon'));
+          if (!isNaN(lat) && !isNaN(lon)) pts.push([lat, lon]);
+        });
+
+        if (pts.length > 1) {
+          const strokeColor = routeColour(i);
+          
+          const layer = L.polyline(pts, { 
+            color: strokeColor, 
+            weight: 4,
+            opacity: 0.65,
+            dashArray: '8 6' 
+          }).addTo(map);
+          
+          layer.bindTooltip(route.routeName || 'Existing route', { sticky: true });
+          existingRouteLayers.push(layer);
+        }
+      } catch(e) {
+        console.error('Failed to load specific route GPX:', route.routeName, e);
+      }
+    }
+
+    if (existingRouteLayers.length > 0) {
+      const featureGroup = L.featureGroup(existingRouteLayers);
+      map.fitBounds(featureGroup.getBounds(), { padding: [40, 40] });
+    }
+  } catch(e) {
+    console.error('Failed to load routes from API:', e);
+  }
+}
+
+loadExistingRoutes();
+</script>
+</body>
+</html>
