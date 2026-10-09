@@ -61,11 +61,37 @@ export default {
     // 🌐 1. MASTER TRACKER PAYLOAD (GET /api/payload)
     // ==============================================================
     if (path === "/api/payload" && request.method === "GET") {
-      const [routes, streets, donations, latestGps] = await Promise.all([
+      // Auto-migrate created_at and donations table if needed
+      await env.DB.prepare(`
+        CREATE TABLE IF NOT EXISTS donations (
+          id TEXT PRIMARY KEY,
+          table_id TEXT NOT NULL,
+          amount REAL NOT NULL,
+          source TEXT,
+          street_name TEXT,
+          donor_name TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `).run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE donations ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP").run().catch(() => {});
+
+      const reqYear = url.searchParams.get("year");
+      let donationDateFilter = "AND (created_at IS NULL OR strftime('%Y', created_at) = strftime('%Y', 'now'))";
+      if (reqYear === "all") {
+        donationDateFilter = "";
+      } else if (reqYear && /^\d{4}$/.test(reqYear)) {
+        donationDateFilter = `AND strftime('%Y', created_at) = '${reqYear}'`;
+      }
+
+      const [routes, streets, donations, latestGps, breakdown, ledger] = await Promise.all([
         env.DB.prepare("SELECT * FROM routes WHERE table_id = ? ORDER BY date ASC").bind(table.id).all(),
         env.DB.prepare("SELECT * FROM route_streets WHERE table_id = ? ORDER BY sequence_order ASC").bind(table.id).all(),
-        env.DB.prepare("SELECT SUM(amount) as total FROM donations WHERE table_id = ?").bind(table.id).first(),
-        env.DB.prepare("SELECT lat, lng, speed, road_name, timestamp FROM telemetry WHERE table_id = ? ORDER BY timestamp DESC LIMIT 1").bind(table.id).first()
+        env.DB.prepare(`SELECT SUM(amount) as total FROM donations WHERE table_id = ? ${donationDateFilter}`).bind(table.id).first().catch(() => {
+          return env.DB.prepare("SELECT SUM(amount) as total FROM donations WHERE table_id = ?").bind(table.id).first();
+        }),
+        env.DB.prepare("SELECT lat, lng, speed, road_name, timestamp FROM telemetry WHERE table_id = ? ORDER BY timestamp DESC LIMIT 1").bind(table.id).first(),
+        env.DB.prepare(`SELECT source, SUM(amount) as total, COUNT(*) as count FROM donations WHERE table_id = ? ${donationDateFilter} GROUP BY source`).bind(table.id).all().catch(() => ({ results: [] })),
+        env.DB.prepare(`SELECT id, amount, source, street_name, donor_name, created_at FROM donations WHERE table_id = ? ${donationDateFilter} ORDER BY created_at DESC LIMIT 20`).bind(table.id).all().catch(() => ({ results: [] }))
       ]);
 
       const tableConfig = {
@@ -93,7 +119,8 @@ export default {
         headline_sponsor_logo: table.headline_sponsor_logo || null,
         headline_sponsor_url: table.headline_sponsor_url || null,
         headline_sponsor_tagline: table.headline_sponsor_tagline || null,
-        partners: table.partners_json ? JSON.parse(table.partners_json) : []
+        partners: table.partners_json ? JSON.parse(table.partners_json) : [],
+        donation_breakdown: (breakdown && breakdown.results) || []
       };
 
       // Check if telemetry is fresh (< 5 minutes old = 300,000ms)
@@ -128,7 +155,9 @@ export default {
         settings: tableConfig,
         routes: routes.results || [],
         streets: streets.results || [],
-        live_sleigh: liveSleighData
+        live_sleigh: liveSleighData,
+        donationsLedger: (ledger && ledger.results) || [],
+        donation_breakdown: (breakdown && breakdown.results) || []
       });
     }
 
@@ -408,14 +437,27 @@ export default {
       if (amount > 0) {
         const donationId = `${provider}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-        await env.DB.prepare(`
-          INSERT INTO donations (id, table_id, amount, source, street_name, donor_name)
-          VALUES (?, ?, ?, ?, ?, ?)
-        `).bind(donationId, table.id, amount, source, streetName, donorName).run();
+        try {
+          await env.DB.prepare(`
+            INSERT INTO donations (id, table_id, amount, source, street_name, donor_name, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+          `).bind(donationId, table.id, amount, source, streetName, donorName).run();
+        } catch (e) {
+          await env.DB.prepare(`
+            INSERT INTO donations (id, table_id, amount, source, street_name, donor_name)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `).bind(donationId, table.id, amount, source, streetName, donorName).run();
+        }
 
-        const currentTotal = await env.DB.prepare(
-          "SELECT SUM(amount) as total FROM donations WHERE table_id = ?"
-        ).bind(table.id).first();
+        const currentTotal = await env.DB.prepare(`
+          SELECT SUM(amount) as total FROM donations 
+          WHERE table_id = ? 
+            AND (created_at IS NULL OR strftime('%Y', created_at) = strftime('%Y', 'now'))
+        `).bind(table.id).first().catch(async () => {
+          return await env.DB.prepare(
+            "SELECT SUM(amount) as total FROM donations WHERE table_id = ?"
+          ).bind(table.id).first();
+        });
 
         return jsonResponse({
           ok: true,

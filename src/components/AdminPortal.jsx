@@ -1298,6 +1298,95 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
               );
             })()}
 
+            {/* Active Multi-Provider Breakdown for Current Year */}
+            {(() => {
+              const breakdown = tableData?.donation_breakdown || tableData?.table?.donation_breakdown || [];
+              const totalRaised = Number(tableData?.table?.total_raised || 0);
+              const currentYear = new Date().getFullYear();
+
+              return (
+                <div style={{
+                  background: '#0d0d0b',
+                  border: '1px solid var(--border)',
+                  borderRadius: '14px',
+                  padding: '24px',
+                  marginBottom: '20px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+                    <div>
+                      <strong style={{ fontSize: '16px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <CreditCard size={18} color="var(--primary)" />
+                        <span>Active Campaign Multi-Provider Totals ({currentYear})</span>
+                      </strong>
+                      <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+                        Live unified total across all integrated payment gateways for this calendar season.
+                      </p>
+                    </div>
+                    <div style={{
+                      background: 'rgba(251, 175, 51, 0.12)',
+                      border: '1px solid var(--primary)',
+                      borderRadius: '8px',
+                      padding: '8px 16px',
+                      textAlign: 'right'
+                    }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px', fontWeight: 700 }}>
+                        Grand Total Raised
+                      </div>
+                      <div className="brand-font" style={{ fontSize: '24px', color: 'var(--primary)', lineHeight: 1.1 }}>
+                        £{totalRaised.toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Provider Breakdown Grid */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+                    gap: '12px'
+                  }}>
+                    {webhookProviders.map(p => {
+                      const entry = breakdown.find(b => String(b.source).toLowerCase() === p.id.toLowerCase());
+                      const amt = entry ? Number(entry.total || 0) : 0;
+                      const count = entry ? Number(entry.count || 0) : 0;
+
+                      return (
+                        <div
+                          key={p.id}
+                          style={{
+                            background: '#151513',
+                            border: amt > 0 ? `1px solid ${p.badgeColor}` : '1px solid var(--border)',
+                            borderRadius: '10px',
+                            padding: '14px',
+                            boxShadow: amt > 0 ? `0 0 10px ${p.badgeColor}22` : 'none'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>{p.name}</span>
+                            <span style={{
+                              fontSize: '9px',
+                              fontWeight: 800,
+                              padding: '2px 5px',
+                              borderRadius: '4px',
+                              background: p.badgeColor + '22',
+                              color: p.badgeColor
+                            }}>
+                              {p.tag}
+                            </span>
+                          </div>
+                          <div className="brand-font" style={{ fontSize: '20px', color: amt > 0 ? '#22c55e' : 'var(--text-dim)', lineHeight: 1 }}>
+                            £{amt.toFixed(amt % 1 === 0 ? 0 : 2)}
+                          </div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                            {amt > 0 ? `${count} received` : 'Awaiting pings'}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Active Multi-Hook Architecture Explainer */}
             <div style={{
               background: '#0d0d0b',
