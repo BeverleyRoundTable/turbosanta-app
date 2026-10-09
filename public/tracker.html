@@ -1400,52 +1400,40 @@ body.dim-ui .route-sponsor:hover { opacity: 0.85; }
       document.getElementById('installAppBtn').addEventListener('click', async () => { const overlay = document.getElementById('installOverlayBox'); if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; overlay.classList.remove('visible'); deferredPrompt = null; clearTimeout(installTimeout); } });
 
       // ⚡ CLOUDFLARE WORKER ENDPOINT
-      const WORKER_URL = "https://santaproxy.beverley247.workers.dev/";
+      const WORKER_URL = "https://turbosanta-api.beverley247.workers.dev";
 
       async function fetchFastAnnouncements() {
-        if (!AppState.flags.pageVisible || !AppState.vars.apiUrl) return;
-
-        const targetScript = `${AppState.vars.apiUrl}${AppState.vars.apiUrl.includes('?') ? '&' : '?'}function=getAnnouncement`;
-        const fastTrackUrl = `${WORKER_URL}?ttl=2&target=${encodeURIComponent(targetScript)}`;
+        if (!AppState.flags.pageVisible) return;
 
         try {
-          const data = await Utils.loadJSON(fastTrackUrl);
-          if (data.settings && AppState.vars.latestApiData) {
-            const s = AppState.vars.latestApiData.settings || {};
-            s.live_announcement = data.settings.live_announcement || '';
-            s.user_announcement = data.settings.user_announcement || '';
-            s.user_announcement_ts = data.settings.user_announcement_ts || 0;
-            AppState.vars.latestApiData.settings = s;
+          let liveMsg = '';
+          const tableSlug = AppState.vars.tableSlug || (new URLSearchParams(location.search).get("table")) || "beverley";
+          const isD1 = AppState.vars.isWorkerD1 || !AppState.vars.apiUrl || !AppState.vars.apiUrl.includes("script.google.com");
 
-            // Immediately evaluate message UI
-            const liveMsg = s.live_announcement;
-            const userMsg = s.user_announcement;
-            const userMsgTs = Number(String(s.user_announcement_ts).replace(/\D/g, '')) || 0;
-
-            if (userMsg && userMsgTs !== AppState.vars.lastSeenMsgTs) {
-              AppState.vars.lastSeenMsgTs = userMsgTs;
-              sessionStorage.setItem('SANTA_LAST_MSG_TS', String(userMsgTs));
-              if (userMsgTs && (Date.now() - userMsgTs) < 30 * 60 * 1000) AppState.vars.localMsgStartTime = Date.now();
+          if (isD1) {
+            const data = await Utils.loadJSON(`https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableSlug)}`);
+            liveMsg = data?.table?.live_announcement || data?.settings?.live_announcement || '';
+            if (AppState.vars.latestApiData) {
+              if (AppState.vars.latestApiData.table) AppState.vars.latestApiData.table.live_announcement = liveMsg;
+              if (!AppState.vars.latestApiData.settings) AppState.vars.latestApiData.settings = {};
+              AppState.vars.latestApiData.settings.live_announcement = liveMsg;
             }
-            
-            const isUserMsgActive = userMsg && AppState.vars.localMsgStartTime && (Date.now() - AppState.vars.localMsgStartTime < 20000);
-
-            if (liveMsg && liveMsg.trim() !== "") {
-              AppState.dom.statusBox.textContent = `${liveMsg}`;
-              AppState.dom.statusBox.classList.add("is-announcement");
-              AppState.dom.statusBox.classList.remove("is-user-msg");
-              setDimUI(false);
-            } else if (isUserMsgActive) {
-              AppState.dom.statusBox.textContent = `${userMsg}`;
-              AppState.dom.statusBox.classList.add("is-user-msg");
-              AppState.dom.statusBox.classList.remove("is-announcement");
-              setDimUI(false);
-            } else if (AppState.dom.statusBox.classList.contains("is-announcement") || AppState.dom.statusBox.classList.contains("is-user-msg")) {
-              // If it just cleared, remove the classes. The main GPS loop will rewrite the text on the next 6-second tick.
-              AppState.dom.statusBox.classList.remove("is-announcement", "is-user-msg");
-            }
+          } else {
+            const targetScript = `${AppState.vars.apiUrl}${AppState.vars.apiUrl.includes('?') ? '&' : '?'}function=getAnnouncement`;
+            const fastTrackUrl = `https://santaproxy.beverley247.workers.dev/?ttl=2&target=${encodeURIComponent(targetScript)}`;
+            const data = await Utils.loadJSON(fastTrackUrl);
+            liveMsg = data?.settings?.live_announcement || '';
           }
-        } catch(e) { } // Fail silently so it doesn't clutter the console
+
+          if (liveMsg && liveMsg.trim() !== "") {
+            AppState.dom.statusBox.textContent = `${liveMsg}`;
+            AppState.dom.statusBox.classList.add("is-announcement");
+            AppState.dom.statusBox.classList.remove("is-user-msg");
+            setDimUI(false);
+          } else if (AppState.dom.statusBox.classList.contains("is-announcement")) {
+            AppState.dom.statusBox.classList.remove("is-announcement");
+          }
+        } catch(e) { }
       }
 
       const AppConfig = {
@@ -2201,19 +2189,46 @@ if (!data || !Utils.validPos(data.lat, data.lng)) {
 AppState.vars.consecutiveErrors = 0;
 setConnectionState("live");
 
-const ts = new Date(data.ts).getTime(), age = Date.now() - ts, isFresh = age <= AppConfig.API.STALE_MS;
+          const rawTs = data.ts || data.timestamp;
+          const ts = rawTs ? new Date(rawTs).getTime() : 0;
+          const age = ts > 0 ? (Date.now() - ts) : Infinity;
+          const isFresh = Boolean(data.is_fresh !== false && ts > 0 && age <= AppConfig.API.STALE_MS);
 
           const rs = document.getElementById('routeSponsor');
-if (rs) rs.classList.toggle('visible', !!AppState.vars.sponsorReady && !AppState.flags.isKiosk && !AppState.flags.isDriver);
-if (window.layoutOverlays) window.layoutOverlays();
+          if (rs) rs.classList.toggle('visible', !!AppState.vars.sponsorReady && !AppState.flags.isKiosk && !AppState.flags.isDriver);
+          if (window.layoutOverlays) window.layoutOverlays();
           
-          if (AppState.flags.isKiosk) { AppState.dom.kioskBanner.classList.toggle("live", isFresh); const statusEl = document.getElementById("kioskStatus"); if (statusEl) statusEl.textContent = isFresh ? "LIVE TRACKING" : "PREPARING IN LAPLAND"; if (AppState.dom.sponsorBox) AppState.dom.sponsorBox.classList.toggle("visible", isFresh && !!AppState.vars.kioskSponsorReady); }
+          if (AppState.flags.isKiosk) { 
+            AppState.dom.kioskBanner.classList.toggle("live", isFresh); 
+            const statusEl = document.getElementById("kioskStatus"); 
+            if (statusEl) statusEl.textContent = isFresh ? "LIVE TRACKING" : "PREPARING IN LAPLAND"; 
+            if (AppState.dom.sponsorBox) AppState.dom.sponsorBox.classList.toggle("visible", isFresh && !!AppState.vars.kioskSponsorReady); 
+          }
 
           if (!isFresh) {
-            if (!AppState.vars.staleSince) AppState.vars.staleSince = ts;
-            if (Date.now() - AppState.vars.staleSince > AppConfig.API.STALE_MS) { AppState.marker.setLatLng(AppConfig.LOCATIONS.LAPLAND); if (AppState.flags.follow) AppState.map.setView(AppConfig.LOCATIONS.LAPLAND, 5, { animate: true, duration: 2 }); AppState.dom.statusBox.textContent = getScheduledPinEtaText() || "Santa is in Lapland preparing for Christmas!"; AppState.dom.statusBox.classList.remove("is-announcement", "is-user-msg"); AppState.dom.statusDot.style.display = "none"; setDimUI(false); AppState.flags.firstFix = true; SleighAudio.setIntensity(0); scheduleNextPoll(); return; }
-            if (AppState.lastFix) { animateMarkerTo(AppState.lastFix.lat, AppState.lastFix.lng); const staleRoad = AppState.gpxRoute?.[AppState.vars.lastSnapIndex]?.roadName; AppState.dom.statusBox.textContent = staleRoad ? `Santa has stopped on ${staleRoad}!` : "Santa has stopped to spread cheer!"; AppState.dom.statusBox.classList.remove("is-announcement", "is-user-msg"); AppState.dom.statusDot.style.display = "block"; AppState.dom.statusDot.className = "status-dot dot-stopped"; setDimUI(false); scheduleNextPoll(); return; }
-          } else { AppState.vars.staleSince = null; AppState.lastFix = { lat: data.lat, lng: data.lng }; }
+            // Stale GPS (> 5 mins) -> DEFAULT TO LOADING ON LAPLAND!
+            AppState.marker.setLatLng(AppConfig.LOCATIONS.LAPLAND);
+            if (AppState.flags.firstFix || AppState.flags.follow) {
+              AppState.map.setView(AppConfig.LOCATIONS.LAPLAND, 5, { animate: !AppState.flags.firstFix, duration: 1.5 });
+            }
+            const liveMsg = AppState.vars.latestApiData?.table?.live_announcement || AppState.vars.latestApiData?.settings?.live_announcement;
+            if (liveMsg && liveMsg.trim() !== "") {
+              AppState.dom.statusBox.textContent = `📢 ${liveMsg}`;
+              AppState.dom.statusBox.classList.add("is-announcement");
+            } else {
+              AppState.dom.statusBox.textContent = getScheduledPinEtaText() || "Santa is resting in Lapland preparing for tonight!";
+              AppState.dom.statusBox.classList.remove("is-announcement", "is-user-msg");
+            }
+            AppState.dom.statusDot.style.display = "none";
+            setDimUI(false);
+            AppState.flags.firstFix = false;
+            SleighAudio.setIntensity(0);
+            scheduleNextPoll();
+            return;
+          } else {
+            AppState.vars.staleSince = null;
+            AppState.lastFix = { lat: data.lat, lng: data.lng };
+          }
 
           let visualPos = { lat: data.lat, lng: data.lng };
           if (AppState.flags.gpxLoaded) {

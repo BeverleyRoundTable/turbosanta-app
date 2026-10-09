@@ -173,41 +173,23 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
         )}
 
         {/* Navigation */}
-        <nav style={{
-          background: '#000000',
-          borderBottom: '1px solid var(--border)',
-          padding: '15px 20px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          position: 'sticky',
-          top: 0,
-          zIndex: 100
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+        <nav className="public-navbar">
+          <div className="public-navbar-brand">
             <img
               src={logoUrl}
               alt={`${siteName} logo`}
-              style={{
-                height: '48px',
-                width: '48px',
-                objectFit: 'contain',
-                borderRadius: '50%',
-                background: '#FFFFFF',
-                padding: '2px'
-              }}
               onError={(e) => { e.currentTarget.src = DEFAULT_LOGO; }}
             />
-            <span className="brand-font" style={{ fontSize: '20px', color: '#FFFFFF', fontWeight: 700, textTransform: 'uppercase' }}>
+            <span className="brand-font">
               {siteName}
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '22px', flexWrap: 'wrap' }}>
-            <a href="#tracker" className="brand-font" style={{ color: '#FFFFFF', textDecoration: 'none', fontWeight: 700, fontSize: '13px', letterSpacing: '1.2px' }}>Live Tracker</a>
-            <a href="#routes" className="brand-font" style={{ color: '#FFFFFF', textDecoration: 'none', fontWeight: 700, fontSize: '13px', letterSpacing: '1.2px' }}>Routes</a>
-            <a href="#memory-book" className="brand-font" style={{ color: '#FFFFFF', textDecoration: 'none', fontWeight: 700, fontSize: '13px', letterSpacing: '1.2px' }}>Memory Book</a>
-            <a href="#donate" className="brand-font" style={{ color: '#FFFFFF', textDecoration: 'none', fontWeight: 700, fontSize: '13px', letterSpacing: '1.2px' }}>Donate</a>
+          <div className="public-navbar-links">
+            <a href="#tracker" className="brand-font">Live Tracker</a>
+            <a href="#routes" className="brand-font">Routes</a>
+            <a href="#memory-book" className="brand-font">Memory Book</a>
+            <a href="#donate" className="brand-font nav-donate-pill">Donate</a>
           </div>
         </nav>
 

@@ -68,32 +68,58 @@ export default {
         env.DB.prepare("SELECT lat, lng, speed, road_name, timestamp FROM telemetry WHERE table_id = ? ORDER BY timestamp DESC LIMIT 1").bind(table.id).first()
       ]);
 
+      const tableConfig = {
+        id: table.id,
+        name: table.name,
+        slug: table.slug,
+        sleigh_display_name: table.sleigh_display_name,
+        primary_color: table.primary_color,
+        accent_color: table.accent_color,
+        donate_url: table.donate_url,
+        charity_name: table.charity_name,
+        fundraising_goal: table.fundraising_goal,
+        total_raised: (donations && donations.total) || 0,
+        live_announcement: table.live_announcement,
+        tracking_active: Boolean(table.tracking_active),
+        enable_gift_aid: Boolean(table.enable_gift_aid),
+        charity_number: table.charity_number || "",
+        logo_url: table.logo_url || null,
+        headline_sponsor_name: table.headline_sponsor_name || null,
+        headline_sponsor_logo: table.headline_sponsor_logo || null,
+        headline_sponsor_url: table.headline_sponsor_url || null,
+        headline_sponsor_tagline: table.headline_sponsor_tagline || null,
+        partners: table.partners_json ? JSON.parse(table.partners_json) : []
+      };
+
+      // Check if telemetry is fresh (< 5 minutes old = 300,000ms)
+      let isGpsFresh = false;
+      if (latestGps && latestGps.timestamp) {
+        const gpsTime = new Date(latestGps.timestamp + (String(latestGps.timestamp).includes("Z") ? "" : "Z")).getTime();
+        isGpsFresh = !isNaN(gpsTime) && (Date.now() - gpsTime) <= 5 * 60 * 1000;
+      }
+
+      const liveSleighData = (latestGps && isGpsFresh) ? {
+        ...latestGps,
+        ts: latestGps.timestamp,
+        is_fresh: true,
+        status: "Live Tracking"
+      } : {
+        lat: 66.5436,
+        lng: 25.8473,
+        speed: 0,
+        road_name: "Lapland Workshop",
+        timestamp: latestGps?.timestamp || null,
+        ts: latestGps?.timestamp || null,
+        is_fresh: false,
+        status: "Resting in Lapland"
+      };
+
       return jsonResponse({
-        table: {
-          id: table.id,
-          name: table.name,
-          slug: table.slug,
-          sleigh_display_name: table.sleigh_display_name,
-          primary_color: table.primary_color,
-          accent_color: table.accent_color,
-          donate_url: table.donate_url,
-          charity_name: table.charity_name,
-          fundraising_goal: table.fundraising_goal,
-          total_raised: (donations && donations.total) || 0,
-          live_announcement: table.live_announcement,
-          tracking_active: Boolean(table.tracking_active),
-          enable_gift_aid: Boolean(table.enable_gift_aid),
-          charity_number: table.charity_number || "",
-          logo_url: table.logo_url || null,
-          headline_sponsor_name: table.headline_sponsor_name || null,
-          headline_sponsor_logo: table.headline_sponsor_logo || null,
-          headline_sponsor_url: table.headline_sponsor_url || null,
-          headline_sponsor_tagline: table.headline_sponsor_tagline || null,
-          partners: table.partners_json ? JSON.parse(table.partners_json) : []
-        },
+        table: tableConfig,
+        settings: tableConfig,
         routes: routes.results || [],
         streets: streets.results || [],
-        live_sleigh: latestGps || { status: "Resting in Lapland" }
+        live_sleigh: liveSleighData
       });
     }
 
@@ -105,7 +131,25 @@ export default {
         "SELECT lat, lng, speed, road_name, timestamp FROM telemetry WHERE table_id = ? ORDER BY timestamp DESC LIMIT 1"
       ).bind(table.id).first();
 
-      return jsonResponse(gps || { status: "Offline" });
+      if (!gps) {
+        return jsonResponse({ lat: 66.5436, lng: 25.8473, speed: 0, road_name: "Lapland Workshop", status: "Resting in Lapland", is_fresh: false, ts: null });
+      }
+
+      const gpsTime = new Date(gps.timestamp + (String(gps.timestamp).includes("Z") ? "" : "Z")).getTime();
+      const isFresh = !isNaN(gpsTime) && (Date.now() - gpsTime) <= 5 * 60 * 1000;
+
+      return jsonResponse({
+        lat: isFresh ? gps.lat : 66.5436,
+        lng: isFresh ? gps.lng : 25.8473,
+        real_lat: gps.lat,
+        real_lng: gps.lng,
+        speed: isFresh ? (gps.speed || 0) : 0,
+        road_name: isFresh ? (gps.road_name || "") : "Lapland Workshop",
+        timestamp: gps.timestamp,
+        ts: gps.timestamp,
+        is_fresh: isFresh,
+        status: isFresh ? "Live Tracking" : "Resting in Lapland"
+      });
     }
 
     // ==============================================================

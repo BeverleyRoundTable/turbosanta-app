@@ -362,11 +362,18 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     }
 
     try {
-      await fetch(`https://turbosanta-api.beverley247.workers.dev/api/announcement?table=${encodeURIComponent(session?.tableId || 'beverley')}`, {
+      const secret = session?.secret || 'Santa2026!';
+      const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/announcement?table=${encodeURIComponent(session?.tableId || 'beverley')}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text || '' })
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${secret}`
+        },
+        body: JSON.stringify({ message: text || '', secret })
       });
+      if (!res.ok) {
+        console.warn('Worker announcement update failed with status:', res.status);
+      }
     } catch (e) {
       console.warn('Worker announcement update failed:', e);
     }
