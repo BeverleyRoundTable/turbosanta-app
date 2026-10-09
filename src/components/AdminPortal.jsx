@@ -200,11 +200,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   const [copiedKey, setCopiedKey] = useState('');
   const [crewAlertText, setCrewAlertText] = useState('');
   const [activeCrewAlert, setActiveCrewAlert] = useState('');
-  const [messages, setMessages] = useState([
-    { id: 1, text: "Just saw Santa turning onto New Road! The kids are cheering! 🎅🎉", time: "2m ago", status: "pending" },
-    { id: 2, text: "Buckets filled on Lawless Lane! Elves doing a brilliant job!", time: "5m ago", status: "approved" },
-    { id: 3, text: "Can Santa wave to the upstairs window at 24? Big fans here!", time: "8m ago", status: "pending" }
-  ]);
+  const [messages, setMessages] = useState([]);
 
   const copyToClipboard = (key, text) => {
     navigator.clipboard.writeText(text);
@@ -994,12 +990,15 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
             background: '#151513',
             border: '1px solid var(--border)',
             borderRadius: '16px',
-            padding: '30px'
+            padding: 'clamp(16px, 4vw, 30px)',
+            maxWidth: '100%',
+            boxSizing: 'border-box',
+            overflow: 'hidden'
           }}>
-            <h2 className="brand-font" style={{ fontSize: '24px', margin: '0 0 10px 0' }}>
+            <h2 className="brand-font" style={{ fontSize: 'clamp(20px, 4vw, 24px)', margin: '0 0 10px 0', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
               Live PA Announcement Broadcast
             </h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '24px' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '24px', overflowWrap: 'break-word' }}>
               Post an instant red alert banner at the very top of every family's live tracker screen.
             </p>
 
@@ -1011,7 +1010,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
               <div style={{
                 backgroundColor: announcementText ? '#d31c1c' : '#262624',
                 color: '#ffffff',
-                padding: '12px 20px',
+                padding: '12px 16px',
                 borderRadius: '8px',
                 textAlign: 'center',
                 fontWeight: 700,
@@ -1020,10 +1019,15 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
+                flexWrap: 'wrap',
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word',
+                boxSizing: 'border-box',
+                maxWidth: '100%',
                 transition: 'background-color 0.2s'
               }}>
-                <span>📢 LIVE ANNOUNCEMENT:</span>
-                <span>{announcementText || "No active announcement (Banner hidden on public site)"}</span>
+                <span style={{ flexShrink: 0 }}>📢 LIVE ANNOUNCEMENT:</span>
+                <span style={{ wordBreak: 'break-word', maxWidth: '100%' }}>{announcementText || "No active announcement (Banner hidden on public site)"}</span>
               </div>
             </div>
 
@@ -1047,11 +1051,11 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '30px' }}>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '30px', flexWrap: 'wrap', width: '100%' }}>
               <button
                 onClick={() => handleBroadcast(announcementText)}
                 className="btn-primary"
-                style={{ padding: '10px 22px' }}
+                style={{ padding: '12px 20px', flex: '1 1 180px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', textAlign: 'center' }}
               >
                 <Megaphone size={18} />
                 <span>Publish Banner</span>
@@ -1060,7 +1064,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
               <button
                 onClick={() => handleBroadcast('')}
                 className="btn-secondary"
-                style={{ padding: '10px 22px', borderColor: '#d31c1c', color: '#fca5a5' }}
+                style={{ padding: '12px 20px', borderColor: '#d31c1c', color: '#fca5a5', flex: '1 1 180px', textAlign: 'center' }}
               >
                 Clear Announcement
               </button>
@@ -2331,17 +2335,20 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
             background: '#151513',
             border: '1px solid var(--border)',
             borderRadius: '16px',
-            padding: '30px'
+            padding: 'clamp(16px, 4vw, 30px)',
+            maxWidth: '100%',
+            boxSizing: 'border-box',
+            overflow: 'hidden'
           }}>
-            <h2 className="brand-font" style={{ fontSize: '24px', margin: '0 0 10px 0' }}>
+            <h2 className="brand-font" style={{ fontSize: 'clamp(20px, 4vw, 24px)', margin: '0 0 10px 0', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
               Walking Crew Alerts & Moderation
             </h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '24px' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '24px', overflowWrap: 'break-word' }}>
               Broadcast urgent operational alerts directly to bucket-collecting elves, and moderate public spotting messages.
             </p>
 
             {/* Crew Alert Broadcaster */}
-            <div style={{ background: '#0d0d0b', border: '1px solid rgba(211,28,28,0.3)', borderRadius: '12px', padding: '20px', marginBottom: '30px' }}>
+            <div style={{ background: '#0d0d0b', border: '1px solid rgba(211,28,28,0.3)', borderRadius: '12px', padding: '16px 20px', marginBottom: '30px', boxSizing: 'border-box', maxWidth: '100%' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                 <Bell size={18} color="#d31c1c" />
                 <strong style={{ fontSize: '16px', color: '#fff' }}>Emergency / Operational Alert to Elves</strong>
@@ -2363,7 +2370,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   boxSizing: 'border-box'
                 }}
               />
-              <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 <button
                   onClick={() => {
                     setActiveCrewAlert(crewAlertText);
@@ -2371,7 +2378,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     setTimeout(() => setSaveStatus(''), 3000);
                   }}
                   className="btn-primary"
-                  style={{ padding: '8px 18px', fontSize: '13px', background: '#d31c1c' }}
+                  style={{ padding: '10px 18px', fontSize: '13px', background: '#d31c1c', flex: '1 1 160px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                 >
                   <Bell size={14} />
                   <span>Send Crew Alert</span>
@@ -2385,14 +2392,14 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       setTimeout(() => setSaveStatus(''), 3000);
                     }}
                     className="btn-secondary"
-                    style={{ padding: '8px 18px', fontSize: '13px' }}
+                    style={{ padding: '10px 18px', fontSize: '13px', flex: '1 1 160px' }}
                   >
                     Clear Active Alert
                   </button>
                 )}
               </div>
               {activeCrewAlert && (
-                <div style={{ marginTop: '14px', padding: '10px 14px', background: 'rgba(211,28,28,0.15)', border: '1px solid #d31c1c', borderRadius: '8px', color: '#fca5a5', fontSize: '13px' }}>
+                <div style={{ marginTop: '14px', padding: '10px 14px', background: 'rgba(211,28,28,0.15)', border: '1px solid #d31c1c', borderRadius: '8px', color: '#fca5a5', fontSize: '13px', wordBreak: 'break-word' }}>
                   <strong>ACTIVE ON CREW SCREENS:</strong> {activeCrewAlert}
                 </div>
               )}
@@ -2404,57 +2411,74 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 Public Spotting Notes & Messages ({messages.filter(m => m.status === 'pending').length} Pending)
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {messages.map(msg => (
-                  <div
-                    key={msg.id}
-                    style={{
-                      background: '#0d0d0b',
-                      border: '1px solid var(--border)',
-                      borderRadius: '10px',
-                      padding: '16px 20px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: '16px',
-                      flexWrap: 'wrap'
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: '220px' }}>
-                      <p style={{ margin: '0 0 6px 0', fontSize: '14px', color: '#fff', fontStyle: 'italic' }}>
-                        "{msg.text}"
-                      </p>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                        Received {msg.time} • Status: <strong style={{ color: msg.status === 'approved' ? '#86efac' : msg.status === 'rejected' ? '#fca5a5' : 'var(--primary)' }}>{msg.status.toUpperCase()}</strong>
-                      </span>
+                {messages.length === 0 ? (
+                  <div style={{
+                    background: '#0d0d0b',
+                    border: '1px solid var(--border)',
+                    borderRadius: '12px',
+                    padding: '36px 20px',
+                    textAlign: 'center',
+                    color: 'var(--text-muted)'
+                  }}>
+                    <MessageSquare size={32} style={{ opacity: 0.35, margin: '0 auto 10px', display: 'block' }} />
+                    <div style={{ fontSize: '15px', fontWeight: 600, color: '#fff' }}>No Public Spotting Notes Yet</div>
+                    <div style={{ fontSize: '12px', marginTop: '6px', maxWidth: '420px', margin: '6px auto 0', lineHeight: 1.5 }}>
+                      When community supporters submit live spotting notes or cheer messages from the tracker, they will appear here in real-time for elf moderation.
                     </div>
-                    {msg.status === 'pending' && (
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                          onClick={() => {
-                            setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: 'approved' } : m));
-                            setSaveStatus('Message approved for public display!');
-                            setTimeout(() => setSaveStatus(''), 2500);
-                          }}
-                          className="btn-primary"
-                          style={{ padding: '6px 12px', fontSize: '12px', background: '#22c55e', color: '#000' }}
-                        >
-                          <Check size={14} />
-                          <span>Approve</span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: 'rejected' } : m));
-                          }}
-                          className="btn-secondary"
-                          style={{ padding: '6px 12px', fontSize: '12px', borderColor: '#d31c1c', color: '#fca5a5' }}
-                        >
-                          <X size={14} />
-                          <span>Reject</span>
-                        </button>
-                      </div>
-                    )}
                   </div>
-                ))}
+                ) : (
+                  messages.map(msg => (
+                    <div
+                      key={msg.id}
+                      style={{
+                        background: '#0d0d0b',
+                        border: '1px solid var(--border)',
+                        borderRadius: '10px',
+                        padding: '16px 20px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '16px',
+                        flexWrap: 'wrap'
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: '220px' }}>
+                        <p style={{ margin: '0 0 6px 0', fontSize: '14px', color: '#fff', fontStyle: 'italic' }}>
+                          "{msg.text}"
+                        </p>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                          Received {msg.time} • Status: <strong style={{ color: msg.status === 'approved' ? '#86efac' : msg.status === 'rejected' ? '#fca5a5' : 'var(--primary)' }}>{msg.status.toUpperCase()}</strong>
+                        </span>
+                      </div>
+                      {msg.status === 'pending' && (
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            onClick={() => {
+                              setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: 'approved' } : m));
+                              setSaveStatus('Message approved for public display!');
+                              setTimeout(() => setSaveStatus(''), 2500);
+                            }}
+                            className="btn-primary"
+                            style={{ padding: '6px 12px', fontSize: '12px', background: '#22c55e', color: '#000' }}
+                          >
+                            <Check size={14} />
+                            <span>Approve</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: 'rejected' } : m));
+                            }}
+                            className="btn-secondary"
+                            style={{ padding: '6px 12px', fontSize: '12px', borderColor: '#d31c1c', color: '#fca5a5' }}
+                          >
+                            <X size={14} />
+                            <span>Reject</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -3035,25 +3059,28 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
               background: '#151513',
               border: '1px solid var(--border)',
               borderRadius: '16px',
-              padding: '28px 32px',
+              padding: 'clamp(16px, 4vw, 30px)',
               marginBottom: '24px',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+              boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
+              overflow: 'hidden'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
-                <div>
-                  <h2 className="brand-font" style={{ fontSize: '24px', margin: '0 0 6px 0', color: '#fff' }}>
+                <div style={{ flex: '1 1 260px', minWidth: 0 }}>
+                  <h2 className="brand-font" style={{ fontSize: 'clamp(20px, 4vw, 24px)', margin: '0 0 6px 0', color: '#fff', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
                     Community Polaroids & Social Media Vault
                   </h2>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0 }}>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0, overflowWrap: 'break-word' }}>
                     Download community photos and video clips for your Instagram, Facebook, and press releases.
                   </p>
                 </div>
 
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', width: '100%', maxWidth: '500px' }}>
                   <button
                     onClick={handleBatchDownloadSeason}
                     className="btn-primary"
-                    style={{ padding: '8px 18px', fontSize: '13px' }}
+                    style={{ padding: '10px 18px', fontSize: '13px', flex: '1 1 200px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                   >
                     <FolderDown size={16} />
                     <span>Download All {selectedSeason} Media (Batch)</span>
@@ -3064,7 +3091,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn-secondary"
-                    style={{ padding: '8px 16px', fontSize: '13px', textDecoration: 'none' }}
+                    style={{ padding: '10px 18px', fontSize: '13px', textDecoration: 'none', flex: '1 1 150px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', textAlign: 'center' }}
                   >
                     <ExternalLink size={15} />
                     <span>View Public Gallery</span>
@@ -3073,48 +3100,65 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
               </div>
 
               {/* Season / Year Time Machine Selector */}
-              <div style={{
-                background: '#0d0d0b',
-                border: '1px solid var(--border)',
-                borderRadius: '12px',
-                padding: '16px 20px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '12px'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700 }}>
-                    <Filter size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
-                    Active Christmas Season:
-                  </span>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    {['2026', '2027', '2025'].map(yr => (
-                      <button
-                        key={yr}
-                        onClick={() => setSelectedSeason(yr)}
-                        style={{
-                          background: selectedSeason === yr ? 'var(--primary)' : '#1e1e1b',
-                          color: selectedSeason === yr ? '#000' : '#fff',
-                          border: selectedSeason === yr ? 'none' : '1px solid var(--border)',
-                          borderRadius: '8px',
-                          padding: '6px 14px',
-                          fontSize: '13px',
-                          fontWeight: 700,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {yr === '2026' ? '⭐ 2026 (Current)' : yr === '2027' ? '🎄 2027 (Upcoming)' : '📦 2025 Archive'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              {(() => {
+                const availableMediaSeasons = ['2026'];
+                if (Array.isArray(tableData?.season_history)) {
+                  tableData.season_history.forEach(h => {
+                    if (h.year && !availableMediaSeasons.includes(String(h.year))) {
+                      availableMediaSeasons.push(String(h.year));
+                    }
+                  });
+                }
+                availableMediaSeasons.sort((a, b) => Number(b) - Number(a));
 
-                <div style={{ fontSize: '12px', color: '#86efac', fontWeight: 600 }}>
-                  ✓ Photos & videos are isolated by season — December 2027 will remain separate from 2026.
-                </div>
-              </div>
+                return (
+                  <div style={{
+                    background: '#0d0d0b',
+                    border: '1px solid var(--border)',
+                    borderRadius: '12px',
+                    padding: '16px 20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '12px',
+                    boxSizing: 'border-box',
+                    maxWidth: '100%',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Filter size={14} />
+                        Active Christmas Season:
+                      </span>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {availableMediaSeasons.map(yr => (
+                          <button
+                            key={yr}
+                            onClick={() => setSelectedSeason(yr)}
+                            style={{
+                              background: selectedSeason === yr ? 'var(--primary)' : '#1e1e1b',
+                              color: selectedSeason === yr ? '#000' : '#fff',
+                              border: selectedSeason === yr ? 'none' : '1px solid var(--border)',
+                              borderRadius: '8px',
+                              padding: '6px 14px',
+                              fontSize: '13px',
+                              fontWeight: 700,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {yr === '2026' ? '⭐ 2026 (Current)' : `📅 ${yr} Season`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div style={{ fontSize: '12px', color: '#86efac', fontWeight: 600 }}>
+                      ✓ Photos & videos are isolated by season.
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Architecture Explainer Pill */}
@@ -3128,7 +3172,10 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
               alignItems: 'center',
               gap: '14px',
               fontSize: '13px',
-              color: 'var(--text-muted)'
+              color: 'var(--text-muted)',
+              flexWrap: 'wrap',
+              boxSizing: 'border-box',
+              maxWidth: '100%'
             }}>
               <div style={{ background: 'var(--primary)', color: '#000', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Sparkles size={16} />

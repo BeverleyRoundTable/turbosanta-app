@@ -1138,13 +1138,13 @@ export default {
           const sql = isAdmin
             ? `SELECT id, media_type, media_url, caption, year, status, created_at
                FROM memory_book
-               WHERE table_id = ? AND year = ?
+               WHERE (table_id = ? OR table_id = ?) AND year = ?
                ORDER BY created_at DESC`
             : `SELECT id, media_type, media_url, caption, year, created_at
                FROM memory_book
-               WHERE table_id = ? AND year = ? AND status = 'approved'
+               WHERE (table_id = ? OR table_id = ?) AND year = ? AND status = 'approved'
                ORDER BY created_at DESC`;
-          const res = await env.DB.prepare(sql).bind(table.id, year).all();
+          const res = await env.DB.prepare(sql).bind(table.id, table.slug, year).all();
           return jsonResponse({ ok: true, year, items: res.results || [] });
         } catch (e) {
           return jsonResponse({ ok: true, year, items: [] });
@@ -1193,7 +1193,7 @@ export default {
         const memId = url.searchParams.get("id");
         if (!memId) return jsonResponse({ ok: false, error: "Missing memory ID" }, 400);
         try {
-          await env.DB.prepare(`DELETE FROM memory_book WHERE id = ? AND table_id = ?`).bind(memId, table.id).run();
+          await env.DB.prepare(`DELETE FROM memory_book WHERE id = ? AND (table_id = ? OR table_id = ?)`).bind(memId, table.id, table.slug).run();
           return jsonResponse({ ok: true, deleted: memId });
         } catch (err) {
           return jsonResponse({ ok: false, error: err.message }, 500);
@@ -1212,8 +1212,8 @@ export default {
       }
       try {
         await env.DB.prepare(`
-          UPDATE memory_book SET status = ? WHERE id = ? AND table_id = ?
-        `).bind(newStatus, memId, table.id).run();
+          UPDATE memory_book SET status = ? WHERE id = ? AND (table_id = ? OR table_id = ?)
+        `).bind(newStatus, memId, table.id, table.slug).run();
         return jsonResponse({ ok: true, id: memId, status: newStatus });
       } catch (err) {
         return jsonResponse({ ok: false, error: err.message }, 500);
