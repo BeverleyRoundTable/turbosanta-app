@@ -74,6 +74,71 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     }
   ]);
 
+  const [memoryModerationFilter, setMemoryModerationFilter] = useState('all');
+
+  // Fetch live Memory Book submissions from Cloudflare D1
+  React.useEffect(() => {
+    if (activeTab === 'memory') {
+      const tableSlug = session?.tableId || session?.tableSlug || 'beverley';
+      fetch(`https://turbosanta-api.beverley247.workers.dev/api/memory-book?table=${encodeURIComponent(tableSlug)}&year=${selectedSeason}&admin=1`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && Array.isArray(data.items)) {
+            const dbItems = data.items.map(m => ({
+              id: m.id,
+              year: String(m.year),
+              type: m.media_type || 'photo',
+              url: m.media_url,
+              caption: m.caption || 'Spotted Santa!',
+              route: 'Community Upload',
+              time: m.created_at ? new Date(m.created_at).toLocaleString('en-GB') : 'Just now',
+              author: 'Public Community',
+              status: m.status || 'pending'
+            }));
+            setMemoryItems(prev => {
+              const dbIds = new Set(dbItems.map(d => String(d.id)));
+              const samples = prev.filter(p => typeof p.id === 'number' && !dbIds.has(String(p.id)));
+              return [...dbItems, ...samples];
+            });
+          }
+        })
+        .catch(err => console.warn("Failed to fetch memory book items for admin:", err));
+    }
+  }, [activeTab, selectedSeason, session]);
+
+  const handleModerateMemory = async (itemId, newStatus) => {
+    const tableSlug = session?.tableId || session?.tableSlug || 'beverley';
+    setMemoryItems(prev => prev.map(m => String(m.id) === String(itemId) ? { ...m, status: newStatus } : m));
+    setSaveStatus(`Photo status updated to "${newStatus}"!`);
+    setTimeout(() => setSaveStatus(''), 2500);
+
+    try {
+      await fetch(`https://turbosanta-api.beverley247.workers.dev/api/memory-book/moderate?table=${encodeURIComponent(tableSlug)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: itemId, status: newStatus })
+      });
+    } catch (e) {
+      console.warn("Failed to update status on worker:", e);
+    }
+  };
+
+  const handleDeleteMemory = async (itemId) => {
+    if (!confirm("Are you sure you want to permanently delete this photo submission?")) return;
+    const tableSlug = session?.tableId || session?.tableSlug || 'beverley';
+    setMemoryItems(prev => prev.filter(m => String(m.id) !== String(itemId)));
+    setSaveStatus("Photo deleted permanently.");
+    setTimeout(() => setSaveStatus(''), 2500);
+
+    try {
+      await fetch(`https://turbosanta-api.beverley247.workers.dev/api/memory-book?table=${encodeURIComponent(tableSlug)}&id=${encodeURIComponent(itemId)}`, {
+        method: 'DELETE'
+      });
+    } catch (e) {
+      console.warn("Failed to delete memory item on worker:", e);
+    }
+  };
+
   const handleDownloadMedia = (url, filename) => {
     const a = document.createElement('a');
     a.href = url;
@@ -1915,158 +1980,271 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
               </div>
             </div>
 
+            {/* Moderation Status Bar */}
+            {(() => {
+              const seasonItems = memoryItems.filter(m => m.year === selectedSeason);
+              const pendingCount = seasonItems.filter(m => m.status === 'pending').length;
+              const approvedCount = seasonItems.filter(m => m.status === 'approved').length;
+              const hiddenCount = seasonItems.filter(m => m.status === 'hidden' || m.status === 'rejected').length;
+
+              return (
+                <div style={{
+                  display: 'flex',
+                  gap: '10px',
+                  marginBottom: '20px',
+                  flexWrap: 'wrap',
+                  alignItems: 'center'
+                }}>
+                  {[
+                    { id: 'all', label: `All Media (${seasonItems.length})` },
+                    { id: 'pending', label: `⚠️ Needs Screening (${pendingCount})`, highlight: pendingCount > 0 },
+                    { id: 'approved', label: `✅ Live in Memory Book (${approvedCount})` },
+                    { id: 'hidden', label: `🚫 Hidden / Rejected (${hiddenCount})` }
+                  ].map(f => (
+                    <button
+                      key={f.id}
+                      onClick={() => setMemoryModerationFilter(f.id)}
+                      style={{
+                        background: memoryModerationFilter === f.id
+                          ? (f.highlight ? '#d97706' : 'var(--primary)')
+                          : (f.highlight ? 'rgba(245, 158, 11, 0.15)' : '#1e1e1b'),
+                        color: memoryModerationFilter === f.id ? '#000' : (f.highlight ? '#fbbf24' : '#fff'),
+                        border: f.highlight ? '1px solid #f59e0b' : '1px solid var(--border)',
+                        borderRadius: '8px',
+                        padding: '8px 16px',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
+
             {/* Grid of Season Media */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
               gap: '20px'
             }}>
-              {memoryItems.filter(m => m.year === selectedSeason).length === 0 ? (
-                <div style={{
-                  gridColumn: '1 / -1',
-                  background: '#151513',
-                  border: '1px solid var(--border)',
-                  borderRadius: '16px',
-                  padding: '48px 24px',
-                  textAlign: 'center',
-                  color: 'var(--text-muted)'
-                }}>
-                  <Camera size={40} style={{ opacity: 0.3, marginBottom: '12px' }} />
-                  <h3 className="brand-font" style={{ fontSize: '18px', color: '#fff', marginBottom: '6px' }}>
-                    No Media Submissions for {selectedSeason} Yet
-                  </h3>
-                  <p style={{ fontSize: '13px', maxWidth: '460px', margin: '0 auto' }}>
-                    When families upload photos or videos via the public tracker or Spot Santa form during December {selectedSeason}, they will appear here automatically for review and social download.
-                  </p>
-                </div>
-              ) : (
-                memoryItems
-                  .filter(m => m.year === selectedSeason)
-                  .map(item => (
-                    <div
-                      key={item.id}
-                      style={{
-                        background: '#151513',
-                        border: '1px solid var(--border)',
-                        borderRadius: '14px',
-                        overflow: 'hidden',
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+              {(() => {
+                const seasonItems = memoryItems.filter(m => m.year === selectedSeason);
+                const displayItems = seasonItems.filter(m => {
+                  if (memoryModerationFilter === 'pending') return m.status === 'pending';
+                  if (memoryModerationFilter === 'approved') return m.status === 'approved';
+                  if (memoryModerationFilter === 'hidden') return m.status === 'hidden' || m.status === 'rejected';
+                  return true;
+                });
+
+                if (displayItems.length === 0) {
+                  return (
+                    <div style={{
+                      gridColumn: '1 / -1',
+                      background: '#151513',
+                      border: '1px solid var(--border)',
+                      borderRadius: '16px',
+                      padding: '48px 24px',
+                      textAlign: 'center',
+                      color: 'var(--text-muted)'
+                    }}>
+                      <Camera size={40} style={{ opacity: 0.3, marginBottom: '12px' }} />
+                      <h3 className="brand-font" style={{ fontSize: '18px', color: '#fff', marginBottom: '6px' }}>
+                        No {memoryModerationFilter !== 'all' ? memoryModerationFilter : ''} Submissions for {selectedSeason}
+                      </h3>
+                      <p style={{ fontSize: '13px', maxWidth: '460px', margin: '0 auto' }}>
+                        When families upload photos or videos via the public tracker, they will appear in the screening queue for admin approval before going live.
+                      </p>
+                    </div>
+                  );
+                }
+
+                return displayItems.map(item => (
+                  <div
+                    key={item.id}
+                    style={{
+                      background: '#151513',
+                      border: item.status === 'pending' ? '1px solid #f59e0b' : '1px solid var(--border)',
+                      borderRadius: '14px',
+                      overflow: 'hidden',
+                      boxShadow: item.status === 'pending' ? '0 8px 24px rgba(245, 158, 11, 0.2)' : '0 8px 24px rgba(0,0,0,0.4)',
+                      display: 'flex',
+                      flexDirection: 'column'
+                    }}
+                  >
+                    {/* Media Preview Box */}
+                    <div style={{ position: 'relative', width: '100%', height: '200px', background: '#000' }}>
+                      {item.type === 'video' ? (
+                        <video
+                          src={item.url}
+                          poster={item.poster}
+                          controls
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <img
+                          src={item.url}
+                          alt={item.caption}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      )}
+
+                      {/* Media Type Badge */}
+                      <div style={{
+                        position: 'absolute',
+                        top: '10px',
+                        left: '10px',
+                        background: item.type === 'video' ? '#ef4444' : '#3b82f6',
+                        color: '#fff',
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
                         display: 'flex',
-                        flexDirection: 'column'
-                      }}
-                    >
-                      {/* Media Preview Box */}
-                      <div style={{ position: 'relative', width: '100%', height: '200px', background: '#000' }}>
-                        {item.type === 'video' ? (
-                          <video
-                            src={item.url}
-                            poster={item.poster}
-                            controls
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
-                        ) : (
-                          <img
-                            src={item.url}
-                            alt={item.caption}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
-                        )}
-
-                        {/* Media Type Badge */}
-                        <div style={{
-                          position: 'absolute',
-                          top: '10px',
-                          left: '10px',
-                          background: item.type === 'video' ? '#ef4444' : '#3b82f6',
-                          color: '#fff',
-                          padding: '4px 10px',
-                          borderRadius: '6px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          textTransform: 'uppercase',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px'
-                        }}>
-                          {item.type === 'video' ? <Video size={12} /> : <ImageIcon size={12} />}
-                          <span>{item.type}</span>
-                        </div>
-
-                        {/* Season Badge */}
-                        <div style={{
-                          position: 'absolute',
-                          top: '10px',
-                          right: '10px',
-                          background: 'rgba(0,0,0,0.7)',
-                          color: 'var(--primary)',
-                          border: '1px solid var(--border-primary)',
-                          padding: '4px 8px',
-                          borderRadius: '6px',
-                          fontSize: '11px',
-                          fontWeight: 700
-                        }}>
-                          {item.year} SEASON
-                        </div>
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}>
+                        {item.type === 'video' ? <Video size={12} /> : <ImageIcon size={12} />}
+                        <span>{item.type}</span>
                       </div>
 
-                      {/* Card Content */}
-                      <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                        <div>
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                            📍 {item.route} • {item.time}
-                          </div>
-                          <p style={{ fontSize: '14px', color: '#fff', margin: '0 0 10px 0', lineHeight: 1.4 }}>
-                            "{item.caption}"
-                          </p>
-                          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                            Submitted by: <strong>{item.author}</strong>
-                          </div>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div style={{ marginTop: '16px', display: 'flex', gap: '8px' }}>
-                          <button
-                            onClick={() => {
-                              const ext = item.type === 'video' ? 'mp4' : 'jpg';
-                              const name = `${session.tableId || 'table'}_santa_${item.year}_${item.route.replace(/\s+/g, '_')}_${item.id}.${ext}`;
-                              handleDownloadMedia(item.url, name);
-                            }}
-                            className="btn-primary"
-                            style={{ flex: 1, padding: '8px 12px', fontSize: '12px', justifyContent: 'center' }}
-                          >
-                            <Download size={14} />
-                            <span>Download for Socials</span>
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setMemoryItems(prev => prev.map(m => m.id === item.id ? { ...m, status: m.status === 'approved' ? 'hidden' : 'approved' } : m));
-                              setSaveStatus(`Status updated to ${item.status === 'approved' ? 'Hidden' : 'Approved'}`);
-                              setTimeout(() => setSaveStatus(''), 2000);
-                            }}
-                            style={{
-                              background: item.status === 'approved' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                              border: item.status === 'approved' ? '1px solid #22c55e' : '1px solid #ef4444',
-                              color: item.status === 'approved' ? '#86efac' : '#fca5a5',
-                              padding: '8px 12px',
-                              borderRadius: '8px',
-                              fontSize: '12px',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px'
-                            }}
-                            title={item.status === 'approved' ? 'Click to hide from public gallery' : 'Click to approve for public gallery'}
-                          >
-                            {item.status === 'approved' ? <Eye size={14} /> : <EyeOff size={14} />}
-                            <span>{item.status === 'approved' ? 'Public' : 'Hidden'}</span>
-                          </button>
-                        </div>
+                      {/* Moderation Status Banner */}
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '10px',
+                        left: '10px',
+                        right: '10px',
+                        background: item.status === 'pending'
+                          ? 'rgba(217, 119, 6, 0.95)'
+                          : item.status === 'approved'
+                          ? 'rgba(22, 163, 74, 0.9)'
+                          : 'rgba(220, 38, 38, 0.9)',
+                        color: '#fff',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        fontSize: '10px',
+                        fontWeight: 800,
+                        textTransform: 'uppercase',
+                        textAlign: 'center',
+                        letterSpacing: '1px'
+                      }}>
+                        {item.status === 'pending' ? '⚠️ PENDING REVIEW (HIDDEN FROM PUBLIC)' : item.status === 'approved' ? '✅ LIVE IN PUBLIC GALLERY' : '🚫 HIDDEN'}
                       </div>
                     </div>
-                  ))
-              )}
+
+                    {/* Card Content */}
+                    <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                      <div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                          📍 {item.route} • {item.time}
+                        </div>
+                        <p style={{ fontSize: '14px', color: '#fff', margin: '0 0 10px 0', lineHeight: 1.4 }}>
+                          "{item.caption}"
+                        </p>
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                          Submitted by: <strong>{item.author}</strong>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div style={{ marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {item.status === 'pending' ? (
+                          <>
+                            <button
+                              onClick={() => handleModerateMemory(item.id, 'approved')}
+                              style={{
+                                flex: 1,
+                                background: '#16a34a',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '8px',
+                                padding: '8px 12px',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '4px'
+                              }}
+                            >
+                              <CheckCircle2 size={15} />
+                              <span>Approve & Publish</span>
+                            </button>
+                            <button
+                              onClick={() => handleDeleteMemory(item.id)}
+                              style={{
+                                background: 'rgba(239, 68, 68, 0.2)',
+                                border: '1px solid #ef4444',
+                                color: '#fca5a5',
+                                borderRadius: '8px',
+                                padding: '8px 12px',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                            >
+                              <Trash2 size={14} />
+                              <span>Reject</span>
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => {
+                                const ext = item.type === 'video' ? 'mp4' : 'jpg';
+                                const name = `${session.tableId || 'table'}_santa_${item.year}_${item.id}.${ext}`;
+                                handleDownloadMedia(item.url, name);
+                              }}
+                              className="btn-primary"
+                              style={{ flex: 1, padding: '8px 12px', fontSize: '12px', justifyContent: 'center' }}
+                            >
+                              <Download size={14} />
+                              <span>Download</span>
+                            </button>
+                            <button
+                              onClick={() => handleModerateMemory(item.id, item.status === 'approved' ? 'hidden' : 'approved')}
+                              style={{
+                                background: item.status === 'approved' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)',
+                                border: item.status === 'approved' ? '1px solid #ef4444' : '1px solid #22c55e',
+                                color: item.status === 'approved' ? '#fca5a5' : '#86efac',
+                                borderRadius: '8px',
+                                padding: '8px 10px',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {item.status === 'approved' ? 'Hide' : 'Approve'}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteMemory(item.id)}
+                              style={{
+                                background: 'rgba(255, 255, 255, 0.05)',
+                                border: '1px solid var(--border)',
+                                color: 'var(--text-muted)',
+                                borderRadius: '8px',
+                                padding: '8px 10px',
+                                fontSize: '12px',
+                                cursor: 'pointer'
+                              }}
+                              title="Delete permanently"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ));
+              })()}
             </div>
           </div>
         )}

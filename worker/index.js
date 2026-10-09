@@ -665,13 +665,18 @@ export default {
     if (path === "/api/memory-book") {
       if (request.method === "GET") {
         const year = parseInt(url.searchParams.get("year")) || new Date().getFullYear();
+        const isAdmin = url.searchParams.get("admin") === "1" || url.searchParams.get("admin") === "true";
         try {
-          const res = await env.DB.prepare(`
-            SELECT id, media_type, media_url, caption, year, created_at
-            FROM memory_book
-            WHERE table_id = ? AND year = ? AND status = 'approved'
-            ORDER BY created_at DESC
-          `).bind(table.id, year).all();
+          const sql = isAdmin
+            ? `SELECT id, media_type, media_url, caption, year, status, created_at
+               FROM memory_book
+               WHERE table_id = ? AND year = ?
+               ORDER BY created_at DESC`
+            : `SELECT id, media_type, media_url, caption, year, created_at
+               FROM memory_book
+               WHERE table_id = ? AND year = ? AND status = 'approved'
+               ORDER BY created_at DESC`;
+          const res = await env.DB.prepare(sql).bind(table.id, year).all();
           return jsonResponse({ ok: true, year, items: res.results || [] });
         } catch (e) {
           return jsonResponse({ ok: true, year, items: [] });
@@ -699,7 +704,7 @@ export default {
               media_url TEXT NOT NULL,
               caption TEXT,
               year INTEGER NOT NULL,
-              status TEXT DEFAULT 'approved',
+              status TEXT DEFAULT 'pending',
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
           `).run();
@@ -707,13 +712,43 @@ export default {
           const memId = `mem_${Date.now()}_${Math.random().toString(36).substring(7)}`;
           await env.DB.prepare(`
             INSERT INTO memory_book (id, table_id, media_type, media_url, caption, year, status)
-            VALUES (?, ?, ?, ?, ?, ?, 'approved')
+            VALUES (?, ?, ?, ?, ?, ?, 'pending')
           `).bind(memId, table.id, mediaType, imageData, caption, year).run();
 
-          return jsonResponse({ ok: true, id: memId, status: "Approved" });
+          return jsonResponse({ ok: true, id: memId, status: "pending", message: "Submitted for moderation" });
         } catch (err) {
           return jsonResponse({ ok: false, error: err.message }, 500);
         }
+      }
+
+      if (request.method === "DELETE") {
+        const memId = url.searchParams.get("id");
+        if (!memId) return jsonResponse({ ok: false, error: "Missing memory ID" }, 400);
+        try {
+          await env.DB.prepare(`DELETE FROM memory_book WHERE id = ? AND table_id = ?`).bind(memId, table.id).run();
+          return jsonResponse({ ok: true, deleted: memId });
+        } catch (err) {
+          return jsonResponse({ ok: false, error: err.message }, 500);
+        }
+      }
+    }
+
+    // Moderate Memory Submission: POST /api/memory-book/moderate
+    if (path === "/api/memory-book/moderate" && request.method === "POST") {
+      let body = {};
+      try { body = await request.json(); } catch (e) { body = {}; }
+      const memId = body.id || "";
+      const newStatus = body.status || "approved"; // 'approved', 'rejected', 'hidden'
+      if (!memId) {
+        return jsonResponse({ ok: false, error: "Missing memory ID" }, 400);
+      }
+      try {
+        await env.DB.prepare(`
+          UPDATE memory_book SET status = ? WHERE id = ? AND table_id = ?
+        `).bind(newStatus, memId, table.id).run();
+        return jsonResponse({ ok: true, id: memId, status: newStatus });
+      } catch (err) {
+        return jsonResponse({ ok: false, error: err.message }, 500);
       }
     }
 
