@@ -817,6 +817,26 @@
         </div>
     </section>
 
+    <!-- BLUEPRINT SECTION (Beverley Custom) -->
+    <section id="blueprint" style="display: none; padding: 60px 20px; max-width: 1000px; margin: 0 auto; text-align: center;">
+        <div class="section-header">
+            <h2>INSIDE SANTA'S <span style="color: var(--primary);">WORKSHOP</span></h2>
+            <p>Tap the glowing dots on the electric sleigh to see the magic under the hood!</p>
+        </div>
+        <div class="iframe-container">
+            <iframe id="blueprint-iframe" height="600" title="Santa Sleigh Blueprint" scrolling="no" loading="lazy" style="width:100%; height:560px; border:none; display:block;"></iframe>
+        </div>
+    </section>
+
+    <!-- COMMUNITY PARTNERS (Beverley Custom) -->
+    <section id="partners" style="display: none; padding: 60px 20px; max-width: 1000px; margin: 0 auto; text-align: center;">
+        <div class="section-header">
+            <h2>COMMUNITY <span style="color: var(--primary);">PARTNERS</span></h2>
+            <p>Thank you to the generous local organisations keeping the magic rolling.</p>
+        </div>
+        <div id="partners-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; text-align: left;"></div>
+    </section>
+
     <!-- MEMORY BOOK SECTION -->
     <section id="memory-book">
         <div class="section-header">
@@ -935,6 +955,7 @@
 
     <footer>
         <p>&copy; <span id="year"></span> <span id="footer-name">Santa Sleigh</span>. Powered by TurboSanta.</p>
+        <p style="margin-top: 12px;"><a id="admin-login-link" href="/?table=beverley&admin=1" style="color: var(--text-muted); font-size: 12px; text-decoration: underline;"><i class="fa-solid fa-lock"></i> Organiser &amp; Admin Login</a></p>
     </footer>
 
     <script>
@@ -1602,6 +1623,69 @@
             safely('sponsors', () => renderSponsors(sponsors));
             safely('about', () => renderAbout(settings));
             safely('social', () => renderSocial(settings));
+            safely('blueprint', () => {
+                const slug = window.__sleighTableSlug || 'beverley';
+                const bp = $('blueprint');
+                const bpf = $('blueprint-iframe');
+                if ((slug === 'beverley' || settings.enable_blueprint) && bp && bpf) {
+                    bpf.src = `${CFG.frameBase}/blueprint.html?table=${encodeURIComponent(slug)}`;
+                    bp.style.display = 'block';
+                } else if (bp) {
+                    bp.style.display = 'none';
+                }
+            });
+            safely('partners', () => {
+                const slug = window.__sleighTableSlug || 'beverley';
+                const partSec = $('partners');
+                const partCont = $('partners-container');
+                const partners = (data && data.partners && data.partners.length > 0)
+                    ? data.partners
+                    : (slug === 'beverley' ? [
+                        { name: "Zendure", role: "Official Power Partner", description: "Provided clean green portable power stations to keep the illuminations glowing bright.", url: "https://zendure.co.uk/" },
+                        { name: "Greens Signmakers", role: "Signage & Vinyl Craft", description: "Transformed the electric tuk-tuk into a show-stopping Santa Sleigh with eco-friendly signage.", url: "https://greens-signmakers.co.uk/" },
+                        { name: "Beverley Town Council", role: "Civic & Audio Grant", description: "Supported local community joy with civic and audio equipment grant funding.", url: "https://beverley.gov.uk/" },
+                        { name: "The Monks Walk", role: "Volunteer Sustenance", description: "Historic Beverley inn providing warming festive drinks and sustenance for volunteer elves.", url: "https://themonkswalk.co.uk/" }
+                    ] : []);
+
+                if (partners && partners.length > 0 && partSec && partCont) {
+                    partCont.replaceChildren();
+                    partners.forEach(p => {
+                        const card = el('div', '', '');
+                        card.style.cssText = 'background: #000000; border: 1px solid var(--border); border-radius: 14px; padding: 22px;';
+                        
+                        const role = el('div', '', p.role || 'Partner');
+                        role.style.cssText = 'color: var(--primary); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 800; margin-bottom: 6px;';
+                        card.appendChild(role);
+
+                        const title = el('h3', 'brand-font', p.name);
+                        title.style.cssText = 'font-size: 20px; color: #FFFFFF; margin-bottom: 8px;';
+                        card.appendChild(title);
+
+                        if (p.description) {
+                            const desc = el('p', '', p.description);
+                            desc.style.cssText = 'font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 12px;';
+                            card.appendChild(desc);
+                        }
+
+                        if (p.url) {
+                            const a = el('a', '', `Visit ${p.name} →`);
+                            a.href = p.url;
+                            a.target = '_blank';
+                            a.rel = 'noopener noreferrer';
+                            a.style.cssText = 'color: var(--primary); font-size: 12px; font-weight: 700; text-transform: uppercase; text-decoration: none;';
+                            card.appendChild(a);
+                        }
+                        partCont.appendChild(card);
+                    });
+                    partSec.style.display = 'block';
+                } else if (partSec) {
+                    partSec.style.display = 'none';
+                }
+            });
+            const adminLink = $('admin-login-link');
+            if (adminLink) {
+                adminLink.href = `/?table=${encodeURIComponent(window.__sleighTableSlug || 'beverley')}&admin=1`;
+            }
         }
 
         const SETUP_ERROR_HTML = "Could not load data from the provided API. Please check the URL and ensure your Google Script is deployed as a Web App accessible to 'Anyone'.";
@@ -1657,7 +1741,12 @@
                                 donate_url: data.table?.donate_url || '',
                                 live_announcement: data.table?.live_announcement || '',
                                 logo_overlay_url: data.table?.logo_url || '',
-                                background_url: data.table?.background_url || ''
+                                background_url: data.table?.background_url || '',
+                                table_website_url: data.table?.website_url || data.table?.table_website_url || 'https://www.roundtable.co.uk',
+                                table_facebook_url: data.table?.facebook_url || data.table?.table_facebook_url || '',
+                                table_instagram_url: data.table?.instagram_url || data.table?.table_instagram_url || '',
+                                table_tiktok_url: data.table?.tiktok_url || data.table?.table_tiktok_url || '',
+                                table_youtube_url: data.table?.youtube_url || data.table?.table_youtube_url || ''
                             },
                             donations: {
                                 total: data.table?.total_raised || 0,
