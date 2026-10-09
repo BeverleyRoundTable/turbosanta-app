@@ -24,12 +24,19 @@ html {
   background-color: var(--bg-dark);
   color: var(--text-main);
   line-height: 1.6;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
+  width: 100%;
+  max-width: 100vw;
   overflow-x: hidden;
+  box-sizing: border-box;
   background-color: var(--bg-dark);
   background-image: 
     linear-gradient(180deg, rgba(29, 29, 26, 0.88) 0%, rgba(0, 0, 0, 0.96) 100%),
@@ -37,6 +44,13 @@ body {
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
+}
+
+#root {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 h1, h2, h3, h4, h5, h6, .brand-font, nav a, .nav-link, .header-caps {
@@ -237,6 +251,9 @@ h1, h2, h3, h4, h5, h6, .brand-font, nav a, .nav-link, .header-caps {
   top: 0;
   z-index: 100;
   backdrop-filter: blur(10px);
+  width: 100%;
+  max-width: 100vw;
+  box-sizing: border-box;
 }
 
 .public-navbar-brand {
@@ -272,7 +289,7 @@ h1, h2, h3, h4, h5, h6, .brand-font, nav a, .nav-link, .header-caps {
 .public-navbar-links {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
   flex-shrink: 0;
 }
 
@@ -292,10 +309,14 @@ h1, h2, h3, h4, h5, h6, .brand-font, nav a, .nav-link, .header-caps {
 
 @media (max-width: 640px) {
   .public-navbar {
+    width: 100%;
+    max-width: 100vw;
+    box-sizing: border-box;
     flex-direction: column;
     align-items: stretch;
-    padding: 10px 14px 10px;
-    gap: 10px;
+    padding: 10px 12px 10px;
+    gap: 8px;
+    overflow: hidden;
   }
 
   .public-navbar-brand {
@@ -303,19 +324,21 @@ h1, h2, h3, h4, h5, h6, .brand-font, nav a, .nav-link, .header-caps {
   }
 
   .public-navbar-brand img {
-    height: 36px;
-    width: 36px;
+    height: 34px;
+    width: 34px;
   }
 
   .public-navbar-brand span {
-    font-size: 15px;
+    font-size: 14px;
     letter-spacing: 0.5px;
   }
 
   .public-navbar-links {
     width: 100%;
-    display: flex;
-    justify-content: space-between;
+    max-width: 100%;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
     align-items: center;
     gap: 6px;
     padding-top: 8px;
@@ -323,14 +346,22 @@ h1, h2, h3, h4, h5, h6, .brand-font, nav a, .nav-link, .header-caps {
   }
 
   .public-navbar-links a {
-    flex: 1;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
     text-align: center;
     font-size: 11px;
     letter-spacing: 0.5px;
-    padding: 6px 4px;
+    padding: 7px 2px;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .public-navbar-links a.nav-donate-pill {

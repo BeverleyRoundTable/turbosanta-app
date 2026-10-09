@@ -136,6 +136,9 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
       minHeight: '100vh',
       lineHeight: 1.6,
       position: 'relative',
+      width: '100%',
+      maxWidth: '100vw',
+      overflowX: 'hidden',
       '--primary': primaryColor,
       '--on-primary': onPrimaryColor,
       '--border': 'rgba(255, 255, 255, 0.15)',
@@ -157,18 +160,21 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
         pointerEvents: 'none'
       }} />
 
-      <div style={{ position: 'relative', zIndex: 1 }}>
+      <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
         {/* Live Announcement Bar */}
         {table.live_announcement && (
           <div style={{
             background: 'var(--primary)',
             color: 'var(--on-primary)',
-            padding: '10px 20px',
+            padding: '10px 16px',
             textAlign: 'center',
             fontWeight: 700,
-            fontSize: '14px'
+            fontSize: '14px',
+            width: '100%',
+            maxWidth: '100vw',
+            boxSizing: 'border-box'
           }}>
-            🎅 {table.live_announcement}
+            📢 {table.live_announcement.replace(/^\s*(\?\?|📢|🎅)+\s*/g, '')}
           </div>
         )}
 
@@ -186,9 +192,9 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
           </div>
 
           <div className="public-navbar-links">
-            <a href="#tracker" className="brand-font">Live Tracker</a>
+            <a href="#tracker" className="brand-font">Tracker</a>
             <a href="#routes" className="brand-font">Routes</a>
-            <a href="#memory-book" className="brand-font">Memory Book</a>
+            <a href="#photos" className="brand-font">Photos</a>
             <a href="#donate" className="brand-font nav-donate-pill">Donate</a>
           </div>
         </nav>
@@ -473,7 +479,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
               marginBottom: '35px',
               boxShadow: '0 0 25px rgba(251, 175, 51, 0.2), 0 10px 30px rgba(0,0,0,0.6)',
               display: 'grid',
-              gridTemplateColumns: todayItem.sponsorName ? '1.1fr 1fr' : '1fr',
+              gridTemplateColumns: todayItem.sponsorName ? 'repeat(auto-fit, minmax(280px, 1fr))' : '1fr',
               gap: '25px',
               alignItems: 'center'
             }}>
@@ -686,14 +692,15 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
           );
         })()}
 
-        {/* 6. Digital Memory Book Section (Embedding memory_book.html) */}
-        <section id="memory-book" style={{ padding: '60px 20px', maxWidth: '1000px', margin: '0 auto', scrollMarginTop: '80px' }}>
+        {/* 6. Community Polaroids Section (Embedding memory_book.html) */}
+        <section id="photos" style={{ padding: '60px 20px', maxWidth: '1000px', margin: '0 auto', scrollMarginTop: '80px', position: 'relative' }}>
+          <span id="memory-book" style={{ position: 'absolute', top: '-80px', left: 0, height: 1, width: 1, opacity: 0, pointerEvents: 'none' }} />
           <div style={{ textAlign: 'center', marginBottom: '40px' }}>
             <h2 className="brand-font" style={{ fontSize: '38px', color: '#FFFFFF', textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>
-              DIGITAL <span style={{ color: 'var(--primary)' }}>MEMORY BOOK</span>
+              COMMUNITY <span style={{ color: 'var(--primary)' }}>POLAROIDS</span>
             </h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '16px' }}>
-              Spotted Santa? Help us build our digital memory book and share your photos!
+              Spotted Santa? Snap a photo or video and pin your festive polaroids to our community wall!
             </p>
           </div>
 
@@ -709,7 +716,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
               id="memory-book-iframe"
               src={`/memory_book.html?table=${encodeURIComponent(activeTableSlug)}`}
               height="960"
-              title="Santa Memory Book"
+              title="Community Polaroids"
               loading="lazy"
               allow="camera; microphone; geolocation"
               style={{

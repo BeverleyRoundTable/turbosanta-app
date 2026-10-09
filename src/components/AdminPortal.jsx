@@ -598,7 +598,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
           { id: 'announcements', label: 'Live PA Broadcast', icon: Megaphone },
           { id: 'routes', label: 'Routes & Timetables', icon: Calendar },
           { id: 'webhooks', label: 'Donation Webhooks', icon: CreditCard },
-          { id: 'memory', label: 'Memory Book & Social Media', icon: Camera },
+          { id: 'memory', label: 'Community Polaroids & Media', icon: Camera },
           { id: 'migration', label: '1.0 Excel / Sheets Importer', icon: FileSpreadsheet },
           { id: 'embeds', label: 'Embed Generator', icon: Code },
           { id: 'crew', label: 'Crew & Messages', icon: Bell },
@@ -1984,7 +1984,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
                 <div>
                   <h2 className="brand-font" style={{ fontSize: '24px', margin: '0 0 6px 0', color: '#fff' }}>
-                    Community Memory Book & Social Media Vault
+                    Community Polaroids & Social Media Vault
                   </h2>
                   <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0 }}>
                     Download community photos and video clips for your Instagram, Facebook, and press releases.
