@@ -27,18 +27,63 @@ export function isNationalAdmin(email) {
 }
 
 /**
- * Derives table ID from email (e.g. beverley247@roundtable.org.uk -> beverley_247)
+ * Parses official Round Table email into structured table details:
+ * e.g. beverley247@roundtable.org.uk -> { slug: "beverley", town: "Beverley", tableNumber: "247", tableName: "Beverley Round Table #247" }
+ * e.g. shirley414@roundtable.org.uk -> { slug: "shirley", town: "Shirley", tableNumber: "414", tableName: "Shirley Round Table #414" }
+ * e.g. ellon@roundtable.org.uk -> { slug: "ellon", town: "Ellon", tableNumber: "", tableName: "Ellon Round Table" }
+ */
+export function parseTableDetailsFromEmail(email) {
+  if (!email || typeof email !== 'string') {
+    return {
+      slug: "beverley",
+      tableId: "beverley",
+      town: "Beverley",
+      tableNumber: "247",
+      tableName: "Beverley Round Table #247"
+    };
+  }
+
+  const clean = email.trim().toLowerCase();
+  const localPart = clean.split("@")[0];
+
+  // Strip standard role prefixes: chairman., secretary., santa., info., etc.
+  const core = localPart.replace(/^(chairman|secretary|treasurer|santa|admin|info|contact|events)\./, '');
+
+  // Extract letters (town) and optional trailing digits (table number)
+  const match = core.match(/^([a-z-]+?)(\d+)?$/);
+  let townSlug = core;
+  let tableNumber = "";
+
+  if (match) {
+    townSlug = match[1];
+    tableNumber = match[2] || "";
+  }
+
+  // Capitalize town (e.g. beverley -> Beverley, newcastle-upon-tyne -> Newcastle Upon Tyne)
+  const townName = townSlug
+    .replace(/[-_]/g, ' ')
+    .split(' ')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+
+  const fullTableName = tableNumber
+    ? `${townName} Round Table #${tableNumber}`
+    : `${townName} Round Table`;
+
+  return {
+    slug: townSlug,
+    tableId: townSlug,
+    town: townName,
+    tableNumber,
+    tableName: fullTableName
+  };
+}
+
+/**
+ * Derives table slug from email (e.g. beverley247@roundtable.org.uk -> beverley)
  */
 export function deriveTableFromEmail(email) {
-  const localPart = email.trim().toLowerCase().split("@")[0];
-  // Match letters and digits (e.g. beverley247 -> beverley_247)
-  const match = localPart.match(/^([a-z]+)(\d+)?$/);
-  if (match) {
-    const slug = match[1];
-    const number = match[2] ? `_${match[2]}` : '';
-    return `${slug}${number}`;
-  }
-  return localPart.replace(/[^a-z0-9]/g, '_');
+  return parseTableDetailsFromEmail(email).slug;
 }
 
 /**
@@ -51,6 +96,8 @@ export async function requestMagicLink(email) {
     throw new Error("Access is restricted to official @roundtable.org.uk email addresses.");
   }
 
+  const details = parseTableDetailsFromEmail(cleanEmail);
+
   // Generate a cryptographically random 6-digit code
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
@@ -60,16 +107,17 @@ export async function requestMagicLink(email) {
     email: cleanEmail,
     code,
     expiresAt,
-    tableId: deriveTableFromEmail(cleanEmail)
+    tableId: details.slug,
+    tableName: details.tableName
   };
   localStorage.setItem(OTP_STORAGE_KEY, JSON.stringify(otpData));
 
-  // In production, your Cloudflare Worker / MailChannels sends the email.
-  // In dev / preview, we also return the code directly so you can test instantly.
+  // In production, Cloudflare Worker / MailChannels sends the email.
+  // In dev / preview, we return the code directly so you can test instantly.
   return {
     ok: true,
     email: cleanEmail,
-    devCode: code, // Handled by UI for zero-friction testing
+    devCode: code,
     expiresInMins: 10
   };
 }
@@ -100,13 +148,16 @@ export async function verifyMagicLink(email, enteredCode) {
   }
 
   // Code is valid! Create the authenticated session
+  const details = parseTableDetailsFromEmail(cleanEmail);
   const isNational = isNationalAdmin(cleanEmail);
   const session = {
     email: cleanEmail,
-    tableId: stored.tableId || "beverley_247",
+    tableId: details.slug,
+    town: details.town,
+    tableNumber: details.tableNumber,
     tableName: isNational 
-      ? (cleanEmail.includes("beverley") ? "Beverley Round Table #247 (National Admin)" : "National Round Table Admin") 
-      : (cleanEmail.includes("beverley") ? "Beverley Round Table #247" : "Round Table"),
+      ? `${details.tableName} (National Admin)` 
+      : details.tableName,
     role: isNational ? "national_admin" : "table_admin",
     isNationalAdmin: isNational,
     authenticatedAt: new Date().toISOString(),
@@ -129,13 +180,16 @@ export async function loginWithGoogleWorkspace(googleAccountEmail) {
     throw new Error("Google Sign-In rejected: Only @roundtable.org.uk Google Workspace accounts are permitted.");
   }
 
+  const details = parseTableDetailsFromEmail(clean);
   const isNational = isNationalAdmin(clean);
   const session = {
     email: clean,
-    tableId: deriveTableFromEmail(clean),
+    tableId: details.slug,
+    town: details.town,
+    tableNumber: details.tableNumber,
     tableName: isNational 
-      ? (clean.includes("beverley") ? "Beverley Round Table #247 (National Admin)" : "National Round Table Admin") 
-      : (clean.includes("beverley") ? "Beverley Round Table #247" : "Round Table"),
+      ? `${details.tableName} (National Admin)` 
+      : details.tableName,
     role: isNational ? "national_admin" : "table_admin",
     isNationalAdmin: isNational,
     authenticatedAt: new Date().toISOString(),
@@ -160,8 +214,10 @@ export function getCurrentSession() {
 }
 
 /**
- * Logs out and clears the admin session
+ * Clears the active admin session
  */
-export function logoutAdmin() {
+export function logout() {
   localStorage.removeItem(SESSION_KEY);
 }
+
+export const logoutAdmin = logout;

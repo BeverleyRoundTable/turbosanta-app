@@ -39,7 +39,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
 
   // Settings State
   const [formData, setFormData] = useState({
-    sleigh_display_name: tableData?.table?.sleigh_display_name || 'Beverley Round Table Santa Sleigh',
+    sleigh_display_name: tableData?.table?.sleigh_display_name || (session?.tableName ? `${session.tableName.replace(/\s*\(National Admin\)/, '')} Santa Sleigh` : 'Beverley Round Table Santa Sleigh'),
     fundraising_goal: tableData?.table?.fundraising_goal || 8000,
     donate_url: tableData?.table?.donate_url || 'https://www.zeffy.com/en-GB/donation-form/beverley-round-table-for-our-community',
     logo_url: tableData?.table?.logo_url || 'https://brt-23f.pages.dev/icons/RTBI_Santa.png',
