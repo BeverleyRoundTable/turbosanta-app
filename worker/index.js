@@ -425,9 +425,54 @@ export default {
         console.warn("OTP D1 error:", err.message);
       }
 
+      // Outbound Transactional Email Delivery (via Resend API)
+      let emailDispatched = false;
+      const resendApiKey = env.RESEND_API_KEY || (typeof RESEND_API_KEY !== 'undefined' ? RESEND_API_KEY : null);
+      if (resendApiKey) {
+        try {
+          const fromSender = env.RESEND_FROM_EMAIL || "TurboSanta <onboarding@resend.dev>";
+          const mailRes = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${resendApiKey}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              from: fromSender,
+              to: [email],
+              subject: `🎅 ${otpCode} is your TurboSanta Login Code`,
+              html: `
+                <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 16px; background-color: #ffffff; color: #111827;">
+                  <div style="text-align: center; margin-bottom: 24px;">
+                    <div style="display: inline-block; width: 48px; height: 48px; line-height: 48px; border-radius: 50%; background-color: #FBAF33; font-size: 24px; margin-bottom: 8px;">🎅</div>
+                    <h2 style="margin: 0; font-size: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #111827;">TURBOSANTA 2.0</h2>
+                    <p style="margin: 4px 0 0; font-size: 13px; color: #6b7280;">Round Table Great Britain & Ireland</p>
+                  </div>
+                  <p style="font-size: 15px; margin-bottom: 16px;">Hello <strong>${email}</strong>,</p>
+                  <p style="font-size: 14px; color: #374151; margin-bottom: 20px;">Use this 6-digit verification code to sign into your Table Admin & God Mode console:</p>
+                  <div style="background-color: #f8fafc; border: 2px dashed #FBAF33; border-radius: 12px; padding: 18px; text-align: center; margin-bottom: 24px;">
+                    <span style="font-family: monospace; font-size: 34px; font-weight: 800; letter-spacing: 6px; color: #d31c1c;">${otpCode}</span>
+                  </div>
+                  <p style="font-size: 12px; color: #6b7280; line-height: 1.5; margin-bottom: 24px;">This code will expire in <strong>10 minutes</strong>. If you did not request this login code, you can safely ignore this email.</p>
+                  <hr style="border: none; border-top: 1px solid #f1f5f9; margin-bottom: 16px;" />
+                  <p style="font-size: 11px; color: #9ca3af; text-align: center; margin: 0;">Powered by TurboSanta 2.0 • For Round Tables across the UK & Ireland</p>
+                </div>
+              `
+            })
+          });
+          if (mailRes.ok) emailDispatched = true;
+          else console.warn("Resend API response:", await mailRes.text());
+        } catch (mailErr) {
+          console.warn("Resend mail dispatch failed:", mailErr.message);
+        }
+      }
+
       return jsonResponse({
         ok: true,
-        message: `Verification code generated for ${email}. Check official inbox or enter Table Master Password.`,
+        emailDispatched,
+        message: emailDispatched 
+          ? `Verification code sent to ${email} via official email.`
+          : `Verification code generated for ${email}. Check your inbox or enter Table Master Password.`,
         expiresInMins: 10
       });
     }

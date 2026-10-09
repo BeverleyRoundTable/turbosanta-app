@@ -196,24 +196,64 @@ export async function verifyMagicLink(email, enteredCode) {
 }
 
 /**
- * Signs in using official Google Workspace OAuth 2.0
+ * Decodes Google OAuth 2.0 Credential JWT from Google Identity Services
  */
-export async function loginWithGoogleWorkspace(googleAccountEmail) {
-  let clean = (googleAccountEmail || '').trim().toLowerCase();
+export function parseGoogleCredential(idToken) {
+  try {
+    const base64Url = idToken.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (err) {
+    console.error("Failed to parse Google JWT:", err);
+    return null;
+  }
+}
 
-  // If email was empty, prompt the user for their official Round Table Google account
-  if (!clean) {
-    clean = (prompt("Enter your official Round Table Google Workspace email:\n(e.g. beverley247@roundtable.org.uk)") || '').trim().toLowerCase();
+/**
+ * Signs in using official Google Workspace OAuth 2.0 credential or verified account
+ */
+export async function loginWithGoogleWorkspace(credentialOrEmail) {
+  let cleanEmail = '';
+  let googleName = '';
+  let googlePicture = '';
+
+  // Check if input is a Google JWT Credential Token
+  if (typeof credentialOrEmail === 'string' && credentialOrEmail.includes('.')) {
+    const payload = parseGoogleCredential(credentialOrEmail);
+    if (!payload || !payload.email) {
+      throw new Error("Invalid or expired Google authentication token.");
+    }
+    if (!payload.email_verified) {
+      throw new Error("Google email address is not verified.");
+    }
+    cleanEmail = payload.email.trim().toLowerCase();
+    googleName = payload.name || '';
+    googlePicture = payload.picture || '';
+  } else {
+    cleanEmail = (credentialOrEmail || '').trim().toLowerCase();
   }
 
-  if (!clean || !isRoundTableEmail(clean)) {
+  // If email was empty, prompt the user for their official Round Table Google account
+  if (!cleanEmail) {
+    cleanEmail = (prompt("Enter your official Round Table Google Workspace email:\n(e.g. beverley247@roundtable.org.uk)") || '').trim().toLowerCase();
+  }
+
+  if (!cleanEmail || !isRoundTableEmail(cleanEmail)) {
     throw new Error("Google Sign-In rejected: Only @roundtable.org.uk Google Workspace accounts are permitted.");
   }
 
-  const details = parseTableDetailsFromEmail(clean);
-  const isNational = isNationalAdmin(clean);
+  const details = parseTableDetailsFromEmail(cleanEmail);
+  const isNational = isNationalAdmin(cleanEmail);
   const session = {
-    email: clean,
+    email: cleanEmail,
+    displayName: googleName || details.tableName,
+    avatar: googlePicture || null,
     tableId: details.slug,
     town: details.town,
     tableNumber: details.tableNumber,
@@ -224,7 +264,7 @@ export async function loginWithGoogleWorkspace(googleAccountEmail) {
     isNationalAdmin: isNational,
     authenticatedAt: new Date().toISOString(),
     provider: "google_workspace",
-    token: `ts2_g_${btoa(`${clean}_${Date.now()}`)}`
+    token: `ts2_g_${btoa(`${cleanEmail}_${Date.now()}`)}`
   };
 
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
