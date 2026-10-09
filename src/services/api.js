@@ -121,16 +121,11 @@ export function getTableFallback(tableSlug = "beverley") {
       live_announcement: null,
       tracking_active: true,
       enable_gift_aid: true,
-      headline_sponsor_name: isBeverley ? "Zendure" : null,
-      headline_sponsor_logo: isBeverley ? "/images/zendure.png" : null,
-      headline_sponsor_url: isBeverley ? "https://zendure.co.uk/" : null,
-      headline_sponsor_tagline: isBeverley ? "Official Power Partner" : null,
-      partners: isBeverley ? [
-        { name: "Zendure", role: "Official Power Partner", description: "Provided clean green portable power stations to keep illuminations glowing bright.", url: "https://zendure.co.uk/" },
-        { name: "Greens Signmakers", role: "Signage & Vinyl Craft", description: "Transformed the electric tuk-tuk into a show-stopping Santa Sleigh with eco-friendly signage.", url: "https://greens-signmakers.co.uk/" },
-        { name: "Beverley Town Council", role: "Civic & Audio Grant", description: "Supported local community joy with civic and audio equipment grant funding.", url: "https://beverley.gov.uk/" },
-        { name: "The Monks Walk", role: "Volunteer Sustenance", description: "Historic Beverley inn providing warming festive drinks and sustenance for volunteer elves.", url: "https://themonkswalk.co.uk/" }
-      ] : []
+      headline_sponsor_name: null,
+      headline_sponsor_logo: null,
+      headline_sponsor_url: null,
+      headline_sponsor_tagline: null,
+      partners: []
     },
     routes: [
       {
@@ -141,8 +136,8 @@ export function getTableFallback(tableSlug = "beverley") {
         start_time: "18:00",
         end_time: "20:30",
         status: "scheduled",
-        sponsor_name: isBeverley ? "Zendure" : null,
-        sponsor_link: isBeverley ? "https://zendure.co.uk/" : null
+        sponsor_name: null,
+        sponsor_link: null
       }
     ],
     streets: [

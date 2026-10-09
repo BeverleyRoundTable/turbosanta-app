@@ -35,6 +35,7 @@ function parseRouteDate(v) {
 
 export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }) {
   const [addressFrameHeight, setAddressFrameHeight] = useState(500);
+  const [memoryBookHeight, setMemoryBookHeight] = useState(1200);
   const [showFab, setShowFab] = useState(false);
   const currentYear = new Date().getFullYear();
 
@@ -47,12 +48,15 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
   const logoUrl = table.logo_url || DEFAULT_LOGO;
   const bgImage = table.background_url || DEFAULT_BG;
 
-  // Listen for dynamic iframe resizing from address.html
+  // Listen for dynamic iframe resizing from address.html and memory_book.html
   useEffect(() => {
     const handleMessage = (e) => {
       const h = e.data && Number(e.data.addressLookupHeight);
       if (Number.isFinite(h) && h >= 100 && h <= 5000) {
         setAddressFrameHeight(Math.round(h));
+      }
+      if (e.data && e.data.type === 'MEM_BOOK_RESIZE' && Number.isFinite(e.data.height)) {
+        setMemoryBookHeight(Math.max(Math.round(e.data.height) + 20, 1180));
       }
     };
     window.addEventListener('message', handleMessage);
@@ -642,16 +646,11 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
         </section>
 
 
-        {/* 5. Community Partners (Beverley or Opted-In) */}
+        {/* 5. Community Partners (Only if explicitly configured for this table) */}
         {(() => {
-          const partners = (table.partners && table.partners.length > 0)
+          const partners = (table.partners && Array.isArray(table.partners) && table.partners.length > 0)
             ? table.partners
-            : (isBeverley ? [
-                { name: "Zendure", role: "Official Power Partner", description: "Provided clean green portable power stations to keep the illuminations glowing bright.", url: "https://zendure.co.uk/" },
-                { name: "Greens Signmakers", role: "Signage & Vinyl Craft", description: "Transformed the electric tuk-tuk into a show-stopping Santa Sleigh with eco-friendly signage.", url: "https://greens-signmakers.co.uk/" },
-                { name: "Beverley Town Council", role: "Civic & Audio Grant", description: "Supported local community joy with civic and audio equipment grant funding.", url: "https://beverley.gov.uk/" },
-                { name: "The Monks Walk", role: "Volunteer Sustenance", description: "Historic Beverley inn providing warming festive drinks and sustenance for volunteer elves.", url: "https://themonkswalk.co.uk/" }
-              ] : []);
+            : [];
 
           if (!partners || partners.length === 0) return null;
 
@@ -716,13 +715,13 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
             <iframe
               id="memory-book-iframe"
               src={`/memory_book.html?table=${encodeURIComponent(activeTableSlug)}`}
-              height="850"
+              height={memoryBookHeight}
               title="Santa Memory Book"
               loading="lazy"
               allow="camera; microphone; geolocation"
               style={{
                 width: '100%',
-                height: '850px',
+                height: `${memoryBookHeight}px`,
                 border: 'none',
                 display: 'block'
               }}
