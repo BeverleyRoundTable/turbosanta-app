@@ -755,7 +755,7 @@ function render(data) {
   const uniqueStreets = [...new Set(completedStreets.map(x => x.street || x.street_name))].length || streets.length;
   const totalRaised = Number(donations.total || 0);
   const targetAmount = Number(donations.target || 0);
-  const totalExpenses = Number(data.expenses || 0);
+  const totalExpenses = Number(data.expenses || s.expenses || data.table?.expenses || 0);
   const isGiftAidEligible = Boolean(s.enable_gift_aid);
   const totalGiftAid = isGiftAidEligible ? Number(data.giftAid?.giftAid || data.gift_aid?.giftAid || 0) : 0;
   const giftAidDeclarations = isGiftAidEligible ? Number(data.giftAid?.declarations || data.gift_aid?.declarations || 0) : 0;

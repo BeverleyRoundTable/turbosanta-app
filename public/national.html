@@ -65,20 +65,25 @@
     .gate-box {
       background: var(--surface);
       border: 1px solid var(--border-gold);
-      padding: 48px 40px;
+      padding: 44px 32px;
       border-radius: 16px;
       text-align: center;
-      max-width: 400px;
+      max-width: 450px;
       width: 100%;
+      box-sizing: border-box;
       box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+      overflow: hidden;
     }
 
     .gate-box h2 {
       font-family: 'Eurostile', sans-serif;
-      font-size: 36px;
-      letter-spacing: 2px;
+      font-size: clamp(22px, 5.5vw, 27px);
+      letter-spacing: 1px;
+      line-height: 1.15;
       color: #fff;
       margin-bottom: 8px;
+      overflow-wrap: break-word;
+      word-break: break-word;
     }
 
     .gate-box h2 span { color: var(--gold); }
@@ -204,11 +209,13 @@
 
     .hero h1 {
       font-family: 'Eurostile', sans-serif;
-      font-size: clamp(48px, 8vw, 88px);
-      letter-spacing: 4px;
-      line-height: 0.9;
+      font-size: clamp(34px, 7vw, 76px);
+      letter-spacing: 2px;
+      line-height: 1;
       color: #fff;
       margin-bottom: 12px;
+      overflow-wrap: break-word;
+      word-break: break-word;
     }
 
     .hero h1 span { color: var(--gold); }
@@ -879,8 +886,8 @@ function extractLiveTableData(table, apiData) {
   const settings = apiData.settings || {};
   const messageStats = apiData.messageStats || {};
   const donations = apiData.donations || {};
-  const giftAid = apiData.giftAid ? (parseFloat(apiData.giftAid.giftAid) || 0) : 0;
-  const expenses = parseFloat(apiData.expenses) || 0;
+  const giftAid = apiData.giftAid ? (parseFloat(apiData.giftAid.giftAid) || 0) : (apiData.gift_aid ? (parseFloat(apiData.gift_aid.giftAid) || 0) : 0);
+  const expenses = parseFloat(apiData.expenses) || parseFloat(apiData.table?.expenses) || parseFloat(settings.expenses) || 0;
 
   const activeSeasonYear = getActiveSeasonYear();
 

@@ -6,13 +6,14 @@ import {
   MapPin, Bell, Activity, MessageSquare, Check, X, BookOpen, FileSpreadsheet,
   Camera, Video, Image as ImageIcon, FolderDown, Eye, EyeOff, Sparkles, Filter,
   CreditCard, Key, Zap, RefreshCw, Send, Link2,
-  BarChart3, TrendingUp, Award, Printer, PieChart
+  BarChart3, TrendingUp, Award, Printer, PieChart, Receipt
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { logoutAdmin } from '../services/auth';
 import { saveTableSettings, fetchLiveGps, fetchTablePayload } from '../services/api';
 import DropzoneUpload from './DropzoneUpload';
 import RouteEditorModal from './RouteEditorModal';
+import ExpensesModal from './ExpensesModal';
 import DriverBeacon from './DriverBeacon';
 import MigrationImporter from './MigrationImporter';
 
@@ -229,7 +230,9 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     headline_sponsor_name: tableData?.table?.headline_sponsor_name || '',
     headline_sponsor_logo: tableData?.table?.headline_sponsor_logo || '',
     headline_sponsor_url: tableData?.table?.headline_sponsor_url || '',
-    headline_sponsor_tagline: tableData?.table?.headline_sponsor_tagline || ''
+    headline_sponsor_tagline: tableData?.table?.headline_sponsor_tagline || '',
+    expenses: tableData?.table?.expenses !== undefined ? tableData?.table?.expenses : (tableData?.expenses !== undefined ? tableData?.expenses : 0),
+    expenses_json: tableData?.table?.expenses_json || tableData?.expenses_json || null
   });
 
   // Automatically synchronize formData with live tableData when loaded
@@ -253,10 +256,63 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         headline_sponsor_name: tableData.table.headline_sponsor_name !== undefined ? tableData.table.headline_sponsor_name : prev.headline_sponsor_name,
         headline_sponsor_logo: tableData.table.headline_sponsor_logo !== undefined ? tableData.table.headline_sponsor_logo : prev.headline_sponsor_logo,
         headline_sponsor_url: tableData.table.headline_sponsor_url !== undefined ? tableData.table.headline_sponsor_url : prev.headline_sponsor_url,
-        headline_sponsor_tagline: tableData.table.headline_sponsor_tagline !== undefined ? tableData.table.headline_sponsor_tagline : prev.headline_sponsor_tagline
+        headline_sponsor_tagline: tableData.table.headline_sponsor_tagline !== undefined ? tableData.table.headline_sponsor_tagline : prev.headline_sponsor_tagline,
+        expenses: tableData.table.expenses !== undefined ? tableData.table.expenses : (tableData.expenses !== undefined ? tableData.expenses : prev.expenses),
+        expenses_json: tableData.table.expenses_json !== undefined ? tableData.table.expenses_json : (tableData.expenses_json !== undefined ? tableData.expenses_json : prev.expenses_json)
       }));
     }
   }, [tableData]);
+
+  // Operating Expenses & Receipts Modal State
+  const [isExpensesModalOpen, setIsExpensesModalOpen] = useState(false);
+
+  const handleOpenExpensesModal = () => {
+    setIsExpensesModalOpen(true);
+  };
+
+  const handleSaveExpensesModal = async (total, breakdown) => {
+    const jsonStr = JSON.stringify(breakdown);
+    setFormData(prev => ({
+      ...prev,
+      expenses: total,
+      expenses_json: jsonStr
+    }));
+
+    const tableSlug = session?.tableId || session?.tableSlug || tableData?.table?.slug || 'beverley';
+    const payload = {
+      ...formData,
+      expenses: total,
+      expenses_json: jsonStr
+    };
+
+    if (onUpdateTableData) {
+      onUpdateTableData(prev => ({
+        ...prev,
+        expenses: total,
+        expenses_json: jsonStr,
+        table: {
+          ...prev?.table,
+          ...payload,
+          expenses: total,
+          expenses_json: jsonStr
+        }
+      }));
+    }
+
+    setSaveStatus('Saving operating expenses to database...');
+    try {
+      const res = await saveTableSettings(tableSlug, payload);
+      if (res && res.ok) {
+        setSaveStatus('✅ Operating costs saved to D1 database!');
+      } else {
+        setSaveStatus('✅ Costs saved locally!');
+      }
+    } catch (err) {
+      setSaveStatus('Saved locally!');
+    }
+    setTimeout(() => setSaveStatus(''), 4000);
+    setIsExpensesModalOpen(false);
+  };
 
   // Season Wrap & Year-on-Year Analytics State
   const [selectedWrapSeason, setSelectedWrapSeason] = useState('2026');
@@ -270,7 +326,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     const totalRaised = Number(tableData?.table?.total_raised || 0);
     const isGiftAidEligible = Boolean(tableData?.table?.enable_gift_aid);
     const giftAid = isGiftAidEligible ? Number(tableData?.gift_aid?.giftAid || 0) : 0;
-    const expenses = Number(tableData?.expenses || 0);
+    const expenses = Number(tableData?.expenses ?? tableData?.table?.expenses ?? formData.expenses ?? 0);
     const netRaised = (totalRaised + giftAid) - expenses;
 
     if (!confirm(`📸 Snapshot ${selectedWrapSeason} Season for ${tableSlug.toUpperCase()}?\n\nThis will freeze and save:\n• Year: ${selectedWrapSeason}\n• Gross Raised: £${totalRaised.toLocaleString()}\n• Routes: ${routes.length}\n• Streets: ${streets.length}\n\nProceed to save to D1 database?`)) {
@@ -1600,7 +1656,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
           const liveTarget = Number(tableData?.table?.fundraising_goal || 5000);
           // Strictly validate against actual submitted entries in gift_aid table and enable_gift_aid flag:
           const liveGiftAid = isGiftAidEligible ? Number(tableData?.gift_aid?.giftAid || 0) : 0;
-          const liveExpenses = Number(tableData?.expenses || 0);
+          const liveExpenses = Number(tableData?.expenses ?? tableData?.table?.expenses ?? formData.expenses ?? 0);
           const liveNetRaised = (liveGrossRaised + liveGiftAid) - liveExpenses;
           const liveVolunteers = tableData?.volunteers_count || (routes.length > 0 ? routes.length * 6 : 18);
           const breakdown = tableData?.donation_breakdown || tableData?.table?.donation_breakdown || [];
@@ -1809,8 +1865,31 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
 
                 {/* Operating Expenses */}
                 <div style={{ background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '14px', padding: '20px' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.8px', marginBottom: '8px' }}>
-                    Operating Expenses
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.8px' }}>
+                      Operating Expenses
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleOpenExpensesModal}
+                      style={{
+                        background: 'rgba(251, 175, 51, 0.1)',
+                        color: 'var(--primary)',
+                        border: '1px solid rgba(251, 175, 51, 0.3)',
+                        borderRadius: '6px',
+                        padding: '3px 8px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                      title="Record and itemise campaign costs"
+                    >
+                      <Receipt size={12} />
+                      <span>{currentStats.expenses > 0 ? 'Edit Costs' : '✏️ Record Costs'}</span>
+                    </button>
                   </div>
                   <div className="brand-font" style={{ fontSize: '32px', color: currentStats.expenses > 0 ? '#ef4444' : 'var(--text-muted)', lineHeight: 1.1, marginBottom: '6px' }}>
                     {currentStats.expenses > 0 ? `-£${currentStats.expenses.toFixed(2)}` : '£0.00'}
@@ -1818,8 +1897,17 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                     Vehicle fuel, sweets, generator, safety kit
                   </div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '10px' }}>
-                    100% committee transparent
+                  <div style={{ fontSize: '11px', color: currentStats.expenses > 0 ? '#f87171' : 'var(--text-muted)', marginTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>{currentStats.expenses > 0 ? '✓ Deducted from gross yield' : '100% committee transparent'}</span>
+                    {currentStats.expenses > 0 && (
+                      <button 
+                        type="button"
+                        onClick={handleOpenExpensesModal} 
+                        style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '11px', textDecoration: 'underline', cursor: 'pointer', padding: 0 }}
+                      >
+                        Itemised Receipts
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -2419,7 +2507,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>
                     Fundraising Target (£)
@@ -2438,6 +2526,41 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       fontSize: '15px'
                     }}
                   />
+                </div>
+
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <label style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                      Operating Campaign Expenses (£)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleOpenExpensesModal}
+                      style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '12px', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+                    >
+                      Itemise Receipts
+                    </button>
+                  </div>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.expenses === 0 ? '' : formData.expenses}
+                    onChange={(e) => setFormData({ ...formData, expenses: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0 })}
+                    placeholder="0.00"
+                    style={{
+                      width: '100%',
+                      background: '#0d0d0b',
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      padding: '10px 14px',
+                      color: '#fff',
+                      fontSize: '15px'
+                    }}
+                  />
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    Fuel, sweets, generator, repairs (deducted for Net Impact)
+                  </div>
                 </div>
 
                 <div>
@@ -2684,6 +2807,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     const payload = {
                       sleigh_display_name: formData.sleigh_display_name,
                       fundraising_goal: formData.fundraising_goal,
+                      expenses: Number(formData.expenses !== undefined ? formData.expenses : (tableData?.table?.expenses || 0)),
+                      expenses_json: formData.expenses_json || null,
                       donate_url: formData.donate_url,
                       logo_url: formData.logo_url,
                       sleigh_icon_live: formData.sleigh_icon_live || null,
@@ -2704,6 +2829,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     if (onUpdateTableData) {
                       onUpdateTableData(prev => ({
                         ...prev,
+                        expenses: Number(formData.expenses || 0),
+                        expenses_json: formData.expenses_json || null,
                         table: {
                           ...prev.table,
                           ...payload
@@ -3322,6 +3449,17 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         route={editingRoute}
         onSaveRoute={handleSaveRoute}
         onDeleteRoute={handleDeleteRoute}
+      />
+
+      {/* Operating Expenses & Receipts Modal */}
+      <ExpensesModal
+        isOpen={isExpensesModalOpen}
+        onClose={() => setIsExpensesModalOpen(false)}
+        initialExpenses={formData.expenses}
+        initialExpensesJson={formData.expenses_json}
+        onSave={handleSaveExpensesModal}
+        grossRaised={Number(tableData?.table?.total_raised || 0)}
+        giftAid={Boolean(tableData?.table?.enable_gift_aid) ? Number(tableData?.gift_aid?.giftAid || 0) : 0}
       />
     </div>
   );

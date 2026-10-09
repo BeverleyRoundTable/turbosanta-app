@@ -128,6 +128,8 @@ export default {
         charity_name: table.charity_name,
         fundraising_goal: table.fundraising_goal,
         total_raised: (donations && donations.total) || 0,
+        expenses: Number(table.expenses || 0),
+        expenses_json: table.expenses_json ? (typeof table.expenses_json === 'string' ? JSON.parse(table.expenses_json) : table.expenses_json) : null,
         live_announcement: table.live_announcement,
         tracking_active: Boolean(table.tracking_active),
         enable_gift_aid: Boolean(table.enable_gift_aid),
@@ -176,6 +178,8 @@ export default {
       return jsonResponse({
         table: tableConfig,
         settings: tableConfig,
+        expenses: Number(table.expenses || 0),
+        expenses_json: tableConfig.expenses_json,
         routes: routes.results || [],
         streets: streets.results || [],
         live_sleigh: liveSleighData,
@@ -530,6 +534,8 @@ export default {
       const {
         sleigh_display_name,
         fundraising_goal,
+        expenses,
+        expenses_json,
         donate_url,
         logo_url,
         sleigh_icon_live,
@@ -557,6 +563,8 @@ export default {
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN charity_name TEXT").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN charity_number TEXT").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN enable_gift_aid BOOLEAN DEFAULT 0").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN expenses REAL DEFAULT 0").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN expenses_json TEXT").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN headline_sponsor_name TEXT").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN headline_sponsor_logo TEXT").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN headline_sponsor_url TEXT").run(); } catch(e) {}
@@ -567,6 +575,8 @@ export default {
           UPDATE tables SET
             sleigh_display_name = COALESCE(?, sleigh_display_name),
             fundraising_goal = COALESCE(?, fundraising_goal),
+            expenses = COALESCE(?, expenses),
+            expenses_json = COALESCE(?, expenses_json),
             donate_url = COALESCE(?, donate_url),
             logo_url = COALESCE(?, logo_url),
             sleigh_icon_live = COALESCE(?, sleigh_icon_live),
@@ -586,6 +596,8 @@ export default {
         `).bind(
           sleigh_display_name !== undefined ? sleigh_display_name : null,
           fundraising_goal !== undefined ? fundraising_goal : null,
+          expenses !== undefined ? parseFloat(expenses) : null,
+          expenses_json !== undefined ? (typeof expenses_json === 'string' ? expenses_json : JSON.stringify(expenses_json)) : null,
           donate_url !== undefined ? donate_url : null,
           logo_url !== undefined ? logo_url : null,
           sleigh_icon_live !== undefined ? sleigh_icon_live : null,
