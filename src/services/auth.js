@@ -178,6 +178,7 @@ export async function verifyMagicLink(email, enteredCode) {
   const session = {
     email: cleanEmail,
     tableId: details.slug,
+    tableSlug: details.slug,
     town: details.town,
     tableNumber: details.tableNumber,
     tableName: isNational 
@@ -255,6 +256,7 @@ export async function loginWithGoogleWorkspace(credentialOrEmail) {
     displayName: googleName || details.tableName,
     avatar: googlePicture || null,
     tableId: details.slug,
+    tableSlug: details.slug,
     town: details.town,
     tableNumber: details.tableNumber,
     tableName: isNational 

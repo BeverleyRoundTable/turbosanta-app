@@ -2,21 +2,84 @@ import React, { useState } from 'react';
 import { Mail, Shield, KeyRound, ArrowRight, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { requestMagicLink, verifyMagicLink, loginWithGoogleWorkspace } from '../services/auth';
 
+const OFFICIAL_GOOGLE_CLIENT_ID = "174929950272-ehpf04nea7ev4j8gfosq5acg6dvfmc95.apps.googleusercontent.com";
+
 export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess, initialEmail }) {
   const [activeTab, setActiveTab] = useState('google'); // Default to Google Workspace SSO
   const [email, setEmail] = useState(initialEmail || '');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [gsiReady, setGsiReady] = useState(false);
+  const googleBtnRef = React.useRef(null);
 
   React.useEffect(() => {
     setEmail(initialEmail || '');
   }, [initialEmail]);
 
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [googleClientId, setGoogleClientId] = useState(
-    import.meta.env.VITE_GOOGLE_CLIENT_ID || localStorage.getItem('SANTA_GOOGLE_CLIENT_ID') || ''
-  );
-  const [showConfigId, setShowConfigId] = useState(false);
+  // Initialize official Google Identity Services (GIS)
+  React.useEffect(() => {
+    if (!isOpen || activeTab !== 'google') return;
+
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || OFFICIAL_GOOGLE_CLIENT_ID;
+
+    const handleGoogleCallback = async (response) => {
+      if (!response || !response.credential) return;
+      setError('');
+      setLoading(true);
+      try {
+        const session = await loginWithGoogleWorkspace(response.credential);
+        onLoginSuccess(session);
+        onClose();
+      } catch (err) {
+        setError(err.message || "Google Workspace sign-in failed.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const initGsi = () => {
+      if (window.google?.accounts?.id && clientId) {
+        try {
+          window.google.accounts.id.initialize({
+            client_id: clientId,
+            callback: handleGoogleCallback,
+            auto_select: false,
+            cancel_on_tap_outside: true,
+            hd: "roundtable.org.uk"
+          });
+
+          if (googleBtnRef.current) {
+            googleBtnRef.current.innerHTML = '';
+            window.google.accounts.id.renderButton(googleBtnRef.current, {
+              type: 'standard',
+              theme: 'outline',
+              size: 'large',
+              text: 'continue_with',
+              shape: 'rectangular',
+              logo_alignment: 'left',
+              width: 320
+            });
+            setGsiReady(true);
+          }
+        } catch (err) {
+          console.warn("Google Accounts ID init error:", err);
+        }
+      }
+    };
+
+    if (window.google?.accounts?.id) {
+      initGsi();
+    } else {
+      const interval = setInterval(() => {
+        if (window.google?.accounts?.id) {
+          clearInterval(interval);
+          initGsi();
+        }
+      }, 200);
+      return () => clearInterval(interval);
+    }
+  }, [isOpen, activeTab]);
 
   if (!isOpen) return null;
 
@@ -28,22 +91,6 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess, initi
 
     try {
       const session = await verifyMagicLink(email, password);
-      onLoginSuccess(session);
-      onClose();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle Google Workspace Login
-  const handleGoogleLogin = async () => {
-    setError('');
-    setLoading(true);
-
-    try {
-      const session = await loginWithGoogleWorkspace(email);
       onLoginSuccess(session);
       onClose();
     } catch (err) {
@@ -222,39 +269,42 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess, initi
                 Instant single sign-on with your official <strong>@roundtable.org.uk</strong> Google Workspace account.
               </p>
 
-              <button
-                type="button"
-                onClick={handleGoogleLogin}
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  background: '#ffffff',
-                  color: '#1f2937',
-                  border: 'none',
-                  borderRadius: '12px',
-                  padding: '14px 20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '12px',
-                  fontWeight: 800,
-                  fontSize: '15px',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 14px rgba(0,0,0,0.4)',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <svg width="22" height="22" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                </svg>
-                <span>Continue with Google Workspace</span>
-              </button>
+              {/* Official Google Identity Services One-Click Button */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: '44px',
+                marginBottom: '16px'
+              }}>
+                <div ref={googleBtnRef} id="googleSignInBtnDiv" style={{ display: 'flex', justifyContent: 'center' }}></div>
+              </div>
 
-              <div style={{ marginTop: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                Target domain: <code>@roundtable.org.uk</code>
+              {loading && (
+                <div style={{ fontSize: '13px', color: 'var(--primary)', marginBottom: '14px', fontWeight: 600 }}>
+                  Authenticating with Google Workspace...
+                </div>
+              )}
+
+              <div style={{
+                marginTop: '20px',
+                padding: '14px',
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '10px',
+                fontSize: '12px',
+                color: 'var(--text-muted)',
+                lineHeight: '1.6'
+              }}>
+                <div style={{ color: '#fff', fontWeight: 700, marginBottom: '2px' }}>
+                  🔒 Hosted Domain Policy Active
+                </div>
+                <div>
+                  Only <code>@roundtable.org.uk</code> Google accounts are accepted.
+                </div>
+                <div style={{ opacity: 0.75, marginTop: '2px' }}>
+                  Personal @gmail.com accounts are automatically denied.
+                </div>
               </div>
             </div>
           )}
