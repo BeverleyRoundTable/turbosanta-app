@@ -3,12 +3,13 @@ import {
   Radio, Megaphone, Settings, Calendar, Heart, Shield,
   LogOut, ExternalLink, Save, Download, CheckCircle2,
   Users, Plus, Trash2, Edit3, Smartphone, Code, Copy,
-  MapPin, Bell, Activity, MessageSquare, Check, X, BookOpen
+  MapPin, Bell, Activity, MessageSquare, Check, X, BookOpen, FileSpreadsheet
 } from 'lucide-react';
 import { logoutAdmin } from '../services/auth';
 import DropzoneUpload from './DropzoneUpload';
 import RouteEditorModal from './RouteEditorModal';
 import DriverBeacon from './DriverBeacon';
+import MigrationImporter from './MigrationImporter';
 
 export default function AdminPortal({ session, onLogout, tableData, onUpdateTableData }) {
   const [activeTab, setActiveTab] = useState('announcements'); // Default to announcements
@@ -277,6 +278,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         {[
           { id: 'announcements', label: 'Live PA Broadcast', icon: Megaphone },
           { id: 'routes', label: 'Routes & Timetables', icon: Calendar },
+          { id: 'migration', label: '1.0 Excel / Sheets Importer', icon: FileSpreadsheet },
           { id: 'embeds', label: 'Embed Generator', icon: Code },
           { id: 'crew', label: 'Crew & Messages', icon: Bell },
           { id: 'settings', label: 'Table Settings & Branding', icon: Settings },
@@ -955,6 +957,29 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
               </p>
             </div>
           </div>
+        )}
+
+        {/* TAB: 1.0 EXCEL & SHEETS IMPORTER */}
+        {activeTab === 'migration' && (
+          <MigrationImporter
+            tableSlug={session.tableId || 'beverley'}
+            currentTableData={tableData}
+            onApplyMigration={(migratedData) => {
+              if (onUpdateTableData) {
+                onUpdateTableData(prev => ({
+                  ...prev,
+                  table: {
+                    ...prev.table,
+                    ...migratedData.table
+                  },
+                  routes: migratedData.routes,
+                  streets: migratedData.streets
+                }));
+              }
+              setSaveStatus('✅ Successfully imported 1.0 data! Routes, streets, and settings populated.');
+              setTimeout(() => setSaveStatus(''), 4000);
+            }}
+          />
         )}
       </main>
 

@@ -23,11 +23,11 @@ export default {
     }
 
     // Fetch the Table config from D1
-    const table = await env.DB.prepare(
+    let table = await env.DB.prepare(
       "SELECT * FROM tables WHERE slug = ?"
     ).bind(slug).first();
 
-    if (!table) {
+    if (!table && path !== "/api/migrate") {
       return jsonResponse({ error: `Table '${slug}' not found` }, 404);
     }
 
@@ -328,6 +328,85 @@ export default {
       const body = await request.json();
       const { routeName } = body;
       return jsonResponse({ ok: true, message: `Route ${routeName || ''} closed successfully` });
+    }
+
+    // ==============================================================
+    // 🚀 15. AUTO-MIGRATE FROM TURBOSANTA 1.0 (POST /api/migrate)
+    // ==============================================================
+    if (path === "/api/migrate" && request.method === "POST") {
+      const payload = await request.json();
+      const targetSlug = (payload.tableSlug || slug || "beverley").toLowerCase();
+      const settings = payload.settings || {};
+      const routes = payload.routes || [];
+      const streets = payload.streets || [];
+      const volunteers = payload.volunteers || [];
+
+      // 1. Upsert Table in D1
+      const tableId = targetSlug;
+      const displayName = settings.sleigh_display_name || `${targetSlug.toUpperCase()} Santa Sleigh`;
+      const donateUrl = settings.donate_url || "";
+      const charityName = settings.charity_name || "";
+      const goal = parseFloat(settings.fundraising_goal) || 5000;
+      const primaryColor = settings.primary_color || "#FBAF33";
+      const accentColor = settings.accent_color || "#D31C1C";
+
+      await env.DB.prepare(`
+        INSERT INTO tables (id, slug, name, sleigh_display_name, primary_color, accent_color, donate_url, charity_name, fundraising_goal)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(slug) DO UPDATE SET
+          sleigh_display_name = excluded.sleigh_display_name,
+          donate_url = excluded.donate_url,
+          charity_name = excluded.charity_name,
+          fundraising_goal = excluded.fundraising_goal,
+          primary_color = excluded.primary_color,
+          accent_color = excluded.accent_color
+      `).bind(tableId, targetSlug, displayName, displayName, primaryColor, accentColor, donateUrl, charityName, goal).run();
+
+      // 2. Clean and Insert Routes
+      if (routes.length > 0) {
+        await env.DB.prepare("DELETE FROM route_streets WHERE table_id = ?").bind(tableId).run();
+        await env.DB.prepare("DELETE FROM routes WHERE table_id = ?").bind(tableId).run();
+
+        for (const r of routes) {
+          await env.DB.prepare(`
+            INSERT INTO routes (id, table_id, name, date, start_time, gpx_url, sponsor_logo, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'Scheduled')
+          `).bind(r.id, tableId, r.name, r.date || "", r.start_time || "18:00", r.gpx_url || "", r.sponsor_logo || "").run();
+        }
+      }
+
+      // 3. Insert Streets
+      if (streets.length > 0) {
+        for (const s of streets) {
+          await env.DB.prepare(`
+            INSERT INTO route_streets (table_id, route_id, street_name, sequence_order)
+            VALUES (?, ?, ?, ?)
+          `).bind(tableId, s.route_id, s.street_name, s.sequence_order || 1).run();
+        }
+      }
+
+      // 4. Insert Volunteers
+      if (volunteers.length > 0) {
+        for (const v of volunteers) {
+          try {
+            await env.DB.prepare(`
+              INSERT INTO volunteers (table_id, route_name, name, role, phone, email, organisation, checked_in, bucket_number)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).bind(tableId, v.route_name || "General Helper", v.name, v.role || "Bucket Collector", v.phone || "", v.email || "", v.organisation || "", v.checked_in || 0, v.bucket_number || "").run();
+          } catch (e) {}
+        }
+      }
+
+      return jsonResponse({
+        ok: true,
+        message: `Successfully migrated Table '${targetSlug}' into TurboSanta 2.0 D1 SQL!`,
+        imported: {
+          tableSlug: targetSlug,
+          routes: routes.length,
+          streets: streets.length,
+          volunteers: volunteers.length
+        }
+      });
     }
 
     return jsonResponse({ error: "Endpoint not found" }, 404);

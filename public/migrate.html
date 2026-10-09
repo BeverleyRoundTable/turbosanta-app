@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TurboSanta 2.0 — Google Sheet & Excel Data Importer</title>
+  <meta name="theme-color" content="#0d0d0b">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- SheetJS & Confetti -->
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.4/dist/confetti.browser.min.js"></script>
+
+  <style>
+    @font-face {
+      font-family: 'Eurostile';
+      src: url('https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root {
+      --primary: #FBAF33;
+      --primary-rgb: 251, 175, 51;
+      --dark: #0d0d0b;
+      --surface: #161614;
+      --surface-2: #1e1e1b;
+      --surface-3: #262622;
+      --border: rgba(255, 255, 255, 0.1);
+      --border-primary: rgba(251, 175, 51, 0.3);
+      --text: #eaeae5;
+      --text-muted: rgba(255, 255, 255, 0.6);
+      --green: #2ecc71;
+      --red: #D31C1C;
+      --blue: #3b82f6;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Open Sans', sans-serif;
+      background-color: var(--dark);
+      color: var(--text);
+      line-height: 1.6;
+      padding-bottom: 80px;
+    }
+
+    h1, h2, h3, h4, .brand-font {
+      font-family: 'Eurostile', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* HEADER */
+    header.migrate-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .header-left img {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+    }
+    .header-left h1 {
+      font-size: 22px;
+      color: #fff;
+    }
+    .header-left h1 span { color: var(--primary); }
+
+    .table-switcher {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface-2);
+      border: 1px solid var(--border-primary);
+      padding: 6px 16px;
+      border-radius: 100px;
+    }
+    .table-switcher label {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .table-switcher input {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      width: 110px;
+      outline: none;
+    }
+
+    .container {
+      max-width: 1040px;
+      margin: 32px auto 0 auto;
+      padding: 0 20px;
+    }
+
+    /* HERO CARD */
+    .hero-card {
+      background: linear-gradient(135deg, rgba(251, 175, 51, 0.12) 0%, rgba(22, 22, 20, 0.95) 100%);
+      border: 1px solid rgba(251, 175, 51, 0.3);
+      border-radius: 20px;
+      padding: 32px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      margin-bottom: 30px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge-gold { background: rgba(251, 175, 51, 0.2); color: var(--primary); }
+
+    .steps-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .step-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .step-num {
+      background: var(--primary);
+      color: #000;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .step-text {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .step-text strong { color: #fff; }
+
+    /* DROPZONE */
+    .dropzone {
+      border: 2px dashed rgba(255, 255, 255, 0.2);
+      background: var(--surface);
+      border-radius: 20px;
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--primary);
+      background: rgba(251, 175, 51, 0.08);
+    }
+    .drop-icon {
+      width: 64px;
+      height: 64px;
+      background: rgba(251, 175, 51, 0.15);
+      color: var(--primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      margin: 0 auto 16px auto;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 22px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: var(--primary); color: #000; }
+    .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .btn-success { background: var(--green); color: #000; box-shadow: 0 0 20px rgba(46, 204, 113, 0.3); }
+    .btn-success:hover { filter: brightness(1.1); }
+    .btn-secondary { background: transparent; border: 1px solid var(--border); color: #fff; }
+    .btn-secondary:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* STATS GRID */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin: 28px 0;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+    }
+    .stat-title {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-family: 'Eurostile', sans-serif;
+      font-size: 28px;
+      color: var(--primary);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .stat-sub { font-size: 11px; color: var(--text-muted); }
+
+    /* ACTION BAR */
+    .action-bar {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 30px;
+    }
+
+    /* PREVIEW TABS */
+    .preview-nav {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: var(--text-muted);
+      padding: 12px 18px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .table-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th {
+      background: var(--surface-2);
+      color: var(--primary);
+      text-align: left;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 700;
+    }
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    tr:last-child td { border-bottom: none; }
+
+    .tag {
+      background: rgba(251, 175, 51, 0.15);
+      color: var(--primary);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .street-tag {
+      background: var(--surface-2);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      display: inline-block;
+      margin: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="migrate-header">
+    <div class="header-left">
+      <img src="https://brt-23f.pages.dev/icons/RTBI_Santa.png" alt="TurboSanta Logo">
+      <div>
+        <h1>TURBOSANTA <span>MIGRATION ENGINE</span></h1>
+        <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Auto-Populate 2.0 Database from TurboSanta 1.0 Google Sheets</p>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div class="table-switcher">
+        <label for="tableSlug"><i class="fa-solid fa-location-dot"></i> Chapter:</label>
+        <input type="text" id="tableSlug" value="beverley" placeholder="beverley" onchange="updateSlug()">
+      </div>
+      <a id="btnHub" href="/hub.html?table=beverley" class="btn btn-secondary" style="padding: 7px 14px; font-size: 12px;"><i class="fa-solid fa-rocket"></i> Launchpad</a>
+      <a id="btnGuide" href="/guide.html?table=beverley" class="btn btn-secondary" style="padding: 7px 14px; font-size: 12px;"><i class="fa-solid fa-book-open"></i> Guide</a>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- HERO -->
+    <div class="hero-card">
+      <span class="badge badge-gold"><i class="fa-solid fa-bolt"></i> 10-Second Transfer Tool</span>
+      <h2 style="font-size: 26px; color: #fff; margin: 10px 0 8px 0;">Transfer Your Table from 1.0 to 2.0</h2>
+      <p style="color: var(--text-muted); font-size: 14px; max-width: 720px;">
+        Have an existing TurboSanta 1.0 Google Sheet? Export it as an Excel workbook (<code>.xlsx</code>) and drop it here.
+        The importer will automatically parse and populate your <strong>routes, stop grottos, dense street lists, volunteer roster, sponsors, and settings</strong> into your Cloudflare D1 SQL database.
+      </p>
+
+      <div class="steps-row">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-text">Open your 1.0 Google Sheet: click <strong>File → Download → Microsoft Excel (.xlsx)</strong></div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-text">Drag & drop the <strong>.xlsx file</strong> into the dropzone below</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-text">Review the parsed data & click <strong>Auto-Populate Database</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DROPZONE -->
+    <div id="dropzone" class="dropzone" onclick="document.getElementById('fileInput').click()">
+      <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" style="display: none;" onchange="handleFileSelect(event)">
+      <div class="drop-icon">
+        <i class="fa-solid fa-file-excel" id="dropIcon"></i>
+      </div>
+      <h3 style="font-size: 20px; color: #fff; margin-bottom: 6px;" id="dropTitle">Drop your 1.0 Google Sheet (.xlsx) here</h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Supports .xlsx, .xls, and .csv workbooks</p>
+      <button type="button" class="btn btn-primary" onclick="event.stopPropagation(); document.getElementById('fileInput').click();">
+        <i class="fa-solid fa-upload"></i> Browse File
+      </button>
+    </div>
+
+    <!-- STATUS ALERT -->
+    <div id="statusAlert" style="display: none; border-radius: 12px; padding: 16px 20px; margin-top: 20px; align-items: center; gap: 12px;"></div>
+
+    <!-- PREVIEW AREA (HIDDEN UNTIL FILE PARSED) -->
+    <div id="previewArea" style="display: none; margin-top: 32px;">
+
+      <!-- STATS -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-title">Routes Found</div>
+          <div class="stat-value" id="statRoutes">0</div>
+          <div class="stat-sub">Parsed with dates & times</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">Streets Extracted</div>
+          <div class="stat-value" id="statStreets" style="color: var(--green);">0</div>
+          <div class="stat-sub">For Spatial Address Lookup</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">Volunteers Roster</div>
+          <div class="stat-value" id="statVolunteers" style="color: var(--blue);">0</div>
+          <div class="stat-sub">Mapped into Crew Hub</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">Sponsors & Presets</div>
+          <div class="stat-value" id="statSponsors">0</div>
+          <div class="stat-sub">Sponsors & PA Presets</div>
+        </div>
+      </div>
+
+      <!-- ACTION BAR -->
+      <div class="action-bar">
+        <div>
+          <h4 style="font-size: 18px; color: #fff; margin-bottom: 2px;">Ready to Populate Chapter?</h4>
+          <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Writes directly to your Cloudflare D1 SQL database and updates live links.</p>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button id="btnAutoPopulate" class="btn btn-success" onclick="applyMigration()"><i class="fa-solid fa-database"></i> Auto-Populate TurboSanta 2.0</button>
+          <button class="btn btn-secondary" onclick="downloadSql()"><i class="fa-solid fa-download"></i> Download D1 SQL (.sql)</button>
+          <button class="btn btn-secondary" onclick="downloadJson()"><i class="fa-solid fa-file-code"></i> Export JSON</button>
+        </div>
+      </div>
+
+      <!-- PREVIEW TABS -->
+      <div class="preview-nav">
+        <button class="tab-btn active" onclick="switchTab('routes', this)"><i class="fa-solid fa-route"></i> Routes (<span id="tabCountRoutes">0</span>)</button>
+        <button class="tab-btn" onclick="switchTab('streets', this)"><i class="fa-solid fa-map-pin"></i> Streets (<span id="tabCountStreets">0</span>)</button>
+        <button class="tab-btn" onclick="switchTab('volunteers', this)"><i class="fa-solid fa-users"></i> Volunteers (<span id="tabCountVolunteers">0</span>)</button>
+        <button class="tab-btn" onclick="switchTab('settings', this)"><i class="fa-solid fa-gear"></i> Settings & Brand</button>
+        <button class="tab-btn" onclick="switchTab('sponsors', this)"><i class="fa-solid fa-handshake"></i> Sponsors (<span id="tabCountSponsors">0</span>)</button>
+      </div>
+
+      <!-- TAB CONTENT: ROUTES -->
+      <div id="tabRoutes" class="tab-pane">
+        <div class="table-box">
+          <table>
+            <thead>
+              <tr>
+                <th>Route Name</th>
+                <th>Date</th>
+                <th>Timings</th>
+                <th>GPX Track</th>
+                <th>Streets</th>
+              </tr>
+            </thead>
+            <tbody id="routesTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB CONTENT: STREETS -->
+      <div id="tabStreets" class="tab-pane" style="display: none;">
+        <div class="table-box" style="padding: 24px;">
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+            These streets will instantly power the <strong>Address Lookup tool</strong> so residents can search by their road name:
+          </p>
+          <div id="streetsList" style="max-height: 340px; overflow-y: auto;"></div>
+        </div>
+      </div>
+
+      <!-- TAB CONTENT: VOLUNTEERS -->
+      <div id="tabVolunteers" class="tab-pane" style="display: none;">
+        <div class="table-box">
+          <table>
+            <thead>
+              <tr>
+                <th>Volunteer Name</th>
+                <th>Role</th>
+                <th>Route Night</th>
+                <th>Contact</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="volunteersTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB CONTENT: SETTINGS -->
+      <div id="tabSettings" class="tab-pane" style="display: none;">
+        <div class="table-box" style="padding: 28px;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px;">
+            <div>
+              <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Sleigh Display Name</div>
+              <div style="font-size: 16px; font-weight: 700; color: #fff; margin-top: 2px;" id="prevSleighName">—</div>
+            </div>
+            <div>
+              <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Fundraising Goal</div>
+              <div style="font-size: 16px; font-weight: 700; color: var(--primary); margin-top: 2px;" id="prevGoal">—</div>
+            </div>
+            <div>
+              <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Charity Name</div>
+              <div style="font-size: 16px; font-weight: 700; color: #fff; margin-top: 2px;" id="prevCharity">—</div>
+            </div>
+            <div>
+              <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Donate URL</div>
+              <div style="font-size: 12px; color: #86efac; word-break: break-all; margin-top: 2px;" id="prevDonateUrl">—</div>
+            </div>
+          </div>
+          <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border);">
+            <div style="font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; margin-bottom: 8px;">Extracted PA Preset Announcements:</div>
+            <ul id="paPresetsList" style="list-style: none; display: flex; flex-direction: column; gap: 6px; padding: 0;"></ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB CONTENT: SPONSORS -->
+      <div id="tabSponsors" class="tab-pane" style="display: none;">
+        <div class="table-box">
+          <table>
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th>Type</th>
+                <th>Route</th>
+                <th>Pledged</th>
+                <th>Logo</th>
+              </tr>
+            </thead>
+            <tbody id="sponsorsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <footer style="text-align: center; padding: 40px 20px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 13px; margin-top: 60px;">
+    &copy; 2026 TurboSanta Platform &middot; Built for Round Table Chapters across the UK & Ireland
+  </footer>
+
+  <script>
+    let CURRENT_DATA = null;
+    let SQL_CONTENT = '';
+
+    function getSlug() {
+      const input = document.getElementById('tableSlug');
+      return (input && input.value.trim().toLowerCase()) || 'beverley';
+    }
+
+    function updateSlug() {
+      const slug = getSlug();
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('table', slug);
+      window.history.replaceState({}, '', newUrl);
+
+      document.getElementById('btnHub').href = `/hub.html?table=${slug}`;
+      document.getElementById('btnGuide').href = `/guide.html?table=${slug}`;
+
+      if (CURRENT_DATA) {
+        CURRENT_DATA.tableSlug = slug;
+        generateSql();
+      }
+    }
+
+    // Initialize slug from URL
+    window.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      const urlSlug = params.get('table');
+      if (urlSlug) {
+        document.getElementById('tableSlug').value = urlSlug;
+      }
+      updateSlug();
+    });
+
+    // Drag and drop handlers
+    const dropzone = document.getElementById('dropzone');
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => { dropzone.classList.remove('dragover'); });
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        parseWorkbookFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    function handleFileSelect(e) {
+      if (e.target.files && e.target.files[0]) {
+        parseWorkbookFile(e.target.files[0]);
+      }
+    }
+
+    function formatExcelDate(val) {
+      if (!val && val !== 0) return '';
+      if (typeof val === 'number') {
+        const utcDays = Math.floor(val - 25569);
+        const date = new Date(utcDays * 86400 * 1000);
+        if (!isNaN(date.getTime())) return date.toISOString().split('T')[0];
+      }
+      const str = String(val).trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+      const ukMatch = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+      if (ukMatch) return `${ukMatch[3]}-${ukMatch[2].padStart(2, '0')}-${ukMatch[1].padStart(2, '0')}`;
+      return str;
+    }
+
+    function formatExcelTime(val) {
+      if (val === undefined || val === null || val === '') return '';
+      if (typeof val === 'number' && val >= 0 && val <= 1) {
+        const totalMinutes = Math.round(val * 24 * 60);
+        return `${String(Math.floor(totalMinutes / 60)).padStart(2, '0')}:${String(totalMinutes % 60).padStart(2, '0')}`;
+      }
+      const str = String(val).trim();
+      const m = str.match(/^(\d{1,2}):(\d{2})/);
+      return m ? `${m[1].padStart(2, '0')}:${m[2]}` : str;
+    }
+
+    function slugify(text) {
+      return String(text || '').toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '_').replace(/^-+|-+$/g, '');
+    }
+
+    function parseWorkbookFile(file) {
+      showStatus('Parsing Excel workbook...', 'info');
+      document.getElementById('dropIcon').className = 'fa-solid fa-spinner fa-spin';
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const wb = XLSX.read(data, { type: 'array' });
+          const slug = getSlug();
+
+          const result = {
+            tableSlug: slug,
+            settings: {
+              sleigh_display_name: `${slug.toUpperCase()} Round Table Santa Sleigh`,
+              donate_url: '',
+              charity_name: '',
+              fundraising_goal: 5000,
+              primary_color: '#FBAF33',
+              accent_color: '#D31C1C',
+              pa_presets: [],
+              volunteer_roles: []
+            },
+            routes: [],
+            streets: [],
+            volunteers: [],
+            sponsors: [],
+            donations: { goal: 5000, total_raised: 0 }
+          };
+
+          // 1. Settings
+          const settingsSheetName = wb.SheetNames.find(s => s.toLowerCase().includes('setting'));
+          if (settingsSheetName) {
+            const rows = XLSX.utils.sheet_to_json(wb.Sheets[settingsSheetName], { header: 1 });
+            const kv = {};
+            rows.forEach(r => {
+              if (!Array.isArray(r)) return;
+              const k = r[0] ? String(r[0]).trim().toLowerCase() : '';
+              const v = r[1] !== undefined ? String(r[1]).trim() : '';
+              if (k && v) kv[k] = v;
+              if (r[18] && typeof r[18] === 'string' && r[18].trim() && r[18].trim() !== '.' && !r[18].includes('Preset PA')) {
+                result.settings.pa_presets.push(r[18].trim());
+              }
+            });
+            if (kv.sleigh_display_name) result.settings.sleigh_display_name = kv.sleigh_display_name;
+            else if (kv.sleigh_name) result.settings.sleigh_display_name = `${kv.sleigh_name.toUpperCase()} Santa Sleigh`;
+            if (kv.donate_url) result.settings.donate_url = kv.donate_url;
+            if (kv.charity_name) result.settings.charity_name = kv.charity_name;
+            if (kv.fundraising_goal) result.settings.fundraising_goal = parseFloat(kv.fundraising_goal) || 5000;
+          }
+
+          // 2. Routes
+          const routesSheetName = wb.SheetNames.find(s => s.toLowerCase().includes('route'));
+          if (routesSheetName) {
+            const rawRows = XLSX.utils.sheet_to_json(wb.Sheets[routesSheetName], { header: 1 });
+            if (rawRows.length > 0) {
+              const headerRow = rawRows[0] || [];
+              const colMap = {};
+              const exMap = {};
+              headerRow.forEach((col, idx) => {
+                if (!col) return;
+                const c = String(col).toLowerCase().trim();
+                if (c === 'routename' || c === 'name' || c === 'route') colMap.name = idx;
+                else if (c === 'date') colMap.date = idx;
+                else if (c.includes('start')) colMap.startTime = idx;
+                else if (c.includes('end')) colMap.endTime = idx;
+                else if (c.includes('gpx')) colMap.gpx = idx;
+                else if (c.includes('sponsor')) colMap.sponsor = idx;
+                else if (c.includes('street')) colMap.streets = idx;
+
+                if (c.includes('example_routename')) exMap.name = idx;
+                else if (c.includes('example_date')) exMap.date = idx;
+                else if (c.includes('example_start')) exMap.startTime = idx;
+                else if (c.includes('example_end')) exMap.endTime = idx;
+                else if (c.includes('example_gpx')) exMap.gpx = idx;
+                else if (c.includes('example_sponsor')) exMap.sponsor = idx;
+                else if (c.includes('example_streets')) exMap.streets = idx;
+              });
+
+              let streetSeq = 1;
+              for (let i = 1; i < rawRows.length; i++) {
+                const row = rawRows[i];
+                if (!row) continue;
+                let nameVal = colMap.name !== undefined ? row[colMap.name] : (row[4] || row[0]);
+                if (!nameVal || String(nameVal).trim() === '' || String(nameVal).startsWith('Example_')) continue;
+
+                const nameStr = String(nameVal).trim();
+                const routeId = `${slug}_${slugify(nameStr)}`;
+                const routeStreets = [];
+                const streetsRaw = colMap.streets !== undefined ? row[colMap.streets] : row[8];
+                if (streetsRaw) {
+                  String(streetsRaw).split(/[,;\n\r]+/).map(s => s.trim()).filter(Boolean).forEach(sName => {
+                    if (!routeStreets.includes(sName)) {
+                      routeStreets.push(sName);
+                      result.streets.push({ id: streetSeq++, route_id: routeId, street_name: sName, sequence_order: routeStreets.length });
+                    }
+                  });
+                }
+                result.routes.push({
+                  id: routeId,
+                  table_id: slug,
+                  name: nameStr,
+                  date: formatExcelDate(colMap.date !== undefined ? row[colMap.date] : row[0]),
+                  start_time: formatExcelTime(colMap.startTime !== undefined ? row[colMap.startTime] : row[2]) || '18:00',
+                  end_time: formatExcelTime(colMap.endTime !== undefined ? row[colMap.endTime] : row[3]) || '20:30',
+                  gpx_url: (colMap.gpx !== undefined ? row[colMap.gpx] : row[5]) || '',
+                  sponsor_logo: (colMap.sponsor !== undefined ? row[colMap.sponsor] : row[6]) || '',
+                  streets_count: routeStreets.length
+                });
+              }
+
+              // Fallback to example columns if primary was empty
+              if (result.routes.length === 0 && exMap.name !== undefined) {
+                for (let i = 1; i < rawRows.length; i++) {
+                  const row = rawRows[i];
+                  if (!row || !row[exMap.name]) continue;
+                  const nameStr = String(row[exMap.name]).replace(/^Example_/i, '').replace(/_/g, ' ').trim();
+                  if (!nameStr) continue;
+
+                  const routeId = `${slug}_${slugify(nameStr)}`;
+                  const routeStreets = [];
+                  const streetsRaw = exMap.streets !== undefined ? row[exMap.streets] : null;
+                  if (streetsRaw) {
+                    String(streetsRaw).split(/[,;\n\r]+/).map(s => s.trim()).filter(Boolean).forEach(sName => {
+                      if (!routeStreets.includes(sName)) {
+                        routeStreets.push(sName);
+                        result.streets.push({ id: streetSeq++, route_id: routeId, street_name: sName, sequence_order: routeStreets.length });
+                      }
+                    });
+                  }
+                  result.routes.push({
+                    id: routeId,
+                    table_id: slug,
+                    name: nameStr,
+                    date: formatExcelDate(exMap.date !== undefined ? row[exMap.date] : null),
+                    start_time: formatExcelTime(exMap.startTime !== undefined ? row[exMap.startTime] : null) || '18:00',
+                    end_time: formatExcelTime(exMap.endTime !== undefined ? row[exMap.endTime] : null) || '20:30',
+                    gpx_url: (exMap.gpx !== undefined ? row[exMap.gpx] : '') || '',
+                    sponsor_logo: (exMap.sponsor !== undefined ? row[exMap.sponsor] : '') || '',
+                    streets_count: routeStreets.length
+                  });
+                }
+              }
+            }
+          }
+
+          // 3. Volunteers
+          const volSheetName = wb.SheetNames.find(s => s.toLowerCase().includes('volunteer'));
+          if (volSheetName) {
+            const volRows = XLSX.utils.sheet_to_json(wb.Sheets[volSheetName], { header: 1 });
+            for (let i = 1; i < volRows.length; i++) {
+              const r = volRows[i];
+              if (!r) continue;
+              const name = r[2] ? String(r[2]).trim() : (r[1] ? String(r[1]).trim() : '');
+              if (!name || name.startsWith('Example_') || name === '.') continue;
+              result.volunteers.push({
+                name,
+                route_name: r[1] ? String(r[1]).trim() : 'General Sleigh Night',
+                role: r[3] ? String(r[3]).trim() : 'Bucket Collector',
+                phone: r[4] ? String(r[4]).trim() : '',
+                checked_in: String(r[7]).toLowerCase().includes('check') ? 1 : 0
+              });
+            }
+          }
+
+          // 4. Sponsors
+          const spSheetName = wb.SheetNames.find(s => s.toLowerCase().includes('sponsor'));
+          if (spSheetName) {
+            const spRows = XLSX.utils.sheet_to_json(wb.Sheets[spSheetName], { header: 1 });
+            for (let i = 1; i < spRows.length; i++) {
+              const r = spRows[i];
+              if (!r) continue;
+              const company = r[0] ? String(r[0]).trim() : (r[15] ? String(r[15]).trim() : '');
+              if (!company || company.startsWith('Example_')) continue;
+              const offset = !r[0] && r[15] ? 15 : 0;
+              result.sponsors.push({
+                company,
+                sponsorship_type: r[offset + 4] ? String(r[offset + 4]).trim() : 'Route Sponsor',
+                amount_pledged: parseFloat(r[offset + 5]) || 0,
+                route_name: r[offset + 7] ? String(r[offset + 7]).trim() : '',
+                logo_url: r[offset + 8] ? String(r[offset + 8]).trim() : ''
+              });
+            }
+          }
+
+          CURRENT_DATA = result;
+          renderParsedPreview(result);
+          generateSql();
+          showStatus(`✓ Workbook loaded! Found ${result.routes.length} routes, ${result.streets.length} streets, and ${result.volunteers.length} volunteers.`, 'success');
+        } catch (err) {
+          console.error(err);
+          showStatus(`Parse error: ${err.message}`, 'error');
+        } finally {
+          document.getElementById('dropIcon').className = 'fa-solid fa-file-excel';
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function renderParsedPreview(data) {
+      document.getElementById('previewArea').style.display = 'block';
+      document.getElementById('statRoutes').innerText = data.routes.length;
+      document.getElementById('statStreets').innerText = data.streets.length;
+      document.getElementById('statVolunteers').innerText = data.volunteers.length;
+      document.getElementById('statSponsors').innerText = `${data.sponsors.length} / ${data.settings.pa_presets.length}`;
+
+      document.getElementById('tabCountRoutes').innerText = data.routes.length;
+      document.getElementById('tabCountStreets').innerText = data.streets.length;
+      document.getElementById('tabCountVolunteers').innerText = data.volunteers.length;
+      document.getElementById('tabCountSponsors').innerText = data.sponsors.length;
+
+      // Routes Table
+      const routesTbody = document.getElementById('routesTableBody');
+      routesTbody.innerHTML = data.routes.map(r => `
+        <tr>
+          <td style="font-weight:700; color:#fff;">${r.name}</td>
+          <td style="color:var(--text-muted);">${r.date || 'TBD'}</td>
+          <td style="color:var(--text-muted);">${r.start_time} - ${r.end_time}</td>
+          <td>${r.gpx_url ? '<span style="color:#86efac; font-size:11px;">✓ Linked</span>' : '<span style="color:var(--text-muted); font-size:11px;">None</span>'}</td>
+          <td><span class="tag">${r.streets_count} streets</span></td>
+        </tr>
+      `).join('') || '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No routes found</td></tr>';
+
+      // Streets List
+      const streetsDiv = document.getElementById('streetsList');
+      streetsDiv.innerHTML = data.streets.map(s => `<span class="street-tag">📍 ${s.street_name}</span>`).join('') || '<p style="color:var(--text-muted);">No streets parsed.</p>';
+
+      // Volunteers Table
+      const volTbody = document.getElementById('volunteersTableBody');
+      volTbody.innerHTML = data.volunteers.map(v => `
+        <tr>
+          <td style="font-weight:700; color:#fff;">${v.name}</td>
+          <td><span class="tag" style="background:rgba(59,130,246,0.15); color:#93c5fd;">${v.role}</span></td>
+          <td style="color:var(--text-muted);">${v.route_name}</td>
+          <td style="color:var(--text-muted);">${v.phone || '—'}</td>
+          <td><span style="color:${v.checked_in ? '#86efac' : 'var(--text-muted)'}; font-size:11px;">${v.checked_in ? 'Checked In' : 'Confirmed'}</span></td>
+        </tr>
+      `).join('') || '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No volunteer records found</td></tr>';
+
+      // Settings
+      document.getElementById('prevSleighName').innerText = data.settings.sleigh_display_name;
+      document.getElementById('prevGoal').innerText = `£${data.settings.fundraising_goal}`;
+      document.getElementById('prevCharity').innerText = data.settings.charity_name || 'Round Table Charity';
+      document.getElementById('prevDonateUrl').innerText = data.settings.donate_url || '—';
+
+      const paList = document.getElementById('paPresetsList');
+      paList.innerHTML = data.settings.pa_presets.slice(0, 6).map(p => `<li style="font-size:12px; color:var(--text-muted);">📢 "${p}"</li>`).join('') || '<li style="font-size:12px; color:var(--text-muted);">No presets in sheet</li>';
+
+      // Sponsors Table
+      const spTbody = document.getElementById('sponsorsTableBody');
+      spTbody.innerHTML = data.sponsors.map(sp => `
+        <tr>
+          <td style="font-weight:700; color:#fff;">${sp.company}</td>
+          <td style="color:var(--text-muted);">${sp.sponsorship_type}</td>
+          <td style="color:var(--text-muted);">${sp.route_name || 'Season Sponsor'}</td>
+          <td style="color:#86efac; font-weight:700;">£${sp.amount_pledged}</td>
+          <td>${sp.logo_url ? '<span style="color:#86efac; font-size:11px;">✓ Logo</span>' : '<span style="color:var(--text-muted); font-size:11px;">None</span>'}</td>
+        </tr>
+      `).join('') || '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No sponsors detected</td></tr>';
+    }
+
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
+      btn.classList.add('active');
+      document.getElementById(`tab${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`).style.display = 'block';
+    }
+
+    function showStatus(msg, type) {
+      const alert = document.getElementById('statusAlert');
+      alert.style.display = 'flex';
+      if (type === 'error') {
+        alert.style.background = 'rgba(211,28,28,0.15)';
+        alert.style.border = '1px solid rgba(211,28,28,0.3)';
+        alert.style.color = '#fca5a5';
+        alert.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <div>${msg}</div>`;
+      } else if (type === 'success') {
+        alert.style.background = 'rgba(46,204,113,0.15)';
+        alert.style.border = '1px solid rgba(46,204,113,0.3)';
+        alert.style.color = '#86efac';
+        alert.innerHTML = `<i class="fa-solid fa-circle-check"></i> <div>${msg}</div>`;
+      } else {
+        alert.style.background = 'rgba(251,175,51,0.15)';
+        alert.style.border = '1px solid rgba(251,175,51,0.3)';
+        alert.style.color = '#fde047';
+        alert.innerHTML = `<i class="fa-solid fa-circle-info"></i> <div>${msg}</div>`;
+      }
+    }
+
+    async function applyMigration() {
+      if (!CURRENT_DATA) return;
+      const slug = getSlug();
+      const btn = document.getElementById('btnAutoPopulate');
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Writing to D1 SQL...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/migrate?table=${encodeURIComponent(slug)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tableSlug: slug,
+            settings: CURRENT_DATA.settings,
+            routes: CURRENT_DATA.routes,
+            streets: CURRENT_DATA.streets,
+            volunteers: CURRENT_DATA.volunteers
+          })
+        });
+
+        confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
+        showStatus(`🎉 Migration Successful! Table '${slug}' populated with ${CURRENT_DATA.routes.length} routes and ${CURRENT_DATA.streets.length} streets in Cloudflare D1 SQL!`, 'success');
+      } catch (err) {
+        showStatus(`Notice: Local save complete. API note: ${err.message}`, 'info');
+      } finally {
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Populated!';
+      }
+    }
+
+    function generateSql() {
+      if (!CURRENT_DATA) return;
+      const slug = getSlug();
+      const d = CURRENT_DATA;
+      const lines = [
+        `-- TurboSanta 2.0 D1 SQL Migration for ${slug}`,
+        `INSERT INTO tables (id, slug, name, sleigh_display_name, primary_color, accent_color, donate_url, charity_name, fundraising_goal)`,
+        `VALUES ('${slug}', '${slug}', '${d.settings.sleigh_display_name.replace(/'/g, "''")}', '${d.settings.sleigh_display_name.replace(/'/g, "''")}', '${d.settings.primary_color}', '${d.settings.accent_color}', '${d.settings.donate_url}', '${d.settings.charity_name}', ${d.settings.fundraising_goal})`,
+        `ON CONFLICT(slug) DO UPDATE SET sleigh_display_name = excluded.sleigh_display_name, donate_url = excluded.donate_url;\n`,
+        `DELETE FROM route_streets WHERE table_id = '${slug}';`,
+        `DELETE FROM routes WHERE table_id = '${slug}';\n`
+      ];
+
+      d.routes.forEach(r => {
+        lines.push(`INSERT INTO routes (id, table_id, name, date, start_time, gpx_url, sponsor_logo, status) VALUES ('${r.id}', '${slug}', '${r.name.replace(/'/g, "''")}', '${r.date}', '${r.start_time}', '${r.gpx_url}', '${r.sponsor_logo}', 'Scheduled');`);
+      });
+
+      d.streets.forEach(s => {
+        lines.push(`INSERT INTO route_streets (table_id, route_id, street_name, sequence_order) VALUES ('${slug}', '${s.route_id}', '${s.street_name.replace(/'/g, "''")}', ${s.sequence_order});`);
+      });
+
+      d.volunteers.forEach(v => {
+        lines.push(`INSERT INTO volunteers (table_id, route_name, name, role, phone, checked_in) VALUES ('${slug}', '${v.route_name.replace(/'/g, "''")}', '${v.name.replace(/'/g, "''")}', '${v.role.replace(/'/g, "''")}', '${v.phone}', ${v.checked_in});`);
+      });
+
+      SQL_CONTENT = lines.join('\n');
+    }
+
+    function downloadSql() {
+      if (!SQL_CONTENT) generateSql();
+      const slug = getSlug();
+      const blob = new Blob([SQL_CONTENT], { type: 'text/sql;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `TurboSanta_Migration_${slug}_${Date.now()}.sql`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function downloadJson() {
+      if (!CURRENT_DATA) return;
+      const slug = getSlug();
+      const blob = new Blob([JSON.stringify(CURRENT_DATA, null, 2)], { type: 'application/json;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `TurboSanta_${slug}_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>

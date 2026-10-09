@@ -315,6 +315,7 @@
       <ul>
         <li><a href="#intro"><i class="fa-solid fa-flag-checkered"></i> Introduction</a></li>
         <li><a href="#models"><i class="fa-solid fa-cubes"></i> 2 Deployment Models</a></li>
+        <li><a href="#migration"><i class="fa-solid fa-file-excel"></i> 1.0 to 2.0 Fast Transfer</a></li>
         <li><a href="#turnkey"><i class="fa-solid fa-sleigh"></i> Turnkey Public Site</a></li>
         <li><a href="#embeds"><i class="fa-solid fa-code"></i> Embed on Custom Sites</a></li>
         <li><a href="#gpx"><i class="fa-solid fa-map-location-dot"></i> Route Planner & GPX</a></li>
@@ -374,6 +375,52 @@
             <p>You can embed any individual module (Tracker, Address Lookup, Volunteer Hub, Talk to Santa AI, Workshop Blueprint, etc.) into your existing site.</p>
             <a id="linkEmbedModel" href="/embed.html?table=beverley" target="_blank" class="btn btn-secondary">Open Embed Studio <i class="fa-solid fa-code"></i></a>
           </div>
+        </div>
+      </section>
+
+      <!-- SECTION 2b: FAST TRANSFER FROM 1.0 -->
+      <section id="migration" class="doc-section">
+        <span class="badge green">One-Click Upgrade</span>
+        <h2><i class="fa-solid fa-file-excel" style="color:var(--green);"></i> 1.0 to 2.0 Fast Transfer (Google Sheets & Excel)</h2>
+        <p>
+          Migrating a Round Table chapter from TurboSanta 1.0 to 2.0 takes under 10 seconds.
+          Chapters do not need to re-type routes or recreate volunteer rosters.
+        </p>
+
+        <h3 style="margin-top: 20px;">How It Works</h3>
+        <ol style="margin: 12px 0 20px 24px; color: var(--text-muted); font-size: 14px; line-height: 2;">
+          <li>Open your 1.0 Google Sheet in your web browser.</li>
+          <li>Click <strong>File → Download → Microsoft Excel (.xlsx)</strong>.</li>
+          <li>Open the <a href="/migrate.html" style="color:var(--primary); font-weight:700;">TurboSanta Importer</a> (or open <strong>Admin Portal → 1.0 Excel / Sheets Importer</strong>).</li>
+          <li>Drag and drop your <code>.xlsx</code> file. The parser runs client-side in your browser in milliseconds.</li>
+          <li>Review the live preview showing extracted routes, street names, volunteer roster, and branding settings.</li>
+          <li>Click <strong>Auto-Populate TurboSanta 2.0 Database</strong>. Your Cloudflare D1 SQL database is updated immediately!</li>
+        </ol>
+
+        <h3>What Data Gets Transferred?</h3>
+        <div class="grid-2" style="margin-top: 16px;">
+          <div class="card">
+            <h4>🗺️ Routes & Streets</h4>
+            <p>Every nightly route name, date, start time, end time, and GPX track link. The comma-separated street list is automatically split and sequenced into individual <code>route_streets</code> database records to power the Address Lookup tool.</p>
+          </div>
+          <div class="card">
+            <h4>👥 Volunteers & Roster</h4>
+            <p>Full supporter contact list (Name, Preferred Route, Role, Mobile Phone, Email, Organization, Bucket Number) is imported directly into the SQL <code>volunteers</code> table.</p>
+          </div>
+          <div class="card">
+            <h4>🛷 Sleigh Branding & Links</h4>
+            <p>Sleigh display name, charity name, Zeffy/Stripe donation links, fundraising target (£), PA announcement presets, and volunteer roles.</p>
+          </div>
+          <div class="card">
+            <h4>🤝 Sponsors & Donations</h4>
+            <p>Corporate route sponsors, logos, pledged amounts, and historical bucket donation totals.</p>
+          </div>
+        </div>
+
+        <div style="margin-top: 24px;">
+          <a id="guideMigrateLaunchBtn" href="/migrate.html?table=beverley" target="_blank" class="btn" style="background:var(--green); color:#000;">
+            <i class="fa-solid fa-file-excel"></i> Open 1.0 Importer Tool
+          </a>
         </div>
       </section>
 
@@ -615,6 +662,10 @@
       // Update God Mode Link
       const linkGod = document.getElementById('linkGodMode');
       if (linkGod) linkGod.href = `/god_mode.html?table=${slug}`;
+
+      // Update Migration Link
+      const linkMigrate = document.getElementById('guideMigrateLaunchBtn');
+      if (linkMigrate) linkMigrate.href = `/migrate.html?table=${slug}`;
 
       // Update Embed Code Snippets
       const snippets = {

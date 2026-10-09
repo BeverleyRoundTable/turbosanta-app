@@ -97,6 +97,27 @@ Admins can open the **Embed Studio** (`/embed.html?table=[slug]`) and copy 1-cli
 
 ---
 
+## ⚡ Fast Transfer from TurboSanta 1.0 (Google Sheets & Excel)
+
+Any Round Table chapter can migrate from their TurboSanta 1.0 Google Sheet to 2.0 in under **10 seconds** without retyping data:
+
+1. **Export from Google Sheets**: Open your 1.0 Google Sheet and click **File → Download → Microsoft Excel (.xlsx)**.
+2. **Open the Importer**:
+   * Via Admin Portal: Login and click the **1.0 Excel / Sheets Importer** tab.
+   * Or via Standalone Tool: Visit `/migrate.html?table=[slug]`.
+3. **Instant Auto-Population**:
+   * Drag and drop the `.xlsx` file.
+   * Client-side SheetJS instantly extracts:
+     * 🛷 **Settings & Branding**: Sleigh display name, charity name, fundraising target (£), Zeffy/Stripe donate link, primary/accent colors, and canned PA preset announcements.
+     * 🗺️ **Routes & Timetables**: Nightly route names, dates (auto-converting Excel serial dates), start/end times, GPX tracks, and sponsor logos.
+     * 📍 **Streets**: Comma-separated street lists are automatically parsed, trimmed, and sequenced into individual records for the **Spatial Address Lookup tool**.
+     * 👥 **Volunteers Roster**: Name, preferred route, role, phone, and check-in status mapped into the `volunteers` SQL table.
+     * 🤝 **Sponsors**: Route sponsors, pledged amounts, and logo URLs.
+   * Click **Auto-Populate TurboSanta 2.0 Database** to write directly to Cloudflare D1 SQL via `POST /api/migrate`.
+   * Also offers 1-click **Download D1 SQL Script (.sql)** and **Export JSON**.
+
+---
+
 ## 🗺️ Route Management & Direct GPX Upload
 
 TurboSanta preserves **dense road geometry** and **planned stops** through standard GPX 1.1 files.

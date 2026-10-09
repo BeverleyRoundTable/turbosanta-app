@@ -540,6 +540,22 @@
           </div>
         </div>
 
+        <!-- 1.0 Excel & Google Sheet Importer -->
+        <div class="hub-card featured">
+          <div>
+            <span class="card-badge badge-green">1.0 → 2.0 Fast Transfer</span>
+            <h3><i class="fa-solid fa-file-excel" style="color:var(--green);"></i> 1.0 Google Sheet & Excel Importer</h3>
+            <p>Upload your chapter's 1.0 Google Sheet (downloaded as <code>.xlsx</code>) to auto-populate routes, stops, street names, volunteer roster, and settings into D1 SQL in seconds.</p>
+          </div>
+          <div>
+            <div class="url-preview" id="migrateUrl">https://turbosanta-app.pages.dev/migrate.html?table=beverley</div>
+            <div class="card-actions">
+              <a id="btnLaunchMigrate" href="/migrate.html?table=beverley" target="_blank" class="btn btn-primary" style="background:var(--green); color:#000;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Importer</a>
+              <button class="btn btn-secondary" onclick="copyDynamicUrl('migrateUrl')"><i class="fa-solid fa-copy"></i> Copy Link</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Master Guide -->
         <div class="hub-card">
           <div>
@@ -605,6 +621,7 @@
         godModeUrl: `${origin}/god_mode.html?table=${slug}`,
         routePlannerUrl: `${origin}/route_planner.html?table=${slug}`,
         embedStudioUrl: `${origin}/embed.html?table=${slug}`,
+        migrateUrl: `${origin}/migrate.html?table=${slug}`,
         guideUrl: `${origin}/guide.html?table=${slug}`
       };
 
@@ -626,6 +643,7 @@
         btnLaunchGodMode: links.godModeUrl,
         btnLaunchRoutePlanner: links.routePlannerUrl,
         btnLaunchEmbedStudio: links.embedStudioUrl,
+        btnLaunchMigrate: links.migrateUrl,
         btnLaunchGuide: links.guideUrl
       };
 
