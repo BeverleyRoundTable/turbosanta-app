@@ -1017,6 +1017,9 @@ body.dim-ui .route-sponsor:hover { opacity: 0.85; }
             'Start Time': r.start_time || '18:00',
             'End Time': r.end_time || '20:30',
             gpxUrl: r.gpx_url || r.gpxUrl || '',
+            sponsorName: r.sponsor_name || r.sponsorName || '',
+            sponsorUrl: r.sponsor_logo || r.sponsor_logo_url || r.sponsorUrl || '',
+            sponsorLink: r.sponsor_link || r.sponsorLink || '',
             streets: r.streets || (data.streets?.filter(s => s.route_id === r.id).map(s => s.street_name).join(', ')) || ''
           }));
         }

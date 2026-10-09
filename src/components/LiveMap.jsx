@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
-import { Compass, Maximize2, Minimize2, Radio } from 'lucide-react';
+import { Compass, Maximize2, Minimize2, Radio, Wrench, Sparkles, Building2, Calendar } from 'lucide-react';
 import { fetchLiveGps } from '../services/api';
+import WorkshopOverlay from './WorkshopOverlay';
 
 // Beverley East Route GPS Track Points (from s.gpx)
 const BEVERLEY_ROUTE_POINTS = [
@@ -202,6 +203,11 @@ export default function LiveMap({ tableData }) {
   };
 
   const isResting = gpsData.status?.toLowerCase().includes("resting") || !gpsData.road_name;
+  const table = tableData?.table || {};
+  const routes = tableData?.routes || [];
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayRoute = routes.find(r => r.date === todayStr);
+  const [isWorkshopOpen, setIsWorkshopOpen] = useState(false);
 
   return (
     <section id="tracker" style={{
@@ -215,56 +221,114 @@ export default function LiveMap({ tableData }) {
         <h2 style={{ fontSize: 'clamp(28px, 4vw, 42px)', margin: '0 0 8px 0', textShadow: '0 2px 10px rgba(0,0,0,0.8)' }}>
           LIVE <span style={{ color: 'var(--primary)' }}>TRACKER</span>
         </h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '16px' }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: '16px', marginBottom: '14px' }}>
           Watch Santa's sleigh move in real-time as he visits the streets!
         </p>
-      </div>
 
-      {/* Powered by Zendure Badge */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
-        <div style={{
-          background: '#151513',
-          border: '1px solid rgba(0,240,255,0.4)',
-          padding: '6px 18px',
-          borderRadius: '999px',
-          boxShadow: '0 0 20px rgba(0,240,255,0.25)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          flexWrap: 'wrap',
-          justifyContent: 'center'
-        }}>
-          <span style={{ fontFamily: 'Eurostile, sans-serif', fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1.5px', fontWeight: 700 }}>
-            Powered by
-          </span>
-          <img
-            src="/images/zendure.png"
-            alt="Zendure"
-            style={{ height: '24px', background: '#fff', padding: '2px 8px', borderRadius: '6px', objectFit: 'contain' }}
-            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-          />
-          <span style={{
-            borderLeft: '1px solid #374151',
-            paddingLeft: '12px',
-            fontFamily: 'Eurostile, sans-serif',
-            fontSize: '11px',
-            color: '#00f0ff',
-            textTransform: 'uppercase',
-            letterSpacing: '1.5px',
-            fontWeight: 700,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}>
-            Official Power Partners
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00f0ff', display: 'inline-block' }} />
-          </span>
+        {/* Santa's Workshop Trigger Pill */}
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <button
+            onClick={() => setIsWorkshopOpen(true)}
+            style={{
+              backgroundColor: 'rgba(251, 175, 51, 0.12)',
+              border: '1px solid rgba(251, 175, 51, 0.35)',
+              color: 'var(--primary)',
+              borderRadius: '20px',
+              padding: '6px 16px',
+              fontSize: '12px',
+              fontWeight: 700,
+              fontFamily: 'Eurostile, sans-serif',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          >
+            <Wrench size={14} />
+            <span>🚜 Santa's Workshop & Countdown</span>
+          </button>
         </div>
       </div>
 
-      {/* Zendure Electrical Border Wrapper */}
-      <div className="zendure-power-wrapper">
-        <div className="zendure-power-inner">
+      {/* Headline Sponsor Badge (ONLY IF TABLE HAS ONE DEFINED - Zendure for Beverley, hides if null for others) */}
+      {table.headline_sponsor_name && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+          <div style={{
+            background: '#151513',
+            border: '1px solid rgba(0,240,255,0.4)',
+            padding: '6px 18px',
+            borderRadius: '999px',
+            boxShadow: '0 0 20px rgba(0,240,255,0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            flexWrap: 'wrap',
+            justifyContent: 'center'
+          }}>
+            <span style={{ fontFamily: 'Eurostile, sans-serif', fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1.5px', fontWeight: 700 }}>
+              Powered by
+            </span>
+            {table.headline_sponsor_logo && (
+              <img
+                src={table.headline_sponsor_logo}
+                alt={table.headline_sponsor_name}
+                style={{ height: '24px', background: '#fff', padding: '2px 8px', borderRadius: '6px', objectFit: 'contain' }}
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+            )}
+            <span style={{
+              borderLeft: '1px solid #374151',
+              paddingLeft: '12px',
+              fontFamily: 'Eurostile, sans-serif',
+              fontSize: '11px',
+              color: '#00f0ff',
+              textTransform: 'uppercase',
+              letterSpacing: '1.5px',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              {table.headline_sponsor_tagline || 'Official Sponsor'}
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00f0ff', display: 'inline-block' }} />
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Tonight's Route Sponsor Pill (If today's route has a sponsor) */}
+      {todayRoute && todayRoute.sponsor_name && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+          <div style={{
+            background: 'rgba(251, 175, 51, 0.1)',
+            border: '1px solid rgba(251, 175, 51, 0.4)',
+            borderRadius: '999px',
+            padding: '6px 18px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '10px',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.4)'
+          }}>
+            <Building2 size={15} color="var(--primary)" />
+            <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-muted)', fontWeight: 700 }}>
+              Tonight's Route Sponsored by:
+            </span>
+            <strong style={{ fontSize: '13px', color: '#fff' }}>{todayRoute.sponsor_name}</strong>
+            {todayRoute.sponsor_logo && (
+              <img src={todayRoute.sponsor_logo} alt={todayRoute.sponsor_name} style={{ height: '20px', objectFit: 'contain', background: '#fff', padding: '1px 6px', borderRadius: '4px' }} />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Map Border Wrapper (Uses cyan electric flow for Zendure, standard golden/amber festive for other tables) */}
+      <div className={table.headline_sponsor_name === 'Zendure' ? 'zendure-power-wrapper' : 'sleigh-map-wrapper'}>
+        <div className={table.headline_sponsor_name === 'Zendure' ? 'zendure-power-inner' : 'sleigh-map-inner'}>
           {/* Status Bar */}
           <div style={{
             display: 'flex',
@@ -365,9 +429,17 @@ export default function LiveMap({ tableData }) {
           </span>
         </div>
       </div>
-      {/* End of Zendure inner and outer wrappers */}
+      {/* End of inner and outer map wrappers */}
         </div>
       </div>
+
+      {/* Santa's Workshop Countdown & MOT Maintenance Overlay */}
+      <WorkshopOverlay
+        isOpen={isWorkshopOpen}
+        onClose={() => setIsWorkshopOpen(false)}
+        routes={routes}
+        tableData={tableData}
+      />
     </section>
   );
 }

@@ -57,7 +57,17 @@ export default {
           live_announcement: table.live_announcement,
           tracking_active: Boolean(table.tracking_active),
           enable_gift_aid: Boolean(table.enable_gift_aid),
-          charity_number: table.charity_number || ""
+          charity_number: table.charity_number || "",
+          headline_sponsor_name: table.headline_sponsor_name || (table.slug === 'beverley' ? 'Zendure' : null),
+          headline_sponsor_logo: table.headline_sponsor_logo || (table.slug === 'beverley' ? '/images/zendure.png' : null),
+          headline_sponsor_url: table.headline_sponsor_url || (table.slug === 'beverley' ? 'https://zendure.co.uk/' : null),
+          headline_sponsor_tagline: table.headline_sponsor_tagline || (table.slug === 'beverley' ? 'Official Power Partner' : null),
+          partners: table.partners_json ? JSON.parse(table.partners_json) : (table.slug === 'beverley' ? [
+            { name: "Zendure", role: "Official Power Partner", description: "Provided clean green portable power stations to keep illuminations glowing bright.", url: "https://zendure.co.uk/" },
+            { name: "Greens Signmakers", role: "Signage & Vinyl Craft", description: "Transformed the electric tuk-tuk into a show-stopping Santa Sleigh with eco-friendly signage.", url: "https://greens-signmakers.co.uk/" },
+            { name: "Beverley Town Council", role: "Civic & Audio Grant", description: "Supported local community joy with civic and audio equipment grant funding.", url: "https://beverley.gov.uk/" },
+            { name: "The Monks Walk", role: "Volunteer Sustenance", description: "Historic Beverley inn providing warming festive drinks and sustenance for volunteer elves.", url: "https://themonkswalk.co.uk/" }
+          ] : [])
         },
         routes: routes.results || [],
         streets: streets.results || [],

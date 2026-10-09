@@ -150,6 +150,12 @@
       border-color: rgba(var(--primary-rgb), 0.5);
     }
 
+    .addr-route-card.is-today {
+      border: 2px solid var(--primary);
+      box-shadow: 0 0 25px rgba(var(--primary-rgb), 0.35);
+      background: linear-gradient(180deg, rgba(var(--primary-rgb), 0.08) 0%, var(--surface-2) 100%);
+    }
+
     /* Dynamically accepts the route color generated in JS */
     .addr-route-card::before {
       content: '';
@@ -700,6 +706,18 @@
       matches.forEach(route => {
         const formattedDate = fmtRouteDate(route);
 
+        // Check if route date matches TODAY
+        const now = new Date();
+        const routeDateObj = route.date ? new Date(route.date) : null;
+        const isToday = routeDateObj && (
+          routeDateObj.getFullYear() === now.getFullYear() &&
+          routeDateObj.getMonth() === now.getMonth() &&
+          routeDateObj.getDate() === now.getDate()
+        );
+
+        const sponsorName = route.sponsor_name || route.sponsorName || route.sponsor || route['Sponsor'] || '';
+        const sponsorLogo = route.sponsor_logo || route.sponsorLogo || route.sponsorUrl || '';
+
         // Pin / GPS lookups know the distance; street lookups know the street name
         let locationLine = '';
         if (route.distance != null) {
@@ -708,11 +726,29 @@
           locationLine = `📍 Santa visits <span style="color: var(--text);">${esc(currentStreet)}</span> on this route.`;
         }
 
+        // Today emphasis banner with extra text info
+        const todayBanner = isToday ? `
+          <div style="background: rgba(251, 175, 51, 0.15); border: 1px solid var(--primary); border-radius: 8px; padding: 10px 14px; margin-top: 10px; display: flex; align-items: center; gap: 10px;">
+            <span style="background: var(--primary); color: #000; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 100px; text-transform: uppercase;">TODAY!</span>
+            <span style="font-size: 13px; font-weight: 700; color: #fff;">🎅 Santa is on this route TONIGHT! Track him live from ${route['Start Time'] || '17:30'}</span>
+          </div>
+        ` : '';
+
+        // Route sponsor attribution
+        const sponsorHtml = sponsorName ? `
+          <div style="border-top: 1px solid var(--border); margin-top: 14px; padding-top: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--primary);">
+            <span>⭐ Proudly sponsored by: <strong style="color: #fff;">${esc(sponsorName)}</strong></span>
+            ${sponsorLogo ? `<img src="${esc(sponsorLogo)}" alt="${esc(sponsorName)}" style="height: 20px; object-fit: contain; background: #fff; padding: 1px 6px; border-radius: 4px;" />` : ''}
+          </div>
+        ` : '';
+
         resultsDiv.innerHTML += `
-          <div class="addr-route-card" data-route-name="${route.routeName}" style="--route-color: ${route.color || PRIMARY};">
+          <div class="addr-route-card ${isToday ? 'is-today' : ''}" data-route-name="${route.routeName}" style="--route-color: ${route.color || PRIMARY};">
             <h3 class="addr-route-title">${route.routeName}</h3>
             <p class="addr-route-date">${formattedDate} (Starts at approx ${route['Start Time'] || '17:30'})</p>
+            ${todayBanner}
             ${locationLine ? `<p style="margin: 12px 0 0; font-size: 13px; font-weight: 600; color: var(--text-dim);">${locationLine}</p>` : ''}
+            ${sponsorHtml}
             <div class="addr-btn-row">
               <button type="button" class="addr-btn addr-btn-primary addr-share-btn">📤 Share</button>
               <button type="button" class="addr-btn addr-btn-ghost addr-copy-btn">🔗 Copy Link</button>

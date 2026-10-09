@@ -254,70 +254,63 @@ export default function App() {
           </div>
         </section>
 
-        {/* Build Partners Section (from santasleigh.html) */}
-        <section id="partners" style={{
-          padding: '50px 20px',
-          maxWidth: '1100px',
-          margin: '0 auto',
-          textAlign: 'center'
-        }}>
-          <h2 style={{ fontSize: 'clamp(28px, 4vw, 42px)', margin: '0 0 10px 0' }}>
-            OUR BUILD <span style={{ color: '#d31c1c' }}>PARTNERS</span>
-          </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '16px', marginBottom: '32px' }}>
-            Meet the incredible local organisations who provided the equipment, craft, and support to bring our electric Tuk-Tuk sleigh to life.
-          </p>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: '16px',
-            textAlign: 'left'
-          }}>
-            <div style={{ background: '#151513', border: '1px solid rgba(0,240,255,0.3)', borderRadius: '16px', padding: '22px' }}>
-              <div style={{ color: '#00f0ff', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1.5px', fontWeight: 800, marginBottom: '6px' }}>Official Power Partner</div>
-              <h3 className="brand-font" style={{ fontSize: '20px', color: '#fff', marginBottom: '8px' }}>Zendure</h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '14px' }}>
-                Provided clean green portable power stations to keep the illuminations glowing bright and music playing loud.
-              </p>
-              <a href="https://zendure.co.uk/" target="_blank" rel="noopener noreferrer" style={{ color: '#00f0ff', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', textDecoration: 'none' }}>
-                Visit Zendure &rarr;
-              </a>
-            </div>
+        {/* Build & Community Partners Section (Conditionally rendered, hides if none defined) */}
+        {(() => {
+          const tableSlug = tableData?.table?.slug;
+          const partners = (tableData?.table?.partners && tableData.table.partners.length > 0)
+            ? tableData.table.partners
+            : (tableSlug === 'beverley' ? [
+                { name: "Zendure", role: "Official Power Partner", description: "Provided clean green portable power stations to keep the illuminations glowing bright and music playing loud.", url: "https://zendure.co.uk/" },
+                { name: "Greens Signmakers", role: "Signage & Vinyl Craft", description: "Transformed the electric tuk-tuk into a show-stopping Santa Sleigh with eco-friendly signage and bespoke liveries.", url: "https://greens-signmakers.co.uk/" },
+                { name: "Beverley Town Council", role: "Civic & Audio Grant", description: "Generously funded high-definition audio equipment so Santa's carols spread clearer and louder than ever.", url: "https://www.beverley.gov.uk/" },
+                { name: "Acklams Coaches", role: "Sleigh Hangar & Depot", description: "Housing the sleigh safely in their depot throughout December, keeping Santa's ride secure and protected.", url: "https://acklamscoaches.co.uk/" }
+              ] : []);
 
-            <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '16px', padding: '22px' }}>
-              <div style={{ color: '#d31c1c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1.5px', fontWeight: 800, marginBottom: '6px' }}>Signage & Vinyl Craft</div>
-              <h3 className="brand-font" style={{ fontSize: '20px', color: '#fff', marginBottom: '8px' }}>Greens Signmakers</h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '14px' }}>
-                Transformed the electric tuk-tuk into a show-stopping Santa Sleigh with eco-friendly signage and bespoke liveries.
-              </p>
-              <a href="https://greens-signmakers.co.uk/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', textDecoration: 'none' }}>
-                Visit Greens &rarr;
-              </a>
-            </div>
+          if (!partners || partners.length === 0) return null;
 
-            <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '16px', padding: '22px' }}>
-              <div style={{ color: '#d31c1c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1.5px', fontWeight: 800, marginBottom: '6px' }}>Civic & Audio Grant</div>
-              <h3 className="brand-font" style={{ fontSize: '20px', color: '#fff', marginBottom: '8px' }}>Beverley Town Council</h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '14px' }}>
-                Generously funded high-definition audio equipment so Santa's carols spread clearer and louder than ever.
+          return (
+            <section id="partners" style={{
+              padding: '50px 20px',
+              maxWidth: '1100px',
+              margin: '0 auto',
+              textAlign: 'center'
+            }}>
+              <h2 style={{ fontSize: 'clamp(28px, 4vw, 42px)', margin: '0 0 10px 0' }}>
+                COMMUNITY <span style={{ color: '#d31c1c' }}>PARTNERS</span>
+              </h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '16px', marginBottom: '32px' }}>
+                Meet the local organisations and businesses supporting our Santa Sleigh for the community.
               </p>
-              <a href="https://www.beverley.gov.uk/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', textDecoration: 'none' }}>
-                Visit Town Council &rarr;
-              </a>
-            </div>
-
-            <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '16px', padding: '22px' }}>
-              <div style={{ color: '#d31c1c', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1.5px', fontWeight: 800, marginBottom: '6px' }}>Sleigh Hangar & Depot</div>
-              <h3 className="brand-font" style={{ fontSize: '20px', color: '#fff', marginBottom: '8px' }}>Acklams Coaches</h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '14px' }}>
-                Housing the sleigh safely in their depot throughout December, keeping Santa's ride secure and protected.
-              </p>
-              <a href="https://acklamscoaches.co.uk/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', textDecoration: 'none' }}>
-                Visit Acklams &rarr;
-              </a>
-            </div>
-          </div>
-        </section>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gap: '16px',
+                textAlign: 'left'
+              }}>
+                {partners.map((p, idx) => (
+                  <div key={idx} style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '16px', padding: '22px' }}>
+                    <div style={{ color: p.role?.includes('Power') ? '#00f0ff' : 'var(--primary)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1.5px', fontWeight: 800, marginBottom: '6px' }}>
+                      {p.role || 'Community Partner'}
+                    </div>
+                    <h3 className="brand-font" style={{ fontSize: '20px', color: '#fff', marginBottom: '8px' }}>
+                      {p.name}
+                    </h3>
+                    {p.description && (
+                      <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '14px' }}>
+                        {p.description}
+                      </p>
+                    )}
+                    {p.url && (
+                      <a href={p.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', textDecoration: 'none' }}>
+                        Visit {p.name} &rarr;
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
 
         <FaqSection />
         <AboutSection tableData={tableData} />

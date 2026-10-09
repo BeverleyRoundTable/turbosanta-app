@@ -126,7 +126,11 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     primary_color: tableData?.table?.primary_color || '#FBAF33',
     enable_gift_aid: tableData?.table?.enable_gift_aid || false,
     charity_name: tableData?.table?.charity_name || '',
-    charity_number: tableData?.table?.charity_number || ''
+    charity_number: tableData?.table?.charity_number || '',
+    headline_sponsor_name: tableData?.table?.headline_sponsor_name || '',
+    headline_sponsor_logo: tableData?.table?.headline_sponsor_logo || '',
+    headline_sponsor_url: tableData?.table?.headline_sponsor_url || '',
+    headline_sponsor_tagline: tableData?.table?.headline_sponsor_tagline || ''
   });
 
   // Presets from the playbook
@@ -1051,6 +1055,64 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 helperText="Drag and drop your official Table or Sleigh logo (No GitHub upload required!)."
               />
 
+              {/* HEADLINE / POWER SPONSOR SECTION (OPTIONAL) */}
+              <div style={{
+                background: '#0d0d0b',
+                border: '1px solid rgba(251, 175, 51, 0.25)',
+                borderRadius: '12px',
+                padding: '20px',
+                marginTop: '10px'
+              }}>
+                <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--primary)', fontFamily: 'Eurostile, sans-serif', textTransform: 'uppercase', marginBottom: '6px' }}>
+                  Headline Sponsor & Power Partner (Optional)
+                </div>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+                  If your Table has an official headline sponsor (e.g. Zendure for Beverley, local dealership, etc.), enter their details below. Leave empty if your Table does not have a headline sponsor, and this section will remain completely hidden on your tracker.
+                </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '14px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Sponsor Name</label>
+                    <input
+                      type="text"
+                      value={formData.headline_sponsor_name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, headline_sponsor_name: e.target.value }))}
+                      placeholder="e.g. Zendure or Local Motors"
+                      style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Tagline / Role</label>
+                    <input
+                      type="text"
+                      value={formData.headline_sponsor_tagline}
+                      onChange={(e) => setFormData(prev => ({ ...prev, headline_sponsor_tagline: e.target.value }))}
+                      placeholder="e.g. Official Power Partner"
+                      style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Website URL</label>
+                    <input
+                      type="url"
+                      value={formData.headline_sponsor_url}
+                      onChange={(e) => setFormData(prev => ({ ...prev, headline_sponsor_url: e.target.value }))}
+                      placeholder="https://sponsor.co.uk"
+                      style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
+                    />
+                  </div>
+                </div>
+
+                <DropzoneUpload
+                  label="Headline Sponsor Logo (.png)"
+                  currentImage={formData.headline_sponsor_logo}
+                  onImageSelected={(url) => setFormData(prev => ({ ...prev, headline_sponsor_logo: url }))}
+                  helperText="Upload transparent sponsor logo for the live tracker header badge."
+                />
+              </div>
+
               <div>
                 <button
                   onClick={() => {
@@ -1066,7 +1128,11 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                           primary_color: formData.primary_color,
                           enable_gift_aid: formData.enable_gift_aid,
                           charity_name: formData.charity_name,
-                          charity_number: formData.charity_number
+                          charity_number: formData.charity_number,
+                          headline_sponsor_name: formData.headline_sponsor_name || null,
+                          headline_sponsor_logo: formData.headline_sponsor_logo || null,
+                          headline_sponsor_url: formData.headline_sponsor_url || null,
+                          headline_sponsor_tagline: formData.headline_sponsor_tagline || null
                         }
                       }));
                     }

@@ -42,6 +42,11 @@ CREATE TABLE IF NOT EXISTS gift_aid (
 
 CREATE INDEX IF NOT EXISTS idx_gift_aid_table_status ON gift_aid(table_id, status);
 
--- Optional table columns for charity status
+-- Optional table columns for charity status and sponsors
 -- ALTER TABLE tables ADD COLUMN enable_gift_aid BOOLEAN DEFAULT 0;
 -- ALTER TABLE tables ADD COLUMN charity_number TEXT;
+-- ALTER TABLE tables ADD COLUMN headline_sponsor_name TEXT;
+-- ALTER TABLE tables ADD COLUMN headline_sponsor_logo TEXT;
+-- ALTER TABLE tables ADD COLUMN headline_sponsor_url TEXT;
+-- ALTER TABLE tables ADD COLUMN headline_sponsor_tagline TEXT;
+-- ALTER TABLE tables ADD COLUMN partners_json TEXT;

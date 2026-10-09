@@ -188,6 +188,25 @@ h1, h2, h3, h4, .brand-font {
   height: 100%;
 }
 
+/* Standard Festive Sleigh Map Wrapper (When no custom headline power sponsor) */
+.sleigh-map-wrapper {
+  position: relative;
+  border-radius: 2rem;
+  overflow: hidden;
+  padding: 2px;
+  background: linear-gradient(135deg, rgba(251, 175, 51, 0.35) 0%, rgba(211, 28, 28, 0.25) 100%);
+  border: 1px solid rgba(251, 175, 51, 0.25);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+}
+
+.sleigh-map-inner {
+  position: relative;
+  z-index: 1;
+  background-color: #151513;
+  border-radius: 1.8rem;
+  height: 100%;
+}
+
 /* --- FESTIVE SNOW BACKGROUND --- */
 .snow-pattern {
   background-image: 
