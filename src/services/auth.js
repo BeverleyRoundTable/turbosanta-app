@@ -106,7 +106,7 @@ export async function verifyMagicLink(email, enteredCode) {
     tableId: stored.tableId || "beverley_247",
     tableName: isNational 
       ? (cleanEmail.includes("beverley") ? "Beverley Round Table #247 (National Admin)" : "National Round Table Admin") 
-      : (cleanEmail.includes("beverley") ? "Beverley Round Table #247" : "Round Table Chapter"),
+      : (cleanEmail.includes("beverley") ? "Beverley Round Table #247" : "Round Table"),
     role: isNational ? "national_admin" : "table_admin",
     isNationalAdmin: isNational,
     authenticatedAt: new Date().toISOString(),
@@ -135,7 +135,7 @@ export async function loginWithGoogleWorkspace(googleAccountEmail) {
     tableId: deriveTableFromEmail(clean),
     tableName: isNational 
       ? (clean.includes("beverley") ? "Beverley Round Table #247 (National Admin)" : "National Round Table Admin") 
-      : (clean.includes("beverley") ? "Beverley Round Table #247" : "Round Table Chapter"),
+      : (clean.includes("beverley") ? "Beverley Round Table #247" : "Round Table"),
     role: isNational ? "national_admin" : "table_admin",
     isNationalAdmin: isNational,
     authenticatedAt: new Date().toISOString(),

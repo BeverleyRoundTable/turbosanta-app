@@ -1,3 +1,11 @@
+function formatTownName(str) {
+  if (!str) return 'Beverley';
+  return str
+    .replace(/[-_]/g, ' ')
+    .split(' ')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+}
 // ==============================================================================
 // TurboSanta — Multi-Tenant Universal Embed Generator
 // Supports both Cloudflare D1 Multi-Tenant (?table=slug) and Legacy Sheets (?api=)
@@ -109,13 +117,13 @@ function updateDisplay() {
     if (currentApi) {
       display.textContent = `Legacy API: ${currentApi}`;
     } else {
-      display.textContent = `Active Table: ${currentTable || "beverley"}`;
+      display.textContent = `Active Table: ${formatTownName(currentTable || "beverley")}`;
     }
   }
 
   const slugInput = document.getElementById("tableSlugInput");
   if (slugInput && !currentApi) {
-    slugInput.value = currentTable || "beverley";
+    slugInput.value = formatTownName(currentTable || "beverley");
   }
 
   const guideLink = document.getElementById("guideLinkHeader");
@@ -133,7 +141,9 @@ function updateDisplay() {
 
 function updateTableSlug(newSlug) {
   const input = document.getElementById("tableSlugInput");
-  const slug = (newSlug !== undefined ? newSlug : (input ? input.value : "beverley")).trim().toLowerCase();
+  const rawSlug = (newSlug !== undefined ? newSlug : (input ? input.value : "beverley")).trim();
+  const slug = rawSlug.toLowerCase().replace(/\s+/g, '-');
+  if (input) input.value = formatTownName(rawSlug);
   if (slug) {
     currentTable = slug;
     currentApi = "";

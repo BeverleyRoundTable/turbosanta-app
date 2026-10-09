@@ -548,7 +548,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
           </div>
         )}
 
-        {/* TAB 3: EMBED CODE GENERATOR (FOR CHAPTERS' OWN WEBSITES) */}
+        {/* TAB 3: EMBED CODE GENERATOR (FOR TABLES' OWN WEBSITES) */}
         {activeTab === 'embeds' && (
           <div style={{
             background: '#151513',

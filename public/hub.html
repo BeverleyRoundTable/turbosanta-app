@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TurboSanta — Chapter Command Hub & Link Portal</title>
+  <title>TurboSanta — Table Command Hub & Link Portal</title>
   <meta name="theme-color" content="#0d0d0b">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -318,12 +318,12 @@
       <img src="https://brt-23f.pages.dev/icons/RTBI_Santa.png" alt="TurboSanta Logo">
       <div>
         <h1>TURBOSANTA <span>LAUNCHPAD</span></h1>
-        <p>Master Directory of Public, Volunteer & Organiser Links for Your Chapter</p>
+        <p>Master Directory of Public, Volunteer & Organiser Links for Your Table</p>
       </div>
     </div>
 
     <div class="table-switcher">
-      <label for="tableSlugInput"><i class="fa-solid fa-location-dot"></i> Chapter:</label>
+      <label for="tableSlugInput"><i class="fa-solid fa-location-dot"></i> Table:</label>
       <input type="text" id="tableSlugInput" value="beverley" placeholder="e.g. beverley">
       <button class="btn btn-primary" style="padding: 5px 14px; font-size: 11px;" onclick="applyTableSlug()">Switch</button>
     </div>
@@ -487,7 +487,7 @@
     <!-- SECTION 3: ORGANISER & ADMIN LINKS -->
     <section>
       <div class="section-title-wrap">
-        <h2 class="section-title"><i class="fa-solid fa-user-shield"></i> Organiser & Chapter Admin Links</h2>
+        <h2 class="section-title"><i class="fa-solid fa-user-shield"></i> Organiser & Table Admin Links</h2>
         <span class="section-desc">Mission control dashboards, route planning tools, and website embedding</span>
       </div>
 
@@ -545,7 +545,7 @@
           <div>
             <span class="card-badge badge-green">1.0 → 2.0 Fast Transfer</span>
             <h3><i class="fa-solid fa-file-excel" style="color:var(--green);"></i> 1.0 Google Sheet & Excel Importer</h3>
-            <p>Upload your chapter's 1.0 Google Sheet (downloaded as <code>.xlsx</code>) to auto-populate routes, stops, street names, volunteer roster, and settings into D1 SQL in seconds.</p>
+            <p>Upload your Table's 1.0 Google Sheet (downloaded as <code>.xlsx</code>) to auto-populate routes, stops, street names, volunteer roster, and settings into D1 SQL in seconds.</p>
           </div>
           <div>
             <div class="url-preview" id="migrateUrl">https://turbosanta-app.pages.dev/migrate.html?table=beverley</div>
@@ -588,17 +588,30 @@
   </div>
 
   <footer style="text-align: center; padding: 40px 20px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 13px; margin-top: 60px;">
-    &copy; 2026 TurboSanta Platform &middot; Built for Round Table Chapters across the UK & Ireland
+    &copy; 2026 TurboSanta Platform &middot; Built for Round Tables across the UK & Ireland
   </footer>
 
   <script>
+    function formatTownName(str) {
+      if (!str) return 'Beverley';
+      return str
+        .replace(/[-_]/g, ' ')
+        .split(' ')
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ');
+    }
+
     function getActiveSlug() {
       const input = document.getElementById('tableSlugInput');
-      return (input && input.value.trim().toLowerCase()) || 'beverley';
+      return (input && input.value.trim().toLowerCase().replace(/\s+/g, '-')) || 'beverley';
     }
 
     function applyTableSlug() {
       const slug = getActiveSlug();
+      const input = document.getElementById('tableSlugInput');
+      if (input && input.value) {
+        input.value = formatTownName(input.value);
+      }
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.set('table', slug);
       window.history.replaceState({}, '', newUrl);
@@ -708,9 +721,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const tableParam = urlParams.get('table');
-      if (tableParam) {
-        document.getElementById('tableSlugInput').value = tableParam;
-      }
+      document.getElementById('tableSlugInput').value = formatTownName(tableParam || 'beverley');
       refreshAllLinks();
       fetchTableTheme();
     });

@@ -1,6 +1,6 @@
 # 🎅 TurboSanta Platform
 
-> **The High-Speed Multi-Tenant Santa Sleigh Tracking & Fundraising Platform for Round Table Chapters across the UK & Ireland.**
+> **The High-Speed Multi-Tenant Santa Sleigh Tracking & Fundraising Platform for Round Tables across the UK & Ireland.**
 
 TurboSanta lets families follow Santa's sleigh live in real time, lookup street arrival windows, donate via Zeffy/Stripe, claim HMRC Gift Aid, share photos in a digital memory book, and talk to Santa via AI voice calls. 
 
@@ -55,14 +55,14 @@ TurboSanta is built as a **single shared frontend, multi-tenant Cloudflare D1 ed
                                   └──────────────────────────────┘
 ```
 
-Every Round Table chapter uses the same hosted application — there is no need to fork, clone, or manage separate server infrastructure. A chapter is identified by its **table slug** (e.g. `?table=beverley`, `?table=ellon`, `?table=doncaster`).
+Every Round Table uses the same hosted application — there is no need to fork, clone, or manage separate server infrastructure. A Table is identified by its **table slug** (e.g. `?table=beverley`, `?table=ellon`, `?table=doncaster`).
 
 ---
 
 ## 🚀 The 2 Deployment Models
 
 ### Model A: Turnkey Universal Site (`santasleigh.html`)
-For Round Table chapters who want an instant, zero-maintenance, beautifully branded public portal with no custom coding:
+For Round Tables that want an instant, zero-maintenance, beautifully branded public portal with no custom coding:
 
 * **URL Format**: `https://turbosanta-app.pages.dev/santasleigh.html?table=[slug]`
 * **Visual Presentation**: 100% clean, public-facing, and faithful to the tried-and-tested classic Santa Sleigh layout. No developer or admin buttons are exposed to the public.
@@ -79,7 +79,7 @@ For Round Table chapters who want an instant, zero-maintenance, beautifully bran
 ---
 
 ### Model B: Modular `<iframe>` Embeds for Custom Websites
-For chapters (like Beverley Round Table) who run their own tailored websites (WordPress, Wix, Squarespace, or bespoke Tailwind HTML) with custom video heroes, partner styling, or unique layouts.
+For Tables (like Beverley Round Table) who run their own tailored websites (WordPress, Wix, Squarespace, or bespoke Tailwind HTML) with custom video heroes, partner styling, or unique layouts.
 
 Admins can open the **Embed Studio** (`/embed.html?table=[slug]`) and copy 1-click embed codes:
 
@@ -99,7 +99,7 @@ Admins can open the **Embed Studio** (`/embed.html?table=[slug]`) and copy 1-cli
 
 ## ⚡ Fast Transfer from TurboSanta 1.0 (Google Sheets & Excel)
 
-Any Round Table chapter can migrate from their TurboSanta 1.0 Google Sheet to 2.0 in under **10 seconds** without retyping data:
+Any Round Table can migrate from their TurboSanta 1.0 Google Sheet to 2.0 in under **10 seconds** without retyping data:
 
 1. **Export from Google Sheets**: Open your 1.0 Google Sheet and click **File → Download → Microsoft Excel (.xlsx)**.
 2. **Open the Importer**:
@@ -231,5 +231,5 @@ Cloudflare Pages builds the app and publishes it live to `https://turbosanta-app
 
 ## 📄 License & Attribution
 
-Built with ❤️ by **Beverley Round Table** for Round Table chapters across Great Britain and Ireland.  
+Built with ❤️ by **Beverley Round Table** for Round Tables across Great Britain and Ireland.  
 Powered by TurboSanta. Do More.

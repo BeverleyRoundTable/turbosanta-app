@@ -110,7 +110,8 @@
       font-size: 14px;
       font-weight: 700;
       outline: none;
-      width: 110px;
+      width: 130px;
+      text-transform: capitalize;
     }
 
     /* MAIN CONTAINER */
@@ -333,7 +334,7 @@
         <h2><i class="fa-solid fa-sparkles"></i> Welcome to TurboSanta</h2>
         <p>
           TurboSanta is the UK & Ireland Round Table Santa Sleigh tracking, spatial address lookup, and fundraising platform.
-          It gives every chapter an instant, lightning-fast, high-availability Santa Sleigh tracking experience powered by
+          It gives every Table an instant, lightning-fast, high-availability Santa Sleigh tracking experience powered by
           <strong>Cloudflare Pages</strong>, <strong>Workers</strong>, and a multi-tenant <strong>D1 SQL Database</strong>.
         </p>
 
@@ -356,14 +357,14 @@
       <section id="models" class="doc-section">
         <h2><i class="fa-solid fa-cubes"></i> The 2 Deployment Models</h2>
         <p>
-          Different Round Table chapters have different technical setups. TurboSanta is architected to give every chapter complete flexibility:
+          Different Round Tables have different technical setups. TurboSanta is architected to give every Table complete flexibility:
         </p>
 
         <div class="grid-2">
           <div class="card">
             <span class="badge gold">Model A: Turnkey Sleigh Site</span>
             <h3>Ready-to-Use Public Portal</h3>
-            <p>Ideal for chapters who want an instant, zero-maintenance, beautifully branded website out of the box with no coding required.</p>
+            <p>Ideal for Tables that want an instant, zero-maintenance, beautifully branded website out of the box with no coding required.</p>
             <p>Visitors see the live map, street schedule, tonight's sponsor spotlight, photo memory book, and donate buttons.</p>
             <a id="linkTurnkeyModel" href="/santasleigh.html?table=beverley" target="_blank" class="btn">View Turnkey Site <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
           </div>
@@ -371,7 +372,7 @@
           <div class="card">
             <span class="badge green">Model B: Modular iFrame Embeds</span>
             <h3>For Your Own Custom Website</h3>
-            <p>Ideal for chapters (like Beverley) who run their own tailored website (WordPress, Wix, Squarespace, or custom Tailwind HTML).</p>
+            <p>Ideal for Tables (like Beverley) who run their own tailored website (WordPress, Wix, Squarespace, or custom Tailwind HTML).</p>
             <p>You can embed any individual module (Tracker, Address Lookup, Volunteer Hub, Talk to Santa AI, Workshop Blueprint, etc.) into your existing site.</p>
             <a id="linkEmbedModel" href="/embed.html?table=beverley" target="_blank" class="btn btn-secondary">Open Embed Studio <i class="fa-solid fa-code"></i></a>
           </div>
@@ -383,8 +384,8 @@
         <span class="badge green">One-Click Upgrade</span>
         <h2><i class="fa-solid fa-file-excel" style="color:var(--green);"></i> 1.0 to 2.0 Fast Transfer (Google Sheets & Excel)</h2>
         <p>
-          Migrating a Round Table chapter from TurboSanta 1.0 to 2.0 takes under 10 seconds.
-          Chapters do not need to re-type routes or recreate volunteer rosters.
+          Migrating a Round Table from TurboSanta 1.0 to 2.0 takes under 10 seconds.
+          Tables do not need to re-type routes or recreate volunteer rosters.
         </p>
 
         <h3 style="margin-top: 20px;">How It Works</h3>
@@ -455,7 +456,7 @@
       <section id="embeds" class="doc-section">
         <h2><i class="fa-solid fa-code"></i> Embedding Modules on Custom Sites</h2>
         <p>
-          If your chapter already has its own website, you can cherry-pick any of TurboSanta's 9 modular components.
+          If your Table already has its own website, you can cherry-pick any of TurboSanta's 9 modular components.
           Each element is fully self-contained and renders cleanly inside an <code>&lt;iframe&gt;</code>.
         </p>
 
@@ -564,7 +565,7 @@
       <section id="volunteers" class="doc-section">
         <h2><i class="fa-solid fa-users"></i> Volunteer Tracking & Crew Hub (crew.html)</h2>
         <p>
-          Every volunteer application is saved directly into your chapter's Cloudflare D1 SQL database.
+          Every volunteer application is saved directly into your Table's Cloudflare D1 SQL database.
           Crew leaders have a complete operational dashboard on the night.
         </p>
 
@@ -634,17 +635,33 @@
   </div>
 
   <footer style="text-align: center; padding: 40px 20px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 13px;">
-    &copy; 2026 TurboSanta Platform &middot; Beverley Round Table &middot; Built for Round Table Chapters across the UK & Ireland
+    &copy; 2026 TurboSanta Platform &middot; Beverley Round Table &middot; Built for Round Tables across the UK & Ireland
   </footer>
 
   <script>
+    function formatTownName(str) {
+      if (!str) return 'Beverley';
+      return str
+        .replace(/[-_]/g, ' ')
+        .split(' ')
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ');
+    }
+
     function getActiveSlug() {
       const input = document.getElementById('tableSlugInput');
-      return (input && input.value.trim().toLowerCase()) || 'beverley';
+      return (input && input.value.trim().toLowerCase().replace(/\s+/g, '-')) || 'beverley';
     }
 
     function updateAllLinks() {
       const slug = getActiveSlug();
+      const input = document.getElementById('tableSlugInput');
+      if (input && input.value) {
+        input.value = formatTownName(input.value);
+      }
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('table', slug);
+      window.history.replaceState({}, '', newUrl);
       const origin = window.location.origin;
 
       // Update Turnkey URLs
@@ -703,9 +720,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const tableParam = urlParams.get('table');
-      if (tableParam) {
-        document.getElementById('tableSlugInput').value = tableParam;
-      }
+      document.getElementById('tableSlugInput').value = formatTownName(tableParam || 'beverley');
       updateAllLinks();
     });
   </script>

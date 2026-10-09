@@ -449,9 +449,9 @@ async function init() {
       }
     } catch(e) { /* non-fatal */ }
 
-    // Consent text from settings (per-chapter customisable)
+    // Consent text from settings (per-table customisable)
     const defaultConsent =
-      `Recordings are sent to a Round Table volunteer who personally records a reply, just like a video message. Audio is stored securely on the chapter's private Google Drive and deleted within 30 days. Your email is used solely to send the reply and is never shared.`;
+      `Recordings are sent to a Round Table volunteer who personally records a reply, just like a video message. Audio is stored securely on the Table's private Google Drive and deleted within 30 days. Your email is used solely to send the reply and is never shared.`;
     document.getElementById('consentTextHolder').textContent =
       data.settings.magic_mailbox_consent_text || defaultConsent;
 
