@@ -501,6 +501,17 @@
       // Helper function to render cards into the gallery
       function renderCards(images) {
         gallery.innerHTML = '';
+        if (!images || images.length === 0) {
+          gallery.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-muted);">
+              <div style="font-size: 40px; margin-bottom: 12px; opacity: 0.5;">📸</div>
+              <h3 style="font-family: 'Eurostile', sans-serif; font-size: 20px; color: #fff; margin-bottom: 8px;">No Polaroids Yet for This Season</h3>
+              <p style="font-size: 14px; max-width: 420px; margin: 0 auto; line-height: 1.5;">Be the first to snap a photo with Santa and tap "Add to Polaroids" above to feature your family in the album!</p>
+            </div>
+          `;
+          return;
+        }
+
         const captions = [
           "Magical!", "Santa!", "Ho Ho Ho!", "Festive fun!", "Great night!", 
           "Sleigh bells!", "Believe!", "Pure joy!", "Feeling festive!",
@@ -584,20 +595,7 @@
         }
 
         loader.style.display = 'none';
-
-        // Fallback starter photos for fresh seasons if no community uploads exist yet
-        const starterPhotos = (numYear === 2026) ? [
-          { type: 'image', url: 'https://images.unsplash.com/photo-1543258103-a62bdc069871?w=800&auto=format&fit=crop&q=80', caption: 'Santa waving to our street!' },
-          { type: 'image', url: 'https://images.unsplash.com/photo-1512389142860-9c449e58a543?w=800&auto=format&fit=crop&q=80', caption: 'Illuminated sleigh magic!' },
-          { type: 'image', url: 'https://images.unsplash.com/photo-1513297887119-d46091b24bfa?w=800&auto=format&fit=crop&q=80', caption: 'Waiting for Santa!' },
-          { type: 'image', url: 'https://images.unsplash.com/photo-1482517967863-00e15c9b44be?w=800&auto=format&fit=crop&q=80', caption: 'Festive community joy!' }
-        ] : [
-          { type: 'image', url: 'https://images.unsplash.com/photo-1576692155415-95f820a2c4c1?w=800&auto=format&fit=crop&q=80', caption: `Previous season memories!` }
-        ];
-
-        const finalImages = remoteImages.length > 0 ? remoteImages : starterPhotos;
-
-        renderCards(finalImages);
+        renderCards(remoteImages);
       }
 
       try {

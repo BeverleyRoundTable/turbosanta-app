@@ -55,54 +55,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
 
   // Memory Book & Social Media State
   const [selectedSeason, setSelectedSeason] = useState('2026');
-  const [memoryItems, setMemoryItems] = useState([
-    {
-      id: 1,
-      year: '2026',
-      type: 'photo',
-      url: 'https://images.unsplash.com/photo-1543258103-a62bdc069871?auto=format&fit=crop&w=1200&q=85',
-      caption: 'Santa waving to the excited crowd on New Road!',
-      route: 'East Route',
-      time: '09 Dec 2026, 18:35',
-      author: 'Sarah M.',
-      status: 'approved'
-    },
-    {
-      id: 2,
-      year: '2026',
-      type: 'photo',
-      url: 'https://images.unsplash.com/photo-1512389142860-9c449e58a543?auto=format&fit=crop&w=1200&q=85',
-      caption: 'The sleigh lights looked incredible coming down Lawless Lane tonight!',
-      route: 'East Route',
-      time: '09 Dec 2026, 19:10',
-      author: 'David P.',
-      status: 'approved'
-    },
-    {
-      id: 3,
-      year: '2026',
-      type: 'video',
-      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-      poster: 'https://images.unsplash.com/photo-1482517967863-00e15c9b44be?auto=format&fit=crop&w=800&q=80',
-      caption: 'Kids singing along to Rudolph with the Elves! Pure magic! 🎶',
-      route: 'West Route',
-      time: '08 Dec 2026, 18:50',
-      author: 'Emma K.',
-      status: 'approved'
-    },
-    {
-      id: 4,
-      year: '2025',
-      type: 'photo',
-      url: 'https://images.unsplash.com/photo-1513297887119-d46091b24bfa?auto=format&fit=crop&w=1200&q=85',
-      caption: 'Memories from the Saturday Town Centre Parade last Christmas!',
-      route: 'Town Centre Parade',
-      time: '14 Dec 2025, 17:30',
-      author: 'Mark T.',
-      status: 'approved'
-    }
-  ]);
-
+  const [memoryItems, setMemoryItems] = useState([]);
   const [memoryModerationFilter, setMemoryModerationFilter] = useState('all');
 
   // Fetch live Memory Book submissions from Cloudflare D1
@@ -121,17 +74,18 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
               caption: m.caption || 'Spotted Santa!',
               route: 'Community Upload',
               time: m.created_at ? new Date(m.created_at).toLocaleString('en-GB') : 'Just now',
-              author: 'Public Community',
-              status: m.status || 'pending'
+              author: m.author || 'Public Community',
+              status: m.status || (m.approved === 1 ? 'approved' : 'pending')
             }));
-            setMemoryItems(prev => {
-              const dbIds = new Set(dbItems.map(d => String(d.id)));
-              const samples = prev.filter(p => typeof p.id === 'number' && !dbIds.has(String(p.id)));
-              return [...dbItems, ...samples];
-            });
+            setMemoryItems(dbItems);
+          } else {
+            setMemoryItems([]);
           }
         })
-        .catch(err => console.warn("Failed to fetch memory book items for admin:", err));
+        .catch(err => {
+          console.warn("Failed to fetch memory book items for admin:", err);
+          setMemoryItems([]);
+        });
     }
   }, [activeTab, selectedSeason, session]);
 
