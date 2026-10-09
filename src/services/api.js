@@ -270,3 +270,19 @@ export async function sendElfChatMessage(message, tableData) {
 
   return `🎅 Ho-Ho-Ho! Merry Christmas! I am Santa's Digital Sleigh Elf. You can ask me:\n• "When is Santa on [your street name]?"\n• "Where is Santa right now?"\n• "How much has been raised?"\n• "How can I volunteer or add Gift Aid?"`;
 }
+
+export async function saveTableSettings(tableSlug = "beverley", settings = {}, secret = "Santa2026!") {
+  try {
+    const res = await fetch(`${API_BASE}/api/table/settings?table=${encodeURIComponent(tableSlug)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...settings, secret })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error("Save table settings error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+

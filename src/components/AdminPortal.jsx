@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { logoutAdmin } from '../services/auth';
+import { saveTableSettings } from '../services/api';
 import DropzoneUpload from './DropzoneUpload';
 import RouteEditorModal from './RouteEditorModal';
 import DriverBeacon from './DriverBeacon';
@@ -1665,28 +1666,40 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
 
               <div>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
+                    const tableSlug = session?.tableId || session?.tableSlug || tableData?.table?.slug || 'beverley';
+                    const payload = {
+                      sleigh_display_name: formData.sleigh_display_name,
+                      fundraising_goal: formData.fundraising_goal,
+                      donate_url: formData.donate_url,
+                      logo_url: formData.logo_url,
+                      primary_color: formData.primary_color,
+                      enable_gift_aid: formData.enable_gift_aid,
+                      charity_name: formData.charity_name,
+                      charity_number: formData.charity_number,
+                      headline_sponsor_name: formData.headline_sponsor_name || null,
+                      headline_sponsor_logo: formData.headline_sponsor_logo || null,
+                      headline_sponsor_url: formData.headline_sponsor_url || null,
+                      headline_sponsor_tagline: formData.headline_sponsor_tagline || null
+                    };
+
                     if (onUpdateTableData) {
                       onUpdateTableData(prev => ({
                         ...prev,
                         table: {
                           ...prev.table,
-                          sleigh_display_name: formData.sleigh_display_name,
-                          fundraising_goal: formData.fundraising_goal,
-                          donate_url: formData.donate_url,
-                          logo_url: formData.logo_url,
-                          primary_color: formData.primary_color,
-                          enable_gift_aid: formData.enable_gift_aid,
-                          charity_name: formData.charity_name,
-                          charity_number: formData.charity_number,
-                          headline_sponsor_name: formData.headline_sponsor_name || null,
-                          headline_sponsor_logo: formData.headline_sponsor_logo || null,
-                          headline_sponsor_url: formData.headline_sponsor_url || null,
-                          headline_sponsor_tagline: formData.headline_sponsor_tagline || null
+                          ...payload
                         }
                       }));
                     }
-                    setSaveStatus('Settings successfully saved!');
+
+                    setSaveStatus('Saving to database...');
+                    const res = await saveTableSettings(tableSlug, payload);
+                    if (res && res.ok) {
+                      setSaveStatus('Settings successfully saved to database!');
+                    } else {
+                      setSaveStatus('Saved locally!');
+                    }
                     setTimeout(() => setSaveStatus(''), 3000);
                   }}
                   className="btn-primary"
