@@ -622,14 +622,43 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
             margin: '20px auto 0 auto',
             padding: '0 20px',
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
             gap: '12px'
           }}>
             {/* 1. Live Sleigh Radar */}
-            <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
-              <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 700, marginBottom: '6px' }}>Sleigh Radar</div>
-              <div className="brand-font" style={{ fontSize: '24px', color: isLive ? '#22c55e' : '#a1a1aa', lineHeight: 1 }}>
-                {isLive ? 'LIVE' : 'STANDBY'}
+            <div style={{
+              background: '#151513',
+              border: isLive ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid var(--border)',
+              borderRadius: '12px',
+              padding: '14px 10px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              overflow: 'hidden'
+            }}>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, marginBottom: '6px' }}>
+                Sleigh Radar
+              </div>
+              <div className="brand-font" style={{
+                fontSize: isLive ? '20px' : '17px',
+                color: isLive ? '#22c55e' : '#a1a1aa',
+                lineHeight: 1.1,
+                letterSpacing: '0.5px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}>
+                <span style={{
+                  width: '7px',
+                  height: '7px',
+                  borderRadius: '50%',
+                  background: isLive ? '#22c55e' : '#71717a',
+                  boxShadow: isLive ? '0 0 8px #22c55e' : 'none',
+                  flexShrink: 0
+                }} />
+                <span>{isLive ? 'LIVE' : 'STANDBY'}</span>
               </div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {isLive ? `📍 ${currentRoad}` : 'Resting in Lapland'}
@@ -637,21 +666,53 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
             </div>
 
             {/* 2. Tonight's Route */}
-            <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
-              <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 700, marginBottom: '6px' }}>Tonight's Run</div>
-              <div className="brand-font" style={{ fontSize: '22px', color: todayRoute ? 'var(--primary)' : 'var(--text-muted)', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {todayRoute ? (todayRoute.name || 'Tonight') : 'Rest Night'}
+            <div style={{
+              background: '#151513',
+              border: todayRoute ? '1px solid rgba(251, 175, 51, 0.4)' : '1px solid var(--border)',
+              borderRadius: '12px',
+              padding: '14px 10px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              overflow: 'hidden'
+            }}>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, marginBottom: '6px' }}>
+                Tonight's Run
               </div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>
+              <div className="brand-font" style={{
+                fontSize: todayRoute ? '15px' : '17px',
+                color: todayRoute ? 'var(--primary)' : 'var(--text-muted)',
+                lineHeight: 1.1,
+                letterSpacing: '0.5px',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}>
+                {todayRoute ? (todayRoute.name || 'Tonight') : 'REST DAY'}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {todayRoute ? `Starts ${todayRoute.start_time || '18:00'}` : `${routes.length} planned routes`}
               </div>
             </div>
 
             {/* 3. Real GPS Speed */}
-            <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
-              <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 700, marginBottom: '6px' }}>Sleigh Speed</div>
-              <div className="brand-font" style={{ fontSize: '28px', color: '#38bdf8', lineHeight: 1 }}>
-                {sleighSpeed} <span style={{ fontSize: '14px' }}>MPH</span>
+            <div style={{
+              background: '#151513',
+              border: '1px solid var(--border)',
+              borderRadius: '12px',
+              padding: '14px 10px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              overflow: 'hidden'
+            }}>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, marginBottom: '6px' }}>
+                Sleigh Speed
+              </div>
+              <div className="brand-font" style={{ fontSize: '24px', color: '#38bdf8', lineHeight: 1.1 }}>
+                {sleighSpeed} <span style={{ fontSize: '13px' }}>MPH</span>
               </div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
                 {isLive ? (sleighSpeed > 0 ? 'Safe parade pace' : 'Stopped for kids') : 'Parked'}
@@ -659,9 +720,21 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
             </div>
 
             {/* 4. Total Streets in Route Plan */}
-            <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
-              <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 700, marginBottom: '6px' }}>Total Streets</div>
-              <div className="brand-font" style={{ fontSize: '28px', color: '#a855f7', lineHeight: 1 }}>
+            <div style={{
+              background: '#151513',
+              border: '1px solid var(--border)',
+              borderRadius: '12px',
+              padding: '14px 10px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              overflow: 'hidden'
+            }}>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, marginBottom: '6px' }}>
+                Total Streets
+              </div>
+              <div className="brand-font" style={{ fontSize: '24px', color: '#a855f7', lineHeight: 1.1 }}>
                 {streets.length}
               </div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
@@ -670,9 +743,21 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
             </div>
 
             {/* 5. Live Total Raised */}
-            <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
-              <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 700, marginBottom: '6px' }}>Total Raised</div>
-              <div className="brand-font" style={{ fontSize: '28px', color: 'var(--primary)', lineHeight: 1 }}>
+            <div style={{
+              background: '#151513',
+              border: '1px solid var(--border)',
+              borderRadius: '12px',
+              padding: '14px 10px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              overflow: 'hidden'
+            }}>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, marginBottom: '6px' }}>
+                Total Raised
+              </div>
+              <div className="brand-font" style={{ fontSize: '24px', color: 'var(--primary)', lineHeight: 1.1 }}>
                 £{totalRaised.toLocaleString()}
               </div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
