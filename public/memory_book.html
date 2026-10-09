@@ -401,16 +401,20 @@
         return apiParam;
       }
       
-      // 2. Fallback: If deployed directly via Google Apps Script
-      const url = new URL(window.location.href);
-      url.search = ''; 
-      return url.toString();
+      // 2. Only fallback to window.location if deployed directly via Google Apps Script
+      if (window.location.hostname.includes("script.google.com")) {
+        const url = new URL(window.location.href);
+        url.search = ''; 
+        return url.toString();
+      }
+
+      return null;
     }
 
     document.addEventListener("DOMContentLoaded", async () => {
-  const apiUrl = getApiUrl();
-  const sep = apiUrl.includes('?') ? '&' : '?';
-  loadCachedTheme(apiUrl);
+      const apiUrl = getApiUrl();
+      const sep = apiUrl && apiUrl.includes('?') ? '&' : '?';
+      if (apiUrl) loadCachedTheme(apiUrl);
   const WORKER_URL = "https://santaproxy.beverley247.workers.dev/";
 
       // Elements
@@ -465,8 +469,20 @@
         gallery.innerHTML = '';
         gallery.appendChild(loader);
 
+        if (!apiUrl) {
+          loader.style.display = 'none';
+          gallery.innerHTML = `
+            <div class="state-message">
+              The memory book for ${year} is ready.<br>Tap 'Submit a Photo' above to share your festive community photos!
+            </div>`;
+          return;
+        }
+
         try {
           const res = await fetch(`${apiUrl}${sep}function=getMemoryBook&year=${year}`);
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          const ct = res.headers.get("content-type") || "";
+          if (!ct.includes("json")) throw new Error("Non-JSON response");
           const images = await res.json();
           loader.style.display = 'none';
 
@@ -551,38 +567,67 @@
         // ⭐ OPTIMIZATION: Fire the gallery fetch immediately, don't wait for the years list
         loadGallery(currentYear);
 
-        // Fetch Sleigh Name in background
-        fetch(`${apiUrl}${sep}function=getRoutes`).then(r => r.json()).then(data => {
-            if(data && data.settings) {
-                try { applyTheme(data.settings); saveTheme(apiUrl, data.settings.primary_color); } catch (e) { console.warn('Theme not applied:', e); }
-                const name = data.settings.sleigh_display_name || "Santa Sleigh";
+        if (apiUrl) {
+          // Fetch Sleigh Name in background
+          fetch(`${apiUrl}${sep}function=getRoutes`)
+            .then(r => r.ok && r.headers.get("content-type")?.includes("json") ? r.json() : null)
+            .then(data => {
+              if(data && data.settings) {
+                  try { applyTheme(data.settings); saveTheme(apiUrl, data.settings.primary_color); } catch (e) { console.warn('Theme not applied:', e); }
+                  const name = data.settings.sleigh_display_name || "Santa Sleigh";
+                  subtext.textContent = `Magical moments from the ${name} routes.`;
+                  document.title = `Memories — ${name}`;
+              }
+            }).catch(e => { subtext.textContent = "Magical moments captured by you!"; });
+
+          // Fetch Available Years in background (No 'await')
+          fetch(`${apiUrl}${sep}function=getMemoryYears`)
+            .then(r => r.ok && r.headers.get("content-type")?.includes("json") ? r.json() : [])
+            .then(availableYears => {
+              if (Array.isArray(availableYears) && availableYears.length > 0) {
+                availableYears.forEach(y => {
+                  const opt = document.createElement('option');
+                  opt.value = y;
+                  opt.textContent = y;
+                  yearSelect.appendChild(opt);
+                });
+                
+                if (availableYears.length > 1) {
+                   timeMachineBox.style.display = 'inline-flex';
+                }
+                
+                // If the newest year ISN'T the current year, correct the display
+                if (availableYears[0] !== currentYear && !yearSelect.hasAttribute('data-loaded')) {
+                    yearSelect.value = availableYears[0];
+                    loadGallery(availableYears[0]);
+                }
+                yearSelect.setAttribute('data-loaded', 'true');
+              }
+            }).catch(() => {});
+        } else {
+          // Multi-tenant mode via Worker API / query slug
+          const params = new URLSearchParams(window.location.search);
+          const tableSlug = params.get("table") || "beverley";
+          fetch(`https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableSlug)}`)
+            .then(r => r.ok ? r.json() : null)
+            .then(data => {
+              if (data && data.table) {
+                try { applyTheme(data.table); } catch (e) {}
+                const name = data.table.sleigh_display_name || data.table.name || "Santa Sleigh";
                 subtext.textContent = `Magical moments from the ${name} routes.`;
                 document.title = `Memories — ${name}`;
-            }
-        }).catch(e => { subtext.textContent = "Magical moments captured by you!"; });
-
-        // Fetch Available Years in background (No 'await')
-        fetch(`${apiUrl}${sep}function=getMemoryYears`).then(r => r.json()).then(availableYears => {
-            if (availableYears.length > 0) {
-              availableYears.forEach(y => {
-                const opt = document.createElement('option');
-                opt.value = y;
-                opt.textContent = y;
-                yearSelect.appendChild(opt);
-              });
-              
-              if (availableYears.length > 1) {
-                 timeMachineBox.style.display = 'inline-flex';
+              } else {
+                const properName = tableSlug.charAt(0).toUpperCase() + tableSlug.slice(1);
+                subtext.textContent = `Magical moments from the ${properName} Round Table Santa Sleigh routes.`;
+                document.title = `Memories — ${properName} Round Table`;
               }
-              
-              // If the newest year ISN'T the current year, correct the display
-              if (availableYears[0] !== currentYear && !yearSelect.hasAttribute('data-loaded')) {
-                  yearSelect.value = availableYears[0];
-                  loadGallery(availableYears[0]);
-              }
-              yearSelect.setAttribute('data-loaded', 'true');
-            }
-        });
+            })
+            .catch(() => {
+              const properName = tableSlug.charAt(0).toUpperCase() + tableSlug.slice(1);
+              subtext.textContent = `Magical moments from the ${properName} Round Table Santa Sleigh routes.`;
+              document.title = `Memories — ${properName} Round Table`;
+            });
+        }
         
         // Listen for year changes
         yearSelect.addEventListener('change', (e) => {

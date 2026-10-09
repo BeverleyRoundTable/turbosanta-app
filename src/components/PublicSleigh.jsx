@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Share2, MapPin, ExternalLink, Star, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { Share2, MapPin, ExternalLink, Star, ChevronDown } from 'lucide-react';
 
 const DEFAULT_LOGO = 'https://brt-23f.pages.dev/icons/RTBI_Santa.png';
 const DEFAULT_BG = 'https://brt-23f.pages.dev/icons/site_background.png';
@@ -33,7 +33,7 @@ function parseRouteDate(v) {
   return isNaN(d) ? null : d;
 }
 
-export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin, onBackToPortal }) {
+export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }) {
   const [addressFrameHeight, setAddressFrameHeight] = useState(500);
   const [showFab, setShowFab] = useState(false);
   const currentYear = new Date().getFullYear();
@@ -92,7 +92,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin, 
           routeName: r.name || r.routeName,
           streets: routeStreets,
           sponsorName: r.sponsor_name || r.sponsorName,
-          sponsorUrl: r.sponsor_logo_url || r.sponsorUrl,
+          sponsorUrl: r.sponsor_logo_url || r.sponsorUrl || r.sponsor_logo,
           sponsorLink: r.sponsor_link || r.sponsorLink,
           sponsorDescription: r.sponsor_description || r.sponsorDescription
         };
@@ -208,24 +208,6 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin, 
             <a href="#routes" style={{ color: '#FFFFFF', textDecoration: 'none', fontWeight: 600, textTransform: 'uppercase', fontSize: '13px' }}>Routes</a>
             <a href="#memory-book" style={{ color: '#FFFFFF', textDecoration: 'none', fontWeight: 600, textTransform: 'uppercase', fontSize: '13px' }}>Memory Book</a>
             <a href="#donate" style={{ color: '#FFFFFF', textDecoration: 'none', fontWeight: 600, textTransform: 'uppercase', fontSize: '13px' }}>Donate</a>
-            {onBackToPortal && (
-              <button
-                onClick={onBackToPortal}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text-muted)',
-                  borderRadius: '6px',
-                  padding: '6px 12px',
-                  fontSize: '11px',
-                  cursor: 'pointer',
-                  textTransform: 'uppercase',
-                  fontWeight: 600
-                }}
-              >
-                Change Table
-              </button>
-            )}
           </div>
         </nav>
 
@@ -288,7 +270,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin, 
         <section id="tracker" style={{ padding: '60px 20px', maxWidth: '1000px', margin: '0 auto', scrollMarginTop: '80px' }}>
           <div style={{ textAlign: 'center', marginBottom: '35px' }}>
             <h2 className="brand-font" style={{ fontSize: '38px', color: '#FFFFFF', textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>
-              LIVE <span style="color: var(--primary);" style={{ color: 'var(--primary)' }}>TRACKER</span>
+              LIVE <span style={{ color: 'var(--primary)' }}>TRACKER</span>
             </h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '16px' }}>
               Watch Santa's sleigh move in real-time as he visits the streets!

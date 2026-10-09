@@ -3,7 +3,7 @@ import LandingPortal from './components/LandingPortal';
 import PublicSleigh from './components/PublicSleigh';
 import AdminLoginModal from './components/AdminLoginModal';
 import AdminPortal from './components/AdminPortal';
-import { fetchTablePayload } from './services/api';
+import { fetchTablePayload, getTableFallback } from './services/api';
 import { getCurrentSession } from './services/auth';
 import { Shield } from 'lucide-react';
 
@@ -46,30 +46,8 @@ export default function App() {
         setLoading(false);
       })
       .catch(err => {
-        console.error("Payload load error:", err);
-        setTableData({
-          table: {
-            id: activeTableSlug,
-            name: `${activeTableSlug.charAt(0).toUpperCase() + activeTableSlug.slice(1)} Round Table`,
-            sleigh_display_name: `${activeTableSlug.charAt(0).toUpperCase() + activeTableSlug.slice(1)} Round Table Santa Sleigh`,
-            fundraising_goal: 8000,
-            total_raised: 19,
-            donate_url: 'https://www.zeffy.com/en-GB/donation-form/beverley-round-table-for-our-community'
-          },
-          routes: [
-            {
-              id: `${activeTableSlug}_route_1`,
-              name: 'Main Route',
-              date: '2026-12-09',
-              start_time: '18:00',
-              end_time: '20:30'
-            }
-          ],
-          streets: [
-            { id: 1, route_id: `${activeTableSlug}_route_1`, street_name: 'High Street' },
-            { id: 2, route_id: `${activeTableSlug}_route_1`, street_name: 'Church Lane' }
-          ]
-        });
+        console.error("Payload load error, falling back to cached/default data:", err);
+        setTableData(getTableFallback(activeTableSlug));
         setLoading(false);
       });
   }, [activeTableSlug]);
@@ -198,10 +176,6 @@ export default function App() {
           } else {
             setIsLoginModalOpen(true);
           }
-        }}
-        onBackToPortal={() => {
-          setActiveTableSlug(null);
-          window.history.pushState(null, '', '/');
         }}
       />
 

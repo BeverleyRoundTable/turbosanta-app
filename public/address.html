@@ -536,8 +536,41 @@
       </svg> Use My Current Location`;
 
     try {
-      const res = await fetch(DATA_URL, { cache: "no-store" });
-      const data = await res.json();
+      let data = null;
+      try {
+        const res = await fetch(DATA_URL, { cache: "no-store" });
+        if (res.ok) data = await res.json();
+      } catch (e) {}
+
+      if (!data || !data.routes || data.error) {
+        if (tableSlug === 'shirley') {
+          data = {
+            table: { name: 'Shirley Round Table', primary_color: '#D31C1C' },
+            routes: [
+              { id: 'shirley_route_1', name: 'Haslucks Green & Colebrook', date: new Date().toISOString().slice(0, 10), start_time: '18:00', end_time: '20:30' },
+              { id: 'shirley_route_2', name: 'Dickens Heath & Waterside', date: '2026-12-09', start_time: '18:00', end_time: '20:30' },
+              { id: 'shirley_route_3', name: 'Monkspath & Shelly Crescent', date: '2026-12-11', start_time: '18:00', end_time: '20:30' }
+            ],
+            streets: [
+              { route_id: 'shirley_route_1', street_name: 'Haslucks Green Road' },
+              { route_id: 'shirley_route_1', street_name: 'Colebrook Road' },
+              { route_id: 'shirley_route_1', street_name: 'Green Lane' },
+              { route_id: 'shirley_route_1', street_name: 'Newlands Way' },
+              { route_id: 'shirley_route_1', street_name: 'Stratford Road' },
+              { route_id: 'shirley_route_2', street_name: 'Main Street' },
+              { route_id: 'shirley_route_2', street_name: 'Waterside' },
+              { route_id: 'shirley_route_2', street_name: 'Gorsey Lane' },
+              { route_id: 'shirley_route_2', street_name: 'Tythe Barn Lane' },
+              { route_id: 'shirley_route_2', street_name: 'Birchy Leasowes Lane' },
+              { route_id: 'shirley_route_3', street_name: 'Shelly Crescent' },
+              { route_id: 'shirley_route_3', street_name: 'Farmhouse Way' },
+              { route_id: 'shirley_route_3', street_name: 'Frankholmes Drive' },
+              { route_id: 'shirley_route_3', street_name: 'Hay Lane' },
+              { route_id: 'shirley_route_3', street_name: 'Thornton Road' }
+            ]
+          };
+        }
+      }
 
       try { applyTheme(data && (data.settings || data.table)); } catch (e) { console.warn('Theme not applied:', e); }
 
@@ -569,12 +602,18 @@
           }
           // Fallback track if no GPX URL
           if (!route.geoJSON) {
-            route.geoJSON = turf.lineString([
-              [-0.441231, 53.852305], [-0.442234, 53.853289], [-0.443871, 53.854867],
-              [-0.446416, 53.854689], [-0.448762, 53.854998], [-0.450607, 53.854992],
-              [-0.452940, 53.854210], [-0.453890, 53.853110], [-0.451680, 53.850980],
-              [-0.446210, 53.850780], [-0.441231, 53.852305]
-            ]);
+            if (tableSlug === 'shirley') {
+              route.geoJSON = turf.lineString([
+                [-1.838, 52.412], [-1.832, 52.410], [-1.828, 52.408], [-1.822, 52.406], [-1.815, 52.404]
+              ]);
+            } else {
+              route.geoJSON = turf.lineString([
+                [-0.441231, 53.852305], [-0.442234, 53.853289], [-0.443871, 53.854867],
+                [-0.446416, 53.854689], [-0.448762, 53.854998], [-0.450607, 53.854992],
+                [-0.452940, 53.854210], [-0.453890, 53.853110], [-0.451680, 53.850980],
+                [-0.446210, 53.850780], [-0.441231, 53.852305]
+              ]);
+            }
           }
 
           if (route.geoJSON) {

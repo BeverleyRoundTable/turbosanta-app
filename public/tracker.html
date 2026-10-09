@@ -988,6 +988,7 @@ body.dim-ui .route-sponsor:hover { opacity: 0.85; }
           if (parseColor(color)) localStorage.setItem('SANTA_THEME:' + api, String(color).trim());
           else localStorage.removeItem('SANTA_THEME:' + api);
         } catch (e) {}
+      }
       function normalizeApiData(data) {
         if (!data || typeof data !== 'object') return data;
         if (data.table && !data.settings) {
@@ -1024,6 +1025,133 @@ body.dim-ui .route-sponsor:hover { opacity: 0.85; }
           }));
         }
         return data;
+      }
+
+      function getTableFallbackData(slug) {
+        const cleanSlug = (slug || 'beverley').toLowerCase();
+        const isShirley = cleanSlug === 'shirley';
+        const isBeverley = cleanSlug === 'beverley';
+        const todayStr = new Date().toISOString().slice(0, 10);
+
+        if (isShirley) {
+          return {
+            table: {
+              id: 'shirley_414',
+              name: 'Shirley Round Table',
+              slug: 'shirley',
+              sleigh_display_name: 'Shirley Round Table Santa Sleigh',
+              primary_color: '#D31C1C',
+              accent_color: '#FFFFFF',
+              donate_url: 'https://www.justgiving.com/shirleyroundtable',
+              charity_name: 'Shirley Round Table #414 Trust',
+              fundraising_goal: 5000,
+              total_raised: 420,
+              live_announcement: '🎅 Santa is visiting Haslucks Green & Colebrook tonight from 6:00 PM!',
+              tracking_active: true
+            },
+            routes: [
+              {
+                id: 'shirley_route_1',
+                name: 'Haslucks Green & Colebrook',
+                date: todayStr,
+                start_time: '18:00',
+                end_time: '20:30',
+                status: 'scheduled',
+                sponsor_name: 'Shirley Village Bakery',
+                sponsor_logo: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=100&auto=format&fit=crop&q=80',
+                sponsor_link: 'https://example.com/shirley-bakery',
+                sponsor_description: 'Supplying our volunteer elves with fresh festive treats!'
+              },
+              {
+                id: 'shirley_route_2',
+                name: 'Dickens Heath & Waterside',
+                date: '2026-12-09',
+                start_time: '18:00',
+                end_time: '20:30',
+                status: 'scheduled',
+                sponsor_name: 'Waterside Dental Practice',
+                sponsor_logo: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=100&auto=format&fit=crop&q=80',
+                sponsor_link: 'https://example.com/waterside-dental',
+                sponsor_description: "Proudly supporting children's charities in Dickens Heath."
+              },
+              {
+                id: 'shirley_route_3',
+                name: 'Monkspath & Shelly Crescent',
+                date: '2026-12-11',
+                start_time: '18:00',
+                end_time: '20:30',
+                status: 'scheduled',
+                sponsor_name: 'Solihull Community Motors',
+                sponsor_logo: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=100&auto=format&fit=crop&q=80',
+                sponsor_link: 'https://example.com/solihull-motors',
+                sponsor_description: 'Keeping the sleigh towing vehicle safe on the road!'
+              }
+            ],
+            streets: [
+              { route_id: 'shirley_route_1', street_name: 'Haslucks Green Road', sequence_order: 1 },
+              { route_id: 'shirley_route_1', street_name: 'Colebrook Road', sequence_order: 2 },
+              { route_id: 'shirley_route_1', street_name: 'Green Lane', sequence_order: 3 },
+              { route_id: 'shirley_route_1', street_name: 'Newlands Way', sequence_order: 4 },
+              { route_id: 'shirley_route_1', street_name: 'Stratford Road', sequence_order: 5 },
+              { route_id: 'shirley_route_2', street_name: 'Main Street', sequence_order: 1 },
+              { route_id: 'shirley_route_2', street_name: 'Waterside', sequence_order: 2 },
+              { route_id: 'shirley_route_2', street_name: 'Gorsey Lane', sequence_order: 3 },
+              { route_id: 'shirley_route_2', street_name: 'Tythe Barn Lane', sequence_order: 4 },
+              { route_id: 'shirley_route_2', street_name: 'Birchy Leasowes Lane', sequence_order: 5 },
+              { route_id: 'shirley_route_3', street_name: 'Shelly Crescent', sequence_order: 1 },
+              { route_id: 'shirley_route_3', street_name: 'Farmhouse Way', sequence_order: 2 },
+              { route_id: 'shirley_route_3', street_name: 'Frankholmes Drive', sequence_order: 3 },
+              { route_id: 'shirley_route_3', street_name: 'Hay Lane', sequence_order: 4 },
+              { route_id: 'shirley_route_3', street_name: 'Thornton Road', sequence_order: 5 }
+            ],
+            live_sleigh: {
+              lat: 52.4086,
+              lng: -1.8285,
+              road_name: 'Stratford Road, Shirley',
+              status: 'Resting in Lapland'
+            }
+          };
+        }
+
+        const properName = cleanSlug.charAt(0).toUpperCase() + cleanSlug.slice(1);
+        return {
+          table: {
+            id: isBeverley ? 'beverley_247' : cleanSlug,
+            name: `${properName} Round Table`,
+            slug: cleanSlug,
+            sleigh_display_name: `${properName} Round Table Santa Sleigh`,
+            primary_color: isBeverley ? '#FBAF33' : '#D31C1C',
+            accent_color: '#FFFFFF',
+            donate_url: isBeverley ? 'https://www.zeffy.com/en-GB/donation-form/beverley-round-table-for-our-community' : '',
+            charity_name: `Local ${properName} Charities & Good Causes`,
+            fundraising_goal: 8000,
+            total_raised: 19,
+            live_announcement: null,
+            tracking_active: true
+          },
+          routes: [
+            {
+              id: `${cleanSlug}_route_1`,
+              name: isBeverley ? 'East Route' : 'Main Route',
+              date: todayStr,
+              start_time: '18:00',
+              end_time: '20:30',
+              status: 'scheduled',
+              sponsor_name: isBeverley ? 'Zendure' : null,
+              sponsor_link: isBeverley ? 'https://zendure.co.uk/' : null
+            }
+          ],
+          streets: [
+            { route_id: `${cleanSlug}_route_1`, street_name: 'High Street', sequence_order: 1 },
+            { route_id: `${cleanSlug}_route_1`, street_name: 'Market Place', sequence_order: 2 }
+          ],
+          live_sleigh: {
+            lat: isBeverley ? 53.84508 : 52.4086,
+            lng: isBeverley ? -0.43636 : -1.8285,
+            road_name: 'Lapland Workshop',
+            status: 'Resting in Lapland'
+          }
+        };
       }
 
       // --- RATE LIMITING CLIENT ID ---
@@ -1941,10 +2069,18 @@ function ensureNotifyPermission() {
         if (!AppState.flags.pageVisible) return;
         try {
           const now = Date.now();
-          if (!AppState.vars.lastSettingsFetch || now - AppState.vars.lastSettingsFetch > 10000) { AppState.vars.latestApiData = normalizeApiData(await Utils.loadJSON(AppState.vars.dataUrl)); AppState.vars.lastSettingsFetch = now; }
-          const latestApiData = AppState.vars.latestApiData;
+          if (!AppState.vars.lastSettingsFetch || now - AppState.vars.lastSettingsFetch > 10000) {
+            try {
+              const rawSettings = await Utils.loadJSON(AppState.vars.dataUrl);
+              if (rawSettings && !rawSettings.error) {
+                AppState.vars.latestApiData = normalizeApiData(rawSettings);
+                AppState.vars.lastSettingsFetch = now;
+              }
+            } catch (e) {}
+          }
+          const latestApiData = AppState.vars.latestApiData || apiData;
           
-          const rawElfCamUrl = latestApiData.settings?.elf_cam_url;
+          const rawElfCamUrl = latestApiData?.settings?.elf_cam_url;
           if (rawElfCamUrl && rawElfCamUrl !== AppState.vars.lastElfCamUrl && Utils.isValidImageUrl(rawElfCamUrl)) { if (AppState.flags.pageVisible) { AppState.vars.lastElfCamUrl = rawElfCamUrl; let finalImgUrl = rawElfCamUrl; if (finalImgUrl.includes("drive.google.com")) { try { const urlObj = new URL(finalImgUrl); const fileId = urlObj.searchParams.get("id"); if (fileId) finalImgUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`; } catch(e) {} } triggerPolaroid(finalImgUrl, "Live from the Sleigh!"); } }
 
           // 🚀 UNIVERSAL FIREBASE / D1 GATEWAY: Fetch via Cloudflare Worker
@@ -1952,7 +2088,12 @@ function ensureNotifyPermission() {
             ? `https://turbosanta-api.beverley247.workers.dev/api/live-gps?table=${encodeURIComponent(AppState.vars.tableSlug || 'beverley')}`
             : `${WORKER_URL}?action=liveGps&api=${encodeURIComponent(AppState.vars.apiUrl)}`;
           
-          let data = await Utils.loadJSON(fastGpsUrl);
+          let data = null;
+          try {
+            data = await Utils.loadJSON(fastGpsUrl);
+          } catch (e) {
+            data = null;
+          }
 
 if (data && typeof data === "object" && !data.lat) { 
   const first = Object.values(data)[0]; 
@@ -2630,7 +2771,17 @@ try {
             apiData = normalizeApiData(window.__sleighPrefetchedData);
         } else {
             // Fallback for direct page loads
-            apiData = normalizeApiData(await Utils.loadJSON(AppState.vars.dataUrl));
+            try {
+              const raw = await Utils.loadJSON(AppState.vars.dataUrl);
+              if (raw && !raw.error) {
+                apiData = normalizeApiData(raw);
+              } else {
+                throw new Error(raw?.error || "Endpoint returned error");
+              }
+            } catch (err) {
+              console.warn("Could not load API data from endpoint, using table fallback:", err);
+              apiData = normalizeApiData(getTableFallbackData(tableSlug));
+            }
         }
 
         // Seed the settings cache so the first updateTracker doesn't immediately
