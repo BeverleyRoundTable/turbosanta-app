@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Shield, KeyRound, ArrowRight, CheckCircle2, AlertCircle, X, Sparkles } from 'lucide-react';
+import { Mail, Shield, KeyRound, ArrowRight, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { requestMagicLink, verifyMagicLink, loginWithGoogleWorkspace } from '../services/auth';
 
 export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess, initialEmail }) {
@@ -11,7 +11,6 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess, initi
   }, [initialEmail]);
   const [step, setStep] = useState(1); // 1 = enter email, 2 = enter OTP
   const [otpCode, setOtpCode] = useState('');
-  const [devCode, setDevCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -24,8 +23,7 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess, initi
     setLoading(true);
 
     try {
-      const res = await requestMagicLink(email);
-      setDevCode(res.devCode);
+      await requestMagicLink(email);
       setStep(2);
     } catch (err) {
       setError(err.message);
@@ -62,18 +60,6 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess, initi
       onClose();
     } catch (err) {
       setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // One-click quick demo login
-  const handleQuickDemo = async () => {
-    setLoading(true);
-    try {
-      const session = await loginWithGoogleWorkspace("beverley247@roundtable.org.uk");
-      onLoginSuccess(session);
-      onClose();
     } finally {
       setLoading(false);
     }
@@ -277,42 +263,8 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess, initi
                     Verification code sent to <strong>{email}</strong>
                   </p>
 
-                  {/* Dev Helper Pill */}
-                  {devCode && (
-                    <div style={{
-                      background: 'rgba(34, 197, 94, 0.1)',
-                      border: '1px solid rgba(34, 197, 94, 0.3)',
-                      borderRadius: '8px',
-                      padding: '10px 14px',
-                      color: '#86efac',
-                      fontSize: '13px',
-                      marginBottom: '16px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}>
-                      <span>Dev Test Code: <strong>{devCode}</strong></span>
-                      <button
-                        type="button"
-                        onClick={() => setOtpCode(devCode)}
-                        style={{
-                          background: '#22c55e',
-                          color: '#000',
-                          border: 'none',
-                          borderRadius: '4px',
-                          padding: '2px 8px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Auto-fill
-                      </button>
-                    </div>
-                  )}
-
                   <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                    Enter 6-digit code:
+                    Enter 6-digit verification code or Table Master Password:
                   </label>
                   <div style={{
                     display: 'flex',
@@ -326,7 +278,7 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess, initi
                     <KeyRound size={18} color="var(--primary)" style={{ marginRight: '10px' }} />
                     <input
                       type="text"
-                      maxLength={6}
+                      maxLength={32}
                       value={otpCode}
                       onChange={(e) => setOtpCode(e.target.value)}
                       placeholder="123456"
@@ -337,8 +289,8 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess, initi
                         background: 'transparent',
                         border: 'none',
                         color: '#fff',
-                        fontSize: '20px',
-                        letterSpacing: '4px',
+                        fontSize: '18px',
+                        letterSpacing: '2px',
                         outline: 'none',
                         textAlign: 'center',
                         fontWeight: 700
@@ -357,7 +309,7 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess, initi
                     </button>
                     <button
                       type="submit"
-                      disabled={loading || otpCode.length < 6}
+                      disabled={loading || otpCode.length < 4}
                       className="btn-primary"
                       style={{ flex: 2, padding: '10px', justifyContent: 'center' }}
                     >
@@ -412,35 +364,6 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess, initi
               </div>
             </div>
           )}
-
-          {/* Quick Demo Button */}
-          <div style={{
-            marginTop: '25px',
-            paddingTop: '20px',
-            borderTop: '1px solid var(--border)',
-            textAlign: 'center'
-          }}>
-            <button
-              type="button"
-              onClick={handleQuickDemo}
-              style={{
-                background: 'rgba(251, 175, 51, 0.08)',
-                border: '1px dashed var(--primary)',
-                color: 'var(--primary)',
-                borderRadius: '8px',
-                padding: '8px 16px',
-                fontSize: '12px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-            >
-              <Sparkles size={14} />
-              <span>One-Click Test Login as Beverley #247 (Admin)</span>
-            </button>
-          </div>
         </div>
       </div>
     </div>

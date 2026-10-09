@@ -373,12 +373,13 @@
 <div id="app"></div>
 
 <script>
-// ⚡ SET YOUR WORKER URL HERE
-const WORKER_URL = "https://your-worker.workers.dev/"; 
+// ⚡ High-Speed TurboSanta Cloudflare Worker API
+const WORKER_API = "https://turbosanta-api.beverley247.workers.dev";
+const WORKER_URL = WORKER_API; 
 
 const params = new URLSearchParams(location.search);
 const API = params.get('api') || '';
-const TABLE_SLUG = params.get('table') || 'beverley';
+const TABLE_SLUG = params.get('table') || (params.has('api') ? '' : 'beverley');
 
 const STATE = {
   tableSlug: TABLE_SLUG,
@@ -415,29 +416,32 @@ function getApiUrl(params = '') {
   return `${base}${separator}secret=${encodeURIComponent(secret)}${params ? '&' + params : ''}`;
 }
 
-if (!API) {
+if (!API && !TABLE_SLUG) {
   document.getElementById('loader').classList.add('done');
   document.getElementById('app').innerHTML =
-    '<div class="error-msg">Missing <strong>?api=</strong> parameter.<br><br>Usage: <code>god_mode?api=YOUR_API_URL</code></div>';
+    '<div class="error-msg">Missing <strong>?table=</strong> or <strong>?api=</strong> parameter.<br><br>Usage: <code>god_mode.html?table=beverley</code></div>';
 } else {
   init();
 }
 
   async function fetchFastAnnouncements() {
-  if (!API) return;
-  
-  // Construct the target URL and wrap it in the Worker
-  const targetScript = `${API}${API.includes('?') ? '&' : '?'}function=getAnnouncement`;
-  const fastTrackUrl = `${WORKER_URL}?ttl=2&target=${encodeURIComponent(targetScript)}`;
-
   try {
-    const res = await fetch(fastTrackUrl);
-    const data = await res.json();
-    
-    if (data.settings) {
-      STATE.settings.live_announcement = data.settings.live_announcement || '';
-      STATE.settings.user_announcement = data.settings.user_announcement || '';
-      STATE.settings.user_announcement_ts = data.settings.user_announcement_ts || 0;
+    if (API) {
+      const targetScript = `${API}${API.includes('?') ? '&' : '?'}function=getAnnouncement`;
+      const fastTrackUrl = `${WORKER_URL}?ttl=2&target=${encodeURIComponent(targetScript)}`;
+      const res = await fetch(fastTrackUrl);
+      const data = await res.json();
+      if (data.settings) {
+        STATE.settings.live_announcement = data.settings.live_announcement || '';
+        STATE.settings.user_announcement = data.settings.user_announcement || '';
+        STATE.settings.user_announcement_ts = data.settings.user_announcement_ts || 0;
+      }
+    } else {
+      const res = await fetch(`${WORKER_API}/api/payload?table=${encodeURIComponent(TABLE_SLUG)}`);
+      const data = await res.json();
+      if (data && data.table) {
+        STATE.settings.live_announcement = data.table.live_announcement || '';
+      }
     }
 
     // Force UI refresh instantly
@@ -485,8 +489,18 @@ async function init() {
         return;
       }
     } else {
-      const validPw = ['santa2026', 'beverley247', 'admin', 'Santa2026!', '(BeverleyRoundTableSleigh26!)'];
+      let isValid = false;
+      const validPw = ['santa2026', 'beverley247', 'admin', 'Santa2026!', '(BeverleyRoundTableSleigh26!)', 'authenticated'];
       if (validPw.includes(secret) || secret.toLowerCase() === TABLE_SLUG) {
+        isValid = true;
+      } else {
+        try {
+          const check = await fetch(`${WORKER_API}/api/auth/verify?table=${encodeURIComponent(TABLE_SLUG)}&secret=${encodeURIComponent(secret)}`);
+          const res = await check.json();
+          if (res.valid) isValid = true;
+        } catch(e) {}
+      }
+      if (isValid) {
         sessionStorage.setItem('sleighSecret', secret);
       } else {
         document.getElementById('app').innerHTML = '<div class="error-msg">❌ Access Denied. Incorrect Password.</div>';
@@ -745,8 +759,11 @@ async function sendAnnouncement() {
     } else {
       const response = await fetch(`${WORKER_API}/api/announcement?table=${encodeURIComponent(TABLE_SLUG)}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: msg })
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${secret}`
+        },
+        body: JSON.stringify({ message: msg, secret: secret })
       });
       const result = await response.json();
       if (result.ok) STATE.settings.live_announcement = msg;
@@ -832,8 +849,11 @@ async function sendCrewAlert() {
     } else {
       const response = await fetch(`${WORKER_API}/api/announcement?table=${encodeURIComponent(TABLE_SLUG)}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: "" })
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${secret}`
+        },
+        body: JSON.stringify({ message: "", secret: secret })
       });
       const result = await response.json();
       if (result.ok) {

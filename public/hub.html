@@ -439,14 +439,14 @@
         <!-- Driver Sat-Nav Beacon -->
         <div class="hub-card">
           <div>
-            <span class="card-badge badge-green">Driver Console</span>
+            <span class="card-badge badge-red"><i class="fa-solid fa-lock"></i> Driver Passcode</span>
             <h3><i class="fa-solid fa-location-arrow"></i> Driver GPS Beacon & Nav</h3>
-            <p>For the mobile phone mounted on the sleigh towing vehicle. Maintains screen wake-lock and broadcasts high-accuracy GPS coordinates every 2 seconds.</p>
+            <p>For the mobile phone mounted on the sleigh towing vehicle. Maintains screen wake-lock, turn-by-turn 3D sat-nav, and broadcasts high-accuracy GPS coordinates every 2 seconds. <em>(Password protected)</em></p>
           </div>
           <div>
-            <div class="url-preview" id="driverUrl">https://turbosanta-app.pages.dev/tracker.html?table=beverley&mode=driver</div>
+            <div class="url-preview" id="driverUrl">https://turbosanta-app.pages.dev/tracker.html?table=beverley&driver=1</div>
             <div class="card-actions">
-              <a id="btnLaunchDriver" href="/tracker.html?table=beverley&mode=driver" target="_blank" class="btn btn-primary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Beacon</a>
+              <a id="btnLaunchDriver" href="/tracker.html?table=beverley&driver=1" target="_blank" class="btn btn-primary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Beacon</a>
               <button class="btn btn-secondary" onclick="copyDynamicUrl('driverUrl')"><i class="fa-solid fa-copy"></i> Copy Link</button>
             </div>
           </div>
@@ -455,7 +455,7 @@
         <!-- Crew Check-in & Safety -->
         <div class="hub-card">
           <div>
-            <span class="card-badge badge-gold">Night Operations</span>
+            <span class="card-badge badge-red"><i class="fa-solid fa-lock"></i> Password Protected</span>
             <h3><i class="fa-solid fa-clipboard-check"></i> Crew Leader Check-In</h3>
             <p>Inside the Crew Hub, leaders log in with the table password to check in arriving volunteers, allocate bucket numbers, and sign off vehicle safety.</p>
           </div>
@@ -468,8 +468,8 @@
           </div>
         </div>
 
-        <!-- Sleigh Blueprint -->
-        <div class="hub-card">
+        <!-- Sleigh Blueprint (Beverley Exclusive) -->
+        <div class="hub-card" id="cardBlueprint">
           <div>
             <span class="card-badge badge-gold">Beverley Custom Hardware</span>
             <h3><i class="fa-solid fa-screwdriver-wrench"></i> Sleigh Blueprint</h3>
@@ -497,9 +497,9 @@
         <!-- God Mode -->
         <div class="hub-card featured">
           <div>
-            <span class="card-badge badge-red">Mission Control</span>
+            <span class="card-badge badge-red"><i class="fa-solid fa-lock"></i> Master Password</span>
             <h3><i class="fa-solid fa-satellite-dish" style="color:var(--red);"></i> God Mode Dashboard</h3>
-            <p>Real-time command center: broadcast live PA announcements, send crew alerts to volunteer phones, monitor GPS health & weather, and moderate audience messages.</p>
+            <p>Real-time command center: broadcast live PA announcements, send crew alerts to volunteer phones, monitor GPS health & weather, and moderate audience messages. <em>(Admin restricted)</em></p>
           </div>
           <div>
             <div class="url-preview" id="godModeUrl">https://turbosanta-app.pages.dev/god_mode.html?table=beverley</div>
@@ -665,7 +665,7 @@
         addressUrl: `${origin}/address.html?table=${slug}`,
         santaChatUrl: `${origin}/santa_chat.html?table=${slug}`,
         memoryUrl: `${origin}/memory_book.html?table=${slug}`,
-        driverUrl: `${origin}/tracker.html?table=${slug}&mode=driver`,
+        driverUrl: `${origin}/tracker.html?table=${slug}&driver=1`,
         crewAdminUrl: `${origin}/crew.html?table=${slug}`,
         blueprintUrl: `${origin}/blueprint.html?table=${slug}`,
         godModeUrl: `${origin}/god_mode.html?table=${slug}`,
@@ -678,6 +678,12 @@
       for (const [id, url] of Object.entries(links)) {
         const el = document.getElementById(id);
         if (el) el.textContent = url;
+      }
+
+      // Hide custom hardware blueprint for non-Beverley tables
+      const cardBlueprint = document.getElementById('cardBlueprint');
+      if (cardBlueprint) {
+        cardBlueprint.style.display = (slug === 'beverley') ? '' : 'none';
       }
 
       // Update launch button hrefs

@@ -471,7 +471,8 @@ async function init() {
       try { applyTheme(data.settings); saveTheme(API || tableSlug, data.settings.primary_color); } catch (e) { console.warn('Theme not applied:', e); }
     }
     
-    if(!data.routes) throw new Error("Invalid API response");
+    if (!data) data = {};
+    if (!data.routes) data.routes = [];
 
     // ── CREW ALERT: read on init and start polling ──
     const alertMsg = (data.settings && (data.settings.crew_alert || data.settings.live_announcement)) || '';
@@ -611,22 +612,32 @@ function populateRouteDropdowns(routes) {
   const dropdowns = [document.getElementById('routeSelect'), document.getElementById('opsRouteSelect')];
   
   dropdowns.forEach(dropdown => {
+    if (!dropdown) return;
     dropdown.innerHTML = '<option value="">-- Choose a Route --</option>';
-    routes.forEach(route => {
-      if(route.routeName && route.date) {
-        const d = new Date(route.date);
-        const friendlyDate = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    let count = 0;
+    (routes || []).forEach(route => {
+      if(route.routeName) {
+        count++;
+        const d = route.date ? new Date(route.date) : null;
+        const friendlyDate = d && !isNaN(d.getTime()) ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : "Scheduled";
         
         const option = document.createElement('option');
         option.value = route.routeName;
         const startTime = route["Start Time"] || "";
-const endTime = route["End Time"] || "";
-const timeStr = startTime ? ` (${startTime}–${endTime})` : "";
+        const endTime = route["End Time"] || "";
+        const timeStr = startTime ? ` (${startTime}–${endTime})` : "";
 
-option.textContent = `${route.routeName} — ${friendlyDate}${timeStr}`;
+        option.textContent = `${route.routeName} — ${friendlyDate}${timeStr}`;
         dropdown.appendChild(option);
       }
     });
+
+    if (count === 0) {
+      const option = document.createElement('option');
+      option.value = "General Volunteer / Sleigh Operations";
+      option.textContent = "General Volunteer / Sleigh Operations";
+      dropdown.appendChild(option);
+    }
   });
 }
 
