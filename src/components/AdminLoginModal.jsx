@@ -2,9 +2,15 @@ import React, { useState } from 'react';
 import { Mail, Shield, KeyRound, ArrowRight, CheckCircle2, AlertCircle, X, Sparkles } from 'lucide-react';
 import { requestMagicLink, verifyMagicLink, loginWithGoogleWorkspace } from '../services/auth';
 
-export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
+export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess, initialEmail }) {
   const [activeTab, setActiveTab] = useState('magic'); // 'magic' or 'google'
-  const [email, setEmail] = useState('beverley247@roundtable.org.uk');
+  const [email, setEmail] = useState(initialEmail || 'beverley247@roundtable.org.uk');
+
+  React.useEffect(() => {
+    if (initialEmail) {
+      setEmail(initialEmail);
+    }
+  }, [initialEmail]);
   const [step, setStep] = useState(1); // 1 = enter email, 2 = enter OTP
   const [otpCode, setOtpCode] = useState('');
   const [devCode, setDevCode] = useState('');

@@ -14,21 +14,23 @@ import { fetchTablePayload } from './services/api';
 import { getCurrentSession } from './services/auth';
 import { MapPin, Shield } from 'lucide-react';
 
+import LandingPortal from './components/LandingPortal';
+
 export default function App() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialTableParam = urlParams.get('table');
+  const initialAdminParam = urlParams.get('admin') === '1';
+
+  const [activeTableSlug, setActiveTableSlug] = useState(initialTableParam || null);
   const [tableData, setTableData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!initialTableParam);
   const [showFab, setShowFab] = useState(false);
 
   // Admin Authentication State
   const [adminSession, setAdminSession] = useState(getCurrentSession());
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [viewMode, setViewMode] = useState('public'); // 'public' or 'admin'
-
-  // Extract table from query string ?table=beverley or default to beverley
-  const getTableSlug = () => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('table') || 'beverley';
-  };
+  const [loginInitialEmail, setLoginInitialEmail] = useState('');
+  const [viewMode, setViewMode] = useState(initialAdminParam && adminSession ? 'admin' : 'public');
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -42,8 +44,13 @@ export default function App() {
   }, [adminSession]);
 
   useEffect(() => {
-    const slug = getTableSlug();
-    fetchTablePayload(slug)
+    if (!activeTableSlug) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    fetchTablePayload(activeTableSlug)
       .then(data => {
         setTableData(data);
         setLoading(false);
@@ -52,31 +59,30 @@ export default function App() {
         console.error("Payload load error:", err);
         setTableData({
           table: {
-            id: 'beverley_247',
-            name: 'Beverley Round Table',
-            sleigh_display_name: 'Beverley Round Table Santa Sleigh',
+            id: activeTableSlug,
+            name: `${activeTableSlug.charAt(0).toUpperCase() + activeTableSlug.slice(1)} Round Table`,
+            sleigh_display_name: `${activeTableSlug.charAt(0).toUpperCase() + activeTableSlug.slice(1)} Round Table Santa Sleigh`,
             fundraising_goal: 8000,
             total_raised: 19,
             donate_url: 'https://www.zeffy.com/en-GB/donation-form/beverley-round-table-for-our-community'
           },
           routes: [
             {
-              id: 'bev_east_route',
-              name: 'East Route',
+              id: `${activeTableSlug}_route_1`,
+              name: 'Main Route',
               date: '2026-12-09',
               start_time: '18:00',
               end_time: '20:30'
             }
           ],
           streets: [
-            { id: 1, route_id: 'bev_east_route', street_name: 'New Road' },
-            { id: 2, route_id: 'bev_east_route', street_name: 'Old Hill' },
-            { id: 3, route_id: 'bev_east_route', street_name: 'Lawless Lane' }
+            { id: 1, route_id: `${activeTableSlug}_route_1`, street_name: 'High Street' },
+            { id: 2, route_id: `${activeTableSlug}_route_1`, street_name: 'Church Lane' }
           ]
         });
         setLoading(false);
       });
-  }, []);
+  }, [activeTableSlug]);
 
   // Floating Action Button on scroll
   useEffect(() => {
@@ -90,6 +96,39 @@ export default function App() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // ROOT LANDING & PORTAL LOGIN VIEW (when no table is specified)
+  if (!activeTableSlug && viewMode !== 'admin') {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <LandingPortal
+          session={adminSession}
+          onOpenLogin={(email) => {
+            if (email) setLoginInitialEmail(email);
+            setIsLoginModalOpen(true);
+          }}
+          onSelectTable={(slug) => {
+            setActiveTableSlug(slug);
+            window.history.pushState(null, '', `/?table=${encodeURIComponent(slug)}`);
+          }}
+        />
+
+        {/* Admin Login Modal (Magic Link & Google Workspace) */}
+        <AdminLoginModal
+          isOpen={isLoginModalOpen}
+          initialEmail={loginInitialEmail}
+          onClose={() => setIsLoginModalOpen(false)}
+          onLoginSuccess={(session) => {
+            setAdminSession(session);
+            const slug = session.tableSlug || 'beverley';
+            setActiveTableSlug(slug);
+            setViewMode('admin');
+            window.history.pushState(null, '', `/?table=${encodeURIComponent(slug)}&admin=1`);
+          }}
+        />
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -170,7 +209,13 @@ export default function App() {
       )}
 
       {/* Navigation */}
-      <Navbar tableData={tableData} />
+      <Navbar
+        tableData={tableData}
+        onBackToPortal={() => {
+          setActiveTableSlug(null);
+          window.history.pushState(null, '', '/');
+        }}
+      />
 
       {/* Main Content */}
       <main style={{ flex: 1 }}>

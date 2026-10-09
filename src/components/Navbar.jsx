@@ -1,7 +1,7 @@
 import React from 'react';
 import { MapPin, Calendar, Heart, HelpCircle, Users } from 'lucide-react';
 
-export default function Navbar({ tableData }) {
+export default function Navbar({ tableData, onBackToPortal }) {
   const table = tableData?.table || {};
   const displayName = table.sleigh_display_name || "Beverley Round Table Santa Sleigh";
   const announcement = table.live_announcement;
@@ -149,6 +149,33 @@ export default function Navbar({ tableData }) {
           }}>
             <Users size={16} color="var(--primary)" />
             About
+          </a>
+
+          <a
+            href="/"
+            onClick={(e) => {
+              if (onBackToPortal) {
+                e.preventDefault();
+                onBackToPortal();
+              }
+            }}
+            style={{
+              color: 'var(--primary)',
+              textDecoration: 'none',
+              fontWeight: 700,
+              fontSize: '11px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: 'rgba(251, 175, 51, 0.1)',
+              padding: '5px 10px',
+              borderRadius: '6px',
+              border: '1px solid rgba(251, 175, 51, 0.3)'
+            }}
+          >
+            <span>All Tables</span>
           </a>
         </div>
       </nav>
