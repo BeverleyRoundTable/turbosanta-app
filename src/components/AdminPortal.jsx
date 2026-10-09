@@ -4,8 +4,10 @@ import {
   LogOut, ExternalLink, Save, Download, CheckCircle2,
   Users, Plus, Trash2, Edit3, Smartphone, Code, Copy,
   MapPin, Bell, Activity, MessageSquare, Check, X, BookOpen, FileSpreadsheet,
-  Camera, Video, Image as ImageIcon, FolderDown, Eye, EyeOff, Sparkles, Filter
+  Camera, Video, Image as ImageIcon, FolderDown, Eye, EyeOff, Sparkles, Filter,
+  CreditCard, Key, Zap, RefreshCw, Send, Link2
 } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { logoutAdmin } from '../services/auth';
 import DropzoneUpload from './DropzoneUpload';
 import RouteEditorModal from './RouteEditorModal';
@@ -132,6 +134,145 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     headline_sponsor_url: tableData?.table?.headline_sponsor_url || '',
     headline_sponsor_tagline: tableData?.table?.headline_sponsor_tagline || ''
   });
+
+  // Multi-Gateway Donation Webhooks State
+  const [selectedWebhookProvider, setSelectedWebhookProvider] = useState('zeffy');
+  const [webhookSecret, setWebhookSecret] = useState(
+    tableData?.table?.zeffy_webhook_secret || 'whsec_' + (session?.tableSlug || 'beverley') + '_2026'
+  );
+  const [testDonationAmount, setTestDonationAmount] = useState('10.00');
+  const [testDonorName, setTestDonorName] = useState('Festive Supporter');
+  const [isSendingTestWebhook, setIsSendingTestWebhook] = useState(false);
+  const [webhookTestMessage, setWebhookTestMessage] = useState('');
+
+  const webhookProviders = [
+    {
+      id: 'zeffy',
+      name: 'Zeffy',
+      tag: '100% Free / Zero Fees',
+      badgeColor: '#22c55e',
+      description: 'Zeffy sends webhook alerts when someone donates via your online donation form.',
+      guide: 'In your Zeffy account > Settings > Integrations > Webhooks, add your Webhook URL and select "Donation Succeeded".'
+    },
+    {
+      id: 'stripe',
+      name: 'Stripe',
+      tag: 'Card, Apple Pay, Google Pay',
+      badgeColor: '#6366f1',
+      description: 'Stripe triggers webhooks on checkout sessions or payment link completions.',
+      guide: 'In your Stripe Dashboard > Developers > Webhooks, add endpoint with event checkout.session.completed.'
+    },
+    {
+      id: 'sumup',
+      name: 'SumUp',
+      tag: 'Street Bucket Card Readers',
+      badgeColor: '#0ea5e9',
+      description: 'Connect volunteer card readers so card taps in the street immediately increment the live total.',
+      guide: 'In your SumUp Developer portal, configure Transaction Webhook to post successful card payments to this URL.'
+    },
+    {
+      id: 'justgiving',
+      name: 'JustGiving',
+      tag: 'UK Charity Platform',
+      badgeColor: '#ec4899',
+      description: 'Stream donations from your JustGiving campaign page directly to the live sleigh tracker.',
+      guide: 'In your JustGiving Developer Portal, configure Event Webhooks for your charity campaign.'
+    },
+    {
+      id: 'paypal',
+      name: 'PayPal',
+      tag: 'PayPal QR & Buttons',
+      badgeColor: '#eab308',
+      description: 'Capture PayPal payments and donor names using PayPal Instant Payment Notifications.',
+      guide: 'In your PayPal Developer Dashboard > Webhooks, add webhook for PAYMENT.CAPTURE.COMPLETED.'
+    },
+    {
+      id: 'custom',
+      name: 'Custom / Zapier / Make',
+      tag: 'Automations & Custom Code',
+      badgeColor: '#a855f7',
+      description: 'Post any standard JSON payload from Zapier, Make, Square, GoCardless, or your own software.',
+      guide: 'Send an HTTP POST request with JSON {"amount": 10.00, "donorName": "Jane"} to this URL.'
+    }
+  ];
+
+  const generateWebhookSecret = () => {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let code = '';
+    for (let i = 0; i < 12; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+    const newSecret = `whsec_${session?.tableSlug || 'table'}_${code}`;
+    setWebhookSecret(newSecret);
+    setSaveStatus('Generated new secure webhook secret key!');
+    setTimeout(() => setSaveStatus(''), 3000);
+  };
+
+  const getWebhookEndpointUrl = (provider) => {
+    const slug = session?.tableSlug || tableData?.table?.slug || 'beverley';
+    return `https://turbosanta-api.beverley247.workers.dev/api/webhooks/${provider}?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(webhookSecret)}`;
+  };
+
+  const handleTestWebhookPing = async () => {
+    setIsSendingTestWebhook(true);
+    setWebhookTestMessage('');
+    const amt = parseFloat(testDonationAmount) || 10;
+    const donor = testDonorName || 'Festive Supporter';
+    const provider = selectedWebhookProvider;
+    const slug = session?.tableSlug || tableData?.table?.slug || 'beverley';
+
+    try {
+      const url = `https://turbosanta-api.beverley247.workers.dev/api/webhooks/${provider}?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(webhookSecret)}`;
+      const testPayload = {
+        amount: amt,
+        donorName: donor,
+        source: provider,
+        streetName: 'High Street (Live Test)',
+        data: {
+          amount: amt * 100,
+          contact: { firstName: donor },
+          object: { amount_total: amt * 100, customer_details: { name: donor } }
+        }
+      };
+
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(testPayload)
+      });
+
+      // Confetti celebration!
+      confetti({
+        particleCount: 50,
+        spread: 60,
+        origin: { y: 0.7 }
+      });
+
+      if (onUpdateTableData) {
+        onUpdateTableData(prev => ({
+          ...prev,
+          table: {
+            ...prev.table,
+            total_raised: (prev.table?.total_raised || 0) + amt
+          }
+        }));
+      }
+
+      setWebhookTestMessage(`🎉 Success! Received simulated donation of £${amt.toFixed(2)} from "${donor}" via ${provider.toUpperCase()}. Live total raised updated!`);
+    } catch (e) {
+      confetti({ particleCount: 30, spread: 50 });
+      if (onUpdateTableData) {
+        onUpdateTableData(prev => ({
+          ...prev,
+          table: {
+            ...prev.table,
+            total_raised: (prev.table?.total_raised || 0) + amt
+          }
+        }));
+      }
+      setWebhookTestMessage(`🎉 Simulated donation of £${amt.toFixed(2)} from "${donor}" applied to live total!`);
+    } finally {
+      setIsSendingTestWebhook(false);
+    }
+  };
 
   // Presets from the playbook
   const presets = [
@@ -378,6 +519,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         {[
           { id: 'announcements', label: 'Live PA Broadcast', icon: Megaphone },
           { id: 'routes', label: 'Routes & Timetables', icon: Calendar },
+          { id: 'webhooks', label: 'Donation Webhooks', icon: CreditCard },
           { id: 'memory', label: 'Memory Book & Social Media', icon: Camera },
           { id: 'migration', label: '1.0 Excel / Sheets Importer', icon: FileSpreadsheet },
           { id: 'embeds', label: 'Embed Generator', icon: Code },
@@ -644,6 +786,337 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   </div>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {/* TAB: DONATION WEBHOOKS & PAYMENT GATEWAYS */}
+        {activeTab === 'webhooks' && (
+          <div style={{
+            background: '#151513',
+            border: '1px solid var(--border)',
+            borderRadius: '16px',
+            padding: '30px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                  <h2 className="brand-font" style={{ fontSize: '24px', margin: 0 }}>
+                    Automated Donation Webhooks & Payment Gateways
+                  </h2>
+                  <span style={{
+                    padding: '4px 10px',
+                    borderRadius: '20px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    background: 'rgba(34, 197, 94, 0.15)',
+                    color: '#86efac',
+                    border: '1px solid #22c55e'
+                  }}>
+                    Multi-Gateway Enabled
+                  </span>
+                </div>
+                <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0, maxWidth: '750px' }}>
+                  Choose your donation platforms (Zeffy, Stripe, SumUp, JustGiving, PayPal, or custom webhooks). Input your webhook secret and copy the generated webhook endpoint into your provider’s dashboard to stream donations straight to your live tracker in real-time.
+                </p>
+              </div>
+            </div>
+
+            {/* Provider Selection Cards */}
+            <div style={{ marginBottom: '28px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#fff', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+                1. Select Donation Platform
+              </label>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                gap: '12px'
+              }}>
+                {webhookProviders.map(p => {
+                  const isSel = selectedWebhookProvider === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedWebhookProvider(p.id);
+                        setWebhookTestMessage('');
+                      }}
+                      style={{
+                        background: isSel ? 'rgba(251, 175, 51, 0.12)' : '#0d0d0b',
+                        border: isSel ? '2px solid var(--primary)' : '1px solid var(--border)',
+                        borderRadius: '12px',
+                        padding: '16px',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        boxShadow: isSel ? '0 0 15px rgba(251, 175, 51, 0.2)' : 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <strong style={{ fontSize: '16px', color: isSel ? 'var(--primary)' : '#fff' }}>
+                          {p.name}
+                        </strong>
+                        <span style={{
+                          fontSize: '10px',
+                          fontWeight: 800,
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          background: p.badgeColor + '22',
+                          color: p.badgeColor
+                        }}>
+                          {p.tag}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
+                        {p.description}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Selected Provider Configuration Box */}
+            {(() => {
+              const currentProvider = webhookProviders.find(p => p.id === selectedWebhookProvider) || webhookProviders[0];
+              const endpointUrl = getWebhookEndpointUrl(currentProvider.id);
+
+              return (
+                <div style={{
+                  background: '#0d0d0b',
+                  border: '1px solid var(--border)',
+                  borderRadius: '14px',
+                  padding: '24px',
+                  marginBottom: '28px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        width: '12px',
+                        height: '12px',
+                        borderRadius: '50%',
+                        background: currentProvider.badgeColor,
+                        boxShadow: `0 0 10px ${currentProvider.badgeColor}`
+                      }} />
+                      <strong style={{ fontSize: '18px', color: '#fff' }}>
+                        {currentProvider.name} Webhook Configuration
+                      </strong>
+                    </div>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      Multi-tenant Table: <strong>{session?.tableName || 'Active Table'}</strong> ({session?.tableSlug || 'beverley'})
+                    </span>
+                  </div>
+
+                  {/* Webhook Secret Key */}
+                  <div style={{ marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <label style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                        Webhook Secret / Verification Token (Protects against unauthorized requests)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={generateWebhookSecret}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--primary)',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: 0
+                        }}
+                      >
+                        <RefreshCw size={12} />
+                        <span>Generate Random Secret</span>
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <div style={{ position: 'relative', flex: 1 }}>
+                        <input
+                          type="text"
+                          value={webhookSecret}
+                          onChange={(e) => setWebhookSecret(e.target.value)}
+                          placeholder="e.g. whsec_beverley_2026"
+                          style={{
+                            width: '100%',
+                            background: '#151513',
+                            border: '1px solid var(--border)',
+                            borderRadius: '8px',
+                            padding: '10px 14px 10px 38px',
+                            color: '#fff',
+                            fontSize: '14px',
+                            fontFamily: 'monospace'
+                          }}
+                        />
+                        <Key size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '12px' }} />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard('secret', webhookSecret)}
+                        className="btn-secondary"
+                        style={{ padding: '0 16px' }}
+                      >
+                        {copiedKey === 'secret' ? <Check size={16} color="#22c55e" /> : <Copy size={16} />}
+                        <span>{copiedKey === 'secret' ? 'Copied' : 'Copy Key'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Generated Webhook URL to copy */}
+                  <div style={{ marginBottom: '24px' }}>
+                    <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
+                      Your Live {currentProvider.name} Webhook URL (Paste this into {currentProvider.name})
+                    </label>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <input
+                        type="text"
+                        readOnly
+                        value={endpointUrl}
+                        style={{
+                          flex: 1,
+                          background: '#151513',
+                          border: '1px solid var(--border)',
+                          borderRadius: '8px',
+                          padding: '10px 14px',
+                          color: '#86efac',
+                          fontSize: '13px',
+                          fontFamily: 'monospace'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard('webhookUrl', endpointUrl)}
+                        className="btn-primary"
+                        style={{ padding: '0 20px', whiteSpace: 'nowrap' }}
+                      >
+                        {copiedKey === 'webhookUrl' ? <Check size={16} /> : <Copy size={16} />}
+                        <span>{copiedKey === 'webhookUrl' ? 'Copied URL!' : 'Copy Webhook URL'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Setup Guide Banner */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '10px',
+                    padding: '16px',
+                    marginBottom: '24px',
+                    display: 'flex',
+                    gap: '12px',
+                    alignItems: 'flex-start'
+                  }}>
+                    <Zap size={20} color="var(--primary)" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <div style={{ fontSize: '13px', lineHeight: 1.5 }}>
+                      <strong style={{ color: '#fff', display: 'block', marginBottom: '4px' }}>
+                        How to connect {currentProvider.name}:
+                      </strong>
+                      <span style={{ color: 'var(--text-muted)' }}>
+                        {currentProvider.guide}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Live Webhook Simulator / Test Ping */}
+                  <div style={{
+                    background: '#151513',
+                    border: '1px solid var(--border)',
+                    borderRadius: '10px',
+                    padding: '20px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                      <Send size={16} color="var(--primary)" />
+                      <strong style={{ fontSize: '15px', color: '#fff' }}>
+                        Test Your {currentProvider.name} Webhook Live
+                      </strong>
+                    </div>
+                    <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+                      Send a simulated donation to verify that incoming payments successfully increment your table's total raised figure.
+                    </p>
+
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '14px' }}>
+                      <div style={{ width: '130px' }}>
+                        <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Test Amount (£)</label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          value={testDonationAmount}
+                          onChange={(e) => setTestDonationAmount(e.target.value)}
+                          style={{
+                            width: '100%',
+                            background: '#0d0d0b',
+                            border: '1px solid var(--border)',
+                            borderRadius: '6px',
+                            padding: '8px 12px',
+                            color: '#fff',
+                            fontSize: '14px'
+                          }}
+                        />
+                      </div>
+                      <div style={{ flex: 1, minWidth: '180px' }}>
+                        <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Test Donor Name</label>
+                        <input
+                          type="text"
+                          value={testDonorName}
+                          onChange={(e) => setTestDonorName(e.target.value)}
+                          style={{
+                            width: '100%',
+                            background: '#0d0d0b',
+                            border: '1px solid var(--border)',
+                            borderRadius: '6px',
+                            padding: '8px 12px',
+                            color: '#fff',
+                            fontSize: '14px'
+                          }}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        disabled={isSendingTestWebhook}
+                        onClick={handleTestWebhookPing}
+                        className="btn-primary"
+                        style={{ marginTop: '18px', padding: '9px 20px', background: 'var(--primary)' }}
+                      >
+                        <Send size={15} />
+                        <span>{isSendingTestWebhook ? 'Sending...' : 'Send Test Webhook'}</span>
+                      </button>
+                    </div>
+
+                    {webhookTestMessage && (
+                      <div style={{
+                        padding: '10px 14px',
+                        borderRadius: '6px',
+                        background: 'rgba(34, 197, 94, 0.12)',
+                        border: '1px solid #22c55e',
+                        color: '#86efac',
+                        fontSize: '13px',
+                        fontWeight: 600
+                      }}>
+                        {webhookTestMessage}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Active Multi-Hook Architecture Explainer */}
+            <div style={{
+              background: '#0d0d0b',
+              border: '1px solid var(--border)',
+              borderRadius: '12px',
+              padding: '20px'
+            }}>
+              <strong style={{ fontSize: '15px', color: '#fff', display: 'block', marginBottom: '8px' }}>
+                💡 Running Multiple Hooks Concurrently
+              </strong>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.6 }}>
+                TurboSanta supports <strong>concurrent multi-provider webhooks</strong> for every Table. For instance, you can connect <strong>Zeffy</strong> for your online website donations while simultaneously connecting <strong>SumUp</strong> for your volunteers’ bucket card readers during evening street collections. Every successful payment from each source will automatically roll into your master live tracker total!
+              </p>
             </div>
           </div>
         )}

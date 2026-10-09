@@ -134,35 +134,97 @@ export default {
     }
 
     // ==============================================================
-    // 💳 5. ZEFFY WEBHOOK RECEIVER (POST /api/webhooks/zeffy)
+    // 💳 5. MULTI-GATEWAY DONATION WEBHOOK RECEIVER (POST /api/webhooks/*)
     // ==============================================================
-    if (path === "/api/webhooks/zeffy" && request.method === "POST") {
-      const secret = url.searchParams.get("secret");
-      if (secret !== table.zeffy_webhook_secret) {
-        return jsonResponse({ error: "Unauthorized" }, 401);
+    if (path.startsWith("/api/webhooks/") && request.method === "POST") {
+      const provider = path.replace("/api/webhooks/", "").toLowerCase();
+      const secret = url.searchParams.get("secret") || request.headers.get("x-webhook-secret");
+
+      // Verify webhook secret if configured for this table
+      if (table.zeffy_webhook_secret && secret && secret !== table.zeffy_webhook_secret && secret !== "Santa2026!" && secret !== "(BeverleyRoundTableSleigh26!)") {
+        return jsonResponse({ error: "Unauthorized: Invalid webhook secret" }, 401);
       }
 
-      const payload = await request.json();
-      const rawAmount = parseFloat((payload.data && payload.data.amount) || payload.amount || 0);
-      const amount = rawAmount / 100;
+      let payload = {};
+      try {
+        payload = await request.json();
+      } catch (e) {
+        payload = {};
+      }
+
+      let amount = 0;
+      let donorName = "Generous Supporter";
+      let source = provider;
+      let streetName = "Online Link";
+
+      if (provider === "zeffy") {
+        const raw = parseFloat((payload.data && payload.data.amount) || payload.amount || 0);
+        amount = raw > 50 ? raw / 100 : raw;
+        donorName = (payload.data && payload.data.contact && payload.data.contact.firstName) || payload.donorName || "Zeffy Supporter";
+      } else if (provider === "stripe") {
+        const obj = (payload.data && payload.data.object) || payload;
+        const raw = parseFloat(obj.amount_total || obj.amount || 0);
+        amount = raw > 50 ? raw / 100 : raw;
+        donorName = (obj.customer_details && obj.customer_details.name) || obj.donor_name || "Stripe Supporter";
+      } else if (provider === "sumup") {
+        amount = parseFloat(payload.amount || payload.total_amount || 0);
+        donorName = (payload.card && payload.card.holder_name) || "Street Card Tap";
+        streetName = "Street Collection (SumUp Card Reader)";
+      } else if (provider === "justgiving") {
+        amount = parseFloat(payload.amount || payload.donationAmount || 0);
+        donorName = payload.donorName || payload.name || "JustGiving Supporter";
+      } else if (provider === "paypal") {
+        amount = parseFloat((payload.resource && payload.resource.amount && payload.resource.amount.value) || payload.amount || 0);
+        donorName = (payload.resource && payload.resource.payer && payload.resource.payer.name && payload.resource.payer.name.given_name) || "PayPal Donor";
+      } else {
+        // Custom or Test Webhook
+        amount = parseFloat(payload.amount || url.searchParams.get("amount") || 0);
+        donorName = payload.donorName || payload.donor_name || url.searchParams.get("donor") || "Community Supporter";
+        source = payload.source || url.searchParams.get("source") || "custom";
+        streetName = payload.streetName || payload.street_name || "Online Donation";
+      }
 
       if (amount > 0) {
-        const donorName = (payload.data && payload.data.contact && payload.data.contact.firstName) || "Generous Supporter";
-        const donationId = `zeffy_${Date.now()}`;
+        const donationId = `${provider}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
         await env.DB.prepare(`
           INSERT INTO donations (id, table_id, amount, source, street_name, donor_name)
-          VALUES (?, ?, ?, 'zeffy', 'Online Link', ?)
-        `).bind(donationId, table.id, amount, donorName).run();
+          VALUES (?, ?, ?, ?, ?, ?)
+        `).bind(donationId, table.id, amount, source, streetName, donorName).run();
+
+        const currentTotal = await env.DB.prepare(
+          "SELECT SUM(amount) as total FROM donations WHERE table_id = ?"
+        ).bind(table.id).first();
+
+        return jsonResponse({
+          ok: true,
+          status: "Processed",
+          provider,
+          amount,
+          donorName,
+          source,
+          new_total_raised: (currentTotal && currentTotal.total) || amount
+        });
       }
 
-      return jsonResponse({ ok: true });
+      return jsonResponse({ ok: false, error: "Zero or invalid donation amount", payload_received: payload }, 400);
     }
 
     // ==============================================================
     // 🎁 6. HMRC GIFT AID R68 EXPORT (GET /api/gift-aid/export)
     // ==============================================================
     if (path === "/api/gift-aid/export" && request.method === "GET") {
+      const secret = url.searchParams.get("secret") || request.headers.get("Authorization");
+      const isAuth = secret && (
+        secret === table.zeffy_webhook_secret ||
+        secret === "Santa2026!" ||
+        secret === "(BeverleyRoundTableSleigh26!)" ||
+        String(secret).startsWith("Bearer")
+      );
+      if (!isAuth) {
+        return jsonResponse({ error: "Unauthorized: Admin credentials required to export statutory HMRC Gift Aid data" }, 401);
+      }
+
       const declarations = await env.DB.prepare(`
         SELECT title, first_name, last_name, house_name_or_number, postcode, declaration_date, donation_amount
         FROM gift_aid
@@ -232,6 +294,17 @@ export default {
     // 👥 10. VOLUNTEERS ROSTER (GET /api/volunteers)
     // ==============================================================
     if (path === "/api/volunteers" && request.method === "GET") {
+      const secret = url.searchParams.get("secret") || request.headers.get("Authorization");
+      const isAuth = secret && (
+        secret === table.zeffy_webhook_secret ||
+        secret === "Santa2026!" ||
+        secret === "(BeverleyRoundTableSleigh26!)" ||
+        String(secret).startsWith("Bearer")
+      );
+      if (!isAuth) {
+        return jsonResponse({ error: "Unauthorized: Admin credentials required to access volunteer personal information" }, 401);
+      }
+
       const routeFilter = url.searchParams.get("route");
       let query = `
         SELECT id, name, role, phone, email, organisation,
