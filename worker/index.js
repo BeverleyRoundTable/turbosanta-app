@@ -345,9 +345,10 @@ export default {
       const contentType = request.headers.get("content-type") || "image/png";
       const ext = contentType.includes("png") ? "png" : contentType.includes("svg") ? "svg" : (contentType.includes("gpx") || contentType.includes("xml")) ? "gpx" : "jpg";
       const key = `${table.slug}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+      const r2 = env.R2 || env['turbosanta-media'] || env.turbosanta_media;
       
-      if (env.R2) {
-        await env.R2.put(key, request.body, { httpMetadata: { contentType } });
+      if (r2) {
+        await r2.put(key, request.body, { httpMetadata: { contentType } });
         return jsonResponse({ ok: true, url: `https://turbosanta-api.beverley247.workers.dev/cdn/${key}` });
       }
       return jsonResponse({ ok: true, url: null });
@@ -358,8 +359,9 @@ export default {
     // ==============================================================
     if (path.startsWith("/cdn/") && request.method === "GET") {
       const key = path.replace("/cdn/", "");
-      if (env.R2) {
-        const object = await env.R2.get(key);
+      const r2 = env.R2 || env['turbosanta-media'] || env.turbosanta_media;
+      if (r2) {
+        const object = await r2.get(key);
         if (!object) return new Response("Not Found", { status: 404 });
         const headers = new Headers();
         object.writeHttpMetadata(headers);
