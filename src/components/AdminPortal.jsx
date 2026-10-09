@@ -3,7 +3,8 @@ import {
   Radio, Megaphone, Settings, Calendar, Heart, Shield,
   LogOut, ExternalLink, Save, Download, CheckCircle2,
   Users, Plus, Trash2, Edit3, Smartphone, Code, Copy,
-  MapPin, Bell, Activity, MessageSquare, Check, X, BookOpen, FileSpreadsheet
+  MapPin, Bell, Activity, MessageSquare, Check, X, BookOpen, FileSpreadsheet,
+  Camera, Video, Image as ImageIcon, FolderDown, Eye, EyeOff, Sparkles, Filter
 } from 'lucide-react';
 import { logoutAdmin } from '../services/auth';
 import DropzoneUpload from './DropzoneUpload';
@@ -20,6 +21,85 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   const [isCockpitOpen, setIsCockpitOpen] = useState(false);
   const [editingRoute, setEditingRoute] = useState(null);
   const [isRouteModalOpen, setIsRouteModalOpen] = useState(false);
+
+  // Memory Book & Social Media State
+  const [selectedSeason, setSelectedSeason] = useState('2026');
+  const [memoryItems, setMemoryItems] = useState([
+    {
+      id: 1,
+      year: '2026',
+      type: 'photo',
+      url: 'https://images.unsplash.com/photo-1543258103-a62bdc069871?auto=format&fit=crop&w=1200&q=85',
+      caption: 'Santa waving to the excited crowd on New Road!',
+      route: 'East Route',
+      time: '09 Dec 2026, 18:35',
+      author: 'Sarah M.',
+      status: 'approved'
+    },
+    {
+      id: 2,
+      year: '2026',
+      type: 'photo',
+      url: 'https://images.unsplash.com/photo-1512389142860-9c449e58a543?auto=format&fit=crop&w=1200&q=85',
+      caption: 'The sleigh lights looked incredible coming down Lawless Lane tonight!',
+      route: 'East Route',
+      time: '09 Dec 2026, 19:10',
+      author: 'David P.',
+      status: 'approved'
+    },
+    {
+      id: 3,
+      year: '2026',
+      type: 'video',
+      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+      poster: 'https://images.unsplash.com/photo-1482517967863-00e15c9b44be?auto=format&fit=crop&w=800&q=80',
+      caption: 'Kids singing along to Rudolph with the Elves! Pure magic! 🎶',
+      route: 'West Route',
+      time: '08 Dec 2026, 18:50',
+      author: 'Emma K.',
+      status: 'approved'
+    },
+    {
+      id: 4,
+      year: '2025',
+      type: 'photo',
+      url: 'https://images.unsplash.com/photo-1513297887119-d46091b24bfa?auto=format&fit=crop&w=1200&q=85',
+      caption: 'Memories from the Saturday Town Centre Parade last Christmas!',
+      route: 'Town Centre Parade',
+      time: '14 Dec 2025, 17:30',
+      author: 'Mark T.',
+      status: 'approved'
+    }
+  ]);
+
+  const handleDownloadMedia = (url, filename) => {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setSaveStatus(`📥 Downloaded "${filename}" for social media!`);
+    setTimeout(() => setSaveStatus(''), 3000);
+  };
+
+  const handleBatchDownloadSeason = () => {
+    const seasonItems = memoryItems.filter(m => m.year === selectedSeason && m.status === 'approved');
+    if (!seasonItems.length) {
+      alert(`No approved media items found for the ${selectedSeason} season.`);
+      return;
+    }
+    seasonItems.forEach((item, idx) => {
+      setTimeout(() => {
+        const ext = item.type === 'video' ? 'mp4' : 'jpg';
+        const name = `${session.tableId || 'table'}_santa_${item.year}_${item.route.replace(/\s+/g, '_')}_${item.id}.${ext}`;
+        handleDownloadMedia(item.url, name);
+      }, idx * 400);
+    });
+    setSaveStatus(`📥 Batch downloading ${seasonItems.length} media files for ${selectedSeason} season...`);
+    setTimeout(() => setSaveStatus(''), 4000);
+  };
 
   // Embed & Crew Alert State
   const [copiedKey, setCopiedKey] = useState('');
@@ -279,6 +359,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         {[
           { id: 'announcements', label: 'Live PA Broadcast', icon: Megaphone },
           { id: 'routes', label: 'Routes & Timetables', icon: Calendar },
+          { id: 'memory', label: 'Memory Book & Social Media', icon: Camera },
           { id: 'migration', label: '1.0 Excel / Sheets Importer', icon: FileSpreadsheet },
           { id: 'embeds', label: 'Embed Generator', icon: Code },
           { id: 'crew', label: 'Crew & Messages', icon: Bell },
@@ -1038,6 +1119,273 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
               <p style={{ fontSize: '15px', color: '#86efac', margin: 0, fontWeight: 600 }}>
                 ✓ Pre-formatted with Title, Name, House No, Postcode, Date, and Amount (2dp, no £ symbol).
               </p>
+            </div>
+          </div>
+        )}
+
+        
+        {/* TAB: COMMUNITY MEMORY BOOK & SOCIAL MEDIA VAULT */}
+        {activeTab === 'memory' && (
+          <div>
+            <div style={{
+              background: '#151513',
+              border: '1px solid var(--border)',
+              borderRadius: '16px',
+              padding: '28px 32px',
+              marginBottom: '24px',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+                <div>
+                  <h2 className="brand-font" style={{ fontSize: '24px', margin: '0 0 6px 0', color: '#fff' }}>
+                    Community Memory Book & Social Media Vault
+                  </h2>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0 }}>
+                    Download community photos and video clips for your Instagram, Facebook, and press releases.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <button
+                    onClick={handleBatchDownloadSeason}
+                    className="btn-primary"
+                    style={{ padding: '8px 18px', fontSize: '13px' }}
+                  >
+                    <FolderDown size={16} />
+                    <span>Download All {selectedSeason} Media (Batch)</span>
+                  </button>
+
+                  <a
+                    href={`/memory_book.html?table=${session.tableId || 'beverley'}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-secondary"
+                    style={{ padding: '8px 16px', fontSize: '13px', textDecoration: 'none' }}
+                  >
+                    <ExternalLink size={15} />
+                    <span>View Public Gallery</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* Season / Year Time Machine Selector */}
+              <div style={{
+                background: '#0d0d0b',
+                border: '1px solid var(--border)',
+                borderRadius: '12px',
+                padding: '16px 20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700 }}>
+                    <Filter size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+                    Active Christmas Season:
+                  </span>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    {['2026', '2027', '2025'].map(yr => (
+                      <button
+                        key={yr}
+                        onClick={() => setSelectedSeason(yr)}
+                        style={{
+                          background: selectedSeason === yr ? 'var(--primary)' : '#1e1e1b',
+                          color: selectedSeason === yr ? '#000' : '#fff',
+                          border: selectedSeason === yr ? 'none' : '1px solid var(--border)',
+                          borderRadius: '8px',
+                          padding: '6px 14px',
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {yr === '2026' ? '⭐ 2026 (Current)' : yr === '2027' ? '🎄 2027 (Upcoming)' : '📦 2025 Archive'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '12px', color: '#86efac', fontWeight: 600 }}>
+                  ✓ Photos & videos are isolated by season — December 2027 will remain separate from 2026.
+                </div>
+              </div>
+            </div>
+
+            {/* Architecture Explainer Pill */}
+            <div style={{
+              background: 'rgba(251, 175, 51, 0.08)',
+              border: '1px solid var(--border-primary)',
+              borderRadius: '12px',
+              padding: '14px 20px',
+              marginBottom: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '14px',
+              fontSize: '13px',
+              color: 'var(--text-muted)'
+            }}>
+              <div style={{ background: 'var(--primary)', color: '#000', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Sparkles size={16} />
+              </div>
+              <div>
+                <strong style={{ color: '#fff' }}>Modern Storage Architecture:</strong> Structured submission records (dates, captions, GPS routes, approval) are indexed in your Table's <strong>Cloudflare D1 SQL database</strong>. Large binary photos and MP4 videos are served via high-speed <strong>Cloudflare Object Storage (R2 / CDN)</strong>, eliminating Google Drive dependencies and speed bottlenecks.
+              </div>
+            </div>
+
+            {/* Grid of Season Media */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+              gap: '20px'
+            }}>
+              {memoryItems.filter(m => m.year === selectedSeason).length === 0 ? (
+                <div style={{
+                  gridColumn: '1 / -1',
+                  background: '#151513',
+                  border: '1px solid var(--border)',
+                  borderRadius: '16px',
+                  padding: '48px 24px',
+                  textAlign: 'center',
+                  color: 'var(--text-muted)'
+                }}>
+                  <Camera size={40} style={{ opacity: 0.3, marginBottom: '12px' }} />
+                  <h3 className="brand-font" style={{ fontSize: '18px', color: '#fff', marginBottom: '6px' }}>
+                    No Media Submissions for {selectedSeason} Yet
+                  </h3>
+                  <p style={{ fontSize: '13px', maxWidth: '460px', margin: '0 auto' }}>
+                    When families upload photos or videos via the public tracker or Spot Santa form during December {selectedSeason}, they will appear here automatically for review and social download.
+                  </p>
+                </div>
+              ) : (
+                memoryItems
+                  .filter(m => m.year === selectedSeason)
+                  .map(item => (
+                    <div
+                      key={item.id}
+                      style={{
+                        background: '#151513',
+                        border: '1px solid var(--border)',
+                        borderRadius: '14px',
+                        overflow: 'hidden',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                        display: 'flex',
+                        flexDirection: 'column'
+                      }}
+                    >
+                      {/* Media Preview Box */}
+                      <div style={{ position: 'relative', width: '100%', height: '200px', background: '#000' }}>
+                        {item.type === 'video' ? (
+                          <video
+                            src={item.url}
+                            poster={item.poster}
+                            controls
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <img
+                            src={item.url}
+                            alt={item.caption}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        )}
+
+                        {/* Media Type Badge */}
+                        <div style={{
+                          position: 'absolute',
+                          top: '10px',
+                          left: '10px',
+                          background: item.type === 'video' ? '#ef4444' : '#3b82f6',
+                          color: '#fff',
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}>
+                          {item.type === 'video' ? <Video size={12} /> : <ImageIcon size={12} />}
+                          <span>{item.type}</span>
+                        </div>
+
+                        {/* Season Badge */}
+                        <div style={{
+                          position: 'absolute',
+                          top: '10px',
+                          right: '10px',
+                          background: 'rgba(0,0,0,0.7)',
+                          color: 'var(--primary)',
+                          border: '1px solid var(--border-primary)',
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          fontWeight: 700
+                        }}>
+                          {item.year} SEASON
+                        </div>
+                      </div>
+
+                      {/* Card Content */}
+                      <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                            📍 {item.route} • {item.time}
+                          </div>
+                          <p style={{ fontSize: '14px', color: '#fff', margin: '0 0 10px 0', lineHeight: 1.4 }}>
+                            "{item.caption}"
+                          </p>
+                          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                            Submitted by: <strong>{item.author}</strong>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div style={{ marginTop: '16px', display: 'flex', gap: '8px' }}>
+                          <button
+                            onClick={() => {
+                              const ext = item.type === 'video' ? 'mp4' : 'jpg';
+                              const name = `${session.tableId || 'table'}_santa_${item.year}_${item.route.replace(/\s+/g, '_')}_${item.id}.${ext}`;
+                              handleDownloadMedia(item.url, name);
+                            }}
+                            className="btn-primary"
+                            style={{ flex: 1, padding: '8px 12px', fontSize: '12px', justifyContent: 'center' }}
+                          >
+                            <Download size={14} />
+                            <span>Download for Socials</span>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setMemoryItems(prev => prev.map(m => m.id === item.id ? { ...m, status: m.status === 'approved' ? 'hidden' : 'approved' } : m));
+                              setSaveStatus(`Status updated to ${item.status === 'approved' ? 'Hidden' : 'Approved'}`);
+                              setTimeout(() => setSaveStatus(''), 2000);
+                            }}
+                            style={{
+                              background: item.status === 'approved' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                              border: item.status === 'approved' ? '1px solid #22c55e' : '1px solid #ef4444',
+                              color: item.status === 'approved' ? '#86efac' : '#fca5a5',
+                              padding: '8px 12px',
+                              borderRadius: '8px',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                            title={item.status === 'approved' ? 'Click to hide from public gallery' : 'Click to approve for public gallery'}
+                          >
+                            {item.status === 'approved' ? <Eye size={14} /> : <EyeOff size={14} />}
+                            <span>{item.status === 'approved' ? 'Public' : 'Hidden'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+              )}
             </div>
           </div>
         )}
