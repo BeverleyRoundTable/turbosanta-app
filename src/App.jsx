@@ -10,7 +10,7 @@ import { Shield } from 'lucide-react';
 export default function App() {
   const urlParams = new URLSearchParams(window.location.search);
   const initialTableParam = urlParams.get('table');
-  const initialAdminParam = urlParams.get('admin') === '1';
+  const initialAdminParam = urlParams.get('admin') === '1' || urlParams.get('admin') === 'true' || urlParams.get('god') === '1' || urlParams.get('god') === 'true';
 
   const [activeTableSlug, setActiveTableSlug] = useState(initialTableParam || null);
   const [tableData, setTableData] = useState(null);
@@ -24,7 +24,8 @@ export default function App() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('admin') === '1') {
+    const isAdminRequested = params.get('admin') === '1' || params.get('admin') === 'true' || params.get('god') === '1' || params.get('god') === 'true';
+    if (isAdminRequested) {
       if (adminSession) {
         setViewMode('admin');
       } else {

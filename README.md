@@ -175,6 +175,87 @@ Organisers monitor the entire operation from `/god_mode.html?table=[slug]`:
 
 ---
 
+## 💳 Multi-Gateway Donation Webhooks
+
+TurboSanta supports real-time concurrent donation webhooks from 6 major payment gateways:
+
+| Provider | Integration Type | Key Features |
+| :--- | :--- | :--- |
+| **Zeffy** | Free Platform | 100% free fee platform; parses pence/pounds and donor names. |
+| **Stripe** | Payment Gateway | Listens for `checkout.session.completed` and `payment_intent.succeeded`. |
+| **SumUp** | Mobile Street Card Readers | Street card taps from volunteer bucket collectors roll directly into live total! |
+| **JustGiving** | Charity Platform | Real-time campaign donation notifications. |
+| **PayPal** | Digital Wallet | Captures `PAYMENT.CAPTURE.COMPLETED` notifications. |
+| **Custom / Zapier** | Universal Webhook | Standard JSON `{"amount": 10.00, "donorName": "Jane"}`. |
+
+* **Concurrent Multi-Provider Support**: Tables can run Zeffy/Stripe web links on their site while simultaneously running SumUp card readers out on the streets. Both feed the live fundraising thermometer at the same time.
+* **Live Test Simulator**: Admins can test incoming pings with custom amounts directly inside the portal.
+
+---
+
+## 🔒 Data Protection & GDPR Privacy Architecture
+
+TurboSanta maintains strict architectural separation between public spectator data and protected volunteer / financial records:
+
+* **Public Data (Open to all spectators)**:
+  * Live Sleigh GPS coordinates, speed, and heading (`/api/live-gps`)
+  * Route timetables, start times, and street listings (`/api/payload`)
+  * Spatial street search and ETA calculations (`/api/lookup-street`)
+  * Aggregate fundraising total raised (`£420 / £5,000`) and thermometer
+  * Route sponsors, headline sponsors, and community partners
+  * Volunteer sign-up form (users can submit their own details, but cannot view anyone else's)
+* **Protected Data (Secured & Admin Eyes Only)**:
+  * **Volunteer PII**: Names, mobile phone numbers, email addresses, assigned bucket numbers, and check-in status (requires Admin authentication; `/api/volunteers` returns `401 Unauthorized` without credentials).
+  * **HMRC Gift Aid Declarations**: Statutory taxpayer names, house numbers, postcodes, and declaration dates (locked behind admin credentials on `/api/gift-aid/export`).
+  * **Webhook Secret Tokens & Admin Passwords**: Stored securely in Cloudflare D1.
+  * **Driver Cockpit**: GPS transmitter beacon restricted to authorized sleigh crews.
+
+---
+
+## 🧪 Start-to-Finish Testing Walkthrough
+
+To verify the platform end-to-end, follow this testing path:
+
+### Step 1: Initial Landing & Table Selection
+* **URL**: `https://turbosanta-app.pages.dev/`
+* **What to verify**:
+  * Clean national landing page with search bar for town or postcode.
+  * Table cards (Beverley, Shirley, Doncaster, Ellon, etc.).
+  * Top-right buttons to sign in as organiser or view documentation.
+
+### Step 2: Public Spectator Experience
+* **URL**: `https://turbosanta-app.pages.dev/?table=beverley` (or `?table=shirley`)
+* **What to verify**:
+  * Clean classic Santa Sleigh layout without any admin/developer buttons visible.
+  * Live interactive map with Santa radar.
+  * Street search & ETA lookup.
+  * Tonight's route card (showing date, start time, and route sponsor).
+  * Route schedule list with past completed checkmarks.
+  * Live fundraising thermometer showing current total raised and goal.
+  * FAQ accordion and Volunteer sign-up link.
+
+### Step 3: Organiser Login & Admin Portal
+* **URL**: Click the subtle top-right Admin Shield on any page, or open `https://turbosanta-app.pages.dev/?admin=1&table=beverley`.
+* **Credentials**:
+  * Password: `Santa2026!` (or table-specific master secret).
+  * Or use Google Workspace / Magic Link login.
+* **What to verify**:
+  * **Overview Tab**: Live radar overview, active route picker, and quick stats.
+  * **Routes & Timetables**: View nightly routes, edit dates, drag-and-drop GPX files.
+  * **Volunteer Operations**: View volunteer roster, check in arriving elves, assign buckets, download roster.
+  * **Donation Webhooks**: View Zeffy, Stripe, SumUp, JustGiving, PayPal cards; copy webhook URL; test simulated donation.
+  * **Memory Book**: View uploaded photos, filter by season (2026 vs 2027), 1-click download all photos for social media.
+  * **HMRC Gift Aid**: Export official R68 CSV schedule.
+
+### Step 4: Sleigh Driver Beacon (Route Night Simulation)
+* **URL**: `https://turbosanta-app.pages.dev/beacon.html?table=beverley` (or `/cockpit`)
+* **What to verify**:
+  * Tap "Start Beacon" to broadcast live GPS telemetry.
+  * Verify screen wake-lock prevents screen timeout while driving.
+  * Watch public map update Santa's position in real time!
+
+---
+
 ## 🗄️ Cloudflare D1 SQL Schema
 
 The database schema (`tables`, `routes`, `route_streets`, `volunteers`, `telemetry`, `donations`, `gift_aid`) is managed in `worker/`:

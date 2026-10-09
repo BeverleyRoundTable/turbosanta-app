@@ -322,6 +322,8 @@
         <li><a href="#embeds"><i class="fa-solid fa-code"></i> Embed on Custom Sites</a></li>
         <li><a href="#gpx"><i class="fa-solid fa-map-location-dot"></i> Route Planner & GPX</a></li>
         <li><a href="#volunteers"><i class="fa-solid fa-users"></i> Volunteer Tracking (SQL)</a></li>
+        <li><a href="#webhooks"><i class="fa-solid fa-credit-card"></i> Donation Webhooks</a></li>
+        <li><a href="#dataprotection"><i class="fa-solid fa-user-shield"></i> Data Protection & Privacy</a></li>
         <li><a href="#godmode"><i class="fa-solid fa-satellite-dish"></i> God Mode Admin</a></li>
         <li><a href="#backend"><i class="fa-solid fa-database"></i> Cloudflare & API Reference</a></li>
       </ul>
@@ -589,7 +591,78 @@
         </div>
       </section>
 
-      <!-- SECTION 7: GOD MODE -->
+      <!-- SECTION 7: DONATION WEBHOOKS -->
+      <section id="webhooks" class="doc-section">
+        <h2><i class="fa-solid fa-credit-card"></i> Multi-Gateway Donation Webhooks</h2>
+        <p>
+          TurboSanta supports real-time concurrent donation webhooks from 6 different payment providers. Each Table can configure individual webhook secrets, copy custom URLs, and test incoming donations with live confetti feedback.
+        </p>
+
+        <div class="grid-3" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 20px 0;">
+          <div class="card">
+            <h3><i class="fa-solid fa-heart" style="color: #2ecc71;"></i> Zeffy (100% Free)</h3>
+            <p>Captures zero-fee online donations. Automatically converts pence to pounds and logs donor names into D1.</p>
+          </div>
+          <div class="card">
+            <h3><i class="fa-brands fa-stripe" style="color: #635bff;"></i> Stripe</h3>
+            <p>Listens for <code>checkout.session.completed</code> & <code>payment_intent.succeeded</code> events.</p>
+          </div>
+          <div class="card">
+            <h3><i class="fa-solid fa-wifi" style="color: #3b82f6;"></i> SumUp (Street Card Taps)</h3>
+            <p>Connects mobile card readers used by street bucket collectors. Street contactless taps immediately feed the live thermometer!</p>
+          </div>
+          <div class="card">
+            <h3><i class="fa-solid fa-hand-holding-heart" style="color: #ad2875;"></i> JustGiving</h3>
+            <p>Ingests charity campaign donations and adds them into your campaign total.</p>
+          </div>
+          <div class="card">
+            <h3><i class="fa-brands fa-paypal" style="color: #0079c1;"></i> PayPal</h3>
+            <p>Captures completed PayPal payments via <code>PAYMENT.CAPTURE.COMPLETED</code> webhooks.</p>
+          </div>
+          <div class="card">
+            <h3><i class="fa-solid fa-bolt" style="color: var(--primary);"></i> Custom / Zapier</h3>
+            <p>Accepts standard JSON <code>{"amount": 10.00, "donorName": "Jane"}</code> from any third-party integration.</p>
+          </div>
+        </div>
+
+        <div class="callout" style="background: rgba(251, 175, 51, 0.08); border-left: 4px solid var(--primary); padding: 16px 20px; border-radius: 6px; margin-top: 16px;">
+          <strong>💡 Concurrent Multi-Hook Advantage:</strong> You can run online web links (Zeffy/Stripe) and volunteer mobile card readers (SumUp) at the exact same time. Both streams feed into the live thermometer simultaneously.
+        </div>
+      </section>
+
+      <!-- SECTION 8: DATA PROTECTION & PRIVACY -->
+      <section id="dataprotection" class="doc-section">
+        <h2><i class="fa-solid fa-user-shield"></i> Data Protection & Privacy Architecture (GDPR)</h2>
+        <p>
+          TurboSanta implements strict architectural boundaries between publicly accessible spectator data and protected volunteer / financial data.
+        </p>
+
+        <div class="grid-2">
+          <div class="card" style="border-left: 4px solid #2ecc71;">
+            <h3 style="color: #2ecc71;"><i class="fa-solid fa-globe"></i> Public Data (Spectators)</h3>
+            <ul style="font-size: 13px; color: var(--text-muted); margin-left: 20px; line-height: 1.8;">
+              <li>Live Sleigh GPS coordinates, speed, and heading (<code>/api/live-gps</code>)</li>
+              <li>Route schedules, start times, and street listings (<code>/api/payload</code>)</li>
+              <li>Spatial address lookup & arrival estimations</li>
+              <li>Aggregated total raised (£) and fundraising target</li>
+              <li>Route sponsors, headline sponsors, and community partners</li>
+              <li>Volunteer sign-up form submission (users cannot see others' entries)</li>
+            </ul>
+          </div>
+
+          <div class="card" style="border-left: 4px solid #e74c3c;">
+            <h3 style="color: #e74c3c;"><i class="fa-solid fa-lock"></i> Protected Data (Admin Only)</h3>
+            <ul style="font-size: 13px; color: var(--text-muted); margin-left: 20px; line-height: 1.8;">
+              <li><strong>Volunteer Personal Info:</strong> Names, mobile numbers, emails, bucket IDs, and check-in status (requires Admin Secret; <code>401 Unauthorized</code> without auth).</li>
+              <li><strong>HMRC Gift Aid Declarations:</strong> Full taxpayer names, house numbers, and postcodes (accessible only via authenticated <code>/api/gift-aid/export</code>).</li>
+              <li><strong>Webhook Secrets & Passwords:</strong> Stored securely in Cloudflare D1.</li>
+              <li><strong>Driver Cockpit:</strong> Live GPS beacon controls locked to authorized drivers.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 9: GOD MODE -->
       <section id="godmode" class="doc-section">
         <h2><i class="fa-solid fa-satellite-dish"></i> God Mode Admin Dashboard</h2>
         <p>
