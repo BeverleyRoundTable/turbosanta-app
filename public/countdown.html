@@ -8,12 +8,20 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <style>
   /* ═══════════════════════════════════════ */
   /* TURBOSANTA DESIGN SYSTEM */
   /* ═══════════════════════════════════════ */
+  @font-face {
+    font-family: 'Eurostile';
+    src: url('https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
   :root {
     --gold: #FBAF33;
     --gold-dim: rgba(251,175,51,0.12);
@@ -35,7 +43,7 @@
   html { height: 100%; }
   
   body {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Open Sans', sans-serif;
     background: transparent; /* FIXED: Makes the base transparent for embeds */
     color: var(--text);
     min-height: 100%;
@@ -65,7 +73,7 @@
   @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
   
   .header h1 {
-    font-family: 'Bebas Neue', sans-serif; font-size: 48px;
+    font-family: 'Eurostile', sans-serif; font-size: 48px;
     letter-spacing: 2px; line-height: 1; color: #fff;
   }
   .header h1 span { color: var(--gold); }
@@ -84,7 +92,7 @@
   .search-input:focus {
     border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-glow);
   }
-  .search-input::placeholder { color: var(--text-muted); font-family: 'DM Sans', sans-serif; }
+  .search-input::placeholder { color: var(--text-muted); font-family: 'Open Sans', sans-serif; }
   .search-icon {
     position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
     font-size: 18px; pointer-events: none; opacity: 0.7;
@@ -131,7 +139,7 @@
     text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 8px;
   }
   .street-name {
-    font-family: 'Bebas Neue', sans-serif; font-size: 42px; color: var(--gold);
+    font-family: 'Eurostile', sans-serif; font-size: 42px; color: var(--gold);
     margin-bottom: 8px; line-height: 1.1; letter-spacing: 1px;
   }
   .route-label { font-size: 14px; font-weight: 600; color: var(--text-dim); margin-bottom: 32px; }
@@ -143,7 +151,7 @@
     border-radius: 12px; padding: 16px 12px 14px; min-width: 72px; text-align: center;
   }
   .timer-val {
-    font-family: 'Bebas Neue', sans-serif; font-size: 48px; line-height: 1;
+    font-family: 'Eurostile', sans-serif; font-size: 48px; line-height: 1;
     color: #fff; font-variant-numeric: tabular-nums; letter-spacing: 2px;
   }
   .timer-label {
@@ -158,7 +166,7 @@
   }
   .status-tonight.visible { display: block; }
   .status-tonight .big {
-    font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 1px;
+    font-family: 'Eurostile', sans-serif; font-size: 32px; letter-spacing: 1px;
     color: var(--gold); animation: glow 1.5s ease-in-out infinite alternate; line-height: 1;
   }
   @keyframes glow { from { text-shadow: 0 0 8px rgba(251,175,51,0.2); } to { text-shadow: 0 0 20px rgba(251,175,51,0.6); } }
@@ -170,7 +178,7 @@
   }
   .status-passed.visible { display: block; }
   .status-passed .big {
-    font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 1px;
+    font-family: 'Eurostile', sans-serif; font-size: 32px; letter-spacing: 1px;
     color: var(--green); line-height: 1;
   }
   .status-passed .sub { font-size: 14px; color: var(--text-dim); margin-top: 8px; }
@@ -180,7 +188,7 @@
   
   .btn {
     flex: 1; padding: 16px; border-radius: 8px; font-weight: 700; font-size: 14px;
-    font-family: 'DM Sans', sans-serif; cursor: pointer; border: none;
+    font-family: 'Open Sans', sans-serif; cursor: pointer; border: none;
     transition: transform 0.1s, background 0.2s; text-align: center;
   }
   .btn:active { transform: scale(0.97); }
@@ -289,6 +297,22 @@ const params = new URLSearchParams(location.search);
 const API = params.get('api') || '';
 const tableSlug = params.get('table') || (!API ? 'beverley' : '');
 const PRE_STREET = params.get('street') || '';
+const COLOR_PARAM = params.get('color') || '';
+
+function applyColorTheme(colorHex) {
+  if (!colorHex) return;
+  const hex = colorHex.startsWith('#') ? colorHex : '#' + colorHex;
+  document.documentElement.style.setProperty('--gold', hex);
+  document.documentElement.style.setProperty('--primary', hex);
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (m) {
+    const r = parseInt(m[1], 16), g = parseInt(m[2], 16), b = parseInt(m[3], 16);
+    document.documentElement.style.setProperty('--gold-dim', `rgba(${r},${g},${b},0.12)`);
+    document.documentElement.style.setProperty('--gold-glow', `rgba(${r},${g},${b},0.25)`);
+    document.documentElement.style.setProperty('--border-gold', `rgba(${r},${g},${b},0.2)`);
+  }
+}
+if (COLOR_PARAM) applyColorTheme(COLOR_PARAM);
 
 let streetMap = []; // [{street, routeName, date, dateObj}]
 let countdownInterval = null;
@@ -312,6 +336,9 @@ async function init() {
     // Adapt schema if Worker D1 payload
     if (data.table && !data.settings) {
       data.settings = data.table;
+    }
+    if (!COLOR_PARAM && data.settings?.primary_color) {
+      applyColorTheme(data.settings.primary_color);
     }
     if (data.routes && Array.isArray(data.routes)) {
       data.routes = data.routes.map(r => ({

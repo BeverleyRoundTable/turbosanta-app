@@ -6,15 +6,79 @@
 const params = new URLSearchParams(window.location.search);
 let currentTable = params.get("table") || (params.get("api") ? "" : "beverley");
 let currentApi = params.get("api") || "";
+let currentColor = params.get("color") || "";
 
 const BASE_URL = window.location.origin;
 
-function getTargetQuery() {
-  if (currentApi) {
-    return `api=${encodeURIComponent(currentApi)}`;
+function applyEmbedTheme(colorHex) {
+  if (!colorHex) {
+    document.documentElement.style.removeProperty('--gold');
+    document.documentElement.style.removeProperty('--primary');
+    return;
   }
-  return `table=${encodeURIComponent(currentTable || "beverley")}`;
+  const hex = colorHex.startsWith('#') ? colorHex : '#' + colorHex;
+  document.documentElement.style.setProperty('--gold', hex);
+  document.documentElement.style.setProperty('--primary', hex);
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (m) {
+    const r = parseInt(m[1], 16), g = parseInt(m[2], 16), b = parseInt(m[3], 16);
+    document.documentElement.style.setProperty('--gold-dim', `rgba(${r},${g},${b},0.12)`);
+    document.documentElement.style.setProperty('--gold-glow', `rgba(${r},${g},${b},0.25)`);
+    document.documentElement.style.setProperty('--border-gold', `rgba(${r},${g},${b},0.2)`);
+  }
 }
+
+function getTargetQuery() {
+  let query = "";
+  if (currentApi) {
+    query = `api=${encodeURIComponent(currentApi)}`;
+  } else {
+    query = `table=${encodeURIComponent(currentTable || "beverley")}`;
+  }
+  if (currentColor) {
+    query += `&color=${encodeURIComponent(currentColor.replace('#', ''))}`;
+  }
+  return query;
+}
+
+function updateColorTheme(newColor) {
+  currentColor = (newColor || "").trim();
+  const select = document.getElementById("colorThemeSelect");
+  if (select) {
+    if (currentColor === '#FBAF33' || currentColor === 'FBAF33') select.value = '#FBAF33';
+    else if (currentColor === '#D31C1C' || currentColor === 'D31C1C') select.value = '#D31C1C';
+    else if (currentColor) select.value = 'custom';
+    else select.value = '';
+  }
+  const picker = document.getElementById("customColorPicker");
+  if (picker && currentColor && currentColor.startsWith('#')) {
+    picker.value = currentColor;
+  }
+  const newUrl = new URL(window.location.href);
+  if (currentColor) {
+    newUrl.searchParams.set("color", currentColor.replace('#', ''));
+  } else {
+    newUrl.searchParams.delete("color");
+  }
+  window.history.replaceState({}, "", newUrl);
+  applyEmbedTheme(currentColor);
+  generateAllEmbeds();
+}
+window.updateColorTheme = updateColorTheme;
+
+function handleThemeSelect(val) {
+  const picker = document.getElementById("customColorPicker");
+  if (val === 'custom') {
+    if (picker) {
+      picker.style.display = 'inline-block';
+      updateColorTheme(picker.value);
+    }
+  } else {
+    if (picker) picker.style.display = 'none';
+    updateColorTheme(val);
+  }
+}
+window.handleThemeSelect = handleThemeSelect;
 
 function buildUrl(filename, extraParams = "") {
   const query = getTargetQuery();
@@ -24,6 +88,22 @@ function buildUrl(filename, extraParams = "") {
 }
 
 function updateDisplay() {
+  if (currentColor) {
+    applyEmbedTheme(currentColor);
+    const select = document.getElementById("colorThemeSelect");
+    if (select) {
+      if (currentColor.toLowerCase().includes('fbaf33')) select.value = '#FBAF33';
+      else if (currentColor.toLowerCase().includes('d31c1c')) select.value = '#D31C1C';
+      else {
+        select.value = 'custom';
+        const picker = document.getElementById("customColorPicker");
+        if (picker) {
+          picker.style.display = 'inline-block';
+          picker.value = currentColor.startsWith('#') ? currentColor : '#' + currentColor;
+        }
+      }
+    }
+  }
   const display = document.getElementById("apiDisplay");
   if (display) {
     if (currentApi) {

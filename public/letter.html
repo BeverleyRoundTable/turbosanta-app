@@ -7,9 +7,17 @@
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   
   <style>
+  @font-face {
+    font-family: 'Eurostile';
+    src: url('https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
     /* ═══════════════════════════════════════ */
     /* TURBOSANTA DESIGN SYSTEM */
     /* ═══════════════════════════════════════ */
@@ -31,7 +39,7 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Open Sans', sans-serif;
       background: transparent; 
       color: var(--text);
       /* FIXED: Removed min-height: 100vh as it conflicts with auto-resizing iframes */
@@ -66,7 +74,7 @@
     }
 
     .header h1 {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family: 'Eurostile', sans-serif;
       font-size: 48px;
       letter-spacing: 2px;
       color: #fff;
@@ -118,7 +126,7 @@
     .field input::placeholder, 
     .field textarea::placeholder {
       color: var(--text-muted);
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Open Sans', sans-serif;
     }
 
     .field input:focus, 
@@ -140,7 +148,7 @@
       color: #000;
       border: none;
       padding: 16px;
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Open Sans', sans-serif;
       font-size: 16px;
       font-weight: 800;
       border-radius: 8px;
@@ -182,7 +190,7 @@
     }
 
     .success-panel h2 {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family: 'Eurostile', sans-serif;
       font-size: 42px;
       letter-spacing: 2px;
       color: var(--gold);

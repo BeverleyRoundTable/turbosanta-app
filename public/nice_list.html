@@ -9,9 +9,17 @@
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500;700&family=Mountains+of+Christmas:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&family=DM+Mono:wght@400;500;700&family=Mountains+of+Christmas:wght@400;700&display=swap" rel="stylesheet">
 
   <style>
+  @font-face {
+    font-family: 'Eurostile';
+    src: url('https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
     /* ═══════════════════════════════════════ */
     /* TURBOSANTA DESIGN SYSTEM */
     /* ═══════════════════════════════════════ */
@@ -51,7 +59,7 @@
       padding: 16px 12px;
       background: transparent; /* Keep transparent for iframe embedding */
       color: var(--text);
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Open Sans', sans-serif;
       /* FIXED: Banished the scrollbar */
       overflow-y: hidden;
       -webkit-font-smoothing: antialiased;
@@ -72,7 +80,7 @@
     }
 
     h2 {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family: 'Eurostile', sans-serif;
       font-size: 42px;
       letter-spacing: 2px;
       color: #fff;
@@ -102,7 +110,7 @@
 
     input::placeholder { 
       color: var(--text-muted); 
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Open Sans', sans-serif;
     }
     
     input:focus {
@@ -119,7 +127,7 @@
       background: var(--primary);
       color: var(--on-primary);
       font-weight: 700;
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Open Sans', sans-serif;
       font-size: 15px;
       cursor: pointer;
       display: block;
@@ -307,9 +315,9 @@ function generatePDF(name){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
 
-  // We use Mountains of Christmas if it's loaded, otherwise fallback to DM Sans
+  // We use Mountains of Christmas if it's loaded, otherwise fallback to Open Sans
   ctx.fillStyle = "#000";
-  ctx.font = "bold 80px 'Mountains of Christmas', 'DM Sans', sans-serif";
+  ctx.font = "bold 80px 'Mountains of Christmas', 'Open Sans', sans-serif";
   ctx.textAlign = "center";
   ctx.fillText(name, canvas.width / 2, 620);
 

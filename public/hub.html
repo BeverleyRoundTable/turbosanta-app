@@ -674,6 +674,37 @@
       document.getElementById('qrModal').style.display = 'none';
     }
 
+    
+    function applyPrimaryColor(hex) {
+      if (!hex) return;
+      const c = hex.startsWith('#') ? hex : '#' + hex;
+      document.documentElement.style.setProperty('--primary', c);
+      const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(c);
+      if (m) {
+        const r = parseInt(m[1], 16), g = parseInt(m[2], 16), b = parseInt(m[3], 16);
+        document.documentElement.style.setProperty('--primary-rgb', `${r}, ${g}, ${b}`);
+        document.documentElement.style.setProperty('--border-primary', `rgba(${r}, ${g}, ${b}, 0.3)`);
+        const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+        document.documentElement.style.setProperty('--on-primary', yiq >= 128 ? '#000000' : '#ffffff');
+      }
+    }
+
+    async function fetchTableTheme() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const colorParam = urlParams.get('color');
+      if (colorParam) {
+        applyPrimaryColor(colorParam);
+        return;
+      }
+      const slug = getActiveSlug();
+      try {
+        const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(slug)}`);
+        const data = await res.json();
+        const color = data.settings?.primary_color || data.table?.primary_color;
+        if (color) applyPrimaryColor(color);
+      } catch(e) {}
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const tableParam = urlParams.get('table');
@@ -681,6 +712,7 @@
         document.getElementById('tableSlugInput').value = tableParam;
       }
       refreshAllLinks();
+      fetchTableTheme();
     });
   </script>
 </body>

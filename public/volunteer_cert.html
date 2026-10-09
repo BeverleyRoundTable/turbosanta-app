@@ -7,11 +7,19 @@
 <meta name="theme-color" content="#0d0d0b">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <style>
+  @font-face {
+    font-family: 'Eurostile';
+    src: url('https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
   /* ── NATIONAL BRAND VARIABLES ── */
   :root {
     --gold: #FBAF33;
@@ -36,7 +44,7 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   
   body {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Open Sans', sans-serif;
     background: var(--dark);
     color: var(--text);
     min-height: 100vh;
@@ -97,7 +105,7 @@
   }
 
   .ctrl-header h2 {
-    font-family: 'Bebas Neue', sans-serif;
+    font-family: 'Eurostile', sans-serif;
     font-size: clamp(32px, 6vw, 48px);
     letter-spacing: 2px;
     line-height: 0.9;
@@ -132,7 +140,7 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     color: var(--text);
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Open Sans', sans-serif;
     font-size: 14px;
     outline: none;
     transition: all 0.2s ease;
@@ -166,7 +174,7 @@
     border-radius: 8px;
     font-weight: 700;
     font-size: 14px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Open Sans', sans-serif;
     text-transform: uppercase;
     letter-spacing: 1px;
     cursor: pointer;
@@ -214,7 +222,7 @@
   .cert {
     width: 842px; height: 595px;
     background: #ffffff; position: relative; overflow: hidden;
-    font-family: 'DM Sans', sans-serif; color: #161614;
+    font-family: 'Open Sans', sans-serif; color: #161614;
     box-shadow: 0 12px 40px rgba(0,0,0,0.6); flex-shrink: 0;
   }
 
@@ -236,24 +244,24 @@
   }
 
   .cert-eyebrow {
-    font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 800; letter-spacing: 4px; 
+    font-family: 'Open Sans', sans-serif; font-size: 11px; font-weight: 800; letter-spacing: 4px; 
     text-transform: uppercase; color: #FBAF33; margin-bottom: 8px;
   }
 
   .cert-heading {
-    font-family: 'Bebas Neue', sans-serif; font-size: 56px; font-weight: 400;
+    font-family: 'Eurostile', sans-serif; font-size: 56px; font-weight: 400;
     color: #161614; line-height: 1; margin-bottom: 8px; letter-spacing: 2px;
   }
 
   .cert-subheading {
-    font-family: 'Bebas Neue', sans-serif; font-size: 20px; font-weight: 400; 
+    font-family: 'Eurostile', sans-serif; font-size: 20px; font-weight: 400; 
     color: #888; margin-bottom: 28px; letter-spacing: 2px;
   }
 
   .cert-presented { font-size: 12px; font-weight: 700; color: #999; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
 
   .cert-name {
-    font-family: 'Bebas Neue', sans-serif; font-size: 48px; font-weight: 400;
+    font-family: 'Eurostile', sans-serif; font-size: 48px; font-weight: 400;
     color: #FBAF33; line-height: 1.2; margin-bottom: 8px; letter-spacing: 2px;
     border-bottom: 2px solid rgba(251,175,51,0.3); padding-bottom: 6px;
     min-width: 350px; display: inline-block;
@@ -276,8 +284,8 @@
 
   .cert-footer { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: auto; }
   .cert-footer-logo { height: 32px; width: auto; object-fit: contain; }
-  .cert-footer-brand { font-family: 'Bebas Neue', sans-serif; font-size: 18px; font-weight: 400; color: #aaa; letter-spacing: 1px; }
-  .cert-footer-year { font-family: 'Bebas Neue', sans-serif; font-size: 18px; font-weight: 400; color: #ddd; margin-left: 8px; letter-spacing: 1px; }
+  .cert-footer-brand { font-family: 'Eurostile', sans-serif; font-size: 18px; font-weight: 400; color: #aaa; letter-spacing: 1px; }
+  .cert-footer-year { font-family: 'Eurostile', sans-serif; font-size: 18px; font-weight: 400; color: #ddd; margin-left: 8px; letter-spacing: 1px; }
 
   /* Background watermark */
   .cert-watermark {

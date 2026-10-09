@@ -7,9 +7,17 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
 <style>
+  @font-face {
+    font-family: 'Eurostile';
+    src: url('https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
   :root {
     --gold: #FBAF33;
     --gold-dim: rgba(251,175,51,0.12);
@@ -30,7 +38,7 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Open Sans', sans-serif;
     /* FIXED: Made background transparent to support varied host website colors */
     background: transparent; 
     color: var(--text);
@@ -52,7 +60,7 @@
 
   header { text-align: center; margin-bottom: 32px; }
   header h1 {
-    font-family: 'Bebas Neue', sans-serif;
+    font-family: 'Eurostile', sans-serif;
     font-size: 56px; letter-spacing: 2px; color: #fff;
     line-height: 1; margin-bottom: 8px;
   }
@@ -65,7 +73,7 @@
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
   }
   .panel h3 {
-    font-family: 'Bebas Neue', sans-serif; font-size: 28px;
+    font-family: 'Eurostile', sans-serif; font-size: 28px;
     letter-spacing: 1px; color: #fff; margin-bottom: 12px; line-height: 1;
   }
   .panel p.intro {
@@ -85,7 +93,7 @@
     transition: all 0.2s;
   }
   .field input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-glow); }
-  .field input::placeholder { color: var(--text-muted); font-family: 'DM Sans', sans-serif; }
+  .field input::placeholder { color: var(--text-muted); font-family: 'Open Sans', sans-serif; }
 
   /* ── RECORD BUTTON (the big one) ── */
   .record-stage {
@@ -97,7 +105,7 @@
     border: 4px solid var(--border-gold);
     background: radial-gradient(circle at 30% 30%, #2a2a26, var(--surface-2));
     color: var(--gold);
-    font-family: 'Bebas Neue', sans-serif;
+    font-family: 'Eurostile', sans-serif;
     font-size: 22px; letter-spacing: 1.5px;
     cursor: pointer; transition: all 0.2s;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -166,7 +174,7 @@
     accent-color: var(--gold); cursor: pointer; flex-shrink: 0;
   }
   .agreement-item label {
-    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    font-family: 'Open Sans', sans-serif; font-size: 13px;
     color: var(--text-dim); font-weight: 400; cursor: pointer;
     margin-bottom: 0; line-height: 1.5;
   }
@@ -180,7 +188,7 @@
   /* ── BUTTONS ── */
   .btn-row { display: flex; gap: 12px; margin-top: 24px; }
   .btn {
-    flex: 1; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 15px;
+    flex: 1; font-family: 'Open Sans', sans-serif; font-weight: 700; font-size: 15px;
     border: none; border-radius: 8px; padding: 16px 20px; cursor: pointer;
     transition: transform 0.1s, background 0.2s; text-align: center;
   }
@@ -207,7 +215,7 @@
   .success-card { text-align: center; padding: 32px 16px; }
   .success-card .star { font-size: 64px; margin-bottom: 12px; line-height: 1; }
   .success-card h2 {
-    font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: var(--gold);
+    font-family: 'Eurostile', sans-serif; font-size: 36px; color: var(--gold);
     letter-spacing: 1.5px; margin-bottom: 12px; line-height: 1;
   }
   .success-card p {
@@ -220,7 +228,7 @@
   }
   .closed-card .icon { font-size: 56px; margin-bottom: 8px; }
   .closed-card h2 {
-    font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: #fff;
+    font-family: 'Eurostile', sans-serif; font-size: 28px; color: #fff;
     letter-spacing: 1.5px; margin-bottom: 8px;
   }
   .closed-card p { color: var(--text-dim); font-size: 14px; line-height: 1.6; }

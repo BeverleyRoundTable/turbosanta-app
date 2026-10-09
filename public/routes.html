@@ -7,9 +7,17 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
 <style>
+  @font-face {
+    font-family: 'Eurostile';
+    src: url('https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
     /* ═══════════════════════════════════════ */
     /* TURBOSANTA DESIGN SYSTEM */
     /* ═══════════════════════════════════════ */
@@ -34,7 +42,7 @@
     body {
         background: transparent; 
         color: var(--text);
-        font-family: 'DM Sans', sans-serif;
+        font-family: 'Open Sans', sans-serif;
         margin: 0;
         padding: 0;
         -webkit-font-smoothing: antialiased;
@@ -55,7 +63,7 @@
         text-align: center;
         padding: 8px 0 24px;
         margin: 0;
-        font-family: 'Bebas Neue', sans-serif;
+        font-family: 'Eurostile', sans-serif;
         font-size: 56px;
         letter-spacing: 2px;
         color: #fff;
@@ -103,7 +111,7 @@
     }
 
     .santa-route-text h3 {
-        font-family: 'Bebas Neue', sans-serif;
+        font-family: 'Eurostile', sans-serif;
         font-size: 36px;
         letter-spacing: 1px;
         color: #fff;
@@ -145,7 +153,7 @@
         border-radius: 8px;
         color: #000000;
         font-weight: 700;
-        font-family: 'DM Sans', sans-serif;
+        font-family: 'Open Sans', sans-serif;
         font-size: 14px;
         text-decoration: none;
         transition: transform 0.1s ease, background 0.2s ease;
@@ -209,7 +217,7 @@
     /* Section titles */
     .santa-section-title {
         text-align: center;
-        font-family: 'Bebas Neue', sans-serif;
+        font-family: 'Eurostile', sans-serif;
         font-size: 42px;
         letter-spacing: 1.5px;
         color: var(--text-dim);
@@ -291,6 +299,37 @@
   observer.observe(document.body, { childList: true, subtree: true });
 
   window.addEventListener("resize", sendHeight);
+</script>
+
+
+<script>
+const COLOR_PARAM = new URLSearchParams(location.search).get('color') || '';
+const TABLE_PARAM = new URLSearchParams(location.search).get('table') || 'beverley';
+
+function applyColorTheme(colorHex) {
+  if (!colorHex) return;
+  const hex = colorHex.startsWith('#') ? colorHex : '#' + colorHex;
+  document.documentElement.style.setProperty('--gold', hex);
+  document.documentElement.style.setProperty('--primary', hex);
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (m) {
+    const r = parseInt(m[1], 16), g = parseInt(m[2], 16), b = parseInt(m[3], 16);
+    document.documentElement.style.setProperty('--gold-dim', `rgba(${r},${g},${b},0.12)`);
+    document.documentElement.style.setProperty('--gold-glow', `rgba(${r},${g},${b},0.25)`);
+    document.documentElement.style.setProperty('--border-gold', `rgba(${r},${g},${b},0.2)`);
+  }
+}
+if (COLOR_PARAM) {
+  applyColorTheme(COLOR_PARAM);
+} else {
+  fetch(`https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(TABLE_PARAM)}`)
+    .then(r => r.json())
+    .then(data => {
+      const color = data.settings?.primary_color || data.table?.primary_color;
+      if (color) applyColorTheme(color);
+    })
+    .catch(() => {});
+}
 </script>
 
 </body>

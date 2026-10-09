@@ -42,7 +42,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     sleigh_display_name: tableData?.table?.sleigh_display_name || 'Beverley Round Table Santa Sleigh',
     fundraising_goal: tableData?.table?.fundraising_goal || 8000,
     donate_url: tableData?.table?.donate_url || 'https://www.zeffy.com/en-GB/donation-form/beverley-round-table-for-our-community',
-    logo_url: 'https://brt-23f.pages.dev/icons/RTBI_Santa.png'
+    logo_url: tableData?.table?.logo_url || 'https://brt-23f.pages.dev/icons/RTBI_Santa.png',
+    primary_color: tableData?.table?.primary_color || '#FBAF33'
   });
 
   // Presets from the playbook
@@ -878,6 +879,86 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 </div>
               </div>
 
+              {/* BRAND COLOR SELECTOR */}
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+                  Primary Brand & Accent Color
+                </label>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, primary_color: '#FBAF33' }));
+                      document.documentElement.style.setProperty('--primary', '#FBAF33');
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      border: formData.primary_color === '#FBAF33' ? '2px solid #fff' : '1px solid var(--border)',
+                      background: '#1e1e1b',
+                      color: '#fff',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#FBAF33', display: 'inline-block' }}></span>
+                    The Round Table Gold (#FBAF33)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, primary_color: '#D31C1C' }));
+                      document.documentElement.style.setProperty('--primary', '#D31C1C');
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      border: formData.primary_color === '#D31C1C' ? '2px solid #fff' : '1px solid var(--border)',
+                      background: '#1e1e1b',
+                      color: '#fff',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#D31C1C', display: 'inline-block' }}></span>
+                    Christmas Red (#D31C1C)
+                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#1e1e1b', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                    <input
+                      type="color"
+                      value={formData.primary_color?.startsWith('#') ? formData.primary_color : '#FBAF33'}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData(prev => ({ ...prev, primary_color: val }));
+                        document.documentElement.style.setProperty('--primary', val);
+                      }}
+                      style={{ width: '28px', height: '28px', border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'none' }}
+                    />
+                    <input
+                      type="text"
+                      value={formData.primary_color || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData(prev => ({ ...prev, primary_color: val }));
+                        if (/^#[0-9a-f]{6}$/i.test(val)) {
+                          document.documentElement.style.setProperty('--primary', val);
+                        }
+                      }}
+                      placeholder="#FBAF33"
+                      style={{ width: '90px', background: 'transparent', border: 'none', color: '#fff', fontSize: '13px', fontFamily: 'monospace' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* DRAG AND DROP LOGO UPLOAD ZONE */}
               <DropzoneUpload
                 label="Custom Table Logo (.png)"
@@ -896,7 +977,9 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                           ...prev.table,
                           sleigh_display_name: formData.sleigh_display_name,
                           fundraising_goal: formData.fundraising_goal,
-                          donate_url: formData.donate_url
+                          donate_url: formData.donate_url,
+                          logo_url: formData.logo_url,
+                          primary_color: formData.primary_color
                         }
                       }));
                     }

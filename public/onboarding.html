@@ -4,8 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TurboSanta — Comprehensive Onboarding Guide v3.9</title>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
+  @font-face {
+    font-family: 'Eurostile';
+    src: url('https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
     :root {
       --gold: #FBAF33;
       --gold-dim: #c48b20;
@@ -28,11 +36,11 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
-    body { font-family: 'DM Sans', sans-serif; background: var(--grey-dark); color: var(--text); line-height: 1.7; font-size: 15px; }
+    body { font-family: 'Open Sans', sans-serif; background: var(--grey-dark); color: var(--text); line-height: 1.7; font-size: 15px; }
 
     #sidebar { position: fixed; top: 0; left: 0; width: var(--sidebar-w); height: 100vh; background: var(--grey-mid); border-right: 1px solid var(--grey-border); overflow-y: auto; z-index: 100; display: flex; flex-direction: column; }
     .sidebar-header { padding: 28px 24px 20px; border-bottom: 1px solid var(--grey-border); background: var(--grey-dark); }
-    .sidebar-logo { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 2px; color: var(--gold); line-height: 1; margin-bottom: 4px; }
+    .sidebar-logo { font-family: 'Eurostile', sans-serif; font-size: 28px; letter-spacing: 2px; color: var(--gold); line-height: 1; margin-bottom: 4px; }
     .sidebar-version { font-size: 11px; color: var(--grey-muted); letter-spacing: 1px; text-transform: uppercase; }
     .sidebar-nav { padding: 16px 0; flex: 1; }
     .nav-section-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--grey-muted); padding: 12px 24px 4px; display: block; }
@@ -45,7 +53,7 @@
     .hero { background: var(--grey-dark); border-bottom: 1px solid var(--grey-border); padding: 64px 56px 52px; position: relative; overflow: hidden; }
     .hero::before { content: '🎅'; position: absolute; right: 48px; top: 50%; transform: translateY(-50%); font-size: 120px; opacity: 0.06; pointer-events: none; }
     .hero-eyebrow { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); font-weight: 600; margin-bottom: 12px; }
-    .hero-title { font-family: 'Bebas Neue', sans-serif; font-size: 64px; letter-spacing: 3px; color: #fff; line-height: 0.95; margin-bottom: 16px; }
+    .hero-title { font-family: 'Eurostile', sans-serif; font-size: 64px; letter-spacing: 3px; color: #fff; line-height: 0.95; margin-bottom: 16px; }
     .hero-title span { color: var(--gold); }
     .hero-subtitle { font-size: 17px; color: var(--text-muted); max-width: 540px; line-height: 1.6; margin-bottom: 28px; }
     .hero-badges { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -57,9 +65,9 @@
 
     .section { margin-bottom: 56px; scroll-margin-top: 24px; }
     .section-header { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--grey-border); }
-    .section-num { font-family: 'Bebas Neue', sans-serif; font-size: 40px; color: var(--gold); opacity: 0.4; line-height: 1; min-width: 36px; padding-top: 2px; }
+    .section-num { font-family: 'Eurostile', sans-serif; font-size: 40px; color: var(--gold); opacity: 0.4; line-height: 1; min-width: 36px; padding-top: 2px; }
     .section-icon { font-size: 22px; margin-bottom: 4px; display: block; }
-    h2.section-title { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 1.5px; color: #fff; line-height: 1; margin-bottom: 4px; }
+    h2.section-title { font-family: 'Eurostile', sans-serif; font-size: 32px; letter-spacing: 1.5px; color: #fff; line-height: 1; margin-bottom: 4px; }
     .section-desc { font-size: 13.5px; color: var(--text-muted); font-weight: 400; }
 
     h3.sub-title { font-size: 16px; font-weight: 700; color: var(--gold); margin: 28px 0 12px; display: flex; align-items: center; gap: 8px; }
@@ -85,7 +93,7 @@
     .steps { counter-reset: steps; list-style: none; margin: 16px 0; }
     .steps li { counter-increment: steps; display: flex; align-items: flex-start; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--grey-border); font-size: 14px; }
     .steps li:last-child { border-bottom: none; }
-    .steps li::before { content: counter(steps); font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: var(--gold); background: var(--gold-glow); border: 1px solid rgba(251,175,51,0.3); width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; line-height: 1; padding-top: 1px; }
+    .steps li::before { content: counter(steps); font-family: 'Eurostile', sans-serif; font-size: 18px; color: var(--gold); background: var(--gold-glow); border: 1px solid rgba(251,175,51,0.3); width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; line-height: 1; padding-top: 1px; }
     .steps li p { margin: 0; font-size: 14px; padding-top: 4px; }
 
     .bullet-list { list-style: none; margin: 12px 0; padding: 0; }
@@ -115,7 +123,7 @@
     .device-card { border-radius: 8px; padding: 18px 20px; }
     .device-card.device-a { background: var(--blue-dim); border: 1px solid rgba(74,158,255,0.2); }
     .device-card.device-b { background: var(--green-dim); border: 1px solid rgba(46,204,113,0.2); }
-    .device-label { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 1px; margin-bottom: 4px; }
+    .device-label { font-family: 'Eurostile', sans-serif; font-size: 18px; letter-spacing: 1px; margin-bottom: 4px; }
     .device-a .device-label { color: var(--blue); }
     .device-b .device-label { color: var(--green); }
     .device-name { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 10px; }
@@ -133,7 +141,7 @@
     .divider { border: none; border-top: 1px solid var(--grey-border); margin: 48px 0; }
 
     .guide-footer { background: var(--grey-mid); border-top: 1px solid var(--grey-border); padding: 32px 56px; display: flex; justify-content: space-between; align-items: center; }
-    .footer-brand { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; color: var(--gold); }
+    .footer-brand { font-family: 'Eurostile', sans-serif; font-size: 22px; letter-spacing: 2px; color: var(--gold); }
     .footer-meta { font-size: 12px; color: var(--grey-muted); }
 
     ::-webkit-scrollbar { width: 6px; }
@@ -1188,7 +1196,7 @@
 
     <div style="text-align:center; padding: 32px 0 16px;">
       <div style="font-size: 64px; margin-bottom: 16px;">🎅⚡</div>
-      <div style="font-family:'Bebas Neue',sans-serif; font-size:36px; letter-spacing:2px; color:#fff; margin-bottom:10px;">YOU'RE READY TO FLY</div>
+      <div style="font-family:'Eurostile', sans-serif; font-size:36px; letter-spacing:2px; color:#fff; margin-bottom:10px;">YOU'RE READY TO FLY</div>
       <p style="color:var(--text-muted); max-width:460px; margin:0 auto; font-size:14px;">All systems armed. Share the tracker, brief your elves, and bring a little Christmas magic to your streets.</p>
     </div>
 

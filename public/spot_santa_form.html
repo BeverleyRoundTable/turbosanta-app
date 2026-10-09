@@ -6,13 +6,21 @@
   <title>TurboSanta — Spot Santa</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/exifr/dist/lite.umd.js"></script>
 
   <style>
+  @font-face {
+    font-family: 'Eurostile';
+    src: url('https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
     :root {
       --gold: #FBAF33;
       --gold-dim: rgba(251,175,51,0.12);
@@ -33,7 +41,7 @@
     body {
       margin: 0;
       padding: 24px;
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Open Sans', sans-serif;
       background: var(--dark);
       color: var(--text);
       -webkit-font-smoothing: antialiased;
@@ -92,7 +100,7 @@
     }
 
     h2 {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family: 'Eurostile', sans-serif;
       font-size: clamp(32px, 8vw, 48px);
       letter-spacing: 2px;
       line-height: 0.9;
@@ -159,7 +167,7 @@
       border: 1px solid var(--border);
       background: var(--surface-2);
       color: var(--text);
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Open Sans', sans-serif;
       font-size: 14px;
       resize: vertical;
       min-height: 80px;
@@ -185,7 +193,7 @@
       background: var(--gold);
       color: #000;
       font-weight: 700;
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Open Sans', sans-serif;
       font-size: 15px;
       text-transform: uppercase;
       letter-spacing: 1px;
