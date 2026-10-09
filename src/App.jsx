@@ -224,35 +224,37 @@ export default function App() {
         <DonationThermometer tableData={tableData} />
         <RouteSchedule tableData={tableData} />
 
-        {/* Inside Santa's Workshop Blueprint (from santasleigh.html) */}
-        <section id="blueprint" style={{
-          padding: '50px 20px',
-          maxWidth: '1000px',
-          margin: '0 auto',
-          textAlign: 'center'
-        }}>
-          <h2 style={{ fontSize: 'clamp(28px, 4vw, 42px)', margin: '0 0 10px 0' }}>
-            INSIDE SANTA'S <span style={{ color: 'var(--primary)' }}>WORKSHOP</span>
-          </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '16px', marginBottom: '24px' }}>
-            Tap the glowing dots on the electric sleigh to see the magic under the hood!
-          </p>
-          <div style={{
-            background: 'rgba(255,255,255,0.03)',
-            borderRadius: '24px',
-            border: '1px solid var(--border)',
-            padding: '8px',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
-            overflow: 'hidden'
+        {/* Inside Santa's Workshop Blueprint (Beverley custom deployment, hidden for other tables unless opted in) */}
+        {((tableData?.table?.slug === 'beverley') || Boolean(tableData?.table?.enable_blueprint)) && (
+          <section id="blueprint" style={{
+            padding: '50px 20px',
+            maxWidth: '1000px',
+            margin: '0 auto',
+            textAlign: 'center'
           }}>
-            <iframe
-              src="/blueprint.html"
-              title="Santa Sleigh Blueprint"
-              style={{ width: '100%', height: '560px', border: 'none', borderRadius: '18px', background: '#151513' }}
-              loading="lazy"
-            />
-          </div>
-        </section>
+            <h2 style={{ fontSize: 'clamp(28px, 4vw, 42px)', margin: '0 0 10px 0' }}>
+              INSIDE SANTA'S <span style={{ color: 'var(--primary)' }}>WORKSHOP</span>
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '16px', marginBottom: '24px' }}>
+              Tap the glowing dots on the electric sleigh to see the magic under the hood!
+            </p>
+            <div style={{
+              background: 'rgba(255,255,255,0.03)',
+              borderRadius: '24px',
+              border: '1px solid var(--border)',
+              padding: '8px',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
+              overflow: 'hidden'
+            }}>
+              <iframe
+                src="/blueprint.html"
+                title="Santa Sleigh Blueprint"
+                style={{ width: '100%', height: '560px', border: 'none', borderRadius: '18px', background: '#151513' }}
+                loading="lazy"
+              />
+            </div>
+          </section>
+        )}
 
         {/* Build & Community Partners Section (Conditionally rendered, hides if none defined) */}
         {(() => {
@@ -402,8 +404,10 @@ export default function App() {
         </a>
       )}
 
-      {/* Floating AI Sleigh Elf Chat Widget */}
-      <ElfChatWidget tableData={tableData} />
+      {/* Floating AI Sleigh Elf Chat Widget (Beverley custom deployment, hidden for other tables unless opted in) */}
+      {((tableData?.table?.slug === 'beverley') || Boolean(tableData?.table?.enable_santa_chat)) && (
+        <ElfChatWidget tableData={tableData} />
+      )}
 
       {/* Admin Login Modal (Magic Link & Google Workspace) */}
       <AdminLoginModal
