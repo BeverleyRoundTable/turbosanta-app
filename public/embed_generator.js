@@ -38,6 +38,11 @@ function updateDisplay() {
     slugInput.value = currentTable || "beverley";
   }
 
+  const guideLink = document.getElementById("guideLinkHeader");
+  if (guideLink) {
+    guideLink.href = `/guide.html?table=${encodeURIComponent(currentTable || "beverley")}`;
+  }
+
   generateAllEmbeds();
 }
 

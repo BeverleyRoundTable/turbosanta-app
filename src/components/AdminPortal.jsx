@@ -3,7 +3,7 @@ import {
   Radio, Megaphone, Settings, Calendar, Heart, Shield,
   LogOut, ExternalLink, Save, Download, CheckCircle2,
   Users, Plus, Trash2, Edit3, Smartphone, Code, Copy,
-  MapPin, Bell, Activity, MessageSquare, Check, X
+  MapPin, Bell, Activity, MessageSquare, Check, X, BookOpen
 } from 'lucide-react';
 import { logoutAdmin } from '../services/auth';
 import DropzoneUpload from './DropzoneUpload';
@@ -193,6 +193,18 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
           >
             <Activity size={15} />
             <span>Classic God Mode</span>
+          </a>
+
+          <a
+            href={`/guide.html?table=${session.tableId || 'beverley'}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-secondary"
+            style={{ padding: '8px 14px', fontSize: '13px', textDecoration: 'none' }}
+            title="Open TurboSanta Master Guide & Docs"
+          >
+            <BookOpen size={15} />
+            <span>Guide & Docs</span>
           </a>
 
           <a

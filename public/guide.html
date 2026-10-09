@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TurboSanta — Platform Master Guide & Documentation</title>
+  <meta name="theme-color" content="#0d0d0b">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    @font-face {
+      font-family: 'Eurostile';
+      src: url('https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root {
+      --primary: #FBAF33;
+      --primary-rgb: 251, 175, 51;
+      --on-primary: #000000;
+      --dark: #0d0d0b;
+      --surface: #161614;
+      --surface-2: #1e1e1b;
+      --surface-3: #262622;
+      --border: rgba(255, 255, 255, 0.1);
+      --border-primary: rgba(251, 175, 51, 0.3);
+      --text: #eaeae5;
+      --text-muted: rgba(255, 255, 255, 0.6);
+      --red: #D31C1C;
+      --green: #2ecc71;
+      --blue: #3b82f6;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Open Sans', sans-serif;
+      background-color: var(--dark);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, h4, .brand-font {
+      font-family: 'Eurostile', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* TOP HEADER */
+    header.guide-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 32px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      text-decoration: none;
+      color: #fff;
+    }
+    .header-brand img {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+    }
+    .header-brand h1 {
+      font-size: 24px;
+      margin: 0;
+      color: #fff;
+    }
+    .header-brand h1 span { color: var(--primary); }
+
+    .table-picker-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface-2);
+      border: 1px solid var(--border-primary);
+      padding: 6px 14px;
+      border-radius: 100px;
+    }
+    .table-picker-bar label {
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: 1px;
+    }
+    .table-picker-bar input {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      outline: none;
+      width: 110px;
+    }
+
+    /* MAIN CONTAINER */
+    .guide-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 40px;
+    }
+
+    @media (max-width: 860px) {
+      .guide-container { grid-template-columns: 1fr; }
+      nav.side-toc { display: none; }
+    }
+
+    /* SIDE TABLE OF CONTENTS */
+    nav.side-toc {
+      position: sticky;
+      top: 100px;
+      height: fit-content;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .side-toc h3 {
+      font-size: 14px;
+      color: var(--primary);
+      margin-bottom: 16px;
+      letter-spacing: 1.5px;
+    }
+    .side-toc ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .side-toc a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      transition: color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .side-toc a:hover { color: #fff; }
+
+    /* CONTENT SECTIONS */
+    .guide-content { display: flex; flex-direction: column; gap: 48px; }
+
+    .doc-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 36px 32px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+    .doc-section h2 {
+      font-size: 28px;
+      color: #fff;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .doc-section h2 i { color: var(--primary); }
+    .doc-section p {
+      color: var(--text-muted);
+      font-size: 15px;
+      line-height: 1.7;
+      margin-bottom: 18px;
+    }
+
+    /* CARDS GRID */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin: 20px 0;
+    }
+    .card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      position: relative;
+    }
+    .card.highlight {
+      border-color: var(--primary);
+      box-shadow: 0 0 20px rgba(251, 175, 51, 0.15);
+    }
+    .card h3 {
+      font-size: 18px;
+      color: #fff;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin: 0 0 14px 0;
+    }
+
+    /* CODE BOXES */
+    .code-box {
+      background: #0d0d0b;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      position: relative;
+      margin: 12px 0;
+      font-family: monospace;
+      font-size: 13px;
+      color: #86efac;
+      overflow-x: auto;
+      word-break: break-all;
+    }
+    .code-box .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: var(--surface-3);
+      color: #fff;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px;
+      cursor: pointer;
+      font-family: 'Open Sans', sans-serif;
+      font-weight: 700;
+      transition: background 0.2s;
+    }
+    .code-box .copy-btn:hover { background: var(--primary); color: #000; }
+
+    /* ACTION PILLS */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: var(--primary);
+      color: var(--on-primary);
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 14px;
+      text-decoration: none;
+      text-transform: uppercase;
+      transition: transform 0.1s, filter 0.2s;
+    }
+    .btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: #fff;
+    }
+    .btn-secondary:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* BADGES */
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .badge.gold { background: rgba(251, 175, 51, 0.15); color: var(--primary); border: 1px solid rgba(251, 175, 51, 0.3); }
+    .badge.green { background: rgba(46, 204, 113, 0.15); color: var(--green); border: 1px solid rgba(46, 204, 113, 0.3); }
+    .badge.red { background: rgba(211, 28, 28, 0.15); color: #fca5a5; border: 1px solid rgba(211, 28, 28, 0.3); }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="guide-header">
+    <a href="#" class="header-brand">
+      <img src="https://brt-23f.pages.dev/icons/RTBI_Santa.png" alt="TurboSanta Logo">
+      <h1>TURBOSANTA <span>GUIDE</span></h1>
+    </a>
+
+    <div class="table-picker-bar">
+      <label for="tableSlugInput"><i class="fa-solid fa-location-dot"></i> Active Table:</label>
+      <input type="text" id="tableSlugInput" value="beverley" placeholder="e.g. beverley">
+      <button class="btn" style="padding: 4px 12px; font-size: 11px;" onclick="updateAllLinks()">Apply</button>
+    </div>
+  </header>
+
+  <div class="guide-container">
+    
+    <!-- SIDE NAV / TOC -->
+    <nav class="side-toc">
+      <h3>NAVIGATION</h3>
+      <ul>
+        <li><a href="#intro"><i class="fa-solid fa-flag-checkered"></i> Introduction</a></li>
+        <li><a href="#models"><i class="fa-solid fa-cubes"></i> 2 Deployment Models</a></li>
+        <li><a href="#turnkey"><i class="fa-solid fa-sleigh"></i> Turnkey Public Site</a></li>
+        <li><a href="#embeds"><i class="fa-solid fa-code"></i> Embed on Custom Sites</a></li>
+        <li><a href="#gpx"><i class="fa-solid fa-map-location-dot"></i> Route Planner & GPX</a></li>
+        <li><a href="#volunteers"><i class="fa-solid fa-users"></i> Volunteer Tracking (SQL)</a></li>
+        <li><a href="#godmode"><i class="fa-solid fa-satellite-dish"></i> God Mode Admin</a></li>
+        <li><a href="#backend"><i class="fa-solid fa-database"></i> Cloudflare & API Reference</a></li>
+      </ul>
+    </nav>
+
+    <!-- MAIN GUIDE CONTENT -->
+    <main class="guide-content">
+
+      <!-- SECTION 1: INTRO -->
+      <section id="intro" class="doc-section">
+        <h2><i class="fa-solid fa-sparkles"></i> Welcome to TurboSanta</h2>
+        <p>
+          TurboSanta is the UK & Ireland Round Table Santa Sleigh tracking, spatial address lookup, and fundraising platform.
+          It gives every chapter an instant, lightning-fast, high-availability Santa Sleigh tracking experience powered by
+          <strong>Cloudflare Pages</strong>, <strong>Workers</strong>, and a multi-tenant <strong>D1 SQL Database</strong>.
+        </p>
+
+        <div class="grid-2">
+          <div class="card highlight">
+            <span class="badge gold">Universal Multi-Tenant</span>
+            <h3>One Repo, Every Table</h3>
+            <p>Every Round Table uses the same unified high-speed system. Simply supply your table slug (e.g. <code>?table=beverley</code>, <code>?table=ellon</code>, <code>?table=doncaster</code>) and the platform automatically loads your branding, route nights, street timetable, and donations.</p>
+          </div>
+
+          <div class="card highlight">
+            <span class="badge green">D1 SQL Database</span>
+            <h3>No More Slow Sheets</h3>
+            <p>Routes, live telemetry, volunteer rosters, and donations are stored directly in Cloudflare D1 with global edge caching. Real-time updates deliver in under 50 milliseconds with zero rate limiting.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 2: 2 DEPLOYMENT MODELS -->
+      <section id="models" class="doc-section">
+        <h2><i class="fa-solid fa-cubes"></i> The 2 Deployment Models</h2>
+        <p>
+          Different Round Table chapters have different technical setups. TurboSanta is architected to give every chapter complete flexibility:
+        </p>
+
+        <div class="grid-2">
+          <div class="card">
+            <span class="badge gold">Model A: Turnkey Sleigh Site</span>
+            <h3>Ready-to-Use Public Portal</h3>
+            <p>Ideal for chapters who want an instant, zero-maintenance, beautifully branded website out of the box with no coding required.</p>
+            <p>Visitors see the live map, street schedule, tonight's sponsor spotlight, photo memory book, and donate buttons.</p>
+            <a id="linkTurnkeyModel" href="/santasleigh.html?table=beverley" target="_blank" class="btn">View Turnkey Site <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+          </div>
+
+          <div class="card">
+            <span class="badge green">Model B: Modular iFrame Embeds</span>
+            <h3>For Your Own Custom Website</h3>
+            <p>Ideal for chapters (like Beverley) who run their own tailored website (WordPress, Wix, Squarespace, or custom Tailwind HTML).</p>
+            <p>You can embed any individual module (Tracker, Address Lookup, Volunteer Hub, Talk to Santa AI, Workshop Blueprint, etc.) into your existing site.</p>
+            <a id="linkEmbedModel" href="/embed.html?table=beverley" target="_blank" class="btn btn-secondary">Open Embed Studio <i class="fa-solid fa-code"></i></a>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 3: TURNKEY SITE -->
+      <section id="turnkey" class="doc-section">
+        <h2><i class="fa-solid fa-sleigh"></i> Turnkey Public Site (santasleigh.html)</h2>
+        <p>
+          The turnkey site is completely clean, public-facing, and visually faithful to the proven Santa Sleigh experience.
+          It does not display developer or admin buttons to the public.
+        </p>
+
+        <h3>Live Turnkey URL</h3>
+        <div class="code-box">
+          <button class="copy-btn" onclick="copyBox(this)">Copy URL</button>
+          <span id="turnkeyUrlText">https://turbosanta-app.pages.dev/santasleigh.html?table=beverley</span>
+        </div>
+
+        <h3 style="margin-top: 24px;">Included Functionalities:</h3>
+        <ul style="margin: 12px 0 20px 24px; color: var(--text-muted); font-size: 14px; line-height: 2;">
+          <li><strong>Live GPS Santa Tracker</strong> — real-time position with "Resting in Lapland" resting mode and road snapping.</li>
+          <li><strong>Tonight's Route Spotlight</strong> — prominent featured banner with start/end times and tonight's corporate sponsor.</li>
+          <li><strong>Spatial Street & Address Lookup</strong> — interactive map search showing residents their night and arrival window.</li>
+          <li><strong>Full Routes Schedule Grid</strong> — complete timetable with past route completion checkmarks.</li>
+          <li><strong>Donation Thermometer</strong> — animated progress bar synced live to total raised.</li>
+          <li><strong>Volunteer Elf Banner</strong> — recruiting link pointing to the SQL-backed Crew Hub.</li>
+          <li><strong>Digital Memory Book</strong> — community photo gallery.</li>
+          <li><strong>FAQs & Safety Rules</strong> — accordion covering route guidance, cul-de-sacs, and donation safety.</li>
+        </ul>
+      </section>
+
+      <!-- SECTION 4: MODULAR EMBEDDING -->
+      <section id="embeds" class="doc-section">
+        <h2><i class="fa-solid fa-code"></i> Embedding Modules on Custom Sites</h2>
+        <p>
+          If your chapter already has its own website, you can cherry-pick any of TurboSanta's 9 modular components.
+          Each element is fully self-contained and renders cleanly inside an <code>&lt;iframe&gt;</code>.
+        </p>
+
+        <div class="grid-2">
+          <!-- Widget 1 -->
+          <div class="card">
+            <h3>🛷 Live GPS Sleigh Tracker</h3>
+            <p>Real-time sleigh movement with wake-lock, street ETA banner, and audio.</p>
+            <div class="code-box">
+              <button class="copy-btn" onclick="copyBox(this)">Copy</button>
+              <code id="embedCodeTracker">&lt;iframe src="https://turbosanta-app.pages.dev/tracker.html?table=beverley" width="100%" height="650" frameborder="0" allow="geolocation; screen-wake-lock" style="border-radius:16px;"&gt;&lt;/iframe&gt;</code>
+            </div>
+          </div>
+
+          <!-- Widget 2 -->
+          <div class="card">
+            <h3>🔍 Spatial Address Lookup</h3>
+            <p>Residents type their street name to find their exact night and route.</p>
+            <div class="code-box">
+              <button class="copy-btn" onclick="copyBox(this)">Copy</button>
+              <code id="embedCodeAddress">&lt;iframe src="https://turbosanta-app.pages.dev/address.html?table=beverley" width="100%" height="550" frameborder="0" allow="geolocation" style="border-radius:16px;"&gt;&lt;/iframe&gt;</code>
+            </div>
+          </div>
+
+          <!-- Widget 3 -->
+          <div class="card">
+            <h3>👥 Crew Hub & Volunteer Sign-Up</h3>
+            <p>Direct volunteer registration saved straight into the D1 SQL database.</p>
+            <div class="code-box">
+              <button class="copy-btn" onclick="copyBox(this)">Copy</button>
+              <code id="embedCodeCrew">&lt;iframe src="https://turbosanta-app.pages.dev/crew.html?table=beverley" width="100%" height="700" frameborder="0" style="border-radius:16px;"&gt;&lt;/iframe&gt;</code>
+            </div>
+          </div>
+
+          <!-- Widget 4 -->
+          <div class="card">
+            <h3>🧑‍🎄 Talk to Santa AI (Live Call)</h3>
+            <p>Interactive ElevenLabs conversational voice call widget for kids.</p>
+            <div class="code-box">
+              <button class="copy-btn" onclick="copyBox(this)">Copy</button>
+              <code id="embedCodeSantaChat">&lt;iframe src="https://turbosanta-app.pages.dev/santa_chat.html?table=beverley" width="100%" height="600" frameborder="0" allow="microphone" style="border-radius:24px;"&gt;&lt;/iframe&gt;</code>
+            </div>
+          </div>
+
+          <!-- Widget 5 -->
+          <div class="card">
+            <h3>🚜 Workshop Sleigh Blueprint</h3>
+            <p>Interactive schematics of the sleigh with hotspots explaining audio, batteries, and lighting.</p>
+            <div class="code-box">
+              <button class="copy-btn" onclick="copyBox(this)">Copy</button>
+              <code id="embedCodeBlueprint">&lt;iframe src="https://turbosanta-app.pages.dev/blueprint.html?table=beverley" width="100%" height="600" frameborder="0" style="border-radius:16px;"&gt;&lt;/iframe&gt;</code>
+            </div>
+          </div>
+
+          <!-- Widget 6 -->
+          <div class="card">
+            <h3>📸 Digital Memory Book</h3>
+            <p>Photo upload and community wall for families who spotted the sleigh.</p>
+            <div class="code-box">
+              <button class="copy-btn" onclick="copyBox(this)">Copy</button>
+              <code id="embedCodeMemory">&lt;iframe src="https://turbosanta-app.pages.dev/memory_book.html?table=beverley" width="100%" height="850" frameborder="0" allow="camera; microphone; geolocation" style="border-radius:16px;"&gt;&lt;/iframe&gt;</code>
+            </div>
+          </div>
+        </div>
+
+        <p style="margin-top: 16px;">
+          To test and preview all embed codes live, visit the <a id="linkEmbedStudio" href="/embed.html?table=beverley" target="_blank" style="color:var(--primary); font-weight:700;">Embed Studio &rarr;</a>.
+        </p>
+      </section>
+
+      <!-- SECTION 5: ROUTE PLANNER & GPX -->
+      <section id="gpx" class="doc-section">
+        <h2><i class="fa-solid fa-map-location-dot"></i> Route Planner & GPX Direct Upload</h2>
+        <p>
+          TurboSanta features a complete route planning engine that accepts direct <code>.gpx</code> file uploads
+          while preserving dense road geometry and planned stops.
+        </p>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3>1. Direct GPX Upload in Portal</h3>
+            <p>In the Admin Portal (Route Management):</p>
+            <ul style="font-size: 13px; color: var(--text-muted); margin-left: 20px; line-height: 1.8;">
+              <li>Open <strong>Add New Route</strong> or <strong>Edit Route</strong>.</li>
+              <li>Tag the <strong>Route Name</strong> (e.g. <em>East Route</em>).</li>
+              <li>Drag & drop your <code>.gpx</code> file directly into the modal.</li>
+              <li>Dense trackpoints (<code>&lt;trkpt&gt;</code>) and planned stops (<code>&lt;wpt&gt;</code>) are parsed automatically.</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h3>2. Visual Route Planner Tool</h3>
+            <p>Use the built-in Route Planner (<code>/route_planner.html</code>):</p>
+            <ul style="font-size: 13px; color: var(--text-muted); margin-left: 20px; line-height: 1.8;">
+              <li>Click anywhere on roads to snap waypoints using OpenStreetMap.</li>
+              <li>Mark specific points as <strong>Planned Stops</strong> (Grottos/Pubs).</li>
+              <li>Click <strong>Detect Streets</strong> to auto-extract every visited street via reverse-geocoding.</li>
+              <li>Export high-density (5m/10m) GPX files.</li>
+            </ul>
+            <a href="/route_planner.html" target="_blank" class="btn" style="margin-top: 10px;">Launch Route Planner <i class="fa-solid fa-route"></i></a>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 6: VOLUNTEER TRACKING -->
+      <section id="volunteers" class="doc-section">
+        <h2><i class="fa-solid fa-users"></i> Volunteer Tracking & Crew Hub (crew.html)</h2>
+        <p>
+          Every volunteer application is saved directly into your chapter's Cloudflare D1 SQL database.
+          Crew leaders have a complete operational dashboard on the night.
+        </p>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3>Volunteer Sign-Up</h3>
+            <p>Supporters visit <code>/crew.html?table=[slug]</code> to register their name, mobile phone number, preferred route night, and role (Bucket Collector, Safety Walker, Driver).</p>
+          </div>
+
+          <div class="card">
+            <h3>Route Night Check-In & Safety</h3>
+            <p>Crew leaders log in with the table admin secret to:</p>
+            <ul style="font-size: 13px; color: var(--text-muted); margin-left: 20px; line-height: 1.8;">
+              <li>Check in arriving volunteers.</li>
+              <li>Assign collection bucket numbers (e.g. Bucket #4).</li>
+              <li>Complete pre-departure vehicle & hitch safety checklists.</li>
+              <li>Close route and log total cash collected.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 7: GOD MODE -->
+      <section id="godmode" class="doc-section">
+        <h2><i class="fa-solid fa-satellite-dish"></i> God Mode Admin Dashboard</h2>
+        <p>
+          God Mode (<code>/god_mode.html?table=[slug]</code>) is your mission control center on route night.
+        </p>
+        <ul style="margin: 12px 0 20px 24px; color: var(--text-muted); font-size: 14px; line-height: 2;">
+          <li><strong>Live PA System</strong> — push instant announcements to the live tracker (e.g. <em>"Santa is at the Market Cross for 5 minutes!"</em>).</li>
+          <li><strong>Crew Alert</strong> — broadcast tactical notes to the volunteers' Crew Hub without notifying the public.</li>
+          <li><strong>Telemetry Health</strong> — monitor sleigh speed, road name, battery, and GPS fix rate.</li>
+          <li><strong>Gift Aid Claims</strong> — review and export HMRC-compliant Gift Aid schedules in 1 click.</li>
+        </ul>
+        <a id="linkGodMode" href="/god_mode.html?table=beverley" target="_blank" class="btn">Open God Mode <i class="fa-solid fa-shield-halved"></i></a>
+      </section>
+
+      <!-- SECTION 8: BACKEND & API -->
+      <section id="backend" class="doc-section">
+        <h2><i class="fa-solid fa-database"></i> Backend Architecture & REST API</h2>
+        <p>
+          TurboSanta runs on Cloudflare Workers + D1 Database. All endpoints support <code>?table=[slug]</code> multi-tenancy:
+        </p>
+
+        <div class="code-box">
+          <code>GET  https://turbosanta-api.beverley247.workers.dev/api/payload?table=beverley</code><br>
+          <span style="color:var(--text-muted);">Returns: Table settings, scheduled routes, streets list, and latest sleigh GPS position.</span>
+        </div>
+
+        <div class="code-box">
+          <code>GET  https://turbosanta-api.beverley247.workers.dev/api/live-gps?table=beverley</code><br>
+          <span style="color:var(--text-muted);">Returns: High-speed live coordinates (lat, lng, speed, road_name, timestamp).</span>
+        </div>
+
+        <div class="code-box">
+          <code>PUT  https://turbosanta-api.beverley247.workers.dev/api/telemetry</code><br>
+          <span style="color:var(--text-muted);">Payload: { table_id, route_id, lat, lng, speed, road_name } — GPS beacon ingest.</span>
+        </div>
+
+        <div class="code-box">
+          <code>POST https://turbosanta-api.beverley247.workers.dev/api/volunteers?table=beverley</code><br>
+          <span style="color:var(--text-muted);">Payload: { routeName, name, role, phone, email, organisation } — Saves volunteer registration into SQL.</span>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <footer style="text-align: center; padding: 40px 20px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 13px;">
+    &copy; 2026 TurboSanta Platform &middot; Beverley Round Table &middot; Built for Round Table Chapters across the UK & Ireland
+  </footer>
+
+  <script>
+    function getActiveSlug() {
+      const input = document.getElementById('tableSlugInput');
+      return (input && input.value.trim().toLowerCase()) || 'beverley';
+    }
+
+    function updateAllLinks() {
+      const slug = getActiveSlug();
+      const origin = window.location.origin;
+
+      // Update Turnkey URLs
+      const turnkeyEl = document.getElementById('turnkeyUrlText');
+      if (turnkeyEl) turnkeyEl.textContent = `${origin}/santasleigh.html?table=${slug}`;
+      const linkTurnkey = document.getElementById('linkTurnkeyModel');
+      if (linkTurnkey) linkTurnkey.href = `/santasleigh.html?table=${slug}`;
+
+      // Update Embed Studio Links
+      const linkEmbed = document.getElementById('linkEmbedModel');
+      if (linkEmbed) linkEmbed.href = `/embed.html?table=${slug}`;
+      const linkEmbedStudio = document.getElementById('linkEmbedStudio');
+      if (linkEmbedStudio) linkEmbedStudio.href = `/embed.html?table=${slug}`;
+
+      // Update God Mode Link
+      const linkGod = document.getElementById('linkGodMode');
+      if (linkGod) linkGod.href = `/god_mode.html?table=${slug}`;
+
+      // Update Embed Code Snippets
+      const snippets = {
+        embedCodeTracker: `<iframe src="${origin}/tracker.html?table=${slug}" width="100%" height="650" frameborder="0" allow="geolocation; screen-wake-lock" style="border-radius:16px;"></iframe>`,
+        embedCodeAddress: `<iframe src="${origin}/address.html?table=${slug}" width="100%" height="550" frameborder="0" allow="geolocation" style="border-radius:16px;"></iframe>`,
+        embedCodeCrew: `<iframe src="${origin}/crew.html?table=${slug}" width="100%" height="700" frameborder="0" style="border-radius:16px;"></iframe>`,
+        embedCodeSantaChat: `<iframe src="${origin}/santa_chat.html?table=${slug}" width="100%" height="600" frameborder="0" allow="microphone" style="border-radius:24px;"></iframe>`,
+        embedCodeBlueprint: `<iframe src="${origin}/blueprint.html?table=${slug}" width="100%" height="600" frameborder="0" style="border-radius:16px;"></iframe>`,
+        embedCodeMemory: `<iframe src="${origin}/memory_book.html?table=${slug}" width="100%" height="850" frameborder="0" allow="camera; microphone; geolocation" style="border-radius:16px;"></iframe>`
+      };
+
+      for (const [id, code] of Object.entries(snippets)) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = code;
+      }
+    }
+
+    function copyBox(btn) {
+      const parent = btn.parentElement;
+      const textToCopy = parent.innerText.replace('Copy URL', '').replace('Copy', '').trim();
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.style.background = '#2ecc71';
+        btn.style.color = '#fff';
+        setTimeout(() => {
+          btn.textContent = orig;
+          btn.style.background = '';
+          btn.style.color = '';
+        }, 2000);
+      });
+    }
+
+    // Auto-read ?table= param on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tableParam = urlParams.get('table');
+      if (tableParam) {
+        document.getElementById('tableSlugInput').value = tableParam;
+      }
+      updateAllLinks();
+    });
+  </script>
+</body>
+</html>
