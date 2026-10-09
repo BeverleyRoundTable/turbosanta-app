@@ -377,8 +377,12 @@ export default {
 
       if (provider === "zeffy") {
         const raw = parseFloat((payload.data && payload.data.amount) || payload.amount || 0);
-        amount = raw > 50 ? raw / 100 : raw;
-        donorName = (payload.data && payload.data.contact && payload.data.contact.firstName) || payload.donorName || "Zeffy Supporter";
+        amount = (payload.data && payload.data.amount !== undefined) ? (raw / 100) : (raw > 50 ? raw / 100 : raw);
+        const b = (payload.data && (payload.data.buyer || payload.data.contact)) || {};
+        const first = b.first_name || b.firstName || "";
+        const last = b.last_name || b.lastName || "";
+        const fullName = [first, last].filter(Boolean).join(" ");
+        donorName = fullName || payload.donorName || payload.donor_name || "Zeffy Supporter";
       } else if (provider === "stripe") {
         const obj = (payload.data && payload.data.object) || payload;
         const raw = parseFloat(obj.amount_total || obj.amount || 0);
