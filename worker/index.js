@@ -27,8 +27,23 @@ export default {
       "SELECT * FROM tables WHERE slug = ?"
     ).bind(slug).first();
 
-    if (!table && path !== "/api/migrate") {
-      return jsonResponse({ error: `Table '${slug}' not found` }, 404);
+    if (!table) {
+      if (slug === "shirley") {
+        table = {
+          id: "shirley_414",
+          slug: "shirley",
+          name: "Shirley Round Table",
+          sleigh_display_name: "Shirley Round Table Santa Sleigh",
+          primary_color: "#D31C1C",
+          accent_color: "#FFFFFF",
+          donate_url: "https://www.justgiving.com/shirleyroundtable",
+          charity_name: "Shirley Round Table #414 Trust",
+          fundraising_goal: 5000,
+          tracking_active: 1
+        };
+      } else if (path !== "/api/migrate") {
+        return jsonResponse({ error: `Table '${slug}' not found` }, 404);
+      }
     }
 
     // ==============================================================
@@ -428,7 +443,65 @@ export default {
     }
 
     // ==============================================================
-    // 🚀 15. AUTO-MIGRATE FROM TURBOSANTA 1.0 (POST /api/migrate)
+    // 📸 15. DIGITAL MEMORY BOOK (GET & POST /api/memory-book)
+    // ==============================================================
+    if (path === "/api/memory-book") {
+      if (request.method === "GET") {
+        const year = parseInt(url.searchParams.get("year")) || new Date().getFullYear();
+        try {
+          const res = await env.DB.prepare(`
+            SELECT id, media_type, media_url, caption, year, created_at
+            FROM memory_book
+            WHERE table_id = ? AND year = ? AND status = 'approved'
+            ORDER BY created_at DESC
+          `).bind(table.id, year).all();
+          return jsonResponse({ ok: true, year, items: res.results || [] });
+        } catch (e) {
+          return jsonResponse({ ok: true, year, items: [] });
+        }
+      }
+
+      if (request.method === "POST") {
+        let body = {};
+        try { body = await request.json(); } catch (e) { body = {}; }
+        const imageData = body.imageData || body.image || body.url || "";
+        const mediaType = body.mediaType || (String(imageData).startsWith("data:video") ? "video" : "image");
+        const caption = body.caption || "Spotted Santa!";
+        const year = parseInt(body.year) || new Date().getFullYear();
+
+        if (!imageData) {
+          return jsonResponse({ ok: false, error: "Missing image data" }, 400);
+        }
+
+        try {
+          await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS memory_book (
+              id TEXT PRIMARY KEY,
+              table_id TEXT NOT NULL,
+              media_type TEXT DEFAULT 'image',
+              media_url TEXT NOT NULL,
+              caption TEXT,
+              year INTEGER NOT NULL,
+              status TEXT DEFAULT 'approved',
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+          `).run();
+
+          const memId = `mem_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+          await env.DB.prepare(`
+            INSERT INTO memory_book (id, table_id, media_type, media_url, caption, year, status)
+            VALUES (?, ?, ?, ?, ?, ?, 'approved')
+          `).bind(memId, table.id, mediaType, imageData, caption, year).run();
+
+          return jsonResponse({ ok: true, id: memId, status: "Approved" });
+        } catch (err) {
+          return jsonResponse({ ok: false, error: err.message }, 500);
+        }
+      }
+    }
+
+    // ==============================================================
+    // 🚀 16. AUTO-MIGRATE FROM TURBOSANTA 1.0 (POST /api/migrate)
     // ==============================================================
     if (path === "/api/migrate" && request.method === "POST") {
       const payload = await request.json();

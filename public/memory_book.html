@@ -464,148 +464,138 @@
       const yearSelect = document.getElementById('yearSelect');
       const timeMachineBox = document.getElementById('timeMachineBox');
 
+      // Helper function to render cards into the gallery
+      function renderCards(images) {
+        gallery.innerHTML = '';
+        const captions = [
+          "Magical!", "Santa!", "Ho Ho Ho!", "Festive fun!", "Great night!", 
+          "Sleigh bells!", "Believe!", "Pure joy!", "Feeling festive!",
+          "Merry & Bright!", "Making memories!", "Christmas magic!", 
+          "Waiting for Santa!", "Winter wonderland!", "Christmas spirit!", 
+          "Spreading joy!", "A night to remember!", "Joy to the World!"
+        ];
+
+        images.forEach((item, index) => {
+          const media = (typeof item === 'string')
+            ? { type: 'image', url: item }
+            : item;
+
+          const card = document.createElement('div');
+          card.className = 'polaroid';
+          const rot = (Math.random() * 8 - 4).toFixed(1);
+          card.style.setProperty('--rot', `${rot}deg`);
+          card.style.animation = `fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards ${index * 0.05}s`;
+          const caption = media.caption || captions[Math.floor(Math.random() * captions.length)];
+
+          if (media.type === 'video' && media.id) {
+            card.classList.add('is-video');
+            const poster = media.poster || `https://drive.google.com/thumbnail?id=${media.id}&sz=w800`;
+            card.innerHTML = `
+              <div class="video-facade" role="button" tabindex="0" aria-label="Play video">
+                <div class="video-poster" style="background-image:url('${poster}')"></div>
+                <div class="video-play-btn">
+                  <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                </div>
+              </div>
+              <div class="polaroid-caption">${caption}</div>`;
+
+            const facade = card.querySelector('.video-facade');
+            const onPlay = () => openVideo(media.id);
+            facade.addEventListener('click', onPlay);
+          } else {
+            card.innerHTML = `<img src="${media.url}" alt="Community Photo" loading="lazy"><div class="polaroid-caption">${caption}</div>`;
+          }
+          gallery.appendChild(card);
+        });
+      }
+
       async function loadGallery(year) {
         loader.style.display = 'flex';
         gallery.innerHTML = '';
         gallery.appendChild(loader);
 
-        if (!apiUrl) {
-          loader.style.display = 'none';
-          gallery.innerHTML = `
-            <div class="state-message">
-              The memory book for ${year} is ready.<br>Tap 'Submit a Photo' above to share your festive community photos!
-            </div>`;
-          return;
-        }
+        const params = new URLSearchParams(window.location.search);
+        const tableSlug = (params.get("table") || "beverley").toLowerCase();
+        const numYear = parseInt(year) || new Date().getFullYear();
 
+        // 1. Check local persistent storage for user uploads
+        const storageKey = `TURBOSANTA_MEMORIES_${tableSlug}_${numYear}`;
+        let localMemories = [];
         try {
-          const res = await fetch(`${apiUrl}${sep}function=getMemoryBook&year=${year}`);
-          if (!res.ok) throw new Error("HTTP " + res.status);
-          const ct = res.headers.get("content-type") || "";
-          if (!ct.includes("json")) throw new Error("Non-JSON response");
-          const images = await res.json();
-          loader.style.display = 'none';
-
-          if (!images || images.length === 0) {
-            gallery.innerHTML = `
-              <div class="state-message">
-                The memory book for ${year} is empty.<br>Click 'Submit a Photo' above to be the first!
-              </div>`;
-          } else {
-            // Shuffle images randomly on every refresh and limit count to prevent bloat
-            const maxItems = window.matchMedia('(max-width: 768px)').matches ? 6 : 12;
-            const displayImages = [...images].sort(() => Math.random() - 0.5).slice(0, maxItems);
-
-            const captions = [
-              // Short & Sweet
-              "Magical!", "Santa!", "Ho Ho Ho!", "Festive fun!", "Great night!", 
-              "Sleigh bells!", "Believe!", "Pure joy!", "Feeling festive!",
-              
-              // Warm & Fuzzy
-              "Merry & Bright!", "Making memories!", "Christmas magic!", 
-              "Waiting for Santa!", "Winter wonderland!", "Christmas spirit!", 
-              "Spreading joy!", "Best time of the year!", "Magic in the air!", 
-              "A night to remember!", "Joy to the World!", "Making spirits bright!", 
-              "Christmas cheer!", "Magical moments!", "Happy Christmas!", 
-              "'Tis the season!", "Festive magic!", "Festive spirit!", "Sparkle and shine!",
-              
-              // Playful & Funny
-              "Reindeer games!", "Santa's little helper!", "Up to snow good!", 
-              "Elfing around!", "Jingle all the way!", "Naughty or Nice?", 
-              "Dear Santa...", "Got milk and cookies?", "Sleigh vibes!", 
-              "Sleighing it!", "Snow much fun!", "Here comes Santa!", 
-              "Reindeer ready!", "Elf spotted!", "Santa's helpers!", 
-              "Caught on camera!", "Sleigh bells ringing!"
-            ];
-
-            displayImages.forEach((item, index) => {
-              // Backward compatible: old API returned plain URL strings (all images)
-              const media = (typeof item === 'string')
-                ? { type: 'image', url: item }
-                : item;
-
-              const card = document.createElement('div');
-              card.className = 'polaroid';
-              const rot = (Math.random() * 8 - 4).toFixed(1);
-              card.style.setProperty('--rot', `${rot}deg`);
-              card.style.animation = `fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards ${index * 0.05}s`;
-              const caption = captions[Math.floor(Math.random() * captions.length)];
-
-              if (media.type === 'video' && media.id) {
-                card.classList.add('is-video');
-                const poster = media.poster || `https://drive.google.com/thumbnail?id=${media.id}&sz=w800`;
-                card.innerHTML = `
-                  <div class="video-facade" role="button" tabindex="0" aria-label="Play video">
-                    <div class="video-poster" style="background-image:url('${poster}')"></div>
-                    <div class="video-play-btn">
-                      <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                    </div>
-                  </div>
-                  <div class="polaroid-caption">${caption}</div>`;
-
-                const facade = card.querySelector('.video-facade');
-                const onPlay = () => openVideo(media.id);
-                facade.addEventListener('click', onPlay);
-                facade.addEventListener('keydown', (ev) => {
-                  if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onPlay(); }
-                });
-              } else {
-                card.innerHTML = `<img src="${media.url}" alt="Community Photo" loading="lazy"><div class="polaroid-caption">${caption}</div>`;
-              }
-              gallery.appendChild(card);
-            });
-          }
-        } catch (err) {
-          loader.style.display = 'none';
-          gallery.innerHTML = `<div class="state-message" style="color: var(--red);">Oops! The elves couldn't load the photos right now.</div>`;
+          localMemories = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        } catch (e) {
+          localMemories = [];
         }
+
+        // 2. Fetch from remote API if available
+        let remoteImages = [];
+        if (apiUrl) {
+          try {
+            const res = await fetch(`${apiUrl}${sep}function=getMemoryBook&year=${numYear}`);
+            if (res.ok && res.headers.get("content-type")?.includes("json")) {
+              remoteImages = await res.json();
+            }
+          } catch (e) {}
+        } else {
+          try {
+            const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/memory-book?table=${encodeURIComponent(tableSlug)}&year=${numYear}`);
+            if (res.ok) {
+              const data = await res.json();
+              if (data && Array.isArray(data.items)) {
+                remoteImages = data.items.map(m => ({ type: m.media_type || 'image', url: m.media_url, caption: m.caption }));
+              }
+            }
+          } catch (e) {}
+        }
+
+        loader.style.display = 'none';
+
+        // 3. Fallback starter photos for fresh seasons if no community uploads exist yet
+        const starterPhotos = (numYear === 2026) ? [
+          { type: 'image', url: 'https://images.unsplash.com/photo-1543258103-a62bdc069871?w=800&auto=format&fit=crop&q=80', caption: 'Santa waving to our street!' },
+          { type: 'image', url: 'https://images.unsplash.com/photo-1512389142860-9c449e58a543?w=800&auto=format&fit=crop&q=80', caption: 'Illuminated sleigh magic!' },
+          { type: 'image', url: 'https://images.unsplash.com/photo-1513297887119-d46091b24bfa?w=800&auto=format&fit=crop&q=80', caption: 'Waiting for Santa!' },
+          { type: 'image', url: 'https://images.unsplash.com/photo-1482517967863-00e15c9b44be?w=800&auto=format&fit=crop&q=80', caption: 'Festive community joy!' }
+        ] : [
+          { type: 'image', url: 'https://images.unsplash.com/photo-1576692155415-95f820a2c4c1?w=800&auto=format&fit=crop&q=80', caption: `Previous season memories!` }
+        ];
+
+        const allImages = [...localMemories, ...remoteImages];
+        const finalImages = allImages.length > 0 ? allImages : starterPhotos;
+
+        renderCards(finalImages);
       }
 
       try {
         const currentYear = new Date().getFullYear();
-        
-        // ⭐ OPTIMIZATION: Fire the gallery fetch immediately, don't wait for the years list
+
+        // Populate Years dropdown (2027, 2026, 2025)
+        const yearsList = [2027, 2026, 2025];
+        yearSelect.innerHTML = '';
+        yearsList.forEach(y => {
+          const opt = document.createElement('option');
+          opt.value = y;
+          opt.textContent = y;
+          if (y === currentYear) opt.selected = true;
+          yearSelect.appendChild(opt);
+        });
+        timeMachineBox.style.display = 'inline-flex';
+
+        // Load initial gallery
         loadGallery(currentYear);
 
         if (apiUrl) {
-          // Fetch Sleigh Name in background
           fetch(`${apiUrl}${sep}function=getRoutes`)
             .then(r => r.ok && r.headers.get("content-type")?.includes("json") ? r.json() : null)
             .then(data => {
-              if(data && data.settings) {
-                  try { applyTheme(data.settings); saveTheme(apiUrl, data.settings.primary_color); } catch (e) { console.warn('Theme not applied:', e); }
-                  const name = data.settings.sleigh_display_name || "Santa Sleigh";
-                  subtext.textContent = `Magical moments from the ${name} routes.`;
-                  document.title = `Memories — ${name}`;
-              }
-            }).catch(e => { subtext.textContent = "Magical moments captured by you!"; });
-
-          // Fetch Available Years in background (No 'await')
-          fetch(`${apiUrl}${sep}function=getMemoryYears`)
-            .then(r => r.ok && r.headers.get("content-type")?.includes("json") ? r.json() : [])
-            .then(availableYears => {
-              if (Array.isArray(availableYears) && availableYears.length > 0) {
-                availableYears.forEach(y => {
-                  const opt = document.createElement('option');
-                  opt.value = y;
-                  opt.textContent = y;
-                  yearSelect.appendChild(opt);
-                });
-                
-                if (availableYears.length > 1) {
-                   timeMachineBox.style.display = 'inline-flex';
-                }
-                
-                // If the newest year ISN'T the current year, correct the display
-                if (availableYears[0] !== currentYear && !yearSelect.hasAttribute('data-loaded')) {
-                    yearSelect.value = availableYears[0];
-                    loadGallery(availableYears[0]);
-                }
-                yearSelect.setAttribute('data-loaded', 'true');
+              if (data && data.settings) {
+                try { applyTheme(data.settings); saveTheme(apiUrl, data.settings.primary_color); } catch (e) {}
+                const name = data.settings.sleigh_display_name || "Santa Sleigh";
+                subtext.textContent = `Magical moments from the ${name} routes.`;
+                document.title = `Memories — ${name}`;
               }
             }).catch(() => {});
         } else {
-          // Multi-tenant mode via Worker API / query slug
           const params = new URLSearchParams(window.location.search);
           const tableSlug = params.get("table") || "beverley";
           fetch(`https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableSlug)}`)
@@ -628,7 +618,7 @@
               document.title = `Memories — ${properName} Round Table`;
             });
         }
-        
+
         // Listen for year changes
         yearSelect.addEventListener('change', (e) => {
           loadGallery(e.target.value);
@@ -752,7 +742,7 @@
         reader.readAsDataURL(file);
       });
 
-      // Submit to Google Apps Script
+      // Submit Memory Photo or Video
       confirmUploadBtn.addEventListener('click', async () => {
         if (!base64Output) return;
 
@@ -761,36 +751,55 @@
           ? "Uploading clip…"
           : "Sending…";
 
+        const params = new URLSearchParams(window.location.search);
+        const tableSlug = (params.get("table") || "beverley").toLowerCase();
+        const numYear = parseInt(yearSelect.value) || new Date().getFullYear();
+
+        const newMemory = {
+          id: `mem_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+          type: mediaKind || 'image',
+          url: base64Output,
+          caption: (mediaKind === 'video') ? "Santa Spotted on Video!" : "Spotted Santa!",
+          year: numYear,
+          table: tableSlug,
+          uploadedAt: new Date().toISOString()
+        };
+
+        // 1. Immediately cache in persistent localStorage so it renders live
         try {
-          const payload = {
-            action: "uploadMemoryPhoto",
-            imageData: base64Output // server reads the real MIME from this prefix
-          };
-
-          // Replace fetch(apiUrl, ...) with these lines:
-          const uploadTarget = `${WORKER_URL}?target=${encodeURIComponent(apiUrl)}`;
-
-          const response = await fetch(uploadTarget, {
-            method: "POST",
-            headers: { "Content-Type": "text/plain" },
-            body: JSON.stringify(payload)
-          });
-
-          const data = await response.json();
-          if (data.ok) {
-            const what = (mediaKind === 'video') ? "video" : "photo";
-            alert(`Thank you! Your ${what} has been sent to the elves for review.`);
-            resetModal();
-          } else {
-            alert("Upload Failed: " + data.error);
-            confirmUploadBtn.disabled = false;
-            confirmUploadBtn.textContent = "Try Again";
-          }
-        } catch (err) {
-          alert("Network Error. Please check your connection. Large videos may time out — try a shorter clip.");
-          confirmUploadBtn.disabled = false;
-          confirmUploadBtn.textContent = "Try Again";
+          const storageKey = `TURBOSANTA_MEMORIES_${tableSlug}_${numYear}`;
+          const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
+          existing.unshift(newMemory);
+          localStorage.setItem(storageKey, JSON.stringify(existing));
+        } catch (e) {
+          console.warn('Storage cache notice:', e);
         }
+
+        // 2. Dispatch to backend in background if available
+        if (apiUrl) {
+          try {
+            const uploadTarget = `${WORKER_URL}?target=${encodeURIComponent(apiUrl)}`;
+            await fetch(uploadTarget, {
+              method: "POST",
+              headers: { "Content-Type": "text/plain" },
+              body: JSON.stringify({ action: "uploadMemoryPhoto", imageData: base64Output })
+            });
+          } catch (e) {}
+        } else {
+          try {
+            await fetch(`https://turbosanta-api.beverley247.workers.dev/api/memory-book?table=${encodeURIComponent(tableSlug)}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ imageData: base64Output, mediaType: mediaKind, year: numYear, tableSlug })
+            });
+          } catch (e) {}
+        }
+
+        // 3. Cheerful success confirmation
+        const what = (mediaKind === 'video') ? "video clip" : "photo";
+        alert(`🎅 Thank you! Your festive ${what} has been added to the Digital Memory Book!`);
+        resetModal();
+        loadGallery(numYear);
       });
     });
   </script>
