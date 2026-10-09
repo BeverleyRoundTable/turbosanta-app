@@ -182,7 +182,7 @@ async function boot() {
         return;
       }
       sessionStorage.setItem('beaconSecret', secret);
-      X.url = `https://turbosanta-api.beverley247.workers.dev/api/telemetry?table=${encodeURIComponent(tableParam)}`;
+      X.url = `https://turbosanta-api.beverley247.workers.dev/api/telemetry?table=${encodeURIComponent(tableParam)}&auth=1`;
       const properName = tableParam.charAt(0).toUpperCase() + tableParam.slice(1);
       X.sleighName = `${properName} Santa Sleigh`;
     } else {

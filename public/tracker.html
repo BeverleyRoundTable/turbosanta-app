@@ -2546,7 +2546,7 @@ function populateScheduleModal(routes) {
                   return;
                 }
                 sessionStorage.setItem('beaconSecret', secret);
-                gpsLoggerUrl = `https://turbosanta-api.beverley247.workers.dev/api/telemetry?table=${encodeURIComponent(targetSlug)}`;
+                gpsLoggerUrl = `https://turbosanta-api.beverley247.workers.dev/api/telemetry?table=${encodeURIComponent(targetSlug)}&auth=1`;
               } else {
                 const sep = AppState.vars.apiUrl.includes('?') ? '&' : '?';
                 const res = await fetch(`${AppState.vars.apiUrl}${sep}function=verifyBeaconAuth&secret=${encodeURIComponent(secret)}`);

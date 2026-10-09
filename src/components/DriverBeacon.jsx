@@ -112,16 +112,28 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
           playBeaconBeep();
 
           // Transmit directly to Cloudflare Edge API
-          fetch(`https://turbosanta-api.beverley247.workers.dev/api/telemetry?table=${encodeURIComponent(tableSlug)}`, {
+          const beaconSecret = session?.secret || 'authenticated';
+          fetch(`https://turbosanta-api.beverley247.workers.dev/api/telemetry?table=${encodeURIComponent(tableSlug)}&auth=1`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${beaconSecret}`
+            },
             body: JSON.stringify({
               lat: latitude,
               lng: longitude,
               speed: speedMph,
-              road_name: "Active Santa Route"
+              road_name: "Active Santa Route",
+              secret: beaconSecret
             })
-          }).catch(e => console.warn("GPS Beacon telemetry push failed:", e));
+          })
+          .then(async (res) => {
+            if (!res.ok) {
+              const errData = await res.json().catch(() => ({}));
+              console.warn("GPS Beacon telemetry rejected:", errData);
+            }
+          })
+          .catch(e => console.warn("GPS Beacon telemetry push failed:", e));
         },
         (err) => {
           console.error("GPS Beacon error:", err);
