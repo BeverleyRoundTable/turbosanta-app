@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Radio, Megaphone, Settings, Calendar, Heart, Shield,
   LogOut, ExternalLink, Save, Download, CheckCircle2,
@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { logoutAdmin } from '../services/auth';
-import { saveTableSettings } from '../services/api';
+import { saveTableSettings, fetchLiveGps, fetchTablePayload } from '../services/api';
 import DropzoneUpload from './DropzoneUpload';
 import RouteEditorModal from './RouteEditorModal';
 import DriverBeacon from './DriverBeacon';
@@ -19,6 +19,34 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   const [activeTab, setActiveTab] = useState('announcements'); // Default to announcements
   const [announcementText, setAnnouncementText] = useState(tableData?.table?.live_announcement || '');
   const [saveStatus, setSaveStatus] = useState('');
+  const [liveGps, setLiveGps] = useState(tableData?.live_sleigh || null);
+
+  const currentTableSlug = session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley';
+
+  // Live Auto-Refresh for Admin Mission Control (every 5 seconds)
+  useEffect(() => {
+    let isMounted = true;
+    const pollLiveStats = async () => {
+      try {
+        const [gps, payload] = await Promise.all([
+          fetchLiveGps(currentTableSlug),
+          fetchTablePayload(currentTableSlug)
+        ]);
+        if (!isMounted) return;
+        if (gps) setLiveGps(gps);
+        if (payload && onUpdateTableData) {
+          onUpdateTableData(payload);
+        }
+      } catch (e) {}
+    };
+
+    pollLiveStats();
+    const interval = setInterval(pollLiveStats, 5000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [currentTableSlug]);
 
   // Modals & Cockpit State
   const [isCockpitOpen, setIsCockpitOpen] = useState(false);
@@ -574,41 +602,86 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         </div>
       </header>
 
-      {/* 5 Live Mission Control Stat Cards (from GitHub god_mode.html) */}
-      <div style={{
-        maxWidth: '1000px',
-        margin: '20px auto 0 auto',
-        padding: '0 20px',
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
-        gap: '12px'
-      }}>
-        <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
-          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 700, marginBottom: '6px' }}>Active Viewers</div>
-          <div className="brand-font" style={{ fontSize: '28px', color: '#22c55e', lineHeight: 1 }}>342</div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Live on radar</div>
-        </div>
-        <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
-          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 700, marginBottom: '6px' }}>Total Waves</div>
-          <div className="brand-font" style={{ fontSize: '28px', color: 'var(--primary)', lineHeight: 1 }}>1,480</div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Audience cheers</div>
-        </div>
-        <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
-          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 700, marginBottom: '6px' }}>Sleigh Speed</div>
-          <div className="brand-font" style={{ fontSize: '28px', color: '#38bdf8', lineHeight: 1 }}>4.8 <span style={{ fontSize: '14px' }}>MPH</span></div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Safe parade pace</div>
-        </div>
-        <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
-          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 700, marginBottom: '6px' }}>GPS Accuracy</div>
-          <div className="brand-font" style={{ fontSize: '28px', color: '#22c55e', lineHeight: 1 }}>±3m</div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Sub-second locked</div>
-        </div>
-        <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
-          <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 700, marginBottom: '6px' }}>Total Raised</div>
-          <div className="brand-font" style={{ fontSize: '28px', color: 'var(--primary)', lineHeight: 1 }}>£{tableData?.table?.total_raised || 19}</div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Goal: £{tableData?.table?.fundraising_goal || 8000}</div>
-        </div>
-      </div>
+      {/* 5 Live Mission Control Stat Cards (Auto-updating from D1 & GPS) */}
+      {(() => {
+        const table = tableData?.table || {};
+        const routes = tableData?.routes || [];
+        const streets = tableData?.streets || [];
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const todayRoute = routes.find(r => r.date === todayStr);
+
+        const isLive = Boolean(liveGps?.is_fresh);
+        const sleighSpeed = isLive ? (liveGps?.speed || 0) : 0;
+        const currentRoad = isLive ? (liveGps?.road_name || 'Active on Street') : 'Lapland Workshop';
+        const totalRaised = Number(table.total_raised || 0);
+        const goal = Number(table.fundraising_goal || 0);
+
+        return (
+          <div style={{
+            maxWidth: '1000px',
+            margin: '20px auto 0 auto',
+            padding: '0 20px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+            gap: '12px'
+          }}>
+            {/* 1. Live Sleigh Radar */}
+            <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 700, marginBottom: '6px' }}>Sleigh Radar</div>
+              <div className="brand-font" style={{ fontSize: '24px', color: isLive ? '#22c55e' : '#a1a1aa', lineHeight: 1 }}>
+                {isLive ? 'LIVE' : 'STANDBY'}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {isLive ? `📍 ${currentRoad}` : 'Resting in Lapland'}
+              </div>
+            </div>
+
+            {/* 2. Tonight's Route */}
+            <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 700, marginBottom: '6px' }}>Tonight's Run</div>
+              <div className="brand-font" style={{ fontSize: '22px', color: todayRoute ? 'var(--primary)' : 'var(--text-muted)', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {todayRoute ? (todayRoute.name || 'Tonight') : 'Rest Night'}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>
+                {todayRoute ? `Starts ${todayRoute.start_time || '18:00'}` : `${routes.length} planned routes`}
+              </div>
+            </div>
+
+            {/* 3. Real GPS Speed */}
+            <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 700, marginBottom: '6px' }}>Sleigh Speed</div>
+              <div className="brand-font" style={{ fontSize: '28px', color: '#38bdf8', lineHeight: 1 }}>
+                {sleighSpeed} <span style={{ fontSize: '14px' }}>MPH</span>
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                {isLive ? (sleighSpeed > 0 ? 'Safe parade pace' : 'Stopped for kids') : 'Parked'}
+              </div>
+            </div>
+
+            {/* 4. Total Streets in Route Plan */}
+            <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 700, marginBottom: '6px' }}>Total Streets</div>
+              <div className="brand-font" style={{ fontSize: '28px', color: '#a855f7', lineHeight: 1 }}>
+                {streets.length}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Across {routes.length} routes
+              </div>
+            </div>
+
+            {/* 5. Live Total Raised */}
+            <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 700, marginBottom: '6px' }}>Total Raised</div>
+              <div className="brand-font" style={{ fontSize: '28px', color: 'var(--primary)', lineHeight: 1 }}>
+                £{totalRaised.toLocaleString()}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                {goal > 0 ? `Goal: £${goal.toLocaleString()}` : 'Live D1 total'}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Navigation Sub-Tabs */}
       <div
