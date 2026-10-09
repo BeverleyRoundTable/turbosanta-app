@@ -483,7 +483,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0d0d0b', color: '#fff' }}>
+    <div style={{ minHeight: '100vh', background: '#0d0d0b', color: '#fff', width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
       {/* Top Header */}
       <header style={{
         background: '#151513',
@@ -611,52 +611,69 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
       </div>
 
       {/* Navigation Sub-Tabs */}
-      <div style={{
-        background: '#121210',
-        borderBottom: '1px solid var(--border)',
-        margin: '20px 0 0 0',
-        padding: '0 24px',
-        display: 'flex',
-        gap: '8px',
-        overflowX: 'auto'
-      }}>
-        {[
-          { id: 'announcements', label: 'Live PA Broadcast', icon: Megaphone },
-          { id: 'routes', label: 'Routes & Timetables', icon: Calendar },
-          { id: 'webhooks', label: 'Donation Webhooks', icon: CreditCard },
-          { id: 'memory', label: 'Community Polaroids & Media', icon: Camera },
-          { id: 'migration', label: '1.0 Excel / Sheets Importer', icon: FileSpreadsheet },
-          { id: 'embeds', label: 'Embed Generator', icon: Code },
-          { id: 'crew', label: 'Crew & Messages', icon: Bell },
-          { id: 'settings', label: 'Table Settings & Branding', icon: Settings },
-          { id: 'giftaid', label: 'Gift Aid & HMRC', icon: Heart }
-        ].map(tab => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                borderBottom: isActive ? '3px solid var(--primary)' : '3px solid transparent',
-                color: isActive ? 'var(--primary)' : 'var(--text-muted)',
-                fontWeight: 700,
-                fontSize: '14px',
-                padding: '14px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              <Icon size={16} />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
+      <div
+        className="admin-subtabs-nav"
+        style={{
+          background: '#121210',
+          borderBottom: '1px solid var(--border)',
+          margin: '20px 0 0 0',
+          padding: '0 16px',
+          display: 'flex',
+          justifyContent: 'center',
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          width: '100%',
+          boxSizing: 'border-box'
+        }}
+      >
+        <div style={{
+          display: 'flex',
+          gap: '4px',
+          alignItems: 'center',
+          maxWidth: '1200px',
+          width: '100%',
+          justifyContent: 'flex-start'
+        }}>
+          {[
+            { id: 'announcements', label: 'Live Broadcast', icon: Megaphone },
+            { id: 'routes', label: 'Routes & Times', icon: Calendar },
+            { id: 'webhooks', label: 'Donations', icon: CreditCard },
+            { id: 'memory', label: 'Polaroids & Media', icon: Camera },
+            { id: 'migration', label: 'Sheets Importer', icon: FileSpreadsheet },
+            { id: 'embeds', label: 'Embeds', icon: Code },
+            { id: 'crew', label: 'Crew', icon: Bell },
+            { id: 'settings', label: 'Table Settings', icon: Settings },
+            { id: 'giftaid', label: 'Gift Aid', icon: Heart }
+          ].map(tab => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  borderBottom: isActive ? '3px solid var(--primary)' : '3px solid transparent',
+                  color: isActive ? 'var(--primary)' : 'var(--text-muted)',
+                  fontWeight: 700,
+                  fontSize: '13px',
+                  padding: '12px 10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0
+                }}
+              >
+                <Icon size={15} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Main Content Area */}

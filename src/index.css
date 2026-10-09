@@ -370,3 +370,12 @@ h1, h2, h3, h4, h5, h6, .brand-font, nav a, .nav-link, .header-caps {
     color: var(--primary);
   }
 }
+
+/* Suppress scrollbars on admin subtabs nav */
+.admin-subtabs-nav {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.admin-subtabs-nav::-webkit-scrollbar {
+  display: none;
+}
