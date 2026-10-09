@@ -4,12 +4,10 @@ import { requestMagicLink, verifyMagicLink, loginWithGoogleWorkspace } from '../
 
 export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess, initialEmail }) {
   const [activeTab, setActiveTab] = useState('magic'); // 'magic' or 'google'
-  const [email, setEmail] = useState(initialEmail || 'beverley247@roundtable.org.uk');
+  const [email, setEmail] = useState(initialEmail || '');
 
   React.useEffect(() => {
-    if (initialEmail) {
-      setEmail(initialEmail);
-    }
+    setEmail(initialEmail || '');
   }, [initialEmail]);
   const [step, setStep] = useState(1); // 1 = enter email, 2 = enter OTP
   const [otpCode, setOtpCode] = useState('');
@@ -250,7 +248,7 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess, initi
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="e.g. beverley247@roundtable.org.uk"
+                      placeholder="e.g. yourtable@roundtable.org.uk"
                       required
                       style={{
                         width: '100%',

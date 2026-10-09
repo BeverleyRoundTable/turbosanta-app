@@ -33,14 +33,8 @@ export function isNationalAdmin(email) {
  * e.g. ellon@roundtable.org.uk -> { slug: "ellon", town: "Ellon", tableNumber: "", tableName: "Ellon Round Table" }
  */
 export function parseTableDetailsFromEmail(email) {
-  if (!email || typeof email !== 'string') {
-    return {
-      slug: "beverley",
-      tableId: "beverley",
-      town: "Beverley",
-      tableNumber: "247",
-      tableName: "Beverley Round Table #247"
-    };
+  if (!email || typeof email !== 'string' || !email.trim()) {
+    return null;
   }
 
   const clean = email.trim().toLowerCase();
@@ -83,7 +77,8 @@ export function parseTableDetailsFromEmail(email) {
  * Derives table slug from email (e.g. beverley247@roundtable.org.uk -> beverley)
  */
 export function deriveTableFromEmail(email) {
-  return parseTableDetailsFromEmail(email).slug;
+  const details = parseTableDetailsFromEmail(email);
+  return details ? details.slug : 'beverley';
 }
 
 /**

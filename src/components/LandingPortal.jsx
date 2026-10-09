@@ -7,7 +7,7 @@ import {
 import { parseTableDetailsFromEmail, isRoundTableEmail } from '../services/auth';
 
 export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
-  const [inputVal, setInputVal] = useState(session?.email || 'beverley247@roundtable.org.uk');
+  const [inputVal, setInputVal] = useState(session?.email || '');
   const [searchTown, setSearchTown] = useState('');
 
   // Auto-detect table details from input
@@ -26,10 +26,12 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
   );
 
   const handleLaunchHub = () => {
+    if (!detected) return;
     window.location.href = `/hub.html?table=${encodeURIComponent(detected.slug)}`;
   };
 
   const handleViewTracker = () => {
+    if (!detected) return;
     if (onSelectTable) {
       onSelectTable(detected.slug);
     } else {
@@ -39,13 +41,15 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
 
   const handleOpenAdmin = () => {
     if (session) {
-      window.location.href = `/?table=${encodeURIComponent(detected.slug)}&admin=1`;
+      const slug = detected?.slug || session.tableSlug || 'beverley';
+      window.location.href = `/?table=${encodeURIComponent(slug)}&admin=1`;
     } else {
-      onOpenLogin(inputVal);
+      onOpenLogin(inputVal || '');
     }
   };
 
   const handleOpenCrew = () => {
+    if (!detected) return;
     window.location.href = `/crew.html?table=${encodeURIComponent(detected.slug)}`;
   };
 
@@ -270,11 +274,11 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
                 <span>Active Session: {session.email}</span>
               </div>
               <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '13px' }}>
-                Managing: <strong>{session.tableName || detected.tableName}</strong>
+                Managing: <strong>{session.tableName || detected?.tableName || 'Table Dashboard'}</strong>
               </div>
             </div>
             <button
-              onClick={() => window.location.href = `/?table=${encodeURIComponent(session.tableSlug || detected.slug)}&admin=1`}
+              onClick={() => window.location.href = `/?table=${encodeURIComponent(session.tableSlug || detected?.slug || 'beverley')}&admin=1`}
               style={{
                 backgroundColor: '#2ecc71',
                 color: '#000000',
@@ -366,7 +370,7 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
                 type="text"
                 value={inputVal}
                 onChange={(e) => setInputVal(e.target.value)}
-                placeholder="e.g. beverley247@roundtable.org.uk or shirley"
+                placeholder="Search town or Table email (e.g. York or shirley414@roundtable.org.uk)"
                 style={{
                   flex: 1,
                   background: 'transparent',
@@ -374,53 +378,90 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
                   outline: 'none',
                   color: '#ffffff',
                   padding: '14px 12px',
-                  fontSize: '15px',
+                  fontSize: '14px',
                   fontWeight: 600,
                   fontFamily: 'inherit'
                 }}
               />
+              {inputVal && (
+                <button
+                  type="button"
+                  onClick={() => setInputVal('')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'rgba(255, 255, 255, 0.4)',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    padding: '4px 8px'
+                  }}
+                  title="Clear input"
+                >
+                  Clear
+                </button>
+              )}
             </div>
           </div>
 
-          {/* AUTO-DETECTION BADGE */}
-          <div style={{
-            backgroundColor: '#1e1e1b',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '12px',
-            padding: '12px 16px',
-            marginBottom: '24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-            flexWrap: 'wrap'
-          }}>
-            <div>
-              <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.5)', letterSpacing: '0.5px' }}>
-                Identified Table:
-              </div>
-              <div style={{
-                fontFamily: 'Eurostile, sans-serif',
-                fontSize: '16px',
-                fontWeight: 800,
-                color: '#FBAF33'
-              }}>
-                {detected.tableName}
-              </div>
-            </div>
-
+          {/* AUTO-DETECTION / SELECTION BADGE */}
+          {detected ? (
             <div style={{
-              backgroundColor: 'rgba(251, 175, 51, 0.12)',
+              backgroundColor: '#1e1e1b',
               border: '1px solid rgba(251, 175, 51, 0.3)',
-              borderRadius: '6px',
-              padding: '4px 10px',
-              fontSize: '12px',
-              color: '#FBAF33',
-              fontFamily: 'monospace'
+              borderRadius: '12px',
+              padding: '12px 16px',
+              marginBottom: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              flexWrap: 'wrap',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
             }}>
-              ?table={detected.slug}
+              <div>
+                <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'rgba(255, 255, 255, 0.5)', letterSpacing: '0.5px' }}>
+                  Identified Table:
+                </div>
+                <div style={{
+                  fontFamily: 'Eurostile, sans-serif',
+                  fontSize: '16px',
+                  fontWeight: 800,
+                  color: '#FBAF33'
+                }}>
+                  {detected.tableName}
+                </div>
+              </div>
+
+              <div style={{
+                backgroundColor: 'rgba(251, 175, 51, 0.12)',
+                border: '1px solid rgba(251, 175, 51, 0.3)',
+                borderRadius: '6px',
+                padding: '4px 10px',
+                fontSize: '12px',
+                color: '#FBAF33',
+                fontFamily: 'monospace'
+              }}>
+                ?table={detected.slug}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.03)',
+              border: '1px dashed rgba(255, 255, 255, 0.15)',
+              borderRadius: '12px',
+              padding: '14px 16px',
+              marginBottom: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              color: 'rgba(255, 255, 255, 0.5)',
+              fontSize: '13px'
+            }}>
+              <Search size={15} color="#FBAF33" />
+              <span>Select a Table below or type your town / Round Table email above</span>
+            </div>
+          )}
 
           {/* QUICK ACTION BUTTONS */}
           <div style={{
@@ -432,9 +473,10 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
             {/* Launch Table Hub */}
             <button
               onClick={handleLaunchHub}
+              disabled={!detected}
               style={{
-                backgroundColor: '#FBAF33',
-                color: '#000000',
+                backgroundColor: detected ? '#FBAF33' : '#232320',
+                color: detected ? '#000000' : 'rgba(255, 255, 255, 0.3)',
                 border: 'none',
                 borderRadius: '12px',
                 padding: '14px 18px',
@@ -443,14 +485,15 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
                 fontSize: '13px',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
-                cursor: 'pointer',
+                cursor: detected ? 'pointer' : 'not-allowed',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                opacity: detected ? 1 : 0.6
               }}
-              onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(1.1)'}
-              onMouseLeave={(e) => e.currentTarget.style.filter = 'none'}
+              onMouseEnter={(e) => { if (detected) e.currentTarget.style.filter = 'brightness(1.1)'; }}
+              onMouseLeave={(e) => { if (detected) e.currentTarget.style.filter = 'none'; }}
             >
               <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <ExternalLink size={16} />
@@ -492,9 +535,10 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
             {/* Public Sleigh Tracker */}
             <button
               onClick={handleViewTracker}
+              disabled={!detected}
               style={{
                 backgroundColor: '#1e1e1b',
-                color: '#eaeae5',
+                color: detected ? '#eaeae5' : 'rgba(255, 255, 255, 0.3)',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 borderRadius: '12px',
                 padding: '12px 18px',
@@ -502,14 +546,15 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
                 fontWeight: 700,
                 fontSize: '12px',
                 textTransform: 'uppercase',
-                cursor: 'pointer',
+                cursor: detected ? 'pointer' : 'not-allowed',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between'
+                justifyContent: 'space-between',
+                opacity: detected ? 1 : 0.6
               }}
             >
               <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <MapPin size={16} color="#FBAF33" />
+                <MapPin size={16} color={detected ? '#FBAF33' : 'rgba(255, 255, 255, 0.3)'} />
                 <span>View Public Tracker</span>
               </span>
               <Eye size={15} />
@@ -518,9 +563,10 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
             {/* Volunteer Crew Ops */}
             <button
               onClick={handleOpenCrew}
+              disabled={!detected}
               style={{
                 backgroundColor: '#1e1e1b',
-                color: '#eaeae5',
+                color: detected ? '#eaeae5' : 'rgba(255, 255, 255, 0.3)',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 borderRadius: '12px',
                 padding: '12px 18px',
@@ -528,14 +574,15 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
                 fontWeight: 700,
                 fontSize: '12px',
                 textTransform: 'uppercase',
-                cursor: 'pointer',
+                cursor: detected ? 'pointer' : 'not-allowed',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between'
+                justifyContent: 'space-between',
+                opacity: detected ? 1 : 0.6
               }}
             >
               <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Smartphone size={16} color="#2ecc71" />
+                <Smartphone size={16} color={detected ? '#2ecc71' : 'rgba(255, 255, 255, 0.3)'} />
                 <span>Volunteer Crew Link</span>
               </span>
               <ExternalLink size={15} />
@@ -555,25 +602,28 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
               Quick Select Table:
             </div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {popularTables.map(t => (
-                <button
-                  key={t.slug}
-                  onClick={() => setInputVal(t.email)}
-                  style={{
-                    backgroundColor: detected.slug === t.slug ? 'rgba(251, 175, 51, 0.2)' : '#1e1e1b',
-                    color: detected.slug === t.slug ? '#FBAF33' : '#eaeae5',
-                    border: `1px solid ${detected.slug === t.slug ? '#FBAF33' : 'rgba(255, 255, 255, 0.08)'}`,
-                    borderRadius: '20px',
-                    padding: '5px 12px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s'
-                  }}
-                >
-                  {t.name}
-                </button>
-              ))}
+              {popularTables.map(t => {
+                const isSelected = detected?.slug === t.slug;
+                return (
+                  <button
+                    key={t.slug}
+                    onClick={() => setInputVal(isSelected ? '' : t.email)}
+                    style={{
+                      backgroundColor: isSelected ? 'rgba(251, 175, 51, 0.2)' : '#1e1e1b',
+                      color: isSelected ? '#FBAF33' : '#eaeae5',
+                      border: `1px solid ${isSelected ? '#FBAF33' : 'rgba(255, 255, 255, 0.08)'}`,
+                      borderRadius: '20px',
+                      padding: '5px 12px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    {t.name}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
