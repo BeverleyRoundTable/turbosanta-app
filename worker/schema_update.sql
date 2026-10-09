@@ -66,3 +66,25 @@ CREATE TABLE IF NOT EXISTS donations (
 
 CREATE INDEX IF NOT EXISTS idx_donations_table_created ON donations(table_id, created_at);
 
+-- ==============================================================================
+-- Season History Table (Year-by-Year Benchmarking & AGM Snapshots)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS season_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    table_id TEXT NOT NULL REFERENCES tables(id) ON DELETE CASCADE,
+    year TEXT NOT NULL,
+    raised REAL DEFAULT 0,
+    net_raised REAL DEFAULT 0,
+    expenses REAL DEFAULT 0,
+    routes INTEGER DEFAULT 0,
+    streets INTEGER DEFAULT 0,
+    total_views INTEGER DEFAULT 0,
+    messages INTEGER DEFAULT 0,
+    volunteers INTEGER DEFAULT 0,
+    ai_summary TEXT,
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(table_id, year)
+);
+
+CREATE INDEX IF NOT EXISTS idx_season_history_table ON season_history(table_id, year);
