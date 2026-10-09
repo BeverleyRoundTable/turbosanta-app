@@ -678,14 +678,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       } catch(e) { }
     }
 
-    // Baseline historical benchmarks if database hasn't saved snapshots yet
-    if (_seasonHistory.length === 0) {
-      _seasonHistory = [
-        { year: '2024', raised: 4150, routes: 12, streets: 142, totalViews: 1250, messages: 48, volunteers: 18 },
-        { year: '2025', raised: 4890, routes: 14, streets: 184, totalViews: 2840, messages: 92, volunteers: 24 }
-      ];
-    }
-
     // Auto-calculated tracker analytics
     try {
       const statUrl = api.includes('?') ? `${api}&function=getWrapAnalytics` : `${api}?function=getWrapAnalytics`;
@@ -764,8 +756,9 @@ function render(data) {
   const totalRaised = Number(donations.total || 0);
   const targetAmount = Number(donations.target || 0);
   const totalExpenses = Number(data.expenses || 0);
-  const totalGiftAid = data.giftAid ? (data.giftAid.giftAid || 0) : (data.gift_aid ? (data.gift_aid.giftAid || 0) : Math.round(totalRaised * 0.25 * 100) / 100);
-  const giftAidDeclarations = data.giftAid ? (data.giftAid.declarations || 0) : (data.gift_aid ? (data.gift_aid.declarations || 0) : 0);
+  const isGiftAidEligible = Boolean(s.enable_gift_aid);
+  const totalGiftAid = isGiftAidEligible ? Number(data.giftAid?.giftAid || data.gift_aid?.giftAid || 0) : 0;
+  const giftAidDeclarations = isGiftAidEligible ? Number(data.giftAid?.declarations || data.gift_aid?.declarations || 0) : 0;
   const netRaised = (totalRaised + totalGiftAid) - totalExpenses;
   const pct = targetAmount > 0 ? Math.min(100, Math.round((totalRaised / targetAmount) * 100)) : 0;
   const volunteers = s.wrap_volunteers || data.volunteers_count || s.sponsor_pack_volunteers || (routeCount > 0 ? routeCount * 6 : 18);
@@ -877,18 +870,18 @@ function render(data) {
             </div>
             
             <div class="finance-item">
-              <div class="label">Gift Aid (+25%)</div>
-              <div class="value green">+${currency}${totalGiftAid.toLocaleString()}</div>
+              <div class="label">${isGiftAidEligible ? 'Gift Aid (+25%)' : 'Gift Aid (Ineligible)'}</div>
+              <div class="value ${isGiftAidEligible && totalGiftAid > 0 ? 'green' : ''}" style="${!isGiftAidEligible || totalGiftAid === 0 ? 'color:var(--text-muted);' : ''}">${isGiftAidEligible && totalGiftAid > 0 ? '+' : ''}${currency}${totalGiftAid.toFixed(2)}</div>
             </div>
             
             <div class="finance-item">
               <div class="label">Operating Expenses</div>
-              <div class="value red">${totalExpenses > 0 ? '-' : ''}${currency}${totalExpenses.toLocaleString()}</div>
+              <div class="value red">${totalExpenses > 0 ? '-' : ''}${currency}${totalExpenses.toFixed(2)}</div>
             </div>
             
             <div class="finance-item">
               <div class="label">True Net Impact</div>
-              <div class="value" style="color: var(--gold); font-size: 32px;">${currency}${netRaised.toLocaleString()}</div>
+              <div class="value" style="color: var(--gold); font-size: 32px;">${currency}${netRaised.toFixed(2)}</div>
             </div>
           </div>
         </div>
@@ -1104,10 +1097,9 @@ function render(data) {
 
   if (_seasonHistory.length === 0) {
     h += `<div class="no-history">
-      <strong>No historical data yet</strong>
-      This section will show year-on-year charts once you have saved at least one season snapshot.<br><br>
-      When you're done reviewing this report, click <strong>📸 Snapshot Season</strong> above to save this season's data.
-      Next year, this section will automatically populate with comparison charts.
+      <strong>No historical season data imported yet</strong>
+      This section will display comparative year-on-year charts once you have saved at least one past season snapshot or imported your legacy TurboSanta 1.0 records.<br><br>
+      When you're ready to archive this season, click <strong>📸 Snapshot Season</strong> above to freeze this campaign into your D1 database.
     </div>`;
   } else {
     const allSeasons = [..._seasonHistory];

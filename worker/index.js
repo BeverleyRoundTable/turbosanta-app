@@ -183,8 +183,9 @@ export default {
         donation_breakdown: (breakdown && breakdown.results) || [],
         volunteers_count: (volCount && volCount.count) || 0,
         gift_aid: {
-          declarations: (gaStats && gaStats.count) || 0,
-          giftAid: Math.round(((gaStats && gaStats.total) || 0) * 0.25 * 100) / 100
+          eligible: Boolean(table.enable_gift_aid),
+          declarations: Boolean(table.enable_gift_aid) ? ((gaStats && gaStats.count) || 0) : 0,
+          giftAid: Boolean(table.enable_gift_aid) ? (Math.round(((gaStats && gaStats.total) || 0) * 0.25 * 100) / 100) : 0
         },
         season_history: (historyRecords && historyRecords.results) || []
       });
@@ -214,20 +215,10 @@ export default {
         )
       `).run().catch(() => {});
 
-      let history = await env.DB.prepare("SELECT * FROM season_history WHERE table_id = ? ORDER BY year ASC").bind(table.id).all().catch(() => ({ results: [] }));
+      // Clean up any previously auto-seeded synthetic/mock 2024 or 2025 records
+      await env.DB.prepare("DELETE FROM season_history WHERE ai_summary LIKE '%Foundational year%' OR ai_summary LIKE '%Rapid digital adoption%'").run().catch(() => {});
 
-      // If table is beverley and history has no rows yet, seed historical baseline data (2024, 2025)
-      if ((!history.results || history.results.length === 0) && table.id === 'beverley') {
-        try {
-          await env.DB.prepare(`
-            INSERT OR IGNORE INTO season_history (table_id, year, raised, net_raised, expenses, routes, streets, total_views, messages, volunteers, ai_summary)
-            VALUES 
-              ('beverley', '2024', 4150.00, 3920.00, 230.00, 12, 142, 1250, 48, 18, 'Foundational year establishing the live GPS tracker across Beverley residential zones.'),
-              ('beverley', '2025', 4890.00, 4675.00, 215.00, 14, 184, 2840, 92, 24, 'Rapid digital adoption year with major increase in tracker views and Gift Aid engagement.')
-          `).run();
-          history = await env.DB.prepare("SELECT * FROM season_history WHERE table_id = ? ORDER BY year ASC").bind(table.id).all();
-        } catch(e) {}
-      }
+      const history = await env.DB.prepare("SELECT * FROM season_history WHERE table_id = ? ORDER BY year ASC").bind(table.id).all().catch(() => ({ results: [] }));
 
       return jsonResponse({
         ok: true,
@@ -325,7 +316,8 @@ export default {
           ]);
 
           const raised = Number(totalDonations?.total || 0);
-          const giftAid = Math.round((Number(ga?.total || 0) * 0.25) * 100) / 100;
+          const isGaEligible = Boolean(t.enable_gift_aid);
+          const giftAid = isGaEligible ? (Math.round((Number(ga?.total || 0) * 0.25) * 100) / 100) : 0;
           const expenses = Number(t.expenses || 0);
           const netRaised = (raised + giftAid) - expenses;
 
@@ -359,16 +351,21 @@ export default {
         } else {
           // Historical season mode (e.g. 2024, 2025)
           const snap = await env.DB.prepare("SELECT * FROM season_history WHERE table_id = ? AND year = ?").bind(t.id, String(mode)).first().catch(() => null);
+          const isGaEligible = Boolean(t.enable_gift_aid);
+          const snapRaised = Number(snap?.raised || 0);
+          const snapExpenses = Number(snap?.expenses || 0);
+          const snapNet = snap?.net_raised !== undefined && snap?.net_raised !== null ? Number(snap.net_raised) : snapRaised;
+          const snapGiftAid = isGaEligible ? Math.max(0, snapNet + snapExpenses - snapRaised) : 0;
           return {
             id: t.id,
             slug: t.slug,
             name: t.sleigh_display_name || t.name,
             api: `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${t.slug}`,
-            raised: Number(snap?.raised || 0),
+            raised: snapRaised,
             target: 5000,
-            giftAid: Math.round(Number(snap?.raised || 0) * 0.25 * 100) / 100,
-            expenses: Number(snap?.expenses || 0),
-            netRaised: Number(snap?.net_raised || snap?.raised || 0),
+            giftAid: snapGiftAid,
+            expenses: snapExpenses,
+            netRaised: snapNet,
             routes: Number(snap?.routes || 0),
             streets: Number(snap?.streets || 0),
             views: Number(snap?.total_views || 0),

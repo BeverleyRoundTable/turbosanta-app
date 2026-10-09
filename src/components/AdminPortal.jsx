@@ -268,7 +268,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     const routes = tableData?.routes || [];
     const streets = tableData?.streets || [];
     const totalRaised = Number(tableData?.table?.total_raised || 0);
-    const giftAid = tableData?.gift_aid?.giftAid || Math.round(totalRaised * 0.25 * 100) / 100;
+    const isGiftAidEligible = Boolean(tableData?.table?.enable_gift_aid);
+    const giftAid = isGiftAidEligible ? Number(tableData?.gift_aid?.giftAid || 0) : 0;
     const expenses = Number(tableData?.expenses || 0);
     const netRaised = (totalRaised + giftAid) - expenses;
 
@@ -1594,38 +1595,59 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
           const tableSlug = session?.tableId || session?.tableSlug || 'beverley';
           const routes = tableData?.routes || [];
           const streets = tableData?.streets || [];
+          const isGiftAidEligible = Boolean(tableData?.table?.enable_gift_aid);
           const liveGrossRaised = Number(tableData?.table?.total_raised || 0);
           const liveTarget = Number(tableData?.table?.fundraising_goal || 5000);
-          const liveGiftAid = tableData?.gift_aid?.giftAid || Math.round(liveGrossRaised * 0.25 * 100) / 100;
+          // Strictly validate against actual submitted entries in gift_aid table and enable_gift_aid flag:
+          const liveGiftAid = isGiftAidEligible ? Number(tableData?.gift_aid?.giftAid || 0) : 0;
           const liveExpenses = Number(tableData?.expenses || 0);
           const liveNetRaised = (liveGrossRaised + liveGiftAid) - liveExpenses;
           const liveVolunteers = tableData?.volunteers_count || (routes.length > 0 ? routes.length * 6 : 18);
           const breakdown = tableData?.donation_breakdown || tableData?.table?.donation_breakdown || [];
-          const seasonHistory = tableData?.season_history || [];
+          const seasonHistory = Array.isArray(tableData?.season_history) ? tableData.season_history : [];
 
-          // Historical datasets (seeded or from D1)
+          // Only build seasons that genuinely exist (live current season + real historical records from D1)
+          const currentYearStr = String(new Date().getFullYear());
           const historyMap = {
-            '2024': { raised: 4150, netRaised: 3920, expenses: 230, routes: 12, streets: 142, volunteers: 18, views: 1250, target: 4000 },
-            '2025': { raised: 4890, netRaised: 4675, expenses: 215, routes: 14, streets: 184, volunteers: 24, views: 2840, target: 4500 },
-            '2026': { raised: liveGrossRaised, netRaised: liveNetRaised, expenses: liveExpenses, routes: routes.length, streets: streets.length, volunteers: liveVolunteers, views: 3200, target: liveTarget }
+            [currentYearStr]: {
+              raised: liveGrossRaised,
+              netRaised: liveNetRaised,
+              giftAid: liveGiftAid,
+              expenses: liveExpenses,
+              routes: routes.length,
+              streets: streets.length,
+              volunteers: liveVolunteers,
+              views: 3200,
+              target: liveTarget
+            }
           };
 
-          // Override with D1 records if present
+          // Populate with authentic D1 historical records if present
           seasonHistory.forEach(h => {
-            if (h.year && historyMap[h.year]) {
-              historyMap[h.year] = {
-                ...historyMap[h.year],
-                raised: Number(h.raised) || historyMap[h.year].raised,
-                netRaised: Number(h.net_raised) || historyMap[h.year].netRaised,
-                expenses: Number(h.expenses) || historyMap[h.year].expenses,
-                routes: Number(h.routes) || historyMap[h.year].routes,
-                streets: Number(h.streets) || historyMap[h.year].streets,
-                volunteers: Number(h.volunteers) || historyMap[h.year].volunteers
+            if (h.year) {
+              const hYear = String(h.year);
+              const hRaised = Number(h.raised) || 0;
+              const hExpenses = Number(h.expenses) || 0;
+              const hNetRaised = h.net_raised !== undefined && h.net_raised !== null ? Number(h.net_raised) : hRaised;
+              const hGiftAid = isGiftAidEligible ? Math.max(0, hNetRaised + hExpenses - hRaised) : 0;
+              historyMap[hYear] = {
+                raised: hRaised,
+                netRaised: hNetRaised,
+                giftAid: hGiftAid,
+                expenses: hExpenses,
+                routes: Number(h.routes) || 0,
+                streets: Number(h.streets) || 0,
+                volunteers: Number(h.volunteers) || 0,
+                views: Number(h.total_views) || 0,
+                target: 5000
               };
             }
           });
 
-          const currentStats = historyMap[selectedWrapSeason] || historyMap['2026'];
+          // Available seasons sorted descending (e.g. ['2026'])
+          const availableSeasons = Object.keys(historyMap).sort((a, b) => Number(b) - Number(a));
+          const activeSeasonKey = historyMap[selectedWrapSeason] ? selectedWrapSeason : availableSeasons[0];
+          const currentStats = historyMap[activeSeasonKey] || historyMap[currentYearStr];
           const pctOfTarget = currentStats.target > 0 ? Math.min(100, Math.round((currentStats.raised / currentStats.target) * 100)) : 0;
           const avgPerRoute = currentStats.routes > 0 ? (currentStats.raised / currentStats.routes).toFixed(2) : '0.00';
           const avgPerStreet = currentStats.streets > 0 ? (currentStats.raised / currentStats.streets).toFixed(2) : '0.00';
@@ -1635,9 +1657,13 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
           const sumupItem = breakdown.find(b => b.source === 'sumup');
           const cashItem = breakdown.find(b => b.source === 'cash');
 
-          const aiDebriefText = `TURBOSANTA ${selectedWrapSeason} SEASON DEBRIEF (${(session?.tableName || tableSlug).toUpperCase()}):
-• Campaign Yield: £${currentStats.raised.toLocaleString()} gross raised (${pctOfTarget}% of £${currentStats.target.toLocaleString()} target).
-• True Net Charitable Impact: £${currentStats.netRaised.toLocaleString()} (+25% Gift Aid uplift, minus £${currentStats.expenses} operating costs).
+          const gaDebriefNote = isGiftAidEligible && currentStats.giftAid > 0
+            ? `including +£${currentStats.giftAid.toFixed(2)} HMRC Gift Aid reclaim`
+            : `£0.00 Gift Aid (non-charity status / 0 declarations)`;
+
+          const aiDebriefText = `TURBOSANTA ${activeSeasonKey} SEASON DEBRIEF (${(session?.tableName || tableSlug).toUpperCase()}):
+• Campaign Yield: £${currentStats.raised.toFixed(2)} gross raised (${pctOfTarget}% of £${currentStats.target.toLocaleString()} target).
+• True Net Charitable Impact: £${currentStats.netRaised.toFixed(2)} (${gaDebriefNote}, minus £${currentStats.expenses.toFixed(2)} operating costs).
 • Route Operations: ${currentStats.routes} routes completed across ${currentStats.streets} streets. Average yield £${avgPerStreet} per street.
 • Digital Velocity: Frictionless cashless payments (Zeffy, Stripe, SumUp) accounted for the primary collection channels.
 • Next Season Strategic Actions:
@@ -1713,18 +1739,19 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 borderRadius: '10px',
                 border: '1px solid var(--border)',
                 marginBottom: '24px',
-                width: 'fit-content'
+                width: 'fit-content',
+                flexWrap: 'wrap'
               }}>
                 <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', padding: '0 10px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
                   Campaign Season:
                 </span>
-                {['2026', '2025', '2024'].map(yr => (
+                {availableSeasons.map(yr => (
                   <button
                     key={yr}
                     onClick={() => setSelectedWrapSeason(yr)}
                     style={{
-                      background: selectedWrapSeason === yr ? 'var(--primary)' : 'transparent',
-                      color: selectedWrapSeason === yr ? '#000' : 'var(--text-muted)',
+                      background: activeSeasonKey === yr ? 'var(--primary)' : 'transparent',
+                      color: activeSeasonKey === yr ? '#000' : 'var(--text-muted)',
                       border: 'none',
                       padding: '6px 16px',
                       borderRadius: '8px',
@@ -1734,7 +1761,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       transition: 'all 0.2s'
                     }}
                   >
-                    {yr === '2026' ? '🎅 2026 (Live Current)' : `📅 ${yr} Season`}
+                    {yr === currentYearStr ? `🎅 ${yr} (Live Current)` : `📅 ${yr} Season`}
                   </button>
                 ))}
               </div>
@@ -1752,7 +1779,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     Gross Campaign Raised
                   </div>
                   <div className="brand-font" style={{ fontSize: '32px', color: 'var(--primary)', lineHeight: 1.1, marginBottom: '6px' }}>
-                    £{currentStats.raised.toLocaleString()}
+                    £{currentStats.raised.toFixed(2)}
                   </div>
                   <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                     {pctOfTarget}% of £{currentStats.target.toLocaleString()} Target
@@ -1762,19 +1789,21 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   </div>
                 </div>
 
-                {/* Gift Aid (+25%) */}
+                {/* Gift Aid Card */}
                 <div style={{ background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '14px', padding: '20px' }}>
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.8px', marginBottom: '8px' }}>
-                    HMRC Gift Aid Uplift (+25%)
+                    {isGiftAidEligible ? 'HMRC Gift Aid Uplift (+25%)' : 'HMRC Gift Aid (Ineligible)'}
                   </div>
-                  <div className="brand-font" style={{ fontSize: '32px', color: '#22c55e', lineHeight: 1.1, marginBottom: '6px' }}>
-                    +£{Math.round(currentStats.raised * 0.25).toLocaleString()}
+                  <div className="brand-font" style={{ fontSize: '32px', color: isGiftAidEligible && currentStats.giftAid > 0 ? '#22c55e' : 'var(--text-muted)', lineHeight: 1.1, marginBottom: '6px' }}>
+                    {isGiftAidEligible && currentStats.giftAid > 0 ? `+£${currentStats.giftAid.toFixed(2)}` : '£0.00'}
                   </div>
                   <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    Claimable from HMRC R68 schedules
+                    {isGiftAidEligible 
+                      ? `${tableData?.gift_aid?.declarations || 0} declarations submitted to D1` 
+                      : 'Non-charity table / Gift Aid disabled'}
                   </div>
-                  <div style={{ fontSize: '11px', color: '#86efac', marginTop: '10px', fontWeight: 600 }}>
-                    ✓ 0% Platform Deductions
+                  <div style={{ fontSize: '11px', color: isGiftAidEligible ? '#86efac' : 'var(--text-muted)', marginTop: '10px', fontWeight: 600 }}>
+                    {isGiftAidEligible ? '✓ Validated against gift_aid table' : '○ 0% HMRC Reclaims'}
                   </div>
                 </div>
 
@@ -1783,8 +1812,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.8px', marginBottom: '8px' }}>
                     Operating Expenses
                   </div>
-                  <div className="brand-font" style={{ fontSize: '32px', color: '#ef4444', lineHeight: 1.1, marginBottom: '6px' }}>
-                    -£{currentStats.expenses.toLocaleString()}
+                  <div className="brand-font" style={{ fontSize: '32px', color: currentStats.expenses > 0 ? '#ef4444' : 'var(--text-muted)', lineHeight: 1.1, marginBottom: '6px' }}>
+                    {currentStats.expenses > 0 ? `-£${currentStats.expenses.toFixed(2)}` : '£0.00'}
                   </div>
                   <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                     Vehicle fuel, sweets, generator, safety kit
@@ -1800,7 +1829,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     True Net Charitable Impact
                   </div>
                   <div className="brand-font" style={{ fontSize: '32px', color: 'var(--primary)', lineHeight: 1.1, marginBottom: '6px' }}>
-                    £{currentStats.netRaised.toLocaleString()}
+                    £{currentStats.netRaised.toFixed(2)}
                   </div>
                   <div style={{ fontSize: '12px', color: '#fff' }}>
                     Gross + Gift Aid - Expenses
@@ -1895,84 +1924,107 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       Year-over-year progression for fundraising totals, completed routes, streets covered, and volunteer turnout.
                     </p>
                   </div>
-                  <span style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#86efac', border: '1px solid #22c55e', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 700 }}>
-                    📈 +17.8% YoY Campaign Growth
-                  </span>
+                  {availableSeasons.length > 1 && (
+                    <span style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#86efac', border: '1px solid #22c55e', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 700 }}>
+                      📈 Multi-Season Tracking Active
+                    </span>
+                  )}
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
-                  {/* Metric 1: Total Raised */}
-                  <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '10px', padding: '16px' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '12px', textTransform: 'uppercase' }}>
-                      💰 Gross Raised (£)
+                {availableSeasons.length <= 1 ? (
+                  <div style={{
+                    background: '#151513',
+                    border: '1px dashed var(--border)',
+                    borderRadius: '12px',
+                    padding: '28px',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{ fontSize: '28px', marginBottom: '8px' }}>📊</div>
+                    <div style={{ fontSize: '15px', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>
+                      No Historical Seasons Uploaded Yet
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {['2024', '2025', '2026'].map(y => {
-                        const val = historyMap[y]?.raised || 0;
-                        const maxVal = Math.max(1, ...Object.values(historyMap).map(m => m.raised));
-                        const barPct = Math.round((val / maxVal) * 100);
-                        const isCurrent = y === selectedWrapSeason;
-                        return (
-                          <div key={y} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '12px', fontFamily: 'monospace', width: '38px', color: isCurrent ? 'var(--primary)' : 'var(--text-muted)', fontWeight: isCurrent ? 700 : 400 }}>{y}</span>
-                            <div style={{ flex: 1, height: '14px', background: 'rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden' }}>
-                              <div style={{ width: `${barPct}%`, height: '100%', background: isCurrent ? 'var(--primary)' : 'rgba(251, 175, 51, 0.4)', borderRadius: '4px' }} />
-                            </div>
-                            <span style={{ fontSize: '12px', fontFamily: 'monospace', width: '65px', textAlign: 'right', fontWeight: 700, color: isCurrent ? 'var(--primary)' : '#fff' }}>£{val.toLocaleString()}</span>
-                          </div>
-                        );
-                      })}
+                    <p style={{ fontSize: '13px', color: 'var(--text-muted)', maxWidth: '520px', margin: '0 auto 16px auto', lineHeight: 1.6 }}>
+                      This section will automatically generate comparative multi-year charts and growth analytics once you upload past seasons via the Sheets Importer or snapshot future campaigns using the <strong>📸 Snapshot Season</strong> button above.
+                    </p>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--primary)', background: 'rgba(251, 175, 51, 0.1)', padding: '6px 14px', borderRadius: '8px', fontWeight: 600 }}>
+                      <span>Current Active Baseline: {currentYearStr} Season (£{liveGrossRaised.toFixed(2)} Raised)</span>
                     </div>
                   </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+                    {/* Metric 1: Total Raised */}
+                    <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '10px', padding: '16px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '12px', textTransform: 'uppercase' }}>
+                        💰 Gross Raised (£)
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {[...availableSeasons].sort((a, b) => Number(a) - Number(b)).map(y => {
+                          const val = historyMap[y]?.raised || 0;
+                          const maxVal = Math.max(1, ...Object.values(historyMap).map(m => m.raised));
+                          const barPct = Math.round((val / maxVal) * 100);
+                          const isCurrent = y === activeSeasonKey;
+                          return (
+                            <div key={y} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <span style={{ fontSize: '12px', fontFamily: 'monospace', width: '38px', color: isCurrent ? 'var(--primary)' : 'var(--text-muted)', fontWeight: isCurrent ? 700 : 400 }}>{y}</span>
+                              <div style={{ flex: 1, height: '14px', background: 'rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden' }}>
+                                <div style={{ width: `${barPct}%`, height: '100%', background: isCurrent ? 'var(--primary)' : 'rgba(251, 175, 51, 0.4)', borderRadius: '4px' }} />
+                              </div>
+                              <span style={{ fontSize: '12px', fontFamily: 'monospace', width: '75px', textAlign: 'right', fontWeight: 700, color: isCurrent ? 'var(--primary)' : '#fff' }}>£{val.toFixed(2)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
 
-                  {/* Metric 2: Routes Completed */}
-                  <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '10px', padding: '16px' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '12px', textTransform: 'uppercase' }}>
-                      🗺️ Routes Completed
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {['2024', '2025', '2026'].map(y => {
-                        const val = historyMap[y]?.routes || 0;
-                        const maxVal = Math.max(1, ...Object.values(historyMap).map(m => m.routes));
-                        const barPct = Math.round((val / maxVal) * 100);
-                        const isCurrent = y === selectedWrapSeason;
-                        return (
-                          <div key={y} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '12px', fontFamily: 'monospace', width: '38px', color: isCurrent ? '#ef4444' : 'var(--text-muted)', fontWeight: isCurrent ? 700 : 400 }}>{y}</span>
-                            <div style={{ flex: 1, height: '14px', background: 'rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden' }}>
-                              <div style={{ width: `${barPct}%`, height: '100%', background: isCurrent ? '#ef4444' : 'rgba(239, 68, 68, 0.4)', borderRadius: '4px' }} />
+                    {/* Metric 2: Routes Completed */}
+                    <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '10px', padding: '16px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '12px', textTransform: 'uppercase' }}>
+                        🗺️ Routes Completed
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {[...availableSeasons].sort((a, b) => Number(a) - Number(b)).map(y => {
+                          const val = historyMap[y]?.routes || 0;
+                          const maxVal = Math.max(1, ...Object.values(historyMap).map(m => m.routes));
+                          const barPct = Math.round((val / maxVal) * 100);
+                          const isCurrent = y === activeSeasonKey;
+                          return (
+                            <div key={y} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <span style={{ fontSize: '12px', fontFamily: 'monospace', width: '38px', color: isCurrent ? '#ef4444' : 'var(--text-muted)', fontWeight: isCurrent ? 700 : 400 }}>{y}</span>
+                              <div style={{ flex: 1, height: '14px', background: 'rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden' }}>
+                                <div style={{ width: `${barPct}%`, height: '100%', background: isCurrent ? '#ef4444' : 'rgba(239, 68, 68, 0.4)', borderRadius: '4px' }} />
+                              </div>
+                              <span style={{ fontSize: '12px', fontFamily: 'monospace', width: '75px', textAlign: 'right', fontWeight: 700, color: isCurrent ? '#ef4444' : '#fff' }}>{val} routes</span>
                             </div>
-                            <span style={{ fontSize: '12px', fontFamily: 'monospace', width: '65px', textAlign: 'right', fontWeight: 700, color: isCurrent ? '#ef4444' : '#fff' }}>{val} routes</span>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Metric 3: Streets Covered */}
-                  <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '10px', padding: '16px' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '12px', textTransform: 'uppercase' }}>
-                      🏘️ Streets Reached
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {['2024', '2025', '2026'].map(y => {
-                        const val = historyMap[y]?.streets || 0;
-                        const maxVal = Math.max(1, ...Object.values(historyMap).map(m => m.streets));
-                        const barPct = Math.round((val / maxVal) * 100);
-                        const isCurrent = y === selectedWrapSeason;
-                        return (
-                          <div key={y} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '12px', fontFamily: 'monospace', width: '38px', color: isCurrent ? '#22c55e' : 'var(--text-muted)', fontWeight: isCurrent ? 700 : 400 }}>{y}</span>
-                            <div style={{ flex: 1, height: '14px', background: 'rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden' }}>
-                              <div style={{ width: `${barPct}%`, height: '100%', background: isCurrent ? '#22c55e' : 'rgba(34, 197, 94, 0.4)', borderRadius: '4px' }} />
+                    {/* Metric 3: Streets Covered */}
+                    <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '10px', padding: '16px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '12px', textTransform: 'uppercase' }}>
+                        🏘️ Streets Reached
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {[...availableSeasons].sort((a, b) => Number(a) - Number(b)).map(y => {
+                          const val = historyMap[y]?.streets || 0;
+                          const maxVal = Math.max(1, ...Object.values(historyMap).map(m => m.streets));
+                          const barPct = Math.round((val / maxVal) * 100);
+                          const isCurrent = y === activeSeasonKey;
+                          return (
+                            <div key={y} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <span style={{ fontSize: '12px', fontFamily: 'monospace', width: '38px', color: isCurrent ? '#22c55e' : 'var(--text-muted)', fontWeight: isCurrent ? 700 : 400 }}>{y}</span>
+                              <div style={{ flex: 1, height: '14px', background: 'rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden' }}>
+                                <div style={{ width: `${barPct}%`, height: '100%', background: isCurrent ? '#22c55e' : 'rgba(34, 197, 94, 0.4)', borderRadius: '4px' }} />
+                              </div>
+                              <span style={{ fontSize: '12px', fontFamily: 'monospace', width: '75px', textAlign: 'right', fontWeight: 700, color: isCurrent ? '#22c55e' : '#fff' }}>{val} streets</span>
                             </div>
-                            <span style={{ fontSize: '12px', fontFamily: 'monospace', width: '65px', textAlign: 'right', fontWeight: 700, color: isCurrent ? '#22c55e' : '#fff' }}>{val} streets</span>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* AI Executive Season Debrief & Strategic Committee Engine */}
@@ -2005,7 +2057,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 </div>
 
                 <div style={{ fontSize: '14px', color: '#eaeae5', lineHeight: 1.7, marginBottom: '20px' }}>
-                  The <strong>{selectedWrapSeason} Santa Campaign</strong> for <strong>{(session?.tableName || tableSlug).toUpperCase()}</strong> demonstrated high fundraising velocity, covering <strong>{currentStats.routes} routes</strong> and <strong>{currentStats.streets} streets</strong>, securing a total of <strong>£{currentStats.raised.toLocaleString()}</strong> ({pctOfTarget}% of target) with an effective net community yield of <strong>£{currentStats.netRaised.toLocaleString()}</strong> after HMRC Gift Aid reclaim.
+                  The <strong>{activeSeasonKey} Santa Campaign</strong> for <strong>{(session?.tableName || tableSlug).toUpperCase()}</strong> demonstrated high fundraising velocity, covering <strong>{currentStats.routes} routes</strong> and <strong>{currentStats.streets} streets</strong>, securing a total of <strong>£{currentStats.raised.toFixed(2)}</strong> ({pctOfTarget}% of target) with an effective net community yield of <strong>£{currentStats.netRaised.toFixed(2)}</strong>.
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
