@@ -1003,12 +1003,17 @@ async function loadAll(fetchRegistry = true, isBackground = false) {
   }
   
   try {
-    // 1. Single fetch to Cloudflare Worker, passing the master password and season mode
-    const targetScript = `${REGISTRY_URL}?function=getNationalSummary&secret=${encodeURIComponent(savedPass)}&mode=${currentMode}`;
-    const fastTrackUrl = `https://santaproxy.beverley247.workers.dev/?ttl=60&target=${encodeURIComponent(targetScript)}`;
-
-    // 2. The payload arrives fully aggregated
-    const payload = await fetchWithTimeout(fastTrackUrl, FETCH_TIMEOUT_MS);
+    // 1. Fast-track fetch to TurboSanta D1 API directly, with proxy fallback
+    let payload;
+    try {
+      const d1Url = `https://turbosanta-api.beverley247.workers.dev/api/national?mode=${currentMode}&secret=${encodeURIComponent(savedPass)}`;
+      payload = await fetchWithTimeout(d1Url, 6000);
+      if (!payload || !payload.ok || !payload.tables) throw new Error('D1 national summary fallback');
+    } catch(d1Err) {
+      const targetScript = `${REGISTRY_URL}?function=getNationalSummary&secret=${encodeURIComponent(savedPass)}&mode=${currentMode}`;
+      const fastTrackUrl = `https://santaproxy.beverley247.workers.dev/?ttl=60&target=${encodeURIComponent(targetScript)}`;
+      payload = await fetchWithTimeout(fastTrackUrl, FETCH_TIMEOUT_MS);
+    }
     
     if (payload.error) {
       if (payload.error === "Access Denied" || payload.error.includes("Secret")) {

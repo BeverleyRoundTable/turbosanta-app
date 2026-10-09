@@ -307,6 +307,89 @@ export default {
     }
 
     // ==============================================================
+    // 🏆 1D. NATIONAL ROLLUP & LEADERBOARD (GET /api/national & /api/leaderboard)
+    // ==============================================================
+    if ((path === "/api/national" || path === "/api/leaderboard" || url.searchParams.get("function") === "getNationalSummary") && request.method === "GET") {
+      const mode = url.searchParams.get("mode") || "live";
+      const allTables = await env.DB.prepare("SELECT * FROM tables ORDER BY name ASC").all().catch(() => ({ results: [] }));
+      const tableRows = allTables.results || [];
+
+      const leaderboardData = await Promise.all(tableRows.map(async (t) => {
+        if (mode === "live") {
+          const [totalDonations, ga, routes, streets, latestGps] = await Promise.all([
+            env.DB.prepare("SELECT SUM(amount) as total FROM donations WHERE table_id = ? AND (created_at IS NULL OR strftime('%Y', created_at) = strftime('%Y', 'now'))").bind(t.id).first().catch(() => ({ total: 0 })),
+            env.DB.prepare("SELECT SUM(donation_amount) as total FROM gift_aid WHERE table_id = ?").bind(t.id).first().catch(() => ({ total: 0 })),
+            env.DB.prepare("SELECT COUNT(*) as count FROM routes WHERE table_id = ?").bind(t.id).first().catch(() => ({ count: 0 })),
+            env.DB.prepare("SELECT COUNT(*) as count FROM route_streets WHERE table_id = ?").bind(t.id).first().catch(() => ({ count: 0 })),
+            env.DB.prepare("SELECT lat, lng, speed, road_name, timestamp FROM telemetry WHERE table_id = ? ORDER BY timestamp DESC LIMIT 1").bind(t.id).first().catch(() => null)
+          ]);
+
+          const raised = Number(totalDonations?.total || 0);
+          const giftAid = Math.round((Number(ga?.total || 0) * 0.25) * 100) / 100;
+          const expenses = Number(t.expenses || 0);
+          const netRaised = (raised + giftAid) - expenses;
+
+          let isGpsFresh = false;
+          if (latestGps && latestGps.timestamp) {
+            const normStr = String(latestGps.timestamp).trim().replace(' ', 'T');
+            const gpsTime = new Date(normStr.endsWith('Z') ? normStr : normStr + 'Z').getTime();
+            isGpsFresh = !isNaN(gpsTime) && (Date.now() - gpsTime) <= 5 * 60 * 1000;
+          }
+
+          return {
+            id: t.id,
+            slug: t.slug,
+            name: t.sleigh_display_name || t.name,
+            api: `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${t.slug}`,
+            raised: raised,
+            target: Number(t.fundraising_goal || 5000),
+            giftAid: giftAid,
+            expenses: expenses,
+            netRaised: netRaised,
+            routes: Number(routes?.count || 0),
+            streets: Number(streets?.count || 0),
+            views: 3200,
+            messages: 85,
+            status: isGpsFresh ? "Live Tracking" : "Resting in Lapland",
+            announcement: t.live_announcement || null,
+            lat: (latestGps && isGpsFresh) ? latestGps.lat : 66.5436,
+            lng: (latestGps && isGpsFresh) ? latestGps.lng : 25.8473,
+            ok: true
+          };
+        } else {
+          // Historical season mode (e.g. 2024, 2025)
+          const snap = await env.DB.prepare("SELECT * FROM season_history WHERE table_id = ? AND year = ?").bind(t.id, String(mode)).first().catch(() => null);
+          return {
+            id: t.id,
+            slug: t.slug,
+            name: t.sleigh_display_name || t.name,
+            api: `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${t.slug}`,
+            raised: Number(snap?.raised || 0),
+            target: 5000,
+            giftAid: Math.round(Number(snap?.raised || 0) * 0.25 * 100) / 100,
+            expenses: Number(snap?.expenses || 0),
+            netRaised: Number(snap?.net_raised || snap?.raised || 0),
+            routes: Number(snap?.routes || 0),
+            streets: Number(snap?.streets || 0),
+            views: Number(snap?.total_views || 0),
+            messages: Number(snap?.messages || 0),
+            status: "Season Complete",
+            ok: true
+          };
+        }
+      }));
+
+      // Sort leaderboard by netRaised descending
+      leaderboardData.sort((a, b) => b.netRaised - a.netRaised);
+
+      return jsonResponse({
+        ok: true,
+        mode: mode,
+        tables: leaderboardData
+      });
+    }
+
+    // ==============================================================
     // 🛷 2. LIVE SLEIGH GPS (GET /api/live-gps)
     // ==============================================================
     if (path === "/api/live-gps" && request.method === "GET") {
