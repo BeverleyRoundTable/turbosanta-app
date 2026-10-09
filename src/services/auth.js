@@ -13,6 +13,19 @@ export function isRoundTableEmail(email) {
   return clean.endsWith("@roundtable.org.uk") || clean.endsWith("@roundtable.co.uk");
 }
 
+export const NATIONAL_ADMIN_EMAILS = [
+  "beverley247@roundtable.org.uk",
+  "national@roundtable.org.uk",
+  "admin@roundtable.org.uk",
+  "rtbi@roundtable.org.uk"
+];
+
+export function isNationalAdmin(email) {
+  if (!email || typeof email !== 'string') return false;
+  const clean = email.trim().toLowerCase();
+  return clean.startsWith("national") || NATIONAL_ADMIN_EMAILS.includes(clean);
+}
+
 /**
  * Derives table ID from email (e.g. beverley247@roundtable.org.uk -> beverley_247)
  */
@@ -87,11 +100,15 @@ export async function verifyMagicLink(email, enteredCode) {
   }
 
   // Code is valid! Create the authenticated session
+  const isNational = isNationalAdmin(cleanEmail);
   const session = {
     email: cleanEmail,
     tableId: stored.tableId || "beverley_247",
-    tableName: cleanEmail.includes("beverley") ? "Beverley Round Table #247" : "Round Table",
-    role: cleanEmail.startsWith("national") ? "national_admin" : "table_admin",
+    tableName: isNational 
+      ? (cleanEmail.includes("beverley") ? "Beverley Round Table #247 (National Admin)" : "National Round Table Admin") 
+      : (cleanEmail.includes("beverley") ? "Beverley Round Table #247" : "Round Table Chapter"),
+    role: isNational ? "national_admin" : "table_admin",
+    isNationalAdmin: isNational,
     authenticatedAt: new Date().toISOString(),
     token: `ts2_${btoa(`${cleanEmail}_${Date.now()}`)}`
   };
@@ -112,11 +129,15 @@ export async function loginWithGoogleWorkspace(googleAccountEmail) {
     throw new Error("Google Sign-In rejected: Only @roundtable.org.uk Google Workspace accounts are permitted.");
   }
 
+  const isNational = isNationalAdmin(clean);
   const session = {
     email: clean,
     tableId: deriveTableFromEmail(clean),
-    tableName: clean.includes("beverley") ? "Beverley Round Table #247" : "Round Table Chapter",
-    role: clean.startsWith("national") ? "national_admin" : "table_admin",
+    tableName: isNational 
+      ? (clean.includes("beverley") ? "Beverley Round Table #247 (National Admin)" : "National Round Table Admin") 
+      : (clean.includes("beverley") ? "Beverley Round Table #247" : "Round Table Chapter"),
+    role: isNational ? "national_admin" : "table_admin",
+    isNationalAdmin: isNational,
     authenticatedAt: new Date().toISOString(),
     provider: "google",
     token: `ts2_g_${btoa(`${clean}_${Date.now()}`)}`

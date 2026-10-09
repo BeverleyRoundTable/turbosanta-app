@@ -43,6 +43,11 @@ function updateDisplay() {
     guideLink.href = `/guide.html?table=${encodeURIComponent(currentTable || "beverley")}`;
   }
 
+  const hubLink = document.getElementById("hubLinkHeader");
+  if (hubLink) {
+    hubLink.href = `/hub.html?table=${encodeURIComponent(currentTable || "beverley")}`;
+  }
+
   generateAllEmbeds();
 }
 

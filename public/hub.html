@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TurboSanta — Chapter Command Hub & Link Portal</title>
+  <meta name="theme-color" content="#0d0d0b">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    @font-face {
+      font-family: 'Eurostile';
+      src: url('https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root {
+      --primary: #FBAF33;
+      --primary-rgb: 251, 175, 51;
+      --on-primary: #000000;
+      --dark: #0d0d0b;
+      --surface: #161614;
+      --surface-2: #1e1e1b;
+      --surface-3: #262622;
+      --border: rgba(255, 255, 255, 0.1);
+      --border-primary: rgba(251, 175, 51, 0.3);
+      --text: #eaeae5;
+      --text-muted: rgba(255, 255, 255, 0.6);
+      --red: #D31C1C;
+      --green: #2ecc71;
+      --blue: #3b82f6;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Open Sans', sans-serif;
+      background-color: var(--dark);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: 80px;
+    }
+
+    h1, h2, h3, h4, .brand-font {
+      font-family: 'Eurostile', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* TOP HEADER */
+    header.hub-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 24px 32px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .header-left img {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+    }
+    .header-left h1 {
+      font-size: 26px;
+      color: #fff;
+      line-height: 1.1;
+    }
+    .header-left h1 span { color: var(--primary); }
+    .header-left p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin: 0;
+    }
+
+    .table-switcher {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface-2);
+      border: 1px solid var(--border-primary);
+      padding: 6px 16px;
+      border-radius: 100px;
+    }
+    .table-switcher label {
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: 1px;
+    }
+    .table-switcher input {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      outline: none;
+      width: 130px;
+    }
+
+    /* CONTAINER */
+    .hub-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+    }
+
+    /* CATEGORY SECTION */
+    .section-title-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 14px;
+      margin-bottom: 22px;
+    }
+    .section-title {
+      font-size: 22px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .section-title i { color: var(--primary); }
+    .section-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* CARDS GRID */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 20px;
+    }
+
+    .hub-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+      position: relative;
+    }
+    .hub-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(251, 175, 51, 0.4);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+    .hub-card.featured {
+      border-color: var(--primary);
+      background: linear-gradient(180deg, rgba(251, 175, 51, 0.08) 0%, var(--surface) 100%);
+      box-shadow: 0 0 25px rgba(251, 175, 51, 0.15);
+    }
+
+    .card-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+      width: fit-content;
+    }
+    .badge-gold { background: rgba(251, 175, 51, 0.15); color: var(--primary); border: 1px solid rgba(251, 175, 51, 0.3); }
+    .badge-green { background: rgba(46, 204, 113, 0.15); color: var(--green); border: 1px solid rgba(46, 204, 113, 0.3); }
+    .badge-red { background: rgba(211, 28, 28, 0.15); color: #fca5a5; border: 1px solid rgba(211, 28, 28, 0.3); }
+
+    .hub-card h3 {
+      font-size: 19px;
+      color: #fff;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .hub-card p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 18px;
+    }
+
+    .url-preview {
+      background: #0d0d0b;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #86efac;
+      word-break: break-all;
+      margin-bottom: 16px;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: var(--primary); color: #000; }
+    .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: #fff;
+    }
+    .btn-secondary:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* VOLUNTEER HERO CALLOUT */
+    .volunteer-hero-box {
+      background: linear-gradient(135deg, rgba(46, 204, 113, 0.12) 0%, rgba(22, 22, 20, 0.95) 100%);
+      border: 2px solid var(--green);
+      border-radius: 20px;
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .vol-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .vol-header h3 {
+      font-size: 24px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .vol-header h3 span { color: var(--green); }
+
+    /* MODAL FOR QR CODE */
+    #qrModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      backdrop-filter: blur(6px);
+    }
+    .qr-box {
+      background: var(--surface);
+      border: 1px solid var(--border-primary);
+      border-radius: 20px;
+      padding: 32px;
+      text-align: center;
+      max-width: 400px;
+      width: 100%;
+      position: relative;
+    }
+    .qr-box img {
+      width: 240px;
+      height: 240px;
+      background: #fff;
+      border-radius: 12px;
+      padding: 10px;
+      margin: 18px auto;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="hub-header">
+    <div class="header-left">
+      <img src="https://brt-23f.pages.dev/icons/RTBI_Santa.png" alt="TurboSanta Logo">
+      <div>
+        <h1>TURBOSANTA <span>LAUNCHPAD</span></h1>
+        <p>Master Directory of Public, Volunteer & Organiser Links for Your Chapter</p>
+      </div>
+    </div>
+
+    <div class="table-switcher">
+      <label for="tableSlugInput"><i class="fa-solid fa-location-dot"></i> Chapter:</label>
+      <input type="text" id="tableSlugInput" value="beverley" placeholder="e.g. beverley">
+      <button class="btn btn-primary" style="padding: 5px 14px; font-size: 11px;" onclick="applyTableSlug()">Switch</button>
+    </div>
+  </header>
+
+  <div class="hub-container">
+
+    <!-- HERO VOLUNTEER CREW CALLOUT -->
+    <div class="volunteer-hero-box">
+      <div class="vol-header">
+        <div>
+          <span class="card-badge badge-green">SQL Database Integrated</span>
+          <h3><i class="fa-solid fa-users" style="color:var(--green);"></i> Volunteer Hub Link: <span>Share with Helpers</span></h3>
+          <p style="color:var(--text-muted); font-size:14px; margin-top:4px;">
+            Copy this direct link to share with volunteer elves on WhatsApp, Facebook, or your local community groups.
+            Registrations save directly into your Cloudflare D1 SQL database!
+          </p>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-primary" onclick="copyDynamicUrl('crewUrl')"><i class="fa-solid fa-copy"></i> Copy Volunteer Link</button>
+          <button class="btn btn-secondary" onclick="openQrModal('crewUrl', 'Volunteer Sign-Up QR Code')"><i class="fa-solid fa-qrcode"></i> QR Code</button>
+          <a id="btnLaunchCrew" href="/crew.html?table=beverley" target="_blank" class="btn btn-secondary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open</a>
+        </div>
+      </div>
+      <div class="url-preview" id="crewUrl">https://turbosanta-app.pages.dev/crew.html?table=beverley</div>
+    </div>
+
+    <!-- SECTION 1: PUBLIC LINKS (SHARE WITH FAMILIES & SUPPORTERS) -->
+    <section>
+      <div class="section-title-wrap">
+        <h2 class="section-title"><i class="fa-solid fa-bullhorn"></i> Public Links (For Residents & Families)</h2>
+        <span class="section-desc">Share these links on public social media, posters, flyers, and press releases</span>
+      </div>
+
+      <div class="cards-grid">
+        <!-- Public Turnkey Site -->
+        <div class="hub-card featured">
+          <div>
+            <span class="card-badge badge-gold">Primary Public Website</span>
+            <h3><i class="fa-solid fa-sleigh" style="color:var(--primary);"></i> Turnkey Santa Sleigh Site</h3>
+            <p>Your complete, ready-to-use public portal with live GPS map, tonight's sponsor spotlight, full route timetables, donations, FAQs, and photo gallery.</p>
+          </div>
+          <div>
+            <div class="url-preview" id="publicSiteUrl">https://turbosanta-app.pages.dev/santasleigh.html?table=beverley</div>
+            <div class="card-actions">
+              <a id="btnLaunchPublic" href="/santasleigh.html?table=beverley" target="_blank" class="btn btn-primary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Site</a>
+              <button class="btn btn-secondary" onclick="copyDynamicUrl('publicSiteUrl')"><i class="fa-solid fa-copy"></i> Copy Link</button>
+              <button class="btn btn-secondary" onclick="openQrModal('publicSiteUrl', 'Public Sleigh Site QR')"><i class="fa-solid fa-qrcode"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Address Lookup -->
+        <div class="hub-card">
+          <div>
+            <span class="card-badge badge-gold">Direct Resident Search</span>
+            <h3><i class="fa-solid fa-map-pin"></i> Spatial Address Lookup</h3>
+            <p>Direct lookup tool for residents asking <em>"When are you coming down my street?"</em>. Shows exact route night and arrival window.</p>
+          </div>
+          <div>
+            <div class="url-preview" id="addressUrl">https://turbosanta-app.pages.dev/address.html?table=beverley</div>
+            <div class="card-actions">
+              <a id="btnLaunchAddress" href="/address.html?table=beverley" target="_blank" class="btn btn-secondary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open</a>
+              <button class="btn btn-secondary" onclick="copyDynamicUrl('addressUrl')"><i class="fa-solid fa-copy"></i> Copy Link</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Talk to Santa AI Call -->
+        <div class="hub-card">
+          <div>
+            <span class="card-badge badge-red">Interactive AI Voice</span>
+            <h3><i class="fa-solid fa-phone"></i> Talk to Santa AI Live Call</h3>
+            <p>ElevenLabs conversational AI phone call widget where children can speak out loud to Santa live from Lapland.</p>
+          </div>
+          <div>
+            <div class="url-preview" id="santaChatUrl">https://turbosanta-app.pages.dev/santa_chat.html?table=beverley</div>
+            <div class="card-actions">
+              <a id="btnLaunchSantaChat" href="/santa_chat.html?table=beverley" target="_blank" class="btn btn-secondary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open</a>
+              <button class="btn btn-secondary" onclick="copyDynamicUrl('santaChatUrl')"><i class="fa-solid fa-copy"></i> Copy Link</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Memory Book -->
+        <div class="hub-card">
+          <div>
+            <span class="card-badge badge-gold">Community Photos</span>
+            <h3><i class="fa-solid fa-camera"></i> Digital Memory Book</h3>
+            <p>Community photo upload gallery where families share snaps of the sleigh and tag their route.</p>
+          </div>
+          <div>
+            <div class="url-preview" id="memoryUrl">https://turbosanta-app.pages.dev/memory_book.html?table=beverley</div>
+            <div class="card-actions">
+              <a id="btnLaunchMemory" href="/memory_book.html?table=beverley" target="_blank" class="btn btn-secondary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open</a>
+              <button class="btn btn-secondary" onclick="copyDynamicUrl('memoryUrl')"><i class="fa-solid fa-copy"></i> Copy Link</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: OPERATIONAL & SLEIGH CREW LINKS -->
+    <section>
+      <div class="section-title-wrap">
+        <h2 class="section-title"><i class="fa-solid fa-truck-pickup"></i> Operational & Sleigh Crew Links</h2>
+        <span class="section-desc">Give these links to your sleigh driver, navigators, and bucket captains</span>
+      </div>
+
+      <div class="cards-grid">
+        <!-- Driver Sat-Nav Beacon -->
+        <div class="hub-card">
+          <div>
+            <span class="card-badge badge-green">Driver Console</span>
+            <h3><i class="fa-solid fa-location-arrow"></i> Driver GPS Beacon & Nav</h3>
+            <p>For the mobile phone mounted on the sleigh towing vehicle. Maintains screen wake-lock and broadcasts high-accuracy GPS coordinates every 2 seconds.</p>
+          </div>
+          <div>
+            <div class="url-preview" id="driverUrl">https://turbosanta-app.pages.dev/tracker.html?table=beverley&mode=driver</div>
+            <div class="card-actions">
+              <a id="btnLaunchDriver" href="/tracker.html?table=beverley&mode=driver" target="_blank" class="btn btn-primary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Beacon</a>
+              <button class="btn btn-secondary" onclick="copyDynamicUrl('driverUrl')"><i class="fa-solid fa-copy"></i> Copy Link</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Crew Check-in & Safety -->
+        <div class="hub-card">
+          <div>
+            <span class="card-badge badge-gold">Night Operations</span>
+            <h3><i class="fa-solid fa-clipboard-check"></i> Crew Leader Check-In</h3>
+            <p>Inside the Crew Hub, leaders log in with the table password to check in arriving volunteers, allocate bucket numbers, and sign off vehicle safety.</p>
+          </div>
+          <div>
+            <div class="url-preview" id="crewAdminUrl">https://turbosanta-app.pages.dev/crew.html?table=beverley</div>
+            <div class="card-actions">
+              <a id="btnLaunchCrewAdmin" href="/crew.html?table=beverley" target="_blank" class="btn btn-secondary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Console</a>
+              <button class="btn btn-secondary" onclick="copyDynamicUrl('crewAdminUrl')"><i class="fa-solid fa-copy"></i> Copy Link</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sleigh Blueprint -->
+        <div class="hub-card">
+          <div>
+            <span class="card-badge badge-gold">Technical Specs</span>
+            <h3><i class="fa-solid fa-screwdriver-wrench"></i> Sleigh Blueprint</h3>
+            <p>Interactive schematics of the sleigh hardware (portable power station, audio amplification, lighting relays).</p>
+          </div>
+          <div>
+            <div class="url-preview" id="blueprintUrl">https://turbosanta-app.pages.dev/blueprint.html?table=beverley</div>
+            <div class="card-actions">
+              <a id="btnLaunchBlueprint" href="/blueprint.html?table=beverley" target="_blank" class="btn btn-secondary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open</a>
+              <button class="btn btn-secondary" onclick="copyDynamicUrl('blueprintUrl')"><i class="fa-solid fa-copy"></i> Copy Link</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: ORGANISER & ADMIN LINKS -->
+    <section>
+      <div class="section-title-wrap">
+        <h2 class="section-title"><i class="fa-solid fa-user-shield"></i> Organiser & Chapter Admin Links</h2>
+        <span class="section-desc">Mission control dashboards, route planning tools, and website embedding</span>
+      </div>
+
+      <div class="cards-grid">
+        <!-- God Mode -->
+        <div class="hub-card featured">
+          <div>
+            <span class="card-badge badge-red">Mission Control</span>
+            <h3><i class="fa-solid fa-satellite-dish" style="color:var(--red);"></i> God Mode Dashboard</h3>
+            <p>Real-time command center: broadcast live PA announcements, send crew alerts to volunteer phones, monitor GPS health & weather, and moderate audience messages.</p>
+          </div>
+          <div>
+            <div class="url-preview" id="godModeUrl">https://turbosanta-app.pages.dev/god_mode.html?table=beverley</div>
+            <div class="card-actions">
+              <a id="btnLaunchGodMode" href="/god_mode.html?table=beverley" target="_blank" class="btn btn-primary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Launch God Mode</a>
+              <button class="btn btn-secondary" onclick="copyDynamicUrl('godModeUrl')"><i class="fa-solid fa-copy"></i> Copy Link</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Route Planner & GPX -->
+        <div class="hub-card">
+          <div>
+            <span class="card-badge badge-gold">Route Design</span>
+            <h3><i class="fa-solid fa-route"></i> Visual Route Planner</h3>
+            <p>Map route tracks along roads, tag planned stops (grottos), auto-detect street names via OpenStreetMap, and export dense GPX files.</p>
+          </div>
+          <div>
+            <div class="url-preview" id="routePlannerUrl">https://turbosanta-app.pages.dev/route_planner.html?table=beverley</div>
+            <div class="card-actions">
+              <a id="btnLaunchRoutePlanner" href="/route_planner.html?table=beverley" target="_blank" class="btn btn-secondary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Planner</a>
+              <button class="btn btn-secondary" onclick="copyDynamicUrl('routePlannerUrl')"><i class="fa-solid fa-copy"></i> Copy Link</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Embed Studio -->
+        <div class="hub-card">
+          <div>
+            <span class="card-badge badge-gold">Custom Website iFrames</span>
+            <h3><i class="fa-solid fa-code"></i> Website Embed Studio</h3>
+            <p>Ready-to-copy HTML <code>&lt;iframe&gt;</code> embed codes for WordPress, Wix, Squarespace, or bespoke websites.</p>
+          </div>
+          <div>
+            <div class="url-preview" id="embedStudioUrl">https://turbosanta-app.pages.dev/embed.html?table=beverley</div>
+            <div class="card-actions">
+              <a id="btnLaunchEmbedStudio" href="/embed.html?table=beverley" target="_blank" class="btn btn-secondary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Studio</a>
+              <button class="btn btn-secondary" onclick="copyDynamicUrl('embedStudioUrl')"><i class="fa-solid fa-copy"></i> Copy Link</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Master Guide -->
+        <div class="hub-card">
+          <div>
+            <span class="card-badge badge-gold">Documentation</span>
+            <h3><i class="fa-solid fa-book-open"></i> Platform Master Guide</h3>
+            <p>Complete step-by-step documentation covering the 2 deployment models, route planning, D1 SQL schema, and operations.</p>
+          </div>
+          <div>
+            <div class="url-preview" id="guideUrl">https://turbosanta-app.pages.dev/guide.html?table=beverley</div>
+            <div class="card-actions">
+              <a id="btnLaunchGuide" href="/guide.html?table=beverley" target="_blank" class="btn btn-secondary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Guide</a>
+              <button class="btn btn-secondary" onclick="copyDynamicUrl('guideUrl')"><i class="fa-solid fa-copy"></i> Copy Link</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- QR CODE MODAL -->
+  <div id="qrModal">
+    <div class="qr-box">
+      <button onclick="closeQrModal()" style="position:absolute; top:16px; right:16px; background:none; border:none; color:#fff; font-size:24px; cursor:pointer;">&times;</button>
+      <h3 id="qrModalTitle" class="brand-font" style="font-size:18px; color:var(--primary); margin-bottom:6px;">QR Code</h3>
+      <p style="font-size:12px; color:var(--text-muted);">Scan with any phone camera</p>
+      <img id="qrImage" src="" alt="QR Code">
+      <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="closeQrModal()">Close</button>
+    </div>
+  </div>
+
+  <footer style="text-align: center; padding: 40px 20px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 13px; margin-top: 60px;">
+    &copy; 2026 TurboSanta Platform &middot; Built for Round Table Chapters across the UK & Ireland
+  </footer>
+
+  <script>
+    function getActiveSlug() {
+      const input = document.getElementById('tableSlugInput');
+      return (input && input.value.trim().toLowerCase()) || 'beverley';
+    }
+
+    function applyTableSlug() {
+      const slug = getActiveSlug();
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('table', slug);
+      window.history.replaceState({}, '', newUrl);
+      refreshAllLinks();
+    }
+
+    function refreshAllLinks() {
+      const slug = getActiveSlug();
+      const origin = window.location.origin;
+
+      const links = {
+        crewUrl: `${origin}/crew.html?table=${slug}`,
+        publicSiteUrl: `${origin}/santasleigh.html?table=${slug}`,
+        addressUrl: `${origin}/address.html?table=${slug}`,
+        santaChatUrl: `${origin}/santa_chat.html?table=${slug}`,
+        memoryUrl: `${origin}/memory_book.html?table=${slug}`,
+        driverUrl: `${origin}/tracker.html?table=${slug}&mode=driver`,
+        crewAdminUrl: `${origin}/crew.html?table=${slug}`,
+        blueprintUrl: `${origin}/blueprint.html?table=${slug}`,
+        godModeUrl: `${origin}/god_mode.html?table=${slug}`,
+        routePlannerUrl: `${origin}/route_planner.html?table=${slug}`,
+        embedStudioUrl: `${origin}/embed.html?table=${slug}`,
+        guideUrl: `${origin}/guide.html?table=${slug}`
+      };
+
+      for (const [id, url] of Object.entries(links)) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = url;
+      }
+
+      // Update launch button hrefs
+      const launchMap = {
+        btnLaunchCrew: links.crewUrl,
+        btnLaunchPublic: links.publicSiteUrl,
+        btnLaunchAddress: links.addressUrl,
+        btnLaunchSantaChat: links.santaChatUrl,
+        btnLaunchMemory: links.memoryUrl,
+        btnLaunchDriver: links.driverUrl,
+        btnLaunchCrewAdmin: links.crewAdminUrl,
+        btnLaunchBlueprint: links.blueprintUrl,
+        btnLaunchGodMode: links.godModeUrl,
+        btnLaunchRoutePlanner: links.routePlannerUrl,
+        btnLaunchEmbedStudio: links.embedStudioUrl,
+        btnLaunchGuide: links.guideUrl
+      };
+
+      for (const [btnId, url] of Object.entries(launchMap)) {
+        const btn = document.getElementById(btnId);
+        if (btn) btn.href = url;
+      }
+    }
+
+    function copyDynamicUrl(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      navigator.clipboard.writeText(el.textContent.trim()).then(() => {
+        alert("Link copied to clipboard!\n\n" + el.textContent.trim());
+      });
+    }
+
+    function openQrModal(urlId, title) {
+      const el = document.getElementById(urlId);
+      if (!el) return;
+      const url = el.textContent.trim();
+      document.getElementById('qrModalTitle').textContent = title || "Scan QR Code";
+      document.getElementById('qrImage').src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}`;
+      document.getElementById('qrModal').style.display = 'flex';
+    }
+
+    function closeQrModal() {
+      document.getElementById('qrModal').style.display = 'none';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tableParam = urlParams.get('table');
+      if (tableParam) {
+        document.getElementById('tableSlugInput').value = tableParam;
+      }
+      refreshAllLinks();
+    });
+  </script>
+</body>
+</html>
