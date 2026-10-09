@@ -1657,20 +1657,37 @@ body.dim-ui .route-sponsor:hover { opacity: 0.85; }
       // against the route's scheduled Start/End times, so pinned families
       // see "due around 7:40pm tonight" before the sleigh even moves.
       function getScheduledPinEtaText() {
-        const route = AppState.vars.todayRoute;
-        if (!route || !AppState.vars.notifyLatLng || !AppState.flags.gpxLoaded) return null;
-        const start = parseRouteClock(route["Start Time"]);
-        let end = parseRouteClock(route["End Time"]);
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const routes = AppState.vars.latestApiData?.routes || apiData?.routes || [];
+        const route = AppState.vars.todayRoute || routes.find(r => r.date === todayStr);
+        if (!route || !AppState.vars.notifyLatLng || !AppState.flags.gpxLoaded || !AppState.gpxRoute || !AppState.gpxRoute.length) return null;
+        const start = parseRouteClock(route["Start Time"] || route.start_time);
+        let end = parseRouteClock(route["End Time"] || route.end_time);
         if (!start || !end) return null;
         if (end <= start) end += 12 * 60 * 60 * 1000;            // crossed-midnight guard
         if (Date.now() > end + 30 * 60 * 1000) return null;      // window over — Lapland text wins
         const userSnap = getUserPinSnap();
-        if (!userSnap) return null;
+        if (!userSnap || !userSnap.point) return null;
         const total = AppState.gpxRoute[AppState.gpxRoute.length - 1].dist || 1;
-        const frac = Math.min(1, Math.max(0, userSnap.point.dist / total));
+        const frac = Math.min(1, Math.max(0, (userSnap.point.dist || 0) / total));
         let due = start + frac * (end - start);
         if (due < Date.now()) due = Date.now() + 5 * 60 * 1000;  // running late — never show a time in the past
         return "Santa is due near your pin around " + formatClock(roundTo5Min(due)) + " tonight!";
+      }
+
+      // Dynamic resting status text: only promise "preparing for tonight!" if there is an active route scheduled today
+      function getRestingLaplandText() {
+        const pinEta = getScheduledPinEtaText();
+        if (pinEta) return pinEta;
+
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const routes = AppState.vars.latestApiData?.routes || apiData?.routes || [];
+        const todayRoute = AppState.vars.todayRoute || routes.find(r => r.date === todayStr);
+
+        if (todayRoute) {
+          return "Santa is resting in Lapland preparing for tonight!";
+        }
+        return "Santa is currently resting in Lapland!";
       }
 
       // ══════════════════════════════════════════════════════════════
@@ -2188,7 +2205,7 @@ if (data && typeof data === "object" && !data.lat) {
 
 // If data is empty or coords aren't valid, don't throw an error — handle gracefully:
 if (!data || !Utils.validPos(data.lat, data.lng)) {
-  AppState.dom.statusBox.textContent = getScheduledPinEtaText() || "Santa is preparing in Lapland!";
+  AppState.dom.statusBox.textContent = getRestingLaplandText();
   AppState.dom.statusDot.style.display = "none";
   scheduleNextPoll();
   return;
@@ -2231,7 +2248,7 @@ setConnectionState("live");
               AppState.dom.statusBox.textContent = `📢 ${liveMsg}`;
               AppState.dom.statusBox.classList.add("is-announcement");
             } else {
-              AppState.dom.statusBox.textContent = getScheduledPinEtaText() || "Santa is resting in Lapland preparing for tonight!";
+              AppState.dom.statusBox.textContent = getRestingLaplandText();
               AppState.dom.statusBox.classList.remove("is-announcement", "is-user-msg");
             }
             AppState.dom.statusDot.style.display = "none";
