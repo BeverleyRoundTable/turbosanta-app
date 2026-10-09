@@ -191,6 +191,11 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     fundraising_goal: tableData?.table?.fundraising_goal || 8000,
     donate_url: tableData?.table?.donate_url || 'https://www.zeffy.com/en-GB/donation-form/beverley-round-table-for-our-community',
     logo_url: tableData?.table?.logo_url || 'https://brt-23f.pages.dev/icons/RTBI_Santa.png',
+    sleigh_icon_live: tableData?.table?.sleigh_icon_live || '',
+    website_url: tableData?.table?.website_url || '',
+    facebook_url: tableData?.table?.facebook_url || '',
+    instagram_url: tableData?.table?.instagram_url || '',
+    tiktok_url: tableData?.table?.tiktok_url || '',
     primary_color: tableData?.table?.primary_color || '#FBAF33',
     enable_gift_aid: tableData?.table?.enable_gift_aid || false,
     charity_name: tableData?.table?.charity_name || '',
@@ -1613,6 +1618,76 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 helperText="Drag and drop your official Table or Sleigh logo (No GitHub upload required!)."
               />
 
+              {/* DRAG AND DROP SLEIGH MAP PIN UPLOAD ZONE */}
+              <DropzoneUpload
+                label="Custom Tracker Map Pin / Sleigh Marker (.png)"
+                currentImage={formData.sleigh_icon_live}
+                onImageSelected={(dataUrl) => setFormData(prev => ({ ...prev, sleigh_icon_live: dataUrl }))}
+                helperText="Upload your custom Santa Sleigh or Table marker icon to appear live on the tracker map (defaults to official sleigh if empty)."
+              />
+
+              {/* OFFICIAL LINKS & SOCIAL CHANNELS */}
+              <div style={{
+                background: '#0d0d0b',
+                border: '1px solid var(--border)',
+                borderRadius: '12px',
+                padding: '20px',
+                marginTop: '10px'
+              }}>
+                <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--primary)', fontFamily: 'Eurostile, sans-serif', textTransform: 'uppercase', marginBottom: '6px' }}>
+                  Official Links & Social Channels
+                </div>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+                  Add your Table's website and social media profiles. These will display in the footer of your public sleigh page so families and supporters can connect with your club.
+                </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Official Table Website</label>
+                    <input
+                      type="url"
+                      value={formData.website_url || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, website_url: e.target.value }))}
+                      placeholder="https://beverleyroundtable.co.uk"
+                      style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Facebook Page / Group</label>
+                    <input
+                      type="url"
+                      value={formData.facebook_url || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, facebook_url: e.target.value }))}
+                      placeholder="https://facebook.com/beverleyroundtable"
+                      style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Instagram Profile</label>
+                    <input
+                      type="url"
+                      value={formData.instagram_url || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, instagram_url: e.target.value }))}
+                      placeholder="https://instagram.com/beverleyroundtable"
+                      style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>TikTok / Other Profile</label>
+                    <input
+                      type="url"
+                      value={formData.tiktok_url || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, tiktok_url: e.target.value }))}
+                      placeholder="https://tiktok.com/@beverleysanta"
+                      style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* HEADLINE / POWER SPONSOR SECTION (OPTIONAL) */}
               <div style={{
                 background: '#0d0d0b',
@@ -1680,6 +1755,11 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       fundraising_goal: formData.fundraising_goal,
                       donate_url: formData.donate_url,
                       logo_url: formData.logo_url,
+                      sleigh_icon_live: formData.sleigh_icon_live || null,
+                      website_url: formData.website_url || null,
+                      facebook_url: formData.facebook_url || null,
+                      instagram_url: formData.instagram_url || null,
+                      tiktok_url: formData.tiktok_url || null,
                       primary_color: formData.primary_color,
                       enable_gift_aid: formData.enable_gift_aid,
                       charity_name: formData.charity_name,

@@ -850,6 +850,9 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
               {table.instagram_url && (
                 <a href={table.instagram_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', padding: '8px 14px', border: '1px solid var(--border)', borderRadius: '24px', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>Instagram</a>
               )}
+              {table.tiktok_url && (
+                <a href={table.tiktok_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', padding: '8px 14px', border: '1px solid var(--border)', borderRadius: '24px', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>TikTok</a>
+              )}
             </div>
           </div>
         </section>

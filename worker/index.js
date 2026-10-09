@@ -84,6 +84,11 @@ export default {
         enable_gift_aid: Boolean(table.enable_gift_aid),
         charity_number: table.charity_number || "",
         logo_url: table.logo_url || null,
+        sleigh_icon_live: table.sleigh_icon_live || null,
+        website_url: table.website_url || null,
+        facebook_url: table.facebook_url || null,
+        instagram_url: table.instagram_url || null,
+        tiktok_url: table.tiktok_url || null,
         headline_sponsor_name: table.headline_sponsor_name || null,
         headline_sponsor_logo: table.headline_sponsor_logo || null,
         headline_sponsor_url: table.headline_sponsor_url || null,
@@ -256,6 +261,11 @@ export default {
         fundraising_goal,
         donate_url,
         logo_url,
+        sleigh_icon_live,
+        website_url,
+        facebook_url,
+        instagram_url,
+        tiktok_url,
         primary_color,
         charity_name,
         charity_number,
@@ -267,6 +277,11 @@ export default {
 
       // Ensure columns exist in tables schema
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN logo_url TEXT").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN sleigh_icon_live TEXT").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN website_url TEXT").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN facebook_url TEXT").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN instagram_url TEXT").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN tiktok_url TEXT").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN charity_name TEXT").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN charity_number TEXT").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN headline_sponsor_name TEXT").run(); } catch(e) {}
@@ -281,6 +296,11 @@ export default {
             fundraising_goal = COALESCE(?, fundraising_goal),
             donate_url = COALESCE(?, donate_url),
             logo_url = COALESCE(?, logo_url),
+            sleigh_icon_live = COALESCE(?, sleigh_icon_live),
+            website_url = COALESCE(?, website_url),
+            facebook_url = COALESCE(?, facebook_url),
+            instagram_url = COALESCE(?, instagram_url),
+            tiktok_url = COALESCE(?, tiktok_url),
             primary_color = COALESCE(?, primary_color),
             charity_name = COALESCE(?, charity_name),
             charity_number = COALESCE(?, charity_number),
@@ -294,6 +314,11 @@ export default {
           fundraising_goal !== undefined ? fundraising_goal : null,
           donate_url !== undefined ? donate_url : null,
           logo_url !== undefined ? logo_url : null,
+          sleigh_icon_live !== undefined ? sleigh_icon_live : null,
+          website_url !== undefined ? website_url : null,
+          facebook_url !== undefined ? facebook_url : null,
+          instagram_url !== undefined ? instagram_url : null,
+          tiktok_url !== undefined ? tiktok_url : null,
           primary_color !== undefined ? primary_color : null,
           charity_name !== undefined ? charity_name : null,
           charity_number !== undefined ? charity_number : null,
