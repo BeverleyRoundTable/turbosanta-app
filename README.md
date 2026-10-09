@@ -155,13 +155,19 @@ On route night, crew leaders enter their admin secret to:
 
 ---
 
-## 📡 Driver Beacon & Telemetry Ingest
+## 🧭 Driver Cockpit: 3D Turn-by-Turn Sat-Nav & Beacon
 
-Sleigh drivers can use their smartphone as a high-accuracy GPS broadcast beacon:
-* Open `/tracker.html?mode=driver` or `/cockpit`.
-* Screen wake-lock prevents the phone from sleeping while on the sleigh.
-* Coordinates, road name, and vehicle speed are transmitted to `PUT /api/telemetry` every 2 seconds.
-* Offline resilience: If mobile data drops, GPS coordinates are cached locally via IndexedDB and synchronized once connection resumes.
+Sleigh drivers and navigators can use their smartphone as a complete route navigator and broadcast beacon:
+* **🛰️ Mode 1: 3D Sat-Nav & Voice Navigation** (`/tracker.html?table=[slug]&driver=1` or Admin Portal &rarr; *Driver Cockpit Mode*):
+  * **Waze-style 3D Map**: 60° pitched heading-up 3D MapLibre map that rotates with vehicle motion.
+  * **Turn-by-Turn Voice Directions**: Speaks maneuvers aloud (*"In 100 meters, turn left onto Lairgate"*) via Web Speech API.
+  * **Road Snapping**: Centers on pre-planned GPX road vectors with distance-to-next-turn countdowns.
+  * **Automatic Telemetry Ingest**: Fixes transmitted every 4s to `PUT /api/telemetry` with IndexedDB offline queueing.
+  * **1-Tap Cab Announcements**: Push instant updates (*"2-Min Photo Stop"*, *"10 Mins Late"*) without switching apps.
+* **🔋 Mode 2: Battery-Saver Standby Beacon** (`/beacon.html?table=[slug]` or toggle within Driver Cockpit):
+  * Ultra-low power screen-off background GPS transmitter.
+  * Audio keep-alive oscillator & WakeLock prevents iOS/Android OS from suspending the GPS process.
+  * Transmits coordinates, road name, and vehicle speed to Cloudflare D1.
 
 ---
 
@@ -247,12 +253,14 @@ To verify the platform end-to-end, follow this testing path:
   * **Memory Book**: View uploaded photos, filter by season (2026 vs 2027), 1-click download all photos for social media.
   * **HMRC Gift Aid**: Export official R68 CSV schedule.
 
-### Step 4: Sleigh Driver Beacon (Route Night Simulation)
-* **URL**: `https://turbosanta-app.pages.dev/beacon.html?table=beverley` (or `/cockpit`)
+### Step 4: Sleigh Driver Cockpit & Sat-Nav (Route Night Simulation)
+* **3D Sat-Nav & Voice**: `https://turbosanta-app.pages.dev/tracker.html?table=beverley&driver=1` (or Admin Portal &rarr; "Driver Cockpit Mode")
+* **Standby Beacon**: `https://turbosanta-app.pages.dev/beacon.html?table=beverley`
 * **What to verify**:
-  * Tap "Start Beacon" to broadcast live GPS telemetry.
+  * Tap "START SAT-NAV & BEACON" to launch 3D heading-up map with turn-by-turn road snapping.
   * Verify screen wake-lock prevents screen timeout while driving.
-  * Watch public map update Santa's position in real time!
+  * Test 1-tap cab alert buttons (e.g. "Photo Stop", "10 Mins Late") and observe instant broadcast updates on the public tracker!
+  * Verify live vehicle coordinates, speed, and active road update the public map instantly.
 
 ---
 

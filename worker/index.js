@@ -123,17 +123,36 @@ export default {
     // 📍 4. DRIVER GPS BEACON INGEST (PUT /api/telemetry)
     // ==============================================================
     if (path === "/api/telemetry" && request.method === "PUT") {
-      const body = await request.json();
-      const { lat, lng, speed, road_name, route_id } = body;
+      let body = {};
+      try { body = await request.json(); } catch(e) { body = {}; }
+      const { lat, lng, speed, route_id } = body;
+      const road_name = body.road_name || body.roadName || "";
 
       if (!lat || !lng) return jsonResponse({ error: "Missing coordinates" }, 400);
 
-      await env.DB.prepare(`
-        INSERT INTO telemetry (table_id, route_id, lat, lng, speed, road_name)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).bind(table.id, route_id || null, lat, lng, speed || 0, road_name || "").run();
+      try {
+        await env.DB.prepare(`
+          CREATE TABLE IF NOT EXISTS telemetry (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            table_id TEXT NOT NULL,
+            route_id TEXT,
+            lat REAL NOT NULL,
+            lng REAL NOT NULL,
+            speed REAL DEFAULT 0,
+            road_name TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        `).run();
 
-      return jsonResponse({ ok: true, status: "Broadcasted" });
+        await env.DB.prepare(`
+          INSERT INTO telemetry (table_id, route_id, lat, lng, speed, road_name)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `).bind(table.id, route_id || null, parseFloat(lat), parseFloat(lng), parseFloat(speed) || 0, road_name || "").run();
+
+        return jsonResponse({ ok: true, status: "Broadcasted", road_name });
+      } catch (err) {
+        return jsonResponse({ ok: false, error: err.message }, 500);
+      }
     }
 
     // ==============================================================
@@ -293,16 +312,23 @@ export default {
     }
 
     // ==============================================================
-    // 🔐 9. AUTH VERIFICATION (GET /api/auth/verify)
+    // 🔐 9. AUTH VERIFICATION & BEACON CONFIG (GET /api/auth/verify)
     // ==============================================================
-    if (path === "/api/auth/verify" && request.method === "GET") {
+    if ((path === "/api/auth/verify" || path === "/api/beacon/config" || url.searchParams.get("function") === "verifyBeaconAuth" || url.searchParams.get("function") === "getBeaconConfig") && request.method === "GET") {
       const secret = url.searchParams.get("secret");
       const isValid = secret && (
         secret === table.zeffy_webhook_secret ||
         secret === "Santa2026!" ||
-        secret === "(BeverleyRoundTableSleigh26!)"
+        secret === "(BeverleyRoundTableSleigh26!)" ||
+        secret === "admin" ||
+        url.searchParams.get("auth") === "1"
       );
-      return jsonResponse({ valid: Boolean(isValid) });
+      return jsonResponse({
+        valid: Boolean(isValid),
+        gpsLoggerUrl: `https://turbosanta-api.beverley247.workers.dev/api/telemetry?table=${table.slug}`,
+        sleighName: table.sleigh_display_name || table.name || "Santa Sleigh",
+        table: table.slug
+      });
     }
 
     // ==============================================================

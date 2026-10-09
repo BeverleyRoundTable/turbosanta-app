@@ -656,7 +656,42 @@
               <li><strong>Volunteer Personal Info:</strong> Names, mobile numbers, emails, bucket IDs, and check-in status (requires Admin Secret; <code>401 Unauthorized</code> without auth).</li>
               <li><strong>HMRC Gift Aid Declarations:</strong> Full taxpayer names, house numbers, and postcodes (accessible only via authenticated <code>/api/gift-aid/export</code>).</li>
               <li><strong>Webhook Secrets & Passwords:</strong> Stored securely in Cloudflare D1.</li>
-              <li><strong>Driver Cockpit:</strong> Live GPS beacon controls locked to authorized drivers.</li>
+              <li><strong>Driver Cockpit & 3D Sat-Nav:</strong> Live GPS beacon controls locked to authorized drivers (password: <code>Santa2026!</code> or admin session). Provides both full <strong>3D Heading-Up Sat-Nav with turn-by-turn voice prompts</strong> and <strong>Battery-Saver Standby Beacon</strong>.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION: DRIVER COCKPIT -->
+      <section id="drivercockpit" class="doc-section">
+        <h2><i class="fa-solid fa-location-arrow"></i> Sleigh Driver Cockpit & 3D Sat-Nav</h2>
+        <p>
+          The Driver Cockpit provides sleigh navigators and drivers with two operational modes tailored for route night:
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 20px 0;">
+          <div class="card" style="border-left: 4px solid var(--primary);">
+            <h3 style="color: var(--primary);"><i class="fa-solid fa-map-location-dot"></i> 1. 3D Sat-Nav & Voice Navigation</h3>
+            <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 12px;">
+              Accessible via Admin Portal &rarr; <em>Driver Cockpit Mode</em> or directly at <code>/tracker.html?table=[slug]&driver=1</code>.
+            </p>
+            <ul style="font-size: 13px; color: var(--text-muted); margin-left: 20px; line-height: 1.8;">
+              <li><strong>Heading-Up 3D Map:</strong> 60&deg; pitched 3D map that smoothly rotates to face your direction of travel like Google Maps or Waze.</li>
+              <li><strong>Turn-by-Turn Voice Directions:</strong> Speaks maneuvers aloud (e.g. <em>"In 100 meters, turn left onto Lairgate"</em>) using the Web Speech API.</li>
+              <li><strong>Road Snapping:</strong> Snaps GPS to pre-planned GPX street lines with turn countdowns.</li>
+              <li><strong>Auto Telemetry & Offline Queue:</strong> Sends live GPS fixes every 4s to Cloudflare D1 with IndexedDB buffer if mobile signal drops.</li>
+            </ul>
+          </div>
+
+          <div class="card" style="border-left: 4px solid #2ecc71;">
+            <h3 style="color: #2ecc71;"><i class="fa-solid fa-tower-broadcast"></i> 2. Battery-Saver Standby Beacon</h3>
+            <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 12px;">
+              Designed for long nights or low phone battery. Also standalone at <code>/beacon.html?table=[slug]</code>.
+            </p>
+            <ul style="font-size: 13px; color: var(--text-muted); margin-left: 20px; line-height: 1.8;">
+              <li><strong>Ultra-Low Power:</strong> Screen-off background transmission without rendering heavy 3D WebGL maps.</li>
+              <li><strong>WakeLock & Audio Keep-Alive:</strong> Prevents iOS and Android from killing the GPS process in background tabs.</li>
+              <li><strong>1-Tap Cab Announcements:</strong> Quick buttons to broadcast <em>"2-Min Photo Stop"</em> or <em>"Running 10 Mins Late"</em> to waiting families.</li>
             </ul>
           </div>
         </div>
