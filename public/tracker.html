@@ -2198,9 +2198,16 @@ AppState.vars.consecutiveErrors = 0;
 setConnectionState("live");
 
           const rawTs = data.ts || data.timestamp;
-          const ts = rawTs ? new Date(rawTs).getTime() : 0;
+          let ts = 0;
+          if (rawTs) {
+            const normTs = String(rawTs).trim().replace(' ', 'T');
+            ts = new Date(normTs.endsWith('Z') ? normTs : normTs + 'Z').getTime();
+          }
           const age = ts > 0 ? (Date.now() - ts) : Infinity;
-          const isFresh = Boolean(data.is_fresh !== false && ts > 0 && age <= AppConfig.API.STALE_MS);
+          // If Cloudflare Worker already calculated is_fresh, honor it; otherwise verify age <= 5 minutes (300,000ms)
+          const isFresh = (data.is_fresh !== undefined)
+            ? Boolean(data.is_fresh)
+            : Boolean(ts > 0 && age <= AppConfig.API.STALE_MS);
 
           const rs = document.getElementById('routeSponsor');
           if (rs) rs.classList.toggle('visible', !!AppState.vars.sponsorReady && !AppState.flags.isKiosk && !AppState.flags.isDriver);
@@ -2886,16 +2893,24 @@ try {
         
         const tableSlug = params.get("table") || (params.has("api") ? "" : "beverley");
         AppState.vars.tableSlug = tableSlug;
-        AppState.vars.apiUrl = params.get("api") || localStorage.getItem("SANTA_API") || sessionStorage.getItem("SANTA_API");
 
-        if (!AppState.vars.apiUrl && tableSlug) {
+        const explicitApi = params.get("api");
+        if (!explicitApi && tableSlug) {
           AppState.vars.isWorkerD1 = true;
           AppState.vars.workerApi = "https://turbosanta-api.beverley247.workers.dev";
           AppState.vars.dataUrl = `${AppState.vars.workerApi}/api/payload?table=${encodeURIComponent(tableSlug)}`;
           AppState.vars.apiUrl = AppState.vars.dataUrl;
-        } else if (!AppState.vars.apiUrl) {
-          alert("Missing ?table=SLUG or ?api=URL");
-          return;
+        } else {
+          AppState.vars.apiUrl = explicitApi || localStorage.getItem("SANTA_API") || sessionStorage.getItem("SANTA_API");
+          if (!AppState.vars.apiUrl && tableSlug) {
+            AppState.vars.isWorkerD1 = true;
+            AppState.vars.workerApi = "https://turbosanta-api.beverley247.workers.dev";
+            AppState.vars.dataUrl = `${AppState.vars.workerApi}/api/payload?table=${encodeURIComponent(tableSlug)}`;
+            AppState.vars.apiUrl = AppState.vars.dataUrl;
+          } else if (!AppState.vars.apiUrl) {
+            alert("Missing ?table=SLUG or ?api=URL");
+            return;
+          }
         }
 
         // Safety feature: If a new naked API URL is used, wipe any old proxy from memory

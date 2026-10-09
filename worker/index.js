@@ -98,14 +98,18 @@ export default {
 
       // Check if telemetry is fresh (< 5 minutes old = 300,000ms)
       let isGpsFresh = false;
+      let isoTimestamp = null;
       if (latestGps && latestGps.timestamp) {
-        const gpsTime = new Date(latestGps.timestamp + (String(latestGps.timestamp).includes("Z") ? "" : "Z")).getTime();
+        const normStr = String(latestGps.timestamp).trim().replace(' ', 'T');
+        const gpsTime = new Date(normStr.endsWith('Z') ? normStr : normStr + 'Z').getTime();
         isGpsFresh = !isNaN(gpsTime) && (Date.now() - gpsTime) <= 5 * 60 * 1000;
+        isoTimestamp = !isNaN(gpsTime) ? new Date(gpsTime).toISOString() : latestGps.timestamp;
       }
 
       const liveSleighData = (latestGps && isGpsFresh) ? {
         ...latestGps,
-        ts: latestGps.timestamp,
+        timestamp: isoTimestamp,
+        ts: isoTimestamp,
         is_fresh: true,
         status: "Live Tracking"
       } : {
@@ -113,8 +117,8 @@ export default {
         lng: 25.8473,
         speed: 0,
         road_name: "Lapland Workshop",
-        timestamp: latestGps?.timestamp || null,
-        ts: latestGps?.timestamp || null,
+        timestamp: isoTimestamp,
+        ts: isoTimestamp,
         is_fresh: false,
         status: "Resting in Lapland"
       };
@@ -140,8 +144,10 @@ export default {
         return jsonResponse({ lat: 66.5436, lng: 25.8473, speed: 0, road_name: "Lapland Workshop", status: "Resting in Lapland", is_fresh: false, ts: null });
       }
 
-      const gpsTime = new Date(gps.timestamp + (String(gps.timestamp).includes("Z") ? "" : "Z")).getTime();
+      const normStr = String(gps.timestamp).trim().replace(' ', 'T');
+      const gpsTime = new Date(normStr.endsWith('Z') ? normStr : normStr + 'Z').getTime();
       const isFresh = !isNaN(gpsTime) && (Date.now() - gpsTime) <= 5 * 60 * 1000;
+      const isoTimestamp = !isNaN(gpsTime) ? new Date(gpsTime).toISOString() : gps.timestamp;
 
       return jsonResponse({
         lat: isFresh ? gps.lat : 66.5436,
@@ -150,8 +156,8 @@ export default {
         real_lng: gps.lng,
         speed: isFresh ? (gps.speed || 0) : 0,
         road_name: isFresh ? (gps.road_name || "") : "Lapland Workshop",
-        timestamp: gps.timestamp,
-        ts: gps.timestamp,
+        timestamp: isoTimestamp,
+        ts: isoTimestamp,
         is_fresh: isFresh,
         status: isFresh ? "Live Tracking" : "Resting in Lapland"
       });
@@ -212,6 +218,17 @@ export default {
           INSERT INTO telemetry (table_id, route_id, lat, lng, speed, road_name)
           VALUES (?, ?, ?, ?, ?, ?)
         `).bind(table.id, route_id || null, parseFloat(lat), parseFloat(lng), parseFloat(speed) || 0, road_name || "").run();
+
+        // High performance index for fast retrieval (<1ms)
+        await env.DB.prepare(`
+          CREATE INDEX IF NOT EXISTS idx_telemetry_table_time ON telemetry (table_id, timestamp DESC)
+        `).run().catch(() => {});
+
+        // Automatically prune historical telemetry older than 48 hours to prevent database ballooning
+        await env.DB.prepare(`
+          DELETE FROM telemetry 
+          WHERE timestamp < datetime('now', '-48 hours')
+        `).run().catch(() => {});
 
         return jsonResponse({ ok: true, status: "Broadcasted", road_name });
       } catch (err) {

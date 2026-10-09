@@ -163,7 +163,8 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
   return (
     <div style={{
       minHeight: '100vh',
-      height: '100vh',
+      height: '100dvh',
+      maxHeight: '100dvh',
       backgroundColor: '#0a0a09',
       color: '#ffffff',
       display: 'flex',
@@ -174,17 +175,17 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
       {/* Universal Top HUD Header */}
       <header style={{
         background: '#151513',
-        padding: '10px 16px',
+        padding: '8px 12px',
         borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '10px',
+        gap: '8px',
+        flexShrink: 0,
         zIndex: 50
       }}>
         {/* Left: Back & Title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
           <button
             onClick={onBack}
             style={{
@@ -193,22 +194,23 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
               color: '#fff',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              fontSize: '13px',
+              gap: '4px',
+              fontSize: '12px',
               fontWeight: 700,
-              padding: '6px 12px',
+              padding: '6px 10px',
               borderRadius: '8px',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              flexShrink: 0
             }}
           >
-            <ArrowLeft size={16} />
+            <ArrowLeft size={15} />
             <span>Admin</span>
           </button>
 
-          <div>
-            <div className="brand-font" style={{ fontSize: '15px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ minWidth: 0, overflow: 'hidden' }}>
+            <div className="brand-font" style={{ fontSize: '13px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               <span>{tableName}</span>
-              <span style={{ color: 'var(--primary)', fontSize: '12px' }}>• DRIVER COCKPIT</span>
+              <span style={{ color: 'var(--primary)', fontSize: '11px' }}>• DRIVER</span>
             </div>
           </div>
         </div>
@@ -217,29 +219,30 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
         <div style={{
           display: 'flex',
           background: 'rgba(0, 0, 0, 0.5)',
-          padding: '3px',
+          padding: '2px',
           borderRadius: '10px',
-          border: '1px solid rgba(255, 255, 255, 0.12)'
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          flexShrink: 0
         }}>
           <button
             onClick={() => setCockpitMode('satnav')}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              padding: '6px 14px',
-              borderRadius: '8px',
+              gap: '4px',
+              padding: '5px 10px',
+              borderRadius: '7px',
               border: 'none',
               background: cockpitMode === 'satnav' ? 'var(--primary)' : 'transparent',
               color: cockpitMode === 'satnav' ? '#000' : 'var(--text-muted)',
               fontWeight: 800,
-              fontSize: '12px',
+              fontSize: '11px',
               cursor: 'pointer',
               transition: 'all 0.15s ease'
             }}
           >
-            <Navigation size={14} />
-            <span>3D Sat-Nav & Voice</span>
+            <Navigation size={13} />
+            <span>Sat-Nav</span>
           </button>
 
           <button
@@ -247,28 +250,28 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              padding: '6px 14px',
-              borderRadius: '8px',
+              gap: '4px',
+              padding: '5px 10px',
+              borderRadius: '7px',
               border: 'none',
               background: cockpitMode === 'standby' ? 'var(--primary)' : 'transparent',
               color: cockpitMode === 'standby' ? '#000' : 'var(--text-muted)',
               fontWeight: 800,
-              fontSize: '12px',
+              fontSize: '11px',
               cursor: 'pointer',
               transition: 'all 0.15s ease'
             }}
           >
-            <Radio size={14} />
-            <span>Battery-Saver Beacon</span>
+            <Radio size={13} />
+            <span>Beacon</span>
           </button>
         </div>
 
         {/* Right: Actions & Stats */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', flexShrink: 0 }}>
           {batteryLevel !== null && (
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: batteryLevel < 20 ? '#d31c1c' : '#86efac', fontWeight: 700 }}>
-              <Battery size={15} />
+            <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: batteryLevel < 20 ? '#d31c1c' : '#86efac', fontWeight: 700, fontSize: '11px' }}>
+              <Battery size={14} />
               <span>{batteryLevel}%</span>
             </span>
           )}
@@ -280,20 +283,20 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '4px',
               background: 'rgba(251, 175, 51, 0.12)',
               border: '1px solid var(--primary)',
               color: 'var(--primary)',
-              padding: '6px 12px',
-              borderRadius: '8px',
-              fontSize: '12px',
+              padding: '5px 9px',
+              borderRadius: '7px',
+              fontSize: '11px',
               fontWeight: 700,
               textDecoration: 'none'
             }}
             title="Open pure fullscreen Sat-Nav in new window for dashboard phone mount"
           >
-            <ExternalLink size={14} />
-            <span>Mount / Full Window</span>
+            <ExternalLink size={13} />
+            <span style={{ display: 'inline' }}>Mount</span>
           </a>
         </div>
       </header>
@@ -321,7 +324,7 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
 
       {/* MODE 1: FULL 3D SAT-NAV COCKPIT (Waze-style Heading-Up Navigation) */}
       {cockpitMode === 'satnav' && (
-        <div style={{ flex: 1, position: 'relative', width: '100%', height: 'calc(100vh - 60px)', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, minHeight: 0, position: 'relative', width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
           {/* Embedded Fullscreen MapLibre 3D Turn-by-Turn GPS Tracker */}
           <iframe
             src={satNavUrl}
@@ -331,6 +334,7 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
               height: '100%',
               border: 'none',
               flex: 1,
+              minHeight: 0,
               background: '#151513'
             }}
             allow="geolocation; wake-lock; autoplay"
@@ -341,13 +345,15 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
             background: 'rgba(18, 18, 16, 0.95)',
             backdropFilter: 'blur(10px)',
             borderTop: '1px solid rgba(255, 255, 255, 0.15)',
-            padding: '10px 16px',
+            padding: '8px 12px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
+            justifyContent: 'flex-start',
             gap: '8px',
             overflowX: 'auto',
             flexWrap: 'nowrap',
+            flexShrink: 0,
+            scrollbarWidth: 'none',
             zIndex: 40
           }}>
             <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', whiteSpace: 'nowrap', textTransform: 'uppercase' }}>
