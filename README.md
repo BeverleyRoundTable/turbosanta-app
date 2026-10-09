@@ -289,6 +289,25 @@ CREATE INDEX IF NOT EXISTS idx_volunteers_table_route ON volunteers(table_id, ro
 
 ---
 
+## 🛡️ Security, Data Gating & Multi-Tenant Protection
+
+TurboSanta implements strict architectural gating between public spectator features and sensitive operational systems:
+
+| Component / Action | Public Visibility | Authentication / Gating | Protection Mechanism |
+| :--- | :--- | :--- | :--- |
+| **Public Sleigh Tracker** (`/?table=xyz`) | Public | None | Read-only public coordinates & route schedule |
+| **Spatial Address Search** (`/address.html`) | Public | None | Read-only street name & arrival window match |
+| **Volunteer Registration** (`/crew.html`) | Public | Write-only | Visitors can register themselves; cannot view others' records |
+| **Volunteer PII Roster** (`GET /api/volunteers`) | **Protected** | Table Password / Bearer Token | `401 Unauthorized` without credentials. Phone & email hidden |
+| **HMRC Gift Aid Export** (`GET /api/gift-aid/export`) | **Protected** | Table Password / Bearer Token | `401 Unauthorized` without admin credentials |
+| **Driver GPS Telemetry** (`PUT /api/telemetry`) | **Protected** | Beacon Passcode / Bearer Token | `401 Unauthorized`. Prevents spoofed coordinate broadcast |
+| **PA Live Announcement** (`POST /api/announcement`) | **Protected** | Table Admin Password | `401 Unauthorized`. Prevents unauthorized broadcast alerts |
+| **1.0 Database Migration** (`POST /api/migrate`) | **Protected** | Table Admin Password | `401 Unauthorized`. Protects table schemas and routes |
+| **God Mode Dashboard** (`/god_mode.html`) | **Protected** | Table Password / Admin Session | Password modal prompt required before dashboard renders |
+| **Sleigh Hardware Blueprint** (`/blueprint.html`) | Beverley Only | Scoped to `table=beverley` | Hidden automatically for all non-Beverley tables |
+
+---
+
 ## 💻 Local Development & Deployment
 
 ### Setup
