@@ -105,10 +105,12 @@
       background: transparent;
       border: none;
       color: #fff;
-      font-family: 'DM Mono', monospace;
-      font-size: 13px;
-      width: 110px;
+      font-family: 'Open Sans', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      width: 140px;
       outline: none;
+      text-transform: capitalize;
     }
 
     .container {
@@ -351,7 +353,7 @@
     <div style="display: flex; align-items: center; gap: 12px;">
       <div class="table-switcher">
         <label for="tableSlug"><i class="fa-solid fa-location-dot"></i> Table:</label>
-        <input type="text" id="tableSlug" value="beverley" placeholder="beverley" onkeydown="if(event.key==='Enter') updateSlug()" onchange="updateSlug()">
+        <input type="text" id="tableSlug" value="Beverley" placeholder="e.g. Beverley" onkeydown="if(event.key==='Enter') updateSlug()" oninput="this.value = formatTownName(this.value)" onblur="this.value = formatTownName(this.value); updateSlug()">
         <button class="btn btn-primary" id="btnMigrateSwitch" style="padding: 5px 12px; font-size: 11px;" onclick="updateSlug()">Switch</button>
       </div>
       <a id="btnHub" href="/hub.html?table=beverley" class="btn btn-secondary" style="padding: 7px 14px; font-size: 12px;"><i class="fa-solid fa-rocket"></i> Launchpad</a>
@@ -555,17 +557,29 @@
     let CURRENT_DATA = null;
     let SQL_CONTENT = '';
 
+    function formatTownName(str) {
+      if (!str) return 'Beverley';
+      return str
+        .replace(/[-_]+/g, ' ')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ');
+    }
+
     function getSlug() {
       const input = document.getElementById('tableSlug');
-      return (input && input.value.trim().toLowerCase()) || 'beverley';
+      return (input && input.value.trim().toLowerCase().replace(/\s+/g, '-')) || 'beverley';
     }
 
     function updateSlug() {
       const slug = getSlug();
+      const properName = formatTownName(slug);
       const input = document.getElementById('tableSlug');
       const btn = document.getElementById('btnMigrateSwitch');
-      if (input && input.value) {
-        input.value = slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      if (input) {
+        input.value = properName;
       }
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.set('table', slug);
@@ -592,15 +606,22 @@
       }
     }
 
-    // Initialize slug from URL
-    window.addEventListener('DOMContentLoaded', () => {
+    function initMigrateTable() {
       const params = new URLSearchParams(window.location.search);
       const urlSlug = params.get('table');
-      if (urlSlug) {
-        document.getElementById('tableSlug').value = urlSlug;
+      const input = document.getElementById('tableSlug');
+      if (input) {
+        input.value = formatTownName(urlSlug || input.value || 'beverley');
       }
       updateSlug();
-    });
+    }
+
+    initMigrateTable();
+
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', initMigrateTable);
+    }
+    window.addEventListener('pageshow', initMigrateTable);
 
     // Drag and drop handlers
     const dropzone = document.getElementById('dropzone');

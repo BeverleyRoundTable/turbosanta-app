@@ -110,7 +110,8 @@
       font-size: 14px;
       font-weight: 700;
       outline: none;
-      width: 130px;
+      width: 140px;
+      font-family: 'Open Sans', sans-serif;
       text-transform: capitalize;
     }
 
@@ -303,7 +304,7 @@
 
     <div class="table-picker-bar">
       <label for="tableSlugInput"><i class="fa-solid fa-location-dot"></i> Active Table:</label>
-      <input type="text" id="tableSlugInput" value="beverley" placeholder="e.g. beverley" onkeydown="if(event.key==='Enter') updateAllLinks()">
+      <input type="text" id="tableSlugInput" value="Beverley" placeholder="e.g. Beverley" onkeydown="if(event.key==='Enter') updateAllLinks()" oninput="this.value = formatTownName(this.value)" onblur="this.value = formatTownName(this.value); updateAllLinks()">
       <button class="btn" id="btnUpdateLinks" style="padding: 4px 12px; font-size: 11px;" onclick="updateAllLinks()">Apply</button>
     </div>
   </header>
@@ -365,14 +366,14 @@
             <span class="badge gold">Model A: Turnkey Sleigh Site</span>
             <h3>Ready-to-Use Public Portal</h3>
             <p>Ideal for Tables that want an instant, zero-maintenance, beautifully branded website out of the box with no coding required.</p>
-            <p>Visitors see the live map, street schedule, tonight's sponsor spotlight, photo memory book, and donate buttons.</p>
-            <a id="linkTurnkeyModel" href="/santasleigh.html?table=beverley" target="_blank" class="btn">View Turnkey Site <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+            <p>Visitors see the live map, street schedule, tonight's sponsor spotlight, photo memory book, and donate buttons for <strong class="active-table-name">Beverley</strong>.</p>
+            <a id="linkTurnkeyModel" href="/?table=beverley" target="_blank" class="btn">View Turnkey Site <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
           </div>
 
           <div class="card">
             <span class="badge green">Model B: Modular iFrame Embeds</span>
             <h3>For Your Own Custom Website</h3>
-            <p>Ideal for Tables (like Beverley) who run their own tailored website (WordPress, Wix, Squarespace, or custom Tailwind HTML).</p>
+            <p>Ideal for Tables (like <span class="active-table-name">Beverley</span>) who run their own tailored website (WordPress, Wix, Squarespace, or custom Tailwind HTML).</p>
             <p>You can embed any individual module (Tracker, Address Lookup, Volunteer Hub, Talk to Santa AI, Workshop Blueprint, etc.) into your existing site.</p>
             <a id="linkEmbedModel" href="/embed.html?table=beverley" target="_blank" class="btn btn-secondary">Open Embed Studio <i class="fa-solid fa-code"></i></a>
           </div>
@@ -427,16 +428,16 @@
 
       <!-- SECTION 3: TURNKEY SITE -->
       <section id="turnkey" class="doc-section">
-        <h2><i class="fa-solid fa-sleigh"></i> Turnkey Public Site (santasleigh.html)</h2>
+        <h2><i class="fa-solid fa-sleigh"></i> Turnkey Public Site</h2>
         <p>
           The turnkey site is completely clean, public-facing, and visually faithful to the proven Santa Sleigh experience.
           It does not display developer or admin buttons to the public.
         </p>
 
-        <h3>Live Turnkey URL</h3>
+        <h3>Live Turnkey URL (<span class="active-table-name">Beverley</span>)</h3>
         <div class="code-box">
           <button class="copy-btn" onclick="copyBox(this)">Copy URL</button>
-          <span id="turnkeyUrlText">https://turbosanta-app.pages.dev/santasleigh.html?table=beverley</span>
+          <span id="turnkeyUrlText">https://turbosanta-app.pages.dev/?table=beverley</span>
         </div>
 
         <h3 style="margin-top: 24px;">Included Functionalities:</h3>
@@ -642,8 +643,10 @@
     function formatTownName(str) {
       if (!str) return 'Beverley';
       return str
-        .replace(/[-_]/g, ' ')
-        .split(' ')
+        .replace(/[-_]+/g, ' ')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
         .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
         .join(' ');
     }
@@ -655,10 +658,11 @@
 
     function updateAllLinks() {
       const slug = getActiveSlug();
+      const properName = formatTownName(slug);
       const input = document.getElementById('tableSlugInput');
       const btn = document.getElementById('btnUpdateLinks');
-      if (input && input.value) {
-        input.value = formatTownName(input.value);
+      if (input) {
+        input.value = properName;
       }
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.set('table', slug);
@@ -684,6 +688,11 @@
       // Update Migration Link
       const linkMigrate = document.getElementById('guideMigrateLaunchBtn');
       if (linkMigrate) linkMigrate.href = `/migrate.html?table=${slug}`;
+
+      // Update any element displaying the active table name in Proper Case
+      document.querySelectorAll('.active-table-name').forEach(el => {
+        el.textContent = properName;
+      });
 
       // Button feedback
       if (btn) {
@@ -730,13 +739,25 @@
       });
     }
 
-    // Auto-read ?table= param on page load
-    document.addEventListener('DOMContentLoaded', () => {
+    // Auto-read ?table= param on page load and format to Proper Case
+    function initActiveTable() {
       const urlParams = new URLSearchParams(window.location.search);
       const tableParam = urlParams.get('table');
-      document.getElementById('tableSlugInput').value = formatTownName(tableParam || 'beverley');
+      const input = document.getElementById('tableSlugInput');
+      if (input) {
+        input.value = formatTownName(tableParam || input.value || 'beverley');
+      }
       updateAllLinks();
-    });
+    }
+
+    // Execute immediately in case script loads after DOM is interactive
+    initActiveTable();
+
+    // Also bind event listeners
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initActiveTable);
+    }
+    window.addEventListener('pageshow', initActiveTable);
   </script>
 </body>
 </html>

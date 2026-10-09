@@ -1,8 +1,10 @@
 function formatTownName(str) {
   if (!str) return 'Beverley';
   return str
-    .replace(/[-_]/g, ' ')
-    .split(' ')
+    .replace(/[-_]+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
     .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join(' ');
 }
@@ -90,9 +92,10 @@ window.handleThemeSelect = handleThemeSelect;
 
 function buildUrl(filename, extraParams = "") {
   const query = getTargetQuery();
-  const sep = filename.includes("?") ? "&" : "?";
+  const sep = filename && filename.includes("?") ? "&" : "?";
   const extra = extraParams ? `&${extraParams}` : "";
-  return `${BASE_URL}/${filename}${sep}${query}${extra}`;
+  const path = filename ? `/${filename}` : "";
+  return `${BASE_URL}${path}${sep}${query}${extra}`;
 }
 
 function updateDisplay() {
@@ -159,7 +162,7 @@ window.updateTableSlug = updateTableSlug;
 
 function generateAllEmbeds() {
   // 1. Santa Sleigh Turnkey App
-  const santasleighUrl = buildUrl("santasleigh.html");
+  const santasleighUrl = buildUrl("");
   setValue("santasleighLink", santasleighUrl);
   setValue("santasleighEmbed", `<div style="width:100%;max-width:1200px;margin:0 auto;">
   <iframe

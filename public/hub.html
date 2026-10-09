@@ -114,7 +114,9 @@
       font-size: 15px;
       font-weight: 700;
       outline: none;
-      width: 130px;
+      width: 140px;
+      font-family: 'Open Sans', sans-serif;
+      text-transform: capitalize;
     }
 
     /* CONTAINER */
@@ -324,7 +326,7 @@
 
     <div class="table-switcher">
       <label for="tableSlugInput"><i class="fa-solid fa-location-dot"></i> Table:</label>
-      <input type="text" id="tableSlugInput" value="beverley" placeholder="e.g. beverley" onkeydown="if(event.key==='Enter') applyTableSlug()">
+      <input type="text" id="tableSlugInput" value="Beverley" placeholder="e.g. Beverley" onkeydown="if(event.key==='Enter') applyTableSlug()" oninput="this.value = formatTownName(this.value)" onblur="this.value = formatTownName(this.value); applyTableSlug()">
       <button class="btn btn-primary" id="btnSwitchTable" style="padding: 5px 14px; font-size: 11px;" onclick="applyTableSlug()">Switch</button>
     </div>
   </header>
@@ -595,8 +597,10 @@
     function formatTownName(str) {
       if (!str) return 'Beverley';
       return str
-        .replace(/[-_]/g, ' ')
-        .split(' ')
+        .replace(/[-_]+/g, ' ')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
         .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
         .join(' ');
     }
@@ -608,10 +612,11 @@
 
     function applyTableSlug() {
       const slug = getActiveSlug();
+      const properName = formatTownName(slug);
       const input = document.getElementById('tableSlugInput');
       const btn = document.getElementById('btnSwitchTable');
-      if (input && input.value) {
-        input.value = formatTownName(input.value);
+      if (input) {
+        input.value = properName;
       }
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.set('table', slug);
@@ -750,13 +755,23 @@
       } catch(e) {}
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    function initHubTable() {
       const urlParams = new URLSearchParams(window.location.search);
       const tableParam = urlParams.get('table');
-      document.getElementById('tableSlugInput').value = formatTownName(tableParam || 'beverley');
+      const input = document.getElementById('tableSlugInput');
+      if (input) {
+        input.value = formatTownName(tableParam || input.value || 'beverley');
+      }
       refreshAllLinks();
       fetchTableTheme();
-    });
+    }
+
+    initHubTable();
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initHubTable);
+    }
+    window.addEventListener('pageshow', initHubTable);
   </script>
 </body>
 </html>
