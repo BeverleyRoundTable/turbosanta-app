@@ -143,7 +143,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   ];
 
   // Handle PA broadcast update
-  const handleBroadcast = (textToBroadcast) => {
+  const handleBroadcast = async (textToBroadcast) => {
     const text = textToBroadcast !== undefined ? textToBroadcast : announcementText;
     setAnnouncementText(text);
 
@@ -152,6 +152,16 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         ...prev,
         table: { ...prev.table, live_announcement: text || null }
       }));
+    }
+
+    try {
+      await fetch(`https://turbosanta-api.beverley247.workers.dev/api/announcement?table=${encodeURIComponent(session?.tableId || 'beverley')}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text || '' })
+      });
+    } catch (e) {
+      console.warn('Worker announcement update failed:', e);
     }
 
     setSaveStatus(text ? '📢 Announcement live on public tracker!' : 'Cleared announcement.');
@@ -297,10 +307,12 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
           </a>
 
           <a
-            href="/"
-            onClick={(e) => { e.preventDefault(); window.location.reload(); }}
+            href={`/?table=${encodeURIComponent(session.tableId || 'beverley')}`}
+            target="_blank"
+            rel="noopener noreferrer"
             className="btn-secondary"
-            style={{ padding: '8px 14px', fontSize: '13px' }}
+            style={{ padding: '8px 14px', fontSize: '13px', textDecoration: 'none' }}
+            title="Open live public tracker site for this table"
           >
             <ExternalLink size={15} />
             <span>Public Site</span>

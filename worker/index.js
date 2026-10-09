@@ -122,6 +122,18 @@ export default {
     }
 
     // ==============================================================
+    // 📢 LIVE ANNOUNCEMENT BROADCAST (POST /api/announcement)
+    // ==============================================================
+    if (path === "/api/announcement" && (request.method === "POST" || request.method === "PUT")) {
+      const body = await request.json();
+      const message = (body.message || "").trim();
+      await env.DB.prepare(`
+        UPDATE tables SET live_announcement = ? WHERE id = ?
+      `).bind(message || null, table.id).run();
+      return jsonResponse({ ok: true, live_announcement: message });
+    }
+
+    // ==============================================================
     // 💳 5. ZEFFY WEBHOOK RECEIVER (POST /api/webhooks/zeffy)
     // ==============================================================
     if (path === "/api/webhooks/zeffy" && request.method === "POST") {

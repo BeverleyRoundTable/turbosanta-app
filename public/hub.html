@@ -324,8 +324,8 @@
 
     <div class="table-switcher">
       <label for="tableSlugInput"><i class="fa-solid fa-location-dot"></i> Table:</label>
-      <input type="text" id="tableSlugInput" value="beverley" placeholder="e.g. beverley">
-      <button class="btn btn-primary" style="padding: 5px 14px; font-size: 11px;" onclick="applyTableSlug()">Switch</button>
+      <input type="text" id="tableSlugInput" value="beverley" placeholder="e.g. beverley" onkeydown="if(event.key==='Enter') applyTableSlug()">
+      <button class="btn btn-primary" id="btnSwitchTable" style="padding: 5px 14px; font-size: 11px;" onclick="applyTableSlug()">Switch</button>
     </div>
   </header>
 
@@ -609,6 +609,7 @@
     function applyTableSlug() {
       const slug = getActiveSlug();
       const input = document.getElementById('tableSlugInput');
+      const btn = document.getElementById('btnSwitchTable');
       if (input && input.value) {
         input.value = formatTownName(input.value);
       }
@@ -616,6 +617,37 @@
       newUrl.searchParams.set('table', slug);
       window.history.replaceState({}, '', newUrl);
       refreshAllLinks();
+
+      if (btn) {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Switched!';
+        btn.style.background = '#00e676';
+        btn.style.color = '#000';
+        setTimeout(() => {
+          btn.innerHTML = originalText;
+          btn.style.background = '';
+          btn.style.color = '';
+        }, 1600);
+      }
+
+      showToast(`Active table switched to ${formatTownName(slug)}! All direct links below updated.`);
+    }
+
+    function showToast(msg) {
+      let toast = document.getElementById('hubToast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'hubToast';
+        toast.style.cssText = 'position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:rgba(0,230,118,0.95); color:#000; padding:12px 24px; border-radius:12px; font-weight:800; font-size:14px; z-index:9999; box-shadow:0 8px 24px rgba(0,0,0,0.6); transition:opacity 0.3s ease; text-align:center; max-width:90%; pointer-events:none;';
+        document.body.appendChild(toast);
+      }
+      toast.textContent = msg;
+      toast.style.display = 'block';
+      toast.style.opacity = '1';
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => { toast.style.display = 'none'; }, 300);
+      }, 3000);
     }
 
     function refreshAllLinks() {
@@ -624,7 +656,7 @@
 
       const links = {
         crewUrl: `${origin}/crew.html?table=${slug}`,
-        publicSiteUrl: `${origin}/santasleigh.html?table=${slug}`,
+        publicSiteUrl: `${origin}/?table=${slug}`,
         addressUrl: `${origin}/address.html?table=${slug}`,
         santaChatUrl: `${origin}/santa_chat.html?table=${slug}`,
         memoryUrl: `${origin}/memory_book.html?table=${slug}`,

@@ -351,7 +351,8 @@
     <div style="display: flex; align-items: center; gap: 12px;">
       <div class="table-switcher">
         <label for="tableSlug"><i class="fa-solid fa-location-dot"></i> Table:</label>
-        <input type="text" id="tableSlug" value="beverley" placeholder="beverley" onchange="updateSlug()">
+        <input type="text" id="tableSlug" value="beverley" placeholder="beverley" onkeydown="if(event.key==='Enter') updateSlug()" onchange="updateSlug()">
+        <button class="btn btn-primary" id="btnMigrateSwitch" style="padding: 5px 12px; font-size: 11px;" onclick="updateSlug()">Switch</button>
       </div>
       <a id="btnHub" href="/hub.html?table=beverley" class="btn btn-secondary" style="padding: 7px 14px; font-size: 12px;"><i class="fa-solid fa-rocket"></i> Launchpad</a>
       <a id="btnGuide" href="/guide.html?table=beverley" class="btn btn-secondary" style="padding: 7px 14px; font-size: 12px;"><i class="fa-solid fa-book-open"></i> Guide</a>
@@ -561,12 +562,29 @@
 
     function updateSlug() {
       const slug = getSlug();
+      const input = document.getElementById('tableSlug');
+      const btn = document.getElementById('btnMigrateSwitch');
+      if (input && input.value) {
+        input.value = slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      }
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.set('table', slug);
       window.history.replaceState({}, '', newUrl);
 
       document.getElementById('btnHub').href = `/hub.html?table=${slug}`;
       document.getElementById('btnGuide').href = `/guide.html?table=${slug}`;
+
+      if (btn) {
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Switched!';
+        btn.style.background = '#00e676';
+        btn.style.color = '#000';
+        setTimeout(() => {
+          btn.innerHTML = orig;
+          btn.style.background = '';
+          btn.style.color = '';
+        }, 1500);
+      }
 
       if (CURRENT_DATA) {
         CURRENT_DATA.tableSlug = slug;

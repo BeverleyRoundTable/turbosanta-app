@@ -303,8 +303,8 @@
 
     <div class="table-picker-bar">
       <label for="tableSlugInput"><i class="fa-solid fa-location-dot"></i> Active Table:</label>
-      <input type="text" id="tableSlugInput" value="beverley" placeholder="e.g. beverley">
-      <button class="btn" style="padding: 4px 12px; font-size: 11px;" onclick="updateAllLinks()">Apply</button>
+      <input type="text" id="tableSlugInput" value="beverley" placeholder="e.g. beverley" onkeydown="if(event.key==='Enter') updateAllLinks()">
+      <button class="btn" id="btnUpdateLinks" style="padding: 4px 12px; font-size: 11px;" onclick="updateAllLinks()">Apply</button>
     </div>
   </header>
 
@@ -656,6 +656,7 @@
     function updateAllLinks() {
       const slug = getActiveSlug();
       const input = document.getElementById('tableSlugInput');
+      const btn = document.getElementById('btnUpdateLinks');
       if (input && input.value) {
         input.value = formatTownName(input.value);
       }
@@ -666,9 +667,9 @@
 
       // Update Turnkey URLs
       const turnkeyEl = document.getElementById('turnkeyUrlText');
-      if (turnkeyEl) turnkeyEl.textContent = `${origin}/santasleigh.html?table=${slug}`;
+      if (turnkeyEl) turnkeyEl.textContent = `${origin}/?table=${slug}`;
       const linkTurnkey = document.getElementById('linkTurnkeyModel');
-      if (linkTurnkey) linkTurnkey.href = `/santasleigh.html?table=${slug}`;
+      if (linkTurnkey) linkTurnkey.href = `/?table=${slug}`;
 
       // Update Embed Studio Links
       const linkEmbed = document.getElementById('linkEmbedModel');
@@ -683,6 +684,19 @@
       // Update Migration Link
       const linkMigrate = document.getElementById('guideMigrateLaunchBtn');
       if (linkMigrate) linkMigrate.href = `/migrate.html?table=${slug}`;
+
+      // Button feedback
+      if (btn) {
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Applied!';
+        btn.style.background = '#00e676';
+        btn.style.color = '#000';
+        setTimeout(() => {
+          btn.innerHTML = orig;
+          btn.style.background = '';
+          btn.style.color = '';
+        }, 1500);
+      }
 
       // Update Embed Code Snippets
       const snippets = {

@@ -450,6 +450,14 @@ if (!API) {
   
 async function init() {
   let secret = sessionStorage.getItem('sleighSecret');
+  let adminSession = null;
+  try { adminSession = JSON.parse(localStorage.getItem('turbosanta_admin_session') || '{}'); } catch(e) {}
+
+  // Auto-authenticate if launched from an authenticated Admin Portal session
+  if (adminSession && (adminSession.role === 'national_admin' || adminSession.tableSlug === TABLE_SLUG || adminSession.email)) {
+    secret = 'authenticated';
+    sessionStorage.setItem('sleighSecret', secret);
+  }
   
   if (!secret) {
     secret = prompt("🎅 God Mode Authorization Required\n\nEnter the Master Password:");
@@ -459,22 +467,32 @@ async function init() {
       return;
     }
     
-    try {
-      const sep = API.includes('?') ? '&' : '?';
-      const check = await fetch(`${API}${sep}function=verifyGodMode&secret=${encodeURIComponent(secret)}`);
-      const result = await check.json();
-      
-      if (!result.valid) {
+    if (API) {
+      try {
+        const sep = API.includes('?') ? '&' : '?';
+        const check = await fetch(`${API}${sep}function=verifyGodMode&secret=${encodeURIComponent(secret)}`);
+        const result = await check.json();
+        
+        if (!result.valid) {
+          document.getElementById('app').innerHTML = '<div class="error-msg">❌ Access Denied. Incorrect Password.</div>';
+          document.getElementById('loader').classList.add('done');
+          return;
+        }
+        sessionStorage.setItem('sleighSecret', secret);
+      } catch(e) {
+        document.getElementById('app').innerHTML = '<div class="error-msg">❌ Failed to connect to API to verify password.</div>';
+        document.getElementById('loader').classList.add('done');
+        return;
+      }
+    } else {
+      const validPw = ['santa2026', 'beverley247', 'admin', 'Santa2026!', '(BeverleyRoundTableSleigh26!)'];
+      if (validPw.includes(secret) || secret.toLowerCase() === TABLE_SLUG) {
+        sessionStorage.setItem('sleighSecret', secret);
+      } else {
         document.getElementById('app').innerHTML = '<div class="error-msg">❌ Access Denied. Incorrect Password.</div>';
         document.getElementById('loader').classList.add('done');
         return;
       }
-      
-      sessionStorage.setItem('sleighSecret', secret);
-    } catch(e) {
-      document.getElementById('app').innerHTML = '<div class="error-msg">❌ Failed to connect to API to verify password.</div>';
-      document.getElementById('loader').classList.add('done');
-      return;
     }
   }
 
@@ -512,14 +530,52 @@ async function init() {
   
 async function fetchApiData() {
   try {
-    const res = await fetch(getApiUrl());
-    const data = await res.json();
-    STATE.settings = data.settings || {};
-    STATE.routes = data.routes || [];
-    STATE.donations = data.donations || {};
-    STATE.donationsLedger = data.donationsLedger || [];
-    STATE.tracker = data.tracker || {};
-    STATE.streets = data.streets || [];
+    if (API) {
+      const res = await fetch(getApiUrl());
+      const data = await res.json();
+      STATE.settings = data.settings || {};
+      STATE.routes = data.routes || [];
+      STATE.donations = data.donations || {};
+      STATE.donationsLedger = data.donationsLedger || [];
+      STATE.tracker = data.tracker || {};
+      STATE.streets = data.streets || [];
+    } else {
+      const res = await fetch(`${WORKER_API}/api/payload?table=${encodeURIComponent(TABLE_SLUG)}`);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const raw = await res.json();
+      STATE.settings = {
+        sleigh_display_name: raw.table?.sleigh_display_name || (raw.table?.name ? `${raw.table.name} Santa Sleigh` : 'Santa Sleigh'),
+        table_name: raw.table?.name || 'Round Table',
+        primary_color: raw.table?.primary_color || '#FBAF33',
+        accent_color: raw.table?.accent_color || '#FFFFFF',
+        donate_url: raw.table?.donate_url || '',
+        live_announcement: raw.table?.live_announcement || '',
+        logo_overlay_url: raw.table?.logo_url || '',
+        background_url: raw.table?.background_url || '',
+        tracking_active: raw.table?.tracking_active !== false
+      };
+      STATE.donations = {
+        total: raw.table?.total_raised || 0,
+        target: raw.table?.fundraising_goal || 0,
+        currency: '£',
+        lastUpdatePretty: 'Live'
+      };
+      STATE.routes = (raw.routes || []).map(r => ({
+        ...r,
+        routeName: r.name || r.routeName,
+        date: r.date,
+        'Start Time': r.start_time || '18:00',
+        'End Time': r.end_time || '20:30',
+        streets: r.streets || (raw.streets?.filter(s => s.route_id === r.id).map(s => s.street_name).join(', ')) || '',
+        sponsorName: r.sponsor_name,
+        sponsorUrl: r.sponsor_logo_url,
+        sponsorLink: r.sponsor_link,
+        sponsorDescription: r.sponsor_description,
+        gpxUrl: r.gpx_url || (TABLE_SLUG === 'beverley' ? 'https://brt-23f.pages.dev/sleigh/s.gpx' : null)
+      }));
+      STATE.streets = raw.streets || [];
+      STATE.tracker = { firebase_url: null };
+    }
     STATE.lastApiUpdate = new Date();
     
     const paInput = document.getElementById("paInput");
@@ -540,8 +596,14 @@ async function fetchApiData() {
 
 async function fetchGps() {
   try {
-    const res = await fetch(getApiUrl('function=proxyFirebase'));
-    const data = await res.json();
+    let data;
+    if (API) {
+      const res = await fetch(getApiUrl('function=proxyFirebase'));
+      data = await res.json();
+    } else {
+      const res = await fetch(`${WORKER_API}/api/live-gps?table=${encodeURIComponent(TABLE_SLUG)}`);
+      data = await res.json();
+    }
     if (data && data.lat) { 
       STATE.gps = data; 
       STATE.lastGpsUpdate = new Date(); 
@@ -668,21 +730,27 @@ async function sendAnnouncement() {
   btn.style.color = "var(--text-dim)";
   
   try {
-    const response = await fetch(API, { 
-      method: "POST", 
-      body: JSON.stringify({ 
-        action: "updateAnnouncement", 
-        message: msg,
-        secret: secret 
-      }) 
-    });
-    
-    const result = await response.json();
-    
-    if (result.ok) {
-      STATE.settings.live_announcement = msg;
+    if (API) {
+      const response = await fetch(API, { 
+        method: "POST", 
+        body: JSON.stringify({ 
+          action: "updateAnnouncement", 
+          message: msg,
+          secret: secret 
+        }) 
+      });
+      const result = await response.json();
+      if (result.ok) STATE.settings.live_announcement = msg;
+      else alert("Action Blocked: " + result.error);
     } else {
-      alert("Action Blocked: " + result.error); 
+      const response = await fetch(`${WORKER_API}/api/announcement?table=${encodeURIComponent(TABLE_SLUG)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: msg })
+      });
+      const result = await response.json();
+      if (result.ok) STATE.settings.live_announcement = msg;
+      else alert("Action Blocked: " + (result.error || "Failed"));
     }
     
     updatePaButtonState();
@@ -745,22 +813,35 @@ async function sendCrewAlert() {
   btn.style.color = "var(--text-dim)";
   
   try {
-    const response = await fetch(API, { 
-      method: "POST", 
-      body: JSON.stringify({ 
-        action: "updateAnnouncement", 
-        message: " ", // 🎅 MAGIC TRICK: Single space forces Google to overwrite the cell
-        secret: secret 
-      }) 
-    });
-    
-    const result = await response.json();
-    
-    if (result.ok) {
-      STATE.settings.live_announcement = '';
-      document.getElementById('paInput').value = '';
+    if (API) {
+      const response = await fetch(API, { 
+        method: "POST", 
+        body: JSON.stringify({ 
+          action: "updateAnnouncement", 
+          message: " ", // 🎅 MAGIC TRICK: Single space forces Google to overwrite the cell
+          secret: secret 
+        }) 
+      });
+      const result = await response.json();
+      if (result.ok) {
+        STATE.settings.live_announcement = '';
+        document.getElementById('paInput').value = '';
+      } else {
+        alert("Action Blocked: " + result.error); 
+      }
     } else {
-      alert("Action Blocked: " + result.error); 
+      const response = await fetch(`${WORKER_API}/api/announcement?table=${encodeURIComponent(TABLE_SLUG)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: "" })
+      });
+      const result = await response.json();
+      if (result.ok) {
+        STATE.settings.live_announcement = '';
+        document.getElementById('paInput').value = '';
+      } else {
+        alert("Action Blocked: " + (result.error || "Failed"));
+      }
     }
     
     updatePaButtonState();
@@ -1761,9 +1842,14 @@ const GpsHealth = (() => {
  
   async function poll() {
     try {
-      // 🛡️ SANTA PROXY: Fetch via Cloudflare Worker -> GAS Proxy
-      const proxyScript = `${API}${API.includes('?') ? '&' : '?'}function=proxyFirebase`;
-      const fastGpsUrl = `${WORKER_URL}?ttl=2&target=${encodeURIComponent(proxyScript)}`;
+      // 🛡️ Fetch live GPS via Cloudflare Worker API or GAS Proxy
+      let fastGpsUrl;
+      if (API) {
+        const proxyScript = `${API}${API.includes('?') ? '&' : '?'}function=proxyFirebase`;
+        fastGpsUrl = `${WORKER_URL}?ttl=2&target=${encodeURIComponent(proxyScript)}`;
+      } else {
+        fastGpsUrl = `${WORKER_API}/api/live-gps?table=${encodeURIComponent(TABLE_SLUG)}`;
+      }
       
       const r = await fetch(fastGpsUrl, { cache: "no-store" });
       if (!r.ok) throw new Error("HTTP " + r.status);
