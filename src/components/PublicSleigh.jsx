@@ -35,7 +35,6 @@ function parseRouteDate(v) {
 
 export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }) {
   const [addressFrameHeight, setAddressFrameHeight] = useState(500);
-  const [memoryBookHeight, setMemoryBookHeight] = useState(1200);
   const [showFab, setShowFab] = useState(false);
   const currentYear = new Date().getFullYear();
 
@@ -48,15 +47,12 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
   const logoUrl = table.logo_url || DEFAULT_LOGO;
   const bgImage = table.background_url || DEFAULT_BG;
 
-  // Listen for dynamic iframe resizing from address.html and memory_book.html
+  // Listen for dynamic iframe resizing from address.html
   useEffect(() => {
     const handleMessage = (e) => {
       const h = e.data && Number(e.data.addressLookupHeight);
       if (Number.isFinite(h) && h >= 100 && h <= 5000) {
         setAddressFrameHeight(Math.round(h));
-      }
-      if (e.data && e.data.type === 'MEM_BOOK_RESIZE' && Number.isFinite(e.data.height)) {
-        setMemoryBookHeight(Math.max(Math.round(e.data.height) + 20, 1180));
       }
     };
     window.addEventListener('message', handleMessage);
@@ -715,13 +711,13 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
             <iframe
               id="memory-book-iframe"
               src={`/memory_book.html?table=${encodeURIComponent(activeTableSlug)}`}
-              height={memoryBookHeight}
+              height="960"
               title="Santa Memory Book"
               loading="lazy"
               allow="camera; microphone; geolocation"
               style={{
                 width: '100%',
-                height: `${memoryBookHeight}px`,
+                height: '960px',
                 border: 'none',
                 display: 'block'
               }}

@@ -43,9 +43,7 @@
       /* FIXED: Made background transparent for seamless iframe embedding */
       background: transparent; 
       color: var(--text);
-      min-height: 100vh;
       overflow-x: hidden;
-      overflow-y: hidden;
       /* Kept the magical glow, it will blend beautifully over the host site's background! */
       background-image: radial-gradient(circle at 50% 0%, rgba(var(--primary-rgb), 0.05) 0%, transparent 70%);
     }
@@ -53,7 +51,6 @@
     /* Set by JS when the page is opened directly rather than embedded */
     html.standalone body { 
       background-color: var(--dark); 
-      overflow-y: auto;
     }
 
     /* --- HEADER --- */
@@ -468,24 +465,6 @@
       const yearSelect = document.getElementById('yearSelect');
       const timeMachineBox = document.getElementById('timeMachineBox');
 
-      function notifyParentHeight() {
-        try {
-          const galleryEl = document.getElementById('gallery');
-          const galleryBottom = galleryEl ? (galleryEl.offsetTop + galleryEl.offsetHeight + 40) : 0;
-          const docHeight = Math.max(
-            document.documentElement.scrollHeight,
-            document.body.scrollHeight,
-            galleryBottom
-          );
-          if (window.parent && window.parent !== window) {
-            window.parent.postMessage({ type: 'MEM_BOOK_RESIZE', height: docHeight }, '*');
-          }
-        } catch (e) {}
-      }
-
-      window.addEventListener('resize', notifyParentHeight);
-      window.addEventListener('load', notifyParentHeight);
-
       // Helper function to render cards into the gallery
       function renderCards(images) {
         gallery.innerHTML = '';
@@ -528,15 +507,6 @@
             card.innerHTML = `<img src="${media.url}" alt="Community Photo" loading="lazy"><div class="polaroid-caption">${caption}</div>`;
           }
           gallery.appendChild(card);
-        });
-
-        notifyParentHeight();
-        setTimeout(notifyParentHeight, 200);
-        setTimeout(notifyParentHeight, 600);
-        const imgs = gallery.querySelectorAll('img');
-        imgs.forEach(img => {
-          if (img.complete) notifyParentHeight();
-          else img.addEventListener('load', notifyParentHeight);
         });
       }
 
