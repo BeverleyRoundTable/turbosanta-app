@@ -150,16 +150,17 @@ export default function App() {
           </span>
           <button
             onClick={() => setViewMode('admin')}
+            className="brand-font"
             style={{
               background: 'var(--primary, #FBAF33)',
               color: '#000',
               border: 'none',
               borderRadius: '4px',
-              padding: '4px 10px',
+              padding: '6px 12px',
               fontWeight: 700,
               cursor: 'pointer',
               fontSize: '11px',
-              textTransform: 'uppercase'
+              letterSpacing: '1px'
             }}
           >
             Open God Mode Dashboard

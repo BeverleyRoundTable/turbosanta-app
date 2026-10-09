@@ -203,11 +203,11 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
-            <a href="#tracker" style={{ color: '#FFFFFF', textDecoration: 'none', fontWeight: 600, textTransform: 'uppercase', fontSize: '13px' }}>Live Tracker</a>
-            <a href="#routes" style={{ color: '#FFFFFF', textDecoration: 'none', fontWeight: 600, textTransform: 'uppercase', fontSize: '13px' }}>Routes</a>
-            <a href="#memory-book" style={{ color: '#FFFFFF', textDecoration: 'none', fontWeight: 600, textTransform: 'uppercase', fontSize: '13px' }}>Memory Book</a>
-            <a href="#donate" style={{ color: '#FFFFFF', textDecoration: 'none', fontWeight: 600, textTransform: 'uppercase', fontSize: '13px' }}>Donate</a>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '22px', flexWrap: 'wrap' }}>
+            <a href="#tracker" className="brand-font" style={{ color: '#FFFFFF', textDecoration: 'none', fontWeight: 700, fontSize: '13px', letterSpacing: '1.2px' }}>Live Tracker</a>
+            <a href="#routes" className="brand-font" style={{ color: '#FFFFFF', textDecoration: 'none', fontWeight: 700, fontSize: '13px', letterSpacing: '1.2px' }}>Routes</a>
+            <a href="#memory-book" className="brand-font" style={{ color: '#FFFFFF', textDecoration: 'none', fontWeight: 700, fontSize: '13px', letterSpacing: '1.2px' }}>Memory Book</a>
+            <a href="#donate" className="brand-font" style={{ color: '#FFFFFF', textDecoration: 'none', fontWeight: 700, fontSize: '13px', letterSpacing: '1.2px' }}>Donate</a>
           </div>
         </nav>
 
@@ -306,14 +306,16 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
             href={`/tracker.html?table=${encodeURIComponent(activeTableSlug)}`}
             target="_blank"
             rel="noopener noreferrer"
+            className="brand-font"
             style={{
               display: 'block',
               textAlign: 'center',
               marginTop: '16px',
               color: 'var(--primary)',
-              fontWeight: 600,
+              fontWeight: 700,
               fontSize: '14px',
-              textDecoration: 'none'
+              textDecoration: 'none',
+              letterSpacing: '1px'
             }}
           >
             Open the tracker full-screen &rarr;
@@ -494,23 +496,28 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
               alignItems: 'center'
             }}>
               <div>
-                <div style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: 'var(--primary)',
-                  color: 'var(--on-primary)',
-                  fontSize: '12px',
-                  fontWeight: 800,
-                  textTransform: 'uppercase',
-                  padding: '4px 12px',
-                  borderRadius: '20px',
-                  marginBottom: '10px'
-                }}>
+                <div
+                  className="brand-font"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'var(--primary)',
+                    color: 'var(--on-primary)',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    letterSpacing: '1.2px',
+                    padding: '5px 12px',
+                    borderRadius: '20px',
+                    marginBottom: '10px'
+                  }}>
                   <Star size={14} fill="currentColor" /> TONIGHT'S ROUTE
                 </div>
 
-                <div style={{ color: 'var(--primary)', fontWeight: 700, fontSize: '15px', textTransform: 'uppercase', marginBottom: '4px' }}>
+                <div
+                  className="brand-font"
+                  style={{ color: 'var(--primary)', fontWeight: 700, fontSize: '15px', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '1px' }}>
                   {todayItem.d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
                   {todayItem.start_time && ` | ${todayItem.start_time} - ${todayItem.end_time || '20:30'}`}
                 </div>
@@ -534,7 +541,9 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                   padding: '18px',
                   boxShadow: '0 0 15px rgba(251, 175, 51, 0.15)'
                 }}>
-                  <div style={{ fontSize: '11px', color: 'var(--primary)', textTransform: 'uppercase', fontWeight: 800, marginBottom: '10px', letterSpacing: '0.5px' }}>
+                  <div
+                    className="brand-font"
+                    style={{ fontSize: '12px', color: 'var(--primary)', textTransform: 'uppercase', fontWeight: 800, marginBottom: '10px', letterSpacing: '1.2px' }}>
                     ⭐ TONIGHT'S SPONSOR:
                   </div>
                   <div style={{ display: 'flex', gap: '14px', alignItems: 'center', marginBottom: '8px' }}>
@@ -596,7 +605,9 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                     opacity: isPast ? 0.5 : 1
                   }}
                 >
-                  <div style={{ fontWeight: 700, color: 'var(--primary)', marginBottom: '5px', textTransform: 'uppercase', fontSize: '13px' }}>
+                  <div
+                    className="brand-font"
+                    style={{ fontWeight: 700, color: 'var(--primary)', marginBottom: '5px', textTransform: 'uppercase', fontSize: '13px', letterSpacing: '1px' }}>
                     {isPast && <span style={{ color: '#FFFFFF' }}>✓ COMPLETED | </span>}
                     {r.d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
                     {r.start_time && ` | ${r.start_time} - ${r.end_time || '20:30'}`}
@@ -614,7 +625,9 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
 
                   {r.sponsorName && (
                     <div style={{ marginTop: 'auto', paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
-                      <div style={{ fontSize: '11px', color: 'var(--primary)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '8px', letterSpacing: '0.5px' }}>
+                      <div
+                        className="brand-font"
+                        style={{ fontSize: '11px', color: 'var(--primary)', textTransform: 'uppercase', fontWeight: 800, marginBottom: '8px', letterSpacing: '1.2px' }}>
                         SPONSORED BY:
                       </div>
                       <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -666,7 +679,9 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
               }}>
                 {partners.map((p, idx) => (
                   <div key={idx} style={{ background: '#000000', border: '1px solid var(--border)', borderRadius: '14px', padding: '22px' }}>
-                    <div style={{ color: 'var(--primary)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 800, marginBottom: '6px' }}>
+                    <div
+                      className="brand-font"
+                      style={{ color: 'var(--primary)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 800, marginBottom: '6px' }}>
                       {p.role || 'Partner'}
                     </div>
                     <h3 className="brand-font" style={{ fontSize: '20px', color: '#FFFFFF', marginBottom: '8px' }}>

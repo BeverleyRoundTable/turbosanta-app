@@ -39,10 +39,10 @@ body {
   background-attachment: fixed;
 }
 
-h1, h2, h3, h4, .brand-font {
-  font-family: 'Eurostile', 'Open Sans', sans-serif;
+h1, h2, h3, h4, h5, h6, .brand-font, nav a, .nav-link, .header-caps {
+  font-family: 'Eurostile', sans-serif !important;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.2px;
 }
 
 /* Scrollbar */
