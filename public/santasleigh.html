@@ -817,16 +817,6 @@
         </div>
     </section>
 
-    <!-- BLUEPRINT SECTION (Beverley Custom) -->
-    <section id="blueprint" style="display: none; padding: 60px 20px; max-width: 1000px; margin: 0 auto; text-align: center;">
-        <div class="section-header">
-            <h2>INSIDE SANTA'S <span style="color: var(--primary);">WORKSHOP</span></h2>
-            <p>Tap the glowing dots on the electric sleigh to see the magic under the hood!</p>
-        </div>
-        <div class="iframe-container">
-            <iframe id="blueprint-iframe" height="600" title="Santa Sleigh Blueprint" scrolling="no" loading="lazy" style="width:100%; height:560px; border:none; display:block;"></iframe>
-        </div>
-    </section>
 
     <!-- COMMUNITY PARTNERS (Beverley Custom) -->
     <section id="partners" style="display: none; padding: 60px 20px; max-width: 1000px; margin: 0 auto; text-align: center;">
@@ -1623,17 +1613,7 @@
             safely('sponsors', () => renderSponsors(sponsors));
             safely('about', () => renderAbout(settings));
             safely('social', () => renderSocial(settings));
-            safely('blueprint', () => {
-                const slug = window.__sleighTableSlug || 'beverley';
-                const bp = $('blueprint');
-                const bpf = $('blueprint-iframe');
-                if ((slug === 'beverley' || settings.enable_blueprint) && bp && bpf) {
-                    bpf.src = `${CFG.frameBase}/blueprint.html?table=${encodeURIComponent(slug)}`;
-                    bp.style.display = 'block';
-                } else if (bp) {
-                    bp.style.display = 'none';
-                }
-            });
+
             safely('partners', () => {
                 const slug = window.__sleighTableSlug || 'beverley';
                 const partSec = $('partners');

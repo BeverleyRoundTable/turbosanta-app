@@ -641,32 +641,6 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
           </div>
         </section>
 
-        {/* 4. Inside Santa's Workshop Blueprint (Beverley Custom Isolated) */}
-        {(isBeverley || Boolean(table.enable_blueprint)) && (
-          <section id="blueprint" style={{ padding: '60px 20px', maxWidth: '1000px', margin: '0 auto', textAlign: 'center', scrollMarginTop: '80px' }}>
-            <h2 className="brand-font" style={{ fontSize: '38px', margin: '0 0 10px 0', color: '#FFFFFF' }}>
-              INSIDE SANTA'S <span style={{ color: 'var(--primary)' }}>WORKSHOP</span>
-            </h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '16px', marginBottom: '24px' }}>
-              Tap the glowing dots on the electric sleigh to see the magic under the hood!
-            </p>
-            <div style={{
-              background: 'rgba(255,255,255,0.03)',
-              borderRadius: '24px',
-              border: '1px solid var(--border)',
-              padding: '8px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
-              overflow: 'hidden'
-            }}>
-              <iframe
-                src={`/blueprint.html?table=${encodeURIComponent(activeTableSlug)}`}
-                title="Santa Sleigh Blueprint"
-                style={{ width: '100%', height: '560px', border: 'none', borderRadius: '18px', background: '#151513' }}
-                loading="lazy"
-              />
-            </div>
-          </section>
-        )}
 
         {/* 5. Community Partners (Beverley or Opted-In) */}
         {(() => {
