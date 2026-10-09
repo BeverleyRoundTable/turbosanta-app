@@ -59,6 +59,49 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
+  // Top-level Screen Wake Lock for Public View Page (keeps phone/tablet screens awake while watching Santa)
+  const [isScreenAwake, setIsScreenAwake] = useState(false);
+  useEffect(() => {
+    let wakeLock = null;
+    const requestLock = async () => {
+      try {
+        if ('wakeLock' in navigator && document.visibilityState === 'visible') {
+          wakeLock = await navigator.wakeLock.request('screen');
+          setIsScreenAwake(true);
+          wakeLock.addEventListener('release', () => {
+            setIsScreenAwake(false);
+            wakeLock = null;
+          });
+        }
+      } catch (err) {
+        setIsScreenAwake(false);
+      }
+    };
+
+    requestLock();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        requestLock();
+      }
+    };
+
+    const handleFirstTouch = () => {
+      if (!wakeLock) requestLock();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('pointerdown', handleFirstTouch, { once: true });
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('pointerdown', handleFirstTouch);
+      if (wakeLock) {
+        wakeLock.release().catch(() => {});
+      }
+    };
+  }, []);
+
   // Floating Action Button visibility on scroll
   useEffect(() => {
     const handleScroll = () => {
@@ -263,6 +306,24 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
             <p style={{ color: 'var(--text-muted)', fontSize: '16px' }}>
               Watch Santa's sleigh move in real-time as he visits the streets!
             </p>
+            {isScreenAwake && (
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginTop: '12px',
+                background: 'rgba(34, 197, 94, 0.1)',
+                border: '1px solid rgba(34, 197, 94, 0.3)',
+                borderRadius: '20px',
+                padding: '4px 14px',
+                fontSize: '12px',
+                color: '#86efac',
+                fontWeight: 600
+              }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px #22c55e' }} />
+                <span>Screen Stay-Awake: Active · Display will not sleep</span>
+              </div>
+            )}
           </div>
 
           <div style={{

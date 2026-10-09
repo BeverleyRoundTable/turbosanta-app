@@ -49,6 +49,49 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     };
   }, [currentTableSlug]);
 
+  // Screen Wake Lock for Admin Mission Control (prevents screen dimming / screensavers during live shifts)
+  const [isScreenAwake, setIsScreenAwake] = useState(false);
+  useEffect(() => {
+    let wakeLock = null;
+    const requestLock = async () => {
+      try {
+        if ('wakeLock' in navigator && document.visibilityState === 'visible') {
+          wakeLock = await navigator.wakeLock.request('screen');
+          setIsScreenAwake(true);
+          wakeLock.addEventListener('release', () => {
+            setIsScreenAwake(false);
+            wakeLock = null;
+          });
+        }
+      } catch (err) {
+        setIsScreenAwake(false);
+      }
+    };
+
+    requestLock();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        requestLock();
+      }
+    };
+
+    const handleFirstTouch = () => {
+      if (!wakeLock) requestLock();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('pointerdown', handleFirstTouch, { once: true });
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('pointerdown', handleFirstTouch);
+      if (wakeLock) {
+        wakeLock.release().catch(() => {});
+      }
+    };
+  }, []);
+
   // Modals & Cockpit State
   const [isCockpitOpen, setIsCockpitOpen] = useState(false);
   const [editingRoute, setEditingRoute] = useState(null);
@@ -552,8 +595,28 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
               <span>{session.tableName}</span>
               <span style={{ color: 'var(--primary)', marginLeft: '8px' }}>• God Mode 2.0</span>
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              Authenticated as <code>{session.email}</code>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                Authenticated as <code>{session.email}</code>
+              </span>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  background: isScreenAwake ? 'rgba(34, 197, 94, 0.12)' : 'rgba(255, 255, 255, 0.05)',
+                  border: isScreenAwake ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid var(--border)',
+                  borderRadius: '12px',
+                  padding: '2px 8px',
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  color: isScreenAwake ? '#86efac' : 'var(--text-muted)'
+                }}
+                title="Screen Wake Lock keeps your monitor and screensavers awake while watching live telemetry"
+              >
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: isScreenAwake ? '#22c55e' : '#666', boxShadow: isScreenAwake ? '0 0 6px #22c55e' : 'none' }} />
+                <span>{isScreenAwake ? 'Screen Awake' : 'Wake Lock Ready'}</span>
+              </div>
             </div>
           </div>
         </div>
