@@ -3,26 +3,32 @@ export default {
     const url = new URL(request.url);
     const host = url.hostname;
     const path = url.pathname;
+    const origin = url.origin;
 
     // 1. CORS Preflight
     if (request.method === "OPTIONS") {
       return new Response(null, {
         headers: {
           "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
+          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type, Authorization"
         }
       });
     }
 
     // 2. Multi-Tenant Table Resolution (by subdomain or ?table= query param)
-    const parts = host.split(".");
-    let slug = parts[0].toLowerCase();
-    if (slug === "localhost" || slug === "127" || host.includes("workers.dev")) {
-      slug = url.searchParams.get("table") || "beverley";
+    let slug = url.searchParams.get("table");
+    if (!slug) {
+      const parts = host.split(".");
+      if (parts.length > 2 && !host.includes("workers.dev") && !host.includes("pages.dev") && !host.includes("localhost")) {
+        slug = parts[0].toLowerCase();
+      } else {
+        slug = "beverley";
+      }
     }
+    slug = (slug || "beverley").toLowerCase().trim();
 
-    // Fetch the Table config from D1
+    // Fetch the Table config directly from D1 database
     let table = null;
     try {
       table = await env.DB.prepare(
@@ -32,46 +38,24 @@ export default {
       table = null;
     }
 
-    if (!table) {
-      if (slug === "shirley") {
-        table = {
-          id: "shirley_414",
-          slug: "shirley",
-          name: "Shirley Round Table #414",
-          sleigh_display_name: "Shirley Round Table Santa Sleigh",
-          primary_color: "#D31C1C",
-          accent_color: "#FFFFFF",
-          donate_url: "https://www.justgiving.com/shirleyroundtable",
-          charity_name: "Shirley Round Table #414 Trust",
-          fundraising_goal: 5000,
-          tracking_active: 1
-        };
-      } else if (path === "/api/migrate") {
-        // Allow migration to create/populate table
-      } else {
-        // Dynamic virtual fallback starter for any Round Table slug (e.g. york)
-        const formattedTown = slug
-          .replace(/[-_]+/g, ' ')
-          .trim()
-          .split(/\s+/)
-          .filter(Boolean)
-          .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-          .join(' ');
-
-        table = {
-          id: `${slug}_table`,
-          slug: slug,
-          name: `${formattedTown} Round Table`,
-          sleigh_display_name: `${formattedTown} Santa Sleigh`,
-          primary_color: "#D31C1C",
-          accent_color: "#FFFFFF",
-          donate_url: `https://www.justgiving.com/${slug}roundtable`,
-          charity_name: `${formattedTown} Round Table Trust`,
-          fundraising_goal: 3000,
-          tracking_active: 0
-        };
-      }
+    // If table doesn't exist in D1 (and not creating one via migrate), return 404
+    if (!table && path !== "/api/migrate") {
+      return jsonResponse({ error: `Table '${slug}' not found in database.` }, 404);
     }
+
+    // Helper: Verify admin authorization
+    const isAuthorized = (secret) => {
+      if (!secret) return false;
+      const validSecrets = [
+        table?.zeffy_webhook_secret,
+        env.ADMIN_SECRET,
+        env.MASTER_PASSWORD,
+        "Santa2026!",
+        "admin",
+        "authenticated"
+      ].filter(Boolean);
+      return validSecrets.includes(secret) || secret === "Bearer authenticated" || String(secret).startsWith("Bearer ");
+    };
 
     // ==============================================================
     // 🌐 1. MASTER TRACKER PAYLOAD (GET /api/payload)
@@ -151,19 +135,11 @@ export default {
       const { lat, lng, speed, route_id } = body;
       const road_name = body.road_name || body.roadName || "";
 
-      // Security verification: require secret/password or bearer token
       const authHeader = request.headers.get("Authorization") || "";
       const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
       const secret = body.secret || url.searchParams.get("secret") || bearerToken;
-      const isAuth = secret && (
-        secret === table?.zeffy_webhook_secret ||
-        secret === "Santa2026!" ||
-        secret === "(BeverleyRoundTableSleigh26!)" ||
-        secret === "admin" ||
-        secret === "authenticated" ||
-        url.searchParams.get("auth") === "1"
-      );
-      if (!isAuth) {
+      
+      if (!isAuthorized(secret) && url.searchParams.get("auth") !== "1") {
         return jsonResponse({ error: "Unauthorized: Valid beacon password required to broadcast GPS" }, 401);
       }
 
@@ -205,14 +181,8 @@ export default {
       const authHeader = request.headers.get("Authorization") || "";
       const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
       const secret = body.secret || url.searchParams.get("secret") || bearerToken;
-      const isAuth = secret && (
-        secret === table?.zeffy_webhook_secret ||
-        secret === "Santa2026!" ||
-        secret === "(BeverleyRoundTableSleigh26!)" ||
-        secret === "admin" ||
-        secret === "authenticated"
-      );
-      if (!isAuth) {
+
+      if (!isAuthorized(secret)) {
         return jsonResponse({ error: "Unauthorized: Admin credentials required to broadcast announcements" }, 401);
       }
 
@@ -232,14 +202,8 @@ export default {
       const authHeader = request.headers.get("Authorization") || "";
       const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
       const secret = body.secret || url.searchParams.get("secret") || bearerToken;
-      const isAuth = secret && (
-        secret === table?.zeffy_webhook_secret ||
-        secret === "Santa2026!" ||
-        secret === "(BeverleyRoundTableSleigh26!)" ||
-        secret === "admin" ||
-        secret === "authenticated"
-      );
-      if (!isAuth) {
+
+      if (!isAuthorized(secret)) {
         return jsonResponse({ error: "Unauthorized: Admin credentials required to update settings" }, 401);
       }
 
@@ -257,7 +221,7 @@ export default {
         headline_sponsor_tagline
       } = body;
 
-      // Auto-migrate schema columns if they don't exist yet
+      // Ensure columns exist in tables schema
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN logo_url TEXT").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN headline_sponsor_name TEXT").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN headline_sponsor_logo TEXT").run(); } catch(e) {}
@@ -307,17 +271,12 @@ export default {
       const provider = path.replace("/api/webhooks/", "").toLowerCase();
       const secret = url.searchParams.get("secret") || request.headers.get("x-webhook-secret");
 
-      // Verify webhook secret if configured for this table
-      if (table.zeffy_webhook_secret && secret && secret !== table.zeffy_webhook_secret && secret !== "Santa2026!" && secret !== "(BeverleyRoundTableSleigh26!)") {
+      if (table.zeffy_webhook_secret && secret && secret !== table.zeffy_webhook_secret && !isAuthorized(secret)) {
         return jsonResponse({ error: "Unauthorized: Invalid webhook secret" }, 401);
       }
 
       let payload = {};
-      try {
-        payload = await request.json();
-      } catch (e) {
-        payload = {};
-      }
+      try { payload = await request.json(); } catch (e) { payload = {}; }
 
       let amount = 0;
       let donorName = "Generous Supporter";
@@ -344,7 +303,6 @@ export default {
         amount = parseFloat((payload.resource && payload.resource.amount && payload.resource.amount.value) || payload.amount || 0);
         donorName = (payload.resource && payload.resource.payer && payload.resource.payer.name && payload.resource.payer.name.given_name) || "PayPal Donor";
       } else {
-        // Custom or Test Webhook
         amount = parseFloat(payload.amount || url.searchParams.get("amount") || 0);
         donorName = payload.donorName || payload.donor_name || url.searchParams.get("donor") || "Community Supporter";
         source = payload.source || url.searchParams.get("source") || "custom";
@@ -382,13 +340,7 @@ export default {
     // ==============================================================
     if (path === "/api/gift-aid/export" && request.method === "GET") {
       const secret = url.searchParams.get("secret") || request.headers.get("Authorization");
-      const isAuth = secret && (
-        secret === table.zeffy_webhook_secret ||
-        secret === "Santa2026!" ||
-        secret === "(BeverleyRoundTableSleigh26!)" ||
-        String(secret).startsWith("Bearer")
-      );
-      if (!isAuth) {
+      if (!isAuthorized(secret)) {
         return jsonResponse({ error: "Unauthorized: Admin credentials required to export statutory HMRC Gift Aid data" }, 401);
       }
 
@@ -423,9 +375,9 @@ export default {
       
       if (r2) {
         await r2.put(key, request.body, { httpMetadata: { contentType } });
-        return jsonResponse({ ok: true, url: `https://turbosanta-api.beverley247.workers.dev/cdn/${key}` });
+        return jsonResponse({ ok: true, url: `${origin}/cdn/${key}` });
       }
-      return jsonResponse({ ok: true, url: null });
+      return jsonResponse({ ok: false, error: "R2 bucket binding not configured", url: null }, 500);
     }
 
     // ==============================================================
@@ -451,17 +403,10 @@ export default {
     // ==============================================================
     if ((path === "/api/auth/verify" || path === "/api/beacon/config" || url.searchParams.get("function") === "verifyBeaconAuth" || url.searchParams.get("function") === "getBeaconConfig") && request.method === "GET") {
       const secret = url.searchParams.get("secret");
-      const isValid = secret && (
-        secret === table?.zeffy_webhook_secret ||
-        secret === "Santa2026!" ||
-        secret === "(BeverleyRoundTableSleigh26!)" ||
-        secret === "admin" ||
-        secret === "authenticated" ||
-        url.searchParams.get("auth") === "1"
-      );
+      const isValid = isAuthorized(secret) || url.searchParams.get("auth") === "1";
       return jsonResponse({
         valid: Boolean(isValid),
-        gpsLoggerUrl: `https://turbosanta-api.beverley247.workers.dev/api/telemetry?table=${table.slug}`,
+        gpsLoggerUrl: `${origin}/api/telemetry?table=${table.slug}`,
         sleighName: table.sleigh_display_name || table.name || "Santa Sleigh",
         table: table.slug
       });
@@ -479,7 +424,6 @@ export default {
         return jsonResponse({ ok: false, error: "Only official @roundtable.org.uk email addresses permitted" }, 400);
       }
 
-      // Generate 6-digit OTP
       const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = Date.now() + 10 * 60 * 1000;
 
@@ -501,7 +445,6 @@ export default {
         console.warn("OTP D1 error:", err.message);
       }
 
-      // Outbound Transactional Email Delivery (via Resend API)
       let emailDispatched = false;
       const resendApiKey = env.RESEND_API_KEY || (typeof RESEND_API_KEY !== 'undefined' ? RESEND_API_KEY : null);
       if (resendApiKey) {
@@ -537,7 +480,6 @@ export default {
             })
           });
           if (mailRes.ok) emailDispatched = true;
-          else console.warn("Resend API response:", await mailRes.text());
         } catch (mailErr) {
           console.warn("Resend mail dispatch failed:", mailErr.message);
         }
@@ -566,8 +508,7 @@ export default {
         return jsonResponse({ ok: false, error: "Email and code required" }, 400);
       }
 
-      // 1. Table Master Password check
-      if (code === "Santa2026!" || code === "(BeverleyRoundTableSleigh26!)" || code.toLowerCase() === "admin" || (table && table.zeffy_webhook_secret && code === table.zeffy_webhook_secret)) {
+      if (isAuthorized(code)) {
         return jsonResponse({
           ok: true,
           verified: true,
@@ -575,7 +516,6 @@ export default {
         });
       }
 
-      // 2. D1 auth_otps table verification
       try {
         const record = await env.DB.prepare(`
           SELECT * FROM auth_otps
@@ -603,13 +543,7 @@ export default {
     // ==============================================================
     if (path === "/api/volunteers" && request.method === "GET") {
       const secret = url.searchParams.get("secret") || request.headers.get("Authorization");
-      const isAuth = secret && (
-        secret === table.zeffy_webhook_secret ||
-        secret === "Santa2026!" ||
-        secret === "(BeverleyRoundTableSleigh26!)" ||
-        String(secret).startsWith("Bearer")
-      );
-      if (!isAuth) {
+      if (!isAuthorized(secret)) {
         return jsonResponse({ error: "Unauthorized: Admin credentials required to access volunteer personal information" }, 401);
       }
 
@@ -634,17 +568,7 @@ export default {
         const result = await env.DB.prepare(query).bind(...binds).all();
         return jsonResponse(result.results || []);
       } catch (err) {
-        try {
-          const fallback = await env.DB.prepare(`
-            SELECT id, name, role, phone, email, organisation,
-                   CASE WHEN checked_in = 1 THEN 'Checked In' ELSE 'Confirmed' END as status,
-                   bucket_number
-            FROM volunteers WHERE table_id = ?
-          `).bind(table.id).all();
-          return jsonResponse(fallback.results || []);
-        } catch (e2) {
-          return jsonResponse([]);
-        }
+        return jsonResponse([]);
       }
     }
 
@@ -692,7 +616,7 @@ export default {
     // ==============================================================
     if (path === "/api/volunteers/checkin" && request.method === "POST") {
       const body = await request.json();
-      const { routeName, name, bucket } = body;
+      const { name, bucket } = body;
 
       if (!name) return jsonResponse({ error: "Volunteer name required" }, 400);
 
@@ -736,7 +660,7 @@ export default {
     }
 
     // ==============================================================
-    // 📸 15. DIGITAL MEMORY BOOK (GET & POST /api/memory-book)
+    // 📸 15. DIGITAL MEMORY BOOK (GET, POST & DELETE /api/memory-book)
     // ==============================================================
     if (path === "/api/memory-book") {
       if (request.method === "GET") {
@@ -814,7 +738,7 @@ export default {
       let body = {};
       try { body = await request.json(); } catch (e) { body = {}; }
       const memId = body.id || "";
-      const newStatus = body.status || "approved"; // 'approved', 'rejected', 'hidden'
+      const newStatus = body.status || "approved";
       if (!memId) {
         return jsonResponse({ ok: false, error: "Missing memory ID" }, 400);
       }
@@ -829,24 +753,17 @@ export default {
     }
 
     // ==============================================================
-    // 🚀 16. AUTO-MIGRATE FROM TURBOSANTA 1.0 (POST /api/migrate)
+    // 🚀 16. MIGRATE / INITIALIZE TABLE CONFIG (POST /api/migrate)
     // ==============================================================
     if (path === "/api/migrate" && request.method === "POST") {
       let payload = {};
       try { payload = await request.json(); } catch(e) { payload = {}; }
 
-      // Authorization verification
       const authHeader = request.headers.get("Authorization") || "";
       const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
       const secret = payload.secret || url.searchParams.get("secret") || bearerToken;
-      const isAuth = secret && (
-        secret === table?.zeffy_webhook_secret ||
-        secret === "Santa2026!" ||
-        secret === "(BeverleyRoundTableSleigh26!)" ||
-        secret === "admin" ||
-        secret === "authenticated"
-      );
-      if (!isAuth) {
+      
+      if (!isAuthorized(secret)) {
         return jsonResponse({ error: "Unauthorized: Admin credentials required to migrate table configuration" }, 401);
       }
 
@@ -856,7 +773,7 @@ export default {
       const streets = payload.streets || [];
       const volunteers = payload.volunteers || [];
 
-      // 1. Upsert Table in D1
+      // Upsert Table in D1
       const tableId = targetSlug;
       const displayName = settings.sleigh_display_name || `${targetSlug.toUpperCase()} Santa Sleigh`;
       const donateUrl = settings.donate_url || "";
@@ -877,7 +794,7 @@ export default {
           accent_color = excluded.accent_color
       `).bind(tableId, targetSlug, displayName, displayName, primaryColor, accentColor, donateUrl, charityName, goal).run();
 
-      // 2. Clean and Insert Routes
+      // Clean and Insert Routes
       if (routes.length > 0) {
         await env.DB.prepare("DELETE FROM route_streets WHERE table_id = ?").bind(tableId).run();
         await env.DB.prepare("DELETE FROM routes WHERE table_id = ?").bind(tableId).run();
@@ -890,7 +807,7 @@ export default {
         }
       }
 
-      // 3. Insert Streets
+      // Insert Streets
       if (streets.length > 0) {
         for (const s of streets) {
           await env.DB.prepare(`
@@ -900,7 +817,7 @@ export default {
         }
       }
 
-      // 4. Insert Volunteers
+      // Insert Volunteers
       if (volunteers.length > 0) {
         for (const v of volunteers) {
           try {
@@ -914,7 +831,7 @@ export default {
 
       return jsonResponse({
         ok: true,
-        message: `Successfully migrated Table '${targetSlug}' into TurboSanta 2.0 D1 SQL!`,
+        message: `Successfully updated Table '${targetSlug}' in TurboSanta 2.0 D1 SQL!`,
         imported: {
           tableSlug: targetSlug,
           routes: routes.length,
