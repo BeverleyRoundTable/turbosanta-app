@@ -12,6 +12,12 @@ export default function App() {
   const initialTableParam = urlParams.get('table');
   const initialAdminParam = urlParams.get('admin') === '1' || urlParams.get('admin') === 'true' || urlParams.get('god') === '1' || urlParams.get('god') === 'true';
 
+  const pathname = window.location.pathname.toLowerCase();
+  if (pathname === '/gift-aid' || pathname === '/gift-aid/' || pathname === '/sleigh/gift_aid' || pathname === '/sleigh/gift_aid/') {
+    window.location.replace(`/gift_aid.html${window.location.search}`);
+    return null;
+  }
+
   const [activeTableSlug, setActiveTableSlug] = useState(initialTableParam || null);
   const [tableData, setTableData] = useState(null);
   const [loading, setLoading] = useState(!!initialTableParam);

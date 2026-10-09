@@ -2635,26 +2635,27 @@ AppState.vars.dataUrl = AppState.vars.proxyUrl || AppState.vars.apiUrl;
         if (!route) { AppState.dom.notifyBtn.style.display = "none"; } else { await loadGpxRoute(route.gpxUrl); if (AppState.flags.isDriver && AppState.flags.gpxLoaded) TurnByTurn.load(AppState.gpxRoute); }
 
         const gaLink = document.getElementById('giftAidLink');
-        if (gaLink && !AppState.flags.isKiosk && !AppState.flags.isDriver && String(settings.enable_gift_aid || '').toUpperCase() === 'TRUE') {
-          let host = location.hostname.toLowerCase();
-          
-          // If embedded inside an iframe on pages.dev, peek at the parent URL
-          if (!host.includes('roundtablesantasleigh.co.uk') && document.referrer) {
-            try {
-              const ref = new URL(document.referrer);
-              host = ref.hostname.toLowerCase();
-            } catch(e) {}
+        window.updateGiftAidDisplay = function() {
+          if (!gaLink) return;
+          if (AppState.flags.isKiosk || AppState.flags.isDriver) {
+            gaLink.style.display = 'none';
+            return;
           }
+          const curData = AppState.vars.latestApiData || apiData;
+          const curSettings = curData?.settings || {};
+          const curTable = curData?.table || {};
+          const gaVal = curSettings.enable_gift_aid !== undefined ? curSettings.enable_gift_aid : curTable.enable_gift_aid;
+          const isGaEnabled = Boolean(gaVal === true || String(gaVal).toUpperCase() === 'TRUE');
 
-          if (host.includes('roundtablesantasleigh.co.uk')) {
-            let base = host.split('.')[0];
-            if (base.endsWith('tracker')) base = base.replace(/tracker$/, '');
-            gaLink.href = `https://${base}giftaid.roundtablesantasleigh.co.uk`;
+          if (isGaEnabled) {
+            const currentSlug = AppState.vars.tableSlug || 'beverley';
+            gaLink.href = `/gift_aid.html?table=${encodeURIComponent(currentSlug)}`;
+            gaLink.style.display = 'block';
           } else {
-            gaLink.href = location.origin + '/sleigh/gift_aid?api=' + encodeURIComponent(AppState.vars.apiUrl);
+            gaLink.style.display = 'none';
           }
-          gaLink.style.display = 'block';
-        }
+        };
+        window.updateGiftAidDisplay();
         
         window.initTrackerMap = function() {
     AppState.map = L.map("map", { zoomControl: !AppState.flags.isKiosk && !AppState.flags.isDriver, rotate: !!AppState.flags.isDriver, touchRotate: false, shiftKeyRotate: false, rotateControl: false }).setView(AppConfig.LOCATIONS.LAPLAND, AppState.flags.isKiosk ? 6 : 5);

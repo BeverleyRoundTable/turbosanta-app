@@ -206,6 +206,32 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     headline_sponsor_tagline: tableData?.table?.headline_sponsor_tagline || ''
   });
 
+  // Automatically synchronize formData with live tableData when loaded
+  React.useEffect(() => {
+    if (tableData?.table) {
+      setFormData(prev => ({
+        ...prev,
+        sleigh_display_name: tableData.table.sleigh_display_name || prev.sleigh_display_name,
+        fundraising_goal: tableData.table.fundraising_goal !== undefined ? tableData.table.fundraising_goal : prev.fundraising_goal,
+        donate_url: tableData.table.donate_url || prev.donate_url,
+        logo_url: tableData.table.logo_url || prev.logo_url,
+        sleigh_icon_live: tableData.table.sleigh_icon_live !== undefined ? tableData.table.sleigh_icon_live : prev.sleigh_icon_live,
+        website_url: tableData.table.website_url !== undefined ? tableData.table.website_url : prev.website_url,
+        facebook_url: tableData.table.facebook_url !== undefined ? tableData.table.facebook_url : prev.facebook_url,
+        instagram_url: tableData.table.instagram_url !== undefined ? tableData.table.instagram_url : prev.instagram_url,
+        tiktok_url: tableData.table.tiktok_url !== undefined ? tableData.table.tiktok_url : prev.tiktok_url,
+        primary_color: tableData.table.primary_color || prev.primary_color,
+        enable_gift_aid: Boolean(tableData.table.enable_gift_aid),
+        charity_name: tableData.table.charity_name || prev.charity_name,
+        charity_number: tableData.table.charity_number || prev.charity_number,
+        headline_sponsor_name: tableData.table.headline_sponsor_name !== undefined ? tableData.table.headline_sponsor_name : prev.headline_sponsor_name,
+        headline_sponsor_logo: tableData.table.headline_sponsor_logo !== undefined ? tableData.table.headline_sponsor_logo : prev.headline_sponsor_logo,
+        headline_sponsor_url: tableData.table.headline_sponsor_url !== undefined ? tableData.table.headline_sponsor_url : prev.headline_sponsor_url,
+        headline_sponsor_tagline: tableData.table.headline_sponsor_tagline !== undefined ? tableData.table.headline_sponsor_tagline : prev.headline_sponsor_tagline
+      }));
+    }
+  }, [tableData]);
+
   // Multi-Gateway Donation Webhooks State
   const [selectedWebhookProvider, setSelectedWebhookProvider] = useState('zeffy');
   const [webhookSecret, setWebhookSecret] = useState(
@@ -1864,7 +1890,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
 
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     const nextVal = !formData.enable_gift_aid;
                     setFormData(prev => ({ ...prev, enable_gift_aid: nextVal }));
                     if (onUpdateTableData) {
@@ -1873,7 +1899,18 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                         table: { ...prev.table, enable_gift_aid: nextVal }
                       }));
                     }
-                    setSaveStatus(`Gift Aid ${nextVal ? 'Enabled' : 'Disabled'} for Table.`);
+                    const tableSlug = session?.tableSlug || session?.tableId || 'beverley';
+                    setSaveStatus('Updating Gift Aid status in database...');
+                    const res = await saveTableSettings(tableSlug, {
+                      enable_gift_aid: nextVal,
+                      charity_name: formData.charity_name,
+                      charity_number: formData.charity_number
+                    });
+                    if (res && res.ok) {
+                      setSaveStatus(`Gift Aid ${nextVal ? 'Enabled' : 'Disabled'} in database!`);
+                    } else {
+                      setSaveStatus(`Gift Aid ${nextVal ? 'Enabled' : 'Disabled'} locally.`);
+                    }
                     setTimeout(() => setSaveStatus(''), 2500);
                   }}
                   style={{

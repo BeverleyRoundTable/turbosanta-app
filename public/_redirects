@@ -1,0 +1,5 @@
+# Cloudflare Pages Redirects / Rewrites
+/gift-aid  /gift_aid.html  200
+/gift-aid/  /gift_aid.html  200
+/sleigh/gift_aid  /gift_aid.html  200
+/sleigh/gift_aid/  /gift_aid.html  200

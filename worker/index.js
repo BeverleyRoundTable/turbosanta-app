@@ -269,6 +269,7 @@ export default {
         primary_color,
         charity_name,
         charity_number,
+        enable_gift_aid,
         headline_sponsor_name,
         headline_sponsor_logo,
         headline_sponsor_url,
@@ -284,6 +285,7 @@ export default {
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN tiktok_url TEXT").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN charity_name TEXT").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN charity_number TEXT").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN enable_gift_aid BOOLEAN DEFAULT 0").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN headline_sponsor_name TEXT").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN headline_sponsor_logo TEXT").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN headline_sponsor_url TEXT").run(); } catch(e) {}
@@ -304,6 +306,7 @@ export default {
             primary_color = COALESCE(?, primary_color),
             charity_name = COALESCE(?, charity_name),
             charity_number = COALESCE(?, charity_number),
+            enable_gift_aid = COALESCE(?, enable_gift_aid),
             headline_sponsor_name = COALESCE(?, headline_sponsor_name),
             headline_sponsor_logo = COALESCE(?, headline_sponsor_logo),
             headline_sponsor_url = COALESCE(?, headline_sponsor_url),
@@ -322,6 +325,7 @@ export default {
           primary_color !== undefined ? primary_color : null,
           charity_name !== undefined ? charity_name : null,
           charity_number !== undefined ? charity_number : null,
+          enable_gift_aid !== undefined ? (enable_gift_aid ? 1 : 0) : null,
           headline_sponsor_name !== undefined ? headline_sponsor_name : null,
           headline_sponsor_logo !== undefined ? headline_sponsor_logo : null,
           headline_sponsor_url !== undefined ? headline_sponsor_url : null,
@@ -407,7 +411,69 @@ export default {
     }
 
     // ==============================================================
-    // 🎁 6. HMRC GIFT AID R68 EXPORT (GET /api/gift-aid/export)
+    // 🎁 6. PUBLIC GIFT AID DECLARATION (POST /api/gift-aid)
+    // ==============================================================
+    if (path === "/api/gift-aid" && request.method === "POST") {
+      let body = {};
+      try { body = await request.json(); } catch(e) { body = {}; }
+
+      const title = body.title || "";
+      const firstName = (body.firstName || body.first_name || "").trim();
+      const lastName = (body.lastName || body.last_name || "").trim();
+      const address1 = (body.address1 || body.address_1 || "").trim();
+      const address2 = (body.address2 || body.address_2 || "").trim();
+      const city = (body.city || "").trim();
+      const postcode = (body.postcode || "").trim().toUpperCase();
+      const amount = parseFloat(body.amount) || 0;
+      const declDate = body.declarationDate || new Date().toISOString().slice(0, 10);
+
+      if (!firstName || !lastName || !postcode || amount <= 0) {
+        return jsonResponse({ error: "Missing mandatory fields (first name, last name, postcode, valid amount)" }, 400);
+      }
+
+      const houseNameOrNumber = [address1, address2, city].filter(Boolean).join(", ") || address1 || postcode;
+
+      try {
+        await env.DB.prepare(`
+          CREATE TABLE IF NOT EXISTS gift_aid (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            table_id TEXT NOT NULL,
+            donor_ref TEXT,
+            title TEXT,
+            first_name TEXT NOT NULL,
+            last_name TEXT NOT NULL,
+            house_name_or_number TEXT NOT NULL,
+            postcode TEXT NOT NULL,
+            donation_amount REAL NOT NULL,
+            declaration_date TEXT NOT NULL,
+            status TEXT DEFAULT 'Pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(table_id) REFERENCES tables(id)
+          )
+        `).run();
+
+        await env.DB.prepare(`
+          INSERT INTO gift_aid (table_id, title, first_name, last_name, house_name_or_number, postcode, donation_amount, declaration_date, status)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pending')
+        `).bind(
+          table.id,
+          title,
+          firstName,
+          lastName,
+          houseNameOrNumber,
+          postcode,
+          amount,
+          declDate
+        ).run();
+
+        return jsonResponse({ ok: true, message: "Gift Aid declaration recorded successfully" });
+      } catch (err) {
+        return jsonResponse({ ok: false, error: err.message }, 500);
+      }
+    }
+
+    // ==============================================================
+    // 🎁 7. HMRC GIFT AID R68 EXPORT (GET /api/gift-aid/export)
     // ==============================================================
     if (path === "/api/gift-aid/export" && request.method === "GET") {
       const secret = url.searchParams.get("secret") || request.headers.get("Authorization");
