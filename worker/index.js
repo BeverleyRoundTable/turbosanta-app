@@ -55,7 +55,9 @@ export default {
           fundraising_goal: table.fundraising_goal,
           total_raised: (donations && donations.total) || 0,
           live_announcement: table.live_announcement,
-          tracking_active: Boolean(table.tracking_active)
+          tracking_active: Boolean(table.tracking_active),
+          enable_gift_aid: Boolean(table.enable_gift_aid),
+          charity_number: table.charity_number || ""
         },
         routes: routes.results || [],
         streets: streets.results || [],

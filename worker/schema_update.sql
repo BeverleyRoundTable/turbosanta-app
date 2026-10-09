@@ -20,3 +20,28 @@ CREATE TABLE IF NOT EXISTS volunteers (
 
 -- Index for instant volunteer lookups
 CREATE INDEX IF NOT EXISTS idx_volunteers_table_route ON volunteers(table_id, route_name);
+
+-- ==============================================================================
+-- Gift Aid Declarations Table (HMRC R68 Compliant)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS gift_aid (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    table_id TEXT NOT NULL REFERENCES tables(id) ON DELETE CASCADE,
+    title TEXT,
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
+    house_name_or_number TEXT NOT NULL,
+    postcode TEXT NOT NULL,
+    declaration_date TEXT NOT NULL,
+    donation_amount REAL NOT NULL,
+    route_name TEXT,
+    email TEXT,
+    status TEXT DEFAULT 'Pending', -- 'Pending' or 'Claimed'
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_gift_aid_table_status ON gift_aid(table_id, status);
+
+-- Optional table columns for charity status
+-- ALTER TABLE tables ADD COLUMN enable_gift_aid BOOLEAN DEFAULT 0;
+-- ALTER TABLE tables ADD COLUMN charity_number TEXT;

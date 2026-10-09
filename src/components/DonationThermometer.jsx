@@ -91,22 +91,24 @@ export default function DonationThermometer({ tableData }) {
           </span>
         </div>
 
-        {/* Gift Aid Callout */}
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          background: 'rgba(34, 197, 94, 0.1)',
-          border: '1px solid rgba(34, 197, 94, 0.3)',
-          padding: '6px 14px',
-          borderRadius: '20px',
-          fontSize: '13px',
-          color: '#86efac',
-          marginBottom: '25px'
-        }}>
-          <ShieldCheck size={16} />
-          <span>UK Taxpayers: Add 25% extra at no cost via Gift Aid</span>
-        </div>
+        {/* Gift Aid Callout (Only shown if Table has registered charity status enabled) */}
+        {table.enable_gift_aid && (
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'rgba(34, 197, 94, 0.1)',
+            border: '1px solid rgba(34, 197, 94, 0.3)',
+            padding: '6px 14px',
+            borderRadius: '20px',
+            fontSize: '13px',
+            color: '#86efac',
+            marginBottom: '25px'
+          }}>
+            <ShieldCheck size={16} />
+            <span>UK Taxpayers: Add 25% extra at no cost via Gift Aid</span>
+          </div>
+        )}
 
         <div>
           <button

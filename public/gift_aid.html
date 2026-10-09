@@ -319,7 +319,9 @@
 
 <script>
 (function() {
-  const API = new URLSearchParams(location.search).get('api') || '';
+  const params = new URLSearchParams(window.location.search);
+  const tableSlug = params.get('table') || '';
+  const API = params.get('api') || (tableSlug ? `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableSlug)}` : '');
 
   const form     = document.getElementById('giftAidForm');
   const routeSel = document.getElementById('route');
@@ -376,17 +378,21 @@
   }
 
   function processData(data) {
-    applyTheme(data.settings);
-    const name = data.settings?.sleigh_display_name || 'Santa Sleigh';
-    echoCh.textContent = name;
+    const settings = data.settings || data.table || {};
+    applyTheme(settings);
+    const name = settings.sleigh_display_name || settings.name || 'Santa Sleigh';
+    const charity = settings.charity_name || name;
+    echoCh.textContent = charity;
     label.textContent = 'Powered by ' + name;
     document.title = 'Gift Aid — ' + name;
 
-    if (data.routes && data.routes.length) {
+    const routes = data.routes || [];
+    if (routes.length) {
       routeSel.innerHTML = '<option value="">— Select route (optional) —</option>';
-      data.routes.forEach(r => {
+      routes.forEach(r => {
+        const rName = r.routeName || r.name || 'Unnamed';
         const d = r.date ? ' (' + r.date + ')' : '';
-        routeSel.innerHTML += `<option value="${r.routeName || ''}">${r.routeName || 'Unnamed'}${d}</option>`;
+        routeSel.innerHTML += `<option value="${rName}">${rName}${d}</option>`;
       });
     } else {
       routeSel.innerHTML = '<option value="">No routes found</option>';
@@ -406,7 +412,11 @@
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!API) return alert('Missing ?api= parameter');
+    const submitUrl = tableSlug 
+      ? `https://turbosanta-api.beverley247.workers.dev/api/gift-aid?table=${encodeURIComponent(tableSlug)}`
+      : API;
+
+    if (!submitUrl) return alert('Missing table or api parameter');
 
     submitBtn.disabled = true;
     submitBtn.innerHTML = 'Submitting...';
@@ -429,11 +439,11 @@
     };
 
     try {
-      await fetch(API, {
+      await fetch(submitUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-        mode: 'no-cors'
+        mode: tableSlug ? 'cors' : 'no-cors'
       });
 
       const giftAid = Math.round(amt * 0.25 * 100) / 100;

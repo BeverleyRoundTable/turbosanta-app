@@ -123,7 +123,10 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     fundraising_goal: tableData?.table?.fundraising_goal || 8000,
     donate_url: tableData?.table?.donate_url || 'https://www.zeffy.com/en-GB/donation-form/beverley-round-table-for-our-community',
     logo_url: tableData?.table?.logo_url || 'https://brt-23f.pages.dev/icons/RTBI_Santa.png',
-    primary_color: tableData?.table?.primary_color || '#FBAF33'
+    primary_color: tableData?.table?.primary_color || '#FBAF33',
+    enable_gift_aid: tableData?.table?.enable_gift_aid || false,
+    charity_name: tableData?.table?.charity_name || '',
+    charity_number: tableData?.table?.charity_number || ''
   });
 
   // Presets from the playbook
@@ -1060,7 +1063,10 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                           fundraising_goal: formData.fundraising_goal,
                           donate_url: formData.donate_url,
                           logo_url: formData.logo_url,
-                          primary_color: formData.primary_color
+                          primary_color: formData.primary_color,
+                          enable_gift_aid: formData.enable_gift_aid,
+                          charity_name: formData.charity_name,
+                          charity_number: formData.charity_number
                         }
                       }));
                     }
@@ -1086,39 +1092,163 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
             borderRadius: '16px',
             padding: '30px'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
               <div>
-                <h2 className="brand-font" style={{ fontSize: '24px', margin: '0 0 4px 0' }}>
-                  HMRC Gift Aid Claims
-                </h2>
-                <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0 }}>
-                  Export Gift Aid schedules formatted for direct upload to HMRC Charities Online.
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                  <h2 className="brand-font" style={{ fontSize: '24px', margin: 0 }}>
+                    HMRC Gift Aid & Charity Status
+                  </h2>
+                  <span style={{
+                    padding: '4px 10px',
+                    borderRadius: '20px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    background: formData.enable_gift_aid ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255,255,255,0.08)',
+                    color: formData.enable_gift_aid ? '#86efac' : 'var(--text-muted)',
+                    border: formData.enable_gift_aid ? '1px solid #22c55e' : '1px solid var(--border)'
+                  }}>
+                    {formData.enable_gift_aid ? 'Active (Registered Charity)' : 'Optional / Disabled (Non-Charity Table)'}
+                  </span>
+                </div>
+                <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0, maxWidth: '650px' }}>
+                  Not all Round Tables are registered charities. Gift Aid is an optional feature. If your Table is not a registered charity, leave this turned off so all Gift Aid prompts are hidden from public screens.
                 </p>
               </div>
 
-              <button
-                onClick={handleExportHmrc}
-                className="btn-primary"
-                style={{ padding: '10px 20px' }}
-              >
-                <Download size={18} />
-                <span>Export HMRC R68 CSV</span>
-              </button>
+              {formData.enable_gift_aid && (
+                <button
+                  onClick={handleExportHmrc}
+                  className="btn-primary"
+                  style={{ padding: '10px 20px' }}
+                >
+                  <Download size={18} />
+                  <span>Export HMRC R68 CSV</span>
+                </button>
+              )}
             </div>
 
+            {/* CHARITY TOGGLE & CONFIGURATION CARD */}
             <div style={{
               background: '#0d0d0b',
               border: '1px solid var(--border)',
               borderRadius: '12px',
               padding: '24px',
-              textAlign: 'center'
+              marginBottom: '24px'
             }}>
-              <span style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                HMRC R68 COMPLIANT CSV SPECIFICATION
-              </span>
-              <p style={{ fontSize: '15px', color: '#86efac', margin: 0, fontWeight: 600 }}>
-                ✓ Pre-formatted with Title, Name, House No, Postcode, Date, and Amount (2dp, no £ symbol).
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+                <div>
+                  <strong style={{ fontSize: '16px', color: '#fff', display: 'block', marginBottom: '4px' }}>
+                    Enable Gift Aid Claims for {session.tableName || 'Your Table'}
+                  </strong>
+                  <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                    Only activate if your Table operates an HMRC-registered charity or charitable trust.
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextVal = !formData.enable_gift_aid;
+                    setFormData(prev => ({ ...prev, enable_gift_aid: nextVal }));
+                    if (onUpdateTableData) {
+                      onUpdateTableData(prev => ({
+                        ...prev,
+                        table: { ...prev.table, enable_gift_aid: nextVal }
+                      }));
+                    }
+                    setSaveStatus(`Gift Aid ${nextVal ? 'Enabled' : 'Disabled'} for Table.`);
+                    setTimeout(() => setSaveStatus(''), 2500);
+                  }}
+                  style={{
+                    padding: '8px 20px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    fontWeight: 700,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    background: formData.enable_gift_aid ? '#d31c1c' : '#22c55e',
+                    color: formData.enable_gift_aid ? '#fff' : '#000'
+                  }}
+                >
+                  {formData.enable_gift_aid ? 'Disable Gift Aid' : 'Enable Gift Aid (+25%)'}
+                </button>
+              </div>
+
+              {formData.enable_gift_aid && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
+                      Registered Charity Name
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.charity_name}
+                      onChange={(e) => setFormData({ ...formData, charity_name: e.target.value })}
+                      placeholder="e.g. Beverley Round Table Community Fund"
+                      style={{
+                        width: '100%',
+                        background: '#151513',
+                        border: '1px solid var(--border)',
+                        borderRadius: '8px',
+                        padding: '10px 14px',
+                        color: '#fff',
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
+                      Charity Commission Number / HMRC Reference
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.charity_number}
+                      onChange={(e) => setFormData({ ...formData, charity_number: e.target.value })}
+                      placeholder="e.g. 1198234 or XA12345"
+                      style={{
+                        width: '100%',
+                        background: '#151513',
+                        border: '1px solid var(--border)',
+                        borderRadius: '8px',
+                        padding: '10px 14px',
+                        color: '#fff',
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* D1 SQL DATABASE STORAGE STATUS */}
+            <div style={{
+              background: '#0d0d0b',
+              border: '1px solid var(--border)',
+              borderRadius: '12px',
+              padding: '24px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#22c55e', display: 'inline-block' }}></span>
+                <strong style={{ color: '#fff', fontSize: '15px' }}>D1 SQL Database Audit: <code>gift_aid</code> Table</strong>
+              </div>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 14px 0', lineHeight: 1.5 }}>
+                When donors submit Gift Aid declarations, the row is recorded in Cloudflare D1 with donor title, full name, house number, postcode, donation amount, date, and status (<code>Pending</code>).
               </p>
+              <div style={{
+                background: '#151513',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                padding: '14px 18px',
+                fontSize: '13px',
+                color: '#86efac',
+                fontFamily: 'monospace'
+              }}>
+                ✓ HMRC R68 Columns: Title | First Name | Last Name | House No | Postcode | Date | Amount
+              </div>
             </div>
           </div>
         )}
