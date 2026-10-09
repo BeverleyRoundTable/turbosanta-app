@@ -1771,17 +1771,6 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     <ExternalLink size={15} />
                     <span>National UK Rollup</span>
                   </a>
-
-                  <button
-                    onClick={handleSnapshotSeason}
-                    disabled={isSnapshottingSeason}
-                    className="btn-secondary"
-                    style={{ padding: '9px 16px', fontSize: '13px' }}
-                    title="Freeze current season statistics into D1 season_history"
-                  >
-                    <Camera size={15} />
-                    <span>{isSnapshottingSeason ? 'Saving...' : '📸 Snapshot Season'}</span>
-                  </button>
                 </div>
               </div>
 
