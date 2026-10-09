@@ -434,6 +434,21 @@ export default {
         streetName = payload.streetName || payload.street_name || "Online Donation";
       }
 
+      const isDryRun = url.searchParams.get("dry_run") === "1" || url.searchParams.get("dry_run") === "true" || payload.dry_run === true;
+
+      if (isDryRun) {
+        return jsonResponse({
+          ok: true,
+          status: "Test Succeeded (Dry-Run)",
+          dry_run: true,
+          provider,
+          amount,
+          donorName,
+          source,
+          message: `Webhook endpoint verified! Successfully parsed £${amount.toFixed(2)} from "${donorName}". No records were written to your database.`
+        });
+      }
+
       if (amount > 0) {
         const donationId = `${provider}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
@@ -471,6 +486,22 @@ export default {
       }
 
       return jsonResponse({ ok: false, error: "Zero or invalid donation amount", payload_received: payload }, 400);
+    }
+
+    // ==============================================================
+    // 🗑️ 5b. RESET / CLEAR DONATIONS (DELETE /api/donations)
+    // ==============================================================
+    if (path === "/api/donations" && request.method === "DELETE") {
+      const authHeader = request.headers.get("Authorization") || "";
+      const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+      const secret = url.searchParams.get("secret") || bearerToken;
+
+      if (!isAuthorized(secret)) {
+        return jsonResponse({ error: "Unauthorized: Admin credentials required to clear donations" }, 401);
+      }
+
+      await env.DB.prepare("DELETE FROM donations WHERE table_id = ?").bind(table.id).run();
+      return jsonResponse({ ok: true, message: "Donations cleared successfully", total_raised: 0 });
     }
 
     // ==============================================================

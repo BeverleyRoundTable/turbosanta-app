@@ -299,12 +299,13 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     const slug = session?.tableSlug || tableData?.table?.slug || 'beverley';
 
     try {
-      const url = `https://turbosanta-api.beverley247.workers.dev/api/webhooks/${provider}?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(webhookSecret)}`;
+      const url = `https://turbosanta-api.beverley247.workers.dev/api/webhooks/${provider}?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(webhookSecret)}&dry_run=true`;
       const testPayload = {
         amount: amt,
         donorName: donor,
         source: provider,
         streetName: 'High Street (Live Test)',
+        dry_run: true,
         data: {
           amount: amt * 100,
           contact: { firstName: donor },
@@ -312,11 +313,12 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         }
       };
 
-      await fetch(url, {
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(testPayload)
       });
+      const data = await res.json();
 
       // Confetti celebration!
       confetti({
@@ -325,31 +327,38 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         origin: { y: 0.7 }
       });
 
-      if (onUpdateTableData) {
-        onUpdateTableData(prev => ({
-          ...prev,
-          table: {
-            ...prev.table,
-            total_raised: (prev.table?.total_raised || 0) + amt
-          }
-        }));
-      }
-
-      setWebhookTestMessage(`🎉 Success! Received simulated donation of £${amt.toFixed(2)} from "${donor}" via ${provider.toUpperCase()}. Live total raised updated!`);
+      setWebhookTestMessage(`✅ Verified! Webhook endpoint successfully received & parsed £${amt.toFixed(2)} for ${provider.toUpperCase()}. (Dry-Run: verified successfully without adding fake records to your database).`);
     } catch (e) {
-      confetti({ particleCount: 30, spread: 50 });
-      if (onUpdateTableData) {
-        onUpdateTableData(prev => ({
-          ...prev,
-          table: {
-            ...prev.table,
-            total_raised: (prev.table?.total_raised || 0) + amt
-          }
-        }));
-      }
-      setWebhookTestMessage(`🎉 Simulated donation of £${amt.toFixed(2)} from "${donor}" applied to live total!`);
+      setWebhookTestMessage(`❌ Test ping failed: ${e.message}`);
     } finally {
       setIsSendingTestWebhook(false);
+    }
+  };
+
+  const handleResetDonations = async () => {
+    if (!confirm("Are you sure you want to clear test donations and reset the live total raised back to £0.00 in your database?")) return;
+    const slug = session?.tableSlug || tableData?.table?.slug || 'beverley';
+    const secret = session?.secret || 'Santa2026!';
+    try {
+      await fetch(`https://turbosanta-api.beverley247.workers.dev/api/donations?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(secret)}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${secret}` }
+      });
+      if (onUpdateTableData) {
+        onUpdateTableData(prev => ({
+          ...prev,
+          table: {
+            ...prev.table,
+            total_raised: 0,
+            donation_breakdown: []
+          },
+          donationsLedger: []
+        }));
+      }
+      setSaveStatus("All test donations cleared! Live total reset to £0.00.");
+      setTimeout(() => setSaveStatus(''), 3000);
+    } catch (e) {
+      alert("Failed to reset donations: " + e.message);
     }
   };
 
@@ -1361,19 +1370,41 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                         Live unified total across all integrated payment gateways for this calendar season.
                       </p>
                     </div>
-                    <div style={{
-                      background: 'rgba(251, 175, 51, 0.12)',
-                      border: '1px solid var(--primary)',
-                      borderRadius: '8px',
-                      padding: '8px 16px',
-                      textAlign: 'right'
-                    }}>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px', fontWeight: 700 }}>
-                        Grand Total Raised
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        background: 'rgba(251, 175, 51, 0.12)',
+                        border: '1px solid var(--primary)',
+                        borderRadius: '8px',
+                        padding: '8px 16px',
+                        textAlign: 'right'
+                      }}>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px', fontWeight: 700 }}>
+                          Grand Total Raised
+                        </div>
+                        <div className="brand-font" style={{ fontSize: '24px', color: 'var(--primary)', lineHeight: 1.1 }}>
+                          £{totalRaised.toLocaleString()}
+                        </div>
                       </div>
-                      <div className="brand-font" style={{ fontSize: '24px', color: 'var(--primary)', lineHeight: 1.1 }}>
-                        £{totalRaised.toLocaleString()}
-                      </div>
+                      {totalRaised > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleResetDonations}
+                          className="btn-secondary"
+                          style={{
+                            padding: '8px 12px',
+                            fontSize: '11px',
+                            borderColor: '#ef4444',
+                            color: '#fca5a5',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px'
+                          }}
+                          title="Clear simulated test donations to reset the total back to £0.00"
+                        >
+                          <Trash2 size={13} />
+                          <span>Clear Test Data</span>
+                        </button>
+                      )}
                     </div>
                   </div>
 
