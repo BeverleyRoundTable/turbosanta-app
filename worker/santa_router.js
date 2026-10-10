@@ -93,7 +93,14 @@ export default {
     // 3. API Proxy Pass-Through
     if (path.startsWith('/api/') || path === '/api') {
       const targetApiUrl = new URL(`${API_URL}${url.pathname}${url.search}`);
-      const apiReq = new Request(targetApiUrl.toString(), request);
+      const headers = new Headers(request.headers);
+      headers.set('Host', new URL(API_URL).hostname);
+      const apiReq = new Request(targetApiUrl.toString(), {
+        method: request.method,
+        headers: headers,
+        body: ['GET', 'HEAD'].includes(request.method) ? undefined : request.body,
+        redirect: 'follow'
+      });
       return fetch(apiReq);
     }
 
@@ -298,6 +305,7 @@ export default {
       <script>
         // Injected by TurboSanta Cloudflare Edge Router
         window.__TURBOSANTA_DEFAULT_TABLE__ = "${townSlug}";
+        window.__sleighTableSlug = "${townSlug}";
         ${tableMeta ? `window.__sleighPrefetchedData = ${JSON.stringify(tableMeta).replace(/</g, '\\u003c')};` : ''}
 
         // URLSearchParams automatic polyfill for zero-query routing
@@ -309,6 +317,13 @@ export default {
               return val || '${townSlug}';
             }
             return _origGet.call(this, name);
+          };
+          const _origHas = URLSearchParams.prototype.has;
+          URLSearchParams.prototype.has = function(name) {
+            if (name === 'table') {
+              return true;
+            }
+            return _origHas.call(this, name);
           };
         })();
       </script>
