@@ -313,12 +313,13 @@ export default {
 
       const leaderboardData = await Promise.all(tableRows.map(async (t) => {
         if (mode === "live") {
-          const [totalDonations, ga, routes, streets, latestGps] = await Promise.all([
+          const [totalDonations, ga, routes, streets, latestGps, memoryMsgs] = await Promise.all([
             env.DB.prepare("SELECT SUM(amount) as total FROM donations WHERE table_id = ? AND (created_at IS NULL OR strftime('%Y', created_at) = strftime('%Y', 'now'))").bind(t.id).first().catch(() => ({ total: 0 })),
             env.DB.prepare("SELECT SUM(donation_amount) as total FROM gift_aid WHERE table_id = ?").bind(t.id).first().catch(() => ({ total: 0 })),
             env.DB.prepare("SELECT COUNT(*) as count FROM routes WHERE table_id = ?").bind(t.id).first().catch(() => ({ count: 0 })),
             env.DB.prepare("SELECT COUNT(*) as count FROM route_streets WHERE table_id = ?").bind(t.id).first().catch(() => ({ count: 0 })),
-            env.DB.prepare("SELECT lat, lng, speed, road_name, timestamp FROM telemetry WHERE table_id = ? ORDER BY timestamp DESC LIMIT 1").bind(t.id).first().catch(() => null)
+            env.DB.prepare("SELECT lat, lng, speed, road_name, timestamp FROM telemetry WHERE table_id = ? ORDER BY timestamp DESC LIMIT 1").bind(t.id).first().catch(() => null),
+            env.DB.prepare("SELECT COUNT(*) as count FROM memory_book WHERE table_id = ?").bind(t.id).first().catch(() => ({ count: 0 }))
           ]);
 
           const raised = Number(totalDonations?.total || 0);
@@ -346,8 +347,8 @@ export default {
             netRaised: netRaised,
             routes: Number(routes?.count || 0),
             streets: Number(streets?.count || 0),
-            views: 3200,
-            messages: 85,
+            views: Number(t.total_views || 0),
+            messages: Number(memoryMsgs?.count || 0),
             status: isGpsFresh ? "Live Tracking" : "Resting in Lapland",
             announcement: t.live_announcement || null,
             lat: (latestGps && isGpsFresh) ? latestGps.lat : 66.5436,

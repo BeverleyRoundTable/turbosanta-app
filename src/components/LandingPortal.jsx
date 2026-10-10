@@ -259,21 +259,33 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
             background: 'linear-gradient(90deg, rgba(34, 197, 94, 0.15) 0%, rgba(21, 21, 19, 0.8) 100%)',
             border: '1px solid rgba(34, 197, 94, 0.4)',
             borderRadius: '16px',
-            padding: '16px 24px',
+            padding: 'clamp(14px, 3.5vw, 18px) clamp(14px, 4vw, 24px)',
             maxWidth: '680px',
             margin: '0 auto 30px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: '16px',
-            textAlign: 'left'
+            flexWrap: 'wrap',
+            gap: '14px',
+            textAlign: 'left',
+            boxSizing: 'border-box',
+            width: '100%'
           }}>
-            <div>
-              <div style={{ color: '#86efac', fontWeight: 700, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <CheckCircle2 size={16} />
+            <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+              <div style={{
+                color: '#86efac',
+                fontWeight: 700,
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word'
+              }}>
+                <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
                 <span>Active Session: {session.email}</span>
               </div>
-              <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '13px' }}>
+              <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '13px', marginTop: '4px', wordBreak: 'break-word' }}>
                 Managing: <strong>{session.tableName || detected?.tableName || 'Table Dashboard'}</strong>
               </div>
             </div>
@@ -284,12 +296,15 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
                 color: '#000000',
                 border: 'none',
                 borderRadius: '8px',
-                padding: '8px 16px',
+                padding: '10px 18px',
                 fontFamily: 'Eurostile, sans-serif',
                 fontWeight: 800,
                 fontSize: '12px',
                 textTransform: 'uppercase',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                flexShrink: 0,
+                whiteSpace: 'nowrap',
+                maxWidth: '100%'
               }}
             >
               Open Admin Portal →

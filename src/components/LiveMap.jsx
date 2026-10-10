@@ -4,47 +4,8 @@ import { Compass, Maximize2, Minimize2, Radio, Wrench, Sparkles, Building2, Cale
 import { fetchLiveGps } from '../services/api';
 import WorkshopOverlay from './WorkshopOverlay';
 
-// Beverley East Route GPS Track Points (from s.gpx)
-const BEVERLEY_ROUTE_POINTS = [
-  [53.852305, -0.441231],
-  [53.852588, -0.441467],
-  [53.852854, -0.441852],
-  [53.853289, -0.442234],
-  [53.853754, -0.442541],
-  [53.854167, -0.442827],
-  [53.854525, -0.443196],
-  [53.854867, -0.443871],
-  [53.855085, -0.444556],
-  [53.855094, -0.445138],
-  [53.854902, -0.445680],
-  [53.854689, -0.446416],
-  [53.854599, -0.446947],
-  [53.854658, -0.447551],
-  [53.855103, -0.447881],
-  [53.855222, -0.448378],
-  [53.854998, -0.448762],
-  [53.854830, -0.449118],
-  [53.854889, -0.449678],
-  [53.855048, -0.450229],
-  [53.854992, -0.450607],
-  [53.855047, -0.451152],
-  [53.854996, -0.451699],
-  [53.854682, -0.452310],
-  [53.854210, -0.452940],
-  [53.853820, -0.453410],
-  [53.853110, -0.453890],
-  [53.852430, -0.453980],
-  [53.851890, -0.453540],
-  [53.851420, -0.452790],
-  [53.850980, -0.451680],
-  [53.850610, -0.450510],
-  [53.850420, -0.449120],
-  [53.850450, -0.447650],
-  [53.850780, -0.446210],
-  [53.851290, -0.444820],
-  [53.851910, -0.443120],
-  [53.852305, -0.441231]
-];
+// Dynamic route points fallback (empty by default — genuine data only)
+const BEVERLEY_ROUTE_POINTS = [];
 
 export default function LiveMap({ tableData }) {
   const mapContainerRef = useRef(null);
@@ -53,9 +14,9 @@ export default function LiveMap({ tableData }) {
 
   const [gpsData, setGpsData] = useState({
     status: "Resting in Lapland",
-    lat: 53.852305,
-    lng: -0.441231,
-    road_name: "Lapland Workshop"
+    lat: 52.4708,
+    lng: -1.9207,
+    road_name: "Round Table HQ"
   });
 
   const [isFullscreen, setIsFullscreen] = useState(false);

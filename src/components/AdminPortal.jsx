@@ -347,9 +347,9 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
           expenses: expenses,
           routes: routes.length,
           streets: streets.length,
-          volunteers: tableData?.volunteers_count || 24,
-          total_views: 3200,
-          messages: 85,
+          volunteers: Number(tableData?.volunteers_count || 0),
+          total_views: Number(tableData?.table?.total_views || 0),
+          messages: Number(tableData?.memory_book_count || 0),
           secret: session?.secret || 'Santa2026!'
         })
       });
@@ -2869,53 +2869,34 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 </div>
 
                 <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '0 0 16px 0', lineHeight: 1.5 }}>
-                  Select the Google Gemini model powering your AI Fleet Advisor. By default, TurboSanta uses <code>gemini-1.5-flash</code> on Google's Free Tier (15 RPM / 1M TPM / 1,500 requests/day at $0 cost), which auto-advances when Google releases updates without requiring code changes.
+                  Select the Google Gemini model powering your AI Fleet Advisor. All Round Tables automatically share your master API key on Google's Free Tier (15 RPM / 1M TPM / 1,500 requests/day at $0 cost), so no individual tables ever pay for or configure API keys.
                 </p>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
-                      Active Model
-                    </label>
-                    <select
-                      value={formData.gemini_model || 'gemini-1.5-flash'}
-                      onChange={(e) => setFormData(prev => ({ ...prev, gemini_model: e.target.value }))}
-                      style={{
-                        width: '100%',
-                        background: '#161614',
-                        border: '1px solid var(--border)',
-                        borderRadius: '6px',
-                        padding: '10px 12px',
-                        color: '#fff',
-                        fontSize: '14px'
-                      }}
-                    >
-                      <option value="gemini-1.5-flash">Gemini 1.5 Flash (Recommended - $0 Free Tier • Auto-Advancing)</option>
-                      <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash Latest (Bleeding Edge Auto-Pointer)</option>
-                      <option value="gemini-1.5-pro">Gemini 1.5 Pro (Deep Reasoning - Requires High Quota Key)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
-                      Custom Gemini API Key (Optional)
-                    </label>
-                    <input
-                      type="password"
-                      value={formData.gemini_api_key || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, gemini_api_key: e.target.value }))}
-                      placeholder="Leave blank for TurboSanta shared free tier"
-                      style={{
-                        width: '100%',
-                        background: '#161614',
-                        border: '1px solid var(--border)',
-                        borderRadius: '6px',
-                        padding: '10px 12px',
-                        color: '#fff',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
-                    />
+                <div style={{ maxWidth: '480px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
+                    Active AI Model
+                  </label>
+                  <select
+                    value={formData.gemini_model || 'gemini-1.5-flash'}
+                    onChange={(e) => setFormData(prev => ({ ...prev, gemini_model: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      background: '#161614',
+                      border: '1px solid var(--border)',
+                      borderRadius: '6px',
+                      padding: '10px 12px',
+                      color: '#fff',
+                      fontSize: '14px'
+                    }}
+                  >
+                    <option value="gemini-1.5-flash">Gemini 1.5 Flash (Recommended - $0 Free Tier Standard)</option>
+                    <option value="gemini-2.0-flash">Gemini 2.0 Flash (Next-Gen High-Speed Free Tier)</option>
+                    <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash Experimental</option>
+                    <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash Latest (Bleeding Edge Auto-Pointer)</option>
+                    <option value="gemini-1.5-pro">Gemini 1.5 Pro (Deep Reasoning)</option>
+                  </select>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>
+                    Automatically points to the latest Google Gemini Flash model at zero cost.
                   </div>
                 </div>
               </div>

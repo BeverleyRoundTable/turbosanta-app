@@ -350,6 +350,42 @@
     font-family: inherit; font-size: 12px; 
   }
   .wp-stop-input:focus { outline: none; border-color: var(--primary); }
+
+  .mobile-map-toggle {
+    display: none;
+    position: absolute;
+    bottom: 24px;
+    right: 16px;
+    z-index: 1000;
+    background: #161614;
+    color: var(--primary);
+    border: 2px solid var(--primary);
+    border-radius: 30px;
+    padding: 10px 16px;
+    font-weight: 800;
+    font-size: 12px;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.7);
+  }
+
+  @media (max-width: 768px) {
+    .app { height: 100vh; overflow: hidden; }
+    .top-bar { padding: 10px 14px; gap: 8px; flex-wrap: wrap; }
+    .top-bar h1 { font-size: 18px; }
+    .top-bar-right { gap: 8px; }
+    .mode-btn { padding: 8px 10px; font-size: 11px; }
+    .main { flex-direction: column; height: calc(100vh - 58px); }
+    .map-area { flex: 1 1 52%; height: 52vh; min-height: 240px; width: 100%; position: relative; }
+    .sidebar { width: 100%; flex: 1 1 48%; height: 48vh; max-height: 48vh; border-right: none; border-top: 1px solid var(--border); overflow-y: auto; }
+    .sb-section { padding: 16px 14px; }
+    .profile-row { margin-top: 10px; }
+    .profile-btn { padding: 8px 6px; font-size: 12px; }
+    .stats-grid { gap: 6px; }
+    .stat { padding: 10px 12px; }
+    .stat-value { font-size: 22px; }
+    .mobile-map-toggle { display: inline-flex; align-items: center; gap: 6px; }
+  }
 </style>
 </head>
 <body>
@@ -446,11 +482,27 @@
         <strong>Route Preview</strong>
         <span id="legendText">—</span>
       </div>
+      <button id="mobileMapExpandBtn" class="mobile-map-toggle" onclick="toggleMobileMap()">🔍 Full Map</button>
     </div>
   </div>
 </div>
 
 <script>
+let isMobileFullMap = false;
+function toggleMobileMap() {
+  const sb = document.querySelector('.sidebar');
+  const btn = document.getElementById('mobileMapExpandBtn');
+  isMobileFullMap = !isMobileFullMap;
+  if (isMobileFullMap) {
+    if (sb) sb.style.display = 'none';
+    if (btn) btn.innerHTML = '⚙️ Controls';
+  } else {
+    if (sb) sb.style.display = 'flex';
+    if (btn) btn.innerHTML = '🔍 Full Map';
+  }
+  setTimeout(() => { if (map) map.invalidateSize(); }, 50);
+}
+
 let mode = 'upload';
 let routingProfile = 'foot';
 let waypoints = [];

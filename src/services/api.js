@@ -145,9 +145,9 @@ export function getTableFallback(tableSlug = "beverley") {
       { id: 2, route_id: `${slug}_route_1`, street_name: "Market Place", sequence_order: 2 }
     ],
     live_sleigh: {
-      lat: isBeverley ? 53.84508 : 52.4086,
-      lng: isBeverley ? -0.43636 : -1.8285,
-      road_name: "Lapland Workshop",
+      lat: 52.4708,
+      lng: -1.9207,
+      road_name: "Round Table HQ",
       speed: 0,
       timestamp: new Date().toISOString(),
       status: "Resting in Lapland"
@@ -178,9 +178,9 @@ export async function fetchLiveGps(tableSlug = "beverley") {
     console.warn("Live GPS fetch failed, using fallback:", err);
     return {
       status: "Resting in Lapland",
-      lat: 53.84508,
-      lng: -0.43636,
-      road_name: "Lapland Workshop"
+      lat: 52.4708,
+      lng: -1.9207,
+      road_name: "Round Table HQ"
     };
   }
 }

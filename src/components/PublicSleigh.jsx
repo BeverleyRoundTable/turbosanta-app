@@ -229,19 +229,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
               alt={`${siteName} logo`}
               onError={(e) => { e.currentTarget.src = DEFAULT_LOGO; }}
             />
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{
-                background: 'var(--primary)',
-                color: 'var(--on-primary)',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                fontSize: '10px',
-                fontWeight: 900,
-                letterSpacing: '1px',
-                fontFamily: "'Eurostile Extended Bold', 'Eurostile', sans-serif"
-              }}>
-                DO MORE
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
               <span className="brand-font">
                 {siteName}
               </span>
@@ -461,23 +449,26 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
           <div style={{
             background: 'linear-gradient(135deg, rgba(29,29,26,0.95) 0%, rgba(0,0,0,0.98) 100%)',
             border: '1px solid var(--primary)',
-            borderRadius: '12px',
-            padding: '25px',
-            marginTop: '30px',
+            borderRadius: '16px',
+            padding: '30px 24px',
+            marginTop: '24px',
             display: 'flex',
-            flexWrap: 'wrap',
+            flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '20px',
-            boxShadow: '0 10px 20px rgba(0,0,0,0.4)',
-            maxWidth: '640px',
-            margin: '30px auto 0'
+            justifyContent: 'center',
+            textAlign: 'center',
+            gap: '16px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.4)',
+            maxWidth: '520px',
+            margin: '24px auto 0',
+            boxSizing: 'border-box',
+            width: '100%'
           }}>
-            <div style={{ flex: 1, minWidth: '240px' }}>
-              <h3 className="brand-font" style={{ color: 'var(--primary)', fontSize: '22px', marginBottom: '6px' }}>
+            <div>
+              <h3 className="brand-font" style={{ color: 'var(--primary)', fontSize: '22px', marginBottom: '8px' }}>
                 Help Keep The Sleigh Moving!
               </h3>
-              <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: 0 }}>
+              <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
                 We need drivers, navigators, and bucket collectors. Volunteer as an elf this year!
               </p>
             </div>
@@ -489,16 +480,18 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                padding: '10px 20px',
+                justifyContent: 'center',
+                padding: '12px 28px',
                 background: 'transparent',
                 color: 'var(--primary)',
                 border: '2px solid var(--primary)',
-                fontSize: '16px',
+                fontSize: '15px',
                 textDecoration: 'none',
                 borderRadius: '8px',
                 textTransform: 'uppercase',
                 fontWeight: 700,
-                whiteSpace: 'nowrap'
+                whiteSpace: 'nowrap',
+                transition: 'all 0.2s'
               }}
             >
               Volunteer Now &rarr;
