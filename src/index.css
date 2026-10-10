@@ -372,11 +372,11 @@ h1, h2, h3, h4, h5, h6, .brand-font, nav a, .nav-link, .header-caps {
 }
 
 /* Suppress scrollbars on admin subtabs nav */
-.admin-subtabs-nav {
+.no-scrollbar, .admin-subtabs-nav {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
-.admin-subtabs-nav::-webkit-scrollbar {
+.no-scrollbar::-webkit-scrollbar, .admin-subtabs-nav::-webkit-scrollbar {
   display: none;
 }
 

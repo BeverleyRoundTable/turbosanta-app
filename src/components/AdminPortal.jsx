@@ -229,6 +229,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     headline_sponsor_logo: tableData?.table?.headline_sponsor_logo || '',
     headline_sponsor_url: tableData?.table?.headline_sponsor_url || '',
     headline_sponsor_tagline: tableData?.table?.headline_sponsor_tagline || '',
+    gemini_model: tableData?.table?.gemini_model || 'gemini-1.5-flash',
+    gemini_api_key: tableData?.table?.gemini_api_key || '',
     expenses: tableData?.table?.expenses !== undefined ? tableData?.table?.expenses : (tableData?.expenses !== undefined ? tableData?.expenses : 0),
     expenses_json: tableData?.table?.expenses_json || tableData?.expenses_json || null
   });
@@ -255,6 +257,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         headline_sponsor_logo: tableData.table.headline_sponsor_logo !== undefined ? tableData.table.headline_sponsor_logo : prev.headline_sponsor_logo,
         headline_sponsor_url: tableData.table.headline_sponsor_url !== undefined ? tableData.table.headline_sponsor_url : prev.headline_sponsor_url,
         headline_sponsor_tagline: tableData.table.headline_sponsor_tagline !== undefined ? tableData.table.headline_sponsor_tagline : prev.headline_sponsor_tagline,
+        gemini_model: tableData.table.gemini_model || prev.gemini_model || 'gemini-1.5-flash',
+        gemini_api_key: tableData.table.gemini_api_key !== undefined ? tableData.table.gemini_api_key : prev.gemini_api_key,
         expenses: tableData.table.expenses !== undefined ? tableData.table.expenses : (tableData.expenses !== undefined ? tableData.expenses : prev.expenses),
         expenses_json: tableData.table.expenses_json !== undefined ? tableData.table.expenses_json : (tableData.expenses_json !== undefined ? tableData.expenses_json : prev.expenses_json)
       }));
@@ -676,12 +680,27 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div
+          className="no-scrollbar"
+          style={{
+            display: 'flex',
+            gap: '8px',
+            alignItems: 'center',
+            overflowX: 'auto',
+            maxWidth: '100%',
+            width: '100%',
+            paddingBottom: '4px',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            flexWrap: 'nowrap'
+          }}
+        >
           {/* Dedicated Cockpit Button */}
           <button
             onClick={() => setIsCockpitOpen(true)}
             className="btn-primary"
-            style={{ padding: '8px 16px', fontSize: '13px' }}
+            style={{ padding: '8px 14px', fontSize: '13px', flexShrink: 0, whiteSpace: 'nowrap' }}
           >
             <Smartphone size={16} />
             <span>Driver Cockpit Mode</span>
@@ -692,7 +711,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
             target="_blank"
             rel="noopener noreferrer"
             className="btn-secondary"
-            style={{ padding: '8px 14px', fontSize: '13px', borderColor: 'var(--primary)', color: 'var(--primary)', textDecoration: 'none' }}
+            style={{ padding: '8px 12px', fontSize: '13px', borderColor: 'var(--primary)', color: 'var(--primary)', textDecoration: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}
             title="Open classic GitHub God Mode in full screen"
           >
             <Activity size={15} />
@@ -704,7 +723,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
             target="_blank"
             rel="noopener noreferrer"
             className="btn-secondary"
-            style={{ padding: '8px 14px', fontSize: '13px', textDecoration: 'none' }}
+            style={{ padding: '8px 12px', fontSize: '13px', textDecoration: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}
             title="Open TurboSanta Master Guide & Docs"
           >
             <BookOpen size={15} />
@@ -716,7 +735,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
             target="_blank"
             rel="noopener noreferrer"
             className="btn-secondary"
-            style={{ padding: '8px 14px', fontSize: '13px', textDecoration: 'none' }}
+            style={{ padding: '8px 12px', fontSize: '13px', textDecoration: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}
             title="Open live public tracker site for this table"
           >
             <ExternalLink size={15} />
@@ -726,7 +745,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
           <button
             onClick={() => { logoutAdmin(); onLogout(); }}
             className="btn-secondary"
-            style={{ padding: '8px 14px', fontSize: '13px', borderColor: '#d31c1c', color: '#fca5a5' }}
+            style={{ padding: '8px 12px', fontSize: '13px', borderColor: '#d31c1c', color: '#fca5a5', flexShrink: 0, whiteSpace: 'nowrap' }}
           >
             <LogOut size={15} />
             <span>Sign Out</span>
@@ -1355,8 +1374,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                         <span>Generate Random Secret</span>
                       </button>
                     </div>
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                      <div style={{ position: 'relative', flex: 1 }}>
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                      <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 0, width: '100%' }}>
                         <input
                           type="text"
                           value={webhookSecret}
@@ -1364,6 +1383,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                           placeholder="e.g. whsec_beverley_2026"
                           style={{
                             width: '100%',
+                            boxSizing: 'border-box',
                             background: '#151513',
                             border: '1px solid var(--border)',
                             borderRadius: '8px',
@@ -1379,7 +1399,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                         type="button"
                         onClick={() => copyToClipboard('secret', webhookSecret)}
                         className="btn-secondary"
-                        style={{ padding: '0 16px' }}
+                        style={{ padding: '10px 16px', flexShrink: 0, whiteSpace: 'nowrap' }}
                       >
                         {copiedKey === 'secret' ? <Check size={16} color="#22c55e" /> : <Copy size={16} />}
                         <span>{copiedKey === 'secret' ? 'Copied' : 'Copy Key'}</span>
@@ -1392,27 +1412,32 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
                       Your Live {currentProvider.name} Webhook URL (Paste this into {currentProvider.name})
                     </label>
-                    <div style={{ display: 'flex', gap: '10px' }}>
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                       <input
                         type="text"
                         readOnly
                         value={endpointUrl}
                         style={{
-                          flex: 1,
+                          flex: '1 1 260px',
+                          minWidth: 0,
+                          width: '100%',
+                          boxSizing: 'border-box',
                           background: '#151513',
                           border: '1px solid var(--border)',
                           borderRadius: '8px',
                           padding: '10px 14px',
                           color: '#86efac',
                           fontSize: '13px',
-                          fontFamily: 'monospace'
+                          fontFamily: 'monospace',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
                         }}
                       />
                       <button
                         type="button"
                         onClick={() => copyToClipboard('webhookUrl', endpointUrl)}
                         className="btn-primary"
-                        style={{ padding: '0 20px', whiteSpace: 'nowrap' }}
+                        style={{ padding: '10px 20px', whiteSpace: 'nowrap', flexShrink: 0 }}
                       >
                         {copiedKey === 'webhookUrl' ? <Check size={16} /> : <Copy size={16} />}
                         <span>{copiedKey === 'webhookUrl' ? 'Copied URL!' : 'Copy Webhook URL'}</span>
@@ -2816,6 +2841,85 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 />
               </div>
 
+              {/* AI Intelligence & Gemini Fleet Advisor Settings */}
+              <div style={{
+                background: '#0d0d0b',
+                border: '1px solid rgba(251, 175, 51, 0.3)',
+                borderRadius: '12px',
+                padding: '20px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Sparkles size={18} color="var(--primary)" />
+                    <strong style={{ fontSize: '16px', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      AI Model & Gemini Fleet Advisor
+                    </strong>
+                  </div>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    padding: '3px 8px',
+                    borderRadius: '4px',
+                    background: 'rgba(34, 197, 94, 0.15)',
+                    color: '#22c55e',
+                    border: '1px solid rgba(34, 197, 94, 0.3)'
+                  }}>
+                    $0 API Cost Free Tier Active
+                  </span>
+                </div>
+
+                <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '0 0 16px 0', lineHeight: 1.5 }}>
+                  Select the Google Gemini model powering your AI Fleet Advisor. By default, TurboSanta uses <code>gemini-1.5-flash</code> on Google's Free Tier (15 RPM / 1M TPM / 1,500 requests/day at $0 cost), which auto-advances when Google releases updates without requiring code changes.
+                </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
+                      Active Model
+                    </label>
+                    <select
+                      value={formData.gemini_model || 'gemini-1.5-flash'}
+                      onChange={(e) => setFormData(prev => ({ ...prev, gemini_model: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        background: '#161614',
+                        border: '1px solid var(--border)',
+                        borderRadius: '6px',
+                        padding: '10px 12px',
+                        color: '#fff',
+                        fontSize: '14px'
+                      }}
+                    >
+                      <option value="gemini-1.5-flash">Gemini 1.5 Flash (Recommended - $0 Free Tier • Auto-Advancing)</option>
+                      <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash Latest (Bleeding Edge Auto-Pointer)</option>
+                      <option value="gemini-1.5-pro">Gemini 1.5 Pro (Deep Reasoning - Requires High Quota Key)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
+                      Custom Gemini API Key (Optional)
+                    </label>
+                    <input
+                      type="password"
+                      value={formData.gemini_api_key || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, gemini_api_key: e.target.value }))}
+                      placeholder="Leave blank for TurboSanta shared free tier"
+                      style={{
+                        width: '100%',
+                        background: '#161614',
+                        border: '1px solid var(--border)',
+                        borderRadius: '6px',
+                        padding: '10px 12px',
+                        color: '#fff',
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <button
                   onClick={async () => {
@@ -2839,7 +2943,9 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       headline_sponsor_name: formData.headline_sponsor_name || null,
                       headline_sponsor_logo: formData.headline_sponsor_logo || null,
                       headline_sponsor_url: formData.headline_sponsor_url || null,
-                      headline_sponsor_tagline: formData.headline_sponsor_tagline || null
+                      headline_sponsor_tagline: formData.headline_sponsor_tagline || null,
+                      gemini_model: formData.gemini_model || 'gemini-1.5-flash',
+                      gemini_api_key: formData.gemini_api_key || ''
                     };
 
                     if (onUpdateTableData) {

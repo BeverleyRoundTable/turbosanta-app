@@ -159,7 +159,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 25000,
-      padding: '20px'
+      padding: 'clamp(8px, 2.5vw, 20px)'
     }}>
       <div style={{
         background: '#151513',
@@ -176,7 +176,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
       }}>
         {/* Header */}
         <div style={{
-          padding: '20px 28px',
+          padding: 'clamp(14px, 3vw, 20px) clamp(16px, 4vw, 28px)',
           borderBottom: '1px solid var(--border)',
           display: 'flex',
           justifyContent: 'space-between',
@@ -186,7 +186,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
           top: 0,
           zIndex: 10
         }}>
-          <h2 className="brand-font" style={{ fontSize: '22px', margin: 0, color: '#fff' }}>
+          <h2 className="brand-font" style={{ fontSize: 'clamp(16px, 3.5vw, 22px)', margin: 0, color: '#fff' }}>
             {isEditing ? `Edit Route: ${route.name}` : 'Add New Sleigh Route'}
           </h2>
           <button
@@ -204,7 +204,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} style={{ padding: '24px 28px' }}>
+        <form onSubmit={handleSubmit} style={{ padding: 'clamp(16px, 3.5vw, 24px) clamp(12px, 3.5vw, 28px)' }}>
           {/* Basic Route Details */}
           <div style={{ display: 'grid', gap: '16px', marginBottom: '24px' }}>
             <div>
@@ -533,7 +533,14 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
           </div>
 
           {/* Action Buttons */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '8px',
+            flexWrap: 'wrap',
+            marginTop: '20px'
+          }}>
             {isEditing && onDeleteRoute ? (
               <button
                 type="button"
@@ -544,19 +551,41 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                   }
                 }}
                 className="btn-secondary"
-                style={{ borderColor: '#d31c1c', color: '#fca5a5', padding: '10px 16px' }}
+                style={{
+                  borderColor: '#d31c1c',
+                  color: '#fca5a5',
+                  padding: '10px 14px',
+                  fontSize: '13px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  flex: '1 1 auto',
+                  minWidth: '110px'
+                }}
               >
-                <Trash2 size={16} />
+                <Trash2 size={15} />
                 <span>Delete Route</span>
               </button>
-            ) : <div />}
+            ) : null}
 
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              flex: '2 1 auto',
+              justifyContent: 'flex-end',
+              minWidth: '190px'
+            }}>
               <button
                 type="button"
                 onClick={onClose}
                 className="btn-secondary"
-                style={{ padding: '10px 18px' }}
+                style={{
+                  padding: '10px 16px',
+                  fontSize: '13px',
+                  flex: '1 1 auto',
+                  justifyContent: 'center'
+                }}
               >
                 Cancel
               </button>
@@ -564,9 +593,15 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
               <button
                 type="submit"
                 className="btn-primary"
-                style={{ padding: '10px 24px' }}
+                style={{
+                  padding: '10px 20px',
+                  fontSize: '13px',
+                  flex: '2 1 auto',
+                  whiteSpace: 'nowrap',
+                  justifyContent: 'center'
+                }}
               >
-                <Save size={18} />
+                <Save size={16} />
                 <span>Save Route</span>
               </button>
             </div>

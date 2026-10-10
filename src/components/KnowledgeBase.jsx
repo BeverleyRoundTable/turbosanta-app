@@ -260,7 +260,7 @@ export default function KnowledgeBase({ session, tableData }) {
               fontSize: '12px',
               fontWeight: 700
             }}>
-              <Sparkles size={14} /> Gemini Flash Engine Active
+              <Sparkles size={14} /> {tableData?.table?.gemini_model ? (tableData.table.gemini_model.includes('pro') ? 'Gemini 1.5 Pro Engine' : tableData.table.gemini_model.includes('flash-latest') ? 'Gemini Flash Latest Engine' : 'Gemini 1.5 Flash Engine') : 'Gemini 1.5 Flash Engine'} Active
             </span>
           </div>
         </div>
@@ -840,7 +840,7 @@ export default function KnowledgeBase({ session, tableData }) {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--primary)', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px' }}>
-                <Sparkles size={14} /> Grounded Gemini 1.5 Flash • Zero API Cost Pointer
+                <Sparkles size={14} /> Grounded {tableData?.table?.gemini_model || 'gemini-1.5-flash'} • Zero API Cost Pointer
               </div>
               <h2 style={{ fontSize: '22px', color: '#FFF', margin: 0, fontFamily: 'Eurostile, sans-serif' }}>
                 ASK THE ROUND TABLE FLEET ADVISOR

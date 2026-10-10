@@ -145,6 +145,8 @@ export default {
         headline_sponsor_url: table.headline_sponsor_url || null,
         headline_sponsor_tagline: table.headline_sponsor_tagline || null,
         partners: table.partners_json ? JSON.parse(table.partners_json) : [],
+        gemini_model: table.gemini_model || "gemini-1.5-flash",
+        gemini_api_key: table.gemini_api_key || "",
         donation_breakdown: (breakdown && breakdown.results) || []
       };
 
@@ -550,7 +552,9 @@ export default {
         headline_sponsor_name,
         headline_sponsor_logo,
         headline_sponsor_url,
-        headline_sponsor_tagline
+        headline_sponsor_tagline,
+        gemini_model,
+        gemini_api_key
       } = body;
 
       // Ensure columns exist in tables schema
@@ -569,6 +573,8 @@ export default {
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN headline_sponsor_logo TEXT").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN headline_sponsor_url TEXT").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN headline_sponsor_tagline TEXT").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN gemini_model TEXT DEFAULT 'gemini-1.5-flash'").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN gemini_api_key TEXT").run(); } catch(e) {}
 
       try {
         await env.DB.prepare(`
@@ -591,7 +597,9 @@ export default {
             headline_sponsor_name = COALESCE(?, headline_sponsor_name),
             headline_sponsor_logo = COALESCE(?, headline_sponsor_logo),
             headline_sponsor_url = COALESCE(?, headline_sponsor_url),
-            headline_sponsor_tagline = COALESCE(?, headline_sponsor_tagline)
+            headline_sponsor_tagline = COALESCE(?, headline_sponsor_tagline),
+            gemini_model = COALESCE(?, gemini_model),
+            gemini_api_key = COALESCE(?, gemini_api_key)
           WHERE id = ?
         `).bind(
           sleigh_display_name !== undefined ? sleigh_display_name : null,
@@ -613,6 +621,8 @@ export default {
           headline_sponsor_logo !== undefined ? headline_sponsor_logo : null,
           headline_sponsor_url !== undefined ? headline_sponsor_url : null,
           headline_sponsor_tagline !== undefined ? headline_sponsor_tagline : null,
+          gemini_model !== undefined ? gemini_model : null,
+          gemini_api_key !== undefined ? gemini_api_key : null,
           table.id
         ).run();
 
@@ -1375,10 +1385,10 @@ export default {
           `[Lesson #${i+1}] (Scope: ${l.scope}, Category: ${l.category}, Table: ${l.table_name || l.table_id}, Contributor: ${l.author_name || 'Anonymous'} - ${l.author_role || 'Volunteer'}, Upvotes: ${l.upvotes}):\n"${l.lesson}"`
         ).join("\n\n");
 
-        // Check for Gemini API key
-        // Google Gemini auto-advancing model pointer: gemini-1.5-flash on the free tier (15 RPM / 1M TPM / $0 cost)
-        const geminiApiKey = env.GEMINI_API_KEY;
-        const geminiModel = env.GEMINI_MODEL || "gemini-1.5-flash";
+        // Check for Gemini API key and selected model (table setting or environment default)
+        // Default Google Gemini auto-advancing model pointer: gemini-1.5-flash on the free tier (15 RPM / 1M TPM / $0 cost)
+        const geminiApiKey = table?.gemini_api_key || env.GEMINI_API_KEY;
+        const geminiModel = table?.gemini_model || env.GEMINI_MODEL || "gemini-1.5-flash";
 
         if (geminiApiKey) {
           try {

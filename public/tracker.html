@@ -1544,40 +1544,9 @@ body.dim-ui .route-sponsor:hover { opacity: 0.85; }
           AppState.flags.gpxLoaded = true;
           AppState.vars.lastSnapIndex = 0;
         } catch (e) {
-          // Predefined town circuit fallback for live driver simulation and testing
-          const cleanSlug = (AppState.vars.tableSlug || '').toLowerCase();
-          let fallbackPts = [];
-          if (cleanSlug === 'shirley') {
-            fallbackPts = [
-              [52.4086, -1.8285, "Stratford Road"], [52.4095, -1.8270, "Haslucks Green Road"],
-              [52.4110, -1.8250, "Colebrook Road"], [52.4125, -1.8235, "Green Lane"],
-              [52.4140, -1.8220, "Newlands Way"], [52.4150, -1.8240, "Stratford Road"],
-              [52.4130, -1.8265, "Haslucks Green Road"], [52.4086, -1.8285, "Stratford Road"]
-            ];
-          } else {
-            // Beverley and default
-            fallbackPts = [
-              [53.852305, -0.441231, "Molescroft Road"], [53.852854, -0.441852, "Woodhall Way"],
-              [53.853754, -0.442541, "Grange Road"], [53.854525, -0.443196, "Church Road"],
-              [53.855094, -0.445138, "St Leonard's Road"], [53.854689, -0.446416, "Pinfold"],
-              [53.855103, -0.447881, "North Bar Without"], [53.854998, -0.448762, "York Road"],
-              [53.855048, -0.450229, "Westwood Road"], [53.854682, -0.452310, "Lairgate"],
-              [53.853820, -0.453410, "Saturday Market"], [53.852430, -0.453980, "Toll Gavel"],
-              [53.851420, -0.452790, "Wednesday Market"], [53.850610, -0.450510, "Railway Street"],
-              [53.850780, -0.446210, "Armstrong Way"], [53.851910, -0.443120, "Groseway"],
-              [53.852305, -0.441231, "Molescroft Road"]
-            ];
-          }
-          let dist = 0;
-          let route = [];
-          for (let i = 0; i < fallbackPts.length; i++) {
-            const [lat, lng, roadName] = fallbackPts[i];
-            if (i > 0) dist += Utils.haversineMeters(route[i - 1], { lat, lng });
-            route.push({ lat, lng, dist, index: i, roadName: roadName || "" });
-          }
-          AppState.gpxRoute = route;
-          AppState.flags.gpxLoaded = true;
-          AppState.vars.lastSnapIndex = 0;
+          // No GPX route file or empty route — do NOT draw any mock route
+          AppState.gpxRoute = null;
+          AppState.flags.gpxLoaded = false;
         }
       }
 
@@ -1677,17 +1646,16 @@ body.dim-ui .route-sponsor:hover { opacity: 0.85; }
 
       // Dynamic resting status text: only promise "preparing for tonight!" if there is an active route scheduled today
       function getRestingLaplandText() {
-        const pinEta = getScheduledPinEtaText();
-        if (pinEta) return pinEta;
-
         const todayStr = new Date().toISOString().slice(0, 10);
         const routes = AppState.vars.latestApiData?.routes || apiData?.routes || [];
-        const todayRoute = AppState.vars.todayRoute || routes.find(r => r.date === todayStr);
+        const todayRoute = routes.find(r => r.date === todayStr);
 
         if (todayRoute) {
+          const pinEta = getScheduledPinEtaText();
+          if (pinEta) return pinEta;
           return "Santa is resting in Lapland preparing for tonight!";
         }
-        return "Santa is currently resting in Lapland!";
+        return "Santa is resting in Lapland";
       }
 
       // ══════════════════════════════════════════════════════════════
@@ -3004,18 +2972,19 @@ try {
         const settings = apiData.settings || {};
         AppState.vars.sleighName = settings.sleigh_display_name || "Santa Sleigh";
         const today = new Date().toISOString().slice(0, 10);
-        let route = (apiData.routes || []).find(r => r.date === today && r.gpxUrl) || null;
+        const allRoutes = apiData.routes || [];
+        const todayRoute = allRoutes.find(r => r.date === today) || null;
         const reqRoute = params.get("route");
-        if (reqRoute && apiData.routes) {
-          const found = apiData.routes.find(r => String(r.id) === reqRoute || (r.routeName && r.routeName.toLowerCase().includes(reqRoute.toLowerCase())));
-          if (found) route = found;
+        let route = null;
+        if (reqRoute && allRoutes.length > 0) {
+          route = allRoutes.find(r => String(r.id) === reqRoute || (r.routeName && r.routeName.toLowerCase().includes(reqRoute.toLowerCase()))) || null;
+        } else if (todayRoute) {
+          route = todayRoute;
         }
-        if (!route && AppState.flags.isDriver && apiData.routes && apiData.routes.length > 0) {
-          route = apiData.routes.find(r => r.gpxUrl) || apiData.routes[0];
-        }
-        AppState.vars.todayRoute = route;
+        AppState.vars.todayRoute = todayRoute;
+        AppState.vars.activeRoute = route;
 
-        if (!AppState.flags.isDriver && !AppState.flags.isKiosk && !route) {
+        if (!AppState.flags.isDriver && !AppState.flags.isKiosk && !todayRoute) {
             WorkshopManager.init(apiData.routes);
         }
 
@@ -3073,16 +3042,13 @@ try {
         }, 3 * 60 * 1000);
         
         if (AppState.flags.isKiosk && AppState.dom.kioskBanner) { const statusDiv = document.createElement('div'); statusDiv.id = 'kioskStatus'; statusDiv.textContent = 'PREPARING IN LAPLAND'; const subtitleDiv = document.createElement('div'); subtitleDiv.className = 'kiosk-subtitle'; subtitleDiv.textContent = AppState.vars.sleighName; AppState.dom.kioskBanner.innerHTML = ''; AppState.dom.kioskBanner.appendChild(statusDiv); AppState.dom.kioskBanner.appendChild(subtitleDiv); AppState.dom.kioskBanner.classList.add("visible"); }
-        if (!route) {
-          if (AppState.flags.isDriver) {
-            await loadGpxRoute("");
-            if (AppState.flags.gpxLoaded) TurnByTurn.load(AppState.gpxRoute);
-          } else {
-            AppState.dom.notifyBtn.style.display = "none";
-          }
-        } else {
-          await loadGpxRoute(route.gpxUrl);
+        if (route && route.gpxUrl && route.gpxUrl.trim() !== "") {
+          await loadGpxRoute(route.gpxUrl.trim());
           if (AppState.flags.isDriver && AppState.flags.gpxLoaded) TurnByTurn.load(AppState.gpxRoute);
+        } else {
+          AppState.gpxRoute = null;
+          AppState.flags.gpxLoaded = false;
+          if (AppState.dom.notifyBtn) AppState.dom.notifyBtn.style.display = "none";
         }
 
         const gaLink = document.getElementById('giftAidLink');
