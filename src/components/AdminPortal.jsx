@@ -9,7 +9,7 @@ import {
   BarChart3, TrendingUp, Award, Printer, PieChart, Receipt
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { logoutAdmin } from '../services/auth';
+import { logoutAdmin, isNationalAdmin } from '../services/auth';
 import { saveTableSettings, fetchLiveGps, fetchTablePayload } from '../services/api';
 import DropzoneUpload from './DropzoneUpload';
 import RouteEditorModal from './RouteEditorModal';
@@ -26,6 +26,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   const [liveGps, setLiveGps] = useState(tableData?.live_sleigh || null);
 
   const currentTableSlug = session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley';
+  const isMasterAdmin = currentTableSlug === 'beverley' || session?.tableId === 'beverley' || isNationalAdmin(session?.email);
 
   // Live Auto-Refresh for Admin Mission Control (every 5 seconds)
   useEffect(() => {
@@ -229,7 +230,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     headline_sponsor_logo: tableData?.table?.headline_sponsor_logo || '',
     headline_sponsor_url: tableData?.table?.headline_sponsor_url || '',
     headline_sponsor_tagline: tableData?.table?.headline_sponsor_tagline || '',
-    gemini_model: tableData?.table?.gemini_model || 'gemini-1.5-flash',
+    gemini_model: tableData?.table?.gemini_model || 'flash 3.6',
     gemini_api_key: tableData?.table?.gemini_api_key || '',
     expenses: tableData?.table?.expenses !== undefined ? tableData?.table?.expenses : (tableData?.expenses !== undefined ? tableData?.expenses : 0),
     expenses_json: tableData?.table?.expenses_json || tableData?.expenses_json || null
@@ -257,7 +258,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         headline_sponsor_logo: tableData.table.headline_sponsor_logo !== undefined ? tableData.table.headline_sponsor_logo : prev.headline_sponsor_logo,
         headline_sponsor_url: tableData.table.headline_sponsor_url !== undefined ? tableData.table.headline_sponsor_url : prev.headline_sponsor_url,
         headline_sponsor_tagline: tableData.table.headline_sponsor_tagline !== undefined ? tableData.table.headline_sponsor_tagline : prev.headline_sponsor_tagline,
-        gemini_model: tableData.table.gemini_model || prev.gemini_model || 'gemini-1.5-flash',
+        gemini_model: tableData.table.gemini_model || prev.gemini_model || 'flash 3.6',
         gemini_api_key: tableData.table.gemini_api_key !== undefined ? tableData.table.gemini_api_key : prev.gemini_api_key,
         expenses: tableData.table.expenses !== undefined ? tableData.table.expenses : (tableData.expenses !== undefined ? tableData.expenses : prev.expenses),
         expenses_json: tableData.table.expenses_json !== undefined ? tableData.table.expenses_json : (tableData.expenses_json !== undefined ? tableData.expenses_json : prev.expenses_json)
@@ -1374,8 +1375,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                         <span>Generate Random Secret</span>
                       </button>
                     </div>
-                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                      <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 0, width: '100%' }}>
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', width: '100%', boxSizing: 'border-box' }}>
+                      <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
                         <input
                           type="text"
                           value={webhookSecret}
@@ -1399,10 +1400,22 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                         type="button"
                         onClick={() => copyToClipboard('secret', webhookSecret)}
                         className="btn-secondary"
-                        style={{ padding: '10px 16px', flexShrink: 0, whiteSpace: 'nowrap' }}
+                        style={{
+                          flex: '1 1 auto',
+                          width: '100%',
+                          maxWidth: '100%',
+                          boxSizing: 'border-box',
+                          padding: '10px 16px',
+                          fontSize: 'clamp(12px, 3.2vw, 14px)',
+                          whiteSpace: 'nowrap',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px'
+                        }}
                       >
                         {copiedKey === 'secret' ? <Check size={16} color="#22c55e" /> : <Copy size={16} />}
-                        <span>{copiedKey === 'secret' ? 'Copied' : 'Copy Key'}</span>
+                        <span>{copiedKey === 'secret' ? 'Copied Key!' : 'Copy Key'}</span>
                       </button>
                     </div>
                   </div>
@@ -1412,13 +1425,13 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
                       Your Live {currentProvider.name} Webhook URL (Paste this into {currentProvider.name})
                     </label>
-                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', width: '100%', boxSizing: 'border-box' }}>
                       <input
                         type="text"
                         readOnly
                         value={endpointUrl}
                         style={{
-                          flex: '1 1 260px',
+                          flex: '1 1 200px',
                           minWidth: 0,
                           width: '100%',
                           boxSizing: 'border-box',
@@ -1437,10 +1450,22 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                         type="button"
                         onClick={() => copyToClipboard('webhookUrl', endpointUrl)}
                         className="btn-primary"
-                        style={{ padding: '10px 20px', whiteSpace: 'nowrap', flexShrink: 0 }}
+                        style={{
+                          flex: '1 1 auto',
+                          width: '100%',
+                          maxWidth: '100%',
+                          boxSizing: 'border-box',
+                          padding: '10px 14px',
+                          fontSize: 'clamp(12px, 3.2vw, 14px)',
+                          whiteSpace: 'nowrap',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px'
+                        }}
                       >
                         {copiedKey === 'webhookUrl' ? <Check size={16} /> : <Copy size={16} />}
-                        <span>{copiedKey === 'webhookUrl' ? 'Copied URL!' : 'Copy Webhook URL'}</span>
+                        <span>{copiedKey === 'webhookUrl' ? 'Copied Webhook URL!' : 'Copy Webhook URL'}</span>
                       </button>
                     </div>
                   </div>
@@ -2842,64 +2867,95 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
               </div>
 
               {/* AI Intelligence & Gemini Fleet Advisor Settings */}
-              <div style={{
-                background: '#0d0d0b',
-                border: '1px solid rgba(251, 175, 51, 0.3)',
-                borderRadius: '12px',
-                padding: '20px'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Sparkles size={18} color="var(--primary)" />
-                    <strong style={{ fontSize: '16px', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      AI Model & Gemini Fleet Advisor
-                    </strong>
+              {isMasterAdmin ? (
+                <div style={{
+                  background: '#0d0d0b',
+                  border: '1px solid rgba(251, 175, 51, 0.3)',
+                  borderRadius: '12px',
+                  padding: '20px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Sparkles size={18} color="var(--primary)" />
+                      <strong style={{ fontSize: '16px', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        AI Model & Fleet Advisor (National Master Constant)
+                      </strong>
+                    </div>
+                    <span style={{
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      padding: '3px 8px',
+                      borderRadius: '4px',
+                      background: 'rgba(34, 197, 94, 0.15)',
+                      color: '#22c55e',
+                      border: '1px solid rgba(34, 197, 94, 0.3)'
+                    }}>
+                      $0 API Cost Free Tier Active
+                    </span>
                   </div>
-                  <span style={{
-                    fontSize: '11px',
-                    fontWeight: 800,
-                    padding: '3px 8px',
-                    borderRadius: '4px',
-                    background: 'rgba(34, 197, 94, 0.15)',
-                    color: '#22c55e',
-                    border: '1px solid rgba(34, 197, 94, 0.3)'
-                  }}>
-                    $0 API Cost Free Tier Active
-                  </span>
-                </div>
 
-                <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '0 0 16px 0', lineHeight: 1.5 }}>
-                  Select the Google Gemini model powering your AI Fleet Advisor. All Round Tables automatically share your master API key on Google's Free Tier (15 RPM / 1M TPM / 1,500 requests/day at $0 cost), so no individual tables ever pay for or configure API keys.
-                </p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '0 0 16px 0', lineHeight: 1.5 }}>
+                    Enter your Google Gemini model constant (e.g. <strong style={{ color: '#FBAF33' }}>flash 3.6</strong>, <strong style={{ color: '#FBAF33' }}>gemini-1.5-flash</strong>, or future releases like <strong style={{ color: '#FBAF33' }}>3.8 flash</strong>). Entering it here saves it as the system-wide constant across the entire national fleet. Other Round Tables have no option to change or configure models, guaranteeing zero API fees and single-point administration.
+                  </p>
 
-                <div style={{ maxWidth: '480px' }}>
-                  <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
-                    Active AI Model
-                  </label>
-                  <select
-                    value={formData.gemini_model || 'gemini-1.5-flash'}
-                    onChange={(e) => setFormData(prev => ({ ...prev, gemini_model: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      background: '#161614',
-                      border: '1px solid var(--border)',
-                      borderRadius: '6px',
-                      padding: '10px 12px',
-                      color: '#fff',
-                      fontSize: '14px'
-                    }}
-                  >
-                    <option value="gemini-1.5-flash">Gemini 1.5 Flash (Recommended - $0 Free Tier Standard)</option>
-                    <option value="gemini-2.0-flash">Gemini 2.0 Flash (Next-Gen High-Speed Free Tier)</option>
-                    <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash Experimental</option>
-                    <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash Latest (Bleeding Edge Auto-Pointer)</option>
-                    <option value="gemini-1.5-pro">Gemini 1.5 Pro (Deep Reasoning)</option>
-                  </select>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>
-                    Automatically points to the latest Google Gemini Flash model at zero cost.
+                  <div style={{ maxWidth: '480px' }}>
+                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
+                      Global Gemini Model Identifier / Constant
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.gemini_model || 'flash 3.6'}
+                      onChange={(e) => setFormData(prev => ({ ...prev, gemini_model: e.target.value }))}
+                      placeholder="e.g. flash 3.6, gemini-1.5-flash, 3.8 flash"
+                      style={{
+                        width: '100%',
+                        background: '#161614',
+                        border: '1px solid var(--border)',
+                        borderRadius: '6px',
+                        padding: '10px 12px',
+                        color: '#fff',
+                        fontSize: '14px',
+                        fontFamily: 'monospace',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e' }}></span>
+                      System Constant: <strong style={{ color: '#fff' }}>{formData.gemini_model || 'flash 3.6'}</strong> &bull; Pointed to Google Generative Language Free Tier ($0 Cost)
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div style={{
+                  background: '#0d0d0b',
+                  border: '1px solid var(--border)',
+                  borderRadius: '12px',
+                  padding: '18px 20px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Sparkles size={18} color="var(--primary)" />
+                      <strong style={{ fontSize: '15px', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        AI Fleet Advisor Engine
+                      </strong>
+                    </div>
+                    <span style={{
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      padding: '3px 8px',
+                      borderRadius: '4px',
+                      background: 'rgba(34, 197, 94, 0.15)',
+                      color: '#22c55e',
+                      border: '1px solid rgba(34, 197, 94, 0.3)'
+                    }}>
+                      Active &bull; Zero API Cost
+                    </span>
+                  </div>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0, lineHeight: 1.5 }}>
+                    Powered by the national RTBI fleet constant (<strong style={{ color: '#fff' }}>{tableData?.table?.gemini_model || 'Flash 3.6'}</strong>). AI summaries, debriefs, and knowledge insights are centrally managed by National Admin with zero subscription or API key fees for your table.
+                  </p>
+                </div>
+              )}
 
               <div>
                 <button
@@ -2925,7 +2981,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       headline_sponsor_logo: formData.headline_sponsor_logo || null,
                       headline_sponsor_url: formData.headline_sponsor_url || null,
                       headline_sponsor_tagline: formData.headline_sponsor_tagline || null,
-                      gemini_model: formData.gemini_model || 'gemini-1.5-flash',
+                      gemini_model: formData.gemini_model || 'flash 3.6',
                       gemini_api_key: formData.gemini_api_key || ''
                     };
 

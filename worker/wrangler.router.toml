@@ -1,0 +1,14 @@
+name = "santa-router"
+main = "santa_router.js"
+compatibility_date = "2024-04-05"
+
+# Multi-tenant custom domain routing on Cloudflare
+routes = [
+  { pattern = "roundtablesantasleigh.co.uk/*", zone_name = "roundtablesantasleigh.co.uk" },
+  { pattern = "*.roundtablesantasleigh.co.uk/*", zone_name = "roundtablesantasleigh.co.uk" }
+]
+
+[vars]
+PAGES_URL = "https://turbosanta-app.pages.dev"
+LEGACY_PAGES_URL = "https://brt-23f.pages.dev"
+API_URL = "https://turbosanta-api.beverley247.workers.dev"

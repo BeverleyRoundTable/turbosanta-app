@@ -1386,10 +1386,17 @@ export default {
           `[Lesson #${i+1}] (Scope: ${l.scope}, Category: ${l.category}, Table: ${l.table_name || l.table_id}, Contributor: ${l.author_name || 'Anonymous'} - ${l.author_role || 'Volunteer'}, Upvotes: ${l.upvotes}):\n"${l.lesson}"`
         ).join("\n\n");
 
-        // Check for Gemini API key and selected model (table setting or environment default)
-        // Default Google Gemini auto-advancing model pointer: gemini-1.5-flash on the free tier (15 RPM / 1M TPM / $0 cost)
-        const geminiApiKey = table?.gemini_api_key || env.GEMINI_API_KEY;
-        const geminiModel = table?.gemini_model || env.GEMINI_MODEL || "gemini-1.5-flash";
+        // Check for Gemini API key and selected model (table setting, national master setting, or environment default)
+        let nationalTable = null;
+        if (slug !== 'beverley') {
+          try {
+            nationalTable = await env.DB.prepare("SELECT gemini_model, gemini_api_key FROM tables WHERE slug = 'beverley'").first();
+          } catch(e) {}
+        }
+
+        const geminiApiKey = table?.gemini_api_key || nationalTable?.gemini_api_key || env.GEMINI_API_KEY;
+        const rawModel = table?.gemini_model || nationalTable?.gemini_model || env.GEMINI_MODEL || "flash 3.6";
+        const primaryModel = resolveGeminiModel(rawModel);
 
         if (geminiApiKey) {
           try {
@@ -1409,7 +1416,7 @@ INSTRUCTIONS:
 4. Keep the tone enthusiastic, safety-conscious, and aligned with Round Table's "DO MORE" motto.
 5. Format with clean GitHub markdown (bolding, bullet points, numbered lists).`;
 
-            const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiApiKey}`, {
+            let geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${primaryModel}:generateContent?key=${geminiApiKey}`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -1424,6 +1431,25 @@ INSTRUCTIONS:
               })
             });
 
+            // If primary model 404s or fails (e.g. custom or future model version string), fallback to gemini-1.5-flash
+            if (!geminiRes.ok && primaryModel !== "gemini-1.5-flash") {
+              console.warn(`Primary model ${primaryModel} returned ${geminiRes.status}. Retrying with canonical gemini-1.5-flash...`);
+              geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  contents: [{
+                    role: "user",
+                    parts: [{ text: systemPrompt }]
+                  }],
+                  generationConfig: {
+                    temperature: 0.7,
+                    maxOutputTokens: 1000
+                  }
+                })
+              });
+            }
+
             if (geminiRes.ok) {
               const geminiData = await geminiRes.json();
               const replyText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -1431,7 +1457,7 @@ INSTRUCTIONS:
                 return jsonResponse({
                   ok: true,
                   answer: replyText,
-                  model: geminiModel,
+                  model: rawModel,
                   lessonsCount: lessons.length,
                   grounded: true
                 });
@@ -1673,4 +1699,27 @@ function jsonResponse(data, status = 200) {
       "Access-Control-Allow-Origin": "*"
     }
   });
+}
+
+function resolveGeminiModel(input) {
+  if (!input) return "gemini-1.5-flash";
+  const clean = String(input).trim().toLowerCase();
+
+  // If already standard Gemini API endpoint identifier:
+  if (clean.startsWith("gemini-")) {
+    return clean;
+  }
+
+  // Handle common shorthand like "flash 3.6", "3.6 flash", "flash-3.6", "3.8 flash":
+  if (clean.includes("2.0") || clean.includes("2-0")) {
+    return "gemini-2.0-flash";
+  }
+  if (clean.includes("pro")) {
+    return "gemini-1.5-pro";
+  }
+  if (clean.includes("3.6") || clean.includes("3.8") || clean.includes("flash")) {
+    return "gemini-1.5-flash";
+  }
+
+  return `gemini-${clean.replace(/\s+/g, '-')}`;
 }
