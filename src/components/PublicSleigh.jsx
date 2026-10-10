@@ -229,9 +229,23 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
               alt={`${siteName} logo`}
               onError={(e) => { e.currentTarget.src = DEFAULT_LOGO; }}
             />
-            <span className="brand-font">
-              {siteName}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{
+                background: 'var(--primary)',
+                color: 'var(--on-primary)',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                fontSize: '10px',
+                fontWeight: 900,
+                letterSpacing: '1px',
+                fontFamily: "'Eurostile Extended Bold', 'Eurostile', sans-serif"
+              }}>
+                DO MORE
+              </span>
+              <span className="brand-font">
+                {siteName}
+              </span>
+            </div>
           </div>
 
           <div className="public-navbar-links">

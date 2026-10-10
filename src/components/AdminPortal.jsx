@@ -16,6 +16,8 @@ import RouteEditorModal from './RouteEditorModal';
 import ExpensesModal from './ExpensesModal';
 import DriverBeacon from './DriverBeacon';
 import MigrationImporter from './MigrationImporter';
+import KnowledgeBase from './KnowledgeBase';
+
 
 export default function AdminPortal({ session, onLogout, tableData, onUpdateTableData }) {
   const [activeTab, setActiveTab] = useState('announcements'); // Default to announcements
@@ -928,6 +930,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
             { id: 'routes', label: 'Routes & Times', icon: Calendar },
             { id: 'webhooks', label: 'Donations', icon: CreditCard },
             { id: 'season_wrap', label: 'Season Wrap & Analytics', icon: BarChart3 },
+            { id: 'knowledge', label: 'Lessons Learned', icon: BookOpen },
             { id: 'memory', label: 'Polaroids & Media', icon: Camera },
             { id: 'migration', label: 'Sheets Importer', icon: FileSpreadsheet },
             { id: 'embeds', label: 'Embeds', icon: Code },
@@ -3452,6 +3455,14 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
               })()}
             </div>
           </div>
+        )}
+
+        {/* TAB: KNOWLEDGE BASE & LESSONS LEARNED */}
+        {activeTab === 'knowledge' && (
+          <KnowledgeBase
+            session={session}
+            tableData={tableData}
+          />
         )}
 
         {/* TAB: 1.0 EXCEL & SHEETS IMPORTER */}

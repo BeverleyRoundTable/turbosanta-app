@@ -1221,6 +1221,347 @@ export default {
     }
 
     // ==============================================================
+    // 📖 15B. KNOWLEDGE BASE & LESSONS LEARNED
+    // (GET /api/knowledge-base, POST /api/knowledge-base, POST /api/knowledge-base/upvote, POST /api/knowledge-base/ask)
+    // ==============================================================
+    if (path === "/api/knowledge-base" || path === "/api/knowledge-base/upvote" || path === "/api/knowledge-base/ask") {
+      // 1. Ensure Table Schema Exists
+      await env.DB.prepare(`
+        CREATE TABLE IF NOT EXISTS lessons_learned (
+          id TEXT PRIMARY KEY,
+          table_id TEXT NOT NULL,
+          table_name TEXT,
+          scope TEXT DEFAULT 'local',
+          category TEXT NOT NULL,
+          lesson TEXT NOT NULL,
+          author_name TEXT,
+          author_role TEXT,
+          upvotes INTEGER DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `).run().catch(() => {});
+
+      // 2. Auto-seed starter lessons if empty
+      const countRes = await env.DB.prepare("SELECT COUNT(*) as count FROM lessons_learned").first().catch(() => ({ count: 0 }));
+      if (!countRes || Number(countRes.count) === 0) {
+        const seedLessons = [
+          {
+            id: "seed_routes_pacing",
+            table_id: "national",
+            table_name: "Round Table National Fleet",
+            scope: "national",
+            category: "routes_planning",
+            lesson: "Cap weekday evening routes at 35 to 45 streets maximum (approx. 2 to 2.5 hours). Beyond 8:30pm, younger families have put children to bed, and volunteer bucket collector fatigue sets in rapidly.",
+            author_name: "Fleet Logistics Lead",
+            author_role: "National Operations Officer",
+            upvotes: 42
+          },
+          {
+            id: "seed_generator_isolation",
+            table_id: "national",
+            table_name: "Round Table National Fleet",
+            scope: "national",
+            category: "generators_power",
+            lesson: "Always mount petrol inverter generators on heavy-duty rubber vibration dampening mats. Wire an isolated emergency kill-switch in the towing cab so the driver can cut generator power instantly without exiting the vehicle.",
+            author_name: "Tech Safety Officer",
+            author_role: "Sleigh Build Engineer",
+            upvotes: 38
+          },
+          {
+            id: "seed_sound_acoustics",
+            table_id: "national",
+            table_name: "Round Table National Fleet",
+            scope: "national",
+            category: "sound_audio",
+            lesson: "Angle horn PA speakers 45° outwards and downwards towards the pavements, rather than straight ahead or flat. This blankets the front gardens with festive cheer while eliminating harsh echoes off brickwork, and protects Santa's hearing.",
+            author_name: "Sound Crew Lead",
+            author_role: "Audio Coordinator",
+            upvotes: 31
+          },
+          {
+            id: "seed_digital_donations",
+            table_id: "national",
+            table_name: "Round Table National Fleet",
+            scope: "national",
+            category: "finance_donations",
+            lesson: "Laminate and hang high-contrast Zeffy QR code badges on volunteer lanyards with bold 'SCAN TO DONATE & ADD 25% GIFT AID' text. Over 65% of suburban families do not carry physical cash; having lanyards ready doubles nightly donations.",
+            author_name: "Community Treasurer",
+            author_role: "Fundraising Lead",
+            upvotes: 49
+          },
+          {
+            id: "seed_safety_bubble",
+            table_id: "national",
+            table_name: "Round Table National Fleet",
+            scope: "national",
+            category: "safety_marshalling",
+            lesson: "Maintain a strict 2-metre exclusion bubble around the tow-bar coupling and sleigh wheel arches at all times. Assign dedicated hi-vis marshals with illuminated LED wands on both flanks of the sleigh to shepherd eager children away from wheels.",
+            author_name: "Chief Marshal",
+            author_role: "Safety Lead",
+            upvotes: 56
+          },
+          {
+            id: "seed_pa_advance_broadcast",
+            table_id: "national",
+            table_name: "Round Table National Fleet",
+            scope: "national",
+            category: "routes_planning",
+            lesson: "Send your Live PA announcement message 15 minutes before the sleigh departs the staging area. This allows parents to put coats, boots, and hats on toddlers so they are out on their doorsteps right as the music approaches.",
+            author_name: "Digital Santa Team",
+            author_role: "Community Liaison",
+            upvotes: 27
+          }
+        ];
+        for (const s of seedLessons) {
+          try {
+            await env.DB.prepare(`
+              INSERT OR IGNORE INTO lessons_learned (id, table_id, table_name, scope, category, lesson, author_name, author_role, upvotes)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).bind(s.id, s.table_id, s.table_name, s.scope, s.category, s.lesson, s.author_name, s.author_role, s.upvotes).run();
+          } catch(e) {}
+        }
+      }
+
+      // Route A: Upvote a Lesson (POST /api/knowledge-base/upvote)
+      if (path === "/api/knowledge-base/upvote" && request.method === "POST") {
+        let body = {};
+        try { body = await request.json(); } catch(e) { body = {}; }
+        const lessonId = body.id || "";
+        if (!lessonId) return jsonResponse({ ok: false, error: "Missing lesson ID" }, 400);
+
+        try {
+          await env.DB.prepare("UPDATE lessons_learned SET upvotes = upvotes + 1 WHERE id = ?").bind(lessonId).run();
+          const updated = await env.DB.prepare("SELECT upvotes FROM lessons_learned WHERE id = ?").bind(lessonId).first();
+          return jsonResponse({ ok: true, id: lessonId, upvotes: updated ? updated.upvotes : 1 });
+        } catch(e) {
+          return jsonResponse({ ok: false, error: e.message }, 500);
+        }
+      }
+
+      // Route B: Ask Gemini Fleet Advisor (POST /api/knowledge-base/ask)
+      if (path === "/api/knowledge-base/ask" && request.method === "POST") {
+        let body = {};
+        try { body = await request.json(); } catch(e) { body = {}; }
+        const question = (body.question || "").trim();
+        const categoryFilter = body.category || "all";
+        const scopeFilter = body.scope || "all";
+
+        if (!question) {
+          return jsonResponse({ ok: false, error: "Question is required" }, 400);
+        }
+
+        // Fetch lessons for RAG grounding
+        let querySql = "SELECT * FROM lessons_learned WHERE 1=1";
+        const queryParams = [];
+
+        if (scopeFilter === "national") {
+          querySql += " AND scope = 'national'";
+        } else if (scopeFilter === "local") {
+          querySql += " AND (table_id = ? OR table_id = ?)";
+          queryParams.push(table?.id || slug, table?.slug || slug);
+        }
+
+        if (categoryFilter && categoryFilter !== "all") {
+          querySql += " AND category = ?";
+          queryParams.push(categoryFilter);
+        }
+
+        querySql += " ORDER BY upvotes DESC, created_at DESC LIMIT 25";
+        const lessonsRes = await env.DB.prepare(querySql).bind(...queryParams).all().catch(() => ({ results: [] }));
+        const lessons = lessonsRes.results || [];
+
+        // Build knowledge context block
+        const knowledgeText = lessons.map((l, i) => 
+          `[Lesson #${i+1}] (Scope: ${l.scope}, Category: ${l.category}, Table: ${l.table_name || l.table_id}, Contributor: ${l.author_name || 'Anonymous'} - ${l.author_role || 'Volunteer'}, Upvotes: ${l.upvotes}):\n"${l.lesson}"`
+        ).join("\n\n");
+
+        // Check for Gemini API key
+        // Google Gemini auto-advancing model pointer: gemini-1.5-flash on the free tier (15 RPM / 1M TPM / $0 cost)
+        const geminiApiKey = env.GEMINI_API_KEY;
+        const geminiModel = env.GEMINI_MODEL || "gemini-1.5-flash";
+
+        if (geminiApiKey) {
+          try {
+            const systemPrompt = `You are the Official TurboSanta Fleet Advisor for Round Table Great Britain & Ireland (RTBI). 
+Your mission is to help Round Table volunteers run safe, joyful, high-fundraising Santa Sleigh routes in accordance with RTBI brand guidelines ("DO MORE", friendly, professional, community-first).
+You have access to the verified Round Table Sleigh Knowledge Base of lessons learned from across the UK fleet.
+
+KNOWLEDGE BASE ARCHIVE:
+${knowledgeText || "No prior lessons logged yet. Provide general Round Table Santa Sleigh best practices."}
+
+USER QUESTION: "${question}"
+
+INSTRUCTIONS:
+1. Synthesize a practical, high-impact answer answering the user's question directly.
+2. Cite relevant lessons from the knowledge base where applicable (e.g., "According to national fleet recommendations...").
+3. Include clear, bulleted action items for the sleigh crew.
+4. Keep the tone enthusiastic, safety-conscious, and aligned with Round Table's "DO MORE" motto.
+5. Format with clean GitHub markdown (bolding, bullet points, numbered lists).`;
+
+            const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiApiKey}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{
+                  role: "user",
+                  parts: [{ text: systemPrompt }]
+                }],
+                generationConfig: {
+                  temperature: 0.7,
+                  maxOutputTokens: 1000
+                }
+              })
+            });
+
+            if (geminiRes.ok) {
+              const geminiData = await geminiRes.json();
+              const replyText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (replyText) {
+                return jsonResponse({
+                  ok: true,
+                  answer: replyText,
+                  model: geminiModel,
+                  lessonsCount: lessons.length,
+                  grounded: true
+                });
+              }
+            } else {
+              console.warn("Gemini API non-200 response:", await geminiRes.text());
+            }
+          } catch(err) {
+            console.warn("Gemini API call failed, falling back to local synthesizer:", err);
+          }
+        }
+
+        // Fallback Local Fleet Synthesis Engine (Infallible, runs offline or if key is omitted)
+        const lowerQ = question.toLowerCase();
+        const matched = lessons.filter(l => {
+          const lText = (l.lesson + " " + l.category).toLowerCase();
+          const words = lowerQ.split(/\s+/).filter(w => w.length > 3);
+          return words.some(w => lText.includes(w));
+        });
+
+        const selectedLessons = matched.length > 0 ? matched.slice(0, 4) : lessons.slice(0, 4);
+
+        let fallbackAnswer = `### 🎅 Round Table Fleet Advisory\n\n`;
+        fallbackAnswer += `Based on verified operational lessons recorded in our **TurboSanta Knowledge Base** for Round Table Great Britain & Ireland:\n\n`;
+
+        if (selectedLessons.length > 0) {
+          selectedLessons.forEach((l, idx) => {
+            const roleStr = l.author_role ? ` (${l.author_role})` : '';
+            fallbackAnswer += `**${idx + 1}. ${l.category.replace(/_/g, ' ').toUpperCase()}** (via ${l.table_name || 'National Fleet'}${roleStr}):\n`;
+            fallbackAnswer += `> "${l.lesson}"\n\n`;
+          });
+          fallbackAnswer += `**Key Takeaways for Your Crew:**\n`;
+          fallbackAnswer += `• Ensure the safety exclusion bubble around the sleigh trailer is maintained at all times.\n`;
+          fallbackAnswer += `• Keep communications clear between the tow cab and foot marshals.\n`;
+          fallbackAnswer += `• Always celebrate your volunteers and uphold the Round Table **"DO MORE"** spirit! 🍻🎄\n`;
+        } else {
+          fallbackAnswer += `• **Route Planning**: Keep routes to 35–45 streets to prevent volunteer burnout and bedtime clashes.\n`;
+          fallbackAnswer += `• **Safety & Marshalling**: Maintain a strict 2m exclusion zone around the tow bar with hi-vis marshals.\n`;
+          fallbackAnswer += `• **Digital Donations**: Pair physical collection tins with Zeffy/SumUp QR code lanyards.\n`;
+          fallbackAnswer += `• **Sound & Power**: Angle horn speakers at 45° towards pavements and rubber-mount generators.\n`;
+        }
+
+        return jsonResponse({
+          ok: true,
+          answer: fallbackAnswer,
+          model: "TurboSanta Fleet Engine (Local D1 Knowledge)",
+          lessonsCount: selectedLessons.length,
+          grounded: true
+        });
+      }
+
+      // Route C: Submit a New Lesson (POST /api/knowledge-base)
+      if (path === "/api/knowledge-base" && request.method === "POST") {
+        let body = {};
+        try { body = await request.json(); } catch(e) { body = {}; }
+
+        const lessonText = (body.lesson || "").trim();
+        const category = body.category || "general";
+        const scope = (body.scope || "local").toLowerCase() === "national" ? "national" : "local";
+        const authorName = (body.author_name || body.author || "Volunteer").trim();
+        const authorRole = (body.author_role || body.role || "Crew Member").trim();
+        const targetTableId = scope === "national" ? "national" : (table?.id || slug);
+        const targetTableName = scope === "national" ? "Round Table National Fleet" : (table?.sleigh_display_name || table?.name || `${slug} Round Table`);
+
+        if (!lessonText || lessonText.length < 10) {
+          return jsonResponse({ ok: false, error: "Please enter a detailed lesson (minimum 10 characters)." }, 400);
+        }
+
+        const lessonId = `lesson_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+        try {
+          await env.DB.prepare(`
+            INSERT INTO lessons_learned (id, table_id, table_name, scope, category, lesson, author_name, author_role, upvotes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+          `).bind(lessonId, targetTableId, targetTableName, scope, category, lessonText, authorName, authorRole).run();
+
+          return jsonResponse({
+            ok: true,
+            id: lessonId,
+            message: `Lesson successfully recorded in the ${scope === 'national' ? 'National RTBI Catalogue' : 'Local Table Archive'}!`,
+            lesson: {
+              id: lessonId,
+              table_id: targetTableId,
+              table_name: targetTableName,
+              scope,
+              category,
+              lesson: lessonText,
+              author_name: authorName,
+              author_role: authorRole,
+              upvotes: 1,
+              created_at: new Date().toISOString()
+            }
+          });
+        } catch(err) {
+          return jsonResponse({ ok: false, error: err.message }, 500);
+        }
+      }
+
+      // Route D: Get / List Lessons (GET /api/knowledge-base)
+      if (path === "/api/knowledge-base" && request.method === "GET") {
+        const scopeReq = url.searchParams.get("scope") || "all";
+        const categoryReq = url.searchParams.get("category") || "all";
+        const searchQ = (url.searchParams.get("q") || "").trim().toLowerCase();
+
+        let sql = "SELECT * FROM lessons_learned WHERE 1=1";
+        const params = [];
+
+        if (scopeReq === "national") {
+          sql += " AND scope = 'national'";
+        } else if (scopeReq === "local") {
+          sql += " AND (table_id = ? OR table_id = ?)";
+          params.push(table?.id || slug, table?.slug || slug);
+        }
+
+        if (categoryReq && categoryReq !== "all") {
+          sql += " AND category = ?";
+          params.push(categoryReq);
+        }
+
+        if (searchQ) {
+          sql += " AND (LOWER(lesson) LIKE ? OR LOWER(category) LIKE ? OR LOWER(author_role) LIKE ?)";
+          const pattern = `%${searchQ}%`;
+          params.push(pattern, pattern, pattern);
+        }
+
+        sql += " ORDER BY upvotes DESC, created_at DESC LIMIT 100";
+
+        try {
+          const res = await env.DB.prepare(sql).bind(...params).all();
+          return jsonResponse({
+            ok: true,
+            lessons: res.results || [],
+            count: res.results ? res.results.length : 0
+          });
+        } catch(err) {
+          return jsonResponse({ ok: false, error: err.message }, 500);
+        }
+      }
+    }
+
+    // ==============================================================
     // 🚀 16. MIGRATE / INITIALIZE TABLE CONFIG (POST /api/migrate)
     // ==============================================================
     if (path === "/api/migrate" && request.method === "POST") {

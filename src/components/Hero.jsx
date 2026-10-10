@@ -30,18 +30,31 @@ export default function Hero({ tableData }) {
       <div style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: '8px',
+        gap: '10px',
         background: 'rgba(251, 175, 51, 0.12)',
         border: '1px solid rgba(251, 175, 51, 0.4)',
-        padding: '6px 16px',
+        padding: '6px 18px',
         borderRadius: '30px',
         color: 'var(--primary)',
         fontSize: '13px',
         fontWeight: 700,
         textTransform: 'uppercase',
         letterSpacing: '1px',
-        marginBottom: '20px'
+        marginBottom: '20px',
+        boxShadow: '0 4px 20px rgba(251, 175, 51, 0.15)'
       }}>
+        <span style={{
+          background: 'var(--primary)',
+          color: '#1D1D1A',
+          padding: '2px 8px',
+          borderRadius: '4px',
+          fontSize: '11px',
+          fontWeight: 900,
+          letterSpacing: '1px',
+          fontFamily: "'Eurostile Extended Bold', 'Eurostile', sans-serif"
+        }}>
+          DO MORE
+        </span>
         <Sparkles size={16} />
         <span>Official Round Table Santa Sleigh 2026</span>
       </div>

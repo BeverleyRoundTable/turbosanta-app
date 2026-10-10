@@ -3,213 +3,445 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TurboSanta Knowledge Base</title>
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>Round Table Sleigh Knowledge Base | TurboSanta</title>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         :root {
-            /* Inherited TurboSanta Brand Variables */
             --primary: #FBAF33; 
             --accent: #FFFFFF; 
             --bg-dark: #1D1D1A; 
-            --bg-card: #000000; 
+            --bg-card: #151513; 
             --text-main: #FFFFFF;
             --text-muted: rgba(255, 255, 255, 0.7);
             --border: rgba(255, 255, 255, 0.15);
+            --border-gold: rgba(251, 175, 51, 0.35);
             --on-primary: #000000; 
+            --gold: #FBAF33;
+            --table-grey: #1D1D1A;
+            --santa-red: #D31C1C;
         }
+
+        * { box-sizing: border-box; }
 
         body {
             font-family: 'Open Sans', sans-serif;
             background-color: var(--bg-dark);
             color: var(--text-main);
             margin: 0; line-height: 1.6;
+            background-image: 
+                linear-gradient(180deg, rgba(29, 29, 26, 0.92) 0%, rgba(10, 10, 10, 0.98) 100%),
+                url('https://brt-23f.pages.dev/icons/site_background.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
         }
 
         h1, h2, h3 {
             font-family: 'Eurostile Extended Bold', 'Eurostile', 'Open Sans', sans-serif;
-            text-transform: uppercase; letter-spacing: 1px;
+            text-transform: uppercase; letter-spacing: 1.2px;
         }
 
-        nav {
-            background: var(--bg-card);
-            border-bottom: 1px solid var(--border);
-            padding: 15px 20px; text-align: center;
+        header {
+            background: rgba(21, 21, 19, 0.9);
+            border-bottom: 1px solid var(--border-gold);
+            padding: 20px 24px;
+            backdrop-filter: blur(12px);
+            position: sticky; top: 0; z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1200px; margin: 0 auto;
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+        }
+
+        .do-more-badge {
+            background: var(--gold);
+            color: var(--table-grey);
+            font-weight: 900;
+            font-size: 11px;
+            letter-spacing: 1px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-right: 8px;
         }
 
         .container {
-            max-width: 1000px; margin: 40px auto; padding: 0 20px;
+            max-width: 1200px; margin: 40px auto; padding: 0 20px;
             display: grid; grid-template-columns: 1fr 1fr; gap: 30px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
         }
 
         .card {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 12px; padding: 30px;
+            border-radius: 14px; padding: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: border-color 0.2s;
+        }
+        .card:hover {
+            border-color: var(--border-gold);
+        }
+
+        label {
+            display: block; font-size: 12px; font-weight: 700;
+            color: var(--gold); text-transform: uppercase;
+            margin-bottom: 6px; letter-spacing: 0.5px;
         }
 
         input, select, textarea {
-            width: 100%; padding: 12px; margin-bottom: 20px;
-            background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+            width: 100%; padding: 12px 14px; margin-bottom: 18px;
+            background: rgba(0, 0, 0, 0.45); border: 1px solid var(--border);
             color: var(--text-main); border-radius: 8px;
-            font-family: 'Open Sans', sans-serif; box-sizing: border-box;
+            font-family: 'Open Sans', sans-serif; font-size: 14px;
         }
         
         input:focus, select:focus, textarea:focus {
-            outline: none; border-color: var(--primary);
+            outline: none; border-color: var(--gold);
+            box-shadow: 0 0 10px rgba(251, 175, 51, 0.2);
         }
 
         option {
-            background-color: var(--bg-card);
+            background-color: #151513;
             color: var(--text-main);
         }
 
         .btn {
-            display: inline-block; width: 100%; padding: 12px;
-            background: var(--primary); color: var(--on-primary);
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            width: 100%; padding: 14px;
+            background: var(--gold); color: var(--on-primary);
             font-family: 'Eurostile Extended Bold', 'Eurostile', 'Open Sans', sans-serif;
-            font-size: 18px; text-transform: uppercase; border: none;
+            font-size: 15px; font-weight: 800; text-transform: uppercase; border: none;
             border-radius: 8px; cursor: pointer; transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 15px rgba(251, 175, 51, 0.25);
         }
 
-        .btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(251, 175, 51, 0.4);
+            filter: brightness(1.1);
+        }
 
         /* Chat Specific Styling */
         #chat-window {
-            height: 300px; overflow-y: auto;
-            background: rgba(255,255,255,0.05); border-radius: 8px;
-            padding: 15px; margin-bottom: 20px; border: 1px solid var(--border);
-            display: flex; flex-direction: column; gap: 10px;
+            height: 340px; overflow-y: auto;
+            background: rgba(0, 0, 0, 0.4); border-radius: 10px;
+            padding: 16px; margin-bottom: 20px; border: 1px solid var(--border);
+            display: flex; flex-direction: column; gap: 12px;
         }
 
-        .msg { padding: 10px 15px; border-radius: 8px; max-width: 85%; font-size: 14px; }
-        .msg.user { background: var(--primary); color: var(--on-primary); align-self: flex-end; }
-        .msg.ai { background: var(--bg-dark); border: 1px solid var(--border); align-self: flex-start; }
+        .msg {
+            padding: 12px 16px; border-radius: 10px; max-width: 90%; font-size: 14px; line-height: 1.6;
+        }
+        .msg.user {
+            background: var(--gold); color: var(--on-primary); align-self: flex-end;
+            font-weight: 600;
+        }
+        .msg.ai {
+            background: rgba(29, 29, 26, 0.95); border: 1px solid var(--border-gold); align-self: flex-start;
+            color: #F3F4F6;
+        }
         .msg p:first-child { margin-top: 0; }
         .msg p:last-child { margin-bottom: 0; }
-        .msg ul { margin: 5px 0; padding-left: 20px; }
+        .msg ul, .msg ol { margin: 6px 0; padding-left: 20px; }
 
-        @media(max-width: 768px) {
-            .container { grid-template-columns: 1fr; }
+        .chip {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #E5E7EB;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .chip:hover {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
+        .lessons-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .lesson-item {
+            background: rgba(21, 21, 19, 0.85);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.2s;
+        }
+        .lesson-item:hover {
+            border-color: var(--border-gold);
+            transform: translateY(-2px);
+        }
+
+        .upvote-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text-muted);
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .upvote-btn:hover {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
+        @media(max-width: 860px) {
+            .container { grid-template-columns: 1fr; margin-top: 20px; }
         }
     </style>
 </head>
 <body>
 
-    <nav>
-        <h2 style="margin:0; color:var(--primary);">TurboSanta <span style="color:var(--text-main);">Knowledge Base</span></h2>
-    </nav>
+    <header>
+        <div class="header-content">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span class="do-more-badge">DO MORE</span>
+                <h2 style="margin: 0; font-size: 18px; color: var(--gold);">
+                    ROUND TABLE <span style="color: #FFF;">FLEET ARCHIVE</span>
+                </h2>
+            </div>
+            <div style="font-size: 12px; color: var(--text-muted);">
+                Powered by TurboSanta 2.0 & Gemini 1.5 Flash
+            </div>
+        </div>
+    </header>
 
     <div class="container">
         <!-- Submit Lessons Learned -->
         <div class="card">
-            <h2 style="margin-top:0; color:var(--primary);">Submit a Lesson</h2>
-            <p style="color:var(--text-muted); font-size:14px; margin-bottom:20px;">Help future elves by logging tips and lessons learned from your sleigh runs.</p>
+            <h2 style="margin-top:0; color:var(--gold); font-size: 20px;">
+                <i class="fa-solid fa-pen-to-square" style="margin-right: 8px;"></i> Log a Fleet Lesson
+            </h2>
+            <p style="color:var(--text-muted); font-size:13px; margin-bottom:20px;">
+                Record tips and learnings from your sleigh runs to improve safety, sound, route pacing, and fundraising.
+            </p>
             
             <form id="lesson-form">
-                <label>Table Name</label>
+                <label>Table Scope</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #FFF; font-weight: normal; margin: 0; background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border);">
+                        <input type="radio" name="scopeChoice" value="local" checked style="width: auto; margin: 0;"> Local Table
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #FFF; font-weight: normal; margin: 0; background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border);">
+                        <input type="radio" name="scopeChoice" value="national" style="width: auto; margin: 0;"> 🇬🇧 National Tip
+                    </label>
+                </div>
+
+                <label>Associated Table</label>
                 <select id="tableName" required>
-                    <option value="" disabled selected>Loading registered tables...</option>
+                    <option value="beverley" selected>Beverley Round Table</option>
                 </select>
 
-                <label>Elf Passcode</label>
-                <input type="password" id="lessonPasscode" placeholder="Enter the shared passcode" required>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div>
+                        <label>Contributor Role</label>
+                        <select id="submitterRole" required>
+                            <option value="Sleigh Driver">Sleigh Driver</option>
+                            <option value="Safety Marshal">Safety Marshal / Walking Crew</option>
+                            <option value="Santa Performer">Santa Performer</option>
+                            <option value="Sound & Generator Tech">Sound & Generator Tech</option>
+                            <option value="Treasurer / Cash Lead">Treasurer / Cash Lead</option>
+                            <option value="Route Planner">Route Planner</option>
+                            <option value="Table Chairman">Table Chairman</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Category</label>
+                        <select id="category" required>
+                            <option value="routes_planning">Routes & Timing</option>
+                            <option value="generators_power">Generators & Power</option>
+                            <option value="sound_audio">Sound & PA Audio</option>
+                            <option value="safety_marshalling">Safety & Marshals</option>
+                            <option value="finance_donations">Donations & Zeffy</option>
+                            <option value="volunteers_crew">Volunteers & Crew</option>
+                            <option value="sleigh_mechanics">Sleigh Mechanics</option>
+                        </select>
+                    </div>
+                </div>
 
-                <label>Your Role</label>
-                <select id="submitterRole" required>
-                    <option value="Driver">Driver / Tow Vehicle</option>
-                    <option value="Lead Elf / Navigator">Lead Elf / Navigator</option>
-                    <option value="Bucket Collector">Bucket Collector</option>
-                    <option value="Tech / Tracker Support">Tech / Tracker Support</option>
-                    <option value="General Volunteer">General Volunteer</option>
-                </select>
+                <label>Your Name / Handle</label>
+                <input type="text" id="authorName" placeholder="e.g. Dave Jenkins" required>
 
-                <label>Category</label>
-                <select id="category" required>
-                    <option value="Route Planning">Route Planning</option>
-                    <option value="Vehicle Setup & Maintenance">Vehicle Setup & Maintenance</option>
-                    <option value="Fundraising & Buckets">Fundraising & Buckets</option>
-                    <option value="Tracking Tech">Tracking Tech</option>
-                    <option value="General Safety">General Safety</option>
-                </select>
+                <label>Lesson Learned / Recommendation</label>
+                <textarea id="lessonText" rows="4" placeholder="What occurred, what broke, or what made the night an outstanding success?" required></textarea>
 
-                <label>Lesson Learned / Tip</label>
-                <textarea id="lessonText" rows="4" placeholder="What worked well? What broke?" required></textarea>
-
-                <button type="submit" class="btn" id="submitBtn">Log Lesson</button>
+                <button type="submit" class="btn" id="submitBtn">
+                    <i class="fa-solid fa-floppy-disk"></i> Record Lesson to Archive
+                </button>
             </form>
             <div id="form-status" style="margin-top: 15px; text-align: center; font-size: 14px;"></div>
         </div>
 
-        <!-- Ask Gemini -->
+        <!-- Ask Gemini Fleet Advisor -->
         <div class="card">
-            <h2 style="margin-top:0; color:var(--primary);">Ask the Archives</h2>
-            <p style="color:var(--text-muted); font-size:14px; margin-bottom:20px;">Ask our AI for general tips or specific advice based on your Table's history.</p>
-            
-            <div id="chat-window">
-                <div class="msg ai">Hello! I'm loaded with TurboSanta history. Ask me anything about running a sleigh.</div>
+            <h2 style="margin-top:0; color:var(--gold); font-size: 20px;">
+                <i class="fa-solid fa-sparkles" style="margin-right: 8px;"></i> Ask the Fleet Advisor
+            </h2>
+            <p style="color:var(--text-muted); font-size:13px; margin-bottom:14px;">
+                Ask Gemini 1.5 Flash for best practices synthesized from verified Round Table sleigh archives.
+            </p>
+
+            <!-- Quick Suggestion Chips -->
+            <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px;">
+                <span class="chip" onclick="quickAsk('How to prevent generator vibration and noise on the sleigh?')">Generator Setup</span>
+                <span class="chip" onclick="quickAsk('What is the ideal route length and street count per night?')">Route Pacing</span>
+                <span class="chip" onclick="quickAsk('How to maximize contactless donations with Zeffy QR code lanyards?')">Contactless Lanyards</span>
+                <span class="chip" onclick="quickAsk('What safety exclusion zone is needed around the tow hitch?')">Tow Bar Safety</span>
             </div>
             
-            <label>Elf Passcode</label>
-            <input type="password" id="chatPasscode" placeholder="Enter the shared passcode" required>
+            <div id="chat-window">
+                <div class="msg ai">
+                    <strong>Ho-Ho-Ho! 🎅 Welcome to the Round Table Fleet Archive.</strong><br>
+                    I am your AI Fleet Advisor, backed by real operational lessons from Santa Sleigh runs across Round Table Great Britain & Ireland. Ask me anything!
+                </div>
+            </div>
 
             <div style="display: flex; gap: 10px;">
-                <input type="text" id="chatInput" placeholder="e.g., How do we mount the generator?" style="margin-bottom:0;">
-                <button class="btn" id="sendBtn" style="width: 60px;"><i class="fa-solid fa-paper-plane"></i></button>
+                <input type="text" id="chatInput" placeholder="e.g., How do we angle speakers to avoid house echo?" style="margin-bottom:0;">
+                <button class="btn" id="sendBtn" style="width: 70px;"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+        </div>
+
+        <!-- Full-Width: Browse Recent Archive Lessons -->
+        <div class="card full-width">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+                <h2 style="margin: 0; color: var(--gold); font-size: 20px;">
+                    <i class="fa-solid fa-book-bookmark" style="margin-right: 8px;"></i> Verified Fleet Knowledge Archive
+                </h2>
+                <button onclick="loadLessonsArchive()" style="background: transparent; border: 1px solid var(--border); color: var(--gold); border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer;">
+                    <i class="fa-solid fa-rotate-right"></i> Refresh Archive
+                </button>
+            </div>
+
+            <div id="lessonsContainer" class="lessons-grid">
+                <div style="text-align: center; grid-column: 1 / -1; padding: 30px; color: var(--text-muted);">
+                    Loading archive records...
+                </div>
             </div>
         </div>
     </div>
 
-    <footer style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 14px;">
-        &copy; 1950 - <script>document.write(new Date().getFullYear())</script> Round Table. Powered by TurboSanta.
+    <footer style="text-align: center; padding: 30px 20px; color: var(--text-muted); font-size: 13px; border-top: 1px solid rgba(255,255,255,0.08); margin-top: 40px;">
+        Round Table Great Britain & Ireland • TurboSanta Sleigh Management System • <strong>DO MORE</strong>
     </footer>
 
     <script>
-        // Replace with your Google Apps Script Web App URL
-        const API_URL = "https://script.google.com/macros/s/AKfycbydqxlwWkD7Kh7IJisZSiweBBbsXDy7smUxpOvT5eLVQxsDO2PqwrJyQI_3y4kwnJB6/exec"; 
+        const API_BASE = "https://turbosanta-api.beverley247.workers.dev";
 
-        // Helper to clean table names exactly like the tracker does
-        function deriveTableName(siteName) {
-            const base = siteName
-                .replace(/\bsanta(?:['\u2019]s)?\b/gi, '')
-                .replace(/\bsleighs?\b/gi, '')
-                .replace(/\bround\s+table\b/gi, '')
-                .replace(/\s+/g, ' ')
-                .trim();
-            return base ? base + " Round Table" : siteName;
-        }
+        // Category label map
+        const CATEGORY_NAMES = {
+            'routes_planning': 'Routes & Timing',
+            'generators_power': 'Generators & Power',
+            'sound_audio': 'Sound & PA Audio',
+            'safety_marshalling': 'Safety & Marshals',
+            'finance_donations': 'Donations & Zeffy',
+            'volunteers_crew': 'Volunteers & Crew',
+            'sleigh_mechanics': 'Sleigh Mechanics'
+        };
 
         // Fetch registered tables on load
         window.addEventListener('DOMContentLoaded', async () => {
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'getTables' })
-                });
-                const data = await response.json();
-                const select = document.getElementById('tableName');
-                select.innerHTML = '<option value="" disabled selected>Select your Table...</option>';
-                
-                // Clean the names, remove duplicates, sort alphabetically
-                const cleanNames = [...new Set(data.tables.map(deriveTableName))].sort();
-                
-                cleanNames.forEach(table => {
-                    select.innerHTML += `<option value="${table}">${table}</option>`;
-                });
-            } catch (err) {
-                document.getElementById('tableName').innerHTML = '<option value="" disabled selected>Error loading tables. Please type below.</option>';
-                // Fallback to text input if it fails
-                const select = document.getElementById('tableName');
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.id = 'tableName';
-                input.placeholder = 'e.g., Beverley Round Table';
-                input.required = true;
-                select.parentNode.replaceChild(input, select);
-            }
+            loadRegisteredTables();
+            loadLessonsArchive();
         });
+
+        async function loadRegisteredTables() {
+            try {
+                const res = await fetch(`${API_BASE}/api/national`);
+                const data = await res.json();
+                if (data && Array.isArray(data.tables)) {
+                    const select = document.getElementById('tableName');
+                    select.innerHTML = '';
+                    data.tables.forEach(t => {
+                        const opt = document.createElement('option');
+                        opt.value = t.slug;
+                        opt.textContent = t.name;
+                        if (t.slug === 'beverley') opt.selected = true;
+                        select.appendChild(opt);
+                    });
+                }
+            } catch (err) {
+                console.warn("Could not load tables list, using Beverley default:", err);
+            }
+        }
+
+        async function loadLessonsArchive() {
+            const container = document.getElementById('lessonsContainer');
+            try {
+                const res = await fetch(`${API_BASE}/api/knowledge-base?scope=all`);
+                const data = await res.json();
+                if (data && Array.isArray(data.lessons) && data.lessons.length > 0) {
+                    container.innerHTML = '';
+                    data.lessons.forEach(l => {
+                        const isNat = l.scope === 'national';
+                        const catLabel = CATEGORY_NAMES[l.category] || l.category || 'General';
+                        const el = document.createElement('div');
+                        el.className = 'lesson-item';
+                        el.innerHTML = `
+                            <div>
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                    <span style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:4px; text-transform:uppercase; background:${isNat ? 'rgba(251,175,51,0.15)' : 'rgba(59,130,246,0.15)'}; color:${isNat ? '#FBAF33' : '#60a5fa'}; border:1px solid ${isNat ? 'rgba(251,175,51,0.3)' : 'rgba(59,130,246,0.3)'};">
+                                        ${isNat ? '🇬🇧 RTBI National' : '📍 ' + (l.table_name || 'Local Table')}
+                                    </span>
+                                    <button class="upvote-btn" onclick="upvoteLesson('${l.id}', this)">
+                                        <i class="fa-solid fa-thumbs-up"></i> <span>${l.upvotes || 0}</span>
+                                    </button>
+                                </div>
+                                <div style="font-size:11px; color:var(--gold); font-weight:700; margin-bottom:8px; text-transform:uppercase;">
+                                    ${catLabel}
+                                </div>
+                                <p style="font-size:13px; color:#FFF; margin:0 0 12px 0; line-height:1.5;">
+                                    "${l.lesson}"
+                                </p>
+                            </div>
+                            <div style="font-size:11px; color:var(--text-muted); border-top:1px solid rgba(255,255,255,0.06); padding-top:8px;">
+                                <strong>${l.author_name || 'Volunteer'}</strong> • ${l.author_role || 'Crew'}
+                            </div>
+                        `;
+                        container.appendChild(el);
+                    });
+                } else {
+                    container.innerHTML = '<div style="text-align: center; grid-column: 1 / -1; padding: 30px; color: var(--text-muted);">No lessons logged yet. Be the first to log a tip!</div>';
+                }
+            } catch (err) {
+                container.innerHTML = '<div style="text-align: center; grid-column: 1 / -1; padding: 30px; color: #ef4444;">Failed to load archive lessons.</div>';
+            }
+        }
+
+        async function upvoteLesson(id, btn) {
+            const span = btn.querySelector('span');
+            let current = parseInt(span.textContent) || 0;
+            span.textContent = current + 1;
+            btn.style.color = 'var(--gold)';
+            btn.style.borderColor = 'var(--gold)';
+            try {
+                await fetch(`${API_BASE}/api/knowledge-base/upvote`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+            } catch (e) {}
+        }
 
         // Form Submission Logic
         document.getElementById('lesson-form').addEventListener('submit', async (e) => {
@@ -217,89 +449,87 @@
             const btn = document.getElementById('submitBtn');
             const status = document.getElementById('form-status');
             
-            btn.textContent = "Logging...";
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
             btn.disabled = true;
 
+            const scopeRadio = document.querySelector('input[name="scopeChoice"]:checked');
             const payload = {
-                action: 'submitLesson',
-                tableName: document.getElementById('tableName').value,
-                passcode: document.getElementById('lessonPasscode').value,
-                role: document.getElementById('submitterRole').value,
+                tableSlug: document.getElementById('tableName').value,
+                scope: scopeRadio ? scopeRadio.value : 'local',
+                author_name: document.getElementById('authorName').value,
+                author_role: document.getElementById('submitterRole').value,
                 category: document.getElementById('category').value,
                 lesson: document.getElementById('lessonText').value
             };
 
             try {
-                const response = await fetch(API_URL, {
+                const response = await fetch(`${API_BASE}/api/knowledge-base?table=${encodeURIComponent(payload.tableSlug)}`, {
                     method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
                 const result = await response.json();
                 
-                if (result.status === "error") {
-                    status.style.color = "#d31c1c";
-                    status.textContent = result.answer || "Error saving lesson. Try again.";
+                if (result.ok) {
+                    status.style.color = "var(--gold)";
+                    status.innerHTML = '<i class="fa-solid fa-circle-check"></i> ' + (result.message || "Lesson logged successfully!");
+                    document.getElementById('lessonText').value = "";
+                    loadLessonsArchive();
                 } else {
-                    status.style.color = "var(--primary)";
-                    status.textContent = "Lesson logged successfully!";
-                    document.getElementById('lesson-form').reset();
+                    status.style.color = "#d31c1c";
+                    status.textContent = result.error || "Error saving lesson. Try again.";
                 }
             } catch (err) {
                 status.style.color = "#d31c1c";
                 status.textContent = "Error saving lesson. Try again.";
             } finally {
-                btn.textContent = "Log Lesson";
+                btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Record Lesson to Archive';
                 btn.disabled = false;
-                setTimeout(() => status.textContent = "", 3000);
+                setTimeout(() => status.textContent = "", 4000);
             }
         });
+
+        function quickAsk(text) {
+            document.getElementById('chatInput').value = text;
+            document.getElementById('sendBtn').click();
+        }
 
         // Chat Logic
         document.getElementById('sendBtn').addEventListener('click', async () => {
             const input = document.getElementById('chatInput');
-            const passcode = document.getElementById('chatPasscode').value;
             const chatWindow = document.getElementById('chat-window');
-            const tableName = document.getElementById('tableName').value; // Optional context
+            const tableSlug = document.getElementById('tableName').value;
+            const question = input.value.trim();
             
-            if (!input.value.trim()) return;
-            if (!passcode.trim()) {
-                chatWindow.innerHTML += `<div class="msg ai" style="color: #d31c1c;">Please enter the Elf Passcode above.</div>`;
-                chatWindow.scrollTop = chatWindow.scrollHeight;
-                return;
-            }
+            if (!question) return;
 
             // Add user message
-            chatWindow.innerHTML += `<div class="msg user">${input.value}</div>`;
-            const question = input.value;
+            chatWindow.innerHTML += `<div class="msg user">${question}</div>`;
             input.value = "";
             chatWindow.scrollTop = chatWindow.scrollHeight;
 
             // Add loading indicator
             const loadingId = "load-" + Date.now();
-            chatWindow.innerHTML += `<div id="${loadingId}" class="msg ai">Thinking...</div>`;
+            chatWindow.innerHTML += `<div id="${loadingId}" class="msg ai"><i class="fa-solid fa-spinner fa-spin"></i> Consulting Round Table archive...</div>`;
             chatWindow.scrollTop = chatWindow.scrollHeight;
 
-            const payload = {
-                action: 'askGemini',
-                question: question,
-                tableName: tableName,
-                passcode: passcode
-            };
-
             try {
-                const res = await fetch(API_URL, {
+                const res = await fetch(`${API_BASE}/api/knowledge-base/ask?table=${encodeURIComponent(tableSlug)}`, {
                     method: 'POST',
-                    body: JSON.stringify(payload)
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question, tableSlug })
                 });
                 const data = await res.json();
                 
-                if (data.status === "error") {
-                    document.getElementById(loadingId).innerHTML = data.answer || "Error processing request.";
+                const targetEl = document.getElementById(loadingId);
+                if (data.ok && data.answer) {
+                    targetEl.innerHTML = marked.parse(data.answer);
                 } else {
-                    document.getElementById(loadingId).innerHTML = marked.parse(data.answer);
+                    targetEl.innerHTML = data.error || "Could not synthesize advice right now. Please try again.";
                 }
             } catch (err) {
-                document.getElementById(loadingId).innerText = "Sorry, I lost connection to Lapland.";
+                const targetEl = document.getElementById(loadingId);
+                if (targetEl) targetEl.innerText = "Sorry, I lost connection to Lapland.";
             }
             chatWindow.scrollTop = chatWindow.scrollHeight;
         });

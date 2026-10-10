@@ -286,3 +286,65 @@ export async function saveTableSettings(tableSlug = "beverley", settings = {}, s
   }
 }
 
+export async function fetchKnowledgeLessons(tableSlug = "beverley", { scope = "all", category = "all", q = "" } = {}) {
+  try {
+    const params = new URLSearchParams({ table: tableSlug });
+    if (scope && scope !== "all") params.set("scope", scope);
+    if (category && category !== "all") params.set("category", category);
+    if (q) params.set("q", q);
+
+    const res = await fetch(`${API_BASE}/api/knowledge-base?${params.toString()}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn("fetchKnowledgeLessons error:", err);
+    return { ok: false, lessons: [] };
+  }
+}
+
+export async function submitKnowledgeLesson(tableSlug = "beverley", lessonData = {}) {
+  try {
+    const res = await fetch(`${API_BASE}/api/knowledge-base?table=${encodeURIComponent(tableSlug)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(lessonData)
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error("submitKnowledgeLesson error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
+export async function upvoteKnowledgeLesson(tableSlug = "beverley", lessonId) {
+  try {
+    const res = await fetch(`${API_BASE}/api/knowledge-base/upvote?table=${encodeURIComponent(tableSlug)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: lessonId })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error("upvoteKnowledgeLesson error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
+export async function askFleetAdvisor(tableSlug = "beverley", { question, category = "all", scope = "all" }) {
+  try {
+    const res = await fetch(`${API_BASE}/api/knowledge-base/ask?table=${encodeURIComponent(tableSlug)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, category, scope })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error("askFleetAdvisor error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
+

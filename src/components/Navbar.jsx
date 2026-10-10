@@ -67,9 +67,23 @@ export default function Navbar({ tableData, onBackToPortal }) {
               boxShadow: '0 0 10px rgba(251, 175, 51, 0.3)'
             }}
           />
-          <div className="brand-font" style={{ fontSize: '20px', fontWeight: 800 }}>
-            <span style={{ color: 'var(--primary)' }}>{prefix}</span>
-            {suffix && <span> {suffix}</span>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{
+              background: 'var(--primary)',
+              color: '#1D1D1A',
+              padding: '2px 7px',
+              borderRadius: '4px',
+              fontSize: '10px',
+              fontWeight: 900,
+              letterSpacing: '1px',
+              fontFamily: "'Eurostile Extended Bold', 'Eurostile', sans-serif"
+            }}>
+              DO MORE
+            </span>
+            <div className="brand-font" style={{ fontSize: '20px', fontWeight: 800 }}>
+              <span style={{ color: 'var(--primary)' }}>{prefix}</span>
+              {suffix && <span> {suffix}</span>}
+            </div>
           </div>
         </a>
 
