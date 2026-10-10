@@ -157,22 +157,6 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
             <span className="desktop-only">Embeds</span>
           </a>
 
-          <a
-            href="/national.html"
-            style={{
-              color: '#eaeae5',
-              textDecoration: 'none',
-              fontSize: '13px',
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <Radio size={15} color="#ef4444" />
-            <span className="desktop-only">National Map</span>
-          </a>
-
           <button
             onClick={() => onOpenLogin(inputVal)}
             style={{
@@ -899,7 +883,7 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
             </a>
           </div>
 
-          {/* Feature 4 */}
+          {/* Feature 4: Volunteer Crew Hub */}
           <div style={{
             backgroundColor: '#161614',
             border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -917,16 +901,16 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
               color: '#ef4444',
               marginBottom: '16px'
             }}>
-              <Radio size={22} />
+              <Users size={22} />
             </div>
             <h3 style={{ fontFamily: 'Eurostile, sans-serif', fontSize: '18px', fontWeight: 800, margin: '0 0 8px 0', color: '#ffffff' }}>
-              NATIONAL RADAR
+              VOLUNTEER CREW HUB
             </h3>
             <p style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.6)', lineHeight: 1.6, marginBottom: '16px' }}>
-              National Round Table overview displaying active sleighs across the UK simultaneously, aggregating community impact and total funds raised.
+              Streamline street collections with volunteer check-in, bucket tracking, briefing checklists, and live route coordination.
             </p>
-            <a href="/national.html" style={{ color: '#ef4444', fontSize: '12px', fontWeight: 700, textDecoration: 'none', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              Open National Radar →
+            <a href="/crew.html?table=beverley" style={{ color: '#ef4444', fontSize: '12px', fontWeight: 700, textDecoration: 'none', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              Explore Crew Hub →
             </a>
           </div>
         </div>

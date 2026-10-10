@@ -1820,16 +1820,18 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     <span>Printable Season Wrap (PDF)</span>
                   </a>
 
-                  <a
-                    href="/national.html"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-secondary"
-                    style={{ padding: '9px 16px', fontSize: '13px', borderColor: 'var(--primary)', color: 'var(--primary)', textDecoration: 'none' }}
-                  >
-                    <ExternalLink size={15} />
-                    <span>National UK Rollup</span>
-                  </a>
+                  {isMasterAdmin && (
+                    <a
+                      href="/national.html"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-secondary"
+                      style={{ padding: '9px 16px', fontSize: '13px', borderColor: 'var(--primary)', color: 'var(--primary)', textDecoration: 'none' }}
+                    >
+                      <ExternalLink size={15} />
+                      <span>National UK Rollup</span>
+                    </a>
+                  )}
                 </div>
               </div>
 

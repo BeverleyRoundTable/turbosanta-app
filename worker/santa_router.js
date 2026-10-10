@@ -117,11 +117,7 @@ export default {
     const parts = host.split('.');
     const rawSubdomain = parts[0].toLowerCase();
 
-    // Special standalone subdomains
-    if (rawSubdomain === 'national') {
-      return fetch(`${PAGES_URL}/national.html`);
-    }
-    if (rawSubdomain === 'turbosanta') {
+    if (rawSubdomain === 'turbosanta' || rawSubdomain === 'national') {
       return Response.redirect('https://roundtablesantasleigh.co.uk/', 301);
     }
     if (['knowledge', 'wiki', 'elves'].includes(rawSubdomain)) {
@@ -215,10 +211,10 @@ export default {
       templateFile = '/season_wrap.html';
       modeTitle = 'Season Wrap & Impact Report';
       modeDescSuffix = 'Year-end fundraising and route metrics review.';
-    } else if (path === '/national' || path === '/national.html') {
+    } else if (isRootDomain && (path === '/national' || path === '/national.html')) {
       templateFile = '/national.html';
-      modeTitle = 'National Leaderboard';
-      modeDescSuffix = 'National Round Table Santa Sleigh fundraising leaderboard and fleet statistics.';
+      modeTitle = 'National Fleet Overview';
+      modeDescSuffix = 'Authorized national board overview.';
     } else if (path === '/knowledge' || path === '/wiki' || path === '/kb' || path === '/knowledge-base.html') {
       templateFile = '/knowledge-base.html';
       modeTitle = 'Knowledge Base';
