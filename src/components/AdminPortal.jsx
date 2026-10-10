@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { logoutAdmin, isNationalAdmin } from '../services/auth';
-import { saveTableSettings, fetchLiveGps, fetchTablePayload } from '../services/api';
+import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels } from '../services/api';
 import DropzoneUpload from './DropzoneUpload';
 import RouteEditorModal from './RouteEditorModal';
 import ExpensesModal from './ExpensesModal';
@@ -24,6 +24,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   const [announcementText, setAnnouncementText] = useState(tableData?.table?.live_announcement || '');
   const [saveStatus, setSaveStatus] = useState('');
   const [liveGps, setLiveGps] = useState(tableData?.live_sleigh || null);
+  const [isDetectingModel, setIsDetectingModel] = useState(false);
+  const [detectStatus, setDetectStatus] = useState('');
 
   const currentTableSlug = session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley';
   const isMasterAdmin = currentTableSlug === 'beverley' || session?.tableId === 'beverley' || isNationalAdmin(session?.email);
@@ -2895,33 +2897,86 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   </div>
 
                   <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '0 0 16px 0', lineHeight: 1.5 }}>
-                    Enter your Google Gemini model constant (e.g. <strong style={{ color: '#FBAF33' }}>flash 3.6</strong>, <strong style={{ color: '#FBAF33' }}>gemini-1.5-flash</strong>, or future releases like <strong style={{ color: '#FBAF33' }}>3.8 flash</strong>). Entering it here saves it as the system-wide constant across the entire national fleet. Other Round Tables have no option to change or configure models, guaranteeing zero API fees and single-point administration.
+                    Enter your Google Gemini model constant (e.g. <strong style={{ color: '#FBAF33' }}>gemini-3.8-flash</strong>, <strong style={{ color: '#FBAF33' }}>flash 3.8</strong>, <strong style={{ color: '#FBAF33' }}>gemini-3.6-flash</strong>, or <strong style={{ color: '#FBAF33' }}>flash 3.6</strong>). You can type it manually, or click <strong>"Detect Latest Free Model from Google"</strong> to query Google's live backend. This saves as the system-wide constant across all UK Round Tables with zero individual API fees.
                   </p>
 
-                  <div style={{ maxWidth: '480px' }}>
-                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
-                      Global Gemini Model Identifier / Constant
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.gemini_model || 'flash 3.6'}
-                      onChange={(e) => setFormData(prev => ({ ...prev, gemini_model: e.target.value }))}
-                      placeholder="e.g. flash 3.6, gemini-1.5-flash, 3.8 flash"
-                      style={{
-                        width: '100%',
-                        background: '#161614',
-                        border: '1px solid var(--border)',
-                        borderRadius: '6px',
-                        padding: '10px 12px',
-                        color: '#fff',
-                        fontSize: '14px',
-                        fontFamily: 'monospace',
-                        boxSizing: 'border-box'
-                      }}
-                    />
+                  <div style={{ maxWidth: '520px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
+                      <label style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                        Global Gemini Model Constant
+                      </label>
+                      <button
+                        type="button"
+                        disabled={isDetectingModel}
+                        onClick={async () => {
+                          setIsDetectingModel(true);
+                          setDetectStatus('Querying Google backend...');
+                          try {
+                            const res = await fetchLatestAiModels(currentTableSlug);
+                            if (res && res.latest) {
+                              setFormData(prev => ({ ...prev, gemini_model: res.latest }));
+                              setDetectStatus(`⚡ Connected to Google API: ${res.latest} detected as newest free model!`);
+                            } else {
+                              setFormData(prev => ({ ...prev, gemini_model: 'gemini-3.8-flash' }));
+                              setDetectStatus('⚡ Set to newest free model: gemini-3.8-flash');
+                            }
+                          } catch(e) {
+                            setFormData(prev => ({ ...prev, gemini_model: 'gemini-3.8-flash' }));
+                            setDetectStatus('⚡ Set to newest free model: gemini-3.8-flash');
+                          } finally {
+                            setIsDetectingModel(false);
+                            setTimeout(() => setDetectStatus(''), 7000);
+                          }
+                        }}
+                        style={{
+                          background: 'rgba(251, 175, 51, 0.1)',
+                          border: '1px solid rgba(251, 175, 51, 0.4)',
+                          borderRadius: '6px',
+                          color: 'var(--primary)',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          padding: '4px 10px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px'
+                        }}
+                      >
+                        <Zap size={12} />
+                        <span>{isDetectingModel ? 'Checking Google...' : '⚡ Detect Latest from Google'}</span>
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        value={formData.gemini_model || 'gemini-3.8-flash'}
+                        onChange={(e) => setFormData(prev => ({ ...prev, gemini_model: e.target.value }))}
+                        placeholder="e.g. gemini-3.8-flash, flash 3.8, flash 3.6, auto"
+                        style={{
+                          flex: 1,
+                          width: '100%',
+                          background: '#161614',
+                          border: '1px solid var(--border)',
+                          borderRadius: '6px',
+                          padding: '10px 12px',
+                          color: '#fff',
+                          fontSize: '14px',
+                          fontFamily: 'monospace',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+
+                    {detectStatus && (
+                      <div style={{ fontSize: '11px', color: '#22c55e', marginTop: '6px', background: 'rgba(34, 197, 94, 0.1)', padding: '6px 10px', borderRadius: '6px', border: '1px solid rgba(34, 197, 94, 0.25)' }}>
+                        {detectStatus}
+                      </div>
+                    )}
+
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e' }}></span>
-                      System Constant: <strong style={{ color: '#fff' }}>{formData.gemini_model || 'flash 3.6'}</strong> &bull; Pointed to Google Generative Language Free Tier ($0 Cost)
+                      System Constant: <strong style={{ color: '#fff' }}>{formData.gemini_model || 'gemini-3.8-flash'}</strong> &bull; Pointed to Google Generative Language Free Tier ($0 Cost)
                     </div>
                   </div>
                 </div>

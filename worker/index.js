@@ -1431,23 +1431,21 @@ INSTRUCTIONS:
               })
             });
 
-            // If primary model 404s or fails (e.g. custom or future model version string), fallback to gemini-1.5-flash
-            if (!geminiRes.ok && primaryModel !== "gemini-1.5-flash") {
-              console.warn(`Primary model ${primaryModel} returned ${geminiRes.status}. Retrying with canonical gemini-1.5-flash...`);
-              geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  contents: [{
-                    role: "user",
-                    parts: [{ text: systemPrompt }]
-                  }],
-                  generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 1000
-                  }
-                })
-              });
+            // If primary model 404s or fails (e.g. unreleased or restricted endpoint), cascade down stable fallbacks
+            if (!geminiRes.ok) {
+              const fallbacks = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-1.5-flash"].filter(m => m !== primaryModel);
+              for (const fb of fallbacks) {
+                console.warn(`Model ${primaryModel} failed (${geminiRes.status}). Retrying with fallback ${fb}...`);
+                geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${fb}:generateContent?key=${geminiApiKey}`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    contents: [{ role: "user", parts: [{ text: systemPrompt }] }],
+                    generationConfig: { temperature: 0.7, maxOutputTokens: 1000 }
+                  })
+                });
+                if (geminiRes.ok) break;
+              }
             }
 
             if (geminiRes.ok) {
@@ -1506,6 +1504,67 @@ INSTRUCTIONS:
           model: "TurboSanta Fleet Engine (Local D1 Knowledge)",
           lessonsCount: selectedLessons.length,
           grounded: true
+        });
+      }
+
+      // Route: Live Google Generative AI Models Inspector (GET /api/ai/models)
+      if (path === "/api/ai/models" && request.method === "GET") {
+        let nationalTable = null;
+        if (slug !== 'beverley') {
+          try {
+            nationalTable = await env.DB.prepare("SELECT gemini_model, gemini_api_key FROM tables WHERE slug = 'beverley'").first();
+          } catch(e) {}
+        }
+        const geminiApiKey = table?.gemini_api_key || nationalTable?.gemini_api_key || env.GEMINI_API_KEY;
+
+        if (geminiApiKey) {
+          try {
+            const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${geminiApiKey}`);
+            if (listRes.ok) {
+              const listData = await listRes.json();
+              const allModels = listData?.models || [];
+              const flashModels = allModels
+                .filter(m => {
+                  const name = (m.name || "").toLowerCase();
+                  const methods = m.supportedGenerationMethods || [];
+                  return methods.includes("generateContent") && name.includes("flash") && !name.includes("preview");
+                })
+                .map(m => ({
+                  id: m.name.replace(/^models\//, ""),
+                  displayName: m.displayName || m.name.replace(/^models\//, ""),
+                  description: m.description || ""
+                }));
+
+              const has38 = flashModels.some(m => m.id.includes("3.8"));
+              const has36 = flashModels.some(m => m.id.includes("3.6"));
+              const recommended = has38 ? "gemini-3.8-flash" : (has36 ? "gemini-3.6-flash" : (flashModels[0]?.id || "gemini-3.8-flash"));
+
+              return jsonResponse({
+                ok: true,
+                backendQueried: true,
+                latest: recommended,
+                recommended,
+                models: flashModels.length > 0 ? flashModels : [
+                  { id: "gemini-3.8-flash", displayName: "Gemini 3.8 Flash (Stable, Newest Free Tier Flash)" },
+                  { id: "gemini-3.6-flash", displayName: "Gemini 3.6 Flash (Stable, Previous-Gen Flash)" }
+                ]
+              });
+            }
+          } catch(e) {
+            console.warn("Failed to query Google Models API:", e);
+          }
+        }
+
+        return jsonResponse({
+          ok: true,
+          backendQueried: false,
+          latest: "gemini-3.8-flash",
+          recommended: "gemini-3.8-flash",
+          models: [
+            { id: "gemini-3.8-flash", displayName: "Gemini 3.8 Flash (Stable, Newest Free Tier Flash)" },
+            { id: "gemini-3.6-flash", displayName: "Gemini 3.6 Flash (Stable, Previous-Generation Flash)" },
+            { id: "gemini-3.5-flash-lite", displayName: "Gemini 3.5 Flash Lite (High-Speed Free Tier)" }
+          ]
         });
       }
 
@@ -1702,23 +1761,55 @@ function jsonResponse(data, status = 200) {
 }
 
 function resolveGeminiModel(input) {
-  if (!input) return "gemini-1.5-flash";
+  if (!input) return "gemini-3.8-flash";
   const clean = String(input).trim().toLowerCase();
+
+  // If set to auto or latest:
+  if (clean === "auto" || clean === "latest" || clean === "latest-flash" || clean === "free-flash") {
+    return "gemini-3.8-flash";
+  }
 
   // If already standard Gemini API endpoint identifier:
   if (clean.startsWith("gemini-")) {
     return clean;
   }
 
-  // Handle common shorthand like "flash 3.6", "3.6 flash", "flash-3.6", "3.8 flash":
+  // Version 3.8 (Newest stable free Flash)
+  if (clean.includes("3.8") || clean.includes("3-8")) {
+    return "gemini-3.8-flash";
+  }
+
+  // Version 3.6 (Previous-generation stable free Flash)
+  if (clean.includes("3.6") || clean.includes("3-6")) {
+    return "gemini-3.6-flash";
+  }
+
+  // Version 3.5 (Flash Lite)
+  if (clean.includes("3.5") || clean.includes("3-5")) {
+    return "gemini-3.5-flash-lite";
+  }
+
+  // Version 3.1
+  if (clean.includes("3.1") || clean.includes("3-1")) {
+    return "gemini-3.1-flash-lite";
+  }
+
+  // 2.5 series
+  if (clean.includes("2.5") || clean.includes("2-5")) {
+    return clean.includes("pro") ? "gemini-2.5-pro" : "gemini-2.5-flash";
+  }
+
+  // Legacy 2.0 / 1.5
   if (clean.includes("2.0") || clean.includes("2-0")) {
     return "gemini-2.0-flash";
   }
-  if (clean.includes("pro")) {
-    return "gemini-1.5-pro";
+  if (clean.includes("1.5") || clean.includes("1-5")) {
+    return clean.includes("pro") ? "gemini-1.5-pro" : "gemini-1.5-flash";
   }
-  if (clean.includes("3.6") || clean.includes("3.8") || clean.includes("flash")) {
-    return "gemini-1.5-flash";
+
+  // General "flash" keyword defaults to newest stable Flash
+  if (clean.includes("flash")) {
+    return "gemini-3.8-flash";
   }
 
   return `gemini-${clean.replace(/\s+/g, '-')}`;

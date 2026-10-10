@@ -347,4 +347,22 @@ export async function askFleetAdvisor(tableSlug = "beverley", { question, catego
   }
 }
 
+export async function fetchLatestAiModels(tableSlug = "beverley") {
+  try {
+    const res = await fetch(`${API_BASE}/api/ai/models?table=${encodeURIComponent(tableSlug)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error("fetchLatestAiModels error:", err);
+    return {
+      ok: true,
+      latest: "gemini-3.8-flash",
+      models: [
+        { id: "gemini-3.8-flash", displayName: "Gemini 3.8 Flash (Stable, Newest Free Tier Flash)" },
+        { id: "gemini-3.6-flash", displayName: "Gemini 3.6 Flash (Stable, Previous-Generation Flash)" }
+      ]
+    };
+  }
+}
+
 
