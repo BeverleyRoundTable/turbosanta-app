@@ -2905,54 +2905,81 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       <label style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
                         Global Gemini Model Constant
                       </label>
-                      <button
-                        type="button"
-                        disabled={isDetectingModel}
-                        onClick={async () => {
-                          setIsDetectingModel(true);
-                          setDetectStatus('Querying Google backend...');
-                          try {
-                            const res = await fetchLatestAiModels(currentTableSlug);
-                            if (res && res.latest) {
-                              setFormData(prev => ({ ...prev, gemini_model: res.latest }));
-                              setDetectStatus(`⚡ Connected to Google API: ${res.latest} detected as newest free model!`);
-                            } else {
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, gemini_model: 'auto' }));
+                            setDetectStatus('🔄 Auto Mode Selected: Zero maintenance! Will always automatically track newest Google Free Tier Flash.');
+                            setTimeout(() => setDetectStatus(''), 6000);
+                          }}
+                          style={{
+                            background: String(formData.gemini_model || '').toLowerCase() === 'auto' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                            border: String(formData.gemini_model || '').toLowerCase() === 'auto' ? '1px solid #22c55e' : '1px solid var(--border)',
+                            borderRadius: '6px',
+                            color: String(formData.gemini_model || '').toLowerCase() === 'auto' ? '#22c55e' : 'var(--text-muted)',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            padding: '4px 8px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                          title="Set model to auto-advance"
+                        >
+                          <Sparkles size={11} />
+                          <span>Use Auto Mode</span>
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isDetectingModel}
+                          onClick={async () => {
+                            setIsDetectingModel(true);
+                            setDetectStatus('Querying Google backend...');
+                            try {
+                              const res = await fetchLatestAiModels(currentTableSlug);
+                              if (res && res.latest) {
+                                setFormData(prev => ({ ...prev, gemini_model: res.latest }));
+                                setDetectStatus(`⚡ Connected to Google API: ${res.latest} detected as newest free model!`);
+                              } else {
+                                setFormData(prev => ({ ...prev, gemini_model: 'gemini-3.8-flash' }));
+                                setDetectStatus('⚡ Set to newest free model: gemini-3.8-flash');
+                              }
+                            } catch(e) {
                               setFormData(prev => ({ ...prev, gemini_model: 'gemini-3.8-flash' }));
                               setDetectStatus('⚡ Set to newest free model: gemini-3.8-flash');
+                            } finally {
+                              setIsDetectingModel(false);
+                              setTimeout(() => setDetectStatus(''), 7000);
                             }
-                          } catch(e) {
-                            setFormData(prev => ({ ...prev, gemini_model: 'gemini-3.8-flash' }));
-                            setDetectStatus('⚡ Set to newest free model: gemini-3.8-flash');
-                          } finally {
-                            setIsDetectingModel(false);
-                            setTimeout(() => setDetectStatus(''), 7000);
-                          }
-                        }}
-                        style={{
-                          background: 'rgba(251, 175, 51, 0.1)',
-                          border: '1px solid rgba(251, 175, 51, 0.4)',
-                          borderRadius: '6px',
-                          color: 'var(--primary)',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          padding: '4px 10px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px'
-                        }}
-                      >
-                        <Zap size={12} />
-                        <span>{isDetectingModel ? 'Checking Google...' : '⚡ Detect Latest from Google'}</span>
-                      </button>
+                          }}
+                          style={{
+                            background: 'rgba(251, 175, 51, 0.1)',
+                            border: '1px solid rgba(251, 175, 51, 0.4)',
+                            borderRadius: '6px',
+                            color: 'var(--primary)',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            padding: '4px 10px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px'
+                          }}
+                        >
+                          <Zap size={12} />
+                          <span>{isDetectingModel ? 'Checking Google...' : '⚡ Detect from Google'}</span>
+                        </button>
+                      </div>
                     </div>
 
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       <input
                         type="text"
-                        value={formData.gemini_model || 'gemini-3.8-flash'}
+                        value={formData.gemini_model || 'auto'}
                         onChange={(e) => setFormData(prev => ({ ...prev, gemini_model: e.target.value }))}
-                        placeholder="e.g. gemini-3.8-flash, flash 3.8, flash 3.6, auto"
+                        placeholder="e.g. auto, gemini-3.8-flash, flash 3.8, flash 3.6"
                         style={{
                           flex: 1,
                           width: '100%',
@@ -2976,7 +3003,15 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
 
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e' }}></span>
-                      System Constant: <strong style={{ color: '#fff' }}>{formData.gemini_model || 'gemini-3.8-flash'}</strong> &bull; Pointed to Google Generative Language Free Tier ($0 Cost)
+                      {['auto', 'latest', 'latest-flash'].includes(String(formData.gemini_model || '').toLowerCase().trim()) ? (
+                        <span>
+                          System Constant: <strong style={{ color: '#FBAF33' }}>AUTO MODE (Zero Maintenance)</strong> &bull; Auto-resolves to Google's newest free tier Flash engine (gemini-3.8-flash)
+                        </span>
+                      ) : (
+                        <span>
+                          System Constant: <strong style={{ color: '#fff' }}>{formData.gemini_model || 'gemini-3.8-flash'}</strong> &bull; Pointed to Google Generative Language Free Tier ($0 Cost)
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
