@@ -112,23 +112,6 @@ export default {
       host === '127.0.0.1';
 
     // -------------------------------------------------------------
-    // 🌐 ROOT DOMAIN: Universal Landing & Login Portal
-    // -------------------------------------------------------------
-    if (isRootDomain) {
-      if (path === '/national') {
-        return fetch(`${PAGES_URL}/national.html`);
-      }
-      if (path === '/knowledge' || path === '/wiki' || path === '/kb') {
-        return fetch(`${PAGES_URL}/knowledge-base.html`);
-      }
-      if (path === '/partner-report' || path === '/partner_report') {
-        return fetch(`${PAGES_URL}/partner_report.html`);
-      }
-      // Serve React Universal Landing & Admin App
-      return fetch(`${PAGES_URL}/index.html`);
-    }
-
-    // -------------------------------------------------------------
     // 🚀 SUBDOMAIN RESOLUTION & LEGACY BACKWARD COMPATIBILITY
     // -------------------------------------------------------------
     const parts = host.split('.');
@@ -174,64 +157,111 @@ export default {
       return Response.redirect(`https://${town}.roundtablesantasleigh.co.uk/guide${url.search}`, 301);
     }
 
-    // Clean Town Identifier
-    const townSlug = rawSubdomain;
+    // Determine Town Slug (from subdomain, or fallback to query param)
+    const townSlug = isRootDomain ? (url.searchParams.get('table') || 'beverley').toLowerCase() : rawSubdomain;
 
     // -------------------------------------------------------------
-    // 🗺️ PATH-BASED FEATURE ROUTING
+    // 🗺️ PATH-BASED FEATURE ROUTING & TEMPLATE RESOLUTION
     // -------------------------------------------------------------
-    let templateFile = '/santasleigh.html';
+    let templateFile = null;
     let modeTitle = 'Live Tracker';
     let modeDescSuffix = 'Follow Santa live tonight, check the schedule, and donate!';
 
-    if (path === '/crew') {
+    if (path === '/crew' || path === '/crew.html') {
       templateFile = '/crew.html';
       modeTitle = 'Volunteer Crew Hub';
       modeDescSuffix = 'Volunteer briefing, street crew check-in, bucket assignments, and live coordination.';
-    } else if (path === '/godmode' || path === '/god_mode') {
+    } else if (path === '/godmode' || path === '/god_mode' || path === '/god_mode.html' || path === '/godmode.html') {
       templateFile = '/god_mode.html';
       modeTitle = 'Classic God Mode';
       modeDescSuffix = 'Mission Control: Live GPS beacon monitor, PA soundboard, and driver coordination.';
-    } else if (path === '/address' || path === '/addresses') {
+    } else if (path === '/address' || path === '/addresses' || path === '/address.html' || path === '/addresses.html') {
       templateFile = '/address.html';
       modeTitle = 'Street & Address Finder';
       modeDescSuffix = 'Search your street or use your location to see exactly when Santa visits your doorstep.';
-    } else if (path === '/tracker') {
+    } else if (path === '/tracker' || path === '/tracker.html') {
       templateFile = '/tracker.html';
       modeTitle = 'Fullscreen Live Tracker';
       modeDescSuffix = 'Full-screen satellite map with real-time GPS tracking of Santa Claus.';
-    } else if (path === '/guide') {
+    } else if (path === '/guide' || path === '/guide.html') {
       templateFile = '/guide.html';
       modeTitle = 'Elf & Crew Guide';
       modeDescSuffix = 'Volunteer operations handbook, safety rules, and briefing checklist.';
-    } else if (path === '/memory-book' || path === '/memory_book') {
+    } else if (path === '/memory-book' || path === '/memory_book' || path === '/memory_book.html' || path === '/memory-book.html') {
       templateFile = '/memory_book.html';
       modeTitle = 'Community Memory Book';
       modeDescSuffix = 'Festive photo gallery and messages from families across the community.';
-    } else if (path === '/giftaid' || path === '/gift_aid' || path === '/gift-aid') {
+    } else if (path === '/giftaid' || path === '/gift_aid' || path === '/gift-aid' || path === '/gift_aid.html' || path === '/giftaid.html') {
       templateFile = '/gift_aid.html';
       modeTitle = 'HMRC Gift Aid Booster';
       modeDescSuffix = 'Boost your charitable donation by 25% at zero extra cost.';
-    } else if (path === '/planner' || path === '/route-planner' || path === '/route_planner') {
+    } else if (path === '/planner' || path === '/route-planner' || path === '/route_planner' || path === '/route_planner.html' || path === '/planner.html') {
       templateFile = '/route_planner.html';
       modeTitle = 'Route Planner';
       modeDescSuffix = 'Inspect, create, and refine GPX route polylines and street stops.';
-    } else if (path === '/embed') {
+    } else if (path === '/embed' || path === '/embed.html') {
       templateFile = '/embed.html';
       modeTitle = 'Embeddable Widgets';
       modeDescSuffix = 'Embed codes for websites and social portals.';
-    } else if (path === '/hub') {
+    } else if (path === '/hub' || path === '/hub.html') {
       templateFile = '/hub.html';
       modeTitle = 'Operations Hub';
       modeDescSuffix = 'Unified dispatch and volunteer briefing hub.';
-    } else if (path === '/beacon') {
+    } else if (path === '/beacon' || path === '/beacon.html') {
       templateFile = '/beacon.html';
       modeTitle = 'Driver Beacon';
       modeDescSuffix = 'GPS telemetry beacon transmitter.';
-    } else if (path === '/season-wrap' || path === '/season_wrap') {
+    } else if (path === '/season-wrap' || path === '/season_wrap' || path === '/season_wrap.html') {
       templateFile = '/season_wrap.html';
       modeTitle = 'Season Wrap & Impact Report';
       modeDescSuffix = 'Year-end fundraising and route metrics review.';
+    } else if (path === '/national' || path === '/national.html') {
+      templateFile = '/national.html';
+      modeTitle = 'National Leaderboard';
+      modeDescSuffix = 'National Round Table Santa Sleigh fundraising leaderboard and fleet statistics.';
+    } else if (path === '/knowledge' || path === '/wiki' || path === '/kb' || path === '/knowledge-base.html') {
+      templateFile = '/knowledge-base.html';
+      modeTitle = 'Knowledge Base';
+      modeDescSuffix = 'Lessons learned and organizer tips for Round Table Santa Sleighs.';
+    } else if (path === '/partner-report' || path === '/partner_report' || path === '/partner_report.html') {
+      templateFile = '/partner_report.html';
+      modeTitle = 'Partner Report';
+      modeDescSuffix = 'Corporate partner summary report.';
+    } else if (path.endsWith('.html') && path !== '/index.html') {
+      // Pass through any other direct HTML file (e.g. countdown.html, nice_list.html, etc.)
+      templateFile = path;
+    }
+
+    // -------------------------------------------------------------
+    // 🌐 ROOT DOMAIN VS SUBDOMAIN ROUTING RESOLUTION
+    // -------------------------------------------------------------
+    if (isRootDomain) {
+      if (templateFile) {
+        // If an explicit template or subfeature was requested on root domain
+        // (e.g. /hub.html?table=beverley, /tracker.html, /national.html, etc.)
+        // proceed below to fetch and render that template!
+      } else if (path === '/' || path === '') {
+        // If visiting root with ?table=xxx and not requesting admin, redirect to clean subdomain
+        const queryTable = url.searchParams.get('table');
+        const isAdmin = url.searchParams.get('admin') === '1' || url.searchParams.get('admin') === 'true';
+        if (queryTable && !isAdmin) {
+          return Response.redirect(`https://${queryTable.toLowerCase()}.roundtablesantasleigh.co.uk/${url.search}`, 302);
+        }
+        // Universal Landing & Admin App
+        return fetch(`${PAGES_URL}/index.html`);
+      } else {
+        // Unknown route on root: SPA fallback
+        return fetch(`${PAGES_URL}/index.html`);
+      }
+    } else {
+      // On town subdomains, root "/" serves the public santasleigh tracker
+      if (!templateFile && (path === '/' || path === '')) {
+        templateFile = '/santasleigh.html';
+      }
+    }
+
+    if (!templateFile) {
+      templateFile = '/santasleigh.html';
     }
 
     // -------------------------------------------------------------
