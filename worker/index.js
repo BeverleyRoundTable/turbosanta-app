@@ -876,6 +876,89 @@ export default {
     }
 
     // ==============================================================
+    // 🪙 5c. NIGHTLY CASH BUCKET RECONCILIATION (POST & GET /api/donations/cash)
+    // ==============================================================
+    if (path === "/api/donations/cash") {
+      // GET: Return recent cash bucket entries
+      if (request.method === "GET") {
+        const cashEntries = await env.DB.prepare(`
+          SELECT id, amount, street_name as route_name, donor_name as verified_by, created_at 
+          FROM donations 
+          WHERE table_id = ? AND source = 'cash' 
+          ORDER BY created_at DESC LIMIT 30
+        `).bind(table.id).all().catch(() => ({ results: [] }));
+
+        const totalCash = await env.DB.prepare(`
+          SELECT SUM(amount) as total, COUNT(*) as count 
+          FROM donations 
+          WHERE table_id = ? AND source = 'cash'
+        `).bind(table.id).first().catch(() => ({ total: 0, count: 0 }));
+
+        return jsonResponse({
+          ok: true,
+          entries: cashEntries.results || [],
+          total: totalCash?.total || 0,
+          count: totalCash?.count || 0
+        });
+      }
+
+      // POST: Record cash bucket count
+      if (request.method === "POST") {
+        let body = {};
+        try { body = await request.json(); } catch(e) { body = {}; }
+
+        const amount = parseFloat(body.amount || 0);
+        if (!amount || amount <= 0) {
+          return jsonResponse({ error: "Invalid cash amount" }, 400);
+        }
+
+        const routeName = (body.route_name || body.routeName || "Street Collection").trim();
+        const verifiedBy = (body.verified_by || body.verifiedBy || "Treasurer & Lead Elf").trim();
+        const notes = (body.notes || "").trim();
+        const dateStr = body.date || new Date().toISOString().slice(0, 10);
+        const donationId = `cash_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+
+        const donorDescriptor = notes ? `${verifiedBy} • ${notes}` : verifiedBy;
+
+        try {
+          await env.DB.prepare(`
+            INSERT INTO donations (id, table_id, amount, source, street_name, donor_name, created_at)
+            VALUES (?, ?, ?, 'cash', ?, ?, datetime(? || ' 21:00:00'))
+          `).bind(donationId, table.id, amount, routeName, donorDescriptor, dateStr).run();
+        } catch(e) {
+          await env.DB.prepare(`
+            INSERT INTO donations (id, table_id, amount, source, street_name, donor_name)
+            VALUES (?, ?, ?, 'cash', ?, ?)
+          `).bind(donationId, table.id, amount, routeName, donorDescriptor).run();
+        }
+
+        const currentTotal = await env.DB.prepare(`
+          SELECT SUM(amount) as total FROM donations WHERE table_id = ?
+        `).bind(table.id).first().catch(() => ({ total: amount }));
+
+        return jsonResponse({
+          ok: true,
+          id: donationId,
+          amount,
+          source: 'cash',
+          route_name: routeName,
+          verified_by: verifiedBy,
+          total_raised: currentTotal?.total || amount,
+          message: `Recorded £${amount.toFixed(2)} cash from ${routeName} to live total!`
+        });
+      }
+
+      // DELETE: Remove mistakenly entered cash entry
+      if (request.method === "DELETE") {
+        const donationId = url.searchParams.get("id");
+        if (!donationId) return jsonResponse({ error: "Missing donation id" }, 400);
+        await env.DB.prepare("DELETE FROM donations WHERE table_id = ? AND id = ? AND source = 'cash'").bind(table.id, donationId).run();
+        const currentTotal = await env.DB.prepare("SELECT SUM(amount) as total FROM donations WHERE table_id = ?").bind(table.id).first();
+        return jsonResponse({ ok: true, total_raised: currentTotal?.total || 0 });
+      }
+    }
+
+    // ==============================================================
     // 🎁 6. PUBLIC GIFT AID DECLARATION (POST /api/gift-aid)
     // ==============================================================
     if (path === "/api/gift-aid" && request.method === "POST") {

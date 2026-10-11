@@ -402,4 +402,46 @@ export async function deleteRoute(tableSlug = "beverley", routeId = "", secret =
   }
 }
 
+export async function recordCashDonation(tableSlug = "beverley", cashData = {}) {
+  try {
+    const res = await fetch(`${API_BASE}/api/donations/cash?table=${encodeURIComponent(tableSlug)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(cashData)
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || `HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (err) {
+    console.error("Record cash donation error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
+export async function fetchCashDonations(tableSlug = "beverley") {
+  try {
+    const res = await fetch(`${API_BASE}/api/donations/cash?table=${encodeURIComponent(tableSlug)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error("Fetch cash donations error:", err);
+    return { ok: false, entries: [], total: 0, count: 0 };
+  }
+}
+
+export async function deleteCashDonation(tableSlug = "beverley", donationId = "") {
+  try {
+    const res = await fetch(`${API_BASE}/api/donations/cash?table=${encodeURIComponent(tableSlug)}&id=${encodeURIComponent(donationId)}`, {
+      method: "DELETE"
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error("Delete cash donation error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
 

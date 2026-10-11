@@ -7,7 +7,7 @@ import {
   Camera, Video, Image as ImageIcon, FolderDown, Eye, EyeOff, Sparkles, Filter,
   CreditCard, Key, Zap, RefreshCw, Send, Link2,
   BarChart3, TrendingUp, Award, Printer, PieChart, Receipt,
-  Mail, HardDrive, AlertTriangle, Database, FileText
+  Mail, HardDrive, AlertTriangle, Database, FileText, Coins, Share2, QrCode
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { logoutAdmin, isNationalAdmin } from '../services/auth';
@@ -18,6 +18,9 @@ import ExpensesModal from './ExpensesModal';
 import DriverBeacon from './DriverBeacon';
 import MigrationImporter from './MigrationImporter';
 import KnowledgeBase from './KnowledgeBase';
+import CashBucketModal from './CashBucketModal';
+import PrintRouteSheetModal from './PrintRouteSheetModal';
+import PrintLanyardsModal from './PrintLanyardsModal';
 
 
 export default function AdminPortal({ session, onLogout, tableData, onUpdateTableData }) {
@@ -103,6 +106,82 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   const [isCockpitOpen, setIsCockpitOpen] = useState(false);
   const [editingRoute, setEditingRoute] = useState(null);
   const [isRouteModalOpen, setIsRouteModalOpen] = useState(false);
+  const [isCashModalOpen, setIsCashModalOpen] = useState(false);
+  const [isRouteSheetOpen, setIsRouteSheetOpen] = useState(false);
+  const [sheetRoute, setSheetRoute] = useState(null);
+  const [isLanyardsModalOpen, setIsLanyardsModalOpen] = useState(false);
+  const [copiedRouteId, setCopiedRouteId] = useState(null);
+  const [selectedCrewRouteId, setSelectedCrewRouteId] = useState('');
+
+  // 1-Tap WhatsApp Crew Run Sheet & Safety Briefing Generator (Tool 2)
+  const handleCopyWhatsAppBriefing = (route) => {
+    if (!route) return;
+    const routeStreets = (tableData?.streets || []).filter(s => s.route_id === route.id);
+    const streetNames = routeStreets.length > 0
+      ? routeStreets.map(s => s.street_name)
+      : (route.streets || []).map(s => typeof s === 'string' ? s : s.street_name);
+
+    let dateFormatted = route.date || 'Tonight';
+    try {
+      if (route.date) {
+        const d = new Date(route.date + 'T12:00:00');
+        if (!isNaN(d.getTime())) {
+          dateFormatted = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
+        }
+      }
+    } catch(e) {}
+
+    let meetingTime = '17:45';
+    if (route.start_time) {
+      const parts = route.start_time.split(':');
+      if (parts.length >= 2) {
+        let h = parseInt(parts[0], 10);
+        let m = parseInt(parts[1], 10) - 15;
+        if (m < 0) { m += 60; h -= 1; }
+        meetingTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      }
+    }
+
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://roundtablesantasleigh.co.uk';
+    const trackerUrl = `${origin}/tracker.html?table=${currentTableSlug}`;
+    const beaconUrl = `${origin}/beacon.html?table=${currentTableSlug}`;
+    const tableName = tableData?.table?.name || session?.tableName || 'Round Table';
+
+    let msg = `🎅 *${tableName.toUpperCase()} SANTA SLEIGH — TONIGHT'S RUN!* 🎅\n\n`;
+    msg += `📅 *Date:* ${dateFormatted}\n`;
+    msg += `📍 *Route:* ${route.name}\n`;
+    if (route.meeting_point) {
+      msg += `📍 *Meeting Point:* ${route.meeting_point}\n`;
+    }
+    msg += `⏰ *Crew Muster:* ${meetingTime} sharp (Buckets & high-vis handover)\n`;
+    msg += `🦺 *Rollout:* ${route.start_time || '18:00'} | *Finish:* ~${route.end_time || '20:30'}\n\n`;
+
+    if (streetNames.length > 0) {
+      msg += `🗺️ *Streets (${streetNames.length}):*\n${streetNames.join(', ')}\n\n`;
+    }
+
+    if (route.sponsor_name) {
+      msg += `⭐ *Tonight's Sponsor:* ${route.sponsor_name}\n\n`;
+    }
+
+    msg += `📱 *Live Public Tracker:* ${trackerUrl}\n`;
+    msg += `🚗 *Sleigh Driver Beacon:* ${beaconUrl}\n\n`;
+    msg += `🎄 *Safety Reminders:*\n`;
+    msg += `• High-vis vests mandatory for all walking elves\n`;
+    msg += `• Stay on pavements; never cross between tow car & sleigh\n`;
+    msg += `• Dual counters required for bucket handover at the end of the night\n`;
+    msg += `• Dress warm in layers! Let's DO MORE!`;
+
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(msg).then(() => {
+        setCopiedRouteId(route.id);
+        confetti({ particleCount: 40, spread: 45, origin: { y: 0.7 } });
+        setTimeout(() => setCopiedRouteId(null), 3000);
+      });
+    }
+
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
+  };
 
   // Memory Book & Social Media State
   const [selectedSeason, setSelectedSeason] = useState('2026');
@@ -489,6 +568,14 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
       badgeColor: '#22c55e',
       description: 'Zeffy sends webhook alerts when someone donates via your online donation form.',
       guide: 'In your Zeffy account > Settings > Integrations > Webhooks, add your Webhook URL and select "Donation Succeeded".'
+    },
+    {
+      id: 'cash',
+      name: 'Physical Cash & Coins',
+      tag: 'Nightly Bucket Reconciler',
+      badgeColor: '#f59e0b',
+      description: 'Log verified street bucket cash and coin counts to unite offline and online fundraising.',
+      guide: 'Click "Log Cash Bucket Tally" to enter tonight’s physical coin/cash collection verified by dual counters.'
     },
     {
       id: 'stripe',
@@ -1444,7 +1531,49 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                         )}
                       </div>
 
-                      <div style={{ display: 'flex', gap: '10px' }}>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyWhatsAppBriefing(r)}
+                          className="btn-secondary"
+                          style={{
+                            padding: '8px 12px',
+                            fontSize: '12px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: copiedRouteId === r.id ? 'rgba(34, 197, 94, 0.25)' : 'rgba(34, 197, 94, 0.1)',
+                            borderColor: '#22c55e',
+                            color: '#86efac'
+                          }}
+                          title="Copy formatted run sheet and open WhatsApp"
+                        >
+                          {copiedRouteId === r.id ? <Check size={14} /> : <Share2 size={14} />}
+                          <span>{copiedRouteId === r.id ? 'Copied Briefing!' : 'WhatsApp Briefing'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSheetRoute(r);
+                            setIsRouteSheetOpen(true);
+                          }}
+                          className="btn-secondary"
+                          style={{
+                            padding: '8px 12px',
+                            fontSize: '12px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            borderColor: 'var(--primary)',
+                            color: 'var(--primary)'
+                          }}
+                          title="Print A4 Driver & Marshal Route Clipboard Sheet"
+                        >
+                          <Printer size={14} />
+                          <span>A4 Route Sheet</span>
+                        </button>
+
                         <button
                           onClick={() => {
                             setEditingRoute({ ...r, streets: routeStreets });
@@ -1501,8 +1630,49 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   </span>
                 </div>
                 <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0, maxWidth: '750px' }}>
-                  Choose your donation platforms (Zeffy, Stripe, SumUp, JustGiving, PayPal, or custom webhooks). Input your webhook secret and copy the generated webhook endpoint into your provider’s dashboard to stream donations straight to your live tracker in real-time.
+                  Choose your donation platforms (Zeffy, Stripe, SumUp, JustGiving, PayPal, physical cash, or custom webhooks). Input your webhook secret and copy the generated webhook endpoint into your provider’s dashboard to stream donations straight to your live tracker in real-time.
                 </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsCashModalOpen(true)}
+                  className="btn-primary"
+                  style={{
+                    padding: '9px 16px',
+                    fontSize: '13px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: '#f59e0b',
+                    color: '#000',
+                    fontWeight: 800
+                  }}
+                  title="Open Nightly Cash Bucket Tally Reconciler (Tool 1)"
+                >
+                  <Coins size={16} />
+                  <span>Log Cash Bucket Tally</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsLanyardsModalOpen(true)}
+                  className="btn-secondary"
+                  style={{
+                    padding: '9px 16px',
+                    fontSize: '13px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    borderColor: 'var(--primary)',
+                    color: 'var(--primary)'
+                  }}
+                  title="Print 4-Up QR Lanyard Badges and A4 Posters (Tool 4)"
+                >
+                  <Printer size={16} />
+                  <span>Print Lanyards & Posters</span>
+                </button>
               </div>
             </div>
 
@@ -1592,8 +1762,31 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     </span>
                   </div>
 
-                  {/* Webhook Secret Key */}
-                  <div style={{ marginBottom: '20px' }}>
+                  {currentProvider.id === 'cash' ? (
+                    <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '28px', textAlign: 'center' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', marginBottom: '14px' }}>
+                        <Coins size={30} />
+                      </div>
+                      <h3 className="brand-font" style={{ fontSize: '20px', color: '#fff', margin: '0 0 8px 0' }}>
+                        Physical Coin &amp; Cash Bucket Reconciler
+                      </h3>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '0 auto 20px auto', maxWidth: '540px', lineHeight: 1.5 }}>
+                        Count coin buckets with dual-counter verification at the end of each evening run. Logged cash entries instantly update your public fundraising thermometer alongside online card donations!
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setIsCashModalOpen(true)}
+                        className="btn-primary"
+                        style={{ padding: '12px 24px', fontSize: '14px', background: '#f59e0b', color: '#000', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                      >
+                        <Coins size={18} />
+                        <span>Open Cash Bucket Tally Form</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Webhook Secret Key */}
+                      <div style={{ marginBottom: '20px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                       <label style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>
                         Webhook Secret / Verification Token (Protects against unauthorized requests)
@@ -1813,6 +2006,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       </div>
                     )}
                   </div>
+                  </>
+                )}
                 </div>
               );
             })()}
@@ -2049,6 +2244,25 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsCashModalOpen(true)}
+                    className="btn-secondary"
+                    style={{
+                      padding: '9px 16px',
+                      fontSize: '13px',
+                      borderColor: '#f59e0b',
+                      color: '#f59e0b',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                    title="Reconcile nightly physical cash collections"
+                  >
+                    <Coins size={15} />
+                    <span>Reconcile Cash Buckets</span>
+                  </button>
+
                   <a
                     href={`/season_wrap.html?table=${encodeURIComponent(tableSlug)}`}
                     target="_blank"
@@ -2643,6 +2857,108 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
             <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '24px', overflowWrap: 'break-word' }}>
               Broadcast urgent operational alerts directly to bucket-collecting elves, and moderate public spotting messages.
             </p>
+
+            {/* 1-Tap WhatsApp Crew Run Sheet & Clipboard Generator (Tool 2 & 3) */}
+            <div style={{
+              background: '#0d0d0b',
+              border: '1px solid rgba(34, 197, 94, 0.3)',
+              borderRadius: '12px',
+              padding: '18px 20px',
+              marginBottom: '26px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '18px' }}>📱</span>
+                    <strong style={{ fontSize: '16px', color: '#fff' }}>Tonight's Crew WhatsApp Briefing &amp; Run Sheet</strong>
+                    <span style={{ fontSize: '10px', fontWeight: 800, background: 'rgba(34, 197, 94, 0.15)', color: '#86efac', border: '1px solid #22c55e', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>
+                      1-Tap Share
+                    </span>
+                  </div>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>
+                    Select tonight's route to instantly copy a formatted run sheet with muster time, live tracker, driver beacon, and street sequence directly to your WhatsApp crew group.
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <select
+                  value={selectedCrewRouteId || (tableData?.routes?.[0]?.id || '')}
+                  onChange={(e) => setSelectedCrewRouteId(e.target.value)}
+                  style={{
+                    flex: '1 1 240px',
+                    background: '#151513',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#fff',
+                    fontSize: '13px',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  {(tableData?.routes || []).map(r => (
+                    <option key={r.id} value={r.id}>
+                      {r.name} ({r.date || 'Scheduled'} &middot; {r.start_time || '18:00'})
+                    </option>
+                  ))}
+                  {(tableData?.routes || []).length === 0 && (
+                    <option value="">No routes created yet</option>
+                  )}
+                </select>
+
+                {(() => {
+                  const activeRoute = (tableData?.routes || []).find(r => r.id === (selectedCrewRouteId || tableData?.routes?.[0]?.id)) || tableData?.routes?.[0];
+                  return (
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        disabled={!activeRoute}
+                        onClick={() => handleCopyWhatsAppBriefing(activeRoute)}
+                        className="btn-primary"
+                        style={{
+                          padding: '10px 16px',
+                          fontSize: '13px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          background: '#22c55e',
+                          color: '#000',
+                          fontWeight: 800
+                        }}
+                      >
+                        {copiedRouteId === activeRoute?.id ? <Check size={16} /> : <Share2 size={16} />}
+                        <span>{copiedRouteId === activeRoute?.id ? 'Copied to Clipboard!' : 'Share WhatsApp Briefing'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={!activeRoute}
+                        onClick={() => {
+                          setSheetRoute(activeRoute);
+                          setIsRouteSheetOpen(true);
+                        }}
+                        className="btn-secondary"
+                        style={{
+                          padding: '10px 16px',
+                          fontSize: '13px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          borderColor: 'var(--primary)',
+                          color: 'var(--primary)'
+                        }}
+                      >
+                        <Printer size={16} />
+                        <span>Print Route Sheet (A4)</span>
+                      </button>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
 
             {/* Crew Alert Broadcaster */}
             <div style={{ background: '#0d0d0b', border: '1px solid rgba(211,28,28,0.3)', borderRadius: '12px', padding: '16px 20px', marginBottom: '30px', boxSizing: 'border-box', maxWidth: '100%' }}>
@@ -4551,6 +4867,48 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         onSave={handleSaveExpensesModal}
         grossRaised={Number(tableData?.table?.total_raised || 0)}
         giftAid={Boolean(tableData?.table?.enable_gift_aid) ? Number(tableData?.gift_aid?.giftAid || 0) : 0}
+      />
+
+      {/* Nightly Cash Bucket Tally Modal (Tool 1) */}
+      <CashBucketModal
+        isOpen={isCashModalOpen}
+        onClose={() => setIsCashModalOpen(false)}
+        routes={tableData?.routes || []}
+        tableSlug={currentTableSlug}
+        onDonationRecorded={(newTotal) => {
+          if (onUpdateTableData) {
+            onUpdateTableData(prev => ({
+              ...prev,
+              table: {
+                ...prev.table,
+                total_raised: newTotal
+              }
+            }));
+          }
+        }}
+      />
+
+      {/* Printable Driver & Marshal Route Clipboard Sheet Modal (Tool 3) */}
+      <PrintRouteSheetModal
+        isOpen={isRouteSheetOpen}
+        onClose={() => {
+          setIsRouteSheetOpen(false);
+          setSheetRoute(null);
+        }}
+        route={sheetRoute}
+        streets={(tableData?.streets || []).filter(s => s.route_id === sheetRoute?.id)}
+        tableName={tableData?.table?.name || session?.tableName || 'Round Table'}
+        tableSlug={currentTableSlug}
+      />
+
+      {/* Printable Weatherproof QR Lanyard Badges & Shop Posters Modal (Tool 4) */}
+      <PrintLanyardsModal
+        isOpen={isLanyardsModalOpen}
+        onClose={() => setIsLanyardsModalOpen(false)}
+        tableName={tableData?.table?.name || session?.tableName || 'Round Table'}
+        tableSlug={currentTableSlug}
+        donateUrl={formData.donate_url}
+        logoUrl={formData.logo_url}
       />
     </div>
   );
