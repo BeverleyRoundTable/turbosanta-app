@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -317,17 +317,31 @@
   <!-- HEADER -->
   <header class="hub-header">
     <div class="header-left">
-      <img src="https://brt-23f.pages.dev/icons/RTBI_Santa.png" alt="TurboSanta Logo">
+      <a href="/" style="display:flex; align-items:center; text-decoration:none;">
+        <img src="/icons/RTBI_Santa.png" alt="TurboSanta Logo">
+      </a>
       <div>
         <h1>TURBOSANTA <span>LAUNCHPAD</span></h1>
         <p>Master Directory of Public, Volunteer & Organiser Links for Your Table</p>
       </div>
     </div>
 
-    <div class="table-switcher">
-      <label for="tableSlugInput"><i class="fa-solid fa-location-dot"></i> Table:</label>
-      <input type="text" id="tableSlugInput" value="Beverley" placeholder="e.g. Beverley" onkeydown="if(event.key==='Enter') applyTableSlug()" oninput="this.value = formatTownName(this.value)" onblur="this.value = formatTownName(this.value); applyTableSlug()">
-      <button class="btn btn-primary" id="btnSwitchTable" style="padding: 5px 14px; font-size: 11px;" onclick="applyTableSlug()">Switch</button>
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <a id="btnHeaderHome" href="/" class="btn btn-secondary" style="padding: 7px 12px; font-size: 12px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+        <i class="fa-solid fa-house"></i> <span>Landing</span>
+      </a>
+      <a id="btnHeaderTracker" href="/?table=beverley" class="btn btn-secondary" style="padding: 7px 12px; font-size: 12px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+        <i class="fa-solid fa-sleigh"></i> <span>Tracker</span>
+      </a>
+      <a id="btnHeaderAdmin" href="/?table=beverley&admin=1" class="btn btn-primary" style="padding: 7px 14px; font-size: 12px; text-decoration:none; display:inline-flex; align-items:center; gap:6px; font-weight:800;">
+        <i class="fa-solid fa-shield-halved"></i> <span>Table Admin</span>
+      </a>
+
+      <div class="table-switcher">
+        <label for="tableSlugInput"><i class="fa-solid fa-location-dot"></i> Table:</label>
+        <input type="text" id="tableSlugInput" value="Beverley" placeholder="e.g. Beverley" onkeydown="if(event.key==='Enter') applyTableSlug()" oninput="this.value = formatTownName(this.value)" onblur="this.value = formatTownName(this.value); applyTableSlug()">
+        <button class="btn btn-primary" id="btnSwitchTable" style="padding: 5px 14px; font-size: 11px;" onclick="applyTableSlug()">Switch</button>
+      </div>
     </div>
   </header>
 
@@ -494,6 +508,23 @@
       </div>
 
       <div class="cards-grid">
+        <!-- Table Admin Portal -->
+        <div class="hub-card featured">
+          <div>
+            <span class="card-badge badge-gold"><i class="fa-solid fa-shield-halved"></i> Primary Management Cockpit</span>
+            <h3><i class="fa-solid fa-sliders" style="color:var(--primary);"></i> Table Admin Portal</h3>
+            <p>Your table's full control center: edit routes, manage live GPS telemetry, fundraising goals, sponsors, volunteer crew alerts, and approve photo memories.</p>
+          </div>
+          <div>
+            <div class="url-preview" id="adminPortalUrl">https://turbosanta-app.pages.dev/?table=beverley&admin=1</div>
+            <div class="card-actions">
+              <a id="btnLaunchAdminPortal" href="/?table=beverley&admin=1" class="btn btn-primary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Table Admin</a>
+              <button class="btn btn-secondary" onclick="copyDynamicUrl('adminPortalUrl')"><i class="fa-solid fa-copy"></i> Copy Link</button>
+              <button class="btn btn-secondary" onclick="openQrModal('adminPortalUrl', 'Table Admin Portal QR')"><i class="fa-solid fa-qrcode"></i></button>
+            </div>
+          </div>
+        </div>
+
         <!-- God Mode -->
         <div class="hub-card featured">
           <div>
@@ -660,6 +691,8 @@
       const origin = window.location.origin;
 
       const links = {
+        adminPortalUrl: `${origin}/?table=${slug}&admin=1`,
+        trackerUrl: `${origin}/?table=${slug}`,
         crewUrl: `${origin}/crew.html?table=${slug}`,
         publicSiteUrl: `${origin}/?table=${slug}`,
         addressUrl: `${origin}/address.html?table=${slug}`,
@@ -688,6 +721,9 @@
 
       // Update launch button hrefs
       const launchMap = {
+        btnHeaderAdmin: links.adminPortalUrl,
+        btnHeaderTracker: links.trackerUrl,
+        btnLaunchAdminPortal: links.adminPortalUrl,
         btnLaunchCrew: links.crewUrl,
         btnLaunchPublic: links.publicSiteUrl,
         btnLaunchAddress: links.addressUrl,
