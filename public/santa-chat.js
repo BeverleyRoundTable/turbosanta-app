@@ -174,9 +174,8 @@
     style.id = "santa-inline-style";
     style.textContent =
       WIDGET_TAG + ".santa-inline{" +
-      "position:relative !important;inset:auto !important;display:block;" +
-      "--elevenlabs-convai-widget-width:" + OPTS.width + ";" +
-      "--elevenlabs-convai-widget-height:" + OPTS.height + ";}";
+      "position:absolute !important;inset:0 !important;display:block !important;" +
+      "width:100% !important;height:100% !important;}";
     document.head.appendChild(style);
   }
 
@@ -200,7 +199,7 @@
       // Inline mode: open box where the embed sits
       ensureInlineStyle();
       el.className = "santa-inline";
-      el.setAttribute("variant", "expanded");
+      el.setAttribute("placement", "bottom");
       MOUNT.appendChild(el);
     } else {
       // Floating mode: corner bubble
