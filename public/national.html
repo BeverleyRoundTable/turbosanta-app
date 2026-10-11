@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TurboSanta — Round Table Leaderboard</title>
+  <title>TurboSanta</title>
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -586,34 +586,34 @@
       <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; background: rgba(251, 175, 51, 0.15); border: 1px solid var(--border-gold); margin-bottom: 16px;">
         <span style="font-size: 26px;">🛡️</span>
       </div>
-      <h2>TURBO<span>SANTA</span><br>NATIONAL RADAR</h2>
-      <p style="margin-bottom: 18px; color: var(--text-dim);">Confidential National Fleet Tracking & Aggregation</p>
+      <h2>TURBO<span>SANTA</span></h2>
+      <p style="margin-bottom: 18px; color: var(--text-dim);">Verification Required</p>
 
       <div id="authStatusError" class="gate-error" style="display: none;"></div>
 
       <!-- Google Workspace Single Sign-On -->
       <div id="googleAuthSection">
         <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
-          National access requires verification via official Google Workspace.
+          Please sign in with your Round Table Google account.
         </div>
         <div id="googleBtnContainer" style="display: flex; justify-content: center; margin: 16px 0; min-height: 44px;">
           <div style="color: var(--text-muted); font-size: 12px;">Loading Google Authentication...</div>
         </div>
         <p style="font-size: 11px; color: var(--text-muted); margin-top: 14px; line-height: 1.5;">
-          🔒 Passwordless Single Sign-On &bull; Restricted strictly to authorized National Board accounts (<code style="color: var(--gold);">@roundtable.org.uk</code>).
+          🔒 Single Sign-On (<code style="color: var(--gold);">@roundtable.org.uk</code>)
         </p>
       </div>
 
       <!-- Access Denied For Standard Table Admins -->
       <div id="deniedSection" style="display: none; text-align: center; margin-top: 10px;">
-        <div style="background: rgba(211, 28, 28, 0.15); border: 1px solid rgba(211, 28, 28, 0.4); border-radius: 10px; padding: 16px; margin-bottom: 18px; color: #fca5a5; font-size: 13px; line-height: 1.5;">
-          <strong style="color: #fff; font-size: 14px; display: block; margin-bottom: 6px;">⛔ Access Restricted</strong>
-          Signed in as: <strong style="color: #fff;" id="deniedEmail"></strong><br><br>
-          The National Fleet Radar tracks all tables across the country and is strictly reserved for authorized National Board members. Standard table accounts do not have access to national tracking.
+        <div style="background: rgba(211, 28, 28, 0.15); border: 1px solid rgba(211, 28, 28, 0.4); border-radius: 10px; padding: 18px; margin-bottom: 18px; color: #fca5a5; font-size: 13px; line-height: 1.5;">
+          <strong style="color: #fff; font-size: 15px; display: block; margin-bottom: 6px;">⛔ Access Denied</strong>
+          <span style="font-size: 12px; color: var(--text-muted);">Signed in as: <strong style="color: #fff;" id="deniedEmail"></strong></span><br><br>
+          Invalid account or access denied.
         </div>
         <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-          <a href="/hub.html" style="display: inline-flex; align-items: center; justify-content: center; padding: 10px 20px; background: var(--gold); color: #000; font-weight: 700; border-radius: 8px; text-decoration: none; font-size: 13px;">Return to Table Hub</a>
-          <button type="button" onclick="handleSwitchAccount()" style="padding: 10px 18px; background: #252522; border: 1px solid var(--border); color: #fff; font-weight: 600; border-radius: 8px; cursor: pointer; font-size: 13px;">Switch Google Account</button>
+          <a href="/" style="display: inline-flex; align-items: center; justify-content: center; padding: 10px 20px; background: var(--gold); color: #000; font-weight: 700; border-radius: 8px; text-decoration: none; font-size: 13px;">Return to Home</a>
+          <button type="button" onclick="handleSwitchAccount()" style="padding: 10px 18px; background: #252522; border: 1px solid var(--border); color: #fff; font-weight: 600; border-radius: 8px; cursor: pointer; font-size: 13px;">Switch Account</button>
         </div>
       </div>
     </div>
@@ -883,6 +883,7 @@ function handleGoogleCredentialResponse(response) {
 
 function unlockAndStart(email) {
   localStorage.setItem('national_auth', email || 'national');
+  document.title = 'TurboSanta — National Leaderboard';
   const gate = document.getElementById('gatekeeper');
   const app = document.getElementById('appContainer');
   if (gate) gate.style.display = 'none';
