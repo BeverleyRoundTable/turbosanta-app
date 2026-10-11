@@ -366,4 +366,40 @@ export async function fetchLatestAiModels(tableSlug = "beverley") {
   }
 }
 
+export async function saveRoute(tableSlug = "beverley", route = {}, streets = [], secret = "Santa2026!") {
+  try {
+    const res = await fetch(`${API_BASE}/api/routes?table=${encodeURIComponent(tableSlug)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ route, streets, secret })
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || `HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (err) {
+    console.error("Save route error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
+export async function deleteRoute(tableSlug = "beverley", routeId = "", secret = "Santa2026!") {
+  try {
+    const res = await fetch(`${API_BASE}/api/routes?table=${encodeURIComponent(tableSlug)}&id=${encodeURIComponent(routeId)}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ secret })
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || `HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (err) {
+    console.error("Delete route error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
 

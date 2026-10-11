@@ -634,6 +634,129 @@ export default {
     }
 
     // ==============================================================
+    // 🗺️ 4C. ROUTE & TIMETABLE MANAGEMENT (/api/routes)
+    // ==============================================================
+    if (path === "/api/routes") {
+      let body = {};
+      if (request.method !== "GET") {
+        try { body = await request.json(); } catch(e) { body = {}; }
+      }
+
+      const authHeader = request.headers.get("Authorization") || "";
+      const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+      const secret = body.secret || url.searchParams.get("secret") || bearerToken;
+
+      if (!isAuthorized(secret)) {
+        return jsonResponse({ error: "Unauthorized: Admin credentials required to manage routes" }, 401);
+      }
+
+      // Ensure optional columns exist in D1 routes table safely
+      try { await env.DB.prepare("ALTER TABLE routes ADD COLUMN end_time TEXT").run(); } catch(e){}
+      try { await env.DB.prepare("ALTER TABLE routes ADD COLUMN notes TEXT").run(); } catch(e){}
+      try { await env.DB.prepare("ALTER TABLE routes ADD COLUMN sponsor_name TEXT").run(); } catch(e){}
+      try { await env.DB.prepare("ALTER TABLE routes ADD COLUMN sponsor_logo TEXT").run(); } catch(e){}
+      try { await env.DB.prepare("ALTER TABLE routes ADD COLUMN sponsor_link TEXT").run(); } catch(e){}
+      try { await env.DB.prepare("ALTER TABLE routes ADD COLUMN sponsor_description TEXT").run(); } catch(e){}
+
+      // POST/PUT: Upsert route & streets
+      if (request.method === "POST" || request.method === "PUT") {
+        const r = body.route || body;
+        const streets = body.streets || r.streets || [];
+
+        if (!r.name || !String(r.name).trim()) {
+          return jsonResponse({ error: "Route name is required" }, 400);
+        }
+
+        const routeId = r.id || `${table.id}_route_${Date.now()}`;
+        const name = String(r.name).trim();
+        const date = r.date || "";
+        const startTime = r.start_time || "18:00";
+        const endTime = r.end_time || "20:30";
+        const gpxUrl = r.gpx_url || r.gpxUrl || "";
+        const sponsorName = r.sponsor_name || r.sponsorName || "";
+        const sponsorLogo = r.sponsor_logo_url || r.sponsor_logo || r.sponsorLogo || "";
+        const sponsorLink = r.sponsor_link || r.sponsorLink || "";
+        const sponsorDesc = r.sponsor_description || r.sponsorDescription || "";
+        const notes = r.notes || "";
+        const status = r.status || "Scheduled";
+
+        // Upsert Route in D1
+        await env.DB.prepare(`
+          INSERT INTO routes (id, table_id, name, date, start_time, end_time, status, notes, gpx_url, sponsor_name, sponsor_logo, sponsor_link, sponsor_description)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET
+            table_id = excluded.table_id,
+            name = excluded.name,
+            date = excluded.date,
+            start_time = excluded.start_time,
+            end_time = excluded.end_time,
+            status = excluded.status,
+            notes = excluded.notes,
+            gpx_url = excluded.gpx_url,
+            sponsor_name = excluded.sponsor_name,
+            sponsor_logo = excluded.sponsor_logo,
+            sponsor_link = excluded.sponsor_link,
+            sponsor_description = excluded.sponsor_description
+        `).bind(routeId, table.id, name, date, startTime, endTime, status, notes, gpxUrl, sponsorName, sponsorLogo, sponsorLink, sponsorDesc).run();
+
+        // Sync Streets for this route
+        await env.DB.prepare("DELETE FROM route_streets WHERE table_id = ? AND route_id = ?").bind(table.id, routeId).run();
+
+        if (Array.isArray(streets) && streets.length > 0) {
+          for (let i = 0; i < streets.length; i++) {
+            const st = streets[i];
+            const sName = typeof st === "string" ? st.trim() : (st.street_name || "").trim();
+            if (sName) {
+              await env.DB.prepare(`
+                INSERT INTO route_streets (table_id, route_id, street_name, sequence_order)
+                VALUES (?, ?, ?, ?)
+              `).bind(table.id, routeId, sName, i + 1).run();
+            }
+          }
+        }
+
+        return jsonResponse({
+          ok: true,
+          route: {
+            id: routeId,
+            table_id: table.id,
+            name,
+            date,
+            start_time: startTime,
+            end_time: endTime,
+            status,
+            notes,
+            gpx_url: gpxUrl,
+            sponsor_name: sponsorName,
+            sponsor_logo: sponsorLogo,
+            sponsor_link: sponsorLink,
+            sponsor_description: sponsorDesc,
+            streets: streets.map((s, idx) => ({
+              id: `${routeId}_st_${idx}`,
+              table_id: table.id,
+              route_id: routeId,
+              street_name: typeof s === "string" ? s : s.street_name,
+              sequence_order: idx + 1
+            }))
+          }
+        });
+      }
+
+      // DELETE: Remove route & its streets
+      if (request.method === "DELETE") {
+        const routeId = url.searchParams.get("id") || body.id || body.routeId;
+        if (!routeId) {
+          return jsonResponse({ error: "Missing route id to delete" }, 400);
+        }
+
+        await env.DB.prepare("DELETE FROM route_streets WHERE table_id = ? AND route_id = ?").bind(table.id, routeId).run();
+        await env.DB.prepare("DELETE FROM routes WHERE table_id = ? AND id = ?").bind(table.id, routeId).run();
+
+        return jsonResponse({ ok: true, deleted: routeId });
+      }
+    }
+
+    // ==============================================================
     // 💳 5. MULTI-GATEWAY DONATION WEBHOOK RECEIVER (POST /api/webhooks/*)
     // ==============================================================
     if (path.startsWith("/api/webhooks/") && request.method === "POST") {

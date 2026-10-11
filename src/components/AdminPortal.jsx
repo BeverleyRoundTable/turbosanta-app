@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { logoutAdmin, isNationalAdmin } from '../services/auth';
-import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels } from '../services/api';
+import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, saveRoute, deleteRoute } from '../services/api';
 import DropzoneUpload from './DropzoneUpload';
 import RouteEditorModal from './RouteEditorModal';
 import ExpensesModal from './ExpensesModal';
@@ -662,7 +662,10 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   };
 
   // Route Save Handler
-  const handleSaveRoute = (savedRoute, streetsArray) => {
+  const handleSaveRoute = async (savedRoute, streetsArray) => {
+    setSaveStatus(`Saving route "${savedRoute.name}" to database...`);
+
+    // 1. Optimistically update local React state
     if (onUpdateTableData) {
       onUpdateTableData(prev => {
         const existingRoutes = prev.routes || [];
@@ -687,12 +690,20 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
       });
     }
 
-    setSaveStatus(`Route "${savedRoute.name}" updated successfully!`);
-    setTimeout(() => setSaveStatus(''), 3000);
+    // 2. Persist to Cloudflare D1
+    const secret = session?.secret || "Santa2026!";
+    const res = await saveRoute(currentTableSlug, savedRoute, streetsArray, secret);
+    if (res.ok) {
+      setSaveStatus(`✓ Route "${savedRoute.name}" saved to D1 database!`);
+    } else {
+      setSaveStatus(`⚠️ Saved locally, D1 warning: ${res.error || 'Failed to sync'}`);
+    }
+    setTimeout(() => setSaveStatus(''), 3500);
   };
 
   // Route Delete Handler
-  const handleDeleteRoute = (routeId) => {
+  const handleDeleteRoute = async (routeId) => {
+    setSaveStatus('Deleting route from database...');
     if (onUpdateTableData) {
       onUpdateTableData(prev => ({
         ...prev,
@@ -700,7 +711,14 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         streets: (prev.streets || []).filter(s => s.route_id !== routeId)
       }));
     }
-    setSaveStatus('Route deleted.');
+
+    const secret = session?.secret || "Santa2026!";
+    const res = await deleteRoute(currentTableSlug, routeId, secret);
+    if (res.ok) {
+      setSaveStatus('✓ Route deleted from D1 database.');
+    } else {
+      setSaveStatus(`⚠️ Deleted locally, D1 error: ${res.error || 'Failed to delete'}`);
+    }
     setTimeout(() => setSaveStatus(''), 3000);
   };
 
