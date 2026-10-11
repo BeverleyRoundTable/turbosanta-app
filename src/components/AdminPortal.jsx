@@ -7,7 +7,7 @@ import {
   Camera, Video, Image as ImageIcon, FolderDown, Eye, EyeOff, Sparkles, Filter,
   CreditCard, Key, Zap, RefreshCw, Send, Link2,
   BarChart3, TrendingUp, Award, Printer, PieChart, Receipt,
-  Mail, HardDrive, AlertTriangle, Database
+  Mail, HardDrive, AlertTriangle, Database, FileText
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { logoutAdmin, isNationalAdmin } from '../services/auth';
@@ -619,13 +619,15 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     }
   };
 
-  // Presets from the playbook
+  // Presets & Templates from the playbook
   const presets = [
-    "Santa’s looking for the heaviest buckets in Town! Dig deep for local charities!",
-    "Our Elves are running low on magic! Let’s fill the buckets before the end of the road!",
-    "No cash? No problem! Scan the QR code or tap 'Donate' on your live tracker!",
-    "We're taking a quick 2-minute 'Reindeer Rest' for photos. Come and say hello safely!",
-    "This is our very last street of the night! Let's make it the loudest one yet!"
+    "🎅 Santa is on the move! Sleigh has departed the depot and is heading down the route. Come out and wave!",
+    "❄️ Reindeer Rest: We're taking a quick 2-minute pause for photos. Come and say hello safely!",
+    "📱 No cash? No problem! Tap 'Donate' on your live tracker or scan the QR code on elf lanyards!",
+    "🚸 Safety Notice: Santa's sleigh is approaching! Please stay safely on pavements and hold little hands.",
+    "🎁 Santa's looking for the heaviest buckets in Town! Dig deep for local community causes!",
+    "🌧️ Weather Update: A light winter drizzle tonight, but Santa's tour is running on full schedule!",
+    "🏁 Final Leg: This is our very last street of the night! Let's make it the loudest cheer yet!"
   ];
 
   // Handle PA broadcast update
@@ -1216,29 +1218,52 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
 
             {/* Presets */}
             <h3 className="brand-font" style={{ fontSize: '16px', color: 'var(--primary)', marginBottom: '12px' }}>
-              Quick Presets (1-Tap Broadcast):
+              Quick Presets & Templates (Draft or Broadcast):
             </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {presets.map((preset, idx) => (
-                <button
+                <div
                   key={idx}
-                  onClick={() => handleBroadcast(preset)}
                   style={{
                     background: '#0d0d0b',
                     border: '1px solid var(--border)',
-                    borderRadius: '8px',
+                    borderRadius: '10px',
                     padding: '12px 16px',
-                    color: '#fff',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    transition: 'border-color 0.2s'
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '12px',
+                    flexWrap: 'wrap'
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary)'}
-                  onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
                 >
-                  📢 {preset}
-                </button>
+                  <span style={{ color: '#fff', fontSize: '14px', flex: '1 1 240px', lineHeight: 1.4 }}>
+                    {preset}
+                  </span>
+                  <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAnnouncementText(preset);
+                        setSaveStatus('Loaded template into draft box! Edit or click Publish Banner above.');
+                        setTimeout(() => setSaveStatus(''), 3000);
+                      }}
+                      className="btn-secondary"
+                      style={{ padding: '6px 12px', fontSize: '12px', whiteSpace: 'nowrap' }}
+                      title="Load into draft box to preview or customize before sending"
+                    >
+                      ✏️ Load Draft
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleBroadcast(preset)}
+                      className="btn-primary"
+                      style={{ padding: '6px 12px', fontSize: '12px', whiteSpace: 'nowrap' }}
+                      title="Publish immediately to public tracker banner"
+                    >
+                      📢 1-Tap Broadcast
+                    </button>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
@@ -1290,64 +1315,160 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
 
             {/* Route Cards */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {(tableData?.routes || []).map(r => {
-                const routeStreets = (tableData?.streets || []).filter(s => s.route_id === r.id);
-                return (
-                  <div
-                    key={r.id}
-                    style={{
-                      background: '#0d0d0b',
-                      border: '1px solid var(--border)',
-                      borderRadius: '12px',
-                      padding: '20px 24px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      flexWrap: 'wrap',
-                      gap: '16px'
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: '240px' }}>
-                      <strong style={{ fontSize: '20px', color: '#fff', display: 'block', marginBottom: '4px' }}>
-                        {r.name}
-                      </strong>
+              {(tableData?.routes || []).length === 0 ? (
+                <div style={{
+                  background: '#0d0d0b',
+                  border: '1px dashed rgba(251, 175, 51, 0.4)',
+                  borderRadius: '14px',
+                  padding: '24px 22px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{
+                        background: 'rgba(251, 175, 51, 0.15)',
+                        color: 'var(--primary)',
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        letterSpacing: '0.8px',
+                        padding: '4px 10px',
+                        borderRadius: '20px',
+                        border: '1px solid rgba(251, 175, 51, 0.3)',
+                        textTransform: 'uppercase'
+                      }}>
+                        ✨ Interactive Route Template (Preview Only — Zero Public Data)
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      Your public timetable remains 100% clean until you click "Save Route"
+                    </span>
+                  </div>
+
+                  {/* Example Route Preview Card */}
+                  <div style={{
+                    background: 'rgba(21, 21, 19, 0.95)',
+                    border: '1px solid rgba(251, 175, 51, 0.25)',
+                    borderRadius: '12px',
+                    padding: '20px 22px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '16px'
+                  }}>
+                    <div style={{ flex: 1, minWidth: '260px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                        <strong style={{ fontSize: '19px', color: '#fff' }}>
+                          Molescroft & Woodhall Way
+                        </strong>
+                        <span style={{ fontSize: '11px', color: '#86efac', background: 'rgba(34, 197, 94, 0.15)', border: '1px solid #22c55e', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                          EXAMPLE TEMPLATE
+                        </span>
+                      </div>
                       <div style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: 600, marginBottom: '8px' }}>
-                        📅 {r.date} • ⏰ {r.start_time || '18:00'} - {r.end_time || '20:30'}
+                        📅 Wednesday 17 Dec • ⏰ 18:00 - 20:30 • 📍 Meet: Pavilion Car Park (HU17 7JS)
                       </div>
-                      <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                        <strong>Streets:</strong> {routeStreets.map(s => s.street_name).join(', ') || 'None specified'}
+                      <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                        <strong>Sample Streets:</strong> Woodhall Way, The Park, Copandale Road, Molescroft Park, Woodhall Close, Chestnut Avenue
                       </div>
-                      {r.sponsor_name && (
-                        <div style={{ fontSize: '12px', color: '#86efac', marginTop: '6px' }}>
-                          ⭐ Sponsored by: <strong>{r.sponsor_name}</strong>
-                        </div>
-                      )}
+                      <div style={{ fontSize: '12px', color: '#86efac', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>⭐ Sponsored by:</span> <strong>Beverley Building Society</strong>
+                      </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '10px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
                       <button
+                        type="button"
                         onClick={() => {
-                          setEditingRoute({ ...r, streets: routeStreets });
+                          setEditingRoute({
+                            name: 'Molescroft & Woodhall Way',
+                            date: new Date().toISOString().slice(0, 10),
+                            start_time: '18:00',
+                            end_time: '20:30',
+                            streets: [
+                              { street_name: 'Woodhall Way' },
+                              { street_name: 'The Park' },
+                              { street_name: 'Copandale Road' },
+                              { street_name: 'Molescroft Park' },
+                              { street_name: 'Woodhall Close' },
+                              { street_name: 'Chestnut Avenue' }
+                            ],
+                            sponsor_name: 'Beverley Building Society',
+                            sponsor_link: 'https://example.com'
+                          });
                           setIsRouteModalOpen(true);
                         }}
-                        className="btn-secondary"
-                        style={{ padding: '8px 14px', fontSize: '13px' }}
+                        className="btn-primary"
+                        style={{ padding: '10px 18px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
                       >
-                        <Edit3 size={15} />
-                        <span>Edit</span>
+                        <FileText size={16} />
+                        <span>Use as Template</span>
                       </button>
-
-                      <button
-                        onClick={() => handleDeleteRoute(r.id)}
-                        className="btn-secondary"
-                        style={{ padding: '8px 14px', fontSize: '13px', borderColor: '#d31c1c', color: '#fca5a5' }}
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        Pre-fills route modal
+                      </span>
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              ) : (
+                (tableData?.routes || []).map(r => {
+                  const routeStreets = (tableData?.streets || []).filter(s => s.route_id === r.id);
+                  return (
+                    <div
+                      key={r.id}
+                      style={{
+                        background: '#0d0d0b',
+                        border: '1px solid var(--border)',
+                        borderRadius: '12px',
+                        padding: '20px 24px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: '16px'
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: '240px' }}>
+                        <strong style={{ fontSize: '20px', color: '#fff', display: 'block', marginBottom: '4px' }}>
+                          {r.name}
+                        </strong>
+                        <div style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: 600, marginBottom: '8px' }}>
+                          📅 {r.date} • ⏰ {r.start_time || '18:00'} - {r.end_time || '20:30'}
+                        </div>
+                        <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                          <strong>Streets:</strong> {routeStreets.map(s => s.street_name).join(', ') || 'None specified'}
+                        </div>
+                        {r.sponsor_name && (
+                          <div style={{ fontSize: '12px', color: '#86efac', marginTop: '6px' }}>
+                            ⭐ Sponsored by: <strong>{r.sponsor_name}</strong>
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <button
+                          onClick={() => {
+                            setEditingRoute({ ...r, streets: routeStreets });
+                            setIsRouteModalOpen(true);
+                          }}
+                          className="btn-secondary"
+                          style={{ padding: '8px 14px', fontSize: '13px' }}
+                        >
+                          <Edit3 size={15} />
+                          <span>Edit</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteRoute(r.id)}
+                          className="btn-secondary"
+                          style={{ padding: '8px 14px', fontSize: '13px', borderColor: '#d31c1c', color: '#fca5a5' }}
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         )}
@@ -2546,6 +2667,41 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   boxSizing: 'border-box'
                 }}
               />
+              <div style={{ marginBottom: '14px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+                  Quick Operational Templates:
+                </span>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {[
+                    "⏸️ PAUSE: Holding 2 mins at Wood Lane corner for safety regroup.",
+                    "🚸 CROSSING: Marshals please hold traffic at next pedestrian crossing.",
+                    "☕ REFRESH: Support van parked ahead with hot drinks.",
+                    "🌧️ WEATHER: Wet weather protocol active - keep high-vis fastened."
+                  ].map((tpl, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setCrewAlertText(tpl)}
+                      style={{
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        color: '#e5e7eb',
+                        borderRadius: '6px',
+                        padding: '4px 10px',
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary)'}
+                      onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'}
+                      title="Load into crew alert box"
+                    >
+                      {tpl.slice(0, 34)}...
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 <button
                   onClick={() => {
@@ -2592,14 +2748,71 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     background: '#0d0d0b',
                     border: '1px solid var(--border)',
                     borderRadius: '12px',
-                    padding: '36px 20px',
+                    padding: '30px 20px',
                     textAlign: 'center',
                     color: 'var(--text-muted)'
                   }}>
                     <MessageSquare size={32} style={{ opacity: 0.35, margin: '0 auto 10px', display: 'block' }} />
                     <div style={{ fontSize: '15px', fontWeight: 600, color: '#fff' }}>No Public Spotting Notes Yet</div>
-                    <div style={{ fontSize: '12px', marginTop: '6px', maxWidth: '420px', margin: '6px auto 0', lineHeight: 1.5 }}>
+                    <div style={{ fontSize: '12px', marginTop: '6px', maxWidth: '420px', margin: '6px auto 18px', lineHeight: 1.5 }}>
                       When community supporters submit live spotting notes or cheer messages from the tracker, they will appear here in real-time for elf moderation.
+                    </div>
+
+                    {/* Interactive Sample Spotting Message Preview */}
+                    <div style={{
+                      maxWidth: '560px',
+                      margin: '0 auto',
+                      textAlign: 'left',
+                      background: '#151513',
+                      border: '1px dashed rgba(251, 175, 51, 0.35)',
+                      borderRadius: '10px',
+                      padding: '16px 20px'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                        <span style={{
+                          background: 'rgba(251, 175, 51, 0.15)',
+                          color: 'var(--primary)',
+                          fontSize: '10px',
+                          fontWeight: 800,
+                          letterSpacing: '0.8px',
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          textTransform: 'uppercase'
+                        }}>
+                          ✨ Sample Note (Preview Only — Zero Public Data)
+                        </span>
+                        <span style={{ fontSize: '11px', color: '#86efac', fontWeight: 600 }}>
+                          Queue Simulation
+                        </span>
+                      </div>
+                      <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#fff', fontStyle: 'italic' }}>
+                        "We can hear Santa's music down Woodhall Way! The kids have got their boots on and carrots ready for Rudolph! 🥕🎅"
+                      </p>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                          Received 18:24 via Live Tracker • Status: <strong style={{ color: 'var(--primary)' }}>PENDING</strong>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMessages([
+                              {
+                                id: 'sample_preview_' + Date.now(),
+                                text: "We can hear Santa's music down Woodhall Way! The kids have got their boots on and carrots ready for Rudolph! 🥕🎅",
+                                time: '18:24',
+                                status: 'pending',
+                                isDemo: true
+                              }
+                            ]);
+                            setSaveStatus('Sample supporter note loaded into moderation queue!');
+                            setTimeout(() => setSaveStatus(''), 2500);
+                          }}
+                          className="btn-secondary"
+                          style={{ padding: '5px 12px', fontSize: '11px' }}
+                        >
+                          Test Moderation Workflow
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -2624,34 +2837,51 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                         </p>
                         <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                           Received {msg.time} • Status: <strong style={{ color: msg.status === 'approved' ? '#86efac' : msg.status === 'rejected' ? '#fca5a5' : 'var(--primary)' }}>{msg.status.toUpperCase()}</strong>
+                          {msg.isDemo && (
+                            <span style={{ marginLeft: '8px', fontSize: '10px', background: 'rgba(251, 175, 51, 0.15)', color: 'var(--primary)', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                              DEMO NOTE
+                            </span>
+                          )}
                         </span>
                       </div>
-                      {msg.status === 'pending' && (
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {msg.status === 'pending' && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: 'approved' } : m));
+                                setSaveStatus('Message approved for display!');
+                                setTimeout(() => setSaveStatus(''), 2500);
+                              }}
+                              className="btn-primary"
+                              style={{ padding: '6px 12px', fontSize: '12px', background: '#22c55e', color: '#000' }}
+                            >
+                              <Check size={14} />
+                              <span>Approve</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: 'rejected' } : m));
+                              }}
+                              className="btn-secondary"
+                              style={{ padding: '6px 12px', fontSize: '12px', borderColor: '#d31c1c', color: '#fca5a5' }}
+                            >
+                              <X size={14} />
+                              <span>Reject</span>
+                            </button>
+                          </>
+                        )}
+                        {msg.isDemo && (
                           <button
-                            onClick={() => {
-                              setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: 'approved' } : m));
-                              setSaveStatus('Message approved for public display!');
-                              setTimeout(() => setSaveStatus(''), 2500);
-                            }}
-                            className="btn-primary"
-                            style={{ padding: '6px 12px', fontSize: '12px', background: '#22c55e', color: '#000' }}
-                          >
-                            <Check size={14} />
-                            <span>Approve</span>
-                          </button>
-                          <button
-                            onClick={() => {
-                              setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: 'rejected' } : m));
-                            }}
+                            onClick={() => setMessages(prev => prev.filter(m => m.id !== msg.id))}
                             className="btn-secondary"
-                            style={{ padding: '6px 12px', fontSize: '12px', borderColor: '#d31c1c', color: '#fca5a5' }}
+                            style={{ padding: '6px 10px', fontSize: '11px', color: 'var(--text-muted)' }}
+                            title="Remove demo preview"
                           >
-                            <X size={14} />
-                            <span>Reject</span>
+                            Dismiss Demo
                           </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   ))
                 )}
@@ -3590,6 +3820,70 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
               }}>
                 ✓ HMRC R68 Columns: Title | First Name | Last Name | House No | Postcode | Date | Amount
               </div>
+
+              {/* Sample HMRC Declaration Preview */}
+              <div style={{
+                marginTop: '18px',
+                background: '#151513',
+                border: '1px dashed rgba(251, 175, 51, 0.35)',
+                borderRadius: '10px',
+                padding: '16px 20px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{
+                      background: 'rgba(251, 175, 51, 0.15)',
+                      color: 'var(--primary)',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      letterSpacing: '0.8px',
+                      padding: '3px 8px',
+                      borderRadius: '4px',
+                      textTransform: 'uppercase'
+                    }}>
+                      ✨ Sample HMRC Record (Preview Only — Zero Reclaims Filed)
+                    </span>
+                    <span style={{ fontSize: '11px', color: '#86efac', fontWeight: 600 }}>
+                      Template Layout
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    Visualizing HMRC R68 export columns
+                  </span>
+                </div>
+
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', color: '#fff', textAlign: 'left', minWidth: '550px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-muted)' }}>
+                        <th style={{ padding: '8px 10px' }}>Title</th>
+                        <th style={{ padding: '8px 10px' }}>Donor Name</th>
+                        <th style={{ padding: '8px 10px' }}>House & Postcode</th>
+                        <th style={{ padding: '8px 10px' }}>Donation</th>
+                        <th style={{ padding: '8px 10px' }}>Gift Aid (+25%)</th>
+                        <th style={{ padding: '8px 10px' }}>HMRC Taxpayer Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
+                        <td style={{ padding: '10px', color: 'var(--primary)', fontWeight: 700 }}>Mr</td>
+                        <td style={{ padding: '10px', fontWeight: 600 }}>John Smith</td>
+                        <td style={{ padding: '10px', color: 'var(--text-muted)' }}>14 Molescroft Road, HU17 8PP</td>
+                        <td style={{ padding: '10px', fontWeight: 700 }}>£10.00</td>
+                        <td style={{ padding: '10px', color: '#86efac', fontWeight: 700 }}>+£2.50</td>
+                        <td style={{ padding: '10px' }}>
+                          <span style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#86efac', border: '1px solid #22c55e', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
+                            Eligible UK Taxpayer
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p style={{ margin: '12px 0 0 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                  💡 Note: When donors tick Gift Aid during checkout on Zeffy or card readers, actual rows are recorded into your Table's D1 SQL database. This sample row is purely for template visualization and is not in D1.
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -3900,7 +4194,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       background: '#151513',
                       border: '1px solid var(--border)',
                       borderRadius: '16px',
-                      padding: '48px 24px',
+                      padding: '36px 24px',
                       textAlign: 'center',
                       color: 'var(--text-muted)'
                     }}>
@@ -3908,9 +4202,79 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       <h3 className="brand-font" style={{ fontSize: '18px', color: '#fff', marginBottom: '6px' }}>
                         No {memoryModerationFilter !== 'all' ? memoryModerationFilter : ''} Submissions for {selectedSeason}
                       </h3>
-                      <p style={{ fontSize: '13px', maxWidth: '460px', margin: '0 auto' }}>
+                      <p style={{ fontSize: '13px', maxWidth: '460px', margin: '0 auto 24px' }}>
                         When families upload photos or videos via the public tracker, they will appear in the screening queue for admin approval before going live.
                       </p>
+
+                      {/* Interactive Sample Polaroid Submission Card */}
+                      <div style={{
+                        maxWidth: '480px',
+                        margin: '0 auto',
+                        textAlign: 'left',
+                        background: '#0d0d0b',
+                        border: '1px dashed rgba(251, 175, 51, 0.35)',
+                        borderRadius: '14px',
+                        padding: '20px'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+                          <span style={{
+                            background: 'rgba(251, 175, 51, 0.15)',
+                            color: 'var(--primary)',
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            letterSpacing: '0.8px',
+                            padding: '3px 8px',
+                            borderRadius: '4px',
+                            textTransform: 'uppercase'
+                          }}>
+                            ✨ Sample Submission Preview (Not Public)
+                          </span>
+                          <span style={{ fontSize: '11px', color: '#86efac', fontWeight: 600 }}>
+                            Screening Layout
+                          </span>
+                        </div>
+
+                        <div style={{
+                          background: '#151513',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          borderRadius: '10px',
+                          overflow: 'hidden'
+                        }}>
+                          <div style={{
+                            height: '140px',
+                            background: 'linear-gradient(135deg, #1c1917 0%, #292524 100%)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            color: 'var(--primary)'
+                          }}>
+                            <Sparkles size={28} />
+                            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                              [Family Photo Uploaded via Public Tracker]
+                            </span>
+                          </div>
+                          <div style={{ padding: '16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+                              <strong style={{ color: '#fff', fontSize: '14px' }}>The Davies Family</strong>
+                              <span style={{ fontSize: '11px', background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.3)', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                                Pending Screening
+                              </span>
+                            </div>
+                            <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#e5e7eb', fontStyle: 'italic', lineHeight: 1.4 }}>
+                              "The kids loved waving to Santa on Woodhall Way! Rudolph's glowing nose was amazing. Thank you Round Table! 🌟"
+                            </p>
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px' }}>
+                              <span>📍 Molescroft & Woodhall Way</span>
+                              <span>Dec 14 • 18:35</span>
+                            </div>
+                          </div>
+                        </div>
+                        <p style={{ margin: '12px 0 0 0', fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.4 }}>
+                          🔒 Zero mock photos exist in Cloudflare R2. Only approved community uploads are visible in your public Memory Book.
+                        </p>
+                      </div>
                     </div>
                   );
                 }

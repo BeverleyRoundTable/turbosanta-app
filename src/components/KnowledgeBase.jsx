@@ -503,20 +503,81 @@ export default function KnowledgeBase({ session, tableData }) {
               background: 'rgba(29, 29, 26, 0.5)',
               border: '1px dashed rgba(255, 255, 255, 0.2)',
               borderRadius: '12px',
-              padding: '60px 20px',
+              padding: '40px 20px',
               textAlign: 'center'
             }}>
               <BookOpen size={40} color="var(--primary)" style={{ opacity: 0.5, marginBottom: '12px' }} />
-              <h3 style={{ color: '#FFF', margin: '0 0 6px 0', fontFamily: 'Eurostile, sans-serif' }}>No Lessons Found</h3>
+              <h3 style={{ color: '#FFF', margin: '0 0 6px 0', fontFamily: 'Eurostile, sans-serif' }}>No Lessons Recorded Yet</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '14px', maxWidth: '450px', margin: '0 auto 20px auto' }}>
-                No lessons matched the current filters. Be the first to log a tip from your Table's sleigh tour!
+                Your D1 knowledge base is 100% clean. Record tips from your Table's sleigh tour to help future organizers!
               </p>
+
+              {/* Interactive Example Tip Preview Card with "Use as Template" button */}
+              <div style={{
+                maxWidth: '600px',
+                margin: '0 auto 20px auto',
+                background: 'rgba(21, 21, 19, 0.95)',
+                border: '1px dashed rgba(251, 175, 51, 0.4)',
+                borderRadius: '12px',
+                padding: '20px',
+                textAlign: 'left'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    padding: '3px 8px',
+                    borderRadius: '4px',
+                    background: 'rgba(251, 175, 51, 0.15)',
+                    color: '#FBAF33',
+                    border: '1px solid rgba(251, 175, 51, 0.3)',
+                    textTransform: 'uppercase'
+                  }}>
+                    ✨ Example Best Practice Tip (Preview Only — Zero Database Entries)
+                  </span>
+                  <span style={{ fontSize: '11px', color: '#86efac', fontWeight: 600 }}>
+                    Template Layout
+                  </span>
+                </div>
+
+                <div style={{ fontSize: '11px', color: '#FBAF33', fontWeight: 700, marginBottom: '8px', textTransform: 'uppercase' }}>
+                  Donations & Zeffy
+                </div>
+
+                <p style={{ fontSize: '13px', color: '#FFF', margin: '0 0 12px 0', lineHeight: 1.5, fontStyle: 'italic' }}>
+                  "Double your contactless donations by laminating oversized 100mm Zeffy QR code badges and hanging them on both sides of every walking marshal's high-vis vest. Families standing 10 feet back on driveways can scan with their phone cameras without waiting for bucket change."
+                </p>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '10px', flexWrap: 'wrap', gap: '10px' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    <strong>{currentTableName}</strong> • Sleigh Operations Lead
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData({
+                        scope: 'local',
+                        category: 'finance_donations',
+                        lesson: "Double your contactless donations by laminating oversized 100mm Zeffy QR code badges and hanging them on both sides of every walking marshal's high-vis vest. Families standing 10 feet back on driveways can scan with their phone cameras without waiting for bucket change.",
+                        author_name: currentTableName,
+                        author_role: 'Operations Lead'
+                      });
+                      setActiveSubTab('submit');
+                    }}
+                    className="btn-primary"
+                    style={{ fontSize: '12px', padding: '6px 14px' }}
+                  >
+                    <PlusCircle size={14} /> Use as Submission Template
+                  </button>
+                </div>
+              </div>
+
               <button
                 onClick={() => setActiveSubTab('submit')}
-                className="btn-primary"
+                className="btn-secondary"
                 style={{ fontSize: '13px', padding: '10px 20px' }}
               >
-                <PlusCircle size={16} /> Log First Lesson
+                <PlusCircle size={16} /> Log Blank Lesson
               </button>
             </div>
           ) : (
