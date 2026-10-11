@@ -383,6 +383,10 @@
 
             loadRegisteredTables();
             loadLessonsArchive();
+
+            document.getElementById('tableName').addEventListener('change', () => {
+                loadLessonsArchive();
+            });
         });
 
         async function loadRegisteredTables() {
@@ -407,14 +411,16 @@
 
         async function loadLessonsArchive() {
             const container = document.getElementById('lessonsContainer');
+            const tableSlug = document.getElementById('tableName')?.value || 'beverley';
             try {
-                const res = await fetch(`${API_BASE}/api/knowledge-base?scope=all`);
+                const res = await fetch(`${API_BASE}/api/knowledge-base?scope=all&table=${encodeURIComponent(tableSlug)}`);
                 const data = await res.json();
                 if (data && Array.isArray(data.lessons) && data.lessons.length > 0) {
                     container.innerHTML = '';
                     data.lessons.forEach(l => {
                         const isNat = l.scope === 'national';
                         const catLabel = CATEGORY_NAMES[l.category] || l.category || 'General';
+                        const hasLiked = !!l.has_upvoted;
                         const el = document.createElement('div');
                         el.className = 'lesson-item';
                         el.innerHTML = `
@@ -423,7 +429,10 @@
                                     <span style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:4px; text-transform:uppercase; background:${isNat ? 'rgba(251,175,51,0.15)' : 'rgba(59,130,246,0.15)'}; color:${isNat ? '#FBAF33' : '#60a5fa'}; border:1px solid ${isNat ? 'rgba(251,175,51,0.3)' : 'rgba(59,130,246,0.3)'};">
                                         ${isNat ? '🇬🇧 RTBI National' : '📍 ' + (l.table_name || 'Local Table')}
                                     </span>
-                                    <button class="upvote-btn" onclick="upvoteLesson('${l.id}', this)">
+                                    <button class="upvote-btn ${hasLiked ? 'has-upvoted' : ''}" 
+                                            style="${hasLiked ? 'color:var(--gold); border-color:var(--gold); background:rgba(251,175,51,0.15);' : ''}" 
+                                            onclick="upvoteLesson('${l.id}', this)"
+                                            title="${hasLiked ? 'Liked by your table (click to remove)' : 'Like this tip (1 per table)'}">
                                         <i class="fa-solid fa-thumbs-up"></i> <span>${l.upvotes || 0}</span>
                                     </button>
                                 </div>
@@ -449,18 +458,75 @@
         }
 
         async function upvoteLesson(id, btn) {
+            if (btn.disabled) return;
+            btn.disabled = true;
             const span = btn.querySelector('span');
             let current = parseInt(span.textContent) || 0;
-            span.textContent = current + 1;
-            btn.style.color = 'var(--gold)';
-            btn.style.borderColor = 'var(--gold)';
+            const isCurrentlyLiked = btn.classList.contains('has-upvoted');
+            const tableSlug = document.getElementById('tableName')?.value || 'beverley';
+
+            // Optimistic UI toggle (prevents spamming and ensures 1 per table)
+            if (isCurrentlyLiked) {
+                span.textContent = Math.max(0, current - 1);
+                btn.classList.remove('has-upvoted');
+                btn.style.color = 'var(--text-muted)';
+                btn.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                btn.style.background = 'rgba(255, 255, 255, 0.05)';
+                btn.title = 'Like this tip (1 per table)';
+            } else {
+                span.textContent = current + 1;
+                btn.classList.add('has-upvoted');
+                btn.style.color = 'var(--gold)';
+                btn.style.borderColor = 'var(--gold)';
+                btn.style.background = 'rgba(251, 175, 51, 0.15)';
+                btn.title = 'Liked by your table (click to remove)';
+            }
+
             try {
-                await fetch(`${API_BASE}/api/knowledge-base/upvote`, {
+                const res = await fetch(`${API_BASE}/api/knowledge-base/upvote?table=${encodeURIComponent(tableSlug)}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id })
+                    body: JSON.stringify({ id, table: tableSlug, toggle: true })
                 });
-            } catch (e) {}
+                const data = await res.json();
+                if (data.ok && typeof data.upvotes === 'number') {
+                    span.textContent = data.upvotes;
+                    if (data.liked) {
+                        btn.classList.add('has-upvoted');
+                        btn.style.color = 'var(--gold)';
+                        btn.style.borderColor = 'var(--gold)';
+                        btn.style.background = 'rgba(251, 175, 51, 0.15)';
+                        btn.title = 'Liked by your table (click to remove)';
+                    } else {
+                        btn.classList.remove('has-upvoted');
+                        btn.style.color = 'var(--text-muted)';
+                        btn.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                        btn.style.background = 'rgba(255, 255, 255, 0.05)';
+                        btn.title = 'Like this tip (1 per table)';
+                    }
+                } else if (data.already_upvoted) {
+                    span.textContent = data.upvotes;
+                    btn.classList.add('has-upvoted');
+                    btn.style.color = 'var(--gold)';
+                    btn.style.borderColor = 'var(--gold)';
+                    btn.style.background = 'rgba(251, 175, 51, 0.15)';
+                }
+            } catch (e) {
+                span.textContent = current;
+                if (isCurrentlyLiked) {
+                    btn.classList.add('has-upvoted');
+                    btn.style.color = 'var(--gold)';
+                    btn.style.borderColor = 'var(--gold)';
+                    btn.style.background = 'rgba(251, 175, 51, 0.15)';
+                } else {
+                    btn.classList.remove('has-upvoted');
+                    btn.style.color = 'var(--text-muted)';
+                    btn.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                    btn.style.background = 'rgba(255, 255, 255, 0.05)';
+                }
+            } finally {
+                btn.disabled = false;
+            }
         }
 
         // Form Submission Logic

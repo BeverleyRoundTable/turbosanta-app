@@ -98,12 +98,34 @@ export default function KnowledgeBase({ session, tableData }) {
   };
 
   const handleUpvote = async (lessonId) => {
-    // Optimistic UI update
-    setLessons(prev => prev.map(l => l.id === lessonId ? { ...l, upvotes: (l.upvotes || 0) + 1, _hasUpvoted: true } : l));
+    const target = lessons.find(l => l.id === lessonId);
+    if (!target) return;
+    const isLiked = !!(target.has_upvoted || target._hasUpvoted);
+
+    // Optimistic UI toggle (enforces 1 per table)
+    setLessons(prev => prev.map(l => {
+      if (l.id !== lessonId) return l;
+      return {
+        ...l,
+        upvotes: isLiked ? Math.max(0, (l.upvotes || 0) - 1) : (l.upvotes || 0) + 1,
+        has_upvoted: !isLiked,
+        _hasUpvoted: !isLiked
+      };
+    }));
+
     try {
-      await upvoteKnowledgeLesson(currentTableSlug, lessonId);
+      const res = await upvoteKnowledgeLesson(currentTableSlug, lessonId);
+      if (res && res.ok && typeof res.upvotes === 'number') {
+        setLessons(prev => prev.map(l => l.id === lessonId ? {
+          ...l,
+          upvotes: res.upvotes,
+          has_upvoted: res.liked,
+          _hasUpvoted: res.liked
+        } : l));
+      }
     } catch (e) {
       console.warn("Upvote failed:", e);
+      loadLessons();
     }
   };
 
@@ -566,9 +588,9 @@ export default function KnowledgeBase({ session, tableData }) {
                             display: 'flex',
                             alignItems: 'center',
                             gap: '5px',
-                            background: lesson._hasUpvoted ? 'rgba(251, 175, 51, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                            border: `1px solid ${lesson._hasUpvoted ? 'var(--primary)' : 'rgba(255, 255, 255, 0.15)'}`,
-                            color: lesson._hasUpvoted ? 'var(--primary)' : 'var(--text-muted)',
+                            background: (lesson.has_upvoted || lesson._hasUpvoted) ? 'rgba(251, 175, 51, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                            border: `1px solid ${(lesson.has_upvoted || lesson._hasUpvoted) ? 'var(--primary)' : 'rgba(255, 255, 255, 0.15)'}`,
+                            color: (lesson.has_upvoted || lesson._hasUpvoted) ? 'var(--primary)' : 'var(--text-muted)',
                             borderRadius: '6px',
                             padding: '4px 9px',
                             fontSize: '12px',
@@ -576,7 +598,7 @@ export default function KnowledgeBase({ session, tableData }) {
                             cursor: 'pointer',
                             transition: 'all 0.15s'
                           }}
-                          title="Upvote this lesson"
+                          title={(lesson.has_upvoted || lesson._hasUpvoted) ? "Liked by your table (click to remove)" : "Like this tip (1 per table)"}
                         >
                           <ThumbsUp size={13} />
                           <span>{lesson.upvotes || 0}</span>

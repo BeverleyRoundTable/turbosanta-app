@@ -88,3 +88,16 @@ CREATE TABLE IF NOT EXISTS season_history (
 );
 
 CREATE INDEX IF NOT EXISTS idx_season_history_table ON season_history(table_id, year);
+
+-- ==============================================================================
+-- Knowledge Base Tip Upvotes / Likes (Enforces One Like per Table per Tip)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS lesson_upvotes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lesson_id TEXT NOT NULL REFERENCES lessons_learned(id) ON DELETE CASCADE,
+    table_id TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(lesson_id, table_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_lesson_upvotes_tip_table ON lesson_upvotes(lesson_id, table_id);

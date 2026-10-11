@@ -322,7 +322,7 @@ export async function upvoteKnowledgeLesson(tableSlug = "beverley", lessonId) {
     const res = await fetch(`${API_BASE}/api/knowledge-base/upvote?table=${encodeURIComponent(tableSlug)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: lessonId })
+      body: JSON.stringify({ id: lessonId, table: tableSlug, toggle: true })
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();

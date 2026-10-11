@@ -1397,6 +1397,16 @@ export default {
         )
       `).run().catch(() => {});
 
+      await env.DB.prepare(`
+        CREATE TABLE IF NOT EXISTS lesson_upvotes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          lesson_id TEXT NOT NULL,
+          table_id TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(lesson_id, table_id)
+        )
+      `).run().catch(() => {});
+
       // 2. Auto-seed starter lessons if empty
       const countRes = await env.DB.prepare("SELECT COUNT(*) as count FROM lessons_learned").first().catch(() => ({ count: 0 }));
       if (!countRes || Number(countRes.count) === 0) {
@@ -1485,10 +1495,62 @@ export default {
         const lessonId = body.id || "";
         if (!lessonId) return jsonResponse({ ok: false, error: "Missing lesson ID" }, 400);
 
+        const votingTable = (body.tableSlug || body.table || url.searchParams.get("table") || slug || table?.slug || "beverley").toLowerCase().trim();
+
         try {
-          await env.DB.prepare("UPDATE lessons_learned SET upvotes = upvotes + 1 WHERE id = ?").bind(lessonId).run();
-          const updated = await env.DB.prepare("SELECT upvotes FROM lessons_learned WHERE id = ?").bind(lessonId).first();
-          return jsonResponse({ ok: true, id: lessonId, upvotes: updated ? updated.upvotes : 1 });
+          // Check if this table has already given a like to this tip
+          const existing = await env.DB.prepare(
+            "SELECT id FROM lesson_upvotes WHERE lesson_id = ? AND table_id = ?"
+          ).bind(lessonId, votingTable).first().catch(() => null);
+
+          if (existing) {
+            // Already upvoted: if toggle is allowed, remove the like
+            if (body.toggle !== false) {
+              await env.DB.prepare(
+                "DELETE FROM lesson_upvotes WHERE lesson_id = ? AND table_id = ?"
+              ).bind(lessonId, votingTable).run();
+              await env.DB.prepare(
+                "UPDATE lessons_learned SET upvotes = MAX(0, upvotes - 1) WHERE id = ?"
+              ).bind(lessonId).run();
+              const updated = await env.DB.prepare("SELECT upvotes FROM lessons_learned WHERE id = ?").bind(lessonId).first();
+              return jsonResponse({
+                ok: true,
+                id: lessonId,
+                upvotes: updated ? updated.upvotes : 0,
+                liked: false,
+                table: votingTable,
+                message: "Upvote removed"
+              });
+            } else {
+              const current = await env.DB.prepare("SELECT upvotes FROM lessons_learned WHERE id = ?").bind(lessonId).first();
+              return jsonResponse({
+                ok: false,
+                error: "Your table has already upvoted this tip.",
+                already_upvoted: true,
+                id: lessonId,
+                upvotes: current ? current.upvotes : 0,
+                liked: true,
+                table: votingTable
+              }, 409);
+            }
+          } else {
+            // Record new upvote from this table
+            await env.DB.prepare(
+              "INSERT OR IGNORE INTO lesson_upvotes (lesson_id, table_id) VALUES (?, ?)"
+            ).bind(lessonId, votingTable).run();
+            await env.DB.prepare(
+              "UPDATE lessons_learned SET upvotes = upvotes + 1 WHERE id = ?"
+            ).bind(lessonId).run();
+            const updated = await env.DB.prepare("SELECT upvotes FROM lessons_learned WHERE id = ?").bind(lessonId).first();
+            return jsonResponse({
+              ok: true,
+              id: lessonId,
+              upvotes: updated ? updated.upvotes : 1,
+              liked: true,
+              table: votingTable,
+              message: "Upvote recorded"
+            });
+          }
         } catch(e) {
           return jsonResponse({ ok: false, error: e.message }, 500);
         }
@@ -1765,6 +1827,7 @@ INSTRUCTIONS:
         const scopeReq = url.searchParams.get("scope") || "all";
         const categoryReq = url.searchParams.get("category") || "all";
         const searchQ = (url.searchParams.get("q") || "").trim().toLowerCase();
+        const viewingTable = (url.searchParams.get("table") || slug || table?.slug || "beverley").toLowerCase().trim();
 
         let sql = "SELECT * FROM lessons_learned WHERE 1=1";
         const params = [];
@@ -1791,10 +1854,29 @@ INSTRUCTIONS:
 
         try {
           const res = await env.DB.prepare(sql).bind(...params).all();
+          const rows = res.results || [];
+
+          // Query which lessons this table has already upvoted
+          let likedSet = new Set();
+          try {
+            const userLikes = await env.DB.prepare(
+              "SELECT lesson_id FROM lesson_upvotes WHERE table_id = ?"
+            ).bind(viewingTable).all();
+            if (userLikes && userLikes.results) {
+              likedSet = new Set(userLikes.results.map(r => r.lesson_id));
+            }
+          } catch(e) {}
+
+          const lessons = rows.map(l => ({
+            ...l,
+            has_upvoted: likedSet.has(l.id)
+          }));
+
           return jsonResponse({
             ok: true,
-            lessons: res.results || [],
-            count: res.results ? res.results.length : 0
+            lessons: lessons,
+            count: lessons.length,
+            table: viewingTable
           });
         } catch(err) {
           return jsonResponse({ ok: false, error: err.message }, 500);
