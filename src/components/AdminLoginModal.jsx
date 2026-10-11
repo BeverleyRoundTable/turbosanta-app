@@ -306,6 +306,29 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess, initi
                   Personal @gmail.com accounts are automatically denied.
                 </div>
               </div>
+
+              <div style={{
+                marginTop: '12px',
+                padding: '10px 14px',
+                background: 'rgba(251, 175, 51, 0.08)',
+                border: '1px solid rgba(251, 175, 51, 0.25)',
+                borderRadius: '8px',
+                fontSize: '12px',
+                color: 'rgba(255, 255, 255, 0.85)',
+                lineHeight: 1.5,
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <Mail size={16} color="#FBAF33" style={{ flexShrink: 0 }} />
+                <div>
+                  Need access to your Round Table workspace email? Please contact{' '}
+                  <a href="mailto:secretary@roundtable.org.uk" style={{ color: '#FBAF33', fontWeight: 700, textDecoration: 'underline' }}>
+                    secretary@roundtable.org.uk
+                  </a>
+                </div>
+              </div>
             </div>
           )}
 

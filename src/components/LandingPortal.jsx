@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { 
   MapPin, Shield, Users, ArrowRight, ExternalLink, Sparkles, 
   Search, FileSpreadsheet, Code, Globe, Radio, CheckCircle2,
-  Calendar, Heart, HeartHandshake, Download, Eye, Smartphone, BookOpen
+  Calendar, Heart, HeartHandshake, Download, Eye, Smartphone, BookOpen,
+  Mail
 } from 'lucide-react';
 import { parseTableDetailsFromEmail, isRoundTableEmail } from '../services/auth';
 
@@ -575,6 +576,33 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
               </span>
               <ExternalLink size={15} />
             </button>
+          </div>
+
+          {/* WORKSPACE EMAIL NOTICE */}
+          <div style={{
+            marginTop: '8px',
+            padding: '14px 18px',
+            backgroundColor: 'rgba(251, 175, 51, 0.08)',
+            border: '1px solid rgba(251, 175, 51, 0.25)',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            <Mail size={18} color="#FBAF33" style={{ flexShrink: 0 }} />
+            <div style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.85)', lineHeight: 1.5 }}>
+              If you need access to your Round Table workspace email, please contact{' '}
+              <a
+                href="mailto:secretary@roundtable.org.uk"
+                style={{
+                  color: '#FBAF33',
+                  fontWeight: 700,
+                  textDecoration: 'underline'
+                }}
+              >
+                secretary@roundtable.org.uk
+              </a>
+            </div>
           </div>
 
         </div>
