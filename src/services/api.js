@@ -332,12 +332,13 @@ export async function upvoteKnowledgeLesson(tableSlug = "beverley", lessonId) {
   }
 }
 
-export async function askFleetAdvisor(tableSlug = "beverley", { question, category = "all", scope = "all" }) {
+export async function askFleetAdvisor(tableSlug = "beverley", { question, category = "all", scope = "all", model }) {
   try {
+    const selectedModel = model || localStorage.getItem('turbosanta_global_gemini_model') || 'auto';
     const res = await fetch(`${API_BASE}/api/knowledge-base/ask?table=${encodeURIComponent(tableSlug)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, category, scope })
+      body: JSON.stringify({ question, category, scope, model: selectedModel })
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();

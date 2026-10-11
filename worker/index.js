@@ -145,7 +145,7 @@ export default {
         headline_sponsor_url: table.headline_sponsor_url || null,
         headline_sponsor_tagline: table.headline_sponsor_tagline || null,
         partners: table.partners_json ? JSON.parse(table.partners_json) : [],
-        gemini_model: table.gemini_model || "gemini-1.5-flash",
+        gemini_model: table.gemini_model || "auto",
         gemini_api_key: table.gemini_api_key || "",
         donation_breakdown: (breakdown && breakdown.results) || []
       };
@@ -574,7 +574,7 @@ export default {
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN headline_sponsor_logo TEXT").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN headline_sponsor_url TEXT").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN headline_sponsor_tagline TEXT").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN gemini_model TEXT DEFAULT 'gemini-1.5-flash'").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN gemini_model TEXT DEFAULT 'auto'").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN gemini_api_key TEXT").run(); } catch(e) {}
 
       try {
@@ -1417,7 +1417,7 @@ export default {
         }
 
         const geminiApiKey = table?.gemini_api_key || nationalTable?.gemini_api_key || env.GEMINI_API_KEY;
-        const rawModel = table?.gemini_model || nationalTable?.gemini_model || env.GEMINI_MODEL || "flash 3.6";
+        const rawModel = body.model || table?.gemini_model || nationalTable?.gemini_model || env.GEMINI_MODEL || "auto";
         const primaryModel = resolveGeminiModel(rawModel);
 
         if (geminiApiKey) {

@@ -27,6 +27,25 @@ export default function KnowledgeBase({ session, tableData }) {
   const currentTableSlug = session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley';
   const currentTableName = tableData?.table?.sleigh_display_name || tableData?.table?.name || 'Beverley Round Table';
 
+  const globalModel = localStorage.getItem('turbosanta_global_gemini_model') || tableData?.table?.gemini_model || 'auto';
+
+  const formatModelDisplay = (raw) => {
+    const m = String(raw || 'auto').trim().toLowerCase();
+    if (m === 'auto' || m === 'latest' || m === 'latest-flash') {
+      return 'Gemini Flash (Auto)';
+    }
+    if (m.includes('3.8')) return 'Gemini 3.8 Flash';
+    if (m.includes('3.6')) return 'Gemini 3.6 Flash';
+    if (m.includes('3.5')) return 'Gemini 3.5 Flash';
+    if (m.includes('pro')) return 'Gemini Pro';
+    if (m.startsWith('gemini-')) {
+      return m.replace(/^gemini-/, 'Gemini ').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+    return `Gemini ${raw}`;
+  };
+
+  const activeModelDisplay = formatModelDisplay(globalModel);
+
   const [activeSubTab, setActiveSubTab] = useState('browse'); // 'browse' | 'submit' | 'ai'
   const [lessons, setLessons] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -148,7 +167,7 @@ export default function KnowledgeBase({ session, tableData }) {
         const itemWithAnswer = {
           question: q,
           answer: res.answer,
-          model: res.model || 'Gemini 1.5 Flash',
+          model: formatModelDisplay(res.model || globalModel),
           lessonsCount: res.lessonsCount || 0,
           timestamp: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
         };
@@ -260,7 +279,7 @@ export default function KnowledgeBase({ session, tableData }) {
               fontSize: '12px',
               fontWeight: 700
             }}>
-              <Sparkles size={14} /> {tableData?.table?.gemini_model ? (tableData.table.gemini_model.includes('pro') ? 'Gemini 1.5 Pro Engine' : tableData.table.gemini_model.includes('flash-latest') ? 'Gemini Flash Latest Engine' : 'Gemini 1.5 Flash Engine') : 'Gemini 1.5 Flash Engine'} Active
+              <Sparkles size={14} /> {activeModelDisplay} Active
             </span>
           </div>
         </div>
@@ -337,7 +356,7 @@ export default function KnowledgeBase({ session, tableData }) {
             }}
           >
             <Sparkles size={16} />
-            Ask Gemini Fleet Advisor
+            Ask {activeModelDisplay}
           </button>
         </div>
       </div>
@@ -840,7 +859,7 @@ export default function KnowledgeBase({ session, tableData }) {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--primary)', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px' }}>
-                <Sparkles size={14} /> Grounded {tableData?.table?.gemini_model || 'gemini-1.5-flash'} • Zero API Cost Pointer
+                <Sparkles size={14} /> Grounded {activeModelDisplay} • Zero API Cost Pointer
               </div>
               <h2 style={{ fontSize: '22px', color: '#FFF', margin: 0, fontFamily: 'Eurostile, sans-serif' }}>
                 ASK THE ROUND TABLE FLEET ADVISOR
@@ -985,7 +1004,7 @@ export default function KnowledgeBase({ session, tableData }) {
                           paddingTop: '10px'
                         }}>
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--primary)' }}>
-                            <Award size={13} /> {item.model || 'Gemini 1.5 Flash (Auto-Advancing Free Tier)'}
+                            <Award size={13} /> {item.model || `${activeModelDisplay} (Fleet Free Tier)`}
                           </span>
                           <span>{item.timestamp}</span>
                         </div>
