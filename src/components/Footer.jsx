@@ -1,5 +1,4 @@
 import React from 'react';
-import { Lock } from 'lucide-react';
 
 export default function Footer({ tableData, onOpenAdminModal }) {
   const currentYear = new Date().getFullYear();
@@ -37,39 +36,6 @@ export default function Footer({ tableData, onOpenAdminModal }) {
           Support the Project
         </a>
       </p>
-
-      {/* Admin Portal Gateway Link */}
-      <div style={{ marginTop: '16px' }}>
-        <button
-          type="button"
-          onClick={onOpenAdminModal}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            background: 'none',
-            border: 'none',
-            color: 'rgba(255, 255, 255, 0.5)',
-            textDecoration: 'none',
-            fontSize: '13px',
-            cursor: 'pointer',
-            padding: '6px 12px',
-            borderRadius: '6px',
-            transition: 'all 0.2s'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = 'var(--primary)';
-            e.currentTarget.style.background = 'rgba(251, 175, 51, 0.08)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)';
-            e.currentTarget.style.background = 'none';
-          }}
-        >
-          <Lock size={13} />
-          <span>Table Volunteer / Admin Sign In (@roundtable.org.uk)</span>
-        </button>
-      </div>
     </footer>
   );
 }

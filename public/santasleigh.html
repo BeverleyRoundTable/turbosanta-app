@@ -947,7 +947,6 @@
 
     <footer>
         <p>&copy; <span id="year"></span> <span id="footer-name">Santa Sleigh</span>. Powered by TurboSanta.</p>
-        <p style="margin-top: 12px;"><a id="admin-login-link" href="/?table=beverley&admin=1" style="color: var(--text-muted); font-size: 12px; text-decoration: underline;"><i class="fa-solid fa-lock"></i> Organiser &amp; Admin Login</a></p>
     </footer>
 
     <script>
@@ -1659,10 +1658,6 @@
                     partSec.style.display = 'none';
                 }
             });
-            const adminLink = $('admin-login-link');
-            if (adminLink) {
-                adminLink.href = `/?table=${encodeURIComponent(window.__sleighTableSlug || 'beverley')}&admin=1`;
-            }
         }
 
         const SETUP_ERROR_HTML = "Could not load data from the provided API. Please check the URL and ensure your Google Script is deployed as a Web App accessible to 'Anyone'.";

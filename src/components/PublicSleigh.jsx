@@ -972,23 +972,6 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
           fontSize: '14px'
         }}>
           <p>&copy; {currentYear} {siteName}. Powered by TurboSanta.</p>
-          {onOpenLogin && (
-            <p style={{ marginTop: '12px' }}>
-              <button
-                onClick={onOpenLogin}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-muted)',
-                  fontSize: '12px',
-                  cursor: 'pointer',
-                  textDecoration: 'underline'
-                }}
-              >
-                Organiser & Admin Login
-              </button>
-            </p>
-          )}
         </footer>
       </div>
     </div>
