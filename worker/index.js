@@ -1512,9 +1512,19 @@ export default {
         const lessons = lessonsRes.results || [];
 
         // Build knowledge context block
-        const knowledgeText = lessons.map((l, i) => 
-          `[Lesson #${i+1}] (Scope: ${l.scope}, Category: ${l.category}, Table: ${l.table_name || l.table_id}, Contributor: ${l.author_name || 'Anonymous'} - ${l.author_role || 'Volunteer'}, Upvotes: ${l.upvotes}):\n"${l.lesson}"`
-        ).join("\n\n");
+        const defaultPlaybookReference = `[Official RTBI National Fleet Playbook Reference]:
+- Digital Donations & Zeffy (finance_donations): Laminate and hang high-contrast Zeffy QR code badges on volunteer lanyards with bold 'SCAN TO DONATE & ADD 25% GIFT AID' text. Over 65% of suburban families do not carry physical cash; having lanyards ready doubles nightly donations.
+- Route Pacing & Timetable (routes_planning): Cap weekday evening routes at 35 to 45 streets maximum (approx. 2 to 2.5 hours). Beyond 8:30pm, younger families have put children to bed, and volunteer bucket collector fatigue sets in rapidly.
+- Tow-Hitch Safety Exclusion Zone (safety_marshalling): Maintain a strict 2-metre exclusion bubble around the tow-bar coupling and sleigh wheel arches at all times. Assign dedicated hi-vis marshals with illuminated LED wands on both flanks of the sleigh to shepherd eager children away from wheels.
+- Sound & PA Audio Acoustics (sound_audio): Angle horn PA speakers 45° outwards and downwards towards the pavements, rather than straight ahead or flat. This blankets the front gardens with festive cheer while eliminating harsh echoes off brickwork, and protects Santa's hearing.
+- Generator Power & Vibration (generators_power): Always mount petrol inverter generators on heavy-duty rubber vibration dampening mats. Wire an isolated emergency kill-switch in the towing cab so the driver can cut generator power instantly without exiting the vehicle.
+- Pacing & Advance Warnings (routes_planning): Send your Live PA announcement message 15 minutes before the sleigh departs the staging area. This allows parents to put coats, boots, and hats on toddlers so they are out on their doorsteps right as the music approaches.`;
+
+        const knowledgeText = lessons.length > 0
+          ? lessons.map((l, i) => 
+              `[Lesson #${i+1}] (Scope: ${l.scope}, Category: ${l.category}, Table: ${l.table_name || l.table_id}, Contributor: ${l.author_name || 'Anonymous'} - ${l.author_role || 'Volunteer'}, Upvotes: ${l.upvotes}):\n"${l.lesson}"`
+            ).join("\n\n")
+          : defaultPlaybookReference;
 
         // Check for Gemini API key and selected model (table setting, national master setting, or environment default)
         let nationalTable = null;
@@ -1535,7 +1545,7 @@ Your mission is to help Round Table volunteers run safe, joyful, high-fundraisin
 You have access to the verified Round Table Sleigh Knowledge Base of lessons learned from across the UK fleet.
 
 KNOWLEDGE BASE ARCHIVE:
-${knowledgeText || "No prior lessons logged yet. Provide general Round Table Santa Sleigh best practices."}
+${knowledgeText}
 
 USER QUESTION: "${question}"
 

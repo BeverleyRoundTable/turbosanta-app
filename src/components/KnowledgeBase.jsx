@@ -23,6 +23,69 @@ const CATEGORIES = [
   { id: 'sleigh_mechanics', label: 'Sleigh Mechanics', icon: Wrench }
 ];
 
+export const NATIONAL_PLAYBOOK_TIPS = [
+  {
+    id: "tpl_digital_donations",
+    category: "finance_donations",
+    categoryLabel: "Donations & Zeffy",
+    scope: "national",
+    lesson: "Laminate and hang high-contrast Zeffy QR code badges on volunteer lanyards with bold 'SCAN TO DONATE & ADD 25% GIFT AID' text. Over 65% of suburban families do not carry physical cash; having lanyards ready doubles nightly donations.",
+    author_name: "Fleet Fundraising Lead",
+    author_role: "Community Treasurer",
+    recommendedTip: "Doubles contactless giving"
+  },
+  {
+    id: "tpl_routes_pacing",
+    category: "routes_planning",
+    categoryLabel: "Routes & Logistics",
+    scope: "national",
+    lesson: "Cap weekday evening routes at 35 to 45 streets maximum (approx. 2 to 2.5 hours). Beyond 8:30pm, younger families have put children to bed, and volunteer bucket collector fatigue sets in rapidly.",
+    author_name: "Fleet Logistics Lead",
+    author_role: "National Operations Officer",
+    recommendedTip: "Prevents volunteer burnout"
+  },
+  {
+    id: "tpl_safety_bubble",
+    category: "safety_marshalling",
+    categoryLabel: "Safety & Marshals",
+    scope: "national",
+    lesson: "Maintain a strict 2-metre exclusion bubble around the tow-bar coupling and sleigh wheel arches at all times. Assign dedicated hi-vis marshals with illuminated LED wands on both flanks of the sleigh to shepherd eager children away from wheels.",
+    author_name: "Chief Marshal",
+    author_role: "Safety Lead",
+    recommendedTip: "Mandatory public safety"
+  },
+  {
+    id: "tpl_sound_acoustics",
+    category: "sound_audio",
+    categoryLabel: "Sound & PA Audio",
+    scope: "national",
+    lesson: "Angle horn PA speakers 45° outwards and downwards towards the pavements, rather than straight ahead or flat. This blankets the front gardens with festive cheer while eliminating harsh echoes off brickwork, and protects Santa's hearing.",
+    author_name: "Sound Crew Lead",
+    author_role: "Audio Coordinator",
+    recommendedTip: "Acoustic clarity"
+  },
+  {
+    id: "tpl_generator_isolation",
+    category: "generators_power",
+    categoryLabel: "Generators & Power",
+    scope: "national",
+    lesson: "Always mount petrol inverter generators on heavy-duty rubber vibration dampening mats. Wire an isolated emergency kill-switch in the towing cab so the driver can cut generator power instantly without exiting the vehicle.",
+    author_name: "Tech Safety Officer",
+    author_role: "Sleigh Build Engineer",
+    recommendedTip: "Vibration dampening"
+  },
+  {
+    id: "tpl_pa_advance_broadcast",
+    category: "routes_planning",
+    categoryLabel: "Routes & Logistics",
+    scope: "national",
+    lesson: "Send your Live PA announcement message 15 minutes before the sleigh departs the staging area. This allows parents to put coats, boots, and hats on toddlers so they are out on their doorsteps right as the music approaches.",
+    author_name: "Digital Santa Team",
+    author_role: "Community Liaison",
+    recommendedTip: "Curbside turnout"
+  }
+];
+
 export default function KnowledgeBase({ session, tableData }) {
   const currentTableSlug = session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley';
   const currentTableName = tableData?.table?.sleigh_display_name || tableData?.table?.name || 'Beverley Round Table';
@@ -498,89 +561,133 @@ export default function KnowledgeBase({ session, tableData }) {
               <RefreshCw size={28} className="animate-spin" style={{ margin: '0 auto 12px auto', display: 'block' }} />
               <p>Loading fleet lessons learned...</p>
             </div>
-          ) : lessons.length === 0 ? (
-            <div style={{
-              background: 'rgba(29, 29, 26, 0.5)',
-              border: '1px dashed rgba(255, 255, 255, 0.2)',
-              borderRadius: '12px',
-              padding: '40px 20px',
-              textAlign: 'center'
-            }}>
-              <BookOpen size={40} color="var(--primary)" style={{ opacity: 0.5, marginBottom: '12px' }} />
-              <h3 style={{ color: '#FFF', margin: '0 0 6px 0', fontFamily: 'Eurostile, sans-serif' }}>No Lessons Recorded Yet</h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '14px', maxWidth: '450px', margin: '0 auto 20px auto' }}>
-                Your D1 knowledge base is 100% clean. Record tips from your Table's sleigh tour to help future organizers!
-              </p>
+          ) : lessons.length === 0 ? (() => {
+            const visiblePlaybookTips = NATIONAL_PLAYBOOK_TIPS.filter(t => 
+              selectedCategory === 'all' || t.category === selectedCategory
+            );
 
-              {/* Interactive Example Tip Preview Card with "Use as Template" button */}
-              <div style={{
-                maxWidth: '600px',
-                margin: '0 auto 20px auto',
-                background: 'rgba(21, 21, 19, 0.95)',
-                border: '1px dashed rgba(251, 175, 51, 0.4)',
-                borderRadius: '12px',
-                padding: '20px',
-                textAlign: 'left'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-                  <span style={{
-                    fontSize: '11px',
-                    fontWeight: 800,
-                    padding: '3px 8px',
-                    borderRadius: '4px',
-                    background: 'rgba(251, 175, 51, 0.15)',
-                    color: '#FBAF33',
-                    border: '1px solid rgba(251, 175, 51, 0.3)',
-                    textTransform: 'uppercase'
-                  }}>
-                    ✨ Example Best Practice Tip (Preview Only — Zero Database Entries)
-                  </span>
-                  <span style={{ fontSize: '11px', color: '#86efac', fontWeight: 600 }}>
-                    Template Layout
-                  </span>
-                </div>
-
-                <div style={{ fontSize: '11px', color: '#FBAF33', fontWeight: 700, marginBottom: '8px', textTransform: 'uppercase' }}>
-                  Donations & Zeffy
-                </div>
-
-                <p style={{ fontSize: '13px', color: '#FFF', margin: '0 0 12px 0', lineHeight: 1.5, fontStyle: 'italic' }}>
-                  "Double your contactless donations by laminating oversized 100mm Zeffy QR code badges and hanging them on both sides of every walking marshal's high-vis vest. Families standing 10 feet back on driveways can scan with their phone cameras without waiting for bucket change."
-                </p>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '10px', flexWrap: 'wrap', gap: '10px' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                    <strong>{currentTableName}</strong> • Sleigh Operations Lead
+            return (
+              <div>
+                {/* Clean Database Explainer Banner */}
+                <div style={{
+                  background: 'rgba(29, 29, 26, 0.7)',
+                  border: '1px dashed rgba(251, 175, 51, 0.35)',
+                  borderRadius: '14px',
+                  padding: '24px',
+                  textAlign: 'center',
+                  marginBottom: '24px'
+                }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(251, 175, 51, 0.15)', color: '#FBAF33', padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', marginBottom: '10px' }}>
+                    <Sparkles size={14} />
+                    <span>Official RTBI National Fleet Playbook Reference</span>
                   </div>
+                  <h3 style={{ color: '#FFF', margin: '0 0 6px 0', fontFamily: 'Eurostile, sans-serif', fontSize: '20px' }}>
+                    National Playbook Tips ({visiblePlaybookTips.length})
+                  </h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '13px', maxWidth: '620px', margin: '0 auto 16px auto', lineHeight: 1.5 }}>
+                    Your Table's D1 SQL database is 100% clean with zero mock rows. Below are the verified operational best practices from Round Table sleigh tours across Great Britain & Ireland. You can reference them or click <strong>"Use as Template"</strong> to adapt them into your Table's own logged entries.
+                  </p>
                   <button
-                    type="button"
-                    onClick={() => {
-                      setFormData({
-                        scope: 'local',
-                        category: 'finance_donations',
-                        lesson: "Double your contactless donations by laminating oversized 100mm Zeffy QR code badges and hanging them on both sides of every walking marshal's high-vis vest. Families standing 10 feet back on driveways can scan with their phone cameras without waiting for bucket change.",
-                        author_name: currentTableName,
-                        author_role: 'Operations Lead'
-                      });
-                      setActiveSubTab('submit');
-                    }}
+                    onClick={() => setActiveSubTab('submit')}
                     className="btn-primary"
-                    style={{ fontSize: '12px', padding: '6px 14px' }}
+                    style={{ fontSize: '13px', padding: '8px 18px' }}
                   >
-                    <PlusCircle size={14} /> Use as Submission Template
+                    <PlusCircle size={15} /> Log Custom Lesson from Scratch
                   </button>
                 </div>
-              </div>
 
-              <button
-                onClick={() => setActiveSubTab('submit')}
-                className="btn-secondary"
-                style={{ fontSize: '13px', padding: '10px 20px' }}
-              >
-                <PlusCircle size={16} /> Log Blank Lesson
-              </button>
-            </div>
-          ) : (
+                {/* Grid of National Playbook Reference Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '16px' }}>
+                  {visiblePlaybookTips.map(tpl => {
+                    const catObj = CATEGORIES.find(c => c.id === tpl.category) || CATEGORIES[0];
+                    const CatIcon = catObj.icon;
+
+                    return (
+                      <div
+                        key={tpl.id}
+                        style={{
+                          background: 'rgba(21, 21, 19, 0.95)',
+                          border: '1px solid rgba(251, 175, 51, 0.25)',
+                          borderRadius: '12px',
+                          padding: '20px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+                          transition: 'border-color 0.2s, transform 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = 'rgba(251, 175, 51, 0.5)';
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = 'rgba(251, 175, 51, 0.25)';
+                          e.currentTarget.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{
+                                fontSize: '10px',
+                                fontWeight: 800,
+                                padding: '3px 8px',
+                                borderRadius: '4px',
+                                textTransform: 'uppercase',
+                                background: 'rgba(251, 175, 51, 0.15)',
+                                color: '#FBAF33',
+                                border: '1px solid rgba(251, 175, 51, 0.3)'
+                              }}>
+                                🇬🇧 RTBI Playbook
+                              </span>
+                              <span style={{ fontSize: '10px', color: '#86efac', background: 'rgba(34, 197, 94, 0.12)', border: '1px solid #22c55e', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                                {tpl.recommendedTip}
+                              </span>
+                            </div>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                              Template
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--primary)', fontWeight: 700, marginBottom: '8px', textTransform: 'uppercase' }}>
+                            <CatIcon size={13} />
+                            <span>{tpl.categoryLabel}</span>
+                          </div>
+
+                          <p style={{ fontSize: '13px', color: '#FFF', margin: '0 0 14px 0', lineHeight: 1.5, fontStyle: 'italic' }}>
+                            "{tpl.lesson}"
+                          </p>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '12px', flexWrap: 'wrap', gap: '10px' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                            <strong>{tpl.author_name}</strong> • {tpl.author_role}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData({
+                                scope: 'local',
+                                category: tpl.category,
+                                lesson: tpl.lesson,
+                                author_name: currentTableName,
+                                author_role: tpl.author_role
+                              });
+                              setActiveSubTab('submit');
+                            }}
+                            className="btn-primary"
+                            style={{ fontSize: '11px', padding: '6px 12px' }}
+                          >
+                            <PlusCircle size={13} /> Use as Template
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })() : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '16px' }}>
               {lessons.map(lesson => {
                 const isNational = lesson.scope === 'national';

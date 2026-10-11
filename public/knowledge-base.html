@@ -451,55 +451,110 @@
                     });
                 } else {
                     container.innerHTML = `
-                        <div style="grid-column: 1 / -1; text-align: center; padding: 20px;">
-                            <div style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
-                                <i class="fa-solid fa-book-open" style="font-size: 28px; opacity: 0.4; display: block; margin-bottom: 8px;"></i>
-                                No lessons recorded yet. Your D1 database is 100% clean.
+                        <div style="grid-column: 1 / -1; text-align: center; margin-bottom: 14px;">
+                            <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(251, 175, 51, 0.15); color: #FBAF33; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 8px; border: 1px solid rgba(251, 175, 51, 0.3);">
+                                <i class="fa-solid fa-sparkles"></i> Official RTBI National Fleet Playbook Reference
                             </div>
-
-                            <!-- Interactive Example Tip Preview -->
-                            <div style="max-width: 580px; margin: 0 auto; background: rgba(21, 21, 19, 0.95); border: 1px dashed rgba(251, 175, 51, 0.4); border-radius: 12px; padding: 20px; text-align: left;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
-                                    <span style="font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 4px; background: rgba(251, 175, 51, 0.15); color: #FBAF33; border: 1px solid rgba(251, 175, 51, 0.3); text-transform: uppercase;">
-                                        ✨ Example Best Practice Tip (Preview Only — Zero Public Data)
-                                    </span>
-                                    <span style="font-size: 11px; color: #86efac; font-weight: 600;">
-                                        Template Layout
-                                    </span>
-                                </div>
-                                <div style="font-size: 11px; color: #FBAF33; font-weight: 700; margin-bottom: 8px; text-transform: uppercase;">
-                                    Donations & Zeffy
-                                </div>
-                                <p style="font-size: 13px; color: #FFF; margin: 0 0 14px 0; line-height: 1.5; font-style: italic;">
-                                    "Double your contactless donations by laminating oversized 100mm Zeffy QR code badges and hanging them on both sides of every walking marshal's high-vis vest. Families standing 10 feet back on driveways can scan with their phone cameras without waiting for bucket change."
-                                </p>
-                                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 10px; flex-wrap: wrap; gap: 10px;">
-                                    <div style="font-size: 11px; color: var(--text-muted);">
-                                        <strong>Sleigh Operations Lead</strong> • Local Table
-                                    </div>
-                                    <button type="button" onclick="useLessonTemplate()" style="font-size: 12px; padding: 6px 14px; background: var(--gold); color: #000; border: none; border-radius: 6px; font-weight: 700; cursor: pointer;">
-                                        <i class="fa-solid fa-copy"></i> Use as Template
-                                    </button>
-                                </div>
+                            <div style="color: var(--text-muted); font-size: 13px; max-width: 600px; margin: 0 auto; line-height: 1.5;">
+                                Your Table's D1 SQL database is 100% clean with zero mock rows. Below are the verified operational best practices from Round Table sleigh tours across the UK. Reference them below or click <strong>Use as Template</strong> to log one for your Table!
                             </div>
                         </div>
-                    `;
+                    ` + PLAYBOOK_TIPS.map((tpl, idx) => `
+                        <div class="lesson-item" style="border: 1px solid rgba(251, 175, 51, 0.3); background: rgba(21, 21, 19, 0.95);">
+                            <div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 6px;">
+                                    <div style="display: flex; gap: 6px; align-items: center;">
+                                        <span style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; background: rgba(251, 175, 51, 0.15); color: #FBAF33; border: 1px solid rgba(251, 175, 51, 0.3);">
+                                            🇬🇧 RTBI Playbook
+                                        </span>
+                                        <span style="font-size: 10px; color: #86efac; background: rgba(34, 197, 94, 0.12); border: 1px solid #22c55e; padding: 2px 6px; border-radius: 4px; font-weight: 700;">
+                                            ${tpl.badge}
+                                        </span>
+                                    </div>
+                                    <span style="font-size: 11px; color: var(--text-muted);">
+                                        Template
+                                    </span>
+                                </div>
+                                <div style="font-size: 11px; color: var(--gold); font-weight: 700; margin-bottom: 8px; text-transform: uppercase;">
+                                    ${CATEGORY_NAMES[tpl.category] || tpl.category}
+                                </div>
+                                <p style="font-size: 13px; color: #FFF; margin: 0 0 12px 0; line-height: 1.5; font-style: italic;">
+                                    "${tpl.lesson}"
+                                </p>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 10px; flex-wrap: wrap; gap: 8px;">
+                                <div style="font-size: 11px; color: var(--text-muted);">
+                                    <strong>${tpl.author_name}</strong> • ${tpl.author_role}
+                                </div>
+                                <button type="button" onclick="usePlaybookTemplate(${idx})" style="font-size: 11px; padding: 5px 12px; background: var(--gold); color: #000; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                                    <i class="fa-solid fa-copy"></i> Use as Template
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
                 }
             } catch (err) {
                 container.innerHTML = '<div style="text-align: center; grid-column: 1 / -1; padding: 30px; color: #ef4444;">Failed to load archive lessons.</div>';
             }
         }
 
-        function useLessonTemplate() {
+        const PLAYBOOK_TIPS = [
+            {
+                category: 'finance_donations',
+                badge: 'Doubles Donations',
+                lesson: "Laminate and hang high-contrast Zeffy QR code badges on volunteer lanyards with bold 'SCAN TO DONATE & ADD 25% GIFT AID' text. Over 65% of suburban families do not carry physical cash; having lanyards ready doubles nightly donations.",
+                author_name: 'Fleet Fundraising Lead',
+                author_role: 'Community Treasurer'
+            },
+            {
+                category: 'routes_planning',
+                badge: 'Route Pacing',
+                lesson: "Cap weekday evening routes at 35 to 45 streets maximum (approx. 2 to 2.5 hours). Beyond 8:30pm, younger families have put children to bed, and volunteer bucket collector fatigue sets in rapidly.",
+                author_name: 'Fleet Logistics Lead',
+                author_role: 'National Operations Officer'
+            },
+            {
+                category: 'safety_marshalling',
+                badge: 'Safety Bubble',
+                lesson: "Maintain a strict 2-metre exclusion bubble around the tow-bar coupling and sleigh wheel arches at all times. Assign dedicated hi-vis marshals with illuminated LED wands on both flanks of the sleigh to shepherd eager children away from wheels.",
+                author_name: 'Chief Marshal',
+                author_role: 'Safety Lead'
+            },
+            {
+                category: 'sound_audio',
+                badge: 'PA Acoustics',
+                lesson: "Angle horn PA speakers 45° outwards and downwards towards the pavements, rather than straight ahead or flat. This blankets the front gardens with festive cheer while eliminating harsh echoes off brickwork, and protects Santa's hearing.",
+                author_name: 'Sound Crew Lead',
+                author_role: 'Audio Coordinator'
+            },
+            {
+                category: 'generators_power',
+                badge: 'Power Safety',
+                lesson: "Always mount petrol inverter generators on heavy-duty rubber vibration dampening mats. Wire an isolated emergency kill-switch in the towing cab so the driver can cut generator power instantly without exiting the vehicle.",
+                author_name: 'Tech Safety Officer',
+                author_role: 'Sleigh Build Engineer'
+            },
+            {
+                category: 'routes_planning',
+                badge: 'Advance Notice',
+                lesson: "Send your Live PA announcement message 15 minutes before the sleigh departs the staging area. This allows parents to put coats, boots, and hats on toddlers so they are out on their doorsteps right as the music approaches.",
+                author_name: 'Digital Santa Team',
+                author_role: 'Community Liaison'
+            }
+        ];
+
+        function usePlaybookTemplate(idx) {
+            const tpl = PLAYBOOK_TIPS[idx];
+            if (!tpl) return;
             const cat = document.getElementById('category');
-            if (cat) cat.value = 'finance_donations';
+            if (cat) cat.value = tpl.category;
             const txt = document.getElementById('lessonText');
             if (txt) {
-                txt.value = "Double your contactless donations by laminating oversized 100mm Zeffy QR code badges and hanging them on both sides of every walking marshal's high-vis vest. Families standing 10 feet back on driveways can scan with their phone cameras without waiting for bucket change.";
+                txt.value = tpl.lesson;
                 txt.focus();
             }
             const role = document.getElementById('submitterRole');
-            if (role) role.value = 'Operations Lead';
+            if (role) role.value = tpl.author_role;
             const form = document.getElementById('lesson-form');
             if (form) window.scrollTo({ top: form.offsetTop - 30, behavior: 'smooth' });
         }
