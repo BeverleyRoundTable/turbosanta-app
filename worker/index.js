@@ -1407,86 +1407,9 @@ export default {
         )
       `).run().catch(() => {});
 
-      // 2. Auto-seed starter lessons if empty
-      const countRes = await env.DB.prepare("SELECT COUNT(*) as count FROM lessons_learned").first().catch(() => ({ count: 0 }));
-      if (!countRes || Number(countRes.count) === 0) {
-        const seedLessons = [
-          {
-            id: "seed_routes_pacing",
-            table_id: "national",
-            table_name: "Round Table National Fleet",
-            scope: "national",
-            category: "routes_planning",
-            lesson: "Cap weekday evening routes at 35 to 45 streets maximum (approx. 2 to 2.5 hours). Beyond 8:30pm, younger families have put children to bed, and volunteer bucket collector fatigue sets in rapidly.",
-            author_name: "Fleet Logistics Lead",
-            author_role: "National Operations Officer",
-            upvotes: 42
-          },
-          {
-            id: "seed_generator_isolation",
-            table_id: "national",
-            table_name: "Round Table National Fleet",
-            scope: "national",
-            category: "generators_power",
-            lesson: "Always mount petrol inverter generators on heavy-duty rubber vibration dampening mats. Wire an isolated emergency kill-switch in the towing cab so the driver can cut generator power instantly without exiting the vehicle.",
-            author_name: "Tech Safety Officer",
-            author_role: "Sleigh Build Engineer",
-            upvotes: 38
-          },
-          {
-            id: "seed_sound_acoustics",
-            table_id: "national",
-            table_name: "Round Table National Fleet",
-            scope: "national",
-            category: "sound_audio",
-            lesson: "Angle horn PA speakers 45° outwards and downwards towards the pavements, rather than straight ahead or flat. This blankets the front gardens with festive cheer while eliminating harsh echoes off brickwork, and protects Santa's hearing.",
-            author_name: "Sound Crew Lead",
-            author_role: "Audio Coordinator",
-            upvotes: 31
-          },
-          {
-            id: "seed_digital_donations",
-            table_id: "national",
-            table_name: "Round Table National Fleet",
-            scope: "national",
-            category: "finance_donations",
-            lesson: "Laminate and hang high-contrast Zeffy QR code badges on volunteer lanyards with bold 'SCAN TO DONATE & ADD 25% GIFT AID' text. Over 65% of suburban families do not carry physical cash; having lanyards ready doubles nightly donations.",
-            author_name: "Community Treasurer",
-            author_role: "Fundraising Lead",
-            upvotes: 49
-          },
-          {
-            id: "seed_safety_bubble",
-            table_id: "national",
-            table_name: "Round Table National Fleet",
-            scope: "national",
-            category: "safety_marshalling",
-            lesson: "Maintain a strict 2-metre exclusion bubble around the tow-bar coupling and sleigh wheel arches at all times. Assign dedicated hi-vis marshals with illuminated LED wands on both flanks of the sleigh to shepherd eager children away from wheels.",
-            author_name: "Chief Marshal",
-            author_role: "Safety Lead",
-            upvotes: 56
-          },
-          {
-            id: "seed_pa_advance_broadcast",
-            table_id: "national",
-            table_name: "Round Table National Fleet",
-            scope: "national",
-            category: "routes_planning",
-            lesson: "Send your Live PA announcement message 15 minutes before the sleigh departs the staging area. This allows parents to put coats, boots, and hats on toddlers so they are out on their doorsteps right as the music approaches.",
-            author_name: "Digital Santa Team",
-            author_role: "Community Liaison",
-            upvotes: 27
-          }
-        ];
-        for (const s of seedLessons) {
-          try {
-            await env.DB.prepare(`
-              INSERT OR IGNORE INTO lessons_learned (id, table_id, table_name, scope, category, lesson, author_name, author_role, upvotes)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `).bind(s.id, s.table_id, s.table_name, s.scope, s.category, s.lesson, s.author_name, s.author_role, s.upvotes).run();
-          } catch(e) {}
-        }
-      }
+      // 2. Remove all mock / seed test examples from database (100% fresh real entries only)
+      await env.DB.prepare("DELETE FROM lessons_learned WHERE id LIKE 'seed_%'").run().catch(() => {});
+      await env.DB.prepare("DELETE FROM lesson_upvotes WHERE lesson_id LIKE 'seed_%'").run().catch(() => {});
 
       // Route A: Upvote a Lesson (POST /api/knowledge-base/upvote)
       if (path === "/api/knowledge-base/upvote" && request.method === "POST") {
