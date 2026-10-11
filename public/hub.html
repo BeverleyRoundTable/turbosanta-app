@@ -439,6 +439,23 @@
             </div>
           </div>
         </div>
+
+        <!-- Santa Colouring Pages -->
+        <div class="hub-card">
+          <div>
+            <span class="card-badge badge-gold">Kids Activity &bull; Printable</span>
+            <h3><i class="fa-solid fa-paintbrush" style="color:var(--primary);"></i> Santa Colouring Pages</h3>
+            <p>Personalised festive colouring page generator with 6 custom scenes (Sleigh, Tree, Snowman, House, Presents, Reindeer). Children type their name and print A4 sheets!</p>
+          </div>
+          <div>
+            <div class="url-preview" id="colouringUrl">https://turbosanta-app.pages.dev/colouring_page.html?table=beverley</div>
+            <div class="card-actions">
+              <a id="btnLaunchColouring" href="/colouring_page.html?table=beverley" target="_blank" class="btn btn-secondary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open</a>
+              <button class="btn btn-secondary" onclick="copyDynamicUrl('colouringUrl')"><i class="fa-solid fa-copy"></i> Copy Link</button>
+              <button class="btn btn-secondary" onclick="openQrModal('colouringUrl', 'Colouring Page QR')"><i class="fa-solid fa-qrcode"></i></button>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -732,6 +749,7 @@
         addressUrl: `${origin}/address.html?table=${slug}`,
         santaChatUrl: `${origin}/santa_chat.html?table=${slug}`,
         memoryUrl: `${origin}/memory_book.html?table=${slug}`,
+        colouringUrl: `${origin}/colouring_page.html?table=${slug}`,
         driverUrl: `${origin}/tracker.html?table=${slug}&driver=1`,
         crewAdminUrl: `${origin}/crew.html?table=${slug}`,
         blueprintUrl: `${origin}/blueprint.html?table=${slug}`,
@@ -763,6 +781,7 @@
         btnLaunchAddress: links.addressUrl,
         btnLaunchSantaChat: links.santaChatUrl,
         btnLaunchMemory: links.memoryUrl,
+        btnLaunchColouring: links.colouringUrl,
         btnLaunchDriver: links.driverUrl,
         btnLaunchCrewAdmin: links.crewAdminUrl,
         btnLaunchBlueprint: links.blueprintUrl,
