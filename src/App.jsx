@@ -9,7 +9,23 @@ import { Shield } from 'lucide-react';
 
 export default function App() {
   const urlParams = new URLSearchParams(window.location.search);
-  const initialTableParam = urlParams.get('table');
+  const getInitialTable = () => {
+    const tableParam = urlParams.get('table');
+    if (tableParam) return tableParam;
+    const host = window.location.hostname.toLowerCase();
+    if (host.includes('beverleyroundtable.co.uk') || host.startsWith('beverley.')) {
+      return 'beverley';
+    }
+    const parts = host.split('.');
+    if (parts.length > 2 && !host.includes('pages.dev') && !host.includes('workers.dev') && !host.includes('localhost')) {
+      const sub = parts[0];
+      if (sub !== 'www' && sub !== 'santa' && sub !== 'demo' && sub !== 'admin' && sub !== 'turbosanta') {
+        return sub;
+      }
+    }
+    return null;
+  };
+  const initialTableParam = getInitialTable();
   const initialAdminParam = urlParams.get('admin') === '1' || urlParams.get('admin') === 'true' || urlParams.get('god') === '1' || urlParams.get('god') === 'true';
 
   const pathname = window.location.pathname.toLowerCase();
