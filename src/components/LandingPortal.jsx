@@ -769,11 +769,56 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
         marginTop: 'auto',
         backgroundColor: '#161614',
         borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-        padding: '30px 24px',
+        padding: '36px 24px 30px',
         textAlign: 'center',
         fontSize: '13px',
         color: 'rgba(255, 255, 255, 0.5)'
       }}>
+        {/* TUK TUK SUPPORTER BOX */}
+        <div style={{
+          background: 'rgba(251, 175, 51, 0.05)',
+          border: '1px solid rgba(251, 175, 51, 0.22)',
+          borderRadius: '14px',
+          maxWidth: '720px',
+          margin: '0 auto 28px auto',
+          padding: '16px 22px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '14px',
+          textAlign: 'left'
+        }}>
+          <div style={{ flex: '1 1 320px', minWidth: 0 }}>
+            <div style={{ fontSize: '12px', color: '#eaeae5', lineHeight: 1.55 }}>
+              <strong style={{ color: '#FBAF33' }}>Supporting Fellow Tablers:</strong> TurboSanta is provided completely free of charge. If your Table would like to help offset domain, database &amp; AI hosting costs or support Beverley Round Table's Santa Tuk Tuk build, contributions are gratefully received.
+            </div>
+          </div>
+          <a
+            href="https://paymentrequest.natwestpayit.com/reusable-link/2f1fd0ee-360a-4bbd-8e9a-fd07e641970e"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              backgroundColor: '#FBAF33',
+              color: '#000000',
+              padding: '9px 16px',
+              borderRadius: '8px',
+              fontSize: '11px',
+              fontWeight: 800,
+              textDecoration: 'none',
+              textTransform: 'uppercase',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              flexShrink: 0,
+              letterSpacing: '0.5px'
+            }}
+          >
+            <Heart size={13} fill="#000" />
+            <span>Support via NatWest PayIt</span>
+          </a>
+        </div>
+
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
           <img
             src="https://brt-23f.pages.dev/icons/RTBI_Santa.png"

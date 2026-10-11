@@ -21,7 +21,21 @@ export default function Footer({ tableData, onOpenAdminModal }) {
       </p>
 
       <p style={{ margin: '0 0 20px 0', fontSize: '13px' }}>
-        Powered by <strong>TurboSanta 2.0</strong> • Built on Cloudflare Edge + Google Gemini AI
+        Powered by <strong>TurboSanta 2.0</strong> • Built on Cloudflare Edge + Google Gemini AI •{' '}
+        <a
+          href="https://paymentrequest.natwestpayit.com/reusable-link/2f1fd0ee-360a-4bbd-8e9a-fd07e641970e"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            color: 'rgba(255, 255, 255, 0.45)',
+            textDecoration: 'underline',
+            transition: 'color 0.2s'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
+          onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255, 255, 255, 0.45)'}
+        >
+          Support the Project
+        </a>
       </p>
 
       {/* Admin Portal Gateway Link */}

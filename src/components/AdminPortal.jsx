@@ -3338,6 +3338,60 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   <span>Save Settings</span>
                 </button>
               </div>
+
+              {/* SUPPORTER PLEA: TUK TUK BUILD & SERVER HOSTING UPKEEP */}
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(251, 175, 51, 0.08) 0%, #1a1a17 100%)',
+                border: '1px solid rgba(251, 175, 51, 0.35)',
+                borderRadius: '16px',
+                padding: '24px',
+                marginTop: '32px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '20px'
+              }}>
+                <div style={{ flex: '1 1 340px', minWidth: 0 }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(251, 175, 51, 0.15)', border: '1px solid rgba(251, 175, 51, 0.3)', borderRadius: '100px', padding: '3px 10px', fontSize: '11px', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+                    <Heart size={12} fill="var(--primary)" />
+                    <span>Tablers Helping Tablers • Voluntary Project</span>
+                  </div>
+                  <h3 className="brand-font" style={{ fontSize: '18px', color: '#fff', margin: '0 0 6px 0' }}>
+                    Supporting TurboSanta &amp; The Santa Tuk Tuk Build
+                  </h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '13px', lineHeight: 1.6, margin: 0 }}>
+                    TurboSanta 2.0 is provided completely free of charge with zero subscription fees to help Round Tables across the UK raise maximum funds for their local communities.
+                    The platform, Cloudflare database, domain hosting, and Google Gemini AI tokens are funded out-of-pocket by Beverley Round Table #247.
+                    If this system has helped your Table and you’d like to chip in toward running costs or help fund our Santa Sleigh Tuk Tuk build, any contribution is warmly appreciated!
+                  </p>
+                </div>
+
+                <div style={{ flexShrink: 0 }}>
+                  <a
+                    href="https://paymentrequest.natwestpayit.com/reusable-link/2f1fd0ee-360a-4bbd-8e9a-fd07e641970e"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-primary"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '12px 20px',
+                      textDecoration: 'none',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      borderRadius: '8px'
+                    }}
+                  >
+                    <span>🎁 Chip In via NatWest PayIt</span>
+                    <ExternalLink size={14} />
+                  </a>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', marginTop: '6px' }}>
+                    Instant Bank Transfer • Apple Pay
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -4061,6 +4115,40 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
             }}
           />
         )}
+
+        {/* GLOBAL ADMIN FOOTER & SUPPORTER RIBBON */}
+        <footer style={{
+          marginTop: '60px',
+          padding: '24px 20px',
+          borderTop: '1px solid var(--border)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '16px',
+          fontSize: '13px',
+          color: 'var(--text-muted)'
+        }}>
+          <div>
+            &copy; 2026 TurboSanta Platform &middot; Built voluntarily by Beverley Round Table #247
+          </div>
+          <a
+            href="https://paymentrequest.natwestpayit.com/reusable-link/2f1fd0ee-360a-4bbd-8e9a-fd07e641970e"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: 'var(--primary)',
+              textDecoration: 'none',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <Heart size={14} fill="var(--primary)" />
+            <span>Support Server Upkeep &amp; The Santa Tuk Tuk Build (NatWest PayIt) →</span>
+          </a>
+        </footer>
       </main>
 
       {/* Route Editor Modal */}
