@@ -83,7 +83,10 @@ export default function DropzoneUpload({ label, currentImage, onImageSelected, h
           textAlign: 'center',
           cursor: 'pointer',
           transition: 'all 0.2s ease',
-          position: 'relative'
+          position: 'relative',
+          maxWidth: '100%',
+          boxSizing: 'border-box',
+          overflow: 'hidden'
         }}
       >
         <input

@@ -333,7 +333,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     headline_sponsor_logo: tableData?.table?.headline_sponsor_logo || '',
     headline_sponsor_url: tableData?.table?.headline_sponsor_url || '',
     headline_sponsor_tagline: tableData?.table?.headline_sponsor_tagline || '',
-    gemini_model: tableData?.table?.gemini_model || 'flash 3.6',
+    gemini_model: localStorage.getItem('turbosanta_global_gemini_model') || tableData?.table?.gemini_model || 'auto',
     gemini_api_key: tableData?.table?.gemini_api_key || '',
     expenses: tableData?.table?.expenses !== undefined ? tableData?.table?.expenses : (tableData?.expenses !== undefined ? tableData?.expenses : 0),
     expenses_json: tableData?.table?.expenses_json || tableData?.expenses_json || null
@@ -361,7 +361,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         headline_sponsor_logo: tableData.table.headline_sponsor_logo !== undefined ? tableData.table.headline_sponsor_logo : prev.headline_sponsor_logo,
         headline_sponsor_url: tableData.table.headline_sponsor_url !== undefined ? tableData.table.headline_sponsor_url : prev.headline_sponsor_url,
         headline_sponsor_tagline: tableData.table.headline_sponsor_tagline !== undefined ? tableData.table.headline_sponsor_tagline : prev.headline_sponsor_tagline,
-        gemini_model: tableData.table.gemini_model || prev.gemini_model || 'flash 3.6',
+        gemini_model: localStorage.getItem('turbosanta_global_gemini_model') || tableData.table.gemini_model || prev.gemini_model || 'auto',
         gemini_api_key: tableData.table.gemini_api_key !== undefined ? tableData.table.gemini_api_key : prev.gemini_api_key,
         expenses: tableData.table.expenses !== undefined ? tableData.table.expenses : (tableData.expenses !== undefined ? tableData.expenses : prev.expenses),
         expenses_json: tableData.table.expenses_json !== undefined ? tableData.table.expenses_json : (tableData.expenses_json !== undefined ? tableData.expenses_json : prev.expenses_json)
@@ -2648,17 +2648,20 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
             background: '#151513',
             border: '1px solid var(--border)',
             borderRadius: '16px',
-            padding: '30px'
+            padding: 'clamp(16px, 4vw, 30px)',
+            maxWidth: '100%',
+            boxSizing: 'border-box',
+            overflow: 'hidden'
           }}>
-            <h2 className="brand-font" style={{ fontSize: '24px', margin: '0 0 10px 0' }}>
+            <h2 className="brand-font" style={{ fontSize: 'clamp(20px, 4vw, 24px)', margin: '0 0 10px 0', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
               Table Settings & Branding
             </h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '24px' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '24px', overflowWrap: 'break-word' }}>
               Upload your Table's logo directly and configure your fundraising target.
             </p>
 
-            <div style={{ display: 'grid', gap: '20px' }}>
-              <div>
+            <div style={{ display: 'grid', gap: '20px', maxWidth: '100%' }}>
+              <div style={{ minWidth: 0 }}>
                 <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>
                   Sleigh Display Name
                 </label>
@@ -2668,6 +2671,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   onChange={(e) => setFormData({ ...formData, sleigh_display_name: e.target.value })}
                   style={{
                     width: '100%',
+                    maxWidth: '100%',
+                    boxSizing: 'border-box',
                     background: '#0d0d0b',
                     border: '1px solid var(--border)',
                     borderRadius: '8px',
@@ -2678,8 +2683,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-                <div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '16px', maxWidth: '100%' }}>
+                <div style={{ minWidth: 0 }}>
                   <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>
                     Fundraising Target (£)
                   </label>
@@ -2689,6 +2694,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     onChange={(e) => setFormData({ ...formData, fundraising_goal: Number(e.target.value) })}
                     style={{
                       width: '100%',
+                      maxWidth: '100%',
+                      boxSizing: 'border-box',
                       background: '#0d0d0b',
                       border: '1px solid var(--border)',
                       borderRadius: '8px',
@@ -2699,8 +2706,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   />
                 </div>
 
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '4px' }}>
                     <label style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                       Operating Campaign Expenses (£)
                     </label>
@@ -2721,6 +2728,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     placeholder="0.00"
                     style={{
                       width: '100%',
+                      maxWidth: '100%',
+                      boxSizing: 'border-box',
                       background: '#0d0d0b',
                       border: '1px solid var(--border)',
                       borderRadius: '8px',
@@ -2734,7 +2743,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   </div>
                 </div>
 
-                <div>
+                <div style={{ minWidth: 0 }}>
                   <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>
                     Donation URL (Zeffy / Stripe)
                   </label>
@@ -2744,6 +2753,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     onChange={(e) => setFormData({ ...formData, donate_url: e.target.value })}
                     style={{
                       width: '100%',
+                      maxWidth: '100%',
+                      boxSizing: 'border-box',
                       background: '#0d0d0b',
                       border: '1px solid var(--border)',
                       borderRadius: '8px',
@@ -2756,7 +2767,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
               </div>
 
               {/* BRAND COLOR SELECTOR */}
-              <div>
+              <div style={{ minWidth: 0, maxWidth: '100%' }}>
                 <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>
                   Primary Brand & Accent Color
                 </label>
@@ -2856,8 +2867,11 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 background: '#0d0d0b',
                 border: '1px solid var(--border)',
                 borderRadius: '12px',
-                padding: '20px',
-                marginTop: '10px'
+                padding: 'clamp(14px, 3vw, 20px)',
+                marginTop: '10px',
+                maxWidth: '100%',
+                boxSizing: 'border-box',
+                overflow: 'hidden'
               }}>
                 <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--primary)', fontFamily: 'Eurostile, sans-serif', textTransform: 'uppercase', marginBottom: '6px' }}>
                   Official Links & Social Channels
@@ -2866,48 +2880,48 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   Add your Table's website and social media profiles. These will display in the footer of your public sleigh page so families and supporters can connect with your club.
                 </p>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
-                  <div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '14px', maxWidth: '100%' }}>
+                  <div style={{ minWidth: 0 }}>
                     <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Official Table Website</label>
                     <input
                       type="url"
                       value={formData.website_url || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, website_url: e.target.value }))}
                       placeholder="https://beverleyroundtable.co.uk"
-                      style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
+                      style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
                     />
                   </div>
 
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Facebook Page / Group</label>
                     <input
                       type="url"
                       value={formData.facebook_url || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, facebook_url: e.target.value }))}
                       placeholder="https://facebook.com/beverleyroundtable"
-                      style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
+                      style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
                     />
                   </div>
 
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Instagram Profile</label>
                     <input
                       type="url"
                       value={formData.instagram_url || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, instagram_url: e.target.value }))}
                       placeholder="https://instagram.com/beverleyroundtable"
-                      style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
+                      style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
                     />
                   </div>
 
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>TikTok / Other Profile</label>
                     <input
                       type="url"
                       value={formData.tiktok_url || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, tiktok_url: e.target.value }))}
                       placeholder="https://tiktok.com/@beverleysanta"
-                      style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
+                      style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
                     />
                   </div>
                 </div>
@@ -2918,8 +2932,11 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 background: '#0d0d0b',
                 border: '1px solid rgba(251, 175, 51, 0.25)',
                 borderRadius: '12px',
-                padding: '20px',
-                marginTop: '10px'
+                padding: 'clamp(14px, 3vw, 20px)',
+                marginTop: '10px',
+                maxWidth: '100%',
+                boxSizing: 'border-box',
+                overflow: 'hidden'
               }}>
                 <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--primary)', fontFamily: 'Eurostile, sans-serif', textTransform: 'uppercase', marginBottom: '6px' }}>
                   Headline Sponsor & Power Partner (Optional)
@@ -2928,37 +2945,37 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   If your Table has an official headline sponsor (e.g. Zendure for Beverley, local dealership, etc.), enter their details below. Leave empty if your Table does not have a headline sponsor, and this section will remain completely hidden on your tracker.
                 </p>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '14px' }}>
-                  <div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '14px', marginBottom: '14px', maxWidth: '100%' }}>
+                  <div style={{ minWidth: 0 }}>
                     <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Sponsor Name</label>
                     <input
                       type="text"
                       value={formData.headline_sponsor_name}
                       onChange={(e) => setFormData(prev => ({ ...prev, headline_sponsor_name: e.target.value }))}
                       placeholder="e.g. Zendure or Local Motors"
-                      style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
+                      style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
                     />
                   </div>
 
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Tagline / Role</label>
                     <input
                       type="text"
                       value={formData.headline_sponsor_tagline}
                       onChange={(e) => setFormData(prev => ({ ...prev, headline_sponsor_tagline: e.target.value }))}
                       placeholder="e.g. Official Power Partner"
-                      style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
+                      style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
                     />
                   </div>
 
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Website URL</label>
                     <input
                       type="url"
                       value={formData.headline_sponsor_url}
                       onChange={(e) => setFormData(prev => ({ ...prev, headline_sponsor_url: e.target.value }))}
                       placeholder="https://sponsor.co.uk"
-                      style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
+                      style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
                     />
                   </div>
                 </div>
@@ -2977,7 +2994,10 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   background: '#0d0d0b',
                   border: '1px solid rgba(251, 175, 51, 0.3)',
                   borderRadius: '12px',
-                  padding: '20px'
+                  padding: 'clamp(14px, 3vw, 20px)',
+                  maxWidth: '100%',
+                  boxSizing: 'border-box',
+                  overflow: 'hidden'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -3013,6 +3033,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                           type="button"
                           onClick={() => {
                             setFormData(prev => ({ ...prev, gemini_model: 'auto' }));
+                            localStorage.setItem('turbosanta_global_gemini_model', 'auto');
                             setDetectStatus('🔄 Auto Mode Selected: Zero maintenance! Will always automatically track newest Google Free Tier Flash.');
                             setTimeout(() => setDetectStatus(''), 6000);
                           }}
@@ -3042,15 +3063,13 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                             setDetectStatus('Querying Google backend...');
                             try {
                               const res = await fetchLatestAiModels(currentTableSlug);
-                              if (res && res.latest) {
-                                setFormData(prev => ({ ...prev, gemini_model: res.latest }));
-                                setDetectStatus(`⚡ Connected to Google API: ${res.latest} detected as newest free model!`);
-                              } else {
-                                setFormData(prev => ({ ...prev, gemini_model: 'gemini-3.8-flash' }));
-                                setDetectStatus('⚡ Set to newest free model: gemini-3.8-flash');
-                              }
+                              const detected = (res && res.latest) ? res.latest : 'gemini-3.8-flash';
+                              setFormData(prev => ({ ...prev, gemini_model: detected }));
+                              localStorage.setItem('turbosanta_global_gemini_model', detected);
+                              setDetectStatus(`⚡ Connected to Google API: ${detected} detected as newest free model!`);
                             } catch(e) {
                               setFormData(prev => ({ ...prev, gemini_model: 'gemini-3.8-flash' }));
+                              localStorage.setItem('turbosanta_global_gemini_model', 'gemini-3.8-flash');
                               setDetectStatus('⚡ Set to newest free model: gemini-3.8-flash');
                             } finally {
                               setIsDetectingModel(false);
@@ -3081,11 +3100,16 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       <input
                         type="text"
                         value={formData.gemini_model || 'auto'}
-                        onChange={(e) => setFormData(prev => ({ ...prev, gemini_model: e.target.value }))}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFormData(prev => ({ ...prev, gemini_model: val }));
+                          localStorage.setItem('turbosanta_global_gemini_model', val);
+                        }}
                         placeholder="e.g. auto, gemini-3.8-flash, flash 3.8, flash 3.6"
                         style={{
                           flex: 1,
                           width: '100%',
+                          maxWidth: '100%',
                           background: '#161614',
                           border: '1px solid var(--border)',
                           borderRadius: '6px',
@@ -3260,6 +3284,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   onClick={async () => {
                     const tableSlug = session?.tableId || session?.tableSlug || tableData?.table?.slug || 'beverley';
                     localStorage.setItem('custom_national_admin_emails', JSON.stringify(approvedEmails));
+                    localStorage.setItem('turbosanta_global_gemini_model', formData.gemini_model || 'auto');
                     const payload = {
                       sleigh_display_name: formData.sleigh_display_name,
                       fundraising_goal: formData.fundraising_goal,
@@ -3280,7 +3305,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       headline_sponsor_logo: formData.headline_sponsor_logo || null,
                       headline_sponsor_url: formData.headline_sponsor_url || null,
                       headline_sponsor_tagline: formData.headline_sponsor_tagline || null,
-                      gemini_model: formData.gemini_model || 'flash 3.6',
+                      gemini_model: formData.gemini_model || 'auto',
                       gemini_api_key: formData.gemini_api_key || '',
                       approved_national_emails: approvedEmails
                     };

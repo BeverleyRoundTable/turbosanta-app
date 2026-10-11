@@ -9,6 +9,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
   @font-face {
     font-family: 'Eurostile';
@@ -582,11 +583,39 @@
 
   <div id="gatekeeper">
     <div class="gate-box">
-      <h2>TURBO<span>SANTA</span><br>NATIONAL</h2>
-      <p>Authorized access required.</p>
-      <div id="passError" class="gate-error">Incorrect password. Please try again.</div>
-      <input type="password" id="passInput" placeholder="Enter Master Password" onkeypress="if(event.key === 'Enter') checkPassword()">
-      <button onclick="checkPassword()">UNLOCK LEADERBOARD</button>
+      <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; background: rgba(251, 175, 51, 0.15); border: 1px solid var(--border-gold); margin-bottom: 16px;">
+        <span style="font-size: 26px;">🛡️</span>
+      </div>
+      <h2>TURBO<span>SANTA</span><br>NATIONAL RADAR</h2>
+      <p style="margin-bottom: 18px; color: var(--text-dim);">Confidential National Fleet Tracking & Aggregation</p>
+
+      <div id="authStatusError" class="gate-error" style="display: none;"></div>
+
+      <!-- Google Workspace Single Sign-On -->
+      <div id="googleAuthSection">
+        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+          National access requires verification via official Google Workspace.
+        </div>
+        <div id="googleBtnContainer" style="display: flex; justify-content: center; margin: 16px 0; min-height: 44px;">
+          <div style="color: var(--text-muted); font-size: 12px;">Loading Google Authentication...</div>
+        </div>
+        <p style="font-size: 11px; color: var(--text-muted); margin-top: 14px; line-height: 1.5;">
+          🔒 Passwordless Single Sign-On &bull; Restricted strictly to authorized National Board accounts (<code style="color: var(--gold);">@roundtable.org.uk</code>).
+        </p>
+      </div>
+
+      <!-- Access Denied For Standard Table Admins -->
+      <div id="deniedSection" style="display: none; text-align: center; margin-top: 10px;">
+        <div style="background: rgba(211, 28, 28, 0.15); border: 1px solid rgba(211, 28, 28, 0.4); border-radius: 10px; padding: 16px; margin-bottom: 18px; color: #fca5a5; font-size: 13px; line-height: 1.5;">
+          <strong style="color: #fff; font-size: 14px; display: block; margin-bottom: 6px;">⛔ Access Restricted</strong>
+          Signed in as: <strong style="color: #fff;" id="deniedEmail"></strong><br><br>
+          The National Fleet Radar tracks all tables across the country and is strictly reserved for authorized National Board members. Standard table accounts do not have access to national tracking.
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+          <a href="/hub.html" style="display: inline-flex; align-items: center; justify-content: center; padding: 10px 20px; background: var(--gold); color: #000; font-weight: 700; border-radius: 8px; text-decoration: none; font-size: 13px;">Return to Table Hub</a>
+          <button type="button" onclick="handleSwitchAccount()" style="padding: 10px 18px; background: #252522; border: 1px solid var(--border); color: #fff; font-weight: 600; border-radius: 8px; cursor: pointer; font-size: 13px;">Switch Google Account</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -748,125 +777,161 @@ const DEFAULT_NATIONAL_EMAILS = [
   'rtbi@roundtable.org.uk'
 ];
 
+const OFFICIAL_GOOGLE_CLIENT_ID = "174929950272-ehpf04nea7ev4j8gfosq5acg6dvfmc95.apps.googleusercontent.com";
+
+function parseJwt(token) {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
+  }
+}
+
 function getApprovedNationalEmails() {
   try {
     const custom = JSON.parse(localStorage.getItem('custom_national_admin_emails') || '[]');
-    return Array.from(new Set([...DEFAULT_NATIONAL_EMAILS, ...custom]));
+    return Array.from(new Set([...DEFAULT_NATIONAL_EMAILS, ...custom.map(e => String(e).trim().toLowerCase())]));
   } catch(e) {
     return DEFAULT_NATIONAL_EMAILS;
+  }
+}
+
+function initGoogleAuth() {
+  const container = document.getElementById('googleBtnContainer');
+  if (!container) return;
+
+  const renderGoogleBtn = () => {
+    if (window.google?.accounts?.id) {
+      try {
+        window.google.accounts.id.initialize({
+          client_id: OFFICIAL_GOOGLE_CLIENT_ID,
+          callback: handleGoogleCredentialResponse,
+          auto_select: false,
+          cancel_on_tap_outside: true,
+          hd: "roundtable.org.uk"
+        });
+        container.innerHTML = '';
+        window.google.accounts.id.renderButton(container, {
+          type: 'standard',
+          theme: 'outline',
+          size: 'large',
+          text: 'continue_with',
+          shape: 'rectangular',
+          logo_alignment: 'left',
+          width: 280
+        });
+      } catch (err) {
+        console.warn("GSI init warning:", err);
+      }
+    }
+  };
+
+  if (window.google?.accounts?.id) {
+    renderGoogleBtn();
+  } else {
+    const interval = setInterval(() => {
+      if (window.google?.accounts?.id) {
+        clearInterval(interval);
+        renderGoogleBtn();
+      }
+    }, 200);
+    setTimeout(() => clearInterval(interval), 10000);
+  }
+}
+
+function handleGoogleCredentialResponse(response) {
+  const payload = parseJwt(response.credential);
+  if (!payload || !payload.email) {
+    showAuthError("Invalid Google credential. Please try signing in again.");
+    return;
+  }
+
+  const email = payload.email.trim().toLowerCase();
+  const approved = getApprovedNationalEmails().map(e => e.toLowerCase());
+
+  if (!approved.includes(email)) {
+    // Normal / standard table email attempting to access national
+    document.getElementById('googleAuthSection').style.display = 'none';
+    document.getElementById('deniedSection').style.display = 'block';
+    document.getElementById('deniedEmail').textContent = email;
+    return;
+  }
+
+  // Approved! Create and persist national session
+  const adminSession = {
+    email: email,
+    name: payload.name || 'National Admin',
+    picture: payload.picture || '',
+    role: 'national_admin',
+    isNationalAdmin: true,
+    authenticatedAt: new Date().toISOString()
+  };
+  localStorage.setItem('turbosanta_admin_session', JSON.stringify(adminSession));
+  localStorage.setItem('ts2_admin_session', JSON.stringify(adminSession));
+  localStorage.setItem('national_auth', email);
+
+  unlockAndStart(email);
+}
+
+function unlockAndStart(email) {
+  localStorage.setItem('national_auth', email || 'national');
+  const gate = document.getElementById('gatekeeper');
+  const app = document.getElementById('appContainer');
+  if (gate) gate.style.display = 'none';
+  if (app) app.style.display = 'block';
+  startApp([]).catch(err => console.error("Auto-start error:", err));
+}
+
+function handleSwitchAccount() {
+  localStorage.removeItem('turbosanta_admin_session');
+  localStorage.removeItem('ts2_admin_session');
+  localStorage.removeItem('national_auth');
+  document.getElementById('deniedSection').style.display = 'none';
+  document.getElementById('googleAuthSection').style.display = 'block';
+  initGoogleAuth();
+}
+
+function showAuthError(msg) {
+  const errEl = document.getElementById('authStatusError');
+  if (errEl) {
+    errEl.textContent = msg;
+    errEl.style.display = 'block';
   }
 }
 
 // Auto-Login Verification on Page Load
 window.addEventListener('DOMContentLoaded', () => {
   try {
-    const session = JSON.parse(localStorage.getItem('ts2_admin_session') || '{}');
+    const session = JSON.parse(localStorage.getItem('turbosanta_admin_session') || localStorage.getItem('ts2_admin_session') || '{}');
     const email = (session.email || '').toLowerCase().trim();
     const approved = getApprovedNationalEmails().map(e => e.toLowerCase());
 
-    if (approved.includes(email) || session.isNationalAdmin || session.role === 'national_admin') {
-      console.log("⚡ Auto-Login Verified for National Board member:", email);
-      localStorage.setItem('national_auth', email || 'santa2026');
-      document.getElementById('gatekeeper').style.display = 'none';
-      document.getElementById('appContainer').style.display = 'block';
-      startApp([]).catch(err => console.error("Auto-start error:", err));
-      return;
+    if (email) {
+      if (approved.includes(email) || session.isNationalAdmin || session.role === 'national_admin') {
+        console.log("⚡ Passwordless Auto-Login Verified for National Board member:", email);
+        unlockAndStart(email);
+        return;
+      } else {
+        // Standard table account signed in -> politely restrict access
+        document.getElementById('googleAuthSection').style.display = 'none';
+        document.getElementById('deniedSection').style.display = 'block';
+        document.getElementById('deniedEmail').textContent = email;
+        return;
+      }
     }
   } catch(e) {}
 
-  const saved = localStorage.getItem('national_auth');
-  if (saved) {
-    document.getElementById('passInput').value = saved;
-    checkPassword();
-  }
+  // If not already signed in, initialize Google Workspace SSO button
+  initGoogleAuth();
 });
-
-async function checkPassword() {
-  const input = document.getElementById('passInput').value.trim();
-  if (!input) return;
-
-  const btn = document.querySelector('.gate-box button');
-  const originalBtnText = btn ? btn.textContent : "UNLOCK";
-  
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = "VERIFYING...";
-  }
-  document.getElementById('passInput').disabled = true;
-  document.getElementById('passError').style.display = 'none';
-
-  // Fast master passwords & Approved National Emails
-  const validMasterKeys = ['santa2026', 'beverley247', 'admin', 'Santa2026!', '(BeverleyRoundTableSleigh26!)'];
-  const approvedEmails = getApprovedNationalEmails().map(e => e.toLowerCase());
-  const isEmailMatch = approvedEmails.includes(input.toLowerCase());
-  const isMasterMatch = validMasterKeys.includes(input);
-
-  if (isMasterMatch || isEmailMatch) {
-    localStorage.setItem('national_auth', input);
-    document.getElementById('gatekeeper').style.display = 'none';
-    document.getElementById('appContainer').style.display = 'block';
-    startApp([]).catch(appErr => console.error("Error launching national rollup:", appErr));
-    return;
-  }
-  
-  try {
-    // 1. Modern TurboSanta D1 Verification
-    let authPassed = false;
-    let tablesData = [];
-
-    try {
-      const d1Res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/national?secret=${encodeURIComponent(input)}`);
-      if (d1Res.ok) {
-        const d1Data = await d1Res.json();
-        if (d1Data && (d1Data.ok || d1Data.tables)) {
-          authPassed = true;
-          tablesData = d1Data.tables || [];
-        }
-      }
-    } catch(d1Err) {
-      console.warn("D1 verification check skipped:", d1Err);
-    }
-
-    // 2. Fallback to Legacy Google Apps Script via proxy
-    if (!authPassed) {
-      try {
-        const targetScript = `${REGISTRY_URL}?secret=${encodeURIComponent(input)}`;
-        const authUrl = `https://santaproxy.beverley247.workers.dev/?ttl=0&target=${encodeURIComponent(targetScript)}`;
-        const res = await fetch(authUrl);
-        const text = await res.text();
-        
-        if (!text.trim().startsWith('<') && !text.includes('<!DOCTYPE html>')) {
-          const data = JSON.parse(text);
-          if (data && !data.error) {
-            authPassed = true;
-            tablesData = data.tables || data;
-          }
-        }
-      } catch (proxyErr) {
-        console.warn("Proxy verification error:", proxyErr);
-      }
-    }
-
-    if (authPassed) {
-      localStorage.setItem('national_auth', input);
-      document.getElementById('gatekeeper').style.display = 'none';
-      document.getElementById('appContainer').style.display = 'block';
-      startApp(tablesData).catch(appErr => console.error("Error launching national rollup:", appErr));
-    } else {
-      throw new Error("Incorrect password or unapproved email. Please try again.");
-    }
-
-  } catch (err) {
-    console.error("checkPassword error:", err);
-    document.getElementById('passError').textContent = err.message || "Incorrect password or unapproved email.";
-    document.getElementById('passError').style.display = 'block';
-    document.getElementById('passInput').disabled = false;
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = originalBtnText;
-    }
-  }
-}
 
 function getActiveSeasonYear() {
   const now = new Date();
@@ -1061,20 +1126,21 @@ async function loadAll(fetchRegistry = true, isBackground = false) {
   let savedPass = localStorage.getItem('national_auth');
   if (!savedPass) {
     try {
-      const session = JSON.parse(localStorage.getItem('ts2_admin_session') || '{}');
+      const session = JSON.parse(localStorage.getItem('turbosanta_admin_session') || localStorage.getItem('ts2_admin_session') || '{}');
       const email = (session.email || '').toLowerCase().trim();
       const approved = getApprovedNationalEmails().map(e => e.toLowerCase());
       if (approved.includes(email) || session.isNationalAdmin || session.role === 'national_admin') {
-        savedPass = email || 'santa2026';
+        savedPass = email || 'national';
         localStorage.setItem('national_auth', savedPass);
       }
     } catch(e) {}
   }
   
   if (!savedPass) {
-    // If password is lost, force back to login gatekeeper
+    // If not authenticated, force back to Google SSO gatekeeper
     document.getElementById('gatekeeper').style.display = 'flex';
     document.getElementById('appContainer').style.display = 'none';
+    initGoogleAuth();
     return;
   }
   
@@ -1101,6 +1167,7 @@ async function loadAll(fetchRegistry = true, isBackground = false) {
         localStorage.removeItem('national_auth');
         document.getElementById('gatekeeper').style.display = 'flex';
         document.getElementById('appContainer').style.display = 'none';
+        initGoogleAuth();
         return;
       }
       throw new Error(payload.error);
