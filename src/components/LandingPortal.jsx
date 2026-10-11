@@ -8,22 +8,11 @@ import { parseTableDetailsFromEmail, isRoundTableEmail } from '../services/auth'
 
 export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
   const [inputVal, setInputVal] = useState(session?.email || '');
-  const [searchTown, setSearchTown] = useState('');
 
   // Auto-detect table details from input
   const detected = parseTableDetailsFromEmail(inputVal);
 
-  const popularTables = [
-    { name: 'Beverley Round Table #247', slug: 'beverley', town: 'Beverley', email: 'beverley247@roundtable.org.uk' },
-    { name: 'Shirley Round Table #414', slug: 'shirley', town: 'Shirley', email: 'shirley414@roundtable.org.uk' },
-    { name: 'Doncaster Round Table', slug: 'doncaster', town: 'Doncaster', email: 'doncaster@roundtable.org.uk' },
-    { name: 'Ellon Round Table #379', slug: 'ellon', town: 'Ellon', email: 'ellon379@roundtable.org.uk' }
-  ];
 
-  const filteredTables = popularTables.filter(t => 
-    t.town.toLowerCase().includes(searchTown.toLowerCase()) ||
-    t.name.toLowerCase().includes(searchTown.toLowerCase())
-  );
 
   const handleLaunchHub = () => {
     if (!detected) return;
@@ -588,179 +577,10 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
             </button>
           </div>
 
-          {/* POPULAR TABLES CHIPS */}
-          <div>
-            <div style={{
-              fontSize: '11px',
-              textTransform: 'uppercase',
-              color: 'rgba(255, 255, 255, 0.5)',
-              fontWeight: 700,
-              letterSpacing: '0.5px',
-              marginBottom: '8px'
-            }}>
-              Quick Select Table:
-            </div>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {popularTables.map(t => {
-                const isSelected = detected?.slug === t.slug;
-                return (
-                  <button
-                    key={t.slug}
-                    onClick={() => setInputVal(isSelected ? '' : t.email)}
-                    style={{
-                      backgroundColor: isSelected ? 'rgba(251, 175, 51, 0.2)' : '#1e1e1b',
-                      color: isSelected ? '#FBAF33' : '#eaeae5',
-                      border: `1px solid ${isSelected ? '#FBAF33' : 'rgba(255, 255, 255, 0.08)'}`,
-                      borderRadius: '20px',
-                      padding: '5px 12px',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      transition: 'all 0.15s'
-                    }}
-                  >
-                    {t.name}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* PUBLIC TOWN FINDER SECTION */}
-      <section style={{
-        backgroundColor: '#161614',
-        borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-        padding: '50px 24px',
-        marginTop: '30px'
-      }}>
-        <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-            <h2 style={{
-              fontFamily: 'Eurostile, sans-serif',
-              fontSize: '28px',
-              fontWeight: 800,
-              textTransform: 'uppercase',
-              margin: '0 0 8px 0',
-              color: '#ffffff'
-            }}>
-              Looking for Santa in <span style={{ color: '#FBAF33' }}>Your Town?</span>
-            </h2>
-            <p style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '15px', margin: 0 }}>
-              Search for your local Round Table Santa Sleigh to track the sleigh live and check street dates
-            </p>
-          </div>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '20px'
-          }}>
-            {filteredTables.map(t => (
-              <div
-                key={t.slug}
-                style={{
-                  backgroundColor: '#1e1e1b',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '16px',
-                  padding: '20px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  gap: '16px',
-                  transition: 'transform 0.2s, border-color 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.borderColor = 'rgba(251, 175, 51, 0.4)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
-                }}
-              >
-                <div>
-                  <div style={{
-                    display: 'inline-block',
-                    padding: '3px 8px',
-                    borderRadius: '4px',
-                    backgroundColor: 'rgba(46, 204, 113, 0.15)',
-                    color: '#2ecc71',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    marginBottom: '8px'
-                  }}>
-                    Active Season 2026
-                  </div>
-                  <h3 style={{
-                    fontFamily: 'Eurostile, sans-serif',
-                    fontSize: '18px',
-                    fontWeight: 800,
-                    margin: '0 0 6px 0',
-                    color: '#ffffff'
-                  }}>
-                    {t.name}
-                  </h3>
-                  <p style={{ margin: 0, fontSize: '13px', color: 'rgba(255, 255, 255, 0.6)' }}>
-                    Live GPS tracker, street list & online community donations.
-                  </p>
-                </div>
-
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <a
-                    href={`/?table=${t.slug}`}
-                    style={{
-                      flex: 1,
-                      backgroundColor: '#FBAF33',
-                      color: '#000000',
-                      textDecoration: 'none',
-                      padding: '8px 14px',
-                      borderRadius: '8px',
-                      fontFamily: 'Eurostile, sans-serif',
-                      fontWeight: 800,
-                      fontSize: '12px',
-                      textTransform: 'uppercase',
-                      textAlign: 'center',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <MapPin size={14} />
-                    <span>View Sleigh</span>
-                  </a>
-
-                  <a
-                    href={`/hub.html?table=${t.slug}`}
-                    style={{
-                      backgroundColor: 'transparent',
-                      color: '#eaeae5',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
-                      textDecoration: 'none',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      fontFamily: 'Eurostile, sans-serif',
-                      fontWeight: 700,
-                      fontSize: '12px',
-                      textTransform: 'uppercase',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                    title="Table Hub"
-                  >
-                    <ExternalLink size={14} />
-                  </a>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* TOOL SUITE FOR TABLES */}
       <section style={{

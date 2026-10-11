@@ -1146,6 +1146,12 @@ export default {
         const year = parseInt(url.searchParams.get("year")) || new Date().getFullYear();
         const isAdmin = url.searchParams.get("admin") === "1" || url.searchParams.get("admin") === "true";
         try {
+          let totalBucketCount = 0;
+          try {
+            const countRow = await env.DB.prepare("SELECT COUNT(*) as total FROM memory_book").first();
+            totalBucketCount = Number(countRow?.total || 0);
+          } catch(e) {}
+
           const sql = isAdmin
             ? `SELECT id, media_type, media_url, caption, year, status, created_at
                FROM memory_book
@@ -1156,9 +1162,16 @@ export default {
                WHERE (table_id = ? OR table_id = ?) AND year = ? AND status = 'approved'
                ORDER BY created_at DESC`;
           const res = await env.DB.prepare(sql).bind(table.id, table.slug, year).all();
-          return jsonResponse({ ok: true, year, items: res.results || [] });
+          return jsonResponse({
+            ok: true,
+            year,
+            items: res.results || [],
+            bucketCount: totalBucketCount,
+            bucketLimit: 10000,
+            bucketPercent: Math.min(100, Math.round((totalBucketCount / 10000) * 100))
+          });
         } catch (e) {
-          return jsonResponse({ ok: true, year, items: [] });
+          return jsonResponse({ ok: true, year, items: [], bucketCount: 0, bucketLimit: 10000, bucketPercent: 0 });
         }
       }
 
@@ -1202,6 +1215,15 @@ export default {
 
       if (request.method === "DELETE") {
         const memId = url.searchParams.get("id");
+        const purgeYear = url.searchParams.get("purgeYear");
+        if (purgeYear) {
+          try {
+            await env.DB.prepare(`DELETE FROM memory_book WHERE year <= ? AND (table_id = ? OR table_id = ?)`).bind(parseInt(purgeYear), table.id, table.slug).run();
+            return jsonResponse({ ok: true, purgedYear: purgeYear });
+          } catch (err) {
+            return jsonResponse({ ok: false, error: err.message }, 500);
+          }
+        }
         if (!memId) return jsonResponse({ ok: false, error: "Missing memory ID" }, 400);
         try {
           await env.DB.prepare(`DELETE FROM memory_book WHERE id = ? AND (table_id = ? OR table_id = ?)`).bind(memId, table.id, table.slug).run();

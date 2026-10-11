@@ -1622,12 +1622,7 @@
                 const partCont = $('partners-container');
                 const partners = (data && data.partners && data.partners.length > 0)
                     ? data.partners
-                    : (slug === 'beverley' ? [
-                        { name: "Zendure", role: "Official Power Partner", description: "Provided clean green portable power stations to keep the illuminations glowing bright.", url: "https://zendure.co.uk/" },
-                        { name: "Greens Signmakers", role: "Signage & Vinyl Craft", description: "Transformed the electric tuk-tuk into a show-stopping Santa Sleigh with eco-friendly signage.", url: "https://greens-signmakers.co.uk/" },
-                        { name: "Beverley Town Council", role: "Civic & Audio Grant", description: "Supported local community joy with civic and audio equipment grant funding.", url: "https://beverley.gov.uk/" },
-                        { name: "The Monks Walk", role: "Volunteer Sustenance", description: "Historic Beverley inn providing warming festive drinks and sustenance for volunteer elves.", url: "https://themonkswalk.co.uk/" }
-                    ] : []);
+                    : [];
 
                 if (partners && partners.length > 0 && partSec && partCont) {
                     partCont.replaceChildren();

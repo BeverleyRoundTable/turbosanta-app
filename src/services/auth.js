@@ -14,17 +14,38 @@ export function isRoundTableEmail(email) {
   return clean.endsWith("@roundtable.org.uk") || clean.endsWith("@roundtable.co.uk");
 }
 
-export const NATIONAL_ADMIN_EMAILS = [
+export const DEFAULT_NATIONAL_ADMIN_EMAILS = [
   "beverley247@roundtable.org.uk",
   "national@roundtable.org.uk",
   "admin@roundtable.org.uk",
   "rtbi@roundtable.org.uk"
 ];
 
+export function getApprovedNationalEmails() {
+  try {
+    const custom = JSON.parse(localStorage.getItem('custom_national_admin_emails') || '[]');
+    if (Array.isArray(custom)) {
+      return Array.from(new Set([...DEFAULT_NATIONAL_ADMIN_EMAILS, ...custom.map(e => String(e).trim().toLowerCase())]));
+    }
+  } catch (e) {}
+  return DEFAULT_NATIONAL_ADMIN_EMAILS;
+}
+
+export function saveApprovedNationalEmails(emails) {
+  try {
+    const cleanList = Array.from(new Set(emails.map(e => String(e).trim().toLowerCase()).filter(Boolean)));
+    localStorage.setItem('custom_national_admin_emails', JSON.stringify(cleanList));
+    return cleanList;
+  } catch (e) {
+    return emails;
+  }
+}
+
 export function isNationalAdmin(email) {
   if (!email || typeof email !== 'string') return false;
   const clean = email.trim().toLowerCase();
-  return clean.startsWith("national") || NATIONAL_ADMIN_EMAILS.includes(clean);
+  const approved = getApprovedNationalEmails();
+  return clean.startsWith("national") || approved.includes(clean);
 }
 
 /**

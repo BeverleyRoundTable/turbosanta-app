@@ -6,7 +6,8 @@ import {
   MapPin, Bell, Activity, MessageSquare, Check, X, BookOpen, FileSpreadsheet,
   Camera, Video, Image as ImageIcon, FolderDown, Eye, EyeOff, Sparkles, Filter,
   CreditCard, Key, Zap, RefreshCw, Send, Link2,
-  BarChart3, TrendingUp, Award, Printer, PieChart, Receipt
+  BarChart3, TrendingUp, Award, Printer, PieChart, Receipt,
+  Mail, HardDrive, AlertTriangle, Database
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { logoutAdmin, isNationalAdmin } from '../services/auth';
@@ -107,6 +108,18 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   const [selectedSeason, setSelectedSeason] = useState('2026');
   const [memoryItems, setMemoryItems] = useState([]);
   const [memoryModerationFilter, setMemoryModerationFilter] = useState('all');
+  const [storageQuota, setStorageQuota] = useState({ count: 0, limit: 10000, percent: 0 });
+
+  // Approved National Board Emails State (Beverley Master Admin)
+  const [approvedEmails, setApprovedEmails] = useState(() => {
+    try {
+      const custom = JSON.parse(localStorage.getItem('custom_national_admin_emails') || '[]');
+      return Array.from(new Set(['beverley247@roundtable.org.uk', 'national@roundtable.org.uk', 'admin@roundtable.org.uk', 'rtbi@roundtable.org.uk', ...custom]));
+    } catch(e) {
+      return ['beverley247@roundtable.org.uk', 'national@roundtable.org.uk', 'admin@roundtable.org.uk', 'rtbi@roundtable.org.uk'];
+    }
+  });
+  const [newApprovedEmailInput, setNewApprovedEmailInput] = useState('');
 
   // Fetch live Memory Book submissions from Cloudflare D1
   React.useEffect(() => {
@@ -116,6 +129,11 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         .then(res => res.json())
         .then(data => {
           if (data && Array.isArray(data.items)) {
+            const count = data.bucketCount !== undefined ? Number(data.bucketCount) : data.items.length;
+            const limit = Number(data.bucketLimit || 10000);
+            const pct = data.bucketPercent !== undefined ? Number(data.bucketPercent) : Math.min(100, Math.round((count / limit) * 100));
+            setStorageQuota({ count, limit, percent: pct });
+
             const dbItems = data.items.map(m => ({
               id: m.id,
               year: String(m.year),
@@ -160,6 +178,11 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     if (!confirm("Are you sure you want to permanently delete this photo submission?")) return;
     const tableSlug = session?.tableId || session?.tableSlug || 'beverley';
     setMemoryItems(prev => prev.filter(m => String(m.id) !== String(itemId)));
+    setStorageQuota(prev => ({
+      ...prev,
+      count: Math.max(0, prev.count - 1),
+      percent: Math.max(0, Math.round(((prev.count - 1) / prev.limit) * 100))
+    }));
     setSaveStatus("Photo deleted permanently.");
     setTimeout(() => setSaveStatus(''), 2500);
 
@@ -170,6 +193,84 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     } catch (e) {
       console.warn("Failed to delete memory item on worker:", e);
     }
+  };
+
+  const handlePurgeYearMedia = async (yearToPurge) => {
+    if (!confirm(`⚠️ ARE YOU SURE?\n\nThis will permanently delete all memory book submissions for season ${yearToPurge} from your Cloudflare bucket to free up space.\n\nPlease confirm you have already downloaded your media archive before continuing!`)) {
+      return;
+    }
+    const tableSlug = session?.tableId || session?.tableSlug || 'beverley';
+    setSaveStatus(`Purging ${yearToPurge} media from Cloudflare bucket...`);
+    try {
+      const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/memory-book?table=${encodeURIComponent(tableSlug)}&purgeYear=${yearToPurge}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        const removedCount = memoryItems.filter(m => m.year === String(yearToPurge)).length;
+        setMemoryItems(prev => prev.filter(m => m.year !== String(yearToPurge)));
+        setStorageQuota(prev => {
+          const newCount = Math.max(0, prev.count - removedCount);
+          return {
+            ...prev,
+            count: newCount,
+            percent: Math.max(0, Math.round((newCount / prev.limit) * 100))
+          };
+        });
+        setSaveStatus(`✅ Season ${yearToPurge} media purged successfully to save bucket storage.`);
+      }
+    } catch(e) {
+      console.warn("Failed to purge media:", e);
+      setSaveStatus("Failed to purge media.");
+    }
+    setTimeout(() => setSaveStatus(''), 4000);
+  };
+
+  const handleDownloadAllHistoricalMedia = () => {
+    if (!memoryItems.length) {
+      alert("No media items available to download.");
+      return;
+    }
+    memoryItems.forEach((item, idx) => {
+      setTimeout(() => {
+        const ext = item.type === 'video' ? 'mp4' : 'jpg';
+        const name = `${session.tableId || 'table'}_santa_${item.year}_vault_${item.id}.${ext}`;
+        handleDownloadMedia(item.url, name);
+      }, idx * 300);
+    });
+    setSaveStatus(`📥 Batch downloading all ${memoryItems.length} media files...`);
+    setTimeout(() => setSaveStatus(''), 4000);
+  };
+
+  const handleAddApprovedEmail = (e) => {
+    if (e) e.preventDefault();
+    const clean = (newApprovedEmailInput || '').trim().toLowerCase();
+    if (!clean) return;
+    if (!clean.includes('@') || !clean.includes('.')) {
+      alert('Please enter a valid email address.');
+      return;
+    }
+    if (approvedEmails.includes(clean)) {
+      alert(`${clean} is already an approved email.`);
+      return;
+    }
+    const updated = [...approvedEmails, clean];
+    setApprovedEmails(updated);
+    localStorage.setItem('custom_national_admin_emails', JSON.stringify(updated));
+    setNewApprovedEmailInput('');
+    setSaveStatus(`✅ Added ${clean} to approved National Board emails!`);
+    setTimeout(() => setSaveStatus(''), 3000);
+  };
+
+  const handleRemoveApprovedEmail = (emailToRemove) => {
+    if (emailToRemove === 'beverley247@roundtable.org.uk') {
+      alert('Beverley Master Admin cannot be removed.');
+      return;
+    }
+    const updated = approvedEmails.filter(e => e !== emailToRemove);
+    setApprovedEmails(updated);
+    localStorage.setItem('custom_national_admin_emails', JSON.stringify(updated));
+    setSaveStatus(`Removed ${emailToRemove} from approved emails.`);
+    setTimeout(() => setSaveStatus(''), 3000);
   };
 
   const handleDownloadMedia = (url, filename) => {
@@ -3016,6 +3117,111 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       )}
                     </div>
                   </div>
+
+                  {/* APPROVED NATIONAL BOARD EMAILS (MASTER ADMIN ONLY) */}
+                  <div style={{
+                    marginTop: '20px',
+                    paddingTop: '20px',
+                    borderTop: '1px solid rgba(251, 175, 51, 0.2)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Shield size={16} color="var(--primary)" />
+                        <strong style={{ fontSize: '15px', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Approved National Board Emails (Auto-Login)
+                        </strong>
+                      </div>
+                      <span style={{
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        background: 'rgba(251, 175, 51, 0.15)',
+                        color: 'var(--primary)',
+                        border: '1px solid rgba(251, 175, 51, 0.3)'
+                      }}>
+                        Beverley Master Admin Only
+                      </span>
+                    </div>
+
+                    <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '0 0 14px 0', lineHeight: 1.5 }}>
+                      Round Table admins logged in with these approved email addresses will automatically bypass password prompts and gain instant auto-login to the National Fleet Radar (<code style={{ color: '#FBAF33' }}>/national.html</code>). <em>This control is hidden from all other tables.</em>
+                    </p>
+
+                    {/* Chips for Approved Emails */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
+                      {approvedEmails.map((email) => (
+                        <div
+                          key={email}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            background: '#181816',
+                            border: email === 'beverley247@roundtable.org.uk' ? '1px solid var(--primary)' : '1px solid var(--border)',
+                            borderRadius: '20px',
+                            padding: '6px 14px',
+                            fontSize: '13px',
+                            color: '#fff'
+                          }}
+                        >
+                          <Mail size={13} color={email === 'beverley247@roundtable.org.uk' ? 'var(--primary)' : 'var(--text-muted)'} />
+                          <span style={{ fontFamily: 'monospace' }}>{email}</span>
+                          {email === 'beverley247@roundtable.org.uk' ? (
+                            <span style={{ fontSize: '10px', color: 'var(--primary)', fontWeight: 700, textTransform: 'uppercase' }}>(Master)</span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveApprovedEmail(email)}
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'var(--text-muted)',
+                                cursor: 'pointer',
+                                padding: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                                lineHeight: 1
+                              }}
+                              title="Remove email"
+                            >
+                              <X size={14} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Add Approved Email Input */}
+                    <div style={{ display: 'flex', gap: '8px', maxWidth: '520px', flexWrap: 'wrap' }}>
+                      <input
+                        type="email"
+                        value={newApprovedEmailInput}
+                        onChange={(e) => setNewApprovedEmailInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddApprovedEmail(e); } }}
+                        placeholder="Add email: e.g. national@roundtable.org.uk"
+                        style={{
+                          flex: '1 1 260px',
+                          background: '#161614',
+                          border: '1px solid var(--border)',
+                          borderRadius: '6px',
+                          padding: '8px 12px',
+                          color: '#fff',
+                          fontSize: '13px',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddApprovedEmail}
+                        className="btn-primary"
+                        style={{ padding: '8px 14px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                      >
+                        <Plus size={14} />
+                        <span>Add Email</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div style={{
@@ -3053,6 +3259,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 <button
                   onClick={async () => {
                     const tableSlug = session?.tableId || session?.tableSlug || tableData?.table?.slug || 'beverley';
+                    localStorage.setItem('custom_national_admin_emails', JSON.stringify(approvedEmails));
                     const payload = {
                       sleigh_display_name: formData.sleigh_display_name,
                       fundraising_goal: formData.fundraising_goal,
@@ -3074,7 +3281,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       headline_sponsor_url: formData.headline_sponsor_url || null,
                       headline_sponsor_tagline: formData.headline_sponsor_tagline || null,
                       gemini_model: formData.gemini_model || 'flash 3.6',
-                      gemini_api_key: formData.gemini_api_key || ''
+                      gemini_api_key: formData.gemini_api_key || '',
+                      approved_national_emails: approvedEmails
                     };
 
                     if (onUpdateTableData) {
@@ -3334,6 +3542,112 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     <ExternalLink size={15} />
                     <span>View Public Gallery</span>
                   </a>
+                </div>
+              </div>
+
+              {/* CLOUDFLARE R2 BUCKET STORAGE CAPACITY & ARCHIVE QUOTA METER */}
+              <div style={{
+                background: storageQuota.percent >= 85 ? 'rgba(239, 68, 68, 0.08)' : (storageQuota.percent >= 70 ? 'rgba(245, 158, 11, 0.08)' : '#0d0d0b'),
+                border: storageQuota.percent >= 85 ? '1px solid rgba(239, 68, 68, 0.4)' : (storageQuota.percent >= 70 ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--border)'),
+                borderRadius: '14px',
+                padding: '18px 22px',
+                marginBottom: '20px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{
+                      width: '36px', height: '36px', borderRadius: '10px',
+                      background: storageQuota.percent >= 85 ? 'rgba(239, 68, 68, 0.2)' : (storageQuota.percent >= 70 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(251, 175, 51, 0.15)'),
+                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>
+                      <HardDrive size={18} color={storageQuota.percent >= 85 ? '#ef4444' : (storageQuota.percent >= 70 ? '#f59e0b' : 'var(--primary)')} />
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <strong style={{ fontSize: '15px', color: '#fff', letterSpacing: '0.5px' }}>
+                          Cloudflare R2 Bucket Storage Capacity
+                        </strong>
+                        <span style={{
+                          fontSize: '11px', fontWeight: 800, padding: '2px 8px', borderRadius: '4px',
+                          background: storageQuota.percent >= 85 ? 'rgba(239, 68, 68, 0.2)' : (storageQuota.percent >= 70 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(34, 197, 94, 0.15)'),
+                          color: storageQuota.percent >= 85 ? '#ef4444' : (storageQuota.percent >= 70 ? '#f59e0b' : '#22c55e'),
+                          border: `1px solid ${storageQuota.percent >= 85 ? 'rgba(239, 68, 68, 0.4)' : (storageQuota.percent >= 70 ? 'rgba(245, 158, 11, 0.4)' : 'rgba(34, 197, 94, 0.3)')}`
+                        }}>
+                          {storageQuota.percent >= 85 ? 'High Storage Alert' : (storageQuota.percent >= 70 ? 'Approaching Limit' : 'Safe Tier Active ($0 Cost)')}
+                        </span>
+                      </div>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
+                        Shared storage across all Round Table sleighs. Limit: 10,000 files before Cloudflare storage fees apply.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '18px', fontWeight: 800, color: storageQuota.percent >= 85 ? '#ef4444' : (storageQuota.percent >= 70 ? '#f59e0b' : '#fff'), fontFamily: 'var(--font-mono)' }}>
+                      {storageQuota.count.toLocaleString()} / 10,000 <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>({storageQuota.percent}%)</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.08)', borderRadius: '4px', overflow: 'hidden', marginBottom: '14px' }}>
+                  <div style={{
+                    width: `${Math.min(100, Math.max(1, storageQuota.percent))}%`,
+                    height: '100%',
+                    background: storageQuota.percent >= 85 ? 'linear-gradient(90deg, #f59e0b, #ef4444)' : (storageQuota.percent >= 70 ? 'linear-gradient(90deg, #22c55e, #f59e0b)' : 'linear-gradient(90deg, #22c55e, #3b82f6)'),
+                    borderRadius: '4px',
+                    transition: 'width 0.5s ease-out'
+                  }} />
+                </div>
+
+                {/* Safe Warning Banner */}
+                {storageQuota.percent >= 70 ? (
+                  <div style={{
+                    display: 'flex', alignItems: 'flex-start', gap: '10px',
+                    background: storageQuota.percent >= 85 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                    border: storageQuota.percent >= 85 ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(245, 158, 11, 0.3)',
+                    borderRadius: '8px', padding: '10px 14px', marginBottom: '12px'
+                  }}>
+                    <AlertTriangle size={18} color={storageQuota.percent >= 85 ? '#ef4444' : '#f59e0b'} style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <div style={{ fontSize: '12px', color: '#fff', lineHeight: 1.5 }}>
+                      <strong>Safe Storage Limit Warning:</strong> You have reached {storageQuota.percent}% of the 10,000 image bucket limit!
+                      Please download your season media archive to keep your photos safely preserved on your local PC or Google Drive, then purge older seasons to maintain $0 storage costs.
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>💡</span>
+                    <span><strong>Storage Reminder:</strong> Download all media at the end of each Christmas season so older media can be safely cleared to keep storage completely free.</span>
+                  </div>
+                )}
+
+                {/* Archive & Purge Action Controls */}
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <button
+                    onClick={handleDownloadAllHistoricalMedia}
+                    style={{
+                      background: '#1e1e1b', border: '1px solid var(--border)', color: '#fff',
+                      borderRadius: '8px', padding: '8px 14px', fontSize: '12px', fontWeight: 600,
+                      display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer'
+                    }}
+                  >
+                    <FolderDown size={14} />
+                    <span>Download Full Vault Archive ({memoryItems.length} Files)</span>
+                  </button>
+
+                  {selectedSeason !== '2026' && (
+                    <button
+                      onClick={() => handlePurgeYearMedia(selectedSeason)}
+                      style={{
+                        background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444',
+                        borderRadius: '8px', padding: '8px 14px', fontSize: '12px', fontWeight: 700,
+                        display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer'
+                      }}
+                    >
+                      <Trash2 size={14} />
+                      <span>Purge {selectedSeason} Media to Free Space</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
