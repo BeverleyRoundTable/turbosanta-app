@@ -2423,7 +2423,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                   <strong style={{ fontSize: '16px', color: '#fff' }}>1. Street Address & Spatial Lookup (Recommended)</strong>
                   <button
-                    onClick={() => copyToClipboard('addr', `<iframe src="https://turbosanta-app.pages.dev/address.html?table=${session.tableId || 'beverley'}" width="100%" height="600" style="border:none;border-radius:16px;" allow="geolocation"></iframe>`)}
+                    onClick={() => copyToClipboard('addr', `<iframe src="https://roundtablesantasleigh.co.uk/address.html?table=${session.tableId || 'beverley'}" width="100%" height="600" style="border:none;border-radius:16px;" allow="geolocation"></iframe>`)}
                     className="btn-primary"
                     style={{ padding: '6px 14px', fontSize: '12px' }}
                   >
@@ -2435,7 +2435,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   Interactive OpenStreetMap with "Use My Location", street autocomplete, and 150m radius calculation.
                 </p>
                 <pre style={{ background: '#151513', padding: '12px', borderRadius: '8px', fontSize: '12px', color: 'var(--primary)', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
-{`<iframe src="https://turbosanta-app.pages.dev/address.html?table=${session.tableId || 'beverley'}" width="100%" height="600" style="border:none;border-radius:16px;" allow="geolocation"></iframe>`}
+{`<iframe src="https://roundtablesantasleigh.co.uk/address.html?table=${session.tableId || 'beverley'}" width="100%" height="600" style="border:none;border-radius:16px;" allow="geolocation"></iframe>`}
                 </pre>
               </div>
 
@@ -2444,7 +2444,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                   <strong style={{ fontSize: '16px', color: '#fff' }}>2. Live Sleigh Tracker Map</strong>
                   <button
-                    onClick={() => copyToClipboard('track', `<iframe src="https://turbosanta-app.pages.dev/tracker.html?table=${session.tableId || 'beverley'}" width="100%" height="650" style="border:none;border-radius:16px;" allow="geolocation"></iframe>`)}
+                    onClick={() => copyToClipboard('track', `<iframe src="https://roundtablesantasleigh.co.uk/tracker.html?table=${session.tableId || 'beverley'}" width="100%" height="650" style="border:none;border-radius:16px;" allow="geolocation"></iframe>`)}
                     className="btn-primary"
                     style={{ padding: '6px 14px', fontSize: '12px' }}
                   >
@@ -2456,7 +2456,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   Full mission map with real-time GPS telemetry, dual-layer route polylines, and live Santa marker.
                 </p>
                 <pre style={{ background: '#151513', padding: '12px', borderRadius: '8px', fontSize: '12px', color: 'var(--primary)', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
-{`<iframe src="https://turbosanta-app.pages.dev/tracker.html?table=${session.tableId || 'beverley'}" width="100%" height="650" style="border:none;border-radius:16px;" allow="geolocation"></iframe>`}
+{`<iframe src="https://roundtablesantasleigh.co.uk/tracker.html?table=${session.tableId || 'beverley'}" width="100%" height="650" style="border:none;border-radius:16px;" allow="geolocation"></iframe>`}
                 </pre>
               </div>
 
@@ -2465,7 +2465,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                   <strong style={{ fontSize: '16px', color: '#fff' }}>3. Live Donation Thermometer</strong>
                   <button
-                    onClick={() => copyToClipboard('thermo', `<div data-santa-thermo="" data-table="${session.tableId || 'beverley'}"></div>\n<script src="https://turbosanta-app.pages.dev/donations_v2.js"></script>`)}
+                    onClick={() => copyToClipboard('thermo', `<div data-santa-thermo="" data-table="${session.tableId || 'beverley'}"></div>\n<script src="https://roundtablesantasleigh.co.uk/donations_v2.js"></script>`)}
                     className="btn-primary"
                     style={{ padding: '6px 14px', fontSize: '12px' }}
                   >
@@ -2477,7 +2477,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   1-line script or container to show real-time community fundraising target and Gift Aid callout.
                 </p>
                 <pre style={{ background: '#151513', padding: '12px', borderRadius: '8px', fontSize: '12px', color: 'var(--primary)', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
-{`<div data-santa-thermo="" data-table="${session.tableId || 'beverley'}"></div>\n<script src="https://turbosanta-app.pages.dev/donations_v2.js"></script>`}
+{`<div data-santa-thermo="" data-table="${session.tableId || 'beverley'}"></div>\n<script src="https://roundtablesantasleigh.co.uk/donations_v2.js"></script>`}
                 </pre>
               </div>
 
@@ -2486,7 +2486,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                   <strong style={{ fontSize: '16px', color: '#fff' }}>4. Talk to Santa Claus (AI Voice Call)</strong>
                   <button
-                    onClick={() => copyToClipboard('chat', `<iframe src="https://turbosanta-app.pages.dev/santa_chat.html?table=${session.tableId || 'beverley'}" width="100%" height="600" style="border:none;border-radius:16px;" allow="microphone"></iframe>`)}
+                    onClick={() => copyToClipboard('chat', `<iframe src="https://roundtablesantasleigh.co.uk/santa_chat.html?table=${session.tableId || 'beverley'}" width="100%" height="600" style="border:none;border-radius:16px;" allow="microphone"></iframe>`)}
                     className="btn-primary"
                     style={{ padding: '6px 14px', fontSize: '12px' }}
                   >
@@ -2498,7 +2498,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   Interactive AI phone hotline connecting directly to Lapland with voice input.
                 </p>
                 <pre style={{ background: '#151513', padding: '12px', borderRadius: '8px', fontSize: '12px', color: 'var(--primary)', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
-{`<iframe src="https://turbosanta-app.pages.dev/santa_chat.html?table=${session.tableId || 'beverley'}" width="100%" height="600" style="border:none;border-radius:16px;" allow="microphone"></iframe>`}
+{`<iframe src="https://roundtablesantasleigh.co.uk/santa_chat.html?table=${session.tableId || 'beverley'}" width="100%" height="600" style="border:none;border-radius:16px;" allow="microphone"></iframe>`}
                 </pre>
               </div>
             </div>

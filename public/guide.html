@@ -457,7 +457,7 @@
         <h3>Live Turnkey URL (<span class="active-table-name">Beverley</span>)</h3>
         <div class="code-box">
           <button class="copy-btn" onclick="copyBox(this)">Copy URL</button>
-          <span id="turnkeyUrlText">https://turbosanta-app.pages.dev/?table=beverley</span>
+          <span id="turnkeyUrlText">https://roundtablesantasleigh.co.uk/?table=beverley</span>
         </div>
 
         <h3 style="margin-top: 24px;">Included Functionalities:</h3>
@@ -488,7 +488,7 @@
             <p>Real-time sleigh movement with wake-lock, street ETA banner, and audio.</p>
             <div class="code-box">
               <button class="copy-btn" onclick="copyBox(this)">Copy</button>
-              <code id="embedCodeTracker">&lt;iframe src="https://turbosanta-app.pages.dev/tracker.html?table=beverley" width="100%" height="650" frameborder="0" allow="geolocation; screen-wake-lock" style="border-radius:16px;"&gt;&lt;/iframe&gt;</code>
+              <code id="embedCodeTracker">&lt;iframe src="https://roundtablesantasleigh.co.uk/tracker.html?table=beverley" width="100%" height="650" frameborder="0" allow="geolocation; screen-wake-lock" style="border-radius:16px;"&gt;&lt;/iframe&gt;</code>
             </div>
           </div>
 
@@ -498,7 +498,7 @@
             <p>Residents type their street name to find their exact night and route.</p>
             <div class="code-box">
               <button class="copy-btn" onclick="copyBox(this)">Copy</button>
-              <code id="embedCodeAddress">&lt;iframe src="https://turbosanta-app.pages.dev/address.html?table=beverley" width="100%" height="550" frameborder="0" allow="geolocation" style="border-radius:16px;"&gt;&lt;/iframe&gt;</code>
+              <code id="embedCodeAddress">&lt;iframe src="https://roundtablesantasleigh.co.uk/address.html?table=beverley" width="100%" height="550" frameborder="0" allow="geolocation" style="border-radius:16px;"&gt;&lt;/iframe&gt;</code>
             </div>
           </div>
 
@@ -508,7 +508,7 @@
             <p>Direct volunteer registration saved straight into the D1 SQL database.</p>
             <div class="code-box">
               <button class="copy-btn" onclick="copyBox(this)">Copy</button>
-              <code id="embedCodeCrew">&lt;iframe src="https://turbosanta-app.pages.dev/crew.html?table=beverley" width="100%" height="700" frameborder="0" style="border-radius:16px;"&gt;&lt;/iframe&gt;</code>
+              <code id="embedCodeCrew">&lt;iframe src="https://roundtablesantasleigh.co.uk/crew.html?table=beverley" width="100%" height="700" frameborder="0" style="border-radius:16px;"&gt;&lt;/iframe&gt;</code>
             </div>
           </div>
 
@@ -518,7 +518,7 @@
             <p>Interactive ElevenLabs conversational voice call widget for kids <em>(custom integration developed for Beverley Round Table)</em>.</p>
             <div class="code-box">
               <button class="copy-btn" onclick="copyBox(this)">Copy</button>
-              <code id="embedCodeSantaChat">&lt;iframe src="https://turbosanta-app.pages.dev/santa_chat.html?table=beverley" width="100%" height="600" frameborder="0" allow="microphone" style="border-radius:24px;"&gt;&lt;/iframe&gt;</code>
+              <code id="embedCodeSantaChat">&lt;iframe src="https://roundtablesantasleigh.co.uk/santa_chat.html?table=beverley" width="100%" height="600" frameborder="0" allow="microphone" style="border-radius:24px;"&gt;&lt;/iframe&gt;</code>
             </div>
           </div>
 
@@ -528,7 +528,7 @@
             <p>Interactive schematics of Beverley's custom tuk-tuk sleigh hardware with hotspots explaining audio, batteries, and lighting.</p>
             <div class="code-box">
               <button class="copy-btn" onclick="copyBox(this)">Copy</button>
-              <code id="embedCodeBlueprint">&lt;iframe src="https://turbosanta-app.pages.dev/blueprint.html?table=beverley" width="100%" height="600" frameborder="0" style="border-radius:16px;"&gt;&lt;/iframe&gt;</code>
+              <code id="embedCodeBlueprint">&lt;iframe src="https://roundtablesantasleigh.co.uk/blueprint.html?table=beverley" width="100%" height="600" frameborder="0" style="border-radius:16px;"&gt;&lt;/iframe&gt;</code>
             </div>
           </div>
 
@@ -538,7 +538,7 @@
             <p>Photo upload and community wall for families who spotted the sleigh.</p>
             <div class="code-box">
               <button class="copy-btn" onclick="copyBox(this)">Copy</button>
-              <code id="embedCodeMemory">&lt;iframe src="https://turbosanta-app.pages.dev/memory_book.html?table=beverley" width="100%" height="850" frameborder="0" allow="camera; microphone; geolocation" style="border-radius:16px;"&gt;&lt;/iframe&gt;</code>
+              <code id="embedCodeMemory">&lt;iframe src="https://roundtablesantasleigh.co.uk/memory_book.html?table=beverley" width="100%" height="850" frameborder="0" allow="camera; microphone; geolocation" style="border-radius:16px;"&gt;&lt;/iframe&gt;</code>
             </div>
           </div>
         </div>
@@ -811,8 +811,9 @@
       }
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.set('table', slug);
-      window.history.replaceState({}, '', newUrl);
-      const origin = window.location.origin;
+      const origin = (window.location.hostname.includes('roundtablesantasleigh.co.uk'))
+        ? window.location.origin
+        : 'https://roundtablesantasleigh.co.uk';
 
       // Update Turnkey URLs
       const turnkeyEl = document.getElementById('turnkeyUrlText');

@@ -18,7 +18,10 @@ let currentTable = params.get("table") || (params.get("api") ? "" : "beverley");
 let currentApi = params.get("api") || "";
 let currentColor = params.get("color") || "";
 
-const BASE_URL = window.location.origin;
+const CUSTOM_DOMAIN = "https://roundtablesantasleigh.co.uk";
+const BASE_URL = (window.location.hostname.includes("roundtablesantasleigh.co.uk"))
+  ? window.location.origin
+  : CUSTOM_DOMAIN;
 
 function applyEmbedTheme(colorHex) {
   if (!colorHex) {
