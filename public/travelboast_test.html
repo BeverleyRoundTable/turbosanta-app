@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TravelBoast 3D Route Animator — TurboSanta Test Lab</title>
+
+    <!-- MapLibre GL CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+
+    <!-- Three.js & GLTF Loader -->
+    <script src="https://unpkg.com/three@0.147.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+
+    <!-- FontAwesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #D31C1C;
+            --gold: #FBAF33;
+            --bg-dark: #0D0E12;
+            --panel-bg: rgba(18, 20, 26, 0.92);
+            --border: rgba(255, 255, 255, 0.12);
+            --text-main: #FFFFFF;
+            --text-muted: rgba(255, 255, 255, 0.7);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body {
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background: var(--bg-dark);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--text-main);
+        }
+
+        #app-viewport {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #050608;
+            transition: all 0.3s ease;
+        }
+
+        /* 9:16 Phone Simulation Container */
+        #stage-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            transition: width 0.35s ease, height 0.35s ease, border-radius 0.35s ease;
+        }
+
+        #stage-container.mode-phone {
+            width: 420px;
+            height: 746px; /* 9:16 approx for preview */
+            max-height: 92vh;
+            border-radius: 36px;
+            border: 8px solid #222530;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.1);
+        }
+
+        #map {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Canvas Snow Layer */
+        #snow-canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        /* Top Header Brand Pill */
+        .brand-pill {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            padding: 8px 18px;
+            border-radius: 999px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+            pointer-events: auto;
+        }
+        .brand-pill i { color: var(--gold); font-size: 15px; }
+        .brand-pill span {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 20px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+        .brand-pill .tag {
+            font-size: 11px;
+            font-weight: 700;
+            background: rgba(211, 28, 28, 0.25);
+            border: 1px solid var(--primary);
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        /* HUD Telemetry Display (Top Right) */
+        .hud-stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 12px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 150px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            pointer-events: auto;
+        }
+        .hud-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .hud-label { color: var(--text-muted); font-size: 11px; }
+        .hud-val { color: var(--gold); font-weight: 700; }
+
+        /* Floating Master Control Dock (Bottom) */
+        .dock-controls {
+            position: absolute;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            width: calc(100% - 40px);
+            max-width: 680px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 16px 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            pointer-events: auto;
+        }
+
+        /* Scrubber / Progress Bar */
+        .scrubber-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .time-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--text-muted);
+            min-width: 44px;
+        }
+        .scrubber {
+            flex: 1;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 999px;
+            outline: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .scrubber::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--gold);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(251, 175, 51, 0.6);
+            border: 2px solid #fff;
+        }
+
+        /* Control Buttons Bar */
+        .button-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .btn-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dock-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border);
+            color: #fff;
+            padding: 8px 14px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .dock-btn:hover {
+            background: rgba(255, 255, 255, 0.16);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        .dock-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #fff;
+        }
+        .dock-btn.primary {
+            background: var(--primary);
+            border-color: var(--primary);
+            font-weight: 700;
+            box-shadow: 0 4px 15px rgba(211, 28, 28, 0.4);
+        }
+        .dock-btn.primary:hover {
+            background: #e62222;
+        }
+
+        /* Dropdowns & Pickers */
+        select.dock-select {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+        }
+        select.dock-select option {
+            background: #14171f;
+            color: #fff;
+        }
+
+        /* Drawer for Config / Model Tuning */
+        .drawer-panel {
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            z-index: 15;
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 16px;
+            width: 320px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
+        }
+        .drawer-panel.collapsed {
+            transform: translateX(-360px);
+            opacity: 0;
+            pointer-events: none;
+        }
+        .drawer-toggle {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 14;
+        }
+
+        .drawer-title {
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--gold);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .config-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .config-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+        }
+        .config-slider {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 999px;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        .config-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        .file-upload-box {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 14px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .file-upload-box:hover {
+            border-color: var(--gold);
+            color: #fff;
+            background: rgba(251, 175, 51, 0.05);
+        }
+        .file-upload-box i { font-size: 20px; margin-bottom: 6px; display: block; color: var(--gold); }
+
+        /* Notification Toast */
+        #toast {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: rgba(13, 14, 18, 0.95);
+            border: 1px solid var(--gold);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Loading Spinner */
+        #loader {
+            position: absolute;
+            inset: 0;
+            background: rgba(13, 14, 18, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            transition: opacity 0.4s ease;
+        }
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--gold);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Social Frame Overlay (When in 9:16 Mode) */
+        .social-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 8;
+            display: none;
+        }
+        .mode-phone .social-overlay {
+            display: block;
+        }
+        .story-header {
+            position: absolute;
+            top: 35px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .story-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .story-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 2px solid var(--gold);
+            background: #222;
+        }
+        .story-name { font-size: 13px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+        .story-badge { font-size: 11px; opacity: 0.8; }
+    </style>
+</head>
+<body>
+
+<div id="app-viewport">
+    <div id="stage-container" class="mode-phone">
+        <!-- 3D Map Viewport -->
+        <div id="map"></div>
+
+        <!-- Falling Snow Overlay -->
+        <canvas id="snow-canvas"></canvas>
+
+        <!-- Phone Social Preview Mock Overlay -->
+        <div class="social-overlay">
+            <div class="story-header">
+                <div class="story-user">
+                    <img src="/icons/sleigh_icon.png" class="story-avatar" alt="Avatar" onerror="this.style.display='none'">
+                    <div>
+                        <div class="story-name">Beverley Round Table</div>
+                        <div class="story-badge">Santa Sleigh Live Route</div>
+                    </div>
+                </div>
+                <div style="font-size: 18px; text-shadow: 0 2px 4px rgba(0,0,0,0.8);"><i class="fa-solid fa-ellipsis"></i></div>
+            </div>
+        </div>
+
+        <!-- Top Brand Title -->
+        <div class="brand-pill">
+            <i class="fa-solid fa-sleigh"></i>
+            <span>TravelBoast 3D</span>
+            <div class="tag">Test Lab</div>
+        </div>
+
+        <!-- HUD Telemetry Display -->
+        <div class="hud-stats">
+            <div class="hud-row">
+                <span class="hud-label">ROUTE</span>
+                <span class="hud-val" id="hud-route">HtoG</span>
+            </div>
+            <div class="hud-row">
+                <span class="hud-label">PROGRESS</span>
+                <span class="hud-val" id="hud-progress">0.0%</span>
+            </div>
+            <div class="hud-row">
+                <span class="hud-label">BEARING</span>
+                <span class="hud-val" id="hud-bearing">0°</span>
+            </div>
+            <div class="hud-row">
+                <span class="hud-label">BANK ROLL</span>
+                <span class="hud-val" id="hud-bank">0°</span>
+            </div>
+            <div class="hud-row">
+                <span class="hud-label">SPEED</span>
+                <span class="hud-val" id="hud-speed">1.0x</span>
+            </div>
+        </div>
+
+        <!-- Loader -->
+        <div id="loader">
+            <div class="spinner"></div>
+            <div id="loader-msg" style="font-weight: 600; font-size: 14px;">Loading Map & 3D Engine...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Drawer Toggle Button -->
+<button class="dock-btn drawer-toggle" id="drawer-toggle-btn" title="Open 3D Model & Settings">
+    <i class="fa-solid fa-sliders"></i> 3D Settings
+</button>
+
+<!-- 3D Settings & Custom Model Drawer -->
+<div class="drawer-panel" id="drawer-panel">
+    <div class="drawer-title">
+        <span><i class="fa-solid fa-cube"></i> Model & Map Settings</span>
+        <button class="dock-btn" id="drawer-close-btn" style="padding: 4px 8px;"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <!-- Active 3D Model Indicator -->
+    <div class="config-item">
+        <div class="config-label"><span>Active 3D Sleigh</span> <span id="model-name-badge" style="color:var(--gold); font-weight:700;">Procedural Sleigh</span></div>
+        <button class="dock-btn" id="reset-model-btn" style="width: 100%; justify-content: center;">
+            <i class="fa-solid fa-rotate-left"></i> Revert to Built-in 3D Sleigh
+        </button>
+    </div>
+
+    <!-- Upload Custom .GLB File -->
+    <div class="config-item">
+        <label class="config-label"><span>Load Custom .GLB Model</span></label>
+        <div class="file-upload-box" id="glb-dropzone">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <strong>Drop .GLB file here</strong>
+            <div>or click to browse local disk</div>
+            <input type="file" id="glb-file-input" accept=".glb,.gltf" style="display: none;">
+        </div>
+    </div>
+
+    <!-- Upload Custom .GPX Track -->
+    <div class="config-item">
+        <label class="config-label"><span>Upload Custom .GPX Route</span></label>
+        <div class="file-upload-box" id="gpx-dropzone">
+            <i class="fa-solid fa-map-location-dot"></i>
+            <strong>Drop .GPX file here</strong>
+            <div>or click to load custom route</div>
+            <input type="file" id="gpx-file-input" accept=".gpx,.xml" style="display: none;">
+        </div>
+    </div>
+
+    <!-- Model Size Tuning -->
+    <div class="config-item">
+        <div class="config-label"><span>Model Scale Multiplier</span> <span id="val-scale">1.0x</span></div>
+        <input type="range" class="config-slider" id="cfg-scale" min="0.2" max="3.0" step="0.1" value="1.0">
+    </div>
+
+    <!-- Flight Altitude -->
+    <div class="config-item">
+        <div class="config-label"><span>Hover Altitude</span> <span id="val-alt">4.0 m</span></div>
+        <input type="range" class="config-slider" id="cfg-alt" min="0" max="25" step="1" value="4">
+    </div>
+
+    <!-- Camera Follow Pitch -->
+    <div class="config-item">
+        <div class="config-label"><span>Camera Pitch Tilt</span> <span id="val-pitch">55°</span></div>
+        <input type="range" class="config-slider" id="cfg-pitch" min="20" max="75" step="1" value="55">
+    </div>
+
+    <!-- Banking Intensity -->
+    <div class="config-item">
+        <div class="config-label"><span>Corner Banking (Roll)</span> <span id="val-bank">1.2x</span></div>
+        <input type="range" class="config-slider" id="cfg-bank" min="0" max="3.0" step="0.1" value="1.2">
+    </div>
+
+    <!-- Snow Particles Toggle -->
+    <div class="config-item" style="flex-direction: row; justify-content: space-between; align-items: center;">
+        <span class="config-label">Festive Snow Particles</span>
+        <button class="dock-btn active" id="toggle-snow-btn"><i class="fa-solid fa-snowflake"></i> Enabled</button>
+    </div>
+</div>
+
+<!-- Floating Master Bottom Dock -->
+<div class="dock-controls">
+    <!-- Scrubber -->
+    <div class="scrubber-wrap">
+        <span class="time-label" id="time-current">0:00</span>
+        <input type="range" class="scrubber" id="route-scrubber" min="0" max="1000" value="0">
+        <span class="time-label" id="time-total">0:45</span>
+    </div>
+
+    <!-- Buttons & Switches -->
+    <div class="button-bar">
+        <!-- Play / Pause / Replay -->
+        <div class="btn-group">
+            <button class="dock-btn primary" id="play-pause-btn"><i class="fa-solid fa-play"></i> Play</button>
+            <button class="dock-btn" id="restart-btn" title="Restart"><i class="fa-solid fa-arrow-rotate-left"></i></button>
+        </div>
+
+        <!-- Route Picker -->
+        <div class="btn-group">
+            <select class="dock-select" id="route-selector">
+                <option value="/gpx/HtoG.gpx">HtoG (Beverley Route)</option>
+                <option value="/gpx/GtoH.gpx">GtoH (Beverley Route)</option>
+                <option value="/gpx/WtoH.gpx">WtoH (Beverley Route)</option>
+            </select>
+        </div>
+
+        <!-- Speed Selector -->
+        <div class="btn-group">
+            <button class="dock-btn" data-speed="0.5">0.5x</button>
+            <button class="dock-btn active" data-speed="1.0">1x</button>
+            <button class="dock-btn" data-speed="2.0">2x</button>
+            <button class="dock-btn" data-speed="4.0">4x</button>
+        </div>
+
+        <!-- Phone Preview Mode Toggle -->
+        <div class="btn-group">
+            <button class="dock-btn" id="toggle-aspect-btn" title="Toggle 9:16 Social Preview or Fullscreen">
+                <i class="fa-solid fa-mobile-screen"></i> 9:16
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notice -->
+<div id="toast"><i class="fa-solid fa-circle-check" style="color:var(--gold);"></i> <span id="toast-text">Ready</span></div>
+
+<script>
+/* ═════════════════════════════════════════════════════════════════════
+   TRAVELBOAST 3D ENGINE — THREE.JS + MAPLIBRE GL JS INTEGRATION
+   ═════════════════════════════════════════════════════════════════════ */
+
+const DEG = Math.PI / 180;
+const RAD = 180 / Math.PI;
+
+// Math Helpers
+function haversine(a, b) {
+    const dLat = (b.lat - a.lat) * DEG;
+    const dLng = (b.lng - a.lng) * DEG;
+    const s = Math.sin(dLat / 2) ** 2 +
+              Math.cos(a.lat * DEG) * Math.cos(b.lat * DEG) * Math.sin(dLng / 2) ** 2;
+    return 2 * 6371000 * Math.asin(Math.sqrt(s));
+}
+
+function calcBearing(a, b) {
+    const dLng = (b.lng - a.lng) * DEG;
+    const y = Math.sin(dLng) * Math.cos(b.lat * DEG);
+    const x = Math.cos(a.lat * DEG) * Math.sin(b.lat * DEG) -
+              Math.sin(a.lat * DEG) * Math.cos(b.lat * DEG) * Math.cos(dLng);
+    return (Math.atan2(y, x) * RAD + 360) % 360;
+}
+
+function lerpAngle(a, b, t) {
+    return a + (((b - a + 540) % 360) - 180) * t;
+}
+
+const normB = b => ((b % 360) + 360) % 360;
+
+// Application State
+const STATE = {
+    pts: [],
+    cumulativeDist: [],
+    totalDist: 0,
+    isPlaying: false,
+    durationSecs: 40,
+    speedMultiplier: 1.0,
+    progress: 0, // 0 to 1
+    currentBearing: 0,
+    smoothedBearing: 0,
+    currentBank: 0,
+    hoverAltitude: 4.0, // meters
+    modelScaleMultiplier: 1.0,
+    pitch: 55,
+    bankingIntensity: 1.2,
+    snowEnabled: true,
+    activeModelName: "Procedural 3D Sleigh"
+};
+
+// UI Elements
+const $ = id => document.getElementById(id);
+const playPauseBtn = $('play-pause-btn');
+const restartBtn = $('restart-btn');
+const routeScrubber = $('route-scrubber');
+const routeSelector = $('route-selector');
+const hudRoute = $('hud-route');
+const hudProgress = $('hud-progress');
+const hudBearing = $('hud-bearing');
+const hudBank = $('hud-bank');
+const hudSpeed = $('hud-speed');
+const timeCurrent = $('time-current');
+const timeTotal = $('time-total');
+const loader = $('loader');
+const loaderMsg = $('loader-msg');
+const toast = $('toast');
+const toastText = $('toast-text');
+
+function showToast(msg) {
+    toastText.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   1. MAPLIBRE GL INITIALIZATION (CartoDB Dark Matter for Night Holiday)
+   ═════════════════════════════════════════════════════════════════════ */
+
+const map = new maplibregl.Map({
+    container: 'map',
+    style: {
+        version: 8,
+        sources: {
+            carto: {
+                type: 'raster',
+                tiles: [
+                    'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+                    'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png'
+                ],
+                tileSize: 256,
+                attribution: '&copy; OpenStreetMap &copy; CARTO'
+            }
+        },
+        layers: [{ id: 'carto-base', type: 'raster', source: 'carto' }]
+    },
+    center: [-0.45207, 53.85485],
+    zoom: 17.5,
+    pitch: STATE.pitch,
+    bearing: 0,
+    antialias: true
+});
+
+/* ═════════════════════════════════════════════════════════════════════
+   2. THREE.JS CUSTOM 3D LAYER
+   ═════════════════════════════════════════════════════════════════════ */
+
+let threeScene, threeCamera, threeRenderer;
+let sleighRootGroup = new THREE.Group();
+let customGlbObject = null;
+let proceduralSleighObject = null;
+
+// Build a crisp, low-poly procedural sleigh using Three.js geometries
+function createProceduralSleigh() {
+    const group = new THREE.Group();
+
+    // 1. Red Sleigh Body
+    const bodyGeo = new THREE.BoxGeometry(2.4, 1.4, 4.0);
+    const bodyMat = new THREE.MeshStandardMaterial({
+        color: 0xD31C1C,
+        roughness: 0.25,
+        metalness: 0.1
+    });
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.position.y = 1.0;
+    group.add(body);
+
+    // Front Scoop / Curled Hood
+    const hoodGeo = new THREE.CylinderGeometry(1.2, 1.2, 2.4, 16, 1, false, 0, Math.PI);
+    const hood = new THREE.Mesh(hoodGeo, bodyMat);
+    hood.rotation.z = Math.PI / 2;
+    hood.position.set(0, 1.3, -2.0);
+    group.add(hood);
+
+    // 2. Gold Trim & Rails
+    const goldMat = new THREE.MeshStandardMaterial({
+        color: 0xFBAF33,
+        roughness: 0.2,
+        metalness: 0.85
+    });
+
+    // Gold Runners (Skis)
+    const runnerGeo = new THREE.BoxGeometry(0.12, 0.12, 5.0);
+    const runnerL = new THREE.Mesh(runnerGeo, goldMat);
+    runnerL.position.set(-1.1, 0.2, 0.2);
+    const runnerR = new THREE.Mesh(runnerGeo, goldMat);
+    runnerR.position.set(1.1, 0.2, 0.2);
+    group.add(runnerL, runnerR);
+
+    // Curved front tips of runners
+    const tipGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.12, 16, 1, false, 0, Math.PI / 2);
+    const tipL = new THREE.Mesh(tipGeo, goldMat);
+    tipL.rotation.z = Math.PI / 2;
+    tipL.position.set(-1.1, 0.4, -2.3);
+    const tipR = new THREE.Mesh(tipGeo, goldMat);
+    tipR.rotation.z = Math.PI / 2;
+    tipR.position.set(1.1, 0.4, -2.3);
+    group.add(tipL, tipR);
+
+    // 3. Green Gift Sack in Back
+    const sackGeo = new THREE.DodecahedronGeometry(0.9, 1);
+    const sackMat = new THREE.MeshStandardMaterial({
+        color: 0x228B22,
+        roughness: 0.6
+    });
+    const sack = new THREE.Mesh(sackGeo, sackMat);
+    sack.scale.set(1.1, 1.3, 1.1);
+    sack.position.set(0, 1.8, 1.0);
+    group.add(sack);
+
+    // Golden presents & parcels
+    const presentGeo = new THREE.BoxGeometry(0.7, 0.7, 0.7);
+    const present1 = new THREE.Mesh(presentGeo, goldMat);
+    present1.position.set(-0.5, 1.8, 0.4);
+    present1.rotation.y = 0.3;
+    const present2 = new THREE.Mesh(presentGeo, new THREE.MeshStandardMaterial({ color: 0xFFFFFF }));
+    present2.position.set(0.6, 1.6, 0.6);
+    present2.rotation.y = -0.4;
+    group.add(present1, present2);
+
+    // 4. Warm glowing lantern lights
+    const lanternMat = new THREE.MeshBasicMaterial({ color: 0xFFDD66 });
+    const lanternGeo = new THREE.SphereGeometry(0.2, 8, 8);
+    const lanternL = new THREE.Mesh(lanternGeo, lanternMat);
+    lanternL.position.set(-1.3, 1.5, -1.8);
+    const lanternR = new THREE.Mesh(lanternGeo, lanternMat);
+    lanternR.position.set(1.3, 1.5, -1.8);
+    group.add(lanternL, lanternR);
+
+    // Point lights for lanterns
+    const pLight = new THREE.PointLight(0xFFBB44, 2.5, 30);
+    pLight.position.set(0, 2.5, -1.0);
+    group.add(pLight);
+
+    return group;
+}
+
+const threeDCustomLayer = {
+    id: 'sleigh-3d-model',
+    type: 'custom',
+    renderingMode: '3d',
+
+    onAdd: function (mapInstance, gl) {
+        threeCamera = new THREE.Camera();
+        threeScene = new THREE.Scene();
+
+        // 1. Directional Sun
+        const sun = new THREE.DirectionalLight(0xffffff, 1.8);
+        sun.position.set(50, -100, 150).normalize();
+        threeScene.add(sun);
+
+        // 2. Ambient festive lighting
+        const ambient = new THREE.AmbientLight(0xffeedd, 0.85);
+        threeScene.add(ambient);
+
+        // 3. Build & mount the default procedural sleigh
+        proceduralSleighObject = createProceduralSleigh();
+        sleighRootGroup.add(proceduralSleighObject);
+        threeScene.add(sleighRootGroup);
+
+        // Renderer
+        threeRenderer = new THREE.WebGLRenderer({
+            canvas: mapInstance.getCanvas(),
+            context: gl,
+            antialias: true
+        });
+        threeRenderer.autoClear = false;
+    },
+
+    render: function (gl, matrix) {
+        if (!STATE.pts || STATE.pts.length < 2) return;
+
+        const currentPos = getPositionAtProgress(STATE.progress);
+        if (!currentPos) return;
+
+        // Altitude calculation (hover bobbing)
+        const bob = Math.sin(performance.now() * 0.005) * 0.4;
+        const altitude = Math.max(0.5, STATE.hoverAltitude + bob);
+
+        // Convert coordinates to MapLibre Mercator Coordinates
+        const coord = maplibregl.MercatorCoordinate.fromLngLat(
+            [currentPos.lng, currentPos.lat],
+            altitude
+        );
+
+        // Base real-world scale: meterInMercatorCoordinateUnits() * userMultiplier
+        const scale = coord.meterInMercatorCoordinateUnits() * STATE.modelScaleMultiplier;
+
+        // Yaw angle (street heading): 0 is North
+        const yawRad = -STATE.smoothedBearing * DEG;
+        // Roll angle (banking into corners):
+        const rollRad = -STATE.currentBank * DEG;
+
+        // Build transformation matrix for the 3D model
+        const m = new THREE.Matrix4().fromArray(matrix);
+        const l = new THREE.Matrix4()
+            .makeTranslation(coord.x, coord.y, coord.z)
+            .scale(new THREE.Vector3(scale, -scale, scale)) // Y flip for Mercator
+            .multiply(new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2)) // Sit upright on map
+            .multiply(new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(0, 0, 1), yawRad))      // Face road bearing
+            .multiply(new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(0, 1, 0), rollRad));    // Bank into turns
+
+        threeCamera.projectionMatrix = m.multiply(l);
+
+        threeRenderer.resetState();
+        threeRenderer.render(threeScene, threeCamera);
+        map.triggerRepaint();
+    }
+};
+
+/* ═════════════════════════════════════════════════════════════════════
+   3. ROUTE COMPUTATION & GPX PARSER
+   ═════════════════════════════════════════════════════════════════════ */
+
+function parseGPX(xmlText) {
+    const doc = new DOMParser().parseFromString(xmlText, 'text/xml');
+    const pts = [...doc.getElementsByTagName('trkpt')].map(p => ({
+        lat: parseFloat(p.getAttribute('lat')),
+        lng: parseFloat(p.getAttribute('lon'))
+    }));
+    return pts;
+}
+
+function processRoutePoints(pts) {
+    if (!pts || pts.length < 2) return;
+    STATE.pts = pts;
+    STATE.cumulativeDist = [0];
+
+    for (let i = 1; i < pts.length; i++) {
+        STATE.cumulativeDist[i] = STATE.cumulativeDist[i - 1] + haversine(pts[i - 1], pts[i]);
+    }
+
+    STATE.totalDist = STATE.cumulativeDist[STATE.cumulativeDist.length - 1];
+    STATE.progress = 0;
+    STATE.currentBearing = calcBearing(pts[0], pts[1]);
+    STATE.smoothedBearing = STATE.currentBearing;
+    STATE.currentBank = 0;
+
+    // Center map on starting point
+    map.flyTo({
+        center: [pts[0].lng, pts[0].lat],
+        zoom: 17.5,
+        pitch: STATE.pitch,
+        bearing: STATE.smoothedBearing,
+        duration: 1500
+    });
+
+    updateRouteLine(0);
+    updateHUD();
+    routeScrubber.value = 0;
+}
+
+function getPositionAtProgress(t) {
+    if (!STATE.pts || STATE.pts.length < 2) return null;
+    const targetM = Math.max(0, Math.min(1, t)) * STATE.totalDist;
+
+    let seg = 1;
+    while (seg < STATE.cumulativeDist.length - 1 && STATE.cumulativeDist[seg] < targetM) {
+        seg++;
+    }
+
+    const segStart = STATE.cumulativeDist[seg - 1];
+    const segEnd = STATE.cumulativeDist[seg];
+    const segLen = segEnd - segStart || 0.001;
+    const subT = (targetM - segStart) / segLen;
+
+    const p0 = STATE.pts[seg - 1];
+    const p1 = STATE.pts[seg];
+
+    return {
+        lat: p0.lat + (p1.lat - p0.lat) * subT,
+        lng: p0.lng + (p1.lng - p0.lng) * subT,
+        segIndex: seg
+    };
+}
+
+// Update the glowing neon trail behind the sleigh
+function updateRouteLine(t) {
+    if (!map.getSource('route-trail') || !STATE.pts) return;
+
+    const currentPos = getPositionAtProgress(t);
+    if (!currentPos) return;
+
+    const coords = [];
+    for (let i = 0; i < currentPos.segIndex; i++) {
+        coords.push([STATE.pts[i].lng, STATE.pts[i].lat]);
+    }
+    coords.push([currentPos.lng, currentPos.lat]);
+
+    map.getSource('route-trail').setData({
+        type: 'Feature',
+        geometry: { type: 'LineString', coordinates: coords }
+    });
+}
+
+// Load a GPX route by URL or text
+async function loadGPXRoute(url) {
+    try {
+        loader.style.display = 'flex';
+        loaderMsg.textContent = 'Loading GPX Route Track...';
+        const res = await fetch(url);
+        const xml = await res.text();
+        const pts = parseGPX(xml);
+        processRoutePoints(pts);
+        loader.style.display = 'none';
+        showToast('Loaded ' + url.split('/').pop());
+    } catch (e) {
+        console.error(e);
+        loader.style.display = 'none';
+        showToast('Error loading GPX: ' + e.message);
+    }
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   4. 3D GLB MODEL IMPORTER (Poly Pizza / Kenney / Sketchfab)
+   ═════════════════════════════════════════════════════════════════════ */
+
+const gltfLoader = new THREE.GLTFLoader();
+
+function loadCustomGLB(arrayBuffer, filename = 'custom.glb') {
+    loader.style.display = 'flex';
+    loaderMsg.textContent = 'Parsing & Optimizing 3D .GLB Model...';
+
+    gltfLoader.parse(arrayBuffer, '', (gltf) => {
+        // Remove previous custom model or procedural sleigh
+        if (customGlbObject) sleighRootGroup.remove(customGlbObject);
+        if (proceduralSleighObject) proceduralSleighObject.visible = false;
+
+        customGlbObject = gltf.scene;
+
+        // Auto-center and normalize size
+        const bbox = new THREE.Box3().setFromObject(customGlbObject);
+        const size = new THREE.Vector3();
+        bbox.getSize(size);
+        const maxDim = Math.max(size.x, size.y, size.z);
+
+        // Normalize model to roughly 4 meters long (real-world sleigh scale)
+        const targetSize = 4.0;
+        const normScale = targetSize / (maxDim || 1);
+        customGlbObject.scale.set(normScale, normScale, normScale);
+
+        // Center pivot point
+        const center = new THREE.Vector3();
+        bbox.getCenter(center);
+        customGlbObject.position.set(-center.x * normScale, -bbox.min.y * normScale, -center.z * normScale);
+
+        // Enable shadows & vibrant materials
+        customGlbObject.traverse(node => {
+            if (node.isMesh) {
+                node.castShadow = true;
+                node.receiveShadow = true;
+                if (node.material) {
+                    node.material.roughness = 0.35;
+                }
+            }
+        });
+
+        sleighRootGroup.add(customGlbObject);
+
+        STATE.activeModelName = filename;
+        $('model-name-badge').textContent = filename;
+        loader.style.display = 'none';
+        showToast('Loaded 3D Model: ' + filename);
+    }, (err) => {
+        console.error(err);
+        loader.style.display = 'none';
+        showToast('Failed to parse .GLB: ' + err.message);
+    });
+}
+
+$('reset-model-btn').onclick = () => {
+    if (customGlbObject) {
+        sleighRootGroup.remove(customGlbObject);
+        customGlbObject = null;
+    }
+    if (proceduralSleighObject) proceduralSleighObject.visible = true;
+    STATE.activeModelName = 'Procedural Sleigh';
+    $('model-name-badge').textContent = 'Procedural Sleigh';
+    showToast('Reverted to Built-in 3D Sleigh');
+};
+
+/* ═════════════════════════════════════════════════════════════════════
+   5. ANIMATION TICK & FLIGHT DYNAMICS LOOP
+   ═════════════════════════════════════════════════════════════════════ */
+
+let lastTimestamp = performance.now();
+
+function animationTick(now) {
+    const dt = Math.min((now - lastTimestamp) / 1000, 0.1);
+    lastTimestamp = now;
+
+    if (STATE.isPlaying && STATE.pts && STATE.pts.length > 1) {
+        // Advance progress
+        const step = (dt / STATE.durationSecs) * STATE.speedMultiplier;
+        STATE.progress += step;
+
+        if (STATE.progress >= 1.0) {
+            STATE.progress = 1.0;
+            STATE.isPlaying = false;
+            playPauseBtn.innerHTML = '<i class="fa-solid fa-rotate-left"></i> Replay';
+            showToast('Route Completed! 🎅');
+        }
+
+        // Current and forward points for smooth bearing calculation
+        const pos = getPositionAtProgress(STATE.progress);
+        const lookAheadProgress = Math.min(1.0, STATE.progress + 0.005);
+        const forwardPos = getPositionAtProgress(lookAheadProgress);
+
+        if (pos && forwardPos) {
+            const rawBearing = calcBearing(pos, forwardPos);
+            // Smooth bearing with exponential decay
+            STATE.smoothedBearing = lerpAngle(STATE.smoothedBearing, rawBearing, 0.14);
+
+            // Compute banking (roll) based on rate of turn
+            const turnDelta = ((rawBearing - STATE.smoothedBearing + 540) % 360) - 180;
+            const targetBank = Math.max(-28, Math.min(28, turnDelta * 2.2 * STATE.bankingIntensity));
+            STATE.currentBank += (targetBank - STATE.currentBank) * 0.18;
+
+            // Camera smoothly tracks with the street angle
+            map.jumpTo({
+                center: [pos.lng, pos.lat],
+                zoom: 17.5,
+                pitch: STATE.pitch,
+                bearing: STATE.smoothedBearing
+            });
+
+            updateRouteLine(STATE.progress);
+            routeScrubber.value = Math.floor(STATE.progress * 1000);
+            updateHUD();
+        }
+    }
+
+    requestAnimationFrame(animationTick);
+}
+
+function updateHUD() {
+    hudProgress.textContent = (STATE.progress * 100).toFixed(1) + '%';
+    hudBearing.textContent = Math.round(STATE.smoothedBearing) + '°';
+    hudBank.textContent = STATE.currentBank.toFixed(1) + '°';
+    hudSpeed.textContent = STATE.speedMultiplier.toFixed(1) + 'x';
+
+    const currentSecs = Math.floor(STATE.progress * STATE.durationSecs);
+    const totalSecs = Math.floor(STATE.durationSecs);
+    timeCurrent.textContent = formatTime(currentSecs);
+    timeTotal.textContent = formatTime(totalSecs);
+}
+
+function formatTime(s) {
+    const mins = Math.floor(s / 60);
+    const secs = s % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   6. USER INTERACTION & CONTROLS
+   ═════════════════════════════════════════════════════════════════════ */
+
+playPauseBtn.onclick = () => {
+    if (STATE.progress >= 1.0) {
+        STATE.progress = 0;
+        routeScrubber.value = 0;
+    }
+    STATE.isPlaying = !STATE.isPlaying;
+    playPauseBtn.innerHTML = STATE.isPlaying
+        ? '<i class="fa-solid fa-pause"></i> Pause'
+        : '<i class="fa-solid fa-play"></i> Play';
+};
+
+restartBtn.onclick = () => {
+    STATE.progress = 0;
+    routeScrubber.value = 0;
+    STATE.isPlaying = true;
+    playPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i> Pause';
+    const pos = getPositionAtProgress(0);
+    if (pos) {
+        map.jumpTo({ center: [pos.lng, pos.lat], zoom: 17.5 });
+        updateRouteLine(0);
+    }
+    updateHUD();
+};
+
+routeScrubber.oninput = (e) => {
+    STATE.progress = e.target.value / 1000;
+    const pos = getPositionAtProgress(STATE.progress);
+    if (pos) {
+        const nextPos = getPositionAtProgress(Math.min(1.0, STATE.progress + 0.005)) || pos;
+        STATE.smoothedBearing = calcBearing(pos, nextPos);
+        map.jumpTo({
+            center: [pos.lng, pos.lat],
+            bearing: STATE.smoothedBearing
+        });
+        updateRouteLine(STATE.progress);
+    }
+    updateHUD();
+};
+
+routeSelector.onchange = (e) => {
+    const routeUrl = e.target.value;
+    hudRoute.textContent = e.target.options[e.target.selectedIndex].text.split(' ')[0];
+    loadGPXRoute(routeUrl);
+};
+
+// Speed Multipliers
+document.querySelectorAll('[data-speed]').forEach(btn => {
+    btn.onclick = () => {
+        document.querySelectorAll('[data-speed]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        STATE.speedMultiplier = parseFloat(btn.dataset.speed);
+        updateHUD();
+    };
+});
+
+// Phone Frame (9:16) Toggle
+const stageContainer = $('stage-container');
+$('toggle-aspect-btn').onclick = (e) => {
+    stageContainer.classList.toggle('mode-phone');
+    const isPhone = stageContainer.classList.contains('mode-phone');
+    $('toggle-aspect-btn').classList.toggle('active', isPhone);
+    $('toggle-aspect-btn').innerHTML = isPhone
+        ? '<i class="fa-solid fa-mobile-screen"></i> 9:16'
+        : '<i class="fa-solid fa-expand"></i> Fullscreen';
+    setTimeout(() => map.resize(), 360);
+};
+
+// Drawer Open/Close
+const drawerPanel = $('drawer-panel');
+$('drawer-toggle-btn').onclick = () => drawerPanel.classList.toggle('collapsed');
+$('drawer-close-btn').onclick = () => drawerPanel.classList.add('collapsed');
+
+// Config Sliders
+$('cfg-scale').oninput = e => {
+    STATE.modelScaleMultiplier = parseFloat(e.target.value);
+    $('val-scale').textContent = STATE.modelScaleMultiplier.toFixed(1) + 'x';
+};
+$('cfg-alt').oninput = e => {
+    STATE.hoverAltitude = parseFloat(e.target.value);
+    $('val-alt').textContent = STATE.hoverAltitude.toFixed(1) + ' m';
+};
+$('cfg-pitch').oninput = e => {
+    STATE.pitch = parseFloat(e.target.value);
+    $('val-pitch').textContent = STATE.pitch + '°';
+    map.setPitch(STATE.pitch);
+};
+$('cfg-bank').oninput = e => {
+    STATE.bankingIntensity = parseFloat(e.target.value);
+    $('val-bank').textContent = STATE.bankingIntensity.toFixed(1) + 'x';
+};
+
+// File Upload: GLB
+const glbDrop = $('glb-dropzone');
+const glbInput = $('glb-file-input');
+glbDrop.onclick = () => glbInput.click();
+glbInput.onchange = e => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = evt => loadCustomGLB(evt.target.result, file.name);
+        reader.readAsArrayBuffer(file);
+    }
+};
+
+// File Upload: GPX
+const gpxDrop = $('gpx-dropzone');
+const gpxInput = $('gpx-file-input');
+gpxDrop.onclick = () => gpxInput.click();
+gpxInput.onchange = e => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = evt => {
+            const pts = parseGPX(evt.target.result);
+            hudRoute.textContent = file.name.replace(/\.gpx$/i, '');
+            processRoutePoints(pts);
+            showToast('Loaded local GPX: ' + file.name);
+        };
+        reader.readAsText(file);
+    }
+};
+
+// Drag and drop onto screen
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', e => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+
+    if (/\.(glb|gltf)$/i.test(file.name)) {
+        const reader = new FileReader();
+        reader.onload = evt => loadCustomGLB(evt.target.result, file.name);
+        reader.readAsArrayBuffer(file);
+    } else if (/\.(gpx|xml)$/i.test(file.name)) {
+        const reader = new FileReader();
+        reader.onload = evt => {
+            const pts = parseGPX(evt.target.result);
+            hudRoute.textContent = file.name.replace(/\.gpx$/i, '');
+            processRoutePoints(pts);
+            showToast('Loaded dropped GPX: ' + file.name);
+        };
+        reader.readAsText(file);
+    }
+});
+
+/* ═════════════════════════════════════════════════════════════════════
+   7. SNOW PARTICLE OVERLAY SYSTEM
+   ═════════════════════════════════════════════════════════════════════ */
+
+const snowCvs = $('snow-canvas');
+const snowCtx = snowCvs.getContext('2d');
+let snowWidth = 0, snowHeight = 0;
+const flakes = [];
+
+function initSnow() {
+    snowWidth = snowCvs.width = stageContainer.clientWidth;
+    snowHeight = snowCvs.height = stageContainer.clientHeight;
+    flakes.length = 0;
+    for (let i = 0; i < 60; i++) {
+        flakes.push({
+            x: Math.random() * snowWidth,
+            y: Math.random() * snowHeight,
+            r: 1 + Math.random() * 2.5,
+            speed: 15 + Math.random() * 25,
+            wobble: Math.random() * Math.PI * 2,
+            opacity: 0.3 + Math.random() * 0.4
+        });
+    }
+}
+
+function drawSnow(dt) {
+    if (!STATE.snowEnabled) {
+        snowCtx.clearRect(0, 0, snowWidth, snowHeight);
+        return;
+    }
+    snowCtx.clearRect(0, 0, snowWidth, snowHeight);
+    snowCtx.fillStyle = '#ffffff';
+
+    for (const f of flakes) {
+        f.wobble += dt * 1.5;
+        f.x += Math.sin(f.wobble) * 12 * dt;
+        f.y += f.speed * dt;
+        if (f.y > snowHeight + 5) { f.y = -5; f.x = Math.random() * snowWidth; }
+        if (f.x < -5) f.x = snowWidth + 5;
+        if (f.x > snowWidth + 5) f.x = -5;
+
+        snowCtx.beginPath();
+        snowCtx.globalAlpha = f.opacity;
+        snowCtx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+        snowCtx.fill();
+    }
+    snowCtx.globalAlpha = 1.0;
+}
+
+$('toggle-snow-btn').onclick = (e) => {
+    STATE.snowEnabled = !STATE.snowEnabled;
+    $('toggle-snow-btn').classList.toggle('active', STATE.snowEnabled);
+    $('toggle-snow-btn').innerHTML = STATE.snowEnabled
+        ? '<i class="fa-solid fa-snowflake"></i> Enabled'
+        : '<i class="fa-solid fa-ban"></i> Disabled';
+};
+
+window.addEventListener('resize', () => {
+    initSnow();
+    map.resize();
+});
+
+let lastSnowTime = performance.now();
+function snowLoop(now) {
+    const dt = Math.min((now - lastSnowTime) / 1000, 0.1);
+    lastSnowTime = now;
+    drawSnow(dt);
+    requestAnimationFrame(snowLoop);
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   8. BOOTSTRAP
+   ═════════════════════════════════════════════════════════════════════ */
+
+map.on('load', () => {
+    initSnow();
+
+    // 1. Route Trail Neon Line Layers
+    map.addSource('route-trail', {
+        type: 'geojson',
+        data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] } }
+    });
+
+    // Outer festive glow
+    map.addLayer({
+        id: 'route-trail-glow',
+        type: 'line',
+        source: 'route-trail',
+        paint: {
+            'line-color': '#FBAF33',
+            'line-width': 16,
+            'line-opacity': 0.35,
+            'line-blur': 8
+        }
+    });
+
+    // Core solid neon route line
+    map.addLayer({
+        id: 'route-trail-core',
+        type: 'line',
+        source: 'route-trail',
+        paint: {
+            'line-color': '#D31C1C',
+            'line-width': 6,
+            'line-opacity': 0.95
+        }
+    });
+
+    // 2. Add Three.js Custom 3D Layer
+    map.addLayer(threeDCustomLayer);
+
+    // 3. Load default Beverley GPX Route
+    loadGPXRoute('/gpx/HtoG.gpx');
+
+    // 4. Start animation & snow loops
+    requestAnimationFrame(animationTick);
+    requestAnimationFrame(snowLoop);
+});
+</script>
+
+</body>
+</html>
