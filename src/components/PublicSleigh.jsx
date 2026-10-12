@@ -69,6 +69,8 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
   }, []);
 
   const videoRef = React.useRef(null);
+  const heroRef = React.useRef(null);
+
   useEffect(() => {
     if (!videoRef.current || !isVideoEnabled || prefersReducedMotion) return;
     const v = videoRef.current;
@@ -89,6 +91,22 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
       });
     }
   }, [isVideoEnabled, prefersReducedMotion, videoMp4]);
+
+  // Pause ambient hero video when user scrolls down past hero to save GPU & battery
+  useEffect(() => {
+    if (!heroRef.current || !videoRef.current || !isVideoEnabled || prefersReducedMotion) return;
+    const v = videoRef.current;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        v.play().catch(() => {});
+      } else {
+        v.pause();
+      }
+    }, { threshold: 0.05 });
+
+    observer.observe(heroRef.current);
+    return () => observer.disconnect();
+  }, [isVideoEnabled, prefersReducedMotion]);
 
   // Listen for dynamic iframe resizing from address.html
   useEffect(() => {
@@ -232,7 +250,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
       '--bg-card': '#000000',
       '--text-muted': 'rgba(255, 255, 255, 0.7)'
     }}>
-      {/* Background with Ambient Video & Dark Vignette */}
+      {/* Background with Dark Vignette & Poster Fallback */}
       <div style={{
         position: 'fixed',
         top: 0,
@@ -244,42 +262,10 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
         overflow: 'hidden',
         backgroundColor: '#1D1D1A'
       }}>
-        {/* Ambient Video Background Layer */}
-        {isVideoEnabled && !prefersReducedMotion && (
-          <video
-            ref={videoRef}
-            src={videoMp4}
-            autoPlay
-            loop
-            muted
-            playsInline
-            webkit-playsinline="true"
-            disablePictureInPicture
-            poster={bgImage}
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              minWidth: '100%',
-              minHeight: '100%',
-              width: 'auto',
-              height: 'auto',
-              transform: 'translate(-50%, -50%)',
-              objectFit: 'cover',
-              opacity: 0.65,
-              pointerEvents: 'none'
-            }}
-          >
-            {videoWebm && <source src={videoWebm} type="video/webm" />}
-            <source src={videoMp4} type="video/mp4" />
-          </video>
-        )}
-
-        {/* Dark Vignette & Poster Fallback */}
         <div style={{
           position: 'absolute',
           inset: 0,
-          backgroundImage: (isVideoEnabled && !prefersReducedMotion) ? BG_OVERLAY : `${BG_OVERLAY}, url(${bgImage})`,
+          backgroundImage: `${BG_OVERLAY}, url(${bgImage})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           pointerEvents: 'none'
@@ -328,17 +314,71 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
         </nav>
 
         {/* Hero Section */}
-        <header style={{
-          padding: '60px 20px',
-          textAlign: 'center',
-          background: 'radial-gradient(circle at center, rgba(0,0,0,0.5) 0%, transparent 70%)'
-        }}>
-          <h1 className="brand-font" style={{ fontSize: 'clamp(36px, 6vw, 56px)', marginBottom: '15px', color: '#FFFFFF', textShadow: '0 4px 10px rgba(0,0,0,0.8)' }}>
-            <span style={{ color: 'var(--primary)' }}>{siteName}</span>
-          </h1>
-          <p style={{ fontSize: '18px', color: 'var(--text-muted)', maxWidth: '640px', margin: '0 auto 30px', textShadow: '0 2px 5px rgba(0,0,0,0.8)' }}>
-            Follow Santa live on his journey, check when he is visiting your street, and help us raise vital funds for the local community this Christmas!
-          </p>
+        <header
+          ref={heroRef}
+          style={{
+            position: 'relative',
+            padding: '70px 20px 80px',
+            textAlign: 'center',
+            overflow: 'hidden',
+            backgroundColor: '#1D1D1A'
+          }}
+        >
+          {/* Ambient Video Background Layer in Hero Banner Only */}
+          {isVideoEnabled && !prefersReducedMotion && (
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              overflow: 'hidden',
+              zIndex: 0,
+              pointerEvents: 'none'
+            }}>
+              <video
+                ref={videoRef}
+                src={videoMp4}
+                autoPlay
+                loop
+                muted
+                playsInline
+                webkit-playsinline="true"
+                disablePictureInPicture
+                poster={bgImage}
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  minWidth: '100%',
+                  minHeight: '100%',
+                  width: 'auto',
+                  height: 'auto',
+                  transform: 'translate(-50%, -50%)',
+                  objectFit: 'cover',
+                  opacity: 0.65,
+                  pointerEvents: 'none'
+                }}
+              >
+                {videoWebm && <source src={videoWebm} type="video/webm" />}
+                <source src={videoMp4} type="video/mp4" />
+              </video>
+              {/* Bottom Gradient Fade Overlay into solid #1D1D1A */}
+              <div style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'linear-gradient(180deg, rgba(29, 29, 26, 0.35) 0%, rgba(29, 29, 26, 0.6) 65%, #1D1D1A 100%)',
+                pointerEvents: 'none'
+              }} />
+            </div>
+          )}
+
+          <div style={{ position: 'relative', zIndex: 2, maxWidth: '800px', margin: '0 auto' }}>
+            <h1 className="brand-font" style={{ fontSize: 'clamp(36px, 6vw, 56px)', marginBottom: '15px', color: '#FFFFFF', textShadow: '0 4px 10px rgba(0,0,0,0.8)' }}>
+              <span style={{ color: 'var(--primary)' }}>{siteName}</span>
+            </h1>
+            <p style={{ fontSize: '18px', color: 'var(--text-muted)', maxWidth: '640px', margin: '0 auto 30px', textShadow: '0 2px 5px rgba(0,0,0,0.8)' }}>
+              Follow Santa live on his journey, check when he is visiting your street, and help us raise vital funds for the local community this Christmas!
+            </p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', flexWrap: 'wrap' }}>
             <a
               href="#tracker"
@@ -380,7 +420,8 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
               <span>Share</span>
             </button>
           </div>
-        </header>
+        </div>
+      </header>
 
         {/* 1. Live Tracker Section (Embedding tracker.html) */}
         <section id="tracker" style={{ padding: '60px 20px', maxWidth: '1000px', margin: '0 auto', scrollMarginTop: '80px' }}>

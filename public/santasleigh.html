@@ -237,9 +237,44 @@
         }
 
         .hero {
-            padding: 60px 20px;
+            position: relative;
+            overflow: hidden;
+            padding: 70px 20px 80px;
             text-align: center;
-            background: radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, transparent 70%);
+            background-color: var(--bg-dark);
+        }
+        .hero-video-wrap {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .hero-video-wrap video {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            transform: translate(-50%, -50%);
+            object-fit: cover;
+            opacity: 0.65;
+            pointer-events: none;
+        }
+        .hero-video-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(29, 29, 26, 0.35) 0%, rgba(29, 29, 26, 0.6) 65%, #1D1D1A 100%);
+            z-index: 1;
+            pointer-events: none;
+        }
+        .hero-content {
+            position: relative;
+            z-index: 2;
         }
         .hero h1 {
             font-size: 56px;
@@ -805,10 +840,6 @@
 </head>
 <body class="is-pending">
     <div id="site-bg">
-        <video id="site-bg-video" autoplay loop muted playsinline webkit-playsinline disablePictureInPicture poster="/icons/site_background.png" style="position: absolute; top: 50%; left: 50%; min-width: 100%; min-height: 100%; width: auto; height: auto; transform: translate(-50%, -50%); object-fit: cover; opacity: 0.65; pointer-events: none; display: none;">
-            <source src="/media/santa.mp4" type="video/mp4">
-            <source src="/media/santa.webm" type="video/webm">
-        </video>
         <div id="site-bg-overlay"></div>
     </div>
 
@@ -889,15 +920,24 @@
 
     <!-- Hero Section -->
     <header class="hero">
-        <h1><span id="hero-title">Santa Sleigh</span></h1>
-        <a id="hero-status" class="hero-status" href="#routes" hidden>
-            <span class="status-dot" aria-hidden="true"></span>
-            <span id="hero-status-text"></span>
-        </a>
-        <p>Follow Santa live on his journey, check when he is visiting your street, and help us raise vital funds for the local community this Christmas!</p>
-        <div class="hero-actions">
-            <a href="#tracker" class="btn">Track Santa Live</a>
-            <button id="share-btn" type="button" aria-label="Share this page" class="btn btn-ghost"><i class="fa-solid fa-share-nodes"></i></button>
+        <div id="hero-video-wrap" class="hero-video-wrap">
+            <video id="hero-bg-video" autoplay loop muted playsinline webkit-playsinline disablePictureInPicture poster="/icons/site_background.png">
+                <source src="/media/santa.mp4" type="video/mp4">
+                <source src="/media/santa.webm" type="video/webm">
+            </video>
+            <div class="hero-video-overlay"></div>
+        </div>
+        <div class="hero-content">
+            <h1><span id="hero-title">Santa Sleigh</span></h1>
+            <a id="hero-status" class="hero-status" href="#routes" hidden>
+                <span class="status-dot" aria-hidden="true"></span>
+                <span id="hero-status-text"></span>
+            </a>
+            <p>Follow Santa live on his journey, check when he is visiting your street, and help us raise vital funds for the local community this Christmas!</p>
+            <div class="hero-actions">
+                <a href="#tracker" class="btn">Track Santa Live</a>
+                <button id="share-btn" type="button" aria-label="Share this page" class="btn btn-ghost"><i class="fa-solid fa-share-nodes"></i></button>
+            </div>
         </div>
     </header>
 
@@ -1242,7 +1282,8 @@
             }
 
             const bgEl = $('site-bg');
-            const videoEl = $('site-bg-video');
+            const videoEl = $('hero-bg-video');
+            const videoWrap = $('hero-video-wrap');
             const bgOverlay = $('site-bg-overlay');
             const bg = safeUrl(settings.background_url) || '/icons/site_background.png';
 
@@ -1256,6 +1297,7 @@
 
             if (videoEl) {
                 if (isVideo) {
+                    if (videoWrap) videoWrap.style.display = 'block';
                     videoEl.style.display = 'block';
                     const videoSrc = (bgMode === 'custom_video' && customVideo) ? customVideo : '/media/santa.mp4';
                     if (!videoEl.currentSrc || !videoEl.currentSrc.includes(videoSrc)) {
@@ -1278,14 +1320,34 @@
                             window.addEventListener('click', onTouch, { passive: true });
                         });
                     }
-                    bgEl.style.backgroundImage = 'none';
+
+                    // IntersectionObserver to pause video when scrolled past hero
+                    if (window.IntersectionObserver && !videoEl._observerAttached) {
+                        videoEl._observerAttached = true;
+                        const heroEl = document.querySelector('.hero');
+                        if (heroEl) {
+                            const obs = new IntersectionObserver(function (entries) {
+                                entries.forEach(function (entry) {
+                                    if (entry.isIntersecting) {
+                                        videoEl.play().catch(function () {});
+                                    } else {
+                                        videoEl.pause();
+                                    }
+                                });
+                            }, { threshold: 0.05 });
+                            obs.observe(heroEl);
+                        }
+                    }
+
+                    if (bgEl) bgEl.style.backgroundImage = 'none';
                     if (bgOverlay) {
                         bgOverlay.style.backgroundImage = BG_OVERLAY;
                     }
                 } else {
+                    if (videoWrap) videoWrap.style.display = 'none';
                     videoEl.style.display = 'none';
                     videoEl.pause();
-                    bgEl.style.backgroundImage = BG_OVERLAY + ', url("' + bg.replace(/"/g, '%22') + '")';
+                    if (bgEl) bgEl.style.backgroundImage = BG_OVERLAY + ', url("' + bg.replace(/"/g, '%22') + '")';
                     if (bgOverlay) {
                         bgOverlay.style.backgroundImage = 'none';
                     }
