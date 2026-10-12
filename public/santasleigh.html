@@ -247,14 +247,6 @@
             max-width: 600px;
             margin: 0 auto 30px;
         }
-        .hero-logo {
-            display: block;
-            width: 96px;
-            height: 96px;
-            object-fit: contain;
-            margin: 0 auto 20px;
-        }
-        .hero-logo[hidden] { display: none; }
         .hero-status {
             display: inline-flex;
             align-items: center;
@@ -342,7 +334,6 @@
             color: var(--text-main);
             text-wrap: balance;
         }
-        .section-header.is-left { text-align: left; }
 
         .iframe-container {
             width: 100%;
@@ -375,24 +366,25 @@
         }
 
         .thermo-card {
-            background: var(--primary);
-            color: var(--on-primary);
+            background: var(--bg-card);
+            color: var(--text-main);
             border-radius: 16px;
             border: 1px solid var(--border);
             padding: 40px 30px;
             text-align: center;
-            box-shadow: 0 0 40px rgba(var(--primary-rgb), 0.25), 0 20px 40px rgba(0,0,0,0.6);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             max-width: 500px;
             margin: 0 auto;
         }
         .thermo-title {
             font-size: 24px;
             margin-bottom: 20px;
+            color: var(--text-main);
         }
         .progress-bar-bg {
             width: 100%;
             height: 24px;
-            background: rgba(0, 0, 0, 0.28);
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 12px;
             border: 1px solid var(--border);
             overflow: hidden;
@@ -401,7 +393,7 @@
         .progress-bar-fill {
             height: 100%;
             width: 0%;
-            background: var(--on-primary);
+            background: var(--primary);
             border-radius: 12px;
             transition: width 1.5s ease-out;
         }
@@ -413,10 +405,9 @@
             font-size: 24px;
         }
 
-        .stat-current { font-size: 1.5em; line-height: 1; }
-        .stat-target { opacity: 0.75; }
-        .thermo-updated { margin-bottom: 20px; font-size: 14px; opacity: 0.8; }
-        .thermo-card .btn { background: var(--on-primary); color: var(--primary); }
+        .stat-current { font-size: 1.5em; line-height: 1; font-weight: 900; color: var(--primary); }
+        .stat-target { color: var(--text-muted); }
+        .thermo-updated { margin-bottom: 20px; font-size: 14px; color: var(--text-muted); }
 
         .volunteer-banner {
             background: linear-gradient(135deg, rgba(29,29,26,0.9) 0%, rgba(0,0,0,0.95) 100%);
@@ -720,7 +711,6 @@
             .nav-links a { font-size: 13px; padding: 10px 0; flex-shrink: 0; }
             section { scroll-margin-top: 64px; }
             .hero h1 { font-size: 40px; }
-            .hero-logo { width: 72px; height: 72px; margin-bottom: 14px; }
             .hero-status { font-size: 14px; }
         }
 
@@ -743,21 +733,15 @@
             outline-offset: 3px;
         }
 
-        .thermo-card a:focus-visible,
-        .thermo-card button:focus-visible {
-            outline-color: var(--on-primary);
-        }
-
         /* Page renders immediately; live-data pieces fade in once the payload lands */
         body.is-pending {
             --primary: #FFFFFF;
             --on-primary: #000000;
             --primary-rgb: 255, 255, 255;
         }
-        .hero-logo, .hero h1, .hero-status, .nav-logo, .nav-title, .thermo-card {
+        .hero h1, .hero-status, .nav-logo, .nav-title, .thermo-card {
             transition: opacity 0.35s ease;
         }
-        body.is-pending .hero-logo,
         body.is-pending .hero h1,
         body.is-pending .hero-status,
         body.is-pending .nav-logo,
@@ -881,7 +865,6 @@
 
     <!-- Hero Section -->
     <header class="hero">
-        <img id="hero-logo" class="hero-logo" alt="" hidden>
         <h1><span id="hero-title">Santa Sleigh</span></h1>
         <a id="hero-status" class="hero-status" href="#routes" hidden>
             <span class="status-dot" aria-hidden="true"></span>
@@ -939,7 +922,7 @@
 
     <!-- Routes Section -->
     <section id="routes">
-        <div class="section-header is-left">
+        <div class="section-header">
             <h2>ROUTE SCHEDULE</h2>
             <p>Find out exactly when Santa is coming to your neighbourhood.</p>
         </div>
@@ -968,7 +951,7 @@
 
     <!-- MEMORY BOOK SECTION -->
     <section id="memory-book">
-        <div class="section-header is-left">
+        <div class="section-header">
             <h2>DIGITAL MEMORY BOOK</h2>
             <p id="memory-book-desc">Spotted Santa? Help us build our digital memory book and share your photos!</p>
         </div>
@@ -990,7 +973,7 @@
 
     <!-- FAQ & SAFETY SECTION -->
     <section id="faq">
-        <div class="section-header is-left">
+        <div class="section-header">
             <h2>FAQ & SAFETY RULES</h2>
             <p>Important information about the sleigh routes and how to enjoy the magic safely.</p>
         </div>
@@ -1269,12 +1252,6 @@
             navLogo.alt = siteName + ' logo';
             navLogo.style.display = 'block';
 
-            const heroLogo = $('hero-logo');
-            if (heroLogo) {
-                heroLogo.onerror = () => { heroLogo.onerror = null; heroLogo.src = DEFAULT_LOGO; };
-                heroLogo.src = logo || DEFAULT_LOGO;
-                heroLogo.hidden = false;
-            }
 
             if (logo) {
                 const iconLink = document.querySelector("link[rel='icon']");
@@ -1732,28 +1709,6 @@
             return a;
         }
 
-        function getSocialHandle(s) {
-            if (!s) return '';
-            const insta = s.table_instagram_url || s.instagram_url || '';
-            const tiktok = s.table_tiktok_url || s.tiktok_url || '';
-            const fb = s.table_facebook_url || s.facebook_url || '';
-            if (insta) {
-                const m = insta.match(/instagram\.com\/([a-zA-Z0-9_\.]+)/i);
-                if (m && m[1]) return '@' + m[1].replace(/\/$/, '');
-            }
-            if (tiktok) {
-                const m = tiktok.match(/tiktok\.com\/@?([a-zA-Z0-9_\.]+)/i);
-                if (m && m[1]) return '@' + m[1].replace(/\/$/, '');
-            }
-            if (fb) {
-                const m = fb.match(/facebook\.com\/([a-zA-Z0-9_\.]+)/i);
-                if (m && m[1] && !['profile.php', 'pages', 'groups'].includes(m[1].toLowerCase())) {
-                    return '@' + m[1].replace(/\/$/, '');
-                }
-            }
-            return '';
-        }
-
         function renderSocial(settings) {
             const container = $('social-links-container');
             container.replaceChildren();
@@ -1766,28 +1721,6 @@
             ].forEach(([href, label, icon]) => {
                 if (href) container.appendChild(socialBtn(href, label, icon));
             });
-
-            // Update memory book description with dynamic social handle
-            const handle = getSocialHandle(settings);
-            const desc = $('memory-book-desc');
-            if (desc && handle) {
-                desc.textContent = 'Spotted Santa? Help us build our digital memory book and share your photos! Posting on socials? Tag us ';
-                const tagEl = document.createElement('strong');
-                tagEl.style.color = 'var(--primary)';
-                tagEl.style.fontWeight = '700';
-                tagEl.style.cursor = 'pointer';
-                tagEl.title = 'Tap to copy handle';
-                tagEl.textContent = handle;
-                tagEl.onclick = () => {
-                    navigator.clipboard?.writeText(handle).then(() => {
-                        const orig = tagEl.textContent;
-                        tagEl.textContent = 'Copied! ✓';
-                        setTimeout(() => { tagEl.textContent = orig; }, 1500);
-                    }).catch(() => {});
-                };
-                desc.appendChild(tagEl);
-                desc.appendChild(document.createTextNode(' so we can re-share the magic!'));
-            }
         }
 
         // --- Hero status: live now / tonight / next route ---
