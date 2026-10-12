@@ -1,4 +1,4 @@
-﻿<!-- 
+<!-- 
 ========================================================================
 CLOUDFLARE PAGES CACHING CONFIGURATION 
 ========================================================================
@@ -567,11 +567,11 @@ caches your custom fonts for a year, drastically speeding up load times:
         });
 
         // ---------------------------------------------------------
-        // SLEIGH CONFIGURATION & IFRAME INJECTION
+        // SLEIGH CONFIGURATION & IFRAME INJECTION (D1 Cloudflare API)
         // ---------------------------------------------------------
-        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwl88G_1QGwp6uN1JEGV2Abd7FAwQg7Id3_ufSNW_n1e7rsPAw-ZUor5vlqL8_GBfCK/exec';
-        const PROXY_URL = 'https://santaproxy.beverley247.workers.dev/?ttl=30&target=' + encodeURIComponent(GAS_API_URL);
-        const FRAME_BASE = 'https://brt-23f.pages.dev/sleigh';
+        const TABLE_SLUG = 'beverley';
+        const D1_API_URL = `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${TABLE_SLUG}`;
+        const FRAME_BASE = window.location.origin.includes('localhost') ? window.location.origin : 'https://turbosanta-app.pages.dev';
 
         // Helper to parse route dates safely
         function parseRouteDate(v) {
@@ -681,8 +681,7 @@ function renderDonations(donations, settings) {
     html += `</div>`;
 
     // Dynamic Volunteer Banner Logic
-    const api = encodeURIComponent(GAS_API_URL);
-    const fallbackCrewUrl = `${FRAME_BASE}/crew?api=${api}`;
+    const fallbackCrewUrl = `${FRAME_BASE}/crew.html?table=${TABLE_SLUG}`;
     const volunteerLink = window.location.hostname.includes('beverleyroundtable.co.uk') 
         ? 'https://crew.beverleyroundtable.co.uk' 
         : fallbackCrewUrl;
@@ -789,15 +788,37 @@ function renderDonations(donations, settings) {
             const loader = document.getElementById('routes-loader');
             
             try {
-                const response = await fetch(PROXY_URL);
+                const response = await fetch(`${D1_API_URL}&_t=${Date.now()}`, { cache: "no-store" });
                 if (!response.ok) throw new Error('Failed to load routes');
                 
-                const data = await response.json();
+                const raw = await response.json();
                 
-                renderDonations(data.donations || {}, data.settings || {});
+                // Normalize D1 payload
+                const donations = {
+                    total: raw.table?.total_raised || raw.donations?.total || 0,
+                    target: raw.table?.fundraising_goal || raw.donations?.target || 0,
+                    currency: '£',
+                    lastUpdatePretty: 'Just now'
+                };
+                const settings = {
+                    donate_url: raw.table?.donate_url || raw.settings?.donate_url || ''
+                };
+                
+                renderDonations(donations, settings);
 
-                const routes = Array.isArray(data.routes) ? data.routes : [];
-                const sponsors = Array.isArray(data.sponsors) ? data.sponsors : [];
+                const rawRoutes = Array.isArray(raw.routes) ? raw.routes : [];
+                const routes = rawRoutes.map(r => ({
+                    routeName: r.name || r.routeName,
+                    date: r.date,
+                    'Start Time': r.start_time || r['Start Time'] || '18:00',
+                    'End Time': r.end_time || r['End Time'] || '20:30',
+                    gpxUrl: r.gpx_url || r.gpxUrl || '',
+                    sponsorName: r.sponsor_name || r.sponsorName || '',
+                    sponsorLogo: r.sponsor_logo || r.sponsorLogo || '',
+                    sponsorLink: r.sponsor_link || r.sponsorLink || '',
+                    sponsorDescription: r.sponsor_description || r.sponsorDescription || ''
+                }));
+                const sponsors = Array.isArray(raw.table?.partners) ? raw.table.partners : (Array.isArray(raw.sponsors) ? raw.sponsors : []);
                 
                 if(loader) loader.remove();
 
@@ -901,7 +922,7 @@ function renderDonations(donations, settings) {
 
         document.addEventListener('DOMContentLoaded', () => {
             // 1. Set Tracker Iframe
-            const trackerUrl = `${FRAME_BASE}/tracker?api=${encodeURIComponent(GAS_API_URL)}&proxy=${encodeURIComponent(PROXY_URL)}`;
+            const trackerUrl = `${FRAME_BASE}/tracker.html?table=${TABLE_SLUG}`;
             const trackerFrame = document.getElementById('tracker-iframe');
             if (trackerFrame) {
                 trackerFrame.src = trackerUrl;
@@ -909,7 +930,7 @@ function renderDonations(donations, settings) {
             }
 
             // 2. Set Address Lookup Iframe
-            const addressUrl = `${FRAME_BASE}/address.html?api=${encodeURIComponent(GAS_API_URL)}&proxy=${encodeURIComponent(PROXY_URL)}`;
+            const addressUrl = `${FRAME_BASE}/address.html?table=${TABLE_SLUG}`;
             const addressFrame = document.getElementById('address-iframe');
             if (addressFrame) {
                 addressFrame.src = addressUrl;
@@ -917,7 +938,7 @@ function renderDonations(donations, settings) {
             }
 
             // 3. Set Memory Book Iframe
-            const memoryBookUrl = `${FRAME_BASE}/memory_book?api=${encodeURIComponent(GAS_API_URL)}&proxy=${encodeURIComponent(PROXY_URL)}`;
+            const memoryBookUrl = `${FRAME_BASE}/memory_book.html?table=${TABLE_SLUG}`;
             const memoryBookFrame = document.getElementById('memory-book-iframe');
             if (memoryBookFrame) {
                 memoryBookFrame.src = memoryBookUrl;
@@ -925,7 +946,7 @@ function renderDonations(donations, settings) {
             }
 
             // 4. Set Blueprint Iframe
-            const blueprintUrl = `${FRAME_BASE}/blueprint?api=${encodeURIComponent(GAS_API_URL)}&proxy=${encodeURIComponent(PROXY_URL)}`;
+            const blueprintUrl = `${FRAME_BASE}/blueprint.html?table=${TABLE_SLUG}`;
             const blueprintFrame = document.getElementById('blueprint-iframe');
             if (blueprintFrame) {
                 blueprintFrame.src = blueprintUrl;
@@ -934,6 +955,13 @@ function renderDonations(donations, settings) {
 
             // 5. Fetch the Routes list
             fetchSleighRoutes();
+
+            // Auto-refresh every 15s to keep live data in sync without manual refresh
+            setInterval(() => {
+                if (document.visibilityState === 'visible' && navigator.onLine) {
+                    fetchSleighRoutes().catch(() => {});
+                }
+            }, 15000);
         });
 
         // Listen for iframe resizing events (from address lookup, memory book, and blueprint)

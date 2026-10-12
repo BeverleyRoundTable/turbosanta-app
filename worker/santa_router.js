@@ -265,43 +265,26 @@ export default {
     // -------------------------------------------------------------
     let templateResponse = null;
     try {
-      templateResponse = await fetch(`${PAGES_URL}${templateFile}`, {
-        cf: { cacheEverything: true, cacheTtl: 300 }
-      });
+      templateResponse = await fetch(`${PAGES_URL}${templateFile}`);
       if (!templateResponse.ok) {
-        templateResponse = await fetch(`${LEGACY_PAGES_URL}${templateFile}`, {
-          cf: { cacheEverything: true, cacheTtl: 300 }
-        });
+        templateResponse = await fetch(`${LEGACY_PAGES_URL}${templateFile}`);
       }
     } catch(e) {
-      templateResponse = await fetch(`${LEGACY_PAGES_URL}${templateFile}`, {
-        cf: { cacheEverything: true, cacheTtl: 300 }
-      });
+      templateResponse = await fetch(`${LEGACY_PAGES_URL}${templateFile}`);
     }
 
     if (!templateResponse || !templateResponse.ok) {
       return new Response(`Template ${templateFile} not found on Pages origin.`, { status: 404 });
     }
 
-    // Fetch Table Metadata from Edge API (Cache for 60s)
+    // Fetch fresh Table Metadata from D1 Edge API (Cache-less real-time)
     let tableMeta = null;
     try {
-      const cache = caches.default;
-      const metaKey = new Request(`https://${host}/__edge_cache_table_meta_${townSlug}`);
-      let cachedMeta = await cache.match(metaKey);
-
-      if (cachedMeta) {
-        tableMeta = await cachedMeta.json();
-      } else {
-        const payloadRes = await fetch(`${API_URL}/api/payload?table=${encodeURIComponent(townSlug)}`, {
-          cf: { cacheEverything: true, cacheTtl: 60 }
-        });
-        if (payloadRes.ok) {
-          tableMeta = await payloadRes.json();
-          ctx.waitUntil(cache.put(metaKey, new Response(JSON.stringify(tableMeta), {
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60' }
-          })));
-        }
+      const payloadRes = await fetch(`${API_URL}/api/payload?table=${encodeURIComponent(townSlug)}`, {
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      if (payloadRes.ok) {
+        tableMeta = await payloadRes.json();
       }
     } catch (e) {
       // Fallback silently if offline or cold
@@ -370,7 +353,9 @@ export default {
         status: templateResponse.status,
         headers: {
           'Content-Type': 'text/html;charset=UTF-8',
-          'Cache-Control': 'public, max-age=60',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
           'X-TurboSanta-Town': townSlug,
           'X-TurboSanta-Mode': modeTitle
         }

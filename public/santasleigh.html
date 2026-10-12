@@ -703,11 +703,13 @@
     }, window.SLEIGH_CONFIG || {});
 
     window.sleighProxyUrl = function (api) {
-        return window.SLEIGH_CONFIG.proxyBase + '/?ttl=30&target=' + encodeURIComponent(api);
+        if (!api) return `${window.SLEIGH_CONFIG.workerApi}/api/payload?table=${encodeURIComponent(window.__sleighTableSlug || 'beverley')}`;
+        return api.includes('workers.dev') ? api : `${window.SLEIGH_CONFIG.proxyBase}/?target=${encodeURIComponent(api)}`;
     };
 
     window.sleighFetchData = function (api) {
-        return fetch(window.sleighProxyUrl(api), { cache: 'no-store' }).then(function (response) {
+        const fetchUrl = api ? window.sleighProxyUrl(api) : `${window.SLEIGH_CONFIG.workerApi}/api/payload?table=${encodeURIComponent(window.__sleighTableSlug || 'beverley')}&_t=${Date.now()}`;
+        return fetch(fetchUrl, { cache: 'no-store' }).then(function (response) {
             if (!response.ok) throw new Error('Failed to load API data (HTTP ' + response.status + ')');
             return response.json();
         });
@@ -718,7 +720,7 @@
     } else if (window.__sleighApiUrl) {
         window.__sleighDataPromise = window.sleighFetchData(window.__sleighApiUrl);
     } else if (window.__sleighTableSlug) {
-        window.__sleighDataPromise = fetch(`${window.SLEIGH_CONFIG.workerApi}/api/payload?table=${encodeURIComponent(window.__sleighTableSlug)}`)
+        window.__sleighDataPromise = fetch(`${window.SLEIGH_CONFIG.workerApi}/api/payload?table=${encodeURIComponent(window.__sleighTableSlug)}&_t=${Date.now()}`, { cache: 'no-store' })
             .then(function(res) {
                 if (!res.ok) throw new Error('Failed to load table data (HTTP ' + res.status + ')');
                 return res.json();
@@ -1777,9 +1779,67 @@
 
         function refreshSleighData() {
             const api = window.__sleighApiUrl;
-            if (!api) return Promise.resolve();
-            return window.sleighFetchData(api).then(data => applySettings(checkPayload(data), api));
+            const tableSlug = window.__sleighTableSlug || 'beverley';
+            if (api) {
+                return window.sleighFetchData(api).then(data => applySettings(checkPayload(data), api));
+            } else if (tableSlug) {
+                return fetch(`${CFG.workerApi}/api/payload?table=${encodeURIComponent(tableSlug)}&_t=${Date.now()}`, { cache: 'no-store' })
+                    .then(r => r.json())
+                    .then(raw => {
+                        const data = checkPayload(raw);
+                        const adapted = {
+                            settings: {
+                                sleigh_display_name: data.table?.sleigh_display_name || (data.table?.name ? `${data.table.name} Santa Sleigh` : 'Santa Sleigh'),
+                                table_name: data.table?.name || 'Round Table',
+                                primary_color: data.table?.primary_color || '#FBAF33',
+                                accent_color: data.table?.accent_color || '#FFFFFF',
+                                donate_url: data.table?.donate_url || '',
+                                live_announcement: data.table?.live_announcement || '',
+                                logo_overlay_url: data.table?.logo_url || '',
+                                background_url: data.table?.background_url || '',
+                                table_website_url: data.table?.website_url || data.table?.table_website_url || 'https://www.roundtable.co.uk',
+                                table_facebook_url: data.table?.facebook_url || data.table?.table_facebook_url || '',
+                                table_instagram_url: data.table?.instagram_url || data.table?.table_instagram_url || '',
+                                table_tiktok_url: data.table?.tiktok_url || data.table?.table_tiktok_url || '',
+                                table_youtube_url: data.table?.youtube_url || data.table?.table_youtube_url || ''
+                            },
+                            donations: {
+                                total: data.table?.total_raised || 0,
+                                target: data.table?.fundraising_goal || 0,
+                                currency: '£',
+                                lastUpdatePretty: 'Just now'
+                            },
+                            routes: (data.routes || []).map(r => ({
+                                routeName: r.name,
+                                date: r.date,
+                                startTime: r.start_time || '18:00',
+                                endTime: r.end_time || '20:30',
+                                notes: r.notes || '',
+                                sponsor: r.sponsor_name || '',
+                                sponsorLogo: r.sponsor_logo || '',
+                                sponsorLink: r.sponsor_link || '',
+                                sponsorDescription: r.sponsor_description || ''
+                            })),
+                            sponsors: data.table?.partners || [],
+                            headlineSponsor: data.table?.headline_sponsor_name ? {
+                                name: data.table.headline_sponsor_name,
+                                logo: data.table.headline_sponsor_logo,
+                                url: data.table.headline_sponsor_url,
+                                tagline: data.table.headline_sponsor_tagline
+                            } : null
+                        };
+                        applySettings(adapted, null);
+                    });
+            }
+            return Promise.resolve();
         }
+
+        // Live Background Polling (Every 15s) keeping announcements, routes, and donations 100% synchronized
+        setInterval(() => {
+            if (document.visibilityState === 'visible' && navigator.onLine) {
+                refreshSleighData().catch(() => {});
+            }
+        }, 15000);
 
         window.addEventListener('offline', () => {
             netState = 'offline';
