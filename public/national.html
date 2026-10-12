@@ -1204,7 +1204,59 @@ async function loadAll(fetchRegistry = true, isBackground = false) {
     // 3. Apply the results directly
     results = payload.tables || [];
     const errors = payload.errors || [];
-    
+
+    // ⭐ Accurately calculate completed vs planned routes & visited vs scheduled streets from live table schedules
+    if (currentMode === "live" && results.length > 0) {
+      await Promise.allSettled(results.map(async (table) => {
+        if (table.api) {
+          try {
+            const tablePayload = await fetchWithTimeout(table.api, 3500);
+            if (tablePayload && (tablePayload.routes || tablePayload.streets)) {
+              const routes = tablePayload.routes || [];
+              const streets = tablePayload.streets || [];
+              const todayStr = new Date().toISOString().slice(0, 10);
+
+              let completedCount = 0;
+              let completedStreetCount = 0;
+              const completedRouteIds = new Set();
+
+              routes.forEach(r => {
+                const isPast = r.date && r.date < todayStr;
+                const isDone = r.status === 'Completed' || (isPast && r.status !== 'Cancelled');
+                if (isDone) {
+                  completedCount++;
+                  completedRouteIds.add(r.id);
+                }
+              });
+
+              streets.forEach(s => {
+                if (completedRouteIds.has(s.route_id)) {
+                  completedStreetCount++;
+                }
+              });
+
+              table.routes = completedCount;
+              table.routesPlanned = routes.length;
+              table.streets = completedStreetCount;
+              table.streetsScheduled = streets.length;
+              return;
+            }
+          } catch(e) {
+            console.warn("Table detail fetch fallback for", table.name, e);
+          }
+        }
+
+        // Fallback if individual table detail cannot be fetched:
+        // Legacy summary endpoint returns registered routes count under `routes`, which represents PLANNED runs
+        if (table.routesPlanned === undefined) {
+          table.routesPlanned = table.routes || 0;
+          table.routes = 0;
+          table.streetsScheduled = table.streets || 0;
+          table.streets = 0;
+        }
+      }));
+    }
+
     results.sort((a, b) => b.netRaised - a.netRaised);
     render(results, errors, isBackground);
 
@@ -1301,10 +1353,10 @@ function renderLeaderboard(data) {
       progressHtml = `<div class="progress-bar-bg" title="Goal: £${d.target.toLocaleString()} (${pct}%)"><div class="progress-bar-fill" style="width: ${pct}%;"></div></div>`;
     }
 
-    const rDone = d.routes || 0;
-    const rPlan = d.routesPlanned !== undefined ? d.routesPlanned : rDone;
-    const sDone = d.streets || 0;
-    const sPlan = d.streetsScheduled !== undefined ? d.streetsScheduled : sDone;
+    const rDone = d.routesPlanned !== undefined ? (d.routes || 0) : 0;
+    const rPlan = d.routesPlanned !== undefined ? d.routesPlanned : (d.routes || 0);
+    const sDone = d.streetsScheduled !== undefined ? (d.streets || 0) : 0;
+    const sPlan = d.streetsScheduled !== undefined ? d.streetsScheduled : (d.streets || 0);
 
     const routesHtml = currentMode === "live"
       ? `<span style="color:${rDone > 0 ? 'var(--gold)' : 'var(--text-muted)'}; font-weight:${rDone > 0 ? '700' : '400'};">${rDone}</span><span style="color:var(--text-dim); font-size:11px;"> / ${rPlan}</span>`
@@ -1377,10 +1429,11 @@ function renderCharts(data) {
   });
 
   // Streets Chart (Visited vs Scheduled)
-  const streetsVisitedData = data.map(d => d.streets || 0);
+  const streetsVisitedData = data.map(d => (d.streetsScheduled !== undefined ? (d.streets || 0) : 0));
   const streetsRemainingData = data.map(d => {
     const total = d.streetsScheduled !== undefined ? d.streetsScheduled : (d.streets || 0);
-    return Math.max(0, total - (d.streets || 0));
+    const visited = d.streetsScheduled !== undefined ? (d.streets || 0) : 0;
+    return Math.max(0, total - visited);
   });
 
   const streetsDatasets = [
@@ -1428,15 +1481,15 @@ function renderCharts(data) {
           callbacks: {
             label: function(context) {
               const d = data[context.dataIndex];
+              const visited = d.streetsScheduled !== undefined ? (d.streets || 0) : 0;
+              const scheduled = d.streetsScheduled !== undefined ? d.streetsScheduled : (d.streets || 0);
+              const remaining = Math.max(0, scheduled - visited);
               if (context.datasetIndex === 0) {
-                const visited = d.streets || 0;
                 return currentMode === "live"
                   ? ` Visited: ${visited.toLocaleString()}`
                   : ` Streets: ${visited.toLocaleString()}`;
               } else {
                 if (currentMode !== "live") return null;
-                const scheduled = d.streetsScheduled !== undefined ? d.streetsScheduled : (d.streets || 0);
-                const remaining = Math.max(0, scheduled - (d.streets || 0));
                 return ` Remaining Scheduled: ${remaining.toLocaleString()} (Total Scheduled: ${scheduled.toLocaleString()})`;
               }
             }
@@ -1459,10 +1512,11 @@ function renderCharts(data) {
   });
 
   // Routes Chart (Completed vs Planned)
-  const routesCompletedData = data.map(d => d.routes || 0);
+  const routesCompletedData = data.map(d => (d.routesPlanned !== undefined ? (d.routes || 0) : 0));
   const routesRemainingData = data.map(d => {
     const total = d.routesPlanned !== undefined ? d.routesPlanned : (d.routes || 0);
-    return Math.max(0, total - (d.routes || 0));
+    const completed = d.routesPlanned !== undefined ? (d.routes || 0) : 0;
+    return Math.max(0, total - completed);
   });
 
   const routesDatasets = [
@@ -1510,15 +1564,15 @@ function renderCharts(data) {
           callbacks: {
             label: function(context) {
               const d = data[context.dataIndex];
+              const completed = d.routesPlanned !== undefined ? (d.routes || 0) : 0;
+              const planned = d.routesPlanned !== undefined ? d.routesPlanned : (d.routes || 0);
+              const remaining = Math.max(0, planned - completed);
               if (context.datasetIndex === 0) {
-                const completed = d.routes || 0;
                 return currentMode === "live"
                   ? ` Completed: ${completed.toLocaleString()}`
                   : ` Routes: ${completed.toLocaleString()}`;
               } else {
                 if (currentMode !== "live") return null;
-                const planned = d.routesPlanned !== undefined ? d.routesPlanned : (d.routes || 0);
-                const remaining = Math.max(0, planned - (d.routes || 0));
                 return ` Remaining Planned: ${remaining.toLocaleString()} (Total Planned: ${planned.toLocaleString()})`;
               }
             }
