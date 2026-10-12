@@ -28,21 +28,6 @@ export default {
     }
     slug = (slug || "beverley").toLowerCase().trim();
 
-    // Fetch the Table config directly from D1 database
-    let table = null;
-    try {
-      table = await env.DB.prepare(
-        "SELECT * FROM tables WHERE slug = ?"
-      ).bind(slug).first();
-    } catch (e) {
-      table = null;
-    }
-
-    // If table doesn't exist in D1 (and not creating one via migrate), return 404
-    if (!table && path !== "/api/migrate") {
-      return jsonResponse({ error: `Table '${slug}' not found in database.` }, 404);
-    }
-
     // Helper: Extract town slug from official Round Table email
     const extractTableSlugFromEmail = (email) => {
       if (!email || typeof email !== "string") return "";
@@ -171,6 +156,81 @@ export default {
 
       return false;
     };
+
+    // Fetch the Table config directly from D1 database
+    let table = null;
+    try {
+      table = await env.DB.prepare(
+        "SELECT * FROM tables WHERE slug = ?"
+      ).bind(slug).first();
+    } catch (e) {
+      table = null;
+    }
+
+    // 🚀 JUST-IN-TIME AUTO-PROVISIONING FOR AUTHENTICATED TABLE ORGANISERS
+    // If table doesn't exist in D1 yet, but an authorized Round Table admin is accessing the API:
+    if (!table) {
+      const authHeader = request.headers.get("Authorization") || "";
+      const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+      const secret = url.searchParams.get("secret") || bearerToken;
+
+      if (secret && isAuthorized(secret, slug)) {
+        try {
+          const cleanTown = slug.charAt(0).toUpperCase() + slug.slice(1);
+          const defaultName = `${cleanTown} Round Table Santa Sleigh`;
+          await env.DB.prepare(`
+            INSERT INTO tables (id, slug, name, sleigh_display_name, primary_color, accent_color, donate_url, charity_name, fundraising_goal)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).bind(slug, slug, defaultName, defaultName, "#FBAF33", "#D31C1C", "", defaultName, 5000).run();
+
+          table = await env.DB.prepare("SELECT * FROM tables WHERE slug = ?").bind(slug).first();
+        } catch (provErr) {
+          console.warn("Auto-provisioning error:", provErr);
+        }
+      }
+    }
+
+    // Graceful unauthenticated payload fallback for public turnkey view when table not yet in D1
+    if (!table && path === "/api/payload" && request.method === "GET") {
+      const cleanTown = slug.charAt(0).toUpperCase() + slug.slice(1);
+      const defaultName = `${cleanTown} Round Table Santa Sleigh`;
+      return jsonResponse({
+        table: {
+          id: slug,
+          slug: slug,
+          name: defaultName,
+          sleigh_display_name: defaultName,
+          primary_color: "#FBAF33",
+          accent_color: "#D31C1C",
+          donate_url: "",
+          charity_name: defaultName,
+          charity_number: "",
+          fundraising_goal: 5000,
+          total_raised: 0,
+          live_announcement: null,
+          tracking_active: 0,
+          enable_gift_aid: 1,
+          headline_sponsor_name: null,
+          partners: []
+        },
+        routes: [],
+        streets: [],
+        live_sleigh: {
+          status: "Resting in Lapland",
+          lat: 52.4708,
+          lng: -1.9207,
+          road_name: "Lapland",
+          speed: 0,
+          timestamp: new Date().toISOString()
+        },
+        volunteers: []
+      });
+    }
+
+    // If table still doesn't exist in D1 (and not creating one via migrate or init), return 404
+    if (!table && path !== "/api/migrate" && path !== "/api/table/init" && path !== "/api/table/provision") {
+      return jsonResponse({ error: `Table '${slug}' not found in database.` }, 404);
+    }
 
     // ==============================================================
     // 🌐 1. MASTER TRACKER PAYLOAD (GET /api/payload)
@@ -2059,7 +2119,7 @@ INSTRUCTIONS:
       const streets = payload.streets || [];
       const volunteers = payload.volunteers || [];
 
-      // Upsert Table in D1
+      // Upsert Table in D1 safely without requiring UNIQUE constraint on slug
       const tableId = targetSlug;
       const displayName = settings.sleigh_display_name || `${targetSlug.toUpperCase()} Santa Sleigh`;
       const donateUrl = settings.donate_url || "";
@@ -2068,17 +2128,29 @@ INSTRUCTIONS:
       const primaryColor = settings.primary_color || "#FBAF33";
       const accentColor = settings.accent_color || "#D31C1C";
 
-      await env.DB.prepare(`
-        INSERT INTO tables (id, slug, name, sleigh_display_name, primary_color, accent_color, donate_url, charity_name, fundraising_goal)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(slug) DO UPDATE SET
-          sleigh_display_name = excluded.sleigh_display_name,
-          donate_url = excluded.donate_url,
-          charity_name = excluded.charity_name,
-          fundraising_goal = excluded.fundraising_goal,
-          primary_color = excluded.primary_color,
-          accent_color = excluded.accent_color
-      `).bind(tableId, targetSlug, displayName, displayName, primaryColor, accentColor, donateUrl, charityName, goal).run();
+      try {
+        const existingTable = await env.DB.prepare("SELECT id FROM tables WHERE slug = ? OR id = ?").bind(targetSlug, tableId).first();
+        if (existingTable) {
+          await env.DB.prepare(`
+            UPDATE tables SET
+              sleigh_display_name = ?,
+              name = ?,
+              donate_url = ?,
+              charity_name = ?,
+              fundraising_goal = ?,
+              primary_color = ?,
+              accent_color = ?
+            WHERE id = ?
+          `).bind(displayName, displayName, donateUrl, charityName, goal, primaryColor, accentColor, existingTable.id).run();
+        } else {
+          await env.DB.prepare(`
+            INSERT INTO tables (id, slug, name, sleigh_display_name, primary_color, accent_color, donate_url, charity_name, fundraising_goal)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).bind(tableId, targetSlug, displayName, displayName, primaryColor, accentColor, donateUrl, charityName, goal).run();
+        }
+      } catch (upsertErr) {
+        console.error("Table upsert error:", upsertErr);
+      }
 
       // Clean and Insert Routes
       if (routes.length > 0) {
@@ -2125,6 +2197,43 @@ INSTRUCTIONS:
           volunteers: volunteers.length
         }
       });
+    }
+
+    // ==============================================================
+    // 🚀 16B. INITIALIZE / PROVISION TABLE (POST /api/table/init)
+    // ==============================================================
+    if ((path === "/api/table/init" || path === "/api/table/provision") && request.method === "POST") {
+      let body = {};
+      try { body = await request.json(); } catch(e) { body = {}; }
+
+      const authHeader = request.headers.get("Authorization") || "";
+      const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+      const secret = body.secret || url.searchParams.get("secret") || bearerToken;
+      const targetSlug = (body.tableSlug || slug || "beverley").toLowerCase().trim();
+
+      if (!isAuthorized(secret, targetSlug)) {
+        return jsonResponse({ error: "Unauthorized: Admin credentials required to provision table" }, 401);
+      }
+
+      const cleanTown = targetSlug.charAt(0).toUpperCase() + targetSlug.slice(1);
+      const defaultName = body.name || `${cleanTown} Round Table Santa Sleigh`;
+
+      try {
+        const existing = await env.DB.prepare("SELECT * FROM tables WHERE slug = ? OR id = ?").bind(targetSlug, targetSlug).first();
+        if (existing) {
+          return jsonResponse({ ok: true, message: `Table '${targetSlug}' already provisioned in D1 database.`, table: existing });
+        }
+
+        await env.DB.prepare(`
+          INSERT INTO tables (id, slug, name, sleigh_display_name, primary_color, accent_color, donate_url, charity_name, fundraising_goal)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(targetSlug, targetSlug, defaultName, defaultName, "#FBAF33", "#D31C1C", "", defaultName, 5000).run();
+
+        const newTable = await env.DB.prepare("SELECT * FROM tables WHERE slug = ?").bind(targetSlug).first();
+        return jsonResponse({ ok: true, message: `Successfully provisioned Table '${targetSlug}' in D1 database!`, table: newTable });
+      } catch (err) {
+        return jsonResponse({ error: `Failed to provision table in D1: ${err.message}` }, 500);
+      }
     }
 
     return jsonResponse({ error: "Endpoint not found" }, 404);
