@@ -3910,30 +3910,33 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 background: 'linear-gradient(135deg, rgba(251, 175, 51, 0.08) 0%, #1a1a17 100%)',
                 border: '1px solid rgba(251, 175, 51, 0.35)',
                 borderRadius: '16px',
-                padding: '24px',
+                padding: 'clamp(16px, 3.5vw, 24px)',
                 marginTop: '32px',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 flexWrap: 'wrap',
-                gap: '20px'
+                gap: '20px',
+                maxWidth: '100%',
+                boxSizing: 'border-box',
+                overflow: 'hidden'
               }}>
-                <div style={{ flex: '1 1 340px', minWidth: 0 }}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(251, 175, 51, 0.15)', border: '1px solid rgba(251, 175, 51, 0.3)', borderRadius: '100px', padding: '3px 10px', fontSize: '11px', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
-                    <Heart size={12} fill="var(--primary)" />
-                    <span>Tablers Helping Tablers • Voluntary Project</span>
+                <div style={{ flex: '1 1 300px', minWidth: 0, maxWidth: '100%' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(251, 175, 51, 0.15)', border: '1px solid rgba(251, 175, 51, 0.3)', borderRadius: '100px', padding: '3px 10px', fontSize: '11px', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', maxWidth: '100%', boxSizing: 'border-box' }}>
+                    <Heart size={12} fill="var(--primary)" style={{ flexShrink: 0 }} />
+                    <span style={{ overflowWrap: 'break-word' }}>Tablers Helping Tablers • Voluntary Project</span>
                   </div>
-                  <h3 className="brand-font" style={{ fontSize: '18px', color: '#fff', margin: '0 0 6px 0' }}>
+                  <h3 className="brand-font" style={{ fontSize: '18px', color: '#fff', margin: '0 0 6px 0', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
                     Supporting TurboSanta &amp; The Santa Tuk Tuk Build
                   </h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '13px', lineHeight: 1.6, margin: 0 }}>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '13px', lineHeight: 1.6, margin: 0, overflowWrap: 'break-word' }}>
                     TurboSanta 2.0 is provided completely free of charge with zero subscription fees to help Round Tables across the UK raise maximum funds for their local communities.
                     The platform, Cloudflare database, domain hosting, and Google Gemini AI tokens are funded out-of-pocket by Beverley Round Table #247.
                     If this system has helped your Table and you’d like to chip in toward running costs or help fund our Santa Sleigh Tuk Tuk build, any contribution is warmly appreciated!
                   </p>
                 </div>
 
-                <div style={{ flexShrink: 0 }}>
+                <div style={{ flex: '1 1 260px', width: '100%', maxWidth: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', boxSizing: 'border-box' }}>
                   <a
                     href="https://paymentrequest.natwestpayit.com/reusable-link/2f1fd0ee-360a-4bbd-8e9a-fd07e641970e"
                     target="_blank"
@@ -3942,16 +3945,24 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
+                      justifyContent: 'center',
                       gap: '8px',
-                      padding: '12px 20px',
+                      padding: '12px clamp(12px, 3vw, 20px)',
                       textDecoration: 'none',
-                      fontSize: '13px',
+                      fontSize: 'clamp(11px, 3.2vw, 13px)',
                       fontWeight: 800,
-                      borderRadius: '8px'
+                      borderRadius: '8px',
+                      width: '100%',
+                      maxWidth: '360px',
+                      boxSizing: 'border-box',
+                      textAlign: 'center',
+                      whiteSpace: 'normal',
+                      wordBreak: 'break-word',
+                      lineHeight: 1.3
                     }}
                   >
                     <span>🎁 Chip In via NatWest PayIt</span>
-                    <ExternalLink size={14} />
+                    <ExternalLink size={14} style={{ flexShrink: 0 }} />
                   </a>
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', marginTop: '6px' }}>
                     Instant Bank Transfer • Apple Pay
