@@ -72,6 +72,8 @@
             --text-muted: rgba(255, 255, 255, 0.7);
             --border: rgba(255, 255, 255, 0.15);
             --on-primary: #000000;
+            --primary-rgb: 251, 175, 51;
+            --bg-overlay: linear-gradient(180deg, rgba(29, 29, 26, 0.7) 0%, rgba(0, 0, 0, 0.94) 100%);
         }
 
         * {
@@ -107,7 +109,7 @@
             top: 0; left: 0; width: 100%; height: 100%;
             background-color: var(--bg-dark);
             background-image: 
-                linear-gradient(180deg, rgba(29, 29, 26, 0.85) 0%, rgba(0, 0, 0, 0.95) 100%),
+                var(--bg-overlay),
                 url('https://brt-23f.pages.dev/icons/site_background.png');
             background-size: cover;
             background-position: center;
@@ -238,14 +240,59 @@
             font-size: 56px;
             margin-bottom: 15px;
             color: var(--text-main);
-            text-shadow: 0 4px 10px rgba(0,0,0,0.8);
         }
         .hero p {
             font-size: 18px;
             color: var(--text-muted);
             max-width: 600px;
             margin: 0 auto 30px;
-            text-shadow: 0 2px 5px rgba(0,0,0,0.8);
+        }
+        .hero-logo {
+            display: block;
+            width: 96px;
+            height: 96px;
+            object-fit: contain;
+            margin: 0 auto 20px;
+        }
+        .hero-logo[hidden] { display: none; }
+        .hero-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 100%;
+            margin: 0 0 20px;
+            padding: 8px 18px;
+            border-radius: 999px;
+            border: 1px solid rgba(var(--primary-rgb), 0.6);
+            background: rgba(var(--primary-rgb), 0.12);
+            color: var(--text-main);
+            font-size: 15px;
+            font-weight: 600;
+            line-height: 1.4;
+            text-align: left;
+            text-decoration: none;
+        }
+        .hero-status[hidden] { display: none; }
+        .hero-status:hover { background: rgba(var(--primary-rgb), 0.22); }
+        .hero-status.is-live {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: var(--on-primary);
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            background: var(--primary);
+        }
+        .hero-status.is-live .status-dot {
+            background: var(--on-primary);
+            animation: status-pulse 1.6s ease-in-out infinite;
+        }
+        @keyframes status-pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.35; transform: scale(0.7); }
         }
 
         .btn {
@@ -267,6 +314,17 @@
             transform: translateY(-2px);
             filter: brightness(1.1);
         }
+        .btn-ghost {
+            background: transparent;
+            border: 2px solid var(--border);
+            color: var(--text-main);
+        }
+        .hero-actions {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
         
         section {
             padding: 60px 20px;
@@ -279,13 +337,12 @@
             margin-bottom: 40px;
         }
         .section-header h2 {
-            font-size: 40px;
+            font-size: clamp(26px, 6.5vw, 40px);
+            line-height: 1.15;
             color: var(--text-main);
-            text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+            text-wrap: balance;
         }
-        .section-header p {
-             text-shadow: 0 2px 5px rgba(0,0,0,0.8);
-        }
+        .section-header.is-left { text-align: left; }
 
         .iframe-container {
             width: 100%;
@@ -301,6 +358,11 @@
             display: block;
         }
         
+        #tracker { max-width: 1200px; }
+        #tracker .section-header { margin-bottom: 24px; }
+        #tracker .iframe-container { border-color: rgba(var(--primary-rgb), 0.45); }
+        #routes .iframe-container { margin-bottom: 40px; }
+
         #tracker-iframe {
             height: 75svh;
             min-height: 500px;
@@ -313,12 +375,13 @@
         }
 
         .thermo-card {
-            background: var(--bg-card);
+            background: var(--primary);
+            color: var(--on-primary);
             border-radius: 16px;
             border: 1px solid var(--border);
             padding: 40px 30px;
             text-align: center;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            box-shadow: 0 0 40px rgba(var(--primary-rgb), 0.25), 0 20px 40px rgba(0,0,0,0.6);
             max-width: 500px;
             margin: 0 auto;
         }
@@ -329,7 +392,7 @@
         .progress-bar-bg {
             width: 100%;
             height: 24px;
-            background: var(--bg-dark);
+            background: rgba(0, 0, 0, 0.28);
             border-radius: 12px;
             border: 1px solid var(--border);
             overflow: hidden;
@@ -338,16 +401,22 @@
         .progress-bar-fill {
             height: 100%;
             width: 0%;
-            background: var(--primary);
+            background: var(--on-primary);
             border-radius: 12px;
             transition: width 1.5s ease-out;
         }
         .thermo-stats {
             display: flex;
+            align-items: baseline;
             justify-content: space-between;
             margin-bottom: 25px;
             font-size: 24px;
         }
+
+        .stat-current { font-size: 1.5em; line-height: 1; }
+        .stat-target { opacity: 0.75; }
+        .thermo-updated { margin-bottom: 20px; font-size: 14px; opacity: 0.8; }
+        .thermo-card .btn { background: var(--on-primary); color: var(--primary); }
 
         .volunteer-banner {
             background: linear-gradient(135deg, rgba(29,29,26,0.9) 0%, rgba(0,0,0,0.95) 100%);
@@ -419,7 +488,7 @@
             border-radius: 16px;
             padding: 24px;
             margin-bottom: 35px;
-            box-shadow: 0 0 25px rgba(251, 175, 51, 0.2), 0 10px 30px rgba(0, 0, 0, 0.6);
+            box-shadow: 0 0 25px rgba(var(--primary-rgb), 0.2), 0 10px 30px rgba(0, 0, 0, 0.6);
             display: flex;
             flex-direction: column;
             gap: 20px;
@@ -452,11 +521,11 @@
         }
 
         .today-sponsor-box {
-            background: rgba(251, 175, 51, 0.06);
+            background: rgba(var(--primary-rgb), 0.06);
             border: 1px solid var(--primary);
             border-radius: 12px;
             padding: 18px;
-            box-shadow: 0 0 15px rgba(251, 175, 51, 0.15);
+            box-shadow: 0 0 15px rgba(var(--primary-rgb), 0.15);
         }
 
         /* --- ROUTES GRID --- */
@@ -586,7 +655,7 @@
         .faq-header::-webkit-details-marker { display: none; }
         .faq-header::marker { content: ''; }
         .faq-header:hover {
-            background: rgba(251, 175, 51, 0.1);
+            background: rgba(var(--primary-rgb), 0.1);
         }
         .faq-title {
             font-size: 18px;
@@ -625,23 +694,34 @@
 
         @media(max-width: 600px) {
             nav {
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 15px;
+                flex-wrap: nowrap;
+                justify-content: flex-start;
+                gap: 12px;
+                padding: 8px 12px;
             }
+            .nav-brand { gap: 8px; flex-shrink: 0; }
+            .nav-logo { height: 36px; width: 36px; }
+            .nav-title { font-size: 16px; }
+            /* Once the logo is showing, the hero carries the name: keep the bar to one slim row */
+            .nav-logo:not([style*="display: none"]) + .nav-title { display: none; }
             .nav-links {
-                width: 100%;
+                flex: 1;
+                min-width: 0;
+                gap: 18px;
                 overflow-x: auto;
                 white-space: nowrap;
-                padding-bottom: 5px;
                 justify-content: flex-start;
-                -ms-overflow-style: none;  
-                scrollbar-width: none;  
+                -ms-overflow-style: none;
+                scrollbar-width: none;
             }
-            .nav-links::-webkit-scrollbar { 
-                display: none; 
+            .nav-links::-webkit-scrollbar {
+                display: none;
             }
+            .nav-links a { font-size: 13px; padding: 10px 0; flex-shrink: 0; }
+            section { scroll-margin-top: 64px; }
             .hero h1 { font-size: 40px; }
+            .hero-logo { width: 72px; height: 72px; margin-bottom: 14px; }
+            .hero-status { font-size: 14px; }
         }
 
         .tracker-fs {
@@ -663,6 +743,50 @@
             outline-offset: 3px;
         }
 
+        .thermo-card a:focus-visible,
+        .thermo-card button:focus-visible {
+            outline-color: var(--on-primary);
+        }
+
+        /* Page renders immediately; live-data pieces fade in once the payload lands */
+        body.is-pending {
+            --primary: #FFFFFF;
+            --on-primary: #000000;
+            --primary-rgb: 255, 255, 255;
+        }
+        .hero-logo, .hero h1, .hero-status, .nav-logo, .nav-title, .thermo-card {
+            transition: opacity 0.35s ease;
+        }
+        body.is-pending .hero-logo,
+        body.is-pending .hero h1,
+        body.is-pending .hero-status,
+        body.is-pending .nav-logo,
+        body.is-pending .nav-title,
+        body.is-pending .thermo-card {
+            opacity: 0;
+        }
+
+        /* Utility classes (replace static inline styles) */
+        .hl { color: var(--primary); }
+        .loader-error { color: #d31c1c; text-align: center; max-width: 80%; margin-top: 20px; }
+        .volunteer-wrap { max-width: 500px; margin: 0 auto; width: 100%; }
+        .btn-icon-end { margin-left: 5px; }
+        .section-center { text-align: center; }
+        .partners-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            text-align: left;
+        }
+        .about-lead { font-size: 18px; margin-bottom: 20px; }
+        .about-body { margin-bottom: 20px; color: var(--text-muted); }
+        .about-tagline {
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-main);
+        }
+
         @media (prefers-reduced-motion: reduce) {
             html { scroll-behavior: auto; }
             *, *::before, *::after {
@@ -677,19 +801,26 @@
         }
     </style>
 </head>
-<body>
+<body class="is-pending">
     <div id="site-bg"></div>
 
     <!-- Loading Overlay -->
-    <div id="loader" class="loader-overlay" role="status" aria-live="polite">
+    <div id="loader" class="loader-overlay" role="status" aria-live="polite" style="display: none;">
         <div class="spinner"></div>
         <h2 id="loader-text" class="brand-font">Loading Sleigh Data...</h2>
-        <div id="loader-error" style="display: none; color: #d31c1c; text-align: center; max-width: 80%; margin-top: 20px;"></div>
+        <div id="loader-error" class="loader-error" style="display: none;"></div>
     </div>
     
     <script>
     const urlParams = new URLSearchParams(location.search);
-    const tableSlug = urlParams.get('table') || (location.hostname.includes('beverley') ? 'beverley' : (urlParams.get('api') ? '' : 'beverley'));
+    let tableSlug = urlParams.get('table');
+    if (!tableSlug) {
+        const parts = location.hostname.toLowerCase().split('.');
+        if (parts.length > 2 && !location.hostname.includes('pages.dev') && !location.hostname.includes('workers.dev') && parts[0] !== 'www') {
+            tableSlug = parts[0].replace(/(tracker|crew|addresses|godmode)$/, '');
+        }
+    }
+    tableSlug = tableSlug || 'beverley';
     window.__sleighTableSlug = tableSlug;
     window.__sleighApiUrl = urlParams.get('api');
 
@@ -750,18 +881,23 @@
 
     <!-- Hero Section -->
     <header class="hero">
+        <img id="hero-logo" class="hero-logo" alt="" hidden>
         <h1><span id="hero-title">Santa Sleigh</span></h1>
+        <a id="hero-status" class="hero-status" href="#routes" hidden>
+            <span class="status-dot" aria-hidden="true"></span>
+            <span id="hero-status-text"></span>
+        </a>
         <p>Follow Santa live on his journey, check when he is visiting your street, and help us raise vital funds for the local community this Christmas!</p>
-        <div style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
+        <div class="hero-actions">
             <a href="#tracker" class="btn">Track Santa Live</a>
-            <button id="share-btn" type="button" aria-label="Share this page" class="btn" style="background: transparent; border: 2px solid var(--border); color: var(--text-main);"><i class="fa-solid fa-share-nodes"></i></button>
+            <button id="share-btn" type="button" aria-label="Share this page" class="btn btn-ghost"><i class="fa-solid fa-share-nodes"></i></button>
         </div>
     </header>
 
     <!-- Tracker Section -->
     <section id="tracker">
         <div class="section-header">
-            <h2>LIVE <span style="color: var(--primary);">TRACKER</span></h2>
+            <h2>LIVE TRACKER</h2>
             <p>Watch Santa's sleigh move in real-time as he visits the streets!</p>
         </div>
         <div class="iframe-container">
@@ -773,42 +909,42 @@
     <!-- Donations Section -->
     <section id="donate">
         <div class="section-header">
-            <h2>HELP US SPREAD <span style="color: var(--primary);">THE MAGIC</span></h2>
+            <h2>HELP US SPREAD THE MAGIC</h2>
             <p>Every penny raised goes directly back into supporting our local community.</p>
         </div>
         
         <div class="thermo-card">
-            <h3 class="thermo-title brand-font" style="color: var(--text-main);">FUNDRAISER <span style="color: var(--primary);">TARGET</span></h3>
+            <h3 class="thermo-title brand-font">FUNDRAISER TARGET</h3>
             <div class="progress-bar-bg">
                 <div class="progress-bar-fill" id="donation-fill"></div>
             </div>
             <div class="thermo-stats brand-font">
-                <span id="donation-current" style="color: var(--primary);">£0</span>
-                <span id="donation-target" style="color: var(--text-muted);">£0</span>
+                <span id="donation-current" class="stat-current">£0</span>
+                <span id="donation-target" class="stat-target">£0</span>
             </div>
-            <p id="donation-updated-wrap" style="margin-bottom: 20px; font-size: 14px; color: var(--text-muted);">Last updated: <span id="donation-updated">Recently</span></p>
+            <p id="donation-updated-wrap" class="thermo-updated">Last updated: <span id="donation-updated">Recently</span></p>
             <a href="#" id="donate-btn" class="btn" target="_blank" rel="noopener noreferrer" style="display: none;">Donate Now</a>
         </div>
 
-        <div id="volunteer-container" style="display: none; max-width: 500px; margin: 0 auto; width: 100%; box-sizing: border-box;">
+        <div id="volunteer-container" class="volunteer-wrap" style="display: none;">
             <div class="volunteer-banner">
                 <div class="volunteer-text">
                     <h3 class="brand-font">Help Keep The Sleigh Moving!</h3>
                     <p>We need drivers, navigators, and bucket collectors. Volunteer as an elf this year!</p>
                 </div>
-                <a href="#" id="volunteer-btn" class="btn-outline" target="_blank" rel="noopener noreferrer">Volunteer Now <i class="fa-solid fa-arrow-right" style="margin-left: 5px;"></i></a>
+                <a href="#" id="volunteer-btn" class="btn-outline" target="_blank" rel="noopener noreferrer">Volunteer Now <i class="fa-solid fa-arrow-right btn-icon-end"></i></a>
             </div>
         </div>
     </section>
 
     <!-- Routes Section -->
     <section id="routes">
-        <div class="section-header">
-            <h2>ROUTE <span style="color: var(--primary);">SCHEDULE</span></h2>
+        <div class="section-header is-left">
+            <h2>ROUTE SCHEDULE</h2>
             <p>Find out exactly when Santa is coming to your neighbourhood.</p>
         </div>
         
-        <div class="iframe-container" style="margin-bottom: 40px;">
+        <div class="iframe-container">
             <iframe id="address-iframe" height="500" title="Address Lookup" scrolling="no" loading="lazy" allow="geolocation"></iframe>
         </div>
 
@@ -822,18 +958,18 @@
 
 
     <!-- COMMUNITY PARTNERS (Beverley Custom) -->
-    <section id="partners" style="display: none; padding: 60px 20px; max-width: 1000px; margin: 0 auto; text-align: center;">
+    <section id="partners" class="section-center" style="display: none;">
         <div class="section-header">
-            <h2>COMMUNITY <span style="color: var(--primary);">PARTNERS</span></h2>
+            <h2>COMMUNITY PARTNERS</h2>
             <p>Thank you to the generous local organisations keeping the magic rolling.</p>
         </div>
-        <div id="partners-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; text-align: left;"></div>
+        <div id="partners-container" class="partners-grid"></div>
     </section>
 
     <!-- MEMORY BOOK SECTION -->
     <section id="memory-book">
-        <div class="section-header">
-            <h2>DIGITAL <span style="color: var(--primary);">MEMORY BOOK</span></h2>
+        <div class="section-header is-left">
+            <h2>DIGITAL MEMORY BOOK</h2>
             <p id="memory-book-desc">Spotted Santa? Help us build our digital memory book and share your photos!</p>
         </div>
         <div class="iframe-container">
@@ -844,7 +980,7 @@
     <!-- Sponsors Section -->
     <section id="sponsors" style="display: none;">
         <div class="section-header">
-            <h2>OUR GENEROUS <span style="color: var(--primary);">SPONSORS</span></h2>
+            <h2>OUR GENEROUS SPONSORS</h2>
             <p>Thank you to the local businesses keeping the sleigh on the road.</p>
         </div>
         <div class="sponsors-grid" id="sponsors-container">
@@ -854,8 +990,8 @@
 
     <!-- FAQ & SAFETY SECTION -->
     <section id="faq">
-        <div class="section-header">
-            <h2>FAQ & <span style="color: var(--primary);">SAFETY RULES</span></h2>
+        <div class="section-header is-left">
+            <h2>FAQ & SAFETY RULES</h2>
             <p>Important information about the sleigh routes and how to enjoy the magic safely.</p>
         </div>
         
@@ -906,7 +1042,7 @@
                     <i class="fa-solid fa-chevron-down faq-icon" aria-hidden="true"></i>
                 </summary>
                 <div class="faq-content">
-                    <p>Yes! Our elves carry contactless card readers alongside their traditional buckets. You can also donate right here on this website using the Donate button at the top of the page.</p>
+                    <p>Yes! Our elves carry contactless card readers alongside their traditional buckets.<span id="faq-online-donate"> You can also donate online using the Donate button in the Donate section above.</span></p>
                 </div>
             </details>
             
@@ -925,17 +1061,17 @@
     <!-- ABOUT US SECTION -->
     <section id="about">
         <div class="section-header">
-            <h2>WHO <span style="color: var(--primary);">WE ARE</span></h2>
+            <h2>WHO WE ARE</h2>
         </div>
         <div class="about-card">
-            <p style="font-size: 18px; margin-bottom: 20px;">
-                The Santa Sleigh is proudly operated by <strong id="about-table-name" style="color: var(--primary);">Round Table</strong>.
+            <p class="about-lead">
+                The Santa Sleigh is proudly operated by <strong id="about-table-name" class="hl">Round Table</strong>.
             </p>
-            <p style="margin-bottom: 20px; color: var(--text-muted);">
+            <p class="about-body">
                 Round Table is an events-based club for young men aged 18-45 focused on delivering a programme of social and community events. Whether it be trying a new sport, going on an adventure, or raising money for our communities, we aim to have fun, make friends, and live life to the fullest.
             </p>
-            <p style="font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: var(--text-main);">
-                Find the friends you've been missing. <span style="color: var(--primary);">Do More in <span id="current-year-text"></span>.</span>
+            <p class="about-tagline">
+                Find the friends you've been missing. <span class="hl">Do More in <span id="current-year-text"></span>.</span>
             </p>
             
             <div class="social-links" id="social-links-container"></div>
@@ -955,7 +1091,7 @@
         const $ = (id) => document.getElementById(id);
         const DEFAULT_LOGO = CFG.assetBase + '/RTBI_Santa.png';
         const DEFAULT_WEBSITE = 'https://www.roundtable.co.uk';
-        const BG_OVERLAY = 'linear-gradient(180deg, rgba(29, 29, 26, 0.85) 0%, rgba(0, 0, 0, 0.95) 100%)';
+        const BG_OVERLAY = 'var(--bg-overlay)';
         const FRAME_ORIGIN = (() => { try { return new URL(CFG.frameBase).origin; } catch (e) { return ''; } })();
 
         const currentYear = new Date().getFullYear();
@@ -1030,6 +1166,8 @@
             const loaderError = $('loader-error');
             const spinner = document.querySelector('.spinner');
             if (spinner) spinner.style.display = 'none';
+            const overlay = $('loader');
+            if (overlay) { overlay.style.display = 'flex'; overlay.removeAttribute('aria-hidden'); }
 
             const target = (loaderText && loaderError) ? loaderError : $('announcement-bar');
             target.innerHTML = html;
@@ -1050,6 +1188,7 @@
         }
 
         function removeLoader() {
+            document.body.classList.remove('is-pending');
             const loader = $('loader') || document.querySelector('.loader-overlay');
             if (loader) {
                 loader.style.display = 'none';
@@ -1083,9 +1222,11 @@
             if (primary) {
                 root.style.setProperty('--primary', String(settings.primary_color).trim());
                 root.style.setProperty('--on-primary', readableTextOn(primary));
+                root.style.setProperty('--primary-rgb', primary.join(', '));
             } else {
                 root.style.removeProperty('--primary');
                 root.style.removeProperty('--on-primary');
+                root.style.removeProperty('--primary-rgb');
             }
             if (parseColor(settings.accent_color)) {
                 root.style.setProperty('--accent', String(settings.accent_color).trim());
@@ -1127,6 +1268,13 @@
             navLogo.src = logo || DEFAULT_LOGO;
             navLogo.alt = siteName + ' logo';
             navLogo.style.display = 'block';
+
+            const heroLogo = $('hero-logo');
+            if (heroLogo) {
+                heroLogo.onerror = () => { heroLogo.onerror = null; heroLogo.src = DEFAULT_LOGO; };
+                heroLogo.src = logo || DEFAULT_LOGO;
+                heroLogo.hidden = false;
+            }
 
             if (logo) {
                 const iconLink = document.querySelector("link[rel='icon']");
@@ -1301,6 +1449,8 @@
                 donateBtn.style.display = 'none';
             }
             card.style.display = (hasTarget || donateUrl) ? '' : 'none';
+            const faqOnline = $('faq-online-donate');
+            if (faqOnline) faqOnline.hidden = !donateUrl;
 
             if (volunteerUrl) {
                 $('volunteer-btn').href = volunteerUrl;
@@ -1640,6 +1790,75 @@
             }
         }
 
+        // --- Hero status: live now / tonight / next route ---
+        function parseClock(v) {
+            const m = /^\s*(\d{1,2})[:.](\d{2})\s*([ap]m)?\s*$/i.exec(String(v == null ? '' : v));
+            if (!m) return null;
+            let h = +m[1];
+            const min = +m[2];
+            const ap = m[3] ? m[3].toLowerCase() : '';
+            if (ap === 'pm' && h < 12) h += 12;
+            if (ap === 'am' && h === 12) h = 0;
+            return (h > 23 || min > 59) ? null : h * 60 + min;
+        }
+
+        function renderHeroStatus(routes) {
+            const node = $('hero-status');
+            const label = $('hero-status-text');
+            if (!node || !label) return;
+
+            const now = new Date();
+            const today = new Date(now);
+            today.setHours(0, 0, 0, 0);
+            const nowMin = now.getHours() * 60 + now.getMinutes();
+
+            const items = routes
+                .filter(r => r && r.routeName)
+                .map(route => {
+                    const d = parseRouteDate(route.date);
+                    if (!d) return null;
+                    const day = new Date(d);
+                    day.setHours(0, 0, 0, 0);
+                    const startRaw = String(route['Start Time'] || route.startTime || '').trim();
+                    const endRaw = String(route['End Time'] || route.endTime || '').trim();
+                    const start = parseClock(startRaw);
+                    const end = parseClock(endRaw);
+                    let times = '';
+                    if (start !== null) times = end !== null ? startRaw + ' to ' + endRaw : startRaw;
+                    return { name: String(route.routeName), d, day, start, end, endRaw, times };
+                })
+                .filter(Boolean)
+                .sort((a, b) => (a.day - b.day) || ((a.start === null ? 0 : a.start) - (b.start === null ? 0 : b.start)));
+
+            const finished = i => i.end !== null && nowMin > i.end;
+            const isLive = i => i.start !== null && i.end !== null && nowMin >= i.start && nowMin <= i.end;
+            const todays = items.filter(i => i.day.getTime() === today.getTime());
+            const liveNow = todays.find(isLive);
+            const laterToday = todays.find(i => !finished(i));
+            const next = items.find(i => i.day > today);
+
+            let msg = '';
+            let href = '#routes';
+            let live = false;
+            if (liveNow) {
+                msg = 'On the road now: ' + liveNow.name + ', until ' + liveNow.endRaw;
+                href = '#tracker';
+                live = true;
+            } else if (laterToday) {
+                msg = 'Tonight: ' + laterToday.name + (laterToday.times ? ', ' + laterToday.times : '');
+            } else if (next) {
+                const dateText = next.d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+                msg = 'Next route: ' + next.name + ', ' + dateText + (next.times ? ', ' + next.times : '');
+            } else if (items.length) {
+                msg = 'All of this year\u2019s routes are complete. Thank you for your support!';
+            }
+
+            node.hidden = !msg;
+            node.classList.toggle('is-live', live);
+            node.setAttribute('href', href);
+            label.textContent = msg;
+        }
+
         function safely(name, fn) {
             try { fn(); } catch (err) { console.error('Render failed: ' + name, err); }
         }
@@ -1656,6 +1875,7 @@
             safely('frames', () => renderFrames(api));
             safely('donations', () => renderDonations(donations, settings));
             safely('routes', () => renderRoutes(routes, sponsors));
+            safely('status', () => renderHeroStatus(routes));
             safely('sponsors', () => renderSponsors(sponsors));
             safely('about', () => renderAbout(settings));
             safely('social', () => renderSocial(settings));
@@ -1804,10 +2024,10 @@
                                 'Start Time': r.start_time || '18:00',
                                 'End Time': r.end_time || '20:30',
                                 streets: r.streets || (data.streets?.filter(s => s.route_id === r.id).map(s => s.street_name).join(', ')) || '',
-                                sponsorName: r.sponsor_name,
-                                sponsorUrl: r.sponsor_logo_url,
-                                sponsorLink: r.sponsor_link,
-                                sponsorDescription: r.sponsor_description
+                                sponsorName: r.sponsor_name || r.sponsorName || '',
+                                sponsorUrl: r.sponsor_logo_url || r.sponsor_logo || r.sponsorUrl || '',
+                                sponsorLink: r.sponsor_link || r.sponsor_url || r.sponsorLink || '',
+                                sponsorDescription: r.sponsor_description || r.sponsorDescription || ''
                             })),
                             sponsors: data.sponsors || []
                         };
@@ -1853,17 +2073,19 @@
                                 lastUpdatePretty: 'Just now'
                             },
                             routes: (data.routes || []).map(r => ({
-                                routeName: r.name,
+                                ...r,
+                                routeName: r.name || r.routeName,
                                 date: r.date,
-                                startTime: r.start_time || '18:00',
-                                endTime: r.end_time || '20:30',
+                                'Start Time': r.start_time || '18:00',
+                                'End Time': r.end_time || '20:30',
                                 notes: r.notes || '',
-                                sponsor: r.sponsor_name || '',
-                                sponsorLogo: r.sponsor_logo || '',
+                                streets: r.streets || (data.streets?.filter(s => s.route_id === r.id).map(s => s.street_name).join(', ')) || '',
+                                sponsorName: r.sponsor_name || '',
+                                sponsorUrl: r.sponsor_logo_url || r.sponsor_logo || '',
                                 sponsorLink: r.sponsor_link || '',
                                 sponsorDescription: r.sponsor_description || ''
                             })),
-                            sponsors: data.table?.partners || [],
+                            sponsors: data.sponsors || data.table?.partners || [],
                             headlineSponsor: data.table?.headline_sponsor_name ? {
                                 name: data.table.headline_sponsor_name,
                                 logo: data.table.headline_sponsor_logo,
