@@ -178,10 +178,27 @@ export default {
         try {
           const cleanTown = slug.charAt(0).toUpperCase() + slug.slice(1);
           const defaultName = `${cleanTown} Round Table Santa Sleigh`;
+          let adminEmail = `${slug}@roundtable.org.uk`;
+          if (bearerToken.startsWith("ts2_")) {
+            try {
+              const raw = atob(bearerToken.slice(4));
+              const [em] = raw.split("_");
+              if (em && em.includes("@")) adminEmail = em.trim().toLowerCase();
+            } catch(e){}
+          } else if (bearerToken.includes(".")) {
+            try {
+              const parts = bearerToken.split(".");
+              let b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+              while (b64.length % 4) b64 += "=";
+              const p = JSON.parse(atob(b64));
+              if (p && p.email) adminEmail = p.email.trim().toLowerCase();
+            } catch(e){}
+          }
+
           await env.DB.prepare(`
-            INSERT INTO tables (id, slug, name, sleigh_display_name, primary_color, accent_color, donate_url, charity_name, fundraising_goal)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `).bind(slug, slug, defaultName, defaultName, "#FBAF33", "#D31C1C", "", defaultName, 5000).run();
+            INSERT INTO tables (id, slug, name, sleigh_display_name, admin_email, primary_color, accent_color, donate_url, charity_name, fundraising_goal)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).bind(slug, slug, defaultName, defaultName, adminEmail, "#FBAF33", "#D31C1C", "", defaultName, 5000).run();
 
           table = await env.DB.prepare("SELECT * FROM tables WHERE slug = ?").bind(slug).first();
         } catch (provErr) {
@@ -2143,10 +2160,11 @@ INSTRUCTIONS:
             WHERE id = ?
           `).bind(displayName, displayName, donateUrl, charityName, goal, primaryColor, accentColor, existingTable.id).run();
         } else {
+          const adminEmail = settings.admin_email || `${targetSlug}@roundtable.org.uk`;
           await env.DB.prepare(`
-            INSERT INTO tables (id, slug, name, sleigh_display_name, primary_color, accent_color, donate_url, charity_name, fundraising_goal)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `).bind(tableId, targetSlug, displayName, displayName, primaryColor, accentColor, donateUrl, charityName, goal).run();
+            INSERT INTO tables (id, slug, name, sleigh_display_name, admin_email, primary_color, accent_color, donate_url, charity_name, fundraising_goal)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).bind(tableId, targetSlug, displayName, displayName, adminEmail, primaryColor, accentColor, donateUrl, charityName, goal).run();
         }
       } catch (upsertErr) {
         console.error("Table upsert error:", upsertErr);
@@ -2224,10 +2242,11 @@ INSTRUCTIONS:
           return jsonResponse({ ok: true, message: `Table '${targetSlug}' already provisioned in D1 database.`, table: existing });
         }
 
+        const adminEmail = body.admin_email || `${targetSlug}@roundtable.org.uk`;
         await env.DB.prepare(`
-          INSERT INTO tables (id, slug, name, sleigh_display_name, primary_color, accent_color, donate_url, charity_name, fundraising_goal)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(targetSlug, targetSlug, defaultName, defaultName, "#FBAF33", "#D31C1C", "", defaultName, 5000).run();
+          INSERT INTO tables (id, slug, name, sleigh_display_name, admin_email, primary_color, accent_color, donate_url, charity_name, fundraising_goal)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(targetSlug, targetSlug, defaultName, defaultName, adminEmail, "#FBAF33", "#D31C1C", "", defaultName, 5000).run();
 
         const newTable = await env.DB.prepare("SELECT * FROM tables WHERE slug = ?").bind(targetSlug).first();
         return jsonResponse({ ok: true, message: `Successfully provisioned Table '${targetSlug}' in D1 database!`, table: newTable });
