@@ -614,36 +614,35 @@ async function switchTab(btn) {
       return;
     } 
       
-      const originalText = btn.innerText;
-      btn.innerText = "Verifying...";
+    const originalText = btn.innerText;
+    btn.innerText = "Verifying...";
+    
+    try {
+      let isValid = false;
+      if (API) {
+        const sep = API.includes('?') ? '&' : '?';
+        const check = await fetch(`${API}${sep}function=verifyGodMode&secret=${encodeURIComponent(secret)}`);
+        const result = await check.json();
+        isValid = Boolean(result.valid);
+      } else {
+        const check = await fetch(`${WORKER_URL}/api/auth/verify?table=${encodeURIComponent(tableSlug)}&secret=${encodeURIComponent(secret)}`);
+        const result = await check.json();
+        isValid = Boolean(result.valid);
+      }
       
-      try {
-        let isValid = false;
-        if (API) {
-          const sep = API.includes('?') ? '&' : '?';
-          const check = await fetch(`${API}${sep}function=verifyGodMode&secret=${encodeURIComponent(secret)}`);
-          const result = await check.json();
-          isValid = Boolean(result.valid);
-        } else {
-          const check = await fetch(`${WORKER_URL}/api/auth/verify?table=${encodeURIComponent(tableSlug)}&secret=${encodeURIComponent(secret)}`);
-          const result = await check.json();
-          isValid = Boolean(result.valid);
-        }
-        
-        if (!isValid) {
-          alert("Access Denied. Incorrect Password.");
-          btn.innerText = originalText;
-          return;
-        }
-        
-        sessionStorage.setItem('opsSecret', secret);
-      } catch(e) {
-        alert("Connection failed.");
+      if (!isValid) {
+        alert("Access Denied. Incorrect Password.");
         btn.innerText = originalText;
         return;
       }
+      
+      sessionStorage.setItem('opsSecret', secret);
+    } catch(e) {
+      alert("Connection failed.");
       btn.innerText = originalText;
+      return;
     }
+    btn.innerText = originalText;
   }
 
   document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('active'));
