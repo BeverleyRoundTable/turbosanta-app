@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sleigh-shell-v7'; // Bumped to v7: borderless header logo
+const CACHE_NAME = 'sleigh-shell-v8'; // Bumped to v8: tap-to-copy social handle
 const STATIC_ASSETS = [
     'https://brt-23f.pages.dev/icons/site_background.png',
     'https://brt-23f.pages.dev/icons/RTBI_Santa.png',

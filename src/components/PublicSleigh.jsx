@@ -775,11 +775,18 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
               <p style={{ color: 'var(--text-muted)', fontSize: '16px' }}>
                 Spotted Santa? Snap a photo or video and pin your festive polaroids to our community wall!
                 {handle && (
-                  <span> Posting on socials? Tag us {socialUrl ? (
-                    <a href={socialUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', fontWeight: 700, textDecoration: 'none' }}>{handle}</a>
-                  ) : (
-                    <strong style={{ color: 'var(--primary)' }}>{handle}</strong>
-                  )} so we can re-share!</span>
+                  <span> Posting on socials? Tag us <strong
+                    style={{ color: 'var(--primary)', cursor: 'pointer' }}
+                    title="Tap to copy handle"
+                    onClick={(e) => {
+                      navigator.clipboard?.writeText(handle).then(() => {
+                        const target = e.currentTarget;
+                        const orig = target.textContent;
+                        target.textContent = 'Copied! ✓';
+                        setTimeout(() => { target.textContent = orig; }, 1500);
+                      }).catch(() => {});
+                    }}
+                  >{handle}</strong> so we can re-share!</span>
                 )}
               </p>
             );

@@ -141,6 +141,14 @@
       text-decoration: none;
       font-weight: 700;
     }
+    .social-handle {
+      color: var(--primary);
+      font-weight: 700;
+      cursor: pointer;
+      user-select: all;
+      transition: opacity 0.2s;
+    }
+    .social-handle:active { opacity: 0.7; }
 
     .time-machine {
       display: inline-flex; align-items: center; gap: 8px;
@@ -360,7 +368,7 @@
     <button class="btn" id="openUploadBtn">Submit a Photo or Video</button>
     <br>
     <div id="socialTagline" class="social-tagline" style="display: none;">
-      <span>📱 Posting on social media? Tag us <a id="socialTagLink" href="#" target="_blank" rel="noopener"></a>!</span>
+      <span>📱 Posting on social media? Tag us <strong id="socialTagHandle" class="social-handle" title="Tap to copy handle"></strong>!</span>
     </div>
   </header>
 
@@ -376,7 +384,7 @@
       <div class="modal-title">Share a Polaroid</div>
       <div class="modal-desc">Send us your best photo or a short video clip from the night! Everything is reviewed by the elves before being pinned to the wall.</div>
       <div id="modalSocialNotice" class="modal-social-hint" style="display: none;">
-        Posting straight to your own stories or feed instead? Tag <a id="modalSocialLink" href="#" target="_blank" rel="noopener"></a> so we can re-share your festive photos!
+        Posting straight to your own stories or feed instead? Tag <strong id="modalSocialHandle" class="social-handle" title="Tap to copy handle"></strong> so we can re-share your festive photos!
       </div>
       
       <div class="file-drop-area" id="dropArea" onclick="document.getElementById('fileInput').click()">
@@ -703,25 +711,33 @@
 
         function updateSocialTagline(s, fallbackSlug) {
           let handle = getSocialHandle(s);
-          let url = getSocialUrl(s);
           if (!handle && (fallbackSlug === 'beverley' || !fallbackSlug)) {
             handle = '@beverleyroundtable';
-            url = 'https://www.instagram.com/beverleyroundtable/';
           }
           if (handle) {
             currentSocialHandle = handle;
+            const attachCopy = (el) => {
+              if (!el) return;
+              el.textContent = handle;
+              el.onclick = () => {
+                navigator.clipboard?.writeText(handle).then(() => {
+                  const orig = el.textContent;
+                  el.textContent = 'Copied! ✓';
+                  setTimeout(() => { el.textContent = orig; }, 1500);
+                }).catch(() => {});
+              };
+            };
+
             const tagline = document.getElementById('socialTagline');
-            const link = document.getElementById('socialTagLink');
-            if (tagline && link) {
-              link.textContent = handle;
-              link.href = url || '#';
+            const tagHandle = document.getElementById('socialTagHandle');
+            if (tagline && tagHandle) {
+              attachCopy(tagHandle);
               tagline.style.display = 'inline-flex';
             }
             const modalNotice = document.getElementById('modalSocialNotice');
-            const modalLink = document.getElementById('modalSocialLink');
-            if (modalNotice && modalLink) {
-              modalLink.textContent = handle;
-              modalLink.href = url || '#';
+            const modalHandle = document.getElementById('modalSocialHandle');
+            if (modalNotice && modalHandle) {
+              attachCopy(modalHandle);
               modalNotice.style.display = 'block';
             }
           }

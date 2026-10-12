@@ -1622,15 +1622,20 @@
             const desc = $('memory-book-desc');
             if (desc && handle) {
                 desc.textContent = 'Spotted Santa? Help us build our digital memory book and share your photos! Posting on socials? Tag us ';
-                const link = document.createElement('a');
-                link.href = safeUrl(settings.table_instagram_url) || safeUrl(settings.table_facebook_url) || safeUrl(settings.table_tiktok_url) || '#';
-                link.target = '_blank';
-                link.rel = 'noopener';
-                link.style.color = 'var(--primary)';
-                link.style.fontWeight = '700';
-                link.style.textDecoration = 'none';
-                link.textContent = handle;
-                desc.appendChild(link);
+                const tagEl = document.createElement('strong');
+                tagEl.style.color = 'var(--primary)';
+                tagEl.style.fontWeight = '700';
+                tagEl.style.cursor = 'pointer';
+                tagEl.title = 'Tap to copy handle';
+                tagEl.textContent = handle;
+                tagEl.onclick = () => {
+                    navigator.clipboard?.writeText(handle).then(() => {
+                        const orig = tagEl.textContent;
+                        tagEl.textContent = 'Copied! ✓';
+                        setTimeout(() => { tagEl.textContent = orig; }, 1500);
+                    }).catch(() => {});
+                };
+                desc.appendChild(tagEl);
                 desc.appendChild(document.createTextNode(' so we can re-share the magic!'));
             }
         }
