@@ -172,10 +172,7 @@ async function boot() {
   );
   const isAuthenticatedAdmin = Boolean(adminSession && (isRoundTable || isApprovedNational));
 
-  if (isAuthenticatedAdmin) {
-    secret = 'authenticated';
-    sessionStorage.setItem('beaconSecret', secret);
-  } else if (!secret && adminSession && (adminSession.googleCredential || adminSession.token)) {
+  if (adminSession && (adminSession.googleCredential || adminSession.token)) {
     secret = adminSession.googleCredential || adminSession.token;
     sessionStorage.setItem('beaconSecret', secret);
   }
@@ -199,7 +196,7 @@ async function boot() {
   ltxt.textContent = "Verifying authentication…";
   try {
     if (tableParam && !API.includes("script.google.com")) {
-      let isBeaconValid = isAuthenticatedAdmin;
+      let isBeaconValid = false;
       try {
         const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/auth/verify?table=${encodeURIComponent(tableParam)}&secret=${encodeURIComponent(secret)}`, {
           headers: { 'Authorization': `Bearer ${secret}` }

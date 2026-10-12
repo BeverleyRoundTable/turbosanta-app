@@ -493,11 +493,8 @@ async function init() {
   );
   const isAuthenticatedAdmin = Boolean(adminSession && (isRoundTable || isApprovedNational));
 
-  // Seamless auto-authentication if launched from an authenticated Admin Portal session
-  if (isAuthenticatedAdmin) {
-    secret = 'authenticated';
-    sessionStorage.setItem('sleighSecret', secret);
-  } else if (!secret && adminSession && (adminSession.googleCredential || adminSession.token)) {
+  // Send verified Google Workspace credential or session token to worker
+  if (adminSession && (adminSession.googleCredential || adminSession.token)) {
     secret = adminSession.googleCredential || adminSession.token;
     sessionStorage.setItem('sleighSecret', secret);
   }
@@ -519,10 +516,6 @@ async function init() {
   }
 
   let isValid = false;
-  if (isAuthenticatedAdmin) {
-    isValid = true;
-  }
-
   try {
     const check = await fetch(`${WORKER_API}/api/auth/verify?table=${encodeURIComponent(TABLE_SLUG)}&secret=${encodeURIComponent(secret)}`, {
       headers: { 'Authorization': `Bearer ${secret}` }

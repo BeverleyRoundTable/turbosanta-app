@@ -602,17 +602,17 @@ async function switchTab(btn) {
     if (!secret) {
       try {
         const adminSession = JSON.parse(localStorage.getItem("turbosanta_admin_session") || "{}");
-        const sessionEmail = String(adminSession?.email || '').trim().toLowerCase();
-        if (sessionEmail.endsWith('@roundtable.org.uk') || sessionEmail.endsWith('@roundtable.co.uk') || adminSession?.isNationalAdmin) {
-          secret = 'authenticated';
+        if (adminSession && (adminSession.googleCredential || adminSession.token)) {
+          secret = adminSession.googleCredential || adminSession.token;
           sessionStorage.setItem('opsSecret', secret);
         }
       } catch(e) {}
     }
     
     if (!secret) {
-      secret = prompt("Operations Authorization Required\n\nEnter the Master Password:");
-      if (!secret) return; 
+      alert("Operations Authorization Required: Please sign in with your official @roundtable.org.uk Google Workspace account via the Admin Portal.");
+      return;
+    } 
       
       const originalText = btn.innerText;
       btn.innerText = "Verifying...";

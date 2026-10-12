@@ -43,8 +43,47 @@ export default {
       return jsonResponse({ error: `Table '${slug}' not found in database.` }, 404);
     }
 
-    // Helper: Verify Google Workspace JWT ID Token
-    const verifyGoogleJwt = (token) => {
+    // Helper: Extract town slug from official Round Table email
+    const extractTableSlugFromEmail = (email) => {
+      if (!email || typeof email !== "string") return "";
+      const clean = email.trim().toLowerCase();
+      const localPart = clean.split("@")[0];
+      const core = localPart.replace(/^(chairman|secretary|treasurer|santa|admin|info|contact|events)\./, "");
+      const match = core.match(/^([a-z-]+?)(\d+)?$/);
+      return match ? match[1] : core;
+    };
+
+    // Helper: Check if email has National Fleet Administrator privileges
+    const isNationalEmail = (email) => {
+      if (!email || typeof email !== "string") return false;
+      const clean = email.trim().toLowerCase();
+      const approved = [
+        "president@roundtable.org.uk",
+        "vicepresident@roundtable.org.uk",
+        "cs@roundtable.org.uk",
+        "admin@roundtable.org.uk",
+        "it@roundtable.org.uk",
+        "beverley247@roundtable.org.uk",
+        "national@roundtable.org.uk",
+        "rtbi@roundtable.org.uk"
+      ];
+      return clean.startsWith("national") || approved.includes(clean);
+    };
+
+    // Helper: Check if email is authorized to administer this specific table
+    const isEmailAuthorizedForTable = (email, targetTableSlug) => {
+      if (!email || typeof email !== "string") return false;
+      const clean = email.trim().toLowerCase();
+      const isRT = clean.endsWith("@roundtable.org.uk") || clean.endsWith("@roundtable.co.uk");
+      if (!isRT) return false;
+      if (isNationalEmail(clean)) return true;
+      const userTable = extractTableSlugFromEmail(clean);
+      const target = (targetTableSlug || "beverley").trim().toLowerCase();
+      return userTable === target || clean.includes(target);
+    };
+
+    // Helper: Verify Google Workspace JWT ID Token with table scoping
+    const verifyGoogleJwt = (token, targetTableSlug) => {
       try {
         if (!token || typeof token !== "string" || !token.includes(".")) return false;
         const parts = token.split(".");
@@ -67,8 +106,8 @@ export default {
 
         if (!payload || !payload.email) return false;
 
-        // Verify session freshness: Google GIS client-side ID tokens have a 1-hour exp.
-        // Active Round Table admin sessions remain valid for 30 days from issuance.
+        // Verify session freshness: Google GIS ID tokens are issued at login.
+        // Active Round Table sessions remain valid for 30 days from issuance.
         const now = Math.floor(Date.now() / 1000);
         const issuedAt = payload.iat || (payload.exp ? payload.exp - 3600 : now);
         const thirtyDaysSeconds = 30 * 24 * 3600;
@@ -81,28 +120,32 @@ export default {
         // Verify email_verified
         if (!payload.email_verified) return false;
 
-        // Verify email domain is @roundtable.org.uk or national admin
+        // Verify email domain and table scoping
         const email = String(payload.email).trim().toLowerCase();
-        const isRoundTable = email.endsWith("@roundtable.org.uk") || email.endsWith("@roundtable.co.uk");
-        const isNational = [
-          "president@roundtable.org.uk",
-          "vicepresident@roundtable.org.uk",
-          "cs@roundtable.org.uk",
-          "admin@roundtable.org.uk",
-          "it@roundtable.org.uk",
-          "beverley247@roundtable.org.uk",
-          "national@roundtable.org.uk",
-          "rtbi@roundtable.org.uk"
-        ].includes(email) || email.startsWith("national@") || email.startsWith("national.");
-
-        return isRoundTable || isNational;
+        return isEmailAuthorizedForTable(email, targetTableSlug);
       } catch (err) {
         return false;
       }
     };
 
-    // Helper: Verify admin authorization
-    const isAuthorized = (secret) => {
+    // Helper: Verify OTP session token (ts2_<base64>) with table scoping
+    const verifyOtpToken = (token, targetTableSlug) => {
+      try {
+        if (!token || !token.startsWith("ts2_")) return false;
+        const raw = atob(token.slice(4));
+        const [email, timestamp] = raw.split("_");
+        const ts = parseInt(timestamp, 10);
+        const thirtyDaysMs = 30 * 24 * 3600 * 1000;
+        if (!email || !ts || (Date.now() - ts) > thirtyDaysMs) return false;
+        const clean = String(email).trim().toLowerCase();
+        return isEmailAuthorizedForTable(clean, targetTableSlug);
+      } catch (e) {
+        return false;
+      }
+    };
+
+    // Helper: Verify admin authorization with zero hardcoded fallbacks
+    const isAuthorized = (secret, targetTableSlug = (table?.slug || slug)) => {
       if (!secret) return false;
       let token = String(secret).trim();
       if (token.startsWith("Bearer ")) {
@@ -110,46 +153,23 @@ export default {
       }
       if (!token) return false;
 
-      // Allow configured backend secrets and verified admin session token
-      const validSecrets = [
-        table?.zeffy_webhook_secret,
+      // Allow configured backend server environment secrets (for backend CI/CD or automation)
+      const validBackendSecrets = [
         env.ADMIN_SECRET,
-        env.MASTER_PASSWORD,
-        "Santa2026!",
-        "admin",
-        "authenticated"
+        env.MASTER_PASSWORD
       ].filter(Boolean);
+      if (validBackendSecrets.includes(token)) return true;
 
-      if (validSecrets.includes(token)) return true;
-      if (token === "authenticated" || token === "Bearer authenticated") return true;
+      // Allow configured webhook secret for payment gateway callbacks
+      if (table?.zeffy_webhook_secret && token === table.zeffy_webhook_secret) return true;
 
-      // Verify OTP session token (ts2_<base64>)
-      if (token.startsWith("ts2_")) {
-        try {
-          const raw = atob(token.slice(4));
-          const [email, timestamp] = raw.split("_");
-          const ts = parseInt(timestamp, 10);
-          const thirtyDaysMs = 30 * 24 * 3600 * 1000;
-          if (email && ts && (Date.now() - ts) < thirtyDaysMs) {
-            const clean = String(email).trim().toLowerCase();
-            const isRoundTable = clean.endsWith("@roundtable.org.uk") || clean.endsWith("@roundtable.co.uk");
-            const isNational = [
-              "president@roundtable.org.uk",
-              "vicepresident@roundtable.org.uk",
-              "cs@roundtable.org.uk",
-              "admin@roundtable.org.uk",
-              "it@roundtable.org.uk",
-              "beverley247@roundtable.org.uk",
-              "national@roundtable.org.uk",
-              "rtbi@roundtable.org.uk"
-            ].includes(clean) || clean.startsWith("national@") || clean.startsWith("national.");
-            if (isRoundTable || isNational) return true;
-          }
-        } catch(e) {}
-      }
+      // Verify Google Workspace OAuth 2.0 Identity Token
+      if (verifyGoogleJwt(token, targetTableSlug)) return true;
 
-      // Verify Google Identity Services ID Token
-      return verifyGoogleJwt(token);
+      // Verify Magic Link / OTP session token
+      if (verifyOtpToken(token, targetTableSlug)) return true;
+
+      return false;
     };
 
     // ==============================================================

@@ -6,7 +6,7 @@ const LOCAL_AGENT_URL = "http://127.0.0.1:8080";
 function getAuthHeaders(explicitSecret) {
   const headers = { "Content-Type": "application/json" };
   const session = getCurrentSession();
-  const token = explicitSecret || (session ? 'authenticated' : null) || session?.googleCredential || session?.token;
+  const token = explicitSecret || session?.googleCredential || session?.token;
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
