@@ -480,6 +480,263 @@
         }
         .story-name { font-size: 13px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
         .story-badge { font-size: 11px; opacity: 0.8; }
+
+        /* Modal Backdrops & Cards */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: rgba(5, 6, 8, 0.85);
+            backdrop-filter: blur(14px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-card {
+            background: rgba(18, 20, 26, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 24px;
+            width: 100%;
+            max-width: 520px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes modalPop {
+            from { opacity: 0; transform: scale(0.92) translateY(12px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .modal-title {
+            font-size: 16px;
+            letter-spacing: 0.8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .modal-close-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 8px;
+            transition: color 0.2s;
+        }
+        .modal-close-btn:hover { color: #fff; }
+        .modal-body {
+            padding: 20px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .modal-footer {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 16px 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(10, 11, 15, 0.5);
+        }
+        .modal-label {
+            font-family: 'Eurostile', sans-serif;
+            font-size: 11px;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: var(--gold);
+            display: block;
+            margin-bottom: 8px;
+        }
+        .radio-card-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .radio-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            padding: 12px 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s;
+        }
+        .radio-card:hover {
+            background: rgba(255, 255, 255, 0.09);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+        .radio-card.active {
+            background: rgba(211, 28, 28, 0.18);
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(211, 28, 28, 0.25);
+        }
+        .radio-card input { display: none; }
+        .radio-card i {
+            font-size: 20px;
+            color: var(--gold);
+        }
+        .radio-card strong {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .radio-card .sub {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            font-size: 12px;
+            gap: 12px;
+        }
+        .toggle-row input[type="checkbox"] {
+            accent-color: var(--primary);
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        /* Live Recording HUD */
+        .rec-hud {
+            position: absolute;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 30;
+            background: rgba(20, 8, 8, 0.94);
+            border: 1.5px solid var(--primary);
+            border-radius: 999px;
+            padding: 8px 18px;
+            box-shadow: 0 0 30px rgba(211, 28, 28, 0.6);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Eurostile', sans-serif;
+            animation: recPulseGlow 2s infinite ease-in-out;
+            pointer-events: auto;
+        }
+        @keyframes recPulseGlow {
+            0%, 100% { box-shadow: 0 0 20px rgba(211, 28, 28, 0.4); }
+            50% { box-shadow: 0 0 35px rgba(211, 28, 28, 0.85); }
+        }
+        .rec-pulse-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff2222;
+            animation: blinkRec 1s infinite alternate;
+        }
+        @keyframes blinkRec {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0.3; transform: scale(0.7); }
+        }
+        .rec-badge {
+            color: #ff4444;
+            font-weight: 800;
+            font-size: 13px;
+            letter-spacing: 1px;
+        }
+        .rec-timer {
+            color: #fff;
+            font-size: 14px;
+            font-weight: 700;
+            min-width: 44px;
+        }
+        .rec-separator { color: rgba(255, 255, 255, 0.3); }
+        #rec-route-name {
+            color: var(--gold);
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .rec-stop-pill {
+            background: var(--primary);
+            border: none;
+            color: #fff;
+            border-radius: 999px;
+            padding: 4px 12px;
+            font-family: 'Eurostile', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            margin-left: 6px;
+            transition: background 0.2s;
+        }
+        .rec-stop-pill:hover { background: #ff2b2b; }
+
+        /* Countdown Overlay */
+        .countdown-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 40;
+            background: rgba(5, 6, 8, 0.75);
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            pointer-events: auto;
+        }
+        .countdown-num {
+            font-family: 'Eurostile', sans-serif;
+            font-size: 96px;
+            font-weight: 800;
+            color: var(--gold);
+            text-shadow: 0 0 50px rgba(251, 175, 51, 0.8);
+            animation: countBounce 0.9s infinite;
+        }
+        @keyframes countBounce {
+            0% { transform: scale(0.6); opacity: 0.3; }
+            50% { transform: scale(1.15); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .countdown-sub {
+            font-family: 'Eurostile', sans-serif;
+            font-size: 15px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #fff;
+        }
+
+        /* Video Preview Container */
+        .video-container-wrap {
+            width: 100%;
+            max-height: 480px;
+            background: #000;
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .video-container-wrap video {
+            max-width: 100%;
+            max-height: 480px;
+            border-radius: 16px;
+        }
     </style>
 </head>
 <body>
@@ -491,6 +748,22 @@
 
         <!-- Falling Snow Overlay -->
         <canvas id="snow-canvas"></canvas>
+
+        <!-- Live Recording HUD -->
+        <div id="rec-hud" class="rec-hud" style="display: none;">
+            <div class="rec-pulse-dot"></div>
+            <span class="rec-badge">REC</span>
+            <span id="rec-timer" class="rec-timer">00:00</span>
+            <span class="rec-separator">|</span>
+            <span id="rec-route-name">MOLESCROFT</span>
+            <button id="rec-stop-btn" class="rec-stop-pill"><i class="fa-solid fa-stop"></i> Finish & Save</button>
+        </div>
+
+        <!-- Countdown Overlay -->
+        <div id="countdown-overlay" class="countdown-overlay" style="display: none;">
+            <div id="countdown-num" class="countdown-num">3</div>
+            <div class="countdown-sub">Getting camera & sleigh ready...</div>
+        </div>
 
         <!-- Phone Social Preview Mock Overlay -->
         <div class="social-overlay">
@@ -658,11 +931,140 @@
                 <i class="fa-solid fa-mobile-screen"></i> 9:16
             </button>
         </div>
+
+        <!-- Video Export Button -->
+        <div class="btn-group">
+            <button class="dock-btn primary" id="export-video-btn" title="Record and export social video (MP4/WebM)" style="background: linear-gradient(135deg, #D31C1C 0%, #a81313 100%);">
+                <i class="fa-solid fa-video"></i> Export Video
+            </button>
+        </div>
     </div>
 </div>
 
 <!-- Toast Notice -->
 <div id="toast"><i class="fa-solid fa-circle-check" style="color:var(--gold);"></i> <span id="toast-text">Ready</span></div>
+
+<!-- Export Video Modal -->
+<div id="export-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card">
+        <div class="modal-header">
+            <div class="modal-title brand-font"><i class="fa-solid fa-film" style="color:var(--gold);"></i> Export Route Video</div>
+            <button class="modal-close-btn" id="export-modal-close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+            <!-- Format Detected -->
+            <div class="export-option-group">
+                <label class="modal-label">Output Video Format</label>
+                <div class="radio-card-grid" id="format-selection-grid">
+                    <!-- Populated dynamically: MP4 or WebM -->
+                </div>
+            </div>
+
+            <!-- Aspect Ratio Preset -->
+            <div class="export-option-group">
+                <label class="modal-label">Aspect Ratio / Layout</label>
+                <div class="radio-card-grid">
+                    <label class="radio-card active" data-aspect="phone">
+                        <input type="radio" name="export-aspect" value="phone" checked>
+                        <i class="fa-solid fa-mobile-screen"></i>
+                        <div>
+                            <strong>9:16 Social Reel</strong>
+                            <div class="sub">Instagram Reels, TikTok, Stories</div>
+                        </div>
+                    </label>
+                    <label class="radio-card" data-aspect="fullscreen">
+                        <input type="radio" name="export-aspect" value="fullscreen">
+                        <i class="fa-solid fa-desktop"></i>
+                        <div>
+                            <strong>Fullscreen / Wide</strong>
+                            <div class="sub">Facebook Feed, YouTube</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Pacing / Target Duration -->
+            <div class="export-option-group">
+                <label class="modal-label">Animation Speed & Duration</label>
+                <div class="radio-card-grid">
+                    <label class="radio-card" data-speed-mode="fast">
+                        <input type="radio" name="export-speed" value="fast">
+                        <i class="fa-solid fa-bolt"></i>
+                        <div>
+                            <strong>Quick Story</strong>
+                            <div class="sub">~15s high-energy preview</div>
+                        </div>
+                    </label>
+                    <label class="radio-card active" data-speed-mode="normal">
+                        <input type="radio" name="export-speed" value="normal" checked>
+                        <i class="fa-solid fa-clock"></i>
+                        <div>
+                            <strong>Standard</strong>
+                            <div class="sub">~30s balanced pace</div>
+                        </div>
+                    </label>
+                    <label class="radio-card" data-speed-mode="cinema">
+                        <input type="radio" name="export-speed" value="cinema">
+                        <i class="fa-solid fa-film"></i>
+                        <div>
+                            <strong>Cinematic</strong>
+                            <div class="sub">Full route details</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Overlay Toggles -->
+            <div class="export-option-group">
+                <label class="modal-label">Visual Effects & Overlays</label>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <label class="toggle-row">
+                        <span>Include festive title banner & route watermark</span>
+                        <input type="checkbox" id="chk-banner" checked>
+                    </label>
+                    <label class="toggle-row">
+                        <span>Include falling snowfall particles in video</span>
+                        <input type="checkbox" id="chk-snow" checked>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="dock-btn" id="export-cancel-btn">Cancel</button>
+            <button class="dock-btn primary" id="export-start-btn" style="background: linear-gradient(135deg, #D31C1C 0%, #a81313 100%); font-weight:700;">
+                <i class="fa-solid fa-circle-play"></i> Start Recording
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Preview & Re-Download Modal -->
+<div id="preview-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card">
+        <div class="modal-header">
+            <div class="modal-title brand-font" style="color:#22c55e;"><i class="fa-solid fa-circle-check"></i> Video Export Complete!</div>
+            <button class="modal-close-btn" id="preview-modal-close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="text-align: center;">
+            <p style="font-size:13px; color:var(--text-muted); margin-bottom: 6px;">
+                Your video has been downloaded automatically to your device. You can preview or re-download it below:
+            </p>
+            <div class="video-container-wrap">
+                <video id="preview-video-player" controls autoplay loop playsinline></video>
+            </div>
+            <p style="font-size:11px; color:rgba(255,255,255,0.5); margin-top: 8px;">
+                Ready for Instagram Reels, Facebook Stories, TikTok, or WhatsApp status updates.
+            </p>
+        </div>
+        <div class="modal-footer" style="justify-content: space-between;">
+            <button class="dock-btn" id="preview-close-btn">Done</button>
+            <button class="dock-btn primary" id="preview-download-again-btn" style="background: linear-gradient(135deg, #D31C1C 0%, #a81313 100%);">
+                <i class="fa-solid fa-download"></i> Download Video Again
+            </button>
+        </div>
+    </div>
+</div>
 
 <script>
 /* ═════════════════════════════════════════════════════════════════════
@@ -745,6 +1147,7 @@ function showToast(msg) {
 
 const map = new maplibregl.Map({
     container: 'map',
+    preserveDrawingBuffer: true,
     style: {
         version: 8,
         sources: {
@@ -1127,6 +1530,9 @@ function animationTick(now) {
             STATE.isPlaying = false;
             playPauseBtn.innerHTML = '<i class="fa-solid fa-rotate-left"></i> Replay';
             showToast('Route Completed! 🎅');
+            if (RECORD_STATE.isRecording) {
+                stopRecording();
+            }
         }
 
         // Current and forward points for smooth bearing calculation
@@ -1399,7 +1805,434 @@ function snowLoop(now) {
 }
 
 /* ═════════════════════════════════════════════════════════════════════
-   8. BOOTSTRAP
+   8. SOCIAL VIDEO EXPORT ENGINE (MEDIARECORDER + 60FPS COMPOSITE)
+   ═════════════════════════════════════════════════════════════════════ */
+
+let mediaRecorder = null;
+let recordedChunks = [];
+let recordStartTime = 0;
+let recordTimerInterval = null;
+let lastExportedBlobUrl = null;
+
+const RECORD_CONFIG = {
+    mimeType: '',
+    formatExt: 'webm',
+    aspect: 'phone', // 'phone' or 'fullscreen'
+    speedMode: 'normal', // 'fast' (~15s), 'normal' (~30s), 'cinema' (~45s)
+    includeBanner: true,
+    includeSnow: true
+};
+
+const RECORD_STATE = {
+    isRecording: false,
+    compositeCanvas: null,
+    compositeCtx: null
+};
+
+// 1. Detect browser supported formats
+function detectSupportedFormats() {
+    const list = [];
+    if (window.MediaRecorder) {
+        if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')) {
+            list.push({ mime: 'video/mp4;codecs=avc1', ext: 'mp4', label: 'MP4 (H.264)', sub: 'Best for Reels & TikTok' });
+        } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+            list.push({ mime: 'video/mp4', ext: 'mp4', label: 'MP4 (Standard)', sub: 'Universal video' });
+        }
+
+        if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+            list.push({ mime: 'video/webm;codecs=vp9', ext: 'webm', label: 'WebM (VP9)', sub: 'Ultra crisp, smaller size' });
+        } else if (MediaRecorder.isTypeSupported('video/webm')) {
+            list.push({ mime: 'video/webm', ext: 'webm', label: 'WebM (Standard)', sub: 'Standard web video' });
+        }
+    }
+    return list;
+}
+
+// Populate Format selector
+function populateFormatSelector() {
+    const grid = $('format-selection-grid');
+    if (!grid) return;
+    const formats = detectSupportedFormats();
+    grid.innerHTML = '';
+
+    if (formats.length === 0) {
+        grid.innerHTML = '<div style="color:red; font-size:12px;">MediaRecorder not supported on this browser.</div>';
+        return;
+    }
+
+    formats.forEach((fmt, idx) => {
+        const isDefault = idx === 0;
+        const card = document.createElement('label');
+        card.className = 'radio-card' + (isDefault ? ' active' : '');
+        card.dataset.mime = fmt.mime;
+        card.dataset.ext = fmt.ext;
+        card.innerHTML = `
+            <input type="radio" name="export-format" value="${fmt.mime}" ${isDefault ? 'checked' : ''}>
+            <i class="fa-solid fa-file-video"></i>
+            <div>
+                <strong>${fmt.label}</strong>
+                <div class="sub">${fmt.sub}</div>
+            </div>
+        `;
+        card.onclick = () => {
+            document.querySelectorAll('#format-selection-grid .radio-card').forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+            RECORD_CONFIG.mimeType = fmt.mime;
+            RECORD_CONFIG.formatExt = fmt.ext;
+        };
+        grid.appendChild(card);
+
+        if (isDefault) {
+            RECORD_CONFIG.mimeType = fmt.mime;
+            RECORD_CONFIG.formatExt = fmt.ext;
+        }
+    });
+}
+
+// 2. Composite Frame Capture (hooked into MapLibre's render event)
+map.on('render', () => {
+    if (!RECORD_STATE.isRecording || !RECORD_STATE.compositeCtx) return;
+
+    const mapCanvas = map.getCanvas();
+    const cCanvas = RECORD_STATE.compositeCanvas;
+    const cCtx = RECORD_STATE.compositeCtx;
+
+    if (cCanvas.width !== mapCanvas.width || cCanvas.height !== mapCanvas.height) {
+        cCanvas.width = mapCanvas.width;
+        cCanvas.height = mapCanvas.height;
+    }
+
+    // A. Draw MapLibre & Three.js 3D layer (combined in mapCanvas)
+    cCtx.drawImage(mapCanvas, 0, 0);
+
+    // B. Draw falling snow overlay if enabled
+    if (STATE.snowEnabled && RECORD_CONFIG.includeSnow) {
+        cCtx.drawImage(snowCvs, 0, 0, cCanvas.width, cCanvas.height);
+    }
+
+    // C. Draw festive branding overlay if enabled
+    if (RECORD_CONFIG.includeBanner) {
+        drawVideoBanner(cCtx, cCanvas.width, cCanvas.height);
+    }
+});
+
+// 3. Draw Festive Video Banner & Watermark
+function drawVideoBanner(ctx, w, h) {
+    ctx.save();
+
+    // Top Header Pill
+    const badgeW = Math.min(w * 0.88, 440);
+    const badgeH = 50;
+    const badgeX = (w - badgeW) / 2;
+    const badgeY = 24;
+
+    ctx.fillStyle = 'rgba(13, 14, 18, 0.88)';
+    ctx.beginPath();
+    if (ctx.roundRect) {
+        ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 16);
+    } else {
+        ctx.rect(badgeX, badgeY, badgeW, badgeH);
+    }
+    ctx.fill();
+
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(251, 175, 51, 0.7)';
+    ctx.stroke();
+
+    // Title Text
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 15px Eurostile, "Open Sans", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🎅 BEVERLEY ROUND TABLE SANTA SLEIGH', w / 2, badgeY + 18);
+
+    // Subtitle Text (Route Name)
+    const routeText = (hudRoute.textContent || 'LIVE ROUTE').toUpperCase() + ' • ROUTE ANIMATION';
+    ctx.fillStyle = '#FBAF33';
+    ctx.font = 'bold 10px Eurostile, "Open Sans", sans-serif';
+    ctx.fillText(routeText, w / 2, badgeY + 36);
+
+    // Bottom Watermark
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+    ctx.font = '11px Eurostile, "Open Sans", sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('roundtablesantasleigh.co.uk', w - 20, h - 20);
+
+    ctx.restore();
+}
+
+// 4. Modal Interactions
+const exportModal = $('export-modal');
+const previewModal = $('preview-modal');
+const exportVideoBtn = $('export-video-btn');
+const recHud = $('rec-hud');
+const recTimer = $('rec-timer');
+const recRouteName = $('rec-route-name');
+const recStopBtn = $('rec-stop-btn');
+const countdownOverlay = $('countdown-overlay');
+const countdownNum = $('countdown-num');
+
+exportVideoBtn.onclick = () => {
+    if (RECORD_STATE.isRecording) {
+        stopRecording();
+        return;
+    }
+    openExportModal();
+};
+
+function openExportModal() {
+    populateFormatSelector();
+    exportModal.style.display = 'flex';
+}
+
+function closeExportModal() {
+    exportModal.style.display = 'none';
+}
+
+$('export-modal-close').onclick = closeExportModal;
+$('export-cancel-btn').onclick = closeExportModal;
+
+// Aspect radio buttons in modal
+document.querySelectorAll('[data-aspect]').forEach(el => {
+    el.onclick = () => {
+        document.querySelectorAll('[data-aspect]').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+        RECORD_CONFIG.aspect = el.dataset.aspect;
+    };
+});
+
+// Speed radio buttons in modal
+document.querySelectorAll('[data-speed-mode]').forEach(el => {
+    el.onclick = () => {
+        document.querySelectorAll('[data-speed-mode]').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+        RECORD_CONFIG.speedMode = el.dataset.speedMode;
+    };
+});
+
+// Start Recording Button from Modal
+$('export-start-btn').onclick = () => {
+    RECORD_CONFIG.includeBanner = $('chk-banner').checked;
+    RECORD_CONFIG.includeSnow = $('chk-snow').checked;
+    closeExportModal();
+    startRecordingFlow();
+};
+
+// 5. Recording Flow & 3-2-1 Countdown
+function startRecordingFlow() {
+    // A. Apply chosen Aspect Ratio
+    if (RECORD_CONFIG.aspect === 'phone') {
+        stageContainer.classList.add('mode-phone');
+        $('toggle-aspect-btn').classList.add('active');
+        $('toggle-aspect-btn').innerHTML = '<i class="fa-solid fa-mobile-screen"></i> 9:16';
+    } else {
+        stageContainer.classList.remove('mode-phone');
+        $('toggle-aspect-btn').classList.remove('active');
+        $('toggle-aspect-btn').innerHTML = '<i class="fa-solid fa-expand"></i> Fullscreen';
+    }
+    map.resize();
+
+    // B. Apply Duration Pacing
+    if (RECORD_CONFIG.speedMode === 'fast') {
+        STATE.durationSecs = 15;
+    } else if (RECORD_CONFIG.speedMode === 'normal') {
+        STATE.durationSecs = 30;
+    } else {
+        STATE.durationSecs = 45;
+    }
+    STATE.speedMultiplier = 1.0;
+
+    // Reset Route to 0%
+    STATE.progress = 0;
+    routeScrubber.value = 0;
+    STATE.isPlaying = false;
+    playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i> Play';
+
+    const startPos = getPositionAtProgress(0);
+    if (startPos) {
+        const nextPos = getPositionAtProgress(0.005) || startPos;
+        STATE.smoothedBearing = calcBearing(startPos, nextPos);
+        map.jumpTo({
+            center: [startPos.lng, startPos.lat],
+            zoom: 17.5,
+            bearing: STATE.smoothedBearing,
+            pitch: STATE.pitch
+        });
+        updateRouteLine(0);
+    }
+    updateHUD();
+
+    // C. Countdown 3... 2... 1...
+    countdownOverlay.style.display = 'flex';
+    let count = 3;
+    countdownNum.textContent = count;
+
+    const countInterval = setInterval(() => {
+        count--;
+        if (count > 0) {
+            countdownNum.textContent = count;
+        } else if (count === 0) {
+            countdownNum.textContent = 'GO! 🎅';
+        } else {
+            clearInterval(countInterval);
+            countdownOverlay.style.display = 'none';
+            beginMediaRecording();
+        }
+    }, 900);
+}
+
+// 6. Begin MediaRecorder
+function beginMediaRecording() {
+    const mapCanvas = map.getCanvas();
+
+    if (!RECORD_STATE.compositeCanvas) {
+        RECORD_STATE.compositeCanvas = document.createElement('canvas');
+        RECORD_STATE.compositeCtx = RECORD_STATE.compositeCanvas.getContext('2d');
+    }
+
+    RECORD_STATE.compositeCanvas.width = mapCanvas.width;
+    RECORD_STATE.compositeCanvas.height = mapCanvas.height;
+
+    // Prime the first frame
+    RECORD_STATE.compositeCtx.drawImage(mapCanvas, 0, 0);
+    if (STATE.snowEnabled && RECORD_CONFIG.includeSnow) {
+        RECORD_STATE.compositeCtx.drawImage(snowCvs, 0, 0);
+    }
+    if (RECORD_CONFIG.includeBanner) {
+        drawVideoBanner(RECORD_STATE.compositeCtx, mapCanvas.width, mapCanvas.height);
+    }
+
+    // Stream from composite canvas at 60 FPS
+    const stream = RECORD_STATE.compositeCanvas.captureStream(60);
+
+    recordedChunks = [];
+    const mime = RECORD_CONFIG.mimeType || 'video/webm';
+    try {
+        mediaRecorder = new MediaRecorder(stream, {
+            mimeType: mime,
+            videoBitsPerSecond: 8000000 // 8 Mbps high quality
+        });
+    } catch (err) {
+        console.warn('Fallback to standard MediaRecorder:', err);
+        mediaRecorder = new MediaRecorder(stream);
+    }
+
+    mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+            recordedChunks.push(e.data);
+        }
+    };
+
+    mediaRecorder.onstop = finalizeExport;
+
+    mediaRecorder.start(200); // 200ms chunk interval
+    RECORD_STATE.isRecording = true;
+
+    // UI Updates
+    recRouteName.textContent = (hudRoute.textContent || 'ROUTE').toUpperCase();
+    recHud.style.display = 'flex';
+    exportVideoBtn.innerHTML = '<i class="fa-solid fa-stop"></i> Stop & Save';
+    exportVideoBtn.style.background = '#ff2222';
+
+    recordStartTime = performance.now();
+    recordTimerInterval = setInterval(updateRecTimer, 500);
+
+    // Start sleigh animation
+    STATE.isPlaying = true;
+    playPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i> Pause';
+    showToast('🔴 Recording Video...');
+}
+
+function updateRecTimer() {
+    const elapsedSecs = Math.floor((performance.now() - recordStartTime) / 1000);
+    const mins = Math.floor(elapsedSecs / 60);
+    const secs = elapsedSecs % 60;
+    recTimer.textContent = `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
+}
+
+// 7. Stop Recording
+function stopRecording() {
+    if (!RECORD_STATE.isRecording) return;
+    RECORD_STATE.isRecording = false;
+
+    clearInterval(recordTimerInterval);
+    recHud.style.display = 'none';
+    exportVideoBtn.innerHTML = '<i class="fa-solid fa-video"></i> Export Video';
+    exportVideoBtn.style.background = 'linear-gradient(135deg, #D31C1C 0%, #a81313 100%)';
+
+    STATE.isPlaying = false;
+    playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i> Play';
+
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+    }
+}
+
+recStopBtn.onclick = stopRecording;
+
+// 8. Finalize & Trigger Automatic Download
+function finalizeExport() {
+    if (recordedChunks.length === 0) {
+        showToast('Recording error: No frames captured.');
+        return;
+    }
+
+    const mime = RECORD_CONFIG.mimeType || 'video/webm';
+    const blob = new Blob(recordedChunks, { type: mime });
+
+    if (lastExportedBlobUrl) {
+        URL.revokeObjectURL(lastExportedBlobUrl);
+    }
+    lastExportedBlobUrl = URL.createObjectURL(blob);
+
+    // Automatic download trigger
+    const cleanRoute = (hudRoute.textContent || 'Route').replace(/[^a-zA-Z0-9]/g, '_');
+    const fileName = `SantaSleigh_${cleanRoute}_TravelBoast.${RECORD_CONFIG.formatExt}`;
+
+    const downloadLink = document.createElement('a');
+    downloadLink.href = lastExportedBlobUrl;
+    downloadLink.download = fileName;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+
+    showToast(`Video Downloaded: ${fileName} 🎬`);
+
+    // Open video preview modal
+    const player = $('preview-video-player');
+    if (player) {
+        player.src = lastExportedBlobUrl;
+        player.play().catch(() => {});
+    }
+    previewModal.style.display = 'flex';
+}
+
+// Preview Modal Controls
+$('preview-modal-close').onclick = () => {
+    previewModal.style.display = 'none';
+    const player = $('preview-video-player');
+    if (player) player.pause();
+};
+$('preview-close-btn').onclick = () => {
+    previewModal.style.display = 'none';
+    const player = $('preview-video-player');
+    if (player) player.pause();
+};
+$('preview-download-again-btn').onclick = () => {
+    if (!lastExportedBlobUrl) return;
+    const cleanRoute = (hudRoute.textContent || 'Route').replace(/[^a-zA-Z0-9]/g, '_');
+    const fileName = `SantaSleigh_${cleanRoute}_TravelBoast.${RECORD_CONFIG.formatExt}`;
+    const a = document.createElement('a');
+    a.href = lastExportedBlobUrl;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    showToast('Downloaded again! 🎅');
+};
+
+/* ═════════════════════════════════════════════════════════════════════
+   9. BOOTSTRAP
    ═════════════════════════════════════════════════════════════════════ */
 
 map.on('load', () => {
