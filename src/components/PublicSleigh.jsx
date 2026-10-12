@@ -767,9 +767,23 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
             <h2 className="brand-font" style={{ fontSize: '38px', color: '#FFFFFF', textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>
               COMMUNITY <span style={{ color: 'var(--primary)' }}>POLAROIDS</span>
             </h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '16px' }}>
-              Spotted Santa? Snap a photo or video and pin your festive polaroids to our community wall!
-            </p>
+          {(() => {
+            const socialUrl = table.instagram_url || table.facebook_url || table.tiktok_url || '';
+            const match = socialUrl.match(/(?:@|instagram\.com\/|tiktok\.com\/@?|facebook\.com\/)([\w\.-]+)/i);
+            const handle = match && match[1] && !['profile.php', 'pages', 'groups'].includes(match[1].toLowerCase()) ? ('@' + match[1].replace(/\/$/, '')) : (isBeverley ? '@beverleyroundtable' : null);
+            return (
+              <p style={{ color: 'var(--text-muted)', fontSize: '16px' }}>
+                Spotted Santa? Snap a photo or video and pin your festive polaroids to our community wall!
+                {handle && (
+                  <span> Posting on socials? Tag us {socialUrl ? (
+                    <a href={socialUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', fontWeight: 700, textDecoration: 'none' }}>{handle}</a>
+                  ) : (
+                    <strong style={{ color: 'var(--primary)' }}>{handle}</strong>
+                  )} so we can re-share!</span>
+                )}
+              </p>
+            );
+          })()}
           </div>
 
           <div style={{

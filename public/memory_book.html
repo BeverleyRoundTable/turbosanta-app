@@ -101,6 +101,47 @@
       margin-bottom: 14px;
     }
 
+    .social-tagline {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 14px;
+      padding: 8px 18px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 13px;
+      color: var(--text-dim);
+      max-width: 100%;
+      flex-wrap: wrap;
+    }
+    .social-tagline strong, .social-tagline a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 700;
+      transition: opacity 0.2s;
+    }
+    .social-tagline a:hover {
+      text-decoration: underline;
+      opacity: 0.85;
+    }
+    .modal-social-hint {
+      margin-top: 14px;
+      padding: 10px 14px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 12px;
+      color: var(--text-dim);
+      line-height: 1.4;
+    }
+    .modal-social-hint strong, .modal-social-hint a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 700;
+    }
+
     .time-machine {
       display: inline-flex; align-items: center; gap: 8px;
       background: var(--surface-2); padding: 4px 14px; 
@@ -317,6 +358,10 @@
     </div>
     <br>
     <button class="btn" id="openUploadBtn">Submit a Photo or Video</button>
+    <br>
+    <div id="socialTagline" class="social-tagline" style="display: none;">
+      <span>📱 Posting on social media? Tag us <a id="socialTagLink" href="#" target="_blank" rel="noopener"></a>!</span>
+    </div>
   </header>
 
   <div class="gallery-container" id="gallery">
@@ -330,6 +375,9 @@
     <div class="modal-box">
       <div class="modal-title">Share a Polaroid</div>
       <div class="modal-desc">Send us your best photo or a short video clip from the night! Everything is reviewed by the elves before being pinned to the wall.</div>
+      <div id="modalSocialNotice" class="modal-social-hint" style="display: none;">
+        Posting straight to your own stories or feed instead? Tag <a id="modalSocialLink" href="#" target="_blank" rel="noopener"></a> so we can re-share your festive photos!
+      </div>
       
       <div class="file-drop-area" id="dropArea" onclick="document.getElementById('fileInput').click()">
         <span id="dropText">Tap to select a photo or video</span>
@@ -620,6 +668,65 @@
         // Load initial gallery
         loadGallery(currentYear);
 
+        // Social handle extraction & tagline display
+        let currentSocialHandle = '';
+
+        function getSocialHandle(s) {
+          if (!s) return '';
+          const insta = s.instagram_url || s.table_instagram_url || '';
+          const tiktok = s.tiktok_url || s.table_tiktok_url || '';
+          const fb = s.facebook_url || s.table_facebook_url || '';
+          if (insta) {
+            const m = insta.match(/instagram\.com\/([a-zA-Z0-9_\.]+)/i);
+            if (m && m[1]) return '@' + m[1].replace(/\/$/, '');
+          }
+          if (tiktok) {
+            const m = tiktok.match(/tiktok\.com\/@?([a-zA-Z0-9_\.]+)/i);
+            if (m && m[1]) return '@' + m[1].replace(/\/$/, '');
+          }
+          if (fb) {
+            const m = fb.match(/facebook\.com\/([a-zA-Z0-9_\.]+)/i);
+            if (m && m[1] && !['profile.php', 'pages', 'groups'].includes(m[1].toLowerCase())) {
+              return '@' + m[1].replace(/\/$/, '');
+            }
+          }
+          return '';
+        }
+
+        function getSocialUrl(s) {
+          if (!s) return '#';
+          return s.instagram_url || s.table_instagram_url
+            || s.facebook_url || s.table_facebook_url
+            || s.tiktok_url || s.table_tiktok_url
+            || '#';
+        }
+
+        function updateSocialTagline(s, fallbackSlug) {
+          let handle = getSocialHandle(s);
+          let url = getSocialUrl(s);
+          if (!handle && (fallbackSlug === 'beverley' || !fallbackSlug)) {
+            handle = '@beverleyroundtable';
+            url = 'https://www.instagram.com/beverleyroundtable/';
+          }
+          if (handle) {
+            currentSocialHandle = handle;
+            const tagline = document.getElementById('socialTagline');
+            const link = document.getElementById('socialTagLink');
+            if (tagline && link) {
+              link.textContent = handle;
+              link.href = url || '#';
+              tagline.style.display = 'inline-flex';
+            }
+            const modalNotice = document.getElementById('modalSocialNotice');
+            const modalLink = document.getElementById('modalSocialLink');
+            if (modalNotice && modalLink) {
+              modalLink.textContent = handle;
+              modalLink.href = url || '#';
+              modalNotice.style.display = 'block';
+            }
+          }
+        }
+
         if (apiUrl) {
           fetch(`${apiUrl}${sep}function=getRoutes`)
             .then(r => r.ok && r.headers.get("content-type")?.includes("json") ? r.json() : null)
@@ -629,6 +736,7 @@
                 const name = data.settings.sleigh_display_name || "Santa Sleigh";
                 subtext.textContent = `Magical moments from the ${name} routes.`;
                 document.title = `Memories — ${name}`;
+                updateSocialTagline(data.settings, 'beverley');
               }
             }).catch(() => {});
         } else {
@@ -642,16 +750,19 @@
                 const name = data.table.sleigh_display_name || data.table.name || "Santa Sleigh";
                 subtext.textContent = `Magical moments from the ${name} routes.`;
                 document.title = `Memories — ${name}`;
+                updateSocialTagline(data.table, tableSlug);
               } else {
                 const properName = tableSlug.charAt(0).toUpperCase() + tableSlug.slice(1);
                 subtext.textContent = `Magical moments from the ${properName} Round Table Santa Sleigh routes.`;
                 document.title = `Memories — ${properName} Round Table`;
+                updateSocialTagline(null, tableSlug);
               }
             })
             .catch(() => {
               const properName = tableSlug.charAt(0).toUpperCase() + tableSlug.slice(1);
               subtext.textContent = `Magical moments from the ${properName} Round Table Santa Sleigh routes.`;
               document.title = `Memories — ${properName} Round Table`;
+              updateSocialTagline(null, tableSlug);
             });
         }
 
@@ -821,7 +932,8 @@
 
         // Cheerful success confirmation with clear screening explanation
         const what = (mediaKind === 'video') ? "video clip" : "photo";
-        alert(`🎅 Thank you! Your festive ${what} has been submitted for moderation.\n\nTo ensure our Santa Sleigh remains safe and family-friendly, all submissions are screened and approved by Round Table elves before going live in the Memory Book.`);
+        const tagMsg = currentSocialHandle ? `\n\nPosting on social media too? Tag ${currentSocialHandle} so we can see and re-share it!` : '';
+        alert(`🎅 Thank you! Your festive ${what} has been submitted for moderation.\n\nTo ensure our Santa Sleigh remains safe and family-friendly, all submissions are screened and approved by Round Table elves before going live in the Memory Book.${tagMsg}`);
         resetModal();
         loadGallery(numYear);
       });

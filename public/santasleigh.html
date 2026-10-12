@@ -834,7 +834,7 @@
     <section id="memory-book">
         <div class="section-header">
             <h2>DIGITAL <span style="color: var(--primary);">MEMORY BOOK</span></h2>
-            <p>Spotted Santa? Help us build our digital memory book and share your photos!</p>
+            <p id="memory-book-desc">Spotted Santa? Help us build our digital memory book and share your photos!</p>
         </div>
         <div class="iframe-container">
             <iframe id="memory-book-iframe" height="900" title="Santa Memory Book" loading="lazy" allow="camera; microphone; geolocation"></iframe>
@@ -1582,6 +1582,28 @@
             return a;
         }
 
+        function getSocialHandle(s) {
+            if (!s) return '';
+            const insta = s.table_instagram_url || s.instagram_url || '';
+            const tiktok = s.table_tiktok_url || s.tiktok_url || '';
+            const fb = s.table_facebook_url || s.facebook_url || '';
+            if (insta) {
+                const m = insta.match(/instagram\.com\/([a-zA-Z0-9_\.]+)/i);
+                if (m && m[1]) return '@' + m[1].replace(/\/$/, '');
+            }
+            if (tiktok) {
+                const m = tiktok.match(/tiktok\.com\/@?([a-zA-Z0-9_\.]+)/i);
+                if (m && m[1]) return '@' + m[1].replace(/\/$/, '');
+            }
+            if (fb) {
+                const m = fb.match(/facebook\.com\/([a-zA-Z0-9_\.]+)/i);
+                if (m && m[1] && !['profile.php', 'pages', 'groups'].includes(m[1].toLowerCase())) {
+                    return '@' + m[1].replace(/\/$/, '');
+                }
+            }
+            return '';
+        }
+
         function renderSocial(settings) {
             const container = $('social-links-container');
             container.replaceChildren();
@@ -1594,6 +1616,23 @@
             ].forEach(([href, label, icon]) => {
                 if (href) container.appendChild(socialBtn(href, label, icon));
             });
+
+            // Update memory book description with dynamic social handle
+            const handle = getSocialHandle(settings);
+            const desc = $('memory-book-desc');
+            if (desc && handle) {
+                desc.textContent = 'Spotted Santa? Help us build our digital memory book and share your photos! Posting on socials? Tag us ';
+                const link = document.createElement('a');
+                link.href = safeUrl(settings.table_instagram_url) || safeUrl(settings.table_facebook_url) || safeUrl(settings.table_tiktok_url) || '#';
+                link.target = '_blank';
+                link.rel = 'noopener';
+                link.style.color = 'var(--primary)';
+                link.style.fontWeight = '700';
+                link.style.textDecoration = 'none';
+                link.textContent = handle;
+                desc.appendChild(link);
+                desc.appendChild(document.createTextNode(' so we can re-share the magic!'));
+            }
         }
 
         function safely(name, fn) {
