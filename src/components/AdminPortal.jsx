@@ -3451,10 +3451,10 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 overflow: 'hidden'
               }}>
                 <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--primary)', fontFamily: 'Eurostile, sans-serif', textTransform: 'uppercase', marginBottom: '6px' }}>
-                  🎬 Ambient Background & Festive Video Loop
+                  🎬 Ambient Background & Video Loop
                 </div>
                 <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-                  Choose how your public Santa Sleigh tracker background looks. You can use the official animated Santa video loop, link your own custom video, or use a static festive image.
+                  Choose your public tracker background style.
                 </p>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '12px', marginBottom: '16px' }}>
@@ -3481,7 +3481,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       <span style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>🖼️ Static Image (Default)</span>
                     </div>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      Default load. Official festive background image (/icons/site_background.png) or custom upload.
+                      Use the default background image or upload a custom image.
                     </span>
                   </label>
 
@@ -3505,10 +3505,10 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                         checked={formData.background_mode === 'video'}
                         onChange={() => setFormData(prev => ({ ...prev, background_mode: 'video' }))}
                       />
-                      <span style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>🎅 Default Santa Video</span>
+                      <span style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>🎅 Default Video</span>
                     </div>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      Cinematic animated Santa flight loop in hero banner with falling snow.
+                      Play the default video loop in the hero banner.
                     </span>
                   </label>
 
@@ -3535,7 +3535,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       <span style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>📹 Custom Video URL</span>
                     </div>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      Provide a direct link to your town's Santa Sleigh video loop (.mp4).
+                      Play a custom video loop via direct URL (.mp4).
                     </span>
                   </label>
                 </div>
@@ -3548,7 +3548,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     </label>
                     <input
                       type="url"
-                      placeholder="https://example.com/my-town-sleigh-loop.mp4"
+                      placeholder="https://example.com/video-loop.mp4"
                       value={formData.background_video_url || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, background_video_url: e.target.value }))}
                       style={{
@@ -3563,7 +3563,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       }}
                     />
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                      💡 Tip: Use a seamless, muted 10-30s .mp4 video hosted on Cloudflare R2, GitHub, or your web server.
+                      💡 Tip: Use a seamless, muted .mp4 video URL.
                     </div>
                   </div>
                 )}
@@ -3585,20 +3585,20 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <img
                         src="/icons/site_background.png"
-                        alt="Official Festive Background"
+                        alt="Default Background"
                         style={{ width: '60px', height: '40px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--border)' }}
                       />
                       <div>
                         <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>
-                          Official Festive Background Active (Default)
+                          Default Background Image Active
                         </div>
                         <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                          Using /icons/site_background.png as before. Upload a custom image below to replace, or keep this default.
+                          Using the default background image. Upload a custom image below to replace.
                         </div>
                       </div>
                     </div>
                     <span style={{ fontSize: '12px', color: '#86efac', fontWeight: 600 }}>
-                      ✓ Active Default
+                      ✓ Default Active
                     </span>
                   </div>
                 ) : (
@@ -3622,10 +3622,10 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       />
                       <div>
                         <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>
-                          Custom Background Image Live
+                          Custom Background Image Active
                         </div>
                         <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                          Custom uploaded image is active. Click revert anytime to return to the original default background.
+                          Custom uploaded image is active.
                         </div>
                       </div>
                     </div>
@@ -3653,10 +3653,10 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
 
                 {/* Static Background Image / Poster Upload */}
                 <DropzoneUpload
-                  label="Upload Custom Background Image / Poster (.jpg / .png)"
+                  label="Upload Custom Background Image (.jpg / .png)"
                   currentImage={formData.background_url}
                   onImageSelected={(dataUrl) => setFormData(prev => ({ ...prev, background_url: dataUrl }))}
-                  helperText="Leave empty to use the official Santa Sleigh background image (/icons/site_background.png) as before."
+                  helperText="Leave empty to use the default background image."
                 />
               </div>
 
