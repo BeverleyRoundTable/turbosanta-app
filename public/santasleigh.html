@@ -241,7 +241,7 @@
             overflow: hidden;
             padding: 70px 20px 80px;
             text-align: center;
-            background-color: var(--bg-dark);
+            background: radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, transparent 70%);
         }
         .hero-video-wrap {
             position: absolute;
@@ -1291,12 +1291,14 @@
             const slug = window.__sleighTableSlug || 'beverley';
             const storedBgMode = localStorage.getItem(`turbosanta_${slug}_bg_mode`);
             const storedVideoUrl = localStorage.getItem(`turbosanta_${slug}_bg_video`);
-            const bgMode = settings.background_mode || storedBgMode || 'video';
+            const bgMode = settings.background_mode || storedBgMode || 'image';
             const customVideo = settings.background_video_url || storedVideoUrl || '';
-            const isVideo = bgMode !== 'image' && bgMode !== 'none';
+            const isVideo = (bgMode === 'video' || bgMode === 'custom_video');
+            const heroEl = document.querySelector('.hero');
 
             if (videoEl) {
                 if (isVideo) {
+                    if (heroEl) heroEl.style.backgroundColor = 'var(--bg-dark)';
                     if (videoWrap) videoWrap.style.display = 'block';
                     videoEl.style.display = 'block';
                     const videoSrc = (bgMode === 'custom_video' && customVideo) ? customVideo : '/media/santa.mp4';
@@ -1324,7 +1326,6 @@
                     // IntersectionObserver to pause video when scrolled past hero
                     if (window.IntersectionObserver && !videoEl._observerAttached) {
                         videoEl._observerAttached = true;
-                        const heroEl = document.querySelector('.hero');
                         if (heroEl) {
                             const obs = new IntersectionObserver(function (entries) {
                                 entries.forEach(function (entry) {
@@ -1344,6 +1345,7 @@
                         bgOverlay.style.backgroundImage = BG_OVERLAY;
                     }
                 } else {
+                    if (heroEl) heroEl.style.backgroundColor = 'transparent';
                     if (videoWrap) videoWrap.style.display = 'none';
                     videoEl.style.display = 'none';
                     videoEl.pause();
@@ -1353,6 +1355,7 @@
                     }
                 }
             } else if (bgEl) {
+                if (heroEl) heroEl.style.backgroundColor = 'transparent';
                 bgEl.style.backgroundImage = BG_OVERLAY + ', url("' + bg.replace(/"/g, '%22') + '")';
             }
         }

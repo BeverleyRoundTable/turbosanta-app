@@ -416,7 +416,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     gemini_api_key: tableData?.table?.gemini_api_key || '',
     expenses: tableData?.table?.expenses !== undefined ? tableData?.table?.expenses : (tableData?.expenses !== undefined ? tableData?.expenses : 0),
     expenses_json: tableData?.table?.expenses_json || tableData?.expenses_json || null,
-    background_mode: tableData?.table?.background_mode || (typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${currentTableSlug}_bg_mode`) : null) || 'video',
+    background_mode: tableData?.table?.background_mode || (typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${currentTableSlug}_bg_mode`) : null) || 'image',
     background_video_url: tableData?.table?.background_video_url || (typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${currentTableSlug}_bg_video`) : null) || '',
     background_url: tableData?.table?.background_url || ''
   });
@@ -447,7 +447,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         gemini_api_key: tableData.table.gemini_api_key !== undefined ? tableData.table.gemini_api_key : prev.gemini_api_key,
         expenses: tableData.table.expenses !== undefined ? tableData.table.expenses : (tableData.expenses !== undefined ? tableData.expenses : prev.expenses),
         expenses_json: tableData.table.expenses_json !== undefined ? tableData.table.expenses_json : (tableData.expenses_json !== undefined ? tableData.expenses_json : prev.expenses_json),
-        background_mode: tableData.table.background_mode !== undefined ? tableData.table.background_mode : prev.background_mode,
+        background_mode: tableData.table.background_mode !== undefined ? tableData.table.background_mode : (prev.background_mode || 'image'),
         background_video_url: tableData.table.background_video_url !== undefined ? tableData.table.background_video_url : prev.background_video_url,
         background_url: tableData.table.background_url !== undefined ? tableData.table.background_url : prev.background_url
       }));
@@ -3458,7 +3458,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 </p>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '12px', marginBottom: '16px' }}>
-                  {/* Option 1: Default Video */}
+                  {/* Option 1: Static Image (Default Load) */}
                   <label
                     style={{
                       display: 'flex',
@@ -3466,8 +3466,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       gap: '6px',
                       padding: '14px',
                       borderRadius: '8px',
-                      border: (formData.background_mode === 'video' || !formData.background_mode) ? '2px solid var(--primary)' : '1px solid var(--border)',
-                      background: (formData.background_mode === 'video' || !formData.background_mode) ? 'rgba(251, 175, 51, 0.08)' : '#161614',
+                      border: (formData.background_mode === 'image' || !formData.background_mode) ? '2px solid var(--primary)' : '1px solid var(--border)',
+                      background: (formData.background_mode === 'image' || !formData.background_mode) ? 'rgba(251, 175, 51, 0.08)' : '#161614',
                       cursor: 'pointer'
                     }}
                   >
@@ -3475,17 +3475,44 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       <input
                         type="radio"
                         name="bg_mode"
-                        checked={formData.background_mode === 'video' || !formData.background_mode}
+                        checked={formData.background_mode === 'image' || !formData.background_mode}
+                        onChange={() => setFormData(prev => ({ ...prev, background_mode: 'image' }))}
+                      />
+                      <span style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>🖼️ Static Image (Default)</span>
+                    </div>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      Default load. Official festive background image (/icons/site_background.png) or custom upload.
+                    </span>
+                  </label>
+
+                  {/* Option 2: Default Video */}
+                  <label
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                      padding: '14px',
+                      borderRadius: '8px',
+                      border: formData.background_mode === 'video' ? '2px solid var(--primary)' : '1px solid var(--border)',
+                      background: formData.background_mode === 'video' ? 'rgba(251, 175, 51, 0.08)' : '#161614',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="radio"
+                        name="bg_mode"
+                        checked={formData.background_mode === 'video'}
                         onChange={() => setFormData(prev => ({ ...prev, background_mode: 'video' }))}
                       />
                       <span style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>🎅 Default Santa Video</span>
                     </div>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      Official animated Santa sleigh flight loop with falling snow. Ready out-of-the-box!
+                      Cinematic animated Santa flight loop in hero banner with falling snow.
                     </span>
                   </label>
 
-                  {/* Option 2: Custom Video */}
+                  {/* Option 3: Custom Video */}
                   <label
                     style={{
                       display: 'flex',
@@ -3508,34 +3535,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       <span style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>📹 Custom Video URL</span>
                     </div>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      Provide a direct link to your own town's Santa Sleigh video loop (.mp4).
-                    </span>
-                  </label>
-
-                  {/* Option 3: Static Image */}
-                  <label
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '6px',
-                      padding: '14px',
-                      borderRadius: '8px',
-                      border: formData.background_mode === 'image' ? '2px solid var(--primary)' : '1px solid var(--border)',
-                      background: formData.background_mode === 'image' ? 'rgba(251, 175, 51, 0.08)' : '#161614',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input
-                        type="radio"
-                        name="bg_mode"
-                        checked={formData.background_mode === 'image'}
-                        onChange={() => setFormData(prev => ({ ...prev, background_mode: 'image' }))}
-                      />
-                      <span style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>🖼️ Static Image Only</span>
-                    </div>
-                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      Disable video animation and display a static background picture instead.
+                      Provide a direct link to your town's Santa Sleigh video loop (.mp4).
                     </span>
                   </label>
                 </div>
@@ -3568,12 +3568,95 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   </div>
                 )}
 
+                {/* Default Image Status & Revert Helper */}
+                {!formData.background_url ? (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    padding: '12px 16px',
+                    background: '#161614',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    marginBottom: '14px',
+                    flexWrap: 'wrap'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <img
+                        src="/icons/site_background.png"
+                        alt="Official Festive Background"
+                        style={{ width: '60px', height: '40px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--border)' }}
+                      />
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>
+                          Official Festive Background Active (Default)
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                          Using /icons/site_background.png as before. Upload a custom image below to replace, or keep this default.
+                        </div>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '12px', color: '#86efac', fontWeight: 600 }}>
+                      ✓ Active Default
+                    </span>
+                  </div>
+                ) : (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    padding: '12px 16px',
+                    background: '#161614',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    marginBottom: '14px',
+                    flexWrap: 'wrap'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <img
+                        src={formData.background_url}
+                        alt="Custom Background"
+                        style={{ width: '60px', height: '40px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--border)' }}
+                      />
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>
+                          Custom Background Image Live
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                          Custom uploaded image is active. Click revert anytime to return to the original default background.
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, background_url: '', background_mode: 'image' }))}
+                      style={{
+                        background: 'rgba(251, 175, 51, 0.1)',
+                        border: '1px solid var(--primary)',
+                        color: 'var(--primary)',
+                        padding: '6px 14px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      ↺ Revert to Default Background Image
+                    </button>
+                  </div>
+                )}
+
                 {/* Static Background Image / Poster Upload */}
                 <DropzoneUpload
-                  label="Poster / Static Background Image (.jpg / .png)"
+                  label="Upload Custom Background Image / Poster (.jpg / .png)"
                   currentImage={formData.background_url}
                   onImageSelected={(dataUrl) => setFormData(prev => ({ ...prev, background_url: dataUrl }))}
-                  helperText="Displayed as the primary background in static mode, and as the instant preview poster while video loads."
+                  helperText="Leave empty to use the official Santa Sleigh background image (/icons/site_background.png) as before."
                 />
               </div>
 
@@ -4023,15 +4106,17 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       gemini_model: formData.gemini_model || 'auto',
                       gemini_api_key: formData.gemini_api_key || '',
                       approved_national_emails: approvedEmails,
-                      background_mode: formData.background_mode || 'video',
+                      background_mode: formData.background_mode || 'image',
                       background_video_url: formData.background_video_url || null,
                       background_url: formData.background_url || null
                     };
 
                     try {
-                      localStorage.setItem(`turbosanta_${tableSlug}_bg_mode`, formData.background_mode || 'video');
+                      localStorage.setItem(`turbosanta_${tableSlug}_bg_mode`, formData.background_mode || 'image');
                       if (formData.background_video_url) {
                         localStorage.setItem(`turbosanta_${tableSlug}_bg_video`, formData.background_video_url);
+                      } else {
+                        localStorage.removeItem(`turbosanta_${tableSlug}_bg_video`);
                       }
                     } catch (e) {}
 
