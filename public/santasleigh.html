@@ -331,9 +331,12 @@
         .section-header h2 {
             font-size: clamp(26px, 6.5vw, 40px);
             line-height: 1.15;
-            color: var(--primary);
+            color: var(--text-main);
             text-wrap: balance;
             margin-bottom: 12px;
+        }
+        .section-header h2 .hl {
+            color: var(--primary);
             transition: color 0.35s ease;
         }
         .section-header p {
@@ -761,7 +764,7 @@
         }
 
         /* Utility classes (replace static inline styles) */
-        .hl { color: var(--primary); }
+        .hl { color: var(--primary); transition: color 0.35s ease; }
         .loader-error { color: #d31c1c; text-align: center; max-width: 80%; margin-top: 20px; }
         .volunteer-wrap { max-width: 500px; margin: 0 auto; width: 100%; }
         .btn-icon-end { margin-left: 5px; }
@@ -890,7 +893,7 @@
     <!-- Tracker Section -->
     <section id="tracker">
         <div class="section-header">
-            <h2>LIVE TRACKER</h2>
+            <h2>LIVE <span class="hl">TRACKER</span></h2>
             <p>Watch Santa's sleigh move in real-time as he visits the streets!</p>
         </div>
         <div class="iframe-container">
@@ -902,12 +905,12 @@
     <!-- Donations Section -->
     <section id="donate">
         <div class="section-header">
-            <h2>HELP US SPREAD THE MAGIC</h2>
+            <h2>HELP US SPREAD <span class="hl">THE MAGIC</span></h2>
             <p>Every penny raised goes directly back into supporting our local community.</p>
         </div>
         
         <div class="thermo-card">
-            <h3 class="thermo-title brand-font">FUNDRAISER TARGET</h3>
+            <h3 class="thermo-title brand-font">FUNDRAISER <span class="hl">TARGET</span></h3>
             <div class="progress-bar-bg">
                 <div class="progress-bar-fill" id="donation-fill"></div>
             </div>
@@ -933,7 +936,7 @@
     <!-- Routes Section -->
     <section id="routes">
         <div class="section-header">
-            <h2>ROUTE SCHEDULE</h2>
+            <h2>ROUTE <span class="hl">SCHEDULE</span></h2>
             <p>Find out exactly when Santa is coming to your neighbourhood.</p>
         </div>
         
@@ -953,7 +956,7 @@
     <!-- COMMUNITY PARTNERS (Beverley Custom) -->
     <section id="partners" class="section-center" style="display: none;">
         <div class="section-header">
-            <h2>COMMUNITY PARTNERS</h2>
+            <h2>COMMUNITY <span class="hl">PARTNERS</span></h2>
             <p>Thank you to the generous local organisations keeping the magic rolling.</p>
         </div>
         <div id="partners-container" class="partners-grid"></div>
@@ -962,7 +965,7 @@
     <!-- MEMORY BOOK SECTION -->
     <section id="memory-book">
         <div class="section-header">
-            <h2>DIGITAL MEMORY BOOK</h2>
+            <h2>DIGITAL <span class="hl">MEMORY BOOK</span></h2>
             <p id="memory-book-desc">Spotted Santa? Help us build our digital memory book and share your photos!</p>
         </div>
         <div class="iframe-container">
@@ -973,7 +976,7 @@
     <!-- Sponsors Section -->
     <section id="sponsors" style="display: none;">
         <div class="section-header">
-            <h2>OUR GENEROUS SPONSORS</h2>
+            <h2>OUR GENEROUS <span class="hl">SPONSORS</span></h2>
             <p>Thank you to the local businesses keeping the sleigh on the road.</p>
         </div>
         <div class="sponsors-grid" id="sponsors-container">
@@ -984,7 +987,7 @@
     <!-- FAQ & SAFETY SECTION -->
     <section id="faq">
         <div class="section-header">
-            <h2>FAQ & SAFETY RULES</h2>
+            <h2>FAQ & <span class="hl">SAFETY RULES</span></h2>
             <p>Important information about the sleigh routes and how to enjoy the magic safely.</p>
         </div>
         
@@ -1054,7 +1057,7 @@
     <!-- ABOUT US SECTION -->
     <section id="about">
         <div class="section-header">
-            <h2>WHO WE ARE</h2>
+            <h2>WHO <span class="hl">WE ARE</span></h2>
         </div>
         <div class="about-card">
             <p class="about-lead">
