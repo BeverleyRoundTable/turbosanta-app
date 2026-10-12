@@ -473,56 +473,53 @@ async function init() {
   try { adminSession = JSON.parse(localStorage.getItem('turbosanta_admin_session') || '{}'); } catch(e) {}
 
   // Auto-authenticate if launched from an authenticated Admin Portal session
-  if (adminSession && (adminSession.role === 'national_admin' || adminSession.tableSlug === TABLE_SLUG || adminSession.email)) {
-    secret = 'authenticated';
+  if (adminSession && (adminSession.googleCredential || adminSession.token)) {
+    secret = adminSession.googleCredential || adminSession.token;
     sessionStorage.setItem('sleighSecret', secret);
   }
   
   if (!secret) {
-    secret = prompt("🎅 God Mode Authorization Required\n\nEnter the Master Password:");
-    if (!secret) {
-      document.getElementById('app').innerHTML = '<div class="error-msg">Authorization required. Refresh the page to try again.</div>';
-      document.getElementById('loader').classList.add('done');
-      return;
-    }
-    
-    if (API) {
-      try {
-        const sep = API.includes('?') ? '&' : '?';
-        const check = await fetch(`${API}${sep}function=verifyGodMode&secret=${encodeURIComponent(secret)}`);
-        const result = await check.json();
-        
-        if (!result.valid) {
-          document.getElementById('app').innerHTML = '<div class="error-msg">❌ Access Denied. Incorrect Password.</div>';
-          document.getElementById('loader').classList.add('done');
-          return;
-        }
-        sessionStorage.setItem('sleighSecret', secret);
-      } catch(e) {
-        document.getElementById('app').innerHTML = '<div class="error-msg">❌ Failed to connect to API to verify password.</div>';
-        document.getElementById('loader').classList.add('done');
-        return;
-      }
-    } else {
-      let isValid = false;
-      const validPw = ['santa2026', 'beverley247', 'admin', 'Santa2026!', '(BeverleyRoundTableSleigh26!)', 'authenticated'];
-      if (validPw.includes(secret) || secret.toLowerCase() === TABLE_SLUG) {
-        isValid = true;
-      } else {
-        try {
-          const check = await fetch(`${WORKER_API}/api/auth/verify?table=${encodeURIComponent(TABLE_SLUG)}&secret=${encodeURIComponent(secret)}`);
-          const res = await check.json();
-          if (res.valid) isValid = true;
-        } catch(e) {}
-      }
-      if (isValid) {
-        sessionStorage.setItem('sleighSecret', secret);
-      } else {
-        document.getElementById('app').innerHTML = '<div class="error-msg">❌ Access Denied. Incorrect Password.</div>';
-        document.getElementById('loader').classList.add('done');
-        return;
-      }
-    }
+    document.getElementById('app').innerHTML = `
+      <div class="error-msg" style="text-align:center; padding:30px 20px;">
+        <h2 style="color:#ffd700; margin-bottom:15px;">🔒 Admin Authorization Required</h2>
+        <p style="font-size:16px; line-height:1.6; color:#ccc; margin-bottom:25px;">
+          God Mode controls are restricted to authenticated <strong>@roundtable.org.uk</strong> administrators.
+        </p>
+        <a href="/" style="display:inline-block; background:#ffd700; color:#000; font-weight:bold; padding:12px 24px; border-radius:8px; text-decoration:none; text-transform:uppercase; font-size:14px; letter-spacing:1px;">
+          Sign In via Admin Portal
+        </a>
+      </div>
+    `;
+    document.getElementById('loader').classList.add('done');
+    return;
+  }
+
+  let isValid = false;
+  try {
+    const check = await fetch(`${WORKER_API}/api/auth/verify?table=${encodeURIComponent(TABLE_SLUG)}&secret=${encodeURIComponent(secret)}`, {
+      headers: { 'Authorization': `Bearer ${secret}` }
+    });
+    const res = await check.json();
+    if (res.valid) isValid = true;
+  } catch(e) {}
+
+  if (isValid) {
+    sessionStorage.setItem('sleighSecret', secret);
+  } else {
+    document.getElementById('app').innerHTML = `
+      <div class="error-msg" style="text-align:center; padding:30px 20px;">
+        <h2 style="color:#ff5252; margin-bottom:15px;">❌ Access Denied</h2>
+        <p style="font-size:16px; line-height:1.6; color:#ccc; margin-bottom:25px;">
+          Only verified @roundtable.org.uk Google Workspace accounts can access God Mode.
+        </p>
+        <a href="/" style="display:inline-block; background:#ffd700; color:#000; font-weight:bold; padding:12px 24px; border-radius:8px; text-decoration:none; font-size:14px;">
+          Return to Admin Portal
+        </a>
+      </div>
+    `;
+    document.getElementById('loader').classList.add('done');
+    sessionStorage.removeItem('sleighSecret');
+    return;
   }
 
   await fetchApiData();

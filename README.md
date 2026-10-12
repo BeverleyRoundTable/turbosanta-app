@@ -242,9 +242,8 @@ To verify the platform end-to-end, follow this testing path:
 
 ### Step 3: Organiser Login & Admin Portal
 * **URL**: Click the subtle top-right Admin Shield on any page, or open `https://turbosanta-app.pages.dev/?admin=1&table=beverley`.
-* **Credentials**:
-  * Password: `Santa2026!` (or table-specific master secret).
-  * Or use Google Workspace / Magic Link login.
+* **Authentication**:
+  * Sign in with your official **`@roundtable.org.uk`** Google Workspace account via Google Identity Services One-Tap.
 * **What to verify**:
   * **Overview Tab**: Live radar overview, active route picker, and quick stats.
   * **Routes & Timetables**: View nightly routes, edit dates, drag-and-drop GPX files.

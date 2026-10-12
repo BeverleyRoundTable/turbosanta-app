@@ -1,5 +1,17 @@
+import { getCurrentSession } from './auth';
+
 const API_BASE = "https://turbosanta-api.beverley247.workers.dev";
 const LOCAL_AGENT_URL = "http://127.0.0.1:8080";
+
+function getAuthHeaders(explicitSecret) {
+  const headers = { "Content-Type": "application/json" };
+  const session = getCurrentSession();
+  const token = explicitSecret || session?.googleCredential || session?.token;
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+}
 
 export function getTableFallback(tableSlug = "beverley") {
   const slug = (tableSlug || "beverley").toLowerCase();
@@ -271,12 +283,12 @@ export async function sendElfChatMessage(message, tableData) {
   return `🎅 Ho-Ho-Ho! Merry Christmas! I am Santa's Digital Sleigh Elf. You can ask me:\n• "When is Santa on [your street name]?"\n• "Where is Santa right now?"\n• "How much has been raised?"\n• "How can I volunteer or add Gift Aid?"`;
 }
 
-export async function saveTableSettings(tableSlug = "beverley", settings = {}, secret = "Santa2026!") {
+export async function saveTableSettings(tableSlug = "beverley", settings = {}, explicitSecret = null) {
   try {
     const res = await fetch(`${API_BASE}/api/table/settings?table=${encodeURIComponent(tableSlug)}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...settings, secret })
+      headers: getAuthHeaders(explicitSecret),
+      body: JSON.stringify(settings)
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
@@ -366,12 +378,12 @@ export async function fetchLatestAiModels(tableSlug = "beverley") {
   }
 }
 
-export async function saveRoute(tableSlug = "beverley", route = {}, streets = [], secret = "Santa2026!") {
+export async function saveRoute(tableSlug = "beverley", route = {}, streets = [], explicitSecret = null) {
   try {
     const res = await fetch(`${API_BASE}/api/routes?table=${encodeURIComponent(tableSlug)}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ route, streets, secret })
+      headers: getAuthHeaders(explicitSecret),
+      body: JSON.stringify({ route, streets })
     });
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
@@ -384,12 +396,11 @@ export async function saveRoute(tableSlug = "beverley", route = {}, streets = []
   }
 }
 
-export async function deleteRoute(tableSlug = "beverley", routeId = "", secret = "Santa2026!") {
+export async function deleteRoute(tableSlug = "beverley", routeId = "", explicitSecret = null) {
   try {
     const res = await fetch(`${API_BASE}/api/routes?table=${encodeURIComponent(tableSlug)}&id=${encodeURIComponent(routeId)}`, {
       method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ secret })
+      headers: getAuthHeaders(explicitSecret)
     });
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
@@ -402,11 +413,11 @@ export async function deleteRoute(tableSlug = "beverley", routeId = "", secret =
   }
 }
 
-export async function recordCashDonation(tableSlug = "beverley", cashData = {}) {
+export async function recordCashDonation(tableSlug = "beverley", cashData = {}, explicitSecret = null) {
   try {
     const res = await fetch(`${API_BASE}/api/donations/cash?table=${encodeURIComponent(tableSlug)}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(explicitSecret),
       body: JSON.stringify(cashData)
     });
     if (!res.ok) {
@@ -420,9 +431,11 @@ export async function recordCashDonation(tableSlug = "beverley", cashData = {}) 
   }
 }
 
-export async function fetchCashDonations(tableSlug = "beverley") {
+export async function fetchCashDonations(tableSlug = "beverley", explicitSecret = null) {
   try {
-    const res = await fetch(`${API_BASE}/api/donations/cash?table=${encodeURIComponent(tableSlug)}`);
+    const res = await fetch(`${API_BASE}/api/donations/cash?table=${encodeURIComponent(tableSlug)}`, {
+      headers: getAuthHeaders(explicitSecret)
+    });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } catch (err) {
@@ -431,10 +444,11 @@ export async function fetchCashDonations(tableSlug = "beverley") {
   }
 }
 
-export async function deleteCashDonation(tableSlug = "beverley", donationId = "") {
+export async function deleteCashDonation(tableSlug = "beverley", donationId = "", explicitSecret = null) {
   try {
     const res = await fetch(`${API_BASE}/api/donations/cash?table=${encodeURIComponent(tableSlug)}&id=${encodeURIComponent(donationId)}`, {
-      method: "DELETE"
+      method: "DELETE",
+      headers: getAuthHeaders(explicitSecret)
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();

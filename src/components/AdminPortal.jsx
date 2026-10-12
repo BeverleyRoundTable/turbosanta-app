@@ -522,7 +522,10 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     try {
       const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/season-history?table=${encodeURIComponent(tableSlug)}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.googleCredential || session?.token || ''}`
+        },
         body: JSON.stringify({
           year: selectedWrapSeason,
           raised: totalRaised,
@@ -532,8 +535,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
           streets: streets.length,
           volunteers: Number(tableData?.volunteers_count || 0),
           total_views: Number(tableData?.table?.total_views || 0),
-          messages: Number(tableData?.memory_book_count || 0),
-          secret: session?.secret || 'Santa2026!'
+          messages: Number(tableData?.memory_book_count || 0)
         })
       });
       const result = await res.json();
@@ -682,9 +684,9 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   const handleResetDonations = async () => {
     if (!confirm("Are you sure you want to clear test donations and reset the live total raised back to £0.00 in your database?")) return;
     const slug = session?.tableSlug || tableData?.table?.slug || 'beverley';
-    const secret = session?.secret || 'Santa2026!';
+    const secret = session?.googleCredential || session?.token || '';
     try {
-      await fetch(`https://turbosanta-api.beverley247.workers.dev/api/donations?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(secret)}`, {
+      await fetch(`https://turbosanta-api.beverley247.workers.dev/api/donations?table=${encodeURIComponent(slug)}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${secret}` }
       });
@@ -730,14 +732,14 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     }
 
     try {
-      const secret = session?.secret || 'Santa2026!';
+      const secret = session?.googleCredential || session?.token || '';
       const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/announcement?table=${encodeURIComponent(session?.tableId || 'beverley')}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${secret}`
         },
-        body: JSON.stringify({ message: text || '', secret })
+        body: JSON.stringify({ message: text || '' })
       });
       if (!res.ok) {
         console.warn('Worker announcement update failed with status:', res.status);
@@ -780,8 +782,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     }
 
     // 2. Persist to Cloudflare D1
-    const secret = session?.secret || "Santa2026!";
-    const res = await saveRoute(currentTableSlug, savedRoute, streetsArray, secret);
+    const authSecret = session?.googleCredential || session?.token || null;
+    const res = await saveRoute(currentTableSlug, savedRoute, streetsArray, authSecret);
     if (res.ok) {
       setSaveStatus(`✓ Route "${savedRoute.name}" saved to D1 database!`);
     } else {
@@ -801,8 +803,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
       }));
     }
 
-    const secret = session?.secret || "Santa2026!";
-    const res = await deleteRoute(currentTableSlug, routeId, secret);
+    const authSecret = session?.googleCredential || session?.token || null;
+    const res = await deleteRoute(currentTableSlug, routeId, authSecret);
     if (res.ok) {
       setSaveStatus('✓ Route deleted from D1 database.');
     } else {

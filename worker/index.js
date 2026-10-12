@@ -43,18 +43,78 @@ export default {
       return jsonResponse({ error: `Table '${slug}' not found in database.` }, 404);
     }
 
+    // Helper: Verify Google Workspace JWT ID Token
+    const verifyGoogleJwt = (token) => {
+      try {
+        if (!token || typeof token !== "string" || !token.includes(".")) return false;
+        const parts = token.split(".");
+        if (parts.length !== 3) return false;
+        let base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+        while (base64.length % 4) {
+          base64 += "=";
+        }
+        const decoded = atob(base64);
+        let payload;
+        try {
+          payload = JSON.parse(
+            decodeURIComponent(
+              decoded.split("").map(c => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)).join("")
+            )
+          );
+        } catch {
+          payload = JSON.parse(decoded);
+        }
+
+        if (!payload || !payload.email) return false;
+
+        // Verify expiration (with 5-minute clock skew margin)
+        const now = Math.floor(Date.now() / 1000);
+        if (payload.exp && payload.exp < (now - 300)) return false;
+
+        // Verify issuer
+        const validIssuers = ["accounts.google.com", "https://accounts.google.com"];
+        if (!payload.iss || !validIssuers.includes(payload.iss)) return false;
+
+        // Verify email_verified
+        if (!payload.email_verified) return false;
+
+        // Verify email domain is @roundtable.org.uk or national admin
+        const email = String(payload.email).trim().toLowerCase();
+        const isRoundTable = email.endsWith("@roundtable.org.uk") || email.endsWith("@roundtable.co.uk");
+        const isNational = [
+          "president@roundtable.org.uk",
+          "vicepresident@roundtable.org.uk",
+          "cs@roundtable.org.uk",
+          "admin@roundtable.org.uk",
+          "it@roundtable.org.uk"
+        ].includes(email);
+
+        return isRoundTable || isNational;
+      } catch (err) {
+        return false;
+      }
+    };
+
     // Helper: Verify admin authorization
     const isAuthorized = (secret) => {
       if (!secret) return false;
+      let token = String(secret).trim();
+      if (token.startsWith("Bearer ")) {
+        token = token.slice(7).trim();
+      }
+      if (!token) return false;
+
+      // Allow configured backend secrets (e.g. Zeffy webhook secret or server environment secret)
       const validSecrets = [
         table?.zeffy_webhook_secret,
         env.ADMIN_SECRET,
-        env.MASTER_PASSWORD,
-        "Santa2026!",
-        "admin",
-        "authenticated"
+        env.MASTER_PASSWORD
       ].filter(Boolean);
-      return validSecrets.includes(secret) || secret === "Bearer authenticated" || String(secret).startsWith("Bearer ");
+
+      if (validSecrets.includes(token)) return true;
+
+      // Verify Google Identity Services ID Token
+      return verifyGoogleJwt(token);
     };
 
     // ==============================================================
@@ -117,6 +177,11 @@ export default {
         env.DB.prepare("SELECT * FROM season_history WHERE table_id = ? ORDER BY year ASC").bind(table.id).all().catch(() => ({ results: [] }))
       ]);
 
+      const reqAuthHeader = request.headers.get("Authorization") || "";
+      const reqBearer = reqAuthHeader.startsWith("Bearer ") ? reqAuthHeader.slice(7).trim() : "";
+      const reqSecret = url.searchParams.get("secret") || reqBearer;
+      const isAdmin = isAuthorized(reqSecret);
+
       const tableConfig = {
         id: table.id,
         name: table.name,
@@ -146,7 +211,7 @@ export default {
         headline_sponsor_tagline: table.headline_sponsor_tagline || null,
         partners: table.partners_json ? JSON.parse(table.partners_json) : [],
         gemini_model: table.gemini_model || "auto",
-        gemini_api_key: table.gemini_api_key || "",
+        gemini_api_key: isAdmin ? (table.gemini_api_key || "") : (table.gemini_api_key ? "••••••••" : ""),
         donation_breakdown: (breakdown && breakdown.results) || []
       };
 
@@ -455,8 +520,8 @@ export default {
       const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
       const secret = body.secret || url.searchParams.get("secret") || bearerToken;
       
-      if (!isAuthorized(secret) && url.searchParams.get("auth") !== "1") {
-        return jsonResponse({ error: "Unauthorized: Valid beacon password required to broadcast GPS" }, 401);
+      if (!isAuthorized(secret)) {
+        return jsonResponse({ error: "Unauthorized: Valid Round Table Google Workspace authentication required to broadcast GPS" }, 401);
       }
 
       if (!lat || !lng) return jsonResponse({ error: "Missing coordinates" }, 400);
@@ -907,6 +972,14 @@ export default {
         let body = {};
         try { body = await request.json(); } catch(e) { body = {}; }
 
+        const authHeader = request.headers.get("Authorization") || "";
+        const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+        const secret = body.secret || url.searchParams.get("secret") || bearerToken;
+
+        if (!isAuthorized(secret)) {
+          return jsonResponse({ error: "Unauthorized: Admin authorization required to record cash donations" }, 401);
+        }
+
         const amount = parseFloat(body.amount || 0);
         if (!amount || amount <= 0) {
           return jsonResponse({ error: "Invalid cash amount" }, 400);
@@ -950,6 +1023,14 @@ export default {
 
       // DELETE: Remove mistakenly entered cash entry
       if (request.method === "DELETE") {
+        const authHeader = request.headers.get("Authorization") || "";
+        const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+        const secret = url.searchParams.get("secret") || bearerToken;
+
+        if (!isAuthorized(secret)) {
+          return jsonResponse({ error: "Unauthorized: Admin authorization required to delete cash entries" }, 401);
+        }
+
         const donationId = url.searchParams.get("id");
         if (!donationId) return jsonResponse({ error: "Missing donation id" }, 400);
         await env.DB.prepare("DELETE FROM donations WHERE table_id = ? AND id = ? AND source = 'cash'").bind(table.id, donationId).run();
@@ -1087,8 +1168,10 @@ export default {
     // 🔐 9. AUTH VERIFICATION & BEACON CONFIG (GET /api/auth/verify)
     // ==============================================================
     if ((path === "/api/auth/verify" || path === "/api/beacon/config" || url.searchParams.get("function") === "verifyBeaconAuth" || url.searchParams.get("function") === "getBeaconConfig") && request.method === "GET") {
-      const secret = url.searchParams.get("secret");
-      const isValid = isAuthorized(secret) || url.searchParams.get("auth") === "1";
+      const authHeader = request.headers.get("Authorization") || "";
+      const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+      const secret = url.searchParams.get("secret") || bearerToken;
+      const isValid = isAuthorized(secret);
       return jsonResponse({
         valid: Boolean(isValid),
         gpsLoggerUrl: `${origin}/api/telemetry?table=${table.slug}`,
@@ -1193,7 +1276,7 @@ export default {
         return jsonResponse({ ok: false, error: "Email and code required" }, 400);
       }
 
-      if (isAuthorized(code)) {
+      if (env.ADMIN_SECRET && code === env.ADMIN_SECRET) {
         return jsonResponse({
           ok: true,
           verified: true,

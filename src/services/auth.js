@@ -163,36 +163,20 @@ export async function verifyMagicLink(email, enteredCode) {
   const details = parseTableDetailsFromEmail(cleanEmail);
   const isNational = isNationalAdmin(cleanEmail);
 
-  // 1. Check Table Master Password bypass (e.g. Santa2026!)
-  const isMasterPw = code === "Santa2026!" ||
-                     code === "(BeverleyRoundTableSleigh26!)" ||
-                     code.toLowerCase() === "admin";
+  // 1. Verify with Cloudflare Worker OTP backend if code was provided
+  let verifiedOnWorker = false;
+  try {
+    const res = await fetch(`${WORKER_API}/api/auth/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: cleanEmail, code })
+    });
+    const result = await res.json();
+    if (result.ok) verifiedOnWorker = true;
+  } catch (e) {}
 
-  if (!isMasterPw) {
-    // 2. Verify with Cloudflare Worker OTP backend
-    let verifiedOnWorker = false;
-    try {
-      const res = await fetch(`${WORKER_API}/api/auth/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: cleanEmail, code })
-      });
-      const result = await res.json();
-      if (result.ok) verifiedOnWorker = true;
-    } catch (e) {}
-
-    // 3. Fallback: Verify table-specific secret from D1
-    if (!verifiedOnWorker) {
-      try {
-        const chk = await fetch(`${WORKER_API}/api/auth/verify?table=${encodeURIComponent(details.slug)}&secret=${encodeURIComponent(code)}`);
-        const chkRes = await chk.json();
-        if (chkRes.valid) verifiedOnWorker = true;
-      } catch (e) {}
-    }
-
-    if (!verifiedOnWorker) {
-      throw new Error("Invalid verification code or password. Please check your inbox and try again.");
-    }
+  if (!verifiedOnWorker) {
+    throw new Error("Invalid verification code. Please check your official Round Table inbox.");
   }
 
   // Authentication succeeded! Create authenticated session
@@ -238,44 +222,34 @@ export function parseGoogleCredential(idToken) {
 }
 
 /**
- * Signs in using official Google Workspace OAuth 2.0 credential or verified account
+ * Signs in using official Google Workspace OAuth 2.0 credential
  */
-export async function loginWithGoogleWorkspace(credentialOrEmail) {
-  let cleanEmail = '';
-  let googleName = '';
-  let googlePicture = '';
-
-  // Check if input is a Google JWT Credential Token
-  if (typeof credentialOrEmail === 'string' && credentialOrEmail.includes('.')) {
-    const payload = parseGoogleCredential(credentialOrEmail);
-    if (!payload || !payload.email) {
-      throw new Error("Invalid or expired Google authentication token.");
-    }
-    if (!payload.email_verified) {
-      throw new Error("Google email address is not verified.");
-    }
-    cleanEmail = payload.email.trim().toLowerCase();
-    googleName = payload.name || '';
-    googlePicture = payload.picture || '';
-  } else {
-    cleanEmail = (credentialOrEmail || '').trim().toLowerCase();
+export async function loginWithGoogleWorkspace(credential) {
+  if (!credential || typeof credential !== 'string' || !credential.includes('.')) {
+    throw new Error("Official Google Sign-In credential token is required.");
   }
 
-  // If email was empty, prompt the user for their official Round Table Google account
-  if (!cleanEmail) {
-    cleanEmail = (prompt("Enter your official Round Table Google Workspace email:\n(e.g. beverley247@roundtable.org.uk)") || '').trim().toLowerCase();
+  const payload = parseGoogleCredential(credential);
+  if (!payload || !payload.email) {
+    throw new Error("Invalid or expired Google authentication token.");
+  }
+  if (!payload.email_verified) {
+    throw new Error("Google email address is not verified.");
   }
 
-  if (!cleanEmail || !isRoundTableEmail(cleanEmail)) {
-    throw new Error("Google Sign-In rejected: Only @roundtable.org.uk Google Workspace accounts are permitted.");
+  const cleanEmail = payload.email.trim().toLowerCase();
+
+  // Validate that email is an official Round Table Google Workspace address or approved national admin
+  if (!isRoundTableEmail(cleanEmail) && !isNationalAdmin(cleanEmail)) {
+    throw new Error("Access Denied: Only official @roundtable.org.uk Google Workspace accounts are permitted.");
   }
 
   const details = parseTableDetailsFromEmail(cleanEmail);
   const isNational = isNationalAdmin(cleanEmail);
   const session = {
     email: cleanEmail,
-    displayName: googleName || details.tableName,
-    avatar: googlePicture || null,
+    displayName: payload.name || details.tableName,
+    avatar: payload.picture || null,
     tableId: details.slug,
     tableSlug: details.slug,
     town: details.town,
@@ -287,7 +261,8 @@ export async function loginWithGoogleWorkspace(credentialOrEmail) {
     isNationalAdmin: isNational,
     authenticatedAt: new Date().toISOString(),
     provider: "google_workspace",
-    token: `ts2_g_${btoa(`${cleanEmail}_${Date.now()}`)}`
+    token: credential,
+    googleCredential: credential
   };
 
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));

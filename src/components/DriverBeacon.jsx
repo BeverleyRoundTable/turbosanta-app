@@ -32,7 +32,7 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
 
   const tableSlug = session?.tableId || 'beverley';
   const tableName = session?.tableName || 'Santa Sleigh';
-  const satNavUrl = `/tracker.html?table=${encodeURIComponent(tableSlug)}&driver=1&auth=1`;
+  const satNavUrl = `/tracker.html?table=${encodeURIComponent(tableSlug)}&driver=1`;
 
   // Monitor Battery
   useEffect(() => {
@@ -112,8 +112,8 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
           playBeaconBeep();
 
           // Transmit directly to Cloudflare Edge API
-          const beaconSecret = session?.secret || 'authenticated';
-          fetch(`https://turbosanta-api.beverley247.workers.dev/api/telemetry?table=${encodeURIComponent(tableSlug)}&auth=1`, {
+          const beaconSecret = session?.googleCredential || session?.token || '';
+          fetch(`https://turbosanta-api.beverley247.workers.dev/api/telemetry?table=${encodeURIComponent(tableSlug)}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
