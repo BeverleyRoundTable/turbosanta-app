@@ -1384,7 +1384,7 @@ function renderLeaderboard(data) {
 }
 
 function renderCharts(data) {
-  const labels = data.map(d => shortenName(d.name));
+  const labels = data.map(d => shortenName(d));
   
   const getColors = (baseRgb, arr) => {
     return arr.map((_, i) => {
@@ -1621,8 +1621,33 @@ function escHtml(str) {
   return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function shortenName(name) {
-  return name.replace(/\s*Round\s*Table\s*/i, '').replace(/\s*Santa\s*Sleigh\s*/i, '').trim() || name;
+function shortenName(input) {
+  if (!input) return '';
+  const d = typeof input === 'object' ? input : null;
+  const nameStr = typeof input === 'string' ? input : (d ? (d.name || d.tableName || d.town || '') : '');
+
+  // 1. If slug is present, slug is the clean town identifier
+  if (d && d.slug && typeof d.slug === 'string' && d.slug.trim()) {
+    const cleanSlug = d.slug
+      .replace(/[-_]?(table|sleigh|\d+)$/gi, '')
+      .replace(/[-_]/g, ' ')
+      .trim();
+    if (cleanSlug) {
+      return cleanSlug.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+    }
+  }
+
+  // 2. Strip all affixes (Round Table, Santa Sleigh, Sleigh, Santa, table numbers)
+  const cleaned = nameStr
+    .replace(/\s*Round\s*Table\s*/gi, ' ')
+    .replace(/\s*Santa\s*Sleigh\s*/gi, ' ')
+    .replace(/\s*Sleigh\s*/gi, ' ')
+    .replace(/\s*Santa\s*/gi, ' ')
+    .replace(/#\s*\d+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return cleaned || nameStr;
 }
 
 // ═══════════════════════════════════════════════════════════
