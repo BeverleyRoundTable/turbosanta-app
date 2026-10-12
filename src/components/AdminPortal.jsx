@@ -1319,18 +1319,21 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     background: '#0d0d0b',
                     border: '1px solid var(--border)',
                     borderRadius: '10px',
-                    padding: '12px 16px',
+                    padding: '12px 14px',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    gap: '12px',
-                    flexWrap: 'wrap'
+                    gap: '10px',
+                    flexWrap: 'wrap',
+                    maxWidth: '100%',
+                    boxSizing: 'border-box',
+                    overflow: 'hidden'
                   }}
                 >
-                  <span style={{ color: '#fff', fontSize: '14px', flex: '1 1 240px', lineHeight: 1.4 }}>
+                  <span style={{ color: '#fff', fontSize: '14px', flex: '1 1 220px', minWidth: 0, lineHeight: 1.4, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                     {preset}
                   </span>
-                  <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', maxWidth: '100%', boxSizing: 'border-box' }}>
                     <button
                       type="button"
                       onClick={() => {
@@ -1339,7 +1342,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                         setTimeout(() => setSaveStatus(''), 3000);
                       }}
                       className="btn-secondary"
-                      style={{ padding: '6px 12px', fontSize: '12px', whiteSpace: 'nowrap' }}
+                      style={{ padding: '6px 10px', fontSize: '11px', whiteSpace: 'nowrap', flex: '1 1 auto', maxWidth: '100%', boxSizing: 'border-box', justifyContent: 'center' }}
                       title="Load into draft box to preview or customize before sending"
                     >
                       ✏️ Load Draft
@@ -1348,7 +1351,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       type="button"
                       onClick={() => handleBroadcast(preset)}
                       className="btn-primary"
-                      style={{ padding: '6px 12px', fontSize: '12px', whiteSpace: 'nowrap' }}
+                      style={{ padding: '6px 10px', fontSize: '11px', whiteSpace: 'nowrap', flex: '1 1 auto', maxWidth: '100%', boxSizing: 'border-box', justifyContent: 'center' }}
                       title="Publish immediately to public tracker banner"
                     >
                       📢 1-Tap Broadcast
