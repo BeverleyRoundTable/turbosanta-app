@@ -415,7 +415,10 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     gemini_model: localStorage.getItem('turbosanta_global_gemini_model') || tableData?.table?.gemini_model || 'auto',
     gemini_api_key: tableData?.table?.gemini_api_key || '',
     expenses: tableData?.table?.expenses !== undefined ? tableData?.table?.expenses : (tableData?.expenses !== undefined ? tableData?.expenses : 0),
-    expenses_json: tableData?.table?.expenses_json || tableData?.expenses_json || null
+    expenses_json: tableData?.table?.expenses_json || tableData?.expenses_json || null,
+    background_mode: tableData?.table?.background_mode || (typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${tableSlug}_bg_mode`) : null) || 'video',
+    background_video_url: tableData?.table?.background_video_url || (typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${tableSlug}_bg_video`) : null) || '',
+    background_url: tableData?.table?.background_url || ''
   });
 
   // Automatically synchronize formData with live tableData when loaded
@@ -443,7 +446,10 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         gemini_model: localStorage.getItem('turbosanta_global_gemini_model') || tableData.table.gemini_model || prev.gemini_model || 'auto',
         gemini_api_key: tableData.table.gemini_api_key !== undefined ? tableData.table.gemini_api_key : prev.gemini_api_key,
         expenses: tableData.table.expenses !== undefined ? tableData.table.expenses : (tableData.expenses !== undefined ? tableData.expenses : prev.expenses),
-        expenses_json: tableData.table.expenses_json !== undefined ? tableData.table.expenses_json : (tableData.expenses_json !== undefined ? tableData.expenses_json : prev.expenses_json)
+        expenses_json: tableData.table.expenses_json !== undefined ? tableData.table.expenses_json : (tableData.expenses_json !== undefined ? tableData.expenses_json : prev.expenses_json),
+        background_mode: tableData.table.background_mode !== undefined ? tableData.table.background_mode : prev.background_mode,
+        background_video_url: tableData.table.background_video_url !== undefined ? tableData.table.background_video_url : prev.background_video_url,
+        background_url: tableData.table.background_url !== undefined ? tableData.table.background_url : prev.background_url
       }));
     }
   }, [tableData]);
@@ -3433,6 +3439,144 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 helperText="Upload your custom Santa Sleigh or Table marker icon to appear live on the tracker map (defaults to official sleigh if empty)."
               />
 
+              {/* AMBIENT BACKGROUND & FESTIVE VIDEO LOOP SETTINGS */}
+              <div style={{
+                background: '#0d0d0b',
+                border: '1px solid var(--border)',
+                borderRadius: '12px',
+                padding: 'clamp(14px, 3vw, 20px)',
+                marginTop: '10px',
+                maxWidth: '100%',
+                boxSizing: 'border-box',
+                overflow: 'hidden'
+              }}>
+                <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--primary)', fontFamily: 'Eurostile, sans-serif', textTransform: 'uppercase', marginBottom: '6px' }}>
+                  🎬 Ambient Background & Festive Video Loop
+                </div>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+                  Choose how your public Santa Sleigh tracker background looks. You can use the official animated Santa video loop, link your own custom video, or use a static festive image.
+                </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '12px', marginBottom: '16px' }}>
+                  {/* Option 1: Default Video */}
+                  <label
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                      padding: '14px',
+                      borderRadius: '8px',
+                      border: (formData.background_mode === 'video' || !formData.background_mode) ? '2px solid var(--primary)' : '1px solid var(--border)',
+                      background: (formData.background_mode === 'video' || !formData.background_mode) ? 'rgba(251, 175, 51, 0.08)' : '#161614',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="radio"
+                        name="bg_mode"
+                        checked={formData.background_mode === 'video' || !formData.background_mode}
+                        onChange={() => setFormData(prev => ({ ...prev, background_mode: 'video' }))}
+                      />
+                      <span style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>🎅 Default Santa Video</span>
+                    </div>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      Official animated Santa sleigh flight loop with falling snow. Ready out-of-the-box!
+                    </span>
+                  </label>
+
+                  {/* Option 2: Custom Video */}
+                  <label
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                      padding: '14px',
+                      borderRadius: '8px',
+                      border: formData.background_mode === 'custom_video' ? '2px solid var(--primary)' : '1px solid var(--border)',
+                      background: formData.background_mode === 'custom_video' ? 'rgba(251, 175, 51, 0.08)' : '#161614',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="radio"
+                        name="bg_mode"
+                        checked={formData.background_mode === 'custom_video'}
+                        onChange={() => setFormData(prev => ({ ...prev, background_mode: 'custom_video' }))}
+                      />
+                      <span style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>📹 Custom Video URL</span>
+                    </div>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      Provide a direct link to your own town's Santa Sleigh video loop (.mp4).
+                    </span>
+                  </label>
+
+                  {/* Option 3: Static Image */}
+                  <label
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                      padding: '14px',
+                      borderRadius: '8px',
+                      border: formData.background_mode === 'image' ? '2px solid var(--primary)' : '1px solid var(--border)',
+                      background: formData.background_mode === 'image' ? 'rgba(251, 175, 51, 0.08)' : '#161614',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="radio"
+                        name="bg_mode"
+                        checked={formData.background_mode === 'image'}
+                        onChange={() => setFormData(prev => ({ ...prev, background_mode: 'image' }))}
+                      />
+                      <span style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>🖼️ Static Image Only</span>
+                    </div>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      Disable video animation and display a static background picture instead.
+                    </span>
+                  </label>
+                </div>
+
+                {/* Custom Video URL Input */}
+                {formData.background_mode === 'custom_video' && (
+                  <div style={{ marginBottom: '14px', background: '#161614', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                      Custom Video URL (.mp4):
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://example.com/my-town-sleigh-loop.mp4"
+                      value={formData.background_video_url || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, background_video_url: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        background: '#000',
+                        border: '1px solid var(--border)',
+                        borderRadius: '6px',
+                        padding: '8px 12px',
+                        color: '#fff',
+                        fontSize: '13px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      💡 Tip: Use a seamless, muted 10-30s .mp4 video hosted on Cloudflare R2, GitHub, or your web server.
+                    </div>
+                  </div>
+                )}
+
+                {/* Static Background Image / Poster Upload */}
+                <DropzoneUpload
+                  label="Poster / Static Background Image (.jpg / .png)"
+                  currentImage={formData.background_url}
+                  onImageSelected={(dataUrl) => setFormData(prev => ({ ...prev, background_url: dataUrl }))}
+                  helperText="Displayed as the primary background in static mode, and as the instant preview poster while video loads."
+                />
+              </div>
+
               {/* OFFICIAL LINKS & SOCIAL CHANNELS */}
               <div style={{
                 background: '#0d0d0b',
@@ -3878,8 +4022,18 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       headline_sponsor_tagline: formData.headline_sponsor_tagline || null,
                       gemini_model: formData.gemini_model || 'auto',
                       gemini_api_key: formData.gemini_api_key || '',
-                      approved_national_emails: approvedEmails
+                      approved_national_emails: approvedEmails,
+                      background_mode: formData.background_mode || 'video',
+                      background_video_url: formData.background_video_url || null,
+                      background_url: formData.background_url || null
                     };
+
+                    try {
+                      localStorage.setItem(`turbosanta_${tableSlug}_bg_mode`, formData.background_mode || 'video');
+                      if (formData.background_video_url) {
+                        localStorage.setItem(`turbosanta_${tableSlug}_bg_video`, formData.background_video_url);
+                      }
+                    } catch (e) {}
 
                     if (onUpdateTableData) {
                       onUpdateTableData(prev => ({

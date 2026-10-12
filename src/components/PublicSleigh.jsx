@@ -3,6 +3,8 @@ import { Share2, MapPin, ExternalLink, Star, ChevronDown } from 'lucide-react';
 
 const DEFAULT_LOGO = '/icons/RTBI_Santa.png';
 const DEFAULT_BG = 'https://brt-23f.pages.dev/icons/site_background.png';
+const DEFAULT_VIDEO_MP4 = '/media/santa.mp4';
+const DEFAULT_VIDEO_WEBM = '/media/santa.webm';
 const BG_OVERLAY = 'linear-gradient(180deg, rgba(29, 29, 26, 0.85) 0%, rgba(0, 0, 0, 0.95) 100%)';
 
 function parseColor(v) {
@@ -46,6 +48,25 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
   const siteName = table.sleigh_display_name || (table.name ? `${table.name} Santa Sleigh` : 'Santa Sleigh');
   const logoUrl = table.logo_url || DEFAULT_LOGO;
   const bgImage = table.background_url || DEFAULT_BG;
+
+  // Ambient Video Settings (Default festive Santa video or custom upload)
+  const storedBgMode = typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${activeTableSlug}_bg_mode`) : null;
+  const storedVideoUrl = typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${activeTableSlug}_bg_video`) : null;
+  const bgMode = table.background_mode || storedBgMode || 'video';
+  const customVideoUrl = table.background_video_url || storedVideoUrl || '';
+  const isVideoEnabled = bgMode !== 'image' && bgMode !== 'none';
+  const videoMp4 = (bgMode === 'custom_video' && customVideoUrl) ? customVideoUrl : DEFAULT_VIDEO_MP4;
+  const videoWebm = (bgMode === 'custom_video' && table.background_video_webm) ? table.background_video_webm : (bgMode === 'custom_video' ? '' : DEFAULT_VIDEO_WEBM);
+
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mq.matches);
+    const handler = (e) => setPrefersReducedMotion(e.matches);
+    mq.addEventListener?.('change', handler);
+    return () => mq.removeEventListener?.('change', handler);
+  }, []);
 
   // Listen for dynamic iframe resizing from address.html
   useEffect(() => {
@@ -189,19 +210,56 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
       '--bg-card': '#000000',
       '--text-muted': 'rgba(255, 255, 255, 0.7)'
     }}>
-      {/* Background with Dark Vignette */}
+      {/* Background with Ambient Video & Dark Vignette */}
       <div style={{
         position: 'fixed',
         top: 0,
         left: 0,
         width: '100%',
         height: '100%',
-        backgroundImage: `${BG_OVERLAY}, url(${bgImage})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
         zIndex: 0,
-        pointerEvents: 'none'
-      }} />
+        pointerEvents: 'none',
+        overflow: 'hidden',
+        backgroundColor: '#1D1D1A'
+      }}>
+        {/* Ambient Video Background Layer */}
+        {isVideoEnabled && !prefersReducedMotion && (
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            disablePictureInPicture
+            poster={bgImage}
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              minWidth: '100%',
+              minHeight: '100%',
+              width: 'auto',
+              height: 'auto',
+              transform: 'translate(-50%, -50%)',
+              objectFit: 'cover',
+              opacity: 0.6,
+              pointerEvents: 'none'
+            }}
+          >
+            {videoWebm && <source src={videoWebm} type="video/webm" />}
+            <source src={videoMp4} type="video/mp4" />
+          </video>
+        )}
+
+        {/* Dark Vignette & Poster Fallback */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage: (isVideoEnabled && !prefersReducedMotion) ? BG_OVERLAY : `${BG_OVERLAY}, url(${bgImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          pointerEvents: 'none'
+        }} />
+      </div>
 
       <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
         {/* Live Announcement Bar */}
