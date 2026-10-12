@@ -3,8 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TurboSanta — Santa Colouring Pages</title>
-<meta name="theme-color" content="#0d0d0b">
+<title>Santa Colouring Pages — Free Printable Activities</title>
+<meta name="description" content="Personalise and print free Christmas colouring sheets for the kids! Pick your favourite festive scene, add a child's name, and print at home on A4.">
+<meta name="theme-color" content="#1D1D1A">
+
+<!-- Social Sharing / Open Graph & Twitter Cards -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Free Santa Sleigh Colouring Pages — Print at Home">
+<meta property="og:description" content="Personalise and print festive Christmas colouring pages for the kids! Choose a scene, add their name, and print on A4.">
+<meta property="og:image" content="https://brt-23f.pages.dev/colouring/sleigh.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Free Santa Sleigh Colouring Pages — Print at Home">
+<meta name="twitter:description" content="Personalise and print festive Christmas colouring pages for the kids! Choose a scene, add their name, and print on A4.">
+<meta name="twitter:image" content="https://brt-23f.pages.dev/colouring/sleigh.png">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -43,7 +54,7 @@
   
   body {
     font-family: 'Open Sans', sans-serif;
-    background: transparent; /* FIXED: Makes the base transparent for embeds */
+    background-color: var(--dark); background-image: linear-gradient(180deg, rgba(29, 29, 26, 0.90) 0%, rgba(0, 0, 0, 0.96) 100%), url('https://brt-23f.pages.dev/icons/site_background.png'); background-size: cover; background-position: center; background-attachment: fixed;
     color: var(--text);
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
@@ -292,7 +303,12 @@
 <div class="page-wrap" id="pageWrap"></div>
 
 <script>
-const API = new URLSearchParams(location.search).get('api') || '';
+const params = new URLSearchParams(location.search);
+const tableSlug = params.get('table') || params.get('slug') || '';
+let API = params.get('api') || '';
+if (!API && tableSlug) {
+  API = 'https://turbosanta-api.beverley247.workers.dev/api/payload?table=' + encodeURIComponent(tableSlug);
+}
 let CFG = { logo:'', sleighName:'Santa Sleigh' };
 
 /* ══════════════════════════════════════════════════════════════
@@ -365,9 +381,9 @@ async function init() {
     try {
       const res = await fetch(API);
       const data = await res.json();
-      const s = data.settings || {};
-      CFG.logo = s.logo_overlay_url || '';
-      CFG.sleighName = s.sleigh_display_name || 'Santa Sleigh';
+      const s = data.settings || data.table || {};
+      CFG.logo = s.logo_overlay_url || s.logo_url || '';
+      CFG.sleighName = s.sleigh_display_name || s.name || (tableSlug ? (tableSlug.charAt(0).toUpperCase() + tableSlug.slice(1) + ' Santa Sleigh') : 'Santa Sleigh');
     } catch(e) {}
   }
 
