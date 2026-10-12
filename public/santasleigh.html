@@ -108,12 +108,17 @@
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background-color: var(--bg-dark);
-            background-image: 
-                var(--bg-overlay),
-                url('https://brt-23f.pages.dev/icons/site_background.png');
             background-size: cover;
             background-position: center;
             z-index: -1;
+            overflow: hidden;
+        }
+
+        #site-bg-overlay {
+            position: absolute;
+            inset: 0;
+            background-image: var(--bg-overlay);
+            pointer-events: none;
         }
 
         .fab-map {
@@ -799,7 +804,13 @@
     </style>
 </head>
 <body class="is-pending">
-    <div id="site-bg"></div>
+    <div id="site-bg">
+        <video id="site-bg-video" autoplay loop muted playsinline webkit-playsinline disablePictureInPicture poster="/icons/site_background.png" style="position: absolute; top: 50%; left: 50%; min-width: 100%; min-height: 100%; width: auto; height: auto; transform: translate(-50%, -50%); object-fit: cover; opacity: 0.65; pointer-events: none; display: none;">
+            <source src="/media/santa.mp4" type="video/mp4">
+            <source src="/media/santa.webm" type="video/webm">
+        </video>
+        <div id="site-bg-overlay"></div>
+    </div>
 
     <!-- Loading Overlay -->
     <div id="loader" class="loader-overlay" role="status" aria-live="polite" style="display: none;">
@@ -1231,11 +1242,56 @@
             }
 
             const bgEl = $('site-bg');
-            const bg = safeUrl(settings.background_url);
-            if (bgEl) {
-                bgEl.style.backgroundImage = bg
-                    ? BG_OVERLAY + ', url("' + bg.replace(/"/g, '%22') + '")'
-                    : '';
+            const videoEl = $('site-bg-video');
+            const bgOverlay = $('site-bg-overlay');
+            const bg = safeUrl(settings.background_url) || '/icons/site_background.png';
+
+            // Check ambient video settings (from API or local table storage)
+            const slug = window.__sleighTableSlug || 'beverley';
+            const storedBgMode = localStorage.getItem(`turbosanta_${slug}_bg_mode`);
+            const storedVideoUrl = localStorage.getItem(`turbosanta_${slug}_bg_video`);
+            const bgMode = settings.background_mode || storedBgMode || 'video';
+            const customVideo = settings.background_video_url || storedVideoUrl || '';
+            const isVideo = bgMode !== 'image' && bgMode !== 'none';
+
+            if (videoEl) {
+                if (isVideo) {
+                    videoEl.style.display = 'block';
+                    const videoSrc = (bgMode === 'custom_video' && customVideo) ? customVideo : '/media/santa.mp4';
+                    if (!videoEl.currentSrc || !videoEl.currentSrc.includes(videoSrc)) {
+                        videoEl.src = videoSrc;
+                    }
+                    videoEl.defaultMuted = true;
+                    videoEl.muted = true;
+                    const playPromise = videoEl.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(function () {
+                            // Autoplay restricted (e.g. iOS Low Power Mode) - start on first user interaction
+                            const onTouch = function () {
+                                videoEl.defaultMuted = true;
+                                videoEl.muted = true;
+                                videoEl.play().catch(function () {});
+                                window.removeEventListener('touchstart', onTouch);
+                                window.removeEventListener('click', onTouch);
+                            };
+                            window.addEventListener('touchstart', onTouch, { passive: true });
+                            window.addEventListener('click', onTouch, { passive: true });
+                        });
+                    }
+                    bgEl.style.backgroundImage = 'none';
+                    if (bgOverlay) {
+                        bgOverlay.style.backgroundImage = BG_OVERLAY;
+                    }
+                } else {
+                    videoEl.style.display = 'none';
+                    videoEl.pause();
+                    bgEl.style.backgroundImage = BG_OVERLAY + ', url("' + bg.replace(/"/g, '%22') + '")';
+                    if (bgOverlay) {
+                        bgOverlay.style.backgroundImage = 'none';
+                    }
+                }
+            } else if (bgEl) {
+                bgEl.style.backgroundImage = BG_OVERLAY + ', url("' + bg.replace(/"/g, '%22') + '")';
             }
         }
 

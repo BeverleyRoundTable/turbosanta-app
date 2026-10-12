@@ -68,6 +68,28 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
     return () => mq.removeEventListener?.('change', handler);
   }, []);
 
+  const videoRef = React.useRef(null);
+  useEffect(() => {
+    if (!videoRef.current || !isVideoEnabled || prefersReducedMotion) return;
+    const v = videoRef.current;
+    v.defaultMuted = true;
+    v.muted = true;
+    const playPromise = v.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        const onTouch = () => {
+          v.defaultMuted = true;
+          v.muted = true;
+          v.play().catch(() => {});
+          window.removeEventListener('touchstart', onTouch);
+          window.removeEventListener('click', onTouch);
+        };
+        window.addEventListener('touchstart', onTouch, { passive: true });
+        window.addEventListener('click', onTouch, { passive: true });
+      });
+    }
+  }, [isVideoEnabled, prefersReducedMotion, videoMp4]);
+
   // Listen for dynamic iframe resizing from address.html
   useEffect(() => {
     const handleMessage = (e) => {
@@ -225,10 +247,13 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
         {/* Ambient Video Background Layer */}
         {isVideoEnabled && !prefersReducedMotion && (
           <video
+            ref={videoRef}
+            src={videoMp4}
             autoPlay
             loop
             muted
             playsInline
+            webkit-playsinline="true"
             disablePictureInPicture
             poster={bgImage}
             style={{
@@ -241,7 +266,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
               height: 'auto',
               transform: 'translate(-50%, -50%)',
               objectFit: 'cover',
-              opacity: 0.6,
+              opacity: 0.65,
               pointerEvents: 'none'
             }}
           >
