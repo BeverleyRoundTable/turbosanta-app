@@ -15,17 +15,29 @@
 
     <!-- FontAwesome & Google Fonts -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <!-- Fonts: Eurostile & Open Sans matching the system -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
 
     <style>
+        @font-face {
+            font-family: 'Eurostile';
+            src: url('https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.woff2') format('woff2'),
+                 url('https://brt-23f.pages.dev/fonts/eurostile-bold.woff2') format('woff2'),
+                 url('https://brt-23f.pages.dev/fonts/eurostile-bold.woff') format('woff'),
+                 url('https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.otf') format('opentype');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+
         :root {
             --primary: #D31C1C;
             --gold: #FBAF33;
             --bg-dark: #0D0E12;
-            --panel-bg: rgba(18, 20, 26, 0.92);
-            --border: rgba(255, 255, 255, 0.12);
+            --panel-bg: rgba(18, 20, 26, 0.94);
+            --border: rgba(255, 255, 255, 0.15);
             --text-main: #FFFFFF;
             --text-muted: rgba(255, 255, 255, 0.7);
         }
@@ -35,8 +47,14 @@
             width: 100%; height: 100%;
             overflow: hidden;
             background: var(--bg-dark);
-            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-family: 'Open Sans', sans-serif;
             color: var(--text-main);
+        }
+
+        h1, h2, h3, .brand-font {
+            font-family: 'Eurostile', 'Open Sans', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
         }
 
         #app-viewport {
@@ -106,13 +124,13 @@
         }
         .brand-pill i { color: var(--gold); font-size: 15px; }
         .brand-pill span {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 20px;
-            letter-spacing: 1.5px;
+            font-family: 'Eurostile', sans-serif;
+            font-size: 19px;
+            letter-spacing: 1px;
             text-transform: uppercase;
         }
         .brand-pill .tag {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 700;
             background: rgba(211, 28, 28, 0.25);
             border: 1px solid var(--primary);
@@ -120,7 +138,8 @@
             padding: 2px 8px;
             border-radius: 12px;
             text-transform: uppercase;
-            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-family: 'Eurostile', sans-serif;
+            letter-spacing: 0.5px;
         }
 
         /* HUD Telemetry Display (Top Right) */
@@ -138,7 +157,7 @@
             flex-direction: column;
             gap: 6px;
             min-width: 150px;
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'Open Sans', sans-serif;
             font-size: 12px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.6);
             pointer-events: auto;
@@ -148,8 +167,20 @@
             justify-content: space-between;
             align-items: center;
         }
-        .hud-label { color: var(--text-muted); font-size: 11px; }
-        .hud-val { color: var(--gold); font-weight: 700; }
+        .hud-label {
+            color: var(--text-muted);
+            font-family: 'Eurostile', sans-serif;
+            font-size: 10px;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+        }
+        .hud-val {
+            color: var(--gold);
+            font-family: 'Eurostile', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
 
         /* Floating Master Control Dock (Bottom) */
         .dock-controls {
@@ -179,8 +210,10 @@
             gap: 12px;
         }
         .time-label {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 12px;
+            font-family: 'Eurostile', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
             color: var(--text-muted);
             min-width: 44px;
         }
@@ -707,7 +740,7 @@ function showToast(msg) {
 }
 
 /* ═════════════════════════════════════════════════════════════════════
-   1. MAPLIBRE GL INITIALIZATION (CartoDB Dark Matter for Night Holiday)
+   1. MAPLIBRE GL INITIALIZATION (Standard OpenStreetMap — API Free)
    ═════════════════════════════════════════════════════════════════════ */
 
 const map = new maplibregl.Map({
@@ -715,17 +748,19 @@ const map = new maplibregl.Map({
     style: {
         version: 8,
         sources: {
-            carto: {
+            osm: {
                 type: 'raster',
                 tiles: [
-                    'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
-                    'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png'
+                    'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'
                 ],
                 tileSize: 256,
-                attribution: '&copy; OpenStreetMap &copy; CARTO'
+                maxzoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }
         },
-        layers: [{ id: 'carto-base', type: 'raster', source: 'carto' }]
+        layers: [{ id: 'osm-base', type: 'raster', source: 'osm' }]
     },
     center: [-0.45207, 53.85485],
     zoom: 17.5,
