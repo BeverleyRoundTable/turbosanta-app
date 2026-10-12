@@ -223,6 +223,10 @@ export default {
       templateFile = '/partner_report.html';
       modeTitle = 'Partner Report';
       modeDescSuffix = 'Corporate partner summary report.';
+    } else if (path === '/travelboast' || path === '/travelboast_test' || path === '/travelboast_test.html' || path === '/travelboast.html') {
+      templateFile = '/travelboast_test.html';
+      modeTitle = 'TravelBoast 3D Route Animator';
+      modeDescSuffix = 'Interactive 3D animated route playback and MP4 generator.';
     } else if (path === '/admin' || path === '/admin/' || path === '/admin.html') {
       return Response.redirect(`https://roundtablesantasleigh.co.uk/?table=${encodeURIComponent(townSlug)}&admin=1`, 302);
     } else if (path.endsWith('.html') && path !== '/index.html') {
