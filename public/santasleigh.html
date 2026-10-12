@@ -331,8 +331,18 @@
         .section-header h2 {
             font-size: clamp(26px, 6.5vw, 40px);
             line-height: 1.15;
-            color: var(--text-main);
+            color: var(--primary);
             text-wrap: balance;
+            margin-bottom: 12px;
+            transition: color 0.35s ease;
+        }
+        .section-header p {
+            color: var(--text-main);
+            font-size: 16px;
+            max-width: 650px;
+            margin: 0 auto;
+            opacity: 0.88;
+            line-height: 1.5;
         }
 
         .iframe-container {
