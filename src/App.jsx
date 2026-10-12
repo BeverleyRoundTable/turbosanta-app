@@ -16,8 +16,16 @@ export default function App() {
     if (host.includes('beverleyroundtable.co.uk') || host.startsWith('beverley.')) {
       return 'beverley';
     }
+    // Town subdomains on roundtablesantasleigh.co.uk (e.g. beverley.roundtablesantasleigh.co.uk)
+    if (host.endsWith('.roundtablesantasleigh.co.uk')) {
+      const sub = host.replace('.roundtablesantasleigh.co.uk', '').split('.')[0];
+      if (sub && sub !== 'www' && sub !== 'santa' && sub !== 'demo' && sub !== 'admin' && sub !== 'turbosanta') {
+        return sub;
+      }
+    }
+    // Custom domains with subdomains (excluding root roundtablesantasleigh.co.uk)
     const parts = host.split('.');
-    if (parts.length > 2 && !host.includes('pages.dev') && !host.includes('workers.dev') && !host.includes('localhost')) {
+    if (parts.length > 2 && !host.includes('roundtablesantasleigh.co.uk') && !host.includes('pages.dev') && !host.includes('workers.dev') && !host.includes('localhost')) {
       const sub = parts[0];
       if (sub !== 'www' && sub !== 'santa' && sub !== 'demo' && sub !== 'admin' && sub !== 'turbosanta') {
         return sub;
@@ -27,6 +35,8 @@ export default function App() {
   };
   const initialTableParam = getInitialTable();
   const initialAdminParam = urlParams.get('admin') === '1' || urlParams.get('admin') === 'true' || urlParams.get('god') === '1' || urlParams.get('god') === 'true';
+  const isPublicExplicitlyRequested = urlParams.get('view') === 'public' || urlParams.get('public') === '1';
+  const isLandingRequested = urlParams.get('view') === 'landing' || urlParams.get('landing') === '1';
 
   const pathname = window.location.pathname.toLowerCase();
   if (pathname === '/gift-aid' || pathname === '/gift-aid/' || pathname === '/sleigh/gift_aid' || pathname === '/sleigh/gift_aid/') {
@@ -34,15 +44,29 @@ export default function App() {
     return null;
   }
 
-  const [activeTableSlug, setActiveTableSlug] = useState(initialTableParam || null);
-  const [tableData, setTableData] = useState(null);
-  const [loading, setLoading] = useState(!!initialTableParam);
-
   // Admin Authentication State
-  const [adminSession, setAdminSession] = useState(getCurrentSession());
+  const initialSession = getCurrentSession();
+  const [adminSession, setAdminSession] = useState(initialSession);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [loginInitialEmail, setLoginInitialEmail] = useState('');
-  const [viewMode, setViewMode] = useState(initialAdminParam && adminSession ? 'admin' : 'public');
+
+  // When already logged in, the default site is the Admin Portal!
+  // Unless user specifically requested public or landing preview.
+  const shouldDefaultToAdmin = Boolean(
+    initialAdminParam || 
+    (initialSession && !isPublicExplicitlyRequested && !isLandingRequested)
+  );
+
+  const [viewMode, setViewMode] = useState(shouldDefaultToAdmin ? 'admin' : 'public');
+
+  // Active table slug:
+  // 1. Explicit ?table= query parameter or subdomain
+  // 2. Active admin session's table slug
+  // 3. Fallback to null (triggers LandingPortal if not logged in)
+  const resolvedTableSlug = initialTableParam || (initialSession ? (initialSession.tableSlug || initialSession.tableId || 'beverley') : null);
+  const [activeTableSlug, setActiveTableSlug] = useState(resolvedTableSlug);
+  const [tableData, setTableData] = useState(null);
+  const [loading, setLoading] = useState(Boolean(resolvedTableSlug && (shouldDefaultToAdmin || initialTableParam)));
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

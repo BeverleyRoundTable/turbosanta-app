@@ -944,7 +944,9 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
           </a>
 
           <a
-            href={`/?table=${encodeURIComponent(session.tableId || 'beverley')}`}
+            href={typeof window !== 'undefined' && window.location.hostname.includes('roundtablesantasleigh.co.uk')
+              ? `https://${encodeURIComponent((session.tableSlug || session.tableId || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/`
+              : `/?table=${encodeURIComponent(session.tableSlug || session.tableId || 'beverley')}&public=1`}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-secondary"

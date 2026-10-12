@@ -223,6 +223,8 @@ export default {
       templateFile = '/partner_report.html';
       modeTitle = 'Partner Report';
       modeDescSuffix = 'Corporate partner summary report.';
+    } else if (path === '/admin' || path === '/admin/' || path === '/admin.html') {
+      return Response.redirect(`https://roundtablesantasleigh.co.uk/?table=${encodeURIComponent(townSlug)}&admin=1`, 302);
     } else if (path.endsWith('.html') && path !== '/index.html') {
       // Pass through any other direct HTML file (e.g. countdown.html, nice_list.html, etc.)
       templateFile = path;
