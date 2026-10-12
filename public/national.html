@@ -363,7 +363,7 @@
 
     .lb-header {
       display: grid;
-      grid-template-columns: 40px 1.2fr 85px 85px 80px 85px 70px 70px 70px 75px;
+      grid-template-columns: 40px 1.2fr 85px 85px 80px 85px 70px 80px 80px 75px;
       padding: 12px 20px;
       background: var(--surface-2);
       border-bottom: 1px solid var(--border);
@@ -376,7 +376,7 @@
 
     .lb-row {
       display: grid;
-      grid-template-columns: 40px 1.2fr 85px 85px 80px 85px 70px 70px 70px 75px;
+      grid-template-columns: 40px 1.2fr 85px 85px 80px 85px 70px 80px 80px 75px;
       padding: 14px 20px;
       align-items: center;
       border-bottom: 1px solid var(--border);
@@ -656,11 +656,11 @@
           <div class="stat-value" id="totalViews">—</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Routes Done</div>
+          <div class="stat-label" id="routesCardLabel">Routes (Done / Plan)</div>
           <div class="stat-value" id="totalRoutes">—</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Streets Done</div>
+          <div class="stat-label" id="streetsCardLabel">Streets (Done / Plan)</div>
           <div class="stat-value" id="totalStreets">—</div>
         </div>
         <div class="stat-card">
@@ -724,11 +724,11 @@
             <div class="chart-container"><canvas id="viewsChart"></canvas></div>
           </div>
           <div class="chart-card">
-            <div class="chart-title">Streets Visited</div>
+            <div class="chart-title" id="streetsChartTitle">Streets (Visited vs Scheduled)</div>
             <div class="chart-container"><canvas id="streetsChart"></canvas></div>
           </div>
           <div class="chart-card">
-            <div class="chart-title">Routes Completed</div>
+            <div class="chart-title" id="routesChartTitle">Routes (Completed vs Planned)</div>
             <div class="chart-container"><canvas id="routesChart"></canvas></div>
           </div>
           <div class="chart-card">
@@ -943,6 +943,12 @@ function getActiveSeasonYear() {
   return m < 6 ? y - 1 : y; 
 }
 
+function isPreSeason() {
+  const now = new Date();
+  const m = now.getMonth(); // 0-indexed: 0=Jan, 9=Oct, 10=Nov, 11=Dec. Routes run in December (11).
+  return m >= 5 && m <= 10;
+}
+
 function buildSeasonDropdown() {
   const select = document.getElementById('seasonSelect');
   select.innerHTML = '<option value="live">Live Season</option>';
@@ -958,10 +964,18 @@ function updateSeasonBadge(mode) {
     document.getElementById('seasonBadge').innerText = `🎅 ${displayYear} Sleigh`;
     document.getElementById('heroSubText').innerText = "Live leaderboard tracking every Round Table Santa Sleigh across the country. Updated every 60 seconds.";
     document.getElementById('footerMeta').innerHTML = `Last updated: <span id="lastUpdated">—</span><br>Auto-refreshes every 60s during live season`;
+    if (document.getElementById('routesCardLabel')) document.getElementById('routesCardLabel').innerText = "Routes (Done / Plan)";
+    if (document.getElementById('streetsCardLabel')) document.getElementById('streetsCardLabel').innerText = "Streets (Done / Plan)";
+    if (document.getElementById('streetsChartTitle')) document.getElementById('streetsChartTitle').innerText = "Streets (Visited vs Scheduled)";
+    if (document.getElementById('routesChartTitle')) document.getElementById('routesChartTitle').innerText = "Routes (Completed vs Planned)";
   } else {
     document.getElementById('seasonBadge').innerText = `🕰️ Historical: ${mode}`;
     document.getElementById('heroSubText').innerText = `Viewing frozen snapshot data for the ${mode} Christmas Season.`;
     document.getElementById('footerMeta').innerHTML = `Historical Data View<br>Auto-refresh disabled`;
+    if (document.getElementById('routesCardLabel')) document.getElementById('routesCardLabel').innerText = "Routes Done";
+    if (document.getElementById('streetsCardLabel')) document.getElementById('streetsCardLabel').innerText = "Streets Done";
+    if (document.getElementById('streetsChartTitle')) document.getElementById('streetsChartTitle').innerText = "Streets Visited";
+    if (document.getElementById('routesChartTitle')) document.getElementById('routesChartTitle').innerText = "Routes Completed";
   }
 }
 
@@ -1029,14 +1043,21 @@ function extractLiveTableData(table, apiData) {
   const todayIso = now.toISOString().slice(0, 10);
 
   let streetCount = 0;
+  let scheduledStreetCount = 0;
   let totalViews = 0;
   let routeRaisedSum = 0;
   const completedRoutes = [];
+  const plannedRoutes = [];
 
   const todayRoute = routes.find(r => r.date === todayIso);
 
   routes.forEach(r => {
     if (isThisSeason(r.date)) {
+      plannedRoutes.push(r);
+      if (r.streets) {
+        const streets = String(r.streets).split(',').map(s => s.trim()).filter(Boolean);
+        scheduledStreetCount += streets.length;
+      }
       const rDate = new Date(r.date);
       // ⭐ FIX: Only count completed or today's routes
       if (rDate <= now) {
@@ -1072,7 +1093,9 @@ function extractLiveTableData(table, apiData) {
     netRaised: (totalRaised + giftAid) - expenses,
     views: totalViews,         
     routes: completedRoutes.length, 
+    routesPlanned: plannedRoutes.length,
     streets: streetCount,      
+    streetsScheduled: scheduledStreetCount,
     messages: messageStats.total || 0,
     ok: true,
     donateUrl: settings.donate_url || null,
@@ -1096,7 +1119,7 @@ function extractHistoricalTableData(table, historyArray, targetYear) {
   if (!seasonData) {
      return {
         id: table.id, name: table.name, api: String(table.api).trim(),
-        raised: 0, target: 0, expenses: 0, netRaised: 0, views: 0, routes: 0, streets: 0, messages: 0,
+        raised: 0, target: 0, expenses: 0, netRaised: 0, views: 0, routes: 0, routesPlanned: 0, streets: 0, streetsScheduled: 0, messages: 0,
         ok: true
      };
   }
@@ -1111,7 +1134,9 @@ function extractHistoricalTableData(table, historyArray, targetYear) {
      netRaised: parseFloat(seasonData.netRaised) || 0,
      views: parseInt(seasonData.totalViews) || parseInt(seasonData.peakViewers) || 0, 
      routes: parseInt(seasonData.routes) || 0,
+     routesPlanned: parseInt(seasonData.routes) || 0,
      streets: parseInt(seasonData.streets) || 0,
+     streetsScheduled: parseInt(seasonData.streets) || 0,
      messages: parseInt(seasonData.messages) || 0,
      ok: true
   };
@@ -1223,8 +1248,10 @@ function renderHeroStats(data) {
   const totalExpenses = data.reduce((s, d) => s + d.expenses, 0);
   const totalNet = data.reduce((s, d) => s + d.netRaised, 0);
   const totalViews = data.reduce((s, d) => s + d.views, 0);
-  const totalRoutes = data.reduce((s, d) => s + d.routes, 0);
-  const totalStreets = data.reduce((s, d) => s + d.streets, 0);
+  const totalRoutes = data.reduce((s, d) => s + (d.routes || 0), 0);
+  const totalRoutesPlanned = data.reduce((s, d) => s + (d.routesPlanned !== undefined ? d.routesPlanned : (d.routes || 0)), 0);
+  const totalStreets = data.reduce((s, d) => s + (d.streets || 0), 0);
+  const totalStreetsScheduled = data.reduce((s, d) => s + (d.streetsScheduled !== undefined ? d.streetsScheduled : (d.streets || 0)), 0);
   const totalMessages = data.reduce((s, d) => s + d.messages, 0);
 
   document.getElementById('totalTables').textContent = liveTables.toLocaleString('en-GB');
@@ -1232,8 +1259,15 @@ function renderHeroStats(data) {
   document.getElementById('totalExpenses').textContent = '£' + Math.round(totalExpenses).toLocaleString('en-GB');
   document.getElementById('totalNet').textContent = '£' + Math.round(totalNet).toLocaleString('en-GB');
   document.getElementById('totalViews').textContent = totalViews.toLocaleString('en-GB');
-  document.getElementById('totalRoutes').textContent = totalRoutes.toLocaleString('en-GB');
-  document.getElementById('totalStreets').textContent = totalStreets.toLocaleString('en-GB');
+
+  if (currentMode === "live") {
+    document.getElementById('totalRoutes').innerHTML = `${totalRoutes.toLocaleString('en-GB')} <span style="font-size: 0.55em; color: var(--text-dim); font-weight: normal;">/ ${totalRoutesPlanned.toLocaleString('en-GB')}</span>`;
+    document.getElementById('totalStreets').innerHTML = `${totalStreets.toLocaleString('en-GB')} <span style="font-size: 0.55em; color: var(--text-dim); font-weight: normal;">/ ${totalStreetsScheduled.toLocaleString('en-GB')}</span>`;
+  } else {
+    document.getElementById('totalRoutes').textContent = totalRoutes.toLocaleString('en-GB');
+    document.getElementById('totalStreets').textContent = totalStreets.toLocaleString('en-GB');
+  }
+
   document.getElementById('totalMessages').textContent = totalMessages.toLocaleString('en-GB');
 }
 
@@ -1267,6 +1301,19 @@ function renderLeaderboard(data) {
       progressHtml = `<div class="progress-bar-bg" title="Goal: £${d.target.toLocaleString()} (${pct}%)"><div class="progress-bar-fill" style="width: ${pct}%;"></div></div>`;
     }
 
+    const rDone = d.routes || 0;
+    const rPlan = d.routesPlanned !== undefined ? d.routesPlanned : rDone;
+    const sDone = d.streets || 0;
+    const sPlan = d.streetsScheduled !== undefined ? d.streetsScheduled : sDone;
+
+    const routesHtml = currentMode === "live"
+      ? `<span style="color:${rDone > 0 ? 'var(--gold)' : 'var(--text-muted)'}; font-weight:${rDone > 0 ? '700' : '400'};">${rDone}</span><span style="color:var(--text-dim); font-size:11px;"> / ${rPlan}</span>`
+      : `${rDone.toLocaleString('en-GB')}`;
+
+    const streetsHtml = currentMode === "live"
+      ? `<span style="color:${sDone > 0 ? 'var(--green)' : 'var(--text-muted)'}; font-weight:${sDone > 0 ? '700' : '400'};">${sDone}</span><span style="color:var(--text-dim); font-size:11px;"> / ${sPlan}</span>`
+      : `${sDone.toLocaleString('en-GB')}`;
+
     body.innerHTML += `
       <div class="lb-row">
         <div class="lb-rank">${i + 1}</div>
@@ -1276,8 +1323,8 @@ function renderLeaderboard(data) {
         <div class="lb-val" style="color: var(--red);">£${Math.round(d.expenses || 0).toLocaleString('en-GB')}</div>
         <div class="lb-val gold" style="font-size: 15px;">£${Math.round(d.netRaised || 0).toLocaleString('en-GB')}</div>
         <div class="lb-val">${(d.views || 0).toLocaleString()}</div>
-        <div class="lb-val">${(d.routes || 0).toLocaleString()}</div>
-        <div class="lb-val">${(d.streets || 0).toLocaleString()}</div>
+        <div class="lb-val" title="${rDone} completed of ${rPlan} planned">${routesHtml}</div>
+        <div class="lb-val" title="${sDone} visited of ${sPlan} scheduled">${streetsHtml}</div>
         <div class="lb-val">${(d.messages || 0).toLocaleString()}</div>
       </div>
     `;
@@ -1329,16 +1376,168 @@ function renderCharts(data) {
     options: { ...chartDefaults, scales: { x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { family: 'DM Mono', size: 11 } } }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'Open Sans', size: 12, weight: '600' } } } } }
   });
 
+  // Streets Chart (Visited vs Scheduled)
+  const streetsVisitedData = data.map(d => d.streets || 0);
+  const streetsRemainingData = data.map(d => {
+    const total = d.streetsScheduled !== undefined ? d.streetsScheduled : (d.streets || 0);
+    return Math.max(0, total - (d.streets || 0));
+  });
+
+  const streetsDatasets = [
+    {
+      label: currentMode === "live" ? 'Visited' : 'Streets',
+      data: streetsVisitedData,
+      backgroundColor: getColors('46, 204, 113', data),
+      borderRadius: 4,
+      barThickness: 22
+    }
+  ];
+  if (currentMode === "live") {
+    streetsDatasets.push({
+      label: 'Scheduled',
+      data: streetsRemainingData,
+      backgroundColor: 'rgba(46, 204, 113, 0.22)',
+      borderColor: 'rgba(46, 204, 113, 0.6)',
+      borderWidth: 1,
+      borderRadius: 4,
+      barThickness: 22
+    });
+  }
+
   charts.streets = new Chart(document.getElementById('streetsChart'), {
     type: 'bar',
-    data: { labels, datasets: [{ data: data.map(d => d.streets), backgroundColor: getColors('46, 204, 113', data), borderRadius: 6, barThickness: 24 }] },
-    options: { ...chartDefaults, scales: { x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { family: 'DM Mono', size: 11 } } }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'Open Sans', size: 12, weight: '600' } } } } }
+    data: { labels, datasets: streetsDatasets },
+    options: {
+      ...chartDefaults,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        ...chartDefaults.plugins,
+        legend: {
+          display: currentMode === "live",
+          position: 'top',
+          align: 'end',
+          labels: {
+            color: 'rgba(255,255,255,0.6)',
+            boxWidth: 12,
+            boxHeight: 12,
+            font: { family: 'Open Sans', size: 10, weight: '600' }
+          }
+        },
+        tooltip: {
+          ...chartDefaults.plugins.tooltip,
+          callbacks: {
+            label: function(context) {
+              const d = data[context.dataIndex];
+              if (context.datasetIndex === 0) {
+                const visited = d.streets || 0;
+                return currentMode === "live"
+                  ? ` Visited: ${visited.toLocaleString()}`
+                  : ` Streets: ${visited.toLocaleString()}`;
+              } else {
+                if (currentMode !== "live") return null;
+                const scheduled = d.streetsScheduled !== undefined ? d.streetsScheduled : (d.streets || 0);
+                const remaining = Math.max(0, scheduled - (d.streets || 0));
+                return ` Remaining Scheduled: ${remaining.toLocaleString()} (Total Scheduled: ${scheduled.toLocaleString()})`;
+              }
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          stacked: true,
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: 'rgba(255,255,255,0.3)', font: { family: 'DM Mono', size: 11 }, precision: 0 }
+        },
+        y: {
+          stacked: true,
+          grid: { display: false },
+          ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'Open Sans', size: 12, weight: '600' } }
+        }
+      }
+    }
   });
+
+  // Routes Chart (Completed vs Planned)
+  const routesCompletedData = data.map(d => d.routes || 0);
+  const routesRemainingData = data.map(d => {
+    const total = d.routesPlanned !== undefined ? d.routesPlanned : (d.routes || 0);
+    return Math.max(0, total - (d.routes || 0));
+  });
+
+  const routesDatasets = [
+    {
+      label: currentMode === "live" ? 'Completed' : 'Routes',
+      data: routesCompletedData,
+      backgroundColor: getColors('74, 158, 255', data),
+      borderRadius: 4,
+      barThickness: 22
+    }
+  ];
+  if (currentMode === "live") {
+    routesDatasets.push({
+      label: 'Planned',
+      data: routesRemainingData,
+      backgroundColor: 'rgba(74, 158, 255, 0.22)',
+      borderColor: 'rgba(74, 158, 255, 0.6)',
+      borderWidth: 1,
+      borderRadius: 4,
+      barThickness: 22
+    });
+  }
 
   charts.routes = new Chart(document.getElementById('routesChart'), {
     type: 'bar',
-    data: { labels, datasets: [{ data: data.map(d => d.routes), backgroundColor: getColors('74, 158, 255', data), borderRadius: 6, barThickness: 24 }] },
-    options: { ...chartDefaults, scales: { x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { family: 'DM Mono', size: 11 } } }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'Open Sans', size: 12, weight: '600' } } } } }
+    data: { labels, datasets: routesDatasets },
+    options: {
+      ...chartDefaults,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        ...chartDefaults.plugins,
+        legend: {
+          display: currentMode === "live",
+          position: 'top',
+          align: 'end',
+          labels: {
+            color: 'rgba(255,255,255,0.6)',
+            boxWidth: 12,
+            boxHeight: 12,
+            font: { family: 'Open Sans', size: 10, weight: '600' }
+          }
+        },
+        tooltip: {
+          ...chartDefaults.plugins.tooltip,
+          callbacks: {
+            label: function(context) {
+              const d = data[context.dataIndex];
+              if (context.datasetIndex === 0) {
+                const completed = d.routes || 0;
+                return currentMode === "live"
+                  ? ` Completed: ${completed.toLocaleString()}`
+                  : ` Routes: ${completed.toLocaleString()}`;
+              } else {
+                if (currentMode !== "live") return null;
+                const planned = d.routesPlanned !== undefined ? d.routesPlanned : (d.routes || 0);
+                const remaining = Math.max(0, planned - (d.routes || 0));
+                return ` Remaining Planned: ${remaining.toLocaleString()} (Total Planned: ${planned.toLocaleString()})`;
+              }
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          stacked: true,
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: 'rgba(255,255,255,0.3)', font: { family: 'DM Mono', size: 11 }, precision: 0 }
+        },
+        y: {
+          stacked: true,
+          grid: { display: false },
+          ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'Open Sans', size: 12, weight: '600' } }
+        }
+      }
+    }
   });
 
   charts.messages = new Chart(document.getElementById('messagesChart'), {
