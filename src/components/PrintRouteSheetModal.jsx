@@ -12,10 +12,18 @@ export default function PrintRouteSheetModal({
 }) {
   if (!isOpen || !route) return null;
 
-  const [leadMarshal, setLeadMarshal] = useState('Lead Marshal (Dave) - 07700 900123');
-  const [towDriver, setTowDriver] = useState('Tow Driver (Mark) - 07700 900456');
+  const [leadMarshal, setLeadMarshal] = useState('');
+  const [towDriver, setTowDriver] = useState('');
   const [meetingLocation, setMeetingLocation] = useState(route?.meeting_point || 'Depot / Pavilion Car Park');
   const [isCopied, setIsCopied] = useState(false);
+
+  // Compute full domain and URLs
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://roundtablesantasleigh.co.uk';
+  const displayHost = origin.replace(/^https?:\/\//, '');
+  const beaconUrl = `${origin}/beacon.html?table=${tableSlug}`;
+  const beaconDisplayText = `${displayHost}/beacon.html?table=${tableSlug}`;
+  const trackerUrl = `${origin}/tracker.html?table=${tableSlug}`;
+  const trackerDisplayText = `${displayHost}/tracker.html?table=${tableSlug}`;
 
   // Parse street list safely
   const streetList = (streets && streets.length > 0)
@@ -55,16 +63,16 @@ export default function PrintRouteSheetModal({
   };
 
   const handleCopyWhatsApp = () => {
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://roundtablesantasleigh.co.uk';
-    const trackerUrl = `${origin}/tracker.html?table=${tableSlug}`;
-    const beaconUrl = `${origin}/beacon.html?table=${tableSlug}`;
-
     let msg = `🎅 *${(tableName || 'ROUND TABLE').toUpperCase()} SANTA SLEIGH — TONIGHT'S RUN!* 🎅\n\n`;
     msg += `📅 *Date:* ${dateFormatted}\n`;
     msg += `📍 *Route:* ${route.name}\n`;
     msg += `📍 *Meeting Point:* ${meetingLocation}\n`;
     msg += `⏰ *Crew Briefing:* ${meetingTimeStr} sharp (buckets & high-vis handover)\n`;
     msg += `🦺 *Sleigh Rollout:* ${route.start_time || '18:00'} | *Finish:* ~${route.end_time || '20:30'}\n\n`;
+
+    if (leadMarshal) msg += `🦺 *Lead Marshal:* ${leadMarshal}\n`;
+    if (towDriver) msg += `🚗 *Tow Driver:* ${towDriver}\n`;
+    if (leadMarshal || towDriver) msg += `\n`;
 
     if (streetList.length > 0) {
       msg += `🗺️ *Streets (${streetList.length}):*\n${streetList.join(', ')}\n\n`;
@@ -104,10 +112,55 @@ export default function PrintRouteSheetModal({
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 99999,
-      padding: '16px'
+      padding: '12px 8px'
     }}>
-      {/* Print Specific CSS to isolate printout cleanly */}
+      {/* Print Specific & Mobile Preview CSS */}
       <style>{`
+        /* Mobile Preview: Responsive on-screen presentation */
+        @media screen and (max-width: 640px) {
+          .route-sheet-modal-container {
+            padding: 14px 10px !important;
+            max-height: 96vh !important;
+            border-radius: 12px !important;
+          }
+          .route-sheet-print-card {
+            padding: 16px 12px !important;
+          }
+          .sheet-header-flex {
+            flex-direction: column !important;
+            gap: 8px !important;
+          }
+          .sheet-header-right {
+            text-align: left !important;
+          }
+          .sheet-contact-grid {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 10px 12px !important;
+            padding: 10px !important;
+          }
+          .sheet-table-wrap {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            margin-bottom: 12px !important;
+          }
+          .sheet-handover-grid {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
+          .sheet-modal-actions {
+            width: 100% !important;
+            justify-content: stretch !important;
+          }
+          .sheet-modal-actions button {
+            flex: 1 1 auto !important;
+            justify-content: center !important;
+            text-align: center !important;
+          }
+        }
+
+        /* Physical A4 Printout Styles */
         @media print {
           body * {
             visibility: hidden !important;
@@ -121,7 +174,7 @@ export default function PrintRouteSheetModal({
             top: 0 !important;
             width: 100% !important;
             margin: 0 !important;
-            padding: 10mm !important;
+            padding: 8mm 10mm !important;
             background: #ffffff !important;
             color: #000000 !important;
             box-shadow: none !important;
@@ -130,14 +183,29 @@ export default function PrintRouteSheetModal({
           .no-print {
             display: none !important;
           }
+          .sheet-contact-grid {
+            grid-template-columns: repeat(4, 1fr) !important;
+            gap: 8px !important;
+          }
+          .sheet-table-wrap {
+            overflow: visible !important;
+            border: none !important;
+          }
+          .sheet-handover-grid {
+            grid-template-columns: 1.3fr 1fr !important;
+          }
+          a {
+            color: #000000 !important;
+            text-decoration: none !important;
+          }
           @page {
             size: A4 portrait;
-            margin: 8mm;
+            margin: 6mm;
           }
         }
       `}</style>
 
-      <div style={{
+      <div className="route-sheet-modal-container" style={{
         background: '#151513',
         border: '1px solid var(--border)',
         borderRadius: '16px',
@@ -170,7 +238,7 @@ export default function PrintRouteSheetModal({
             </h2>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <div className="sheet-modal-actions" style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
             <button
               type="button"
               onClick={handleCopyWhatsApp}
@@ -219,6 +287,7 @@ export default function PrintRouteSheetModal({
             <input
               type="text"
               value={leadMarshal}
+              placeholder="e.g. Dave - 07700 900123"
               onChange={(e) => setLeadMarshal(e.target.value)}
               style={{ width: '100%', background: '#151513', border: '1px solid var(--border)', borderRadius: '6px', padding: '6px 10px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
             />
@@ -230,6 +299,7 @@ export default function PrintRouteSheetModal({
             <input
               type="text"
               value={towDriver}
+              placeholder="e.g. Mark - 07700 900456"
               onChange={(e) => setTowDriver(e.target.value)}
               style={{ width: '100%', background: '#151513', border: '1px solid var(--border)', borderRadius: '6px', padding: '6px 10px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
             />
@@ -252,6 +322,7 @@ export default function PrintRouteSheetModal({
            ========================================================================= */}
         <div
           id="route-sheet-print-area"
+          className="route-sheet-print-card"
           style={{
             background: '#ffffff',
             color: '#111827',
@@ -260,19 +331,21 @@ export default function PrintRouteSheetModal({
             border: '1px solid #d1d5db',
             fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
             fontSize: '12px',
-            lineHeight: 1.4
+            lineHeight: 1.4,
+            boxSizing: 'border-box'
           }}
         >
           {/* Header */}
-          <div style={{
+          <div className="sheet-header-flex" style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'flex-start',
             borderBottom: '2px solid #111827',
             paddingBottom: '12px',
-            marginBottom: '14px'
+            marginBottom: '14px',
+            gap: '12px'
           }}>
-            <div>
+            <div style={{ flex: '1 1 auto' }}>
               <div style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', color: '#4b5563' }}>
                 ROUND TABLE SANTA SLEIGH &middot; OFFICIAL RUN SHEET
               </div>
@@ -284,7 +357,7 @@ export default function PrintRouteSheetModal({
               </div>
             </div>
 
-            <div style={{ textAlign: 'right', fontSize: '12px' }}>
+            <div className="sheet-header-right" style={{ textAlign: 'right', fontSize: '12px', flexShrink: 0 }}>
               <div style={{ fontWeight: 800, fontSize: '13px' }}>📅 {dateFormatted}</div>
               <div style={{ marginTop: '2px' }}>⏰ Muster: <strong>{meetingTimeStr}</strong> | Rollout: <strong>{route.start_time || '18:00'}</strong></div>
               <div style={{ color: '#4b5563', marginTop: '2px' }}>📍 Meet: <strong>{meetingLocation}</strong></div>
@@ -297,7 +370,7 @@ export default function PrintRouteSheetModal({
           </div>
 
           {/* Incident / Emergency Contacts Bar */}
-          <div style={{
+          <div className="sheet-contact-grid" style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(4, 1fr)',
             gap: '8px',
@@ -310,15 +383,35 @@ export default function PrintRouteSheetModal({
           }}>
             <div>
               <span style={{ color: '#4b5563', display: 'block', fontWeight: 700 }}>Lead Marshal:</span>
-              <strong style={{ color: '#111827' }}>{leadMarshal}</strong>
+              <strong style={{ color: leadMarshal ? '#111827' : '#6b7280', fontWeight: leadMarshal ? 700 : 500, wordBreak: 'break-word' }}>
+                {leadMarshal || '____________________'}
+              </strong>
             </div>
             <div>
               <span style={{ color: '#4b5563', display: 'block', fontWeight: 700 }}>Tow Driver:</span>
-              <strong style={{ color: '#111827' }}>{towDriver}</strong>
+              <strong style={{ color: towDriver ? '#111827' : '#6b7280', fontWeight: towDriver ? 700 : 500, wordBreak: 'break-word' }}>
+                {towDriver || '____________________'}
+              </strong>
             </div>
             <div>
               <span style={{ color: '#4b5563', display: 'block', fontWeight: 700 }}>Driver Beacon Link:</span>
-              <span style={{ fontFamily: 'monospace', fontSize: '10px' }}>beacon.html?table={tableSlug}</span>
+              <a
+                href={beaconUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  fontFamily: 'monospace',
+                  fontSize: '10px',
+                  color: '#1d4ed8',
+                  wordBreak: 'break-all',
+                  textDecoration: 'underline',
+                  display: 'inline-block',
+                  lineHeight: 1.3
+                }}
+                title="Tap to open Driver Beacon in browser"
+              >
+                {beaconDisplayText}
+              </a>
             </div>
             <div>
               <span style={{ color: '#4b5563', display: 'block', fontWeight: 700 }}>Emergency Services:</span>
@@ -328,7 +421,7 @@ export default function PrintRouteSheetModal({
 
           {/* Sequential Street Checklist Table */}
           <div style={{ marginBottom: '14px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '4px' }}>
               <strong style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Street Run Sequence &amp; Progress Checklist ({streetList.length} Streets)
               </strong>
@@ -337,66 +430,69 @@ export default function PrintRouteSheetModal({
               </span>
             </div>
 
-            <table style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              fontSize: '11.5px',
-              border: '1.5px solid #111827'
-            }}>
-              <thead>
-                <tr style={{ background: '#111827', color: '#ffffff' }}>
-                  <th style={{ width: '38px', padding: '6px 8px', textAlign: 'center', borderRight: '1px solid #374151' }}>#</th>
-                  <th style={{ padding: '6px 10px', textAlign: 'left', borderRight: '1px solid #374151' }}>Street / Road Name</th>
-                  <th style={{ width: '190px', padding: '6px 8px', textAlign: 'left', borderRight: '1px solid #374151' }}>Navigation Notes / Cul-de-sac</th>
-                  <th style={{ width: '80px', padding: '6px 8px', textAlign: 'center', borderRight: '1px solid #374151' }}>Time Passed</th>
-                  <th style={{ width: '60px', padding: '6px 8px', textAlign: 'center' }}>Done [ ✓ ]</th>
-                </tr>
-              </thead>
-              <tbody>
-                {streetList.length > 0 ? (
-                  streetList.map((street, idx) => (
-                    <tr key={idx} style={{
-                      background: idx % 2 === 0 ? '#ffffff' : '#f9fafb',
-                      borderBottom: '1px solid #e5e7eb'
-                    }}>
-                      <td style={{ padding: '5px 8px', textAlign: 'center', fontWeight: 700, borderRight: '1px solid #e5e7eb' }}>
-                        {idx + 1}
-                      </td>
-                      <td style={{ padding: '5px 10px', fontWeight: 600, borderRight: '1px solid #e5e7eb' }}>
-                        {street}
-                      </td>
-                      <td style={{ padding: '5px 8px', color: '#4b5563', borderRight: '1px solid #e5e7eb' }}>
-                        {street.toLowerCase().includes('close') || street.toLowerCase().includes('court') || street.toLowerCase().includes('mews')
-                          ? '⚠️ Cul-de-sac: Walking elves only'
-                          : 'Through road'}
-                      </td>
-                      <td style={{ padding: '5px 8px', textAlign: 'center', borderRight: '1px solid #e5e7eb', color: '#9ca3af' }}>
-                        ____:____
-                      </td>
-                      <td style={{ padding: '5px 8px', textAlign: 'center' }}>
-                        <div style={{ width: '16px', height: '16px', border: '1.5px solid #111827', margin: '0 auto', borderRadius: '3px' }}></div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  [1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                    <tr key={i} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                      <td style={{ padding: '8px', textAlign: 'center', borderRight: '1px solid #e5e7eb' }}>{i}</td>
-                      <td style={{ padding: '8px', borderRight: '1px solid #e5e7eb' }}>__________________________________________</td>
-                      <td style={{ padding: '8px', borderRight: '1px solid #e5e7eb' }}>________________________</td>
-                      <td style={{ padding: '8px', textAlign: 'center', borderRight: '1px solid #e5e7eb' }}>____:____</td>
-                      <td style={{ padding: '8px', textAlign: 'center' }}>
-                        <div style={{ width: '16px', height: '16px', border: '1.5px solid #111827', margin: '0 auto', borderRadius: '3px' }}></div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+            <div className="sheet-table-wrap">
+              <table style={{
+                width: '100%',
+                minWidth: '500px',
+                borderCollapse: 'collapse',
+                fontSize: '11.5px',
+                border: '1.5px solid #111827'
+              }}>
+                <thead>
+                  <tr style={{ background: '#111827', color: '#ffffff' }}>
+                    <th style={{ width: '38px', padding: '6px 8px', textAlign: 'center', borderRight: '1px solid #374151' }}>#</th>
+                    <th style={{ padding: '6px 10px', textAlign: 'left', borderRight: '1px solid #374151' }}>Street / Road Name</th>
+                    <th style={{ width: '190px', padding: '6px 8px', textAlign: 'left', borderRight: '1px solid #374151' }}>Navigation Notes / Cul-de-sac</th>
+                    <th style={{ width: '80px', padding: '6px 8px', textAlign: 'center', borderRight: '1px solid #374151' }}>Time Passed</th>
+                    <th style={{ width: '60px', padding: '6px 8px', textAlign: 'center' }}>Done [ ✓ ]</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {streetList.length > 0 ? (
+                    streetList.map((street, idx) => (
+                      <tr key={idx} style={{
+                        background: idx % 2 === 0 ? '#ffffff' : '#f9fafb',
+                        borderBottom: '1px solid #e5e7eb'
+                      }}>
+                        <td style={{ padding: '5px 8px', textAlign: 'center', fontWeight: 700, borderRight: '1px solid #e5e7eb' }}>
+                          {idx + 1}
+                        </td>
+                        <td style={{ padding: '5px 10px', fontWeight: 600, borderRight: '1px solid #e5e7eb' }}>
+                          {street}
+                        </td>
+                        <td style={{ padding: '5px 8px', color: '#4b5563', borderRight: '1px solid #e5e7eb' }}>
+                          {street.toLowerCase().includes('close') || street.toLowerCase().includes('court') || street.toLowerCase().includes('mews')
+                            ? '⚠️ Cul-de-sac: Walking elves only'
+                            : 'Through road'}
+                        </td>
+                        <td style={{ padding: '5px 8px', textAlign: 'center', borderRight: '1px solid #e5e7eb', color: '#9ca3af' }}>
+                          ____:____
+                        </td>
+                        <td style={{ padding: '5px 8px', textAlign: 'center' }}>
+                          <div style={{ width: '16px', height: '16px', border: '1.5px solid #111827', margin: '0 auto', borderRadius: '3px' }}></div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    [1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                      <tr key={i} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                        <td style={{ padding: '8px', textAlign: 'center', borderRight: '1px solid #e5e7eb' }}>{i}</td>
+                        <td style={{ padding: '8px', borderRight: '1px solid #e5e7eb' }}>__________________________________________</td>
+                        <td style={{ padding: '8px', borderRight: '1px solid #e5e7eb' }}>________________________</td>
+                        <td style={{ padding: '8px', textAlign: 'center', borderRight: '1px solid #e5e7eb' }}>____:____</td>
+                        <td style={{ padding: '8px', textAlign: 'center' }}>
+                          <div style={{ width: '16px', height: '16px', border: '1.5px solid #111827', margin: '0 auto', borderRadius: '3px' }}></div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* End of Night Dual-Count Verification Box & Safety Protocol */}
-          <div style={{
+          <div className="sheet-handover-grid" style={{
             display: 'grid',
             gridTemplateColumns: '1.3fr 1fr',
             gap: '12px',
@@ -450,7 +546,7 @@ export default function PrintRouteSheetModal({
             borderTop: '1px solid #e5e7eb',
             paddingTop: '4px'
           }}>
-            Printed via TurboSanta Operations Engine &middot; Real-time GPS Tracker: <strong>roundtablesantasleigh.co.uk/tracker.html?table={tableSlug}</strong> &middot; #DoMore
+            Printed via TurboSanta Operations Engine &middot; Real-time GPS Tracker: <strong>{trackerDisplayText}</strong> &middot; #DoMore
           </div>
         </div>
       </div>
