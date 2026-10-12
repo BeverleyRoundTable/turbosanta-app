@@ -21,40 +21,73 @@
 
     :root {
       --gold: #FBAF33;
-      --gold-dim: rgba(251,175,51,0.12);
-      --gold-glow: rgba(251,175,51,0.25);
-      --dark: #0d0d0b;
-      --surface: #161614;
-      --surface-2: #1e1e1b;
-      --surface-3: #252522;
-      --border: rgba(255,255,255,0.08);
-      --border-gold: rgba(251,175,51,0.2);
+      --gold-dim: rgba(251, 175, 51, 0.12);
+      --gold-glow: rgba(251, 175, 51, 0.25);
+      --dark: #1D1D1A;
+      --surface: #151513;
+      --surface-2: #1c1c18;
+      --surface-3: #262622;
+      --border: rgba(255, 255, 255, 0.12);
+      --border-gold: rgba(251, 175, 51, 0.25);
       --red: #D31C1C;
-      --red-dim: rgba(211,28,28,0.15);
-      --green: #2ecc71;
-      --green-dim: rgba(46,204,113,0.12);
+      --red-dim: rgba(211, 28, 28, 0.15);
+      --green: #22c55e;
+      --green-dim: rgba(34, 197, 94, 0.12);
       --blue: #4a9eff;
-      --text: #eaeae5;
-      --text-dim: rgba(255,255,255,0.55);
-      --text-muted: rgba(255,255,255,0.3);
+      --text: #FFFFFF;
+      --text-dim: rgba(255, 255, 255, 0.7);
+      --text-muted: rgba(255, 255, 255, 0.45);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
 
     body {
-      font-family: 'Open Sans', sans-serif;
-      background: var(--dark);
+      font-family: 'Open Sans', system-ui, -apple-system, sans-serif;
+      background-color: var(--dark);
+      background-image: 
+        linear-gradient(180deg, rgba(29, 29, 26, 0.88) 0%, rgba(0, 0, 0, 0.96) 100%),
+        url('https://brt-23f.pages.dev/icons/site_background.png');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
       color: var(--text);
       min-height: 100vh;
       overflow-x: hidden;
+    }
+
+    h1, h2, h3, h4, h5, h6, .brand-font {
+      font-family: 'Eurostile', sans-serif !important;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0d0d0b;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #33332d;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--gold);
     }
 
     /* GATEKEEPER / LOGIN SCREEN */
     #gatekeeper {
       position: fixed;
       inset: 0;
-      background: var(--dark);
+      background-color: var(--dark);
+      background-image: 
+        linear-gradient(180deg, rgba(29, 29, 26, 0.92) 0%, rgba(0, 0, 0, 0.98) 100%),
+        url('https://brt-23f.pages.dev/icons/site_background.png');
+      background-size: cover;
+      background-position: center;
       z-index: 9999;
       display: flex;
       flex-direction: column;
@@ -72,17 +105,18 @@
       max-width: 450px;
       width: 100%;
       box-sizing: border-box;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+      box-shadow: 0 24px 48px rgba(0,0,0,0.85);
       overflow: hidden;
     }
 
     .gate-box h2 {
-      font-family: 'Eurostile', sans-serif;
-      font-size: clamp(22px, 5.5vw, 27px);
-      letter-spacing: 1px;
+      font-family: 'Eurostile', sans-serif !important;
+      font-size: clamp(22px, 5.5vw, 28px);
+      letter-spacing: 1.5px;
       line-height: 1.15;
       color: #fff;
       margin-bottom: 8px;
+      text-transform: uppercase;
       overflow-wrap: break-word;
       word-break: break-word;
     }
@@ -118,8 +152,11 @@
       width: 100%;
       background: var(--gold);
       color: #000;
+      font-family: 'Eurostile', sans-serif;
       font-weight: 700;
-      font-size: 15px;
+      font-size: 14px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
       padding: 14px;
       border: none;
       border-radius: 8px;
@@ -152,23 +189,28 @@
       background: var(--surface-2);
       color: var(--gold);
       border: 1px solid var(--border-gold);
-      padding: 8px 16px;
+      padding: 10px 18px;
       border-radius: 8px;
-      font-family: 'Open Sans', sans-serif;
+      font-family: 'Eurostile', sans-serif;
       font-weight: 700;
-      font-size: 14px;
+      font-size: 13px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
       cursor: pointer;
       outline: none;
       appearance: none;
       -webkit-appearance: none;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FBAF33' viewBox='0 0 16 16'%3E%3Cpath d='M4.2 6l3.8 4 3.8-4z'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
-      background-position: right 12px center;
-      padding-right: 32px;
+      background-position: right 14px center;
+      padding-right: 36px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      transition: all 0.2s;
     }
 
     .season-select:hover {
       background-color: var(--surface-3);
+      border-color: var(--gold);
     }
 
     /* HERO & TICKER */
@@ -189,7 +231,7 @@
       text-align: center;
       overflow: hidden;
       border-bottom: 1px solid var(--border);
-      background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(251,175,51,0.06) 0%, transparent 70%);
+      background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(251,175,51,0.08) 0%, transparent 70%);
     }
 
     .hero-badge {
@@ -198,6 +240,7 @@
       gap: 6px;
       padding: 6px 16px;
       border-radius: 20px;
+      font-family: 'Eurostile', sans-serif;
       font-size: 11px;
       font-weight: 700;
       letter-spacing: 2px;
@@ -209,12 +252,13 @@
     }
 
     .hero h1 {
-      font-family: 'Eurostile', sans-serif;
+      font-family: 'Eurostile', sans-serif !important;
       font-size: clamp(34px, 7vw, 76px);
       letter-spacing: 2px;
-      line-height: 1;
+      line-height: 1.05;
       color: #fff;
       margin-bottom: 12px;
+      text-transform: uppercase;
       overflow-wrap: break-word;
       word-break: break-word;
     }
@@ -222,17 +266,17 @@
     .hero h1 span { color: var(--gold); }
 
     .hero-sub {
-      font-size: 16px;
+      font-size: 15px;
       color: var(--text-dim);
-      max-width: 520px;
-      margin: 0 auto 32px;
+      max-width: 540px;
+      margin: 0 auto 36px;
       line-height: 1.6;
     }
 
     .hero-stats {
       display: flex;
       justify-content: center;
-      gap: 8px;
+      gap: 12px;
       flex-wrap: wrap;
     }
 
@@ -240,12 +284,19 @@
     .stat-card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: 14px;
       padding: 18px 24px;
       text-align: center;
       min-width: 130px;
       position: relative;
       overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      transition: transform 0.15s, border-color 0.15s;
+    }
+
+    .stat-card:hover {
+      border-color: var(--border-gold);
+      transform: translateY(-2px);
     }
 
     .stat-card::after {
@@ -254,23 +305,25 @@
       top: 0; left: 0; right: 0;
       height: 2px;
       background: linear-gradient(90deg, transparent, var(--gold), transparent);
-      opacity: 0.4;
+      opacity: 0.6;
     }
 
     .stat-label {
-      font-size: 10px;
+      font-family: 'Eurostile', sans-serif;
+      font-size: 11px;
       font-weight: 700;
-      letter-spacing: 2px;
+      letter-spacing: 1.2px;
       text-transform: uppercase;
       color: var(--text-muted);
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
 
     .stat-value {
       font-family: 'Eurostile', sans-serif;
-      font-size: 34px;
+      font-size: 32px;
+      font-weight: 700;
       color: var(--gold);
-      line-height: 1;
+      line-height: 1.1;
       letter-spacing: 1px;
     }
 
@@ -283,7 +336,7 @@
     .section-head {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
       margin: 48px 0 24px;
     }
 
@@ -297,20 +350,19 @@
     }
 
     .section-head h2 {
-      font-family: 'Eurostile', sans-serif;
-      font-size: 28px;
-      letter-spacing: 2px;
+      font-family: 'Eurostile', sans-serif !important;
+      font-size: 26px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
       color: #fff;
     }
 
-    .section-icon { font-size: 24px; }
-
     .view-toggle {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       background: var(--surface-2);
-      padding: 6px;
-      border-radius: 12px;
+      padding: 5px;
+      border-radius: 10px;
       border: 1px solid var(--border);
       width: fit-content;
     }
@@ -319,19 +371,27 @@
       background: transparent;
       color: var(--text-muted);
       border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
+      padding: 8px 18px;
+      border-radius: 7px;
       font-weight: 700;
-      font-family: inherit;
+      font-family: 'Eurostile', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-size: 12px;
       cursor: pointer;
       transition: all 0.2s;
     }
 
     .view-btn.active {
-      background: var(--surface);
-      color: var(--gold);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-      border: 1px solid var(--border-gold);
+      background: var(--gold);
+      color: #000;
+      box-shadow: 0 2px 10px rgba(251,175,51,0.35);
+      border: none;
+    }
+
+    .view-btn:hover:not(.active) {
+      color: #fff;
+      background: rgba(255,255,255,0.05);
     }
 
     #nationalMap {
@@ -351,7 +411,15 @@
     }
 
     .leaflet-popup-tip { background: var(--surface-2); }
-    .map-popup-title { color: var(--gold); font-weight: 800; font-size: 14px; margin-bottom: 4px; }
+    .map-popup-title {
+      font-family: 'Eurostile', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--gold);
+      font-weight: 700;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
 
     /* LEADERBOARD TABLE */
     .lb-wrap {
@@ -359,15 +427,17 @@
       border: 1px solid var(--border);
       border-radius: 14px;
       overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     }
 
     .lb-header {
       display: grid;
       grid-template-columns: 40px 1.2fr 85px 85px 80px 85px 70px 80px 80px 75px;
-      padding: 12px 20px;
+      padding: 14px 20px;
       background: var(--surface-2);
       border-bottom: 1px solid var(--border);
-      font-size: 10px;
+      font-family: 'Eurostile', sans-serif;
+      font-size: 11px;
       font-weight: 700;
       letter-spacing: 1.5px;
       text-transform: uppercase;
@@ -384,11 +454,12 @@
     }
 
     .lb-row:last-child { border-bottom: none; }
-    .lb-row:hover { background: rgba(251,175,51,0.03); }
+    .lb-row:hover { background: rgba(251,175,51,0.04); }
 
     .lb-rank {
       font-family: 'Eurostile', sans-serif;
-      font-size: 22px;
+      font-size: 20px;
+      font-weight: 700;
       color: var(--text-muted);
     }
 
@@ -407,7 +478,7 @@
       height: 4px;
       background: rgba(255,255,255,0.1);
       border-radius: 2px;
-      margin-top: 4px;
+      margin-top: 5px;
       overflow: hidden;
     }
 
@@ -440,16 +511,18 @@
       border: 1px solid var(--border);
       border-radius: 14px;
       padding: 24px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
     }
 
     .chart-card.full-width { grid-column: 1 / -1; }
 
     .chart-title {
-      font-size: 11px;
+      font-family: 'Eurostile', sans-serif;
+      font-size: 12px;
       font-weight: 700;
       letter-spacing: 1.5px;
       text-transform: uppercase;
-      color: var(--text-muted);
+      color: var(--gold);
       margin-bottom: 16px;
     }
 
@@ -475,7 +548,13 @@
 
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .loading-text { font-size: 14px; color: var(--text-dim); }
+    .loading-text { 
+      font-family: 'Eurostile', sans-serif;
+      font-size: 13px; 
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-dim); 
+    }
 
     .error-card {
       background: var(--red-dim);
@@ -491,31 +570,36 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
+      font-family: 'Eurostile', sans-serif;
       font-size: 10px;
       font-weight: 700;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
       padding: 3px 8px;
-      border-radius: 10px;
+      border-radius: 6px;
     }
 
-    .status-live { background: var(--green-dim); color: var(--green); }
-    .status-hist { background: var(--blue); color: #fff; }
-    .status-off { background: rgba(255,255,255,0.05); color: var(--text-muted); }
+    .status-live { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+    .status-hist { background: rgba(74, 158, 255, 0.15); color: var(--blue); border: 1px solid rgba(74, 158, 255, 0.3); }
+    .status-off { background: rgba(255,255,255,0.06); color: var(--text-muted); border: 1px solid var(--border); }
 
     .footer {
       border-top: 1px solid var(--border);
+      background: var(--surface);
       padding: 28px 32px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 16px;
     }
 
     .footer-brand {
       font-family: 'Eurostile', sans-serif;
-      font-size: 20px;
-      letter-spacing: 2px;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
       color: var(--gold);
     }
 
@@ -529,19 +613,24 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 6px 14px;
+      padding: 8px 18px;
       border-radius: 20px;
       background: var(--surface-2);
       border: 1px solid var(--border);
+      font-family: 'Eurostile', sans-serif;
       font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
       color: var(--text-dim);
       cursor: pointer;
-      transition: all 0.15s;
+      transition: all 0.2s;
     }
 
     .refresh-pill:hover {
       border-color: var(--gold);
       color: var(--gold);
+      background: var(--surface-3);
     }
 
     @media (max-width: 768px) {
@@ -553,9 +642,9 @@
       .stat-value { font-size: 26px; }
       .container { padding: 20px 12px 48px; max-width: 100vw; width: 100%; box-sizing: border-box; overflow-x: hidden; }
       .section-head { flex-wrap: wrap; gap: 12px; margin: 32px 0 16px; }
-      .section-head h2 { font-size: clamp(20px, 5vw, 26px); }
+      .section-head h2 { font-size: clamp(20px, 5vw, 24px); }
       .view-toggle { width: 100%; justify-content: center; margin-top: 6px; box-sizing: border-box; }
-      .view-btn { flex: 1; text-align: center; padding: 10px 12px; font-size: 13px; }
+      .view-btn { flex: 1; text-align: center; padding: 10px 12px; font-size: 12px; }
       #nationalMap { height: 380px; width: 100%; max-width: 100%; box-sizing: border-box; }
       .charts-grid { grid-template-columns: 1fr; width: 100%; box-sizing: border-box; }
       .chart-card { padding: 16px; width: 100%; box-sizing: border-box; }
@@ -583,8 +672,10 @@
 
   <div id="gatekeeper">
     <div class="gate-box">
-      <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; background: rgba(251, 175, 51, 0.15); border: 1px solid var(--border-gold); margin-bottom: 16px;">
-        <span style="font-size: 26px;">🛡️</span>
+      <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; background: rgba(251, 175, 51, 0.12); border: 1px solid var(--border-gold); margin-bottom: 16px;">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FBAF33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
       </div>
       <h2>TURBO<span>SANTA</span></h2>
       <p style="margin-bottom: 18px; color: var(--text-dim);">Verification Required</p>
@@ -599,21 +690,21 @@
         <div id="googleBtnContainer" style="display: flex; justify-content: center; margin: 16px 0; min-height: 44px;">
           <div style="color: var(--text-muted); font-size: 12px;">Loading Google Authentication...</div>
         </div>
-        <p style="font-size: 11px; color: var(--text-muted); margin-top: 14px; line-height: 1.5;">
-          🔒 Single Sign-On (<code style="color: var(--gold);">@roundtable.org.uk</code>)
+        <p style="font-size: 11px; color: var(--text-muted); margin-top: 14px; line-height: 1.5; font-family: 'Eurostile', sans-serif; letter-spacing: 0.5px; text-transform: uppercase;">
+          Single Sign-On (<code style="color: var(--gold); font-family: 'DM Mono', monospace; text-transform: none;">@roundtable.org.uk</code>)
         </p>
       </div>
 
       <!-- Access Denied For Standard Table Admins -->
       <div id="deniedSection" style="display: none; text-align: center; margin-top: 10px;">
         <div style="background: rgba(211, 28, 28, 0.15); border: 1px solid rgba(211, 28, 28, 0.4); border-radius: 10px; padding: 18px; margin-bottom: 18px; color: #fca5a5; font-size: 13px; line-height: 1.5;">
-          <strong style="color: #fff; font-size: 15px; display: block; margin-bottom: 6px;">⛔ Access Denied</strong>
+          <strong style="color: #fff; font-family: 'Eurostile', sans-serif; font-size: 15px; letter-spacing: 1px; display: block; margin-bottom: 6px; text-transform: uppercase;">Access Denied</strong>
           <span style="font-size: 12px; color: var(--text-muted);">Signed in as: <strong style="color: #fff;" id="deniedEmail"></strong></span><br><br>
           Invalid account or access denied.
         </div>
         <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-          <a href="/" style="display: inline-flex; align-items: center; justify-content: center; padding: 10px 20px; background: var(--gold); color: #000; font-weight: 700; border-radius: 8px; text-decoration: none; font-size: 13px;">Return to Home</a>
-          <button type="button" onclick="handleSwitchAccount()" style="padding: 10px 18px; background: #252522; border: 1px solid var(--border); color: #fff; font-weight: 600; border-radius: 8px; cursor: pointer; font-size: 13px;">Switch Account</button>
+          <a href="/" style="display: inline-flex; align-items: center; justify-content: center; padding: 10px 20px; background: var(--gold); color: #000; font-family: 'Eurostile', sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; border-radius: 8px; text-decoration: none; font-size: 13px;">Return to Home</a>
+          <button type="button" onclick="handleSwitchAccount()" style="padding: 10px 18px; background: var(--surface-2); border: 1px solid var(--border); color: #fff; font-family: 'Eurostile', sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; border-radius: 8px; cursor: pointer; font-size: 13px;">Switch Account</button>
         </div>
       </div>
     </div>
@@ -626,11 +717,11 @@
     </div>
 
     <div id="tickerWrap" class="ticker-wrap">
-      📢 <span id="tickerText"></span>
+      <span style="display:inline-block; font-family:'Eurostile',sans-serif; letter-spacing:1px; font-size:10px; font-weight:700; background:rgba(251,175,51,0.18); color:var(--gold); border:1px solid rgba(251,175,51,0.3); border-radius:4px; padding:2px 8px; margin-right:8px; text-transform:uppercase;">Notice</span><span id="tickerText"></span>
     </div>
 
     <header class="hero">
-      <div class="hero-badge" id="seasonBadge">🎅 Season...</div>
+      <div class="hero-badge" id="seasonBadge">SEASON ARCHIVE</div>
       <h1>TURBO<span>SANTA</span><br>NATIONAL</h1>
       <p class="hero-sub" id="heroSubText">Live leaderboard tracking every Round Table Santa Sleigh across the country. Updated every 60 seconds.</p>
 
@@ -681,13 +772,12 @@
 
         <div class="section-head" style="justify-content: space-between; flex-wrap: wrap; gap: 12px;">
           <div style="display: flex; align-items: center; gap: 12px;">
-            <span class="section-icon">🏆</span>
             <h2>Live Tracker & Leaderboard</h2>
           </div>
           
           <div class="view-toggle">
-            <button id="btnListView" class="view-btn active" onclick="switchView('list')">📋 Leaderboard</button>
-            <button id="btnMapView" class="view-btn" onclick="switchView('map')">🗺️ National Map</button>
+            <button id="btnListView" class="view-btn active" onclick="switchView('list')">Leaderboard</button>
+            <button id="btnMapView" class="view-btn" onclick="switchView('map')">National Map</button>
           </div>
         </div>
 
@@ -710,7 +800,6 @@
         <div id="nationalMap"></div>
 
         <div class="section-head">
-          <span class="section-icon">📊</span>
           <h2>Breakdown</h2>
         </div>
 
@@ -743,9 +832,9 @@
     </div>
 
     <footer class="footer">
-      <div class="footer-brand">🎅 TurboSanta National</div>
+      <div class="footer-brand">TURBOSANTA NATIONAL</div>
       <div>
-        <span class="refresh-pill" onclick="loadAll(true, false)">🔄 Refresh Now</span>
+        <span class="refresh-pill" onclick="loadAll(true, false)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; margin-right:5px;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>Refresh Now</span>
       </div>
       <div class="footer-meta" id="footerMeta">
         Last updated: <span id="lastUpdated">—</span><br>
@@ -919,7 +1008,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     if (email) {
       if (approved.includes(email) || session.isNationalAdmin || session.role === 'national_admin') {
-        console.log("⚡ Passwordless Auto-Login Verified for National Board member:", email);
+        console.log("Passwordless Auto-Login Verified for National Board member:", email);
         unlockAndStart(email);
         return;
       } else {
@@ -961,7 +1050,7 @@ function buildSeasonDropdown() {
 function updateSeasonBadge(mode) {
   if (mode === "live") {
     const displayYear = new Date().getFullYear();
-    document.getElementById('seasonBadge').innerText = `🎅 ${displayYear} Sleigh`;
+    document.getElementById('seasonBadge').innerText = `${displayYear} CAMPAIGN`;
     document.getElementById('heroSubText').innerText = "Live leaderboard tracking every Round Table Santa Sleigh across the country. Updated every 60 seconds.";
     document.getElementById('footerMeta').innerHTML = `Last updated: <span id="lastUpdated">—</span><br>Auto-refreshes every 60s during live season`;
     if (document.getElementById('routesCardLabel')) document.getElementById('routesCardLabel').innerText = "Routes (Done / Plan)";
@@ -969,7 +1058,7 @@ function updateSeasonBadge(mode) {
     if (document.getElementById('streetsChartTitle')) document.getElementById('streetsChartTitle').innerText = "Streets (Visited vs Scheduled)";
     if (document.getElementById('routesChartTitle')) document.getElementById('routesChartTitle').innerText = "Routes (Completed vs Planned)";
   } else {
-    document.getElementById('seasonBadge').innerText = `🕰️ Historical: ${mode}`;
+    document.getElementById('seasonBadge').innerText = `ARCHIVE: ${mode}`;
     document.getElementById('heroSubText').innerText = `Viewing frozen snapshot data for the ${mode} Christmas Season.`;
     document.getElementById('footerMeta').innerHTML = `Historical Data View<br>Auto-refresh disabled`;
     if (document.getElementById('routesCardLabel')) document.getElementById('routesCardLabel').innerText = "Routes Done";
@@ -1344,7 +1433,7 @@ function renderLeaderboard(data) {
     if (currentMode === "live") {
        statusHtml = d.ok ? '<span class="table-status status-live">● Connected</span>' : '<span class="table-status status-off">● Offline</span>';
     } else {
-       statusHtml = (d.raised > 0 || d.routes > 0) ? '<span class="table-status status-hist">✔ Archived</span>' : '<span class="table-status status-off">No Data</span>';
+       statusHtml = (d.raised > 0 || d.routes > 0) ? '<span class="table-status status-hist">Archived</span>' : '<span class="table-status status-off">No Data</span>';
     }
 
     let progressHtml = '';
@@ -1400,13 +1489,13 @@ function renderCharts(data) {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#1e1e1b',
-        borderColor: 'rgba(251,175,51,0.3)',
+        backgroundColor: '#151513',
+        borderColor: 'rgba(251,175,51,0.25)',
         borderWidth: 1,
-        titleFont: { family: 'Open Sans', weight: '700' },
+        titleFont: { family: 'Eurostile', weight: '700' },
         bodyFont: { family: 'DM Mono' },
         titleColor: '#FBAF33',
-        bodyColor: '#eaeae5',
+        bodyColor: '#ffffff',
         padding: 10,
         cornerRadius: 8
       }
@@ -1610,10 +1699,9 @@ function renderErrors(errors) {
 
   el.innerHTML = `
     <div class="section-head" style="margin-top:32px;">
-      <span class="section-icon">⚠️</span>
       <h2>Connection Issues</h2>
     </div>
-    ${errors.map(e => `<div class="error-card"><strong>${escHtml(e.name)}</strong> —${escHtml(e.error)}</div>`).join('')}
+    ${errors.map(e => `<div class="error-card"><strong>${escHtml(e.name)}</strong> — ${escHtml(e.error)}</div>`).join('')}
   `;
 }
 
@@ -1695,9 +1783,9 @@ async function renderMap(data) {
       const isFresh = table.gps_ts ? (Date.now() - new Date(table.gps_ts).getTime()) < (5 * 60 * 1000) : false;
       
       if (isFresh) {
-        const locationText = table.roadName ? `<div style="font-size:12px; color:#2ecc71; margin-top:4px;">📍 Currently on: <b>${escHtml(table.roadName)}</b></div>` : '';
+        const locationText = table.roadName ? `<div style="font-size:12px; color:#2ecc71; margin-top:4px;">Currently on: <b>${escHtml(table.roadName)}</b></div>` : '';
         const routeInfo = table.todayRouteName ? `<div style="font-size:12px; color:#bbb; margin-top:2px;">Tonight: <b>${escHtml(table.todayRouteName)}</b></div>` : '';
-        const donateBtn = table.donateUrl ? `<a href="${escHtml(table.donateUrl)}" target="_blank" style="display:inline-block; margin-top:8px; padding:4px 10px; background:#FBAF33; color:#000; text-decoration:none; font-weight:bold; font-size:11px; border-radius:4px;">🎁 Donate to this Sleigh</a>` : '';
+        const donateBtn = table.donateUrl ? `<a href="${escHtml(table.donateUrl)}" target="_blank" style="display:inline-block; margin-top:8px; padding:6px 14px; background:#FBAF33; color:#000; text-decoration:none; font-family:'Eurostile',sans-serif; text-transform:uppercase; letter-spacing:0.8px; font-weight:700; font-size:11px; border-radius:6px;">Donate Online</a>` : '';
 
         const popupContent = `
           <div class="map-popup-title">${escHtml(table.name)}</div>
