@@ -1239,12 +1239,18 @@
             }
         }
 
-        function setTitleParts(node, highlight, suffix) {
+        function setTitleParts(node, whitePart, highlightPart) {
             node.replaceChildren();
-            const span = el('span', '', highlight);
-            span.style.color = 'var(--primary)';
-            node.appendChild(span);
-            if (suffix) node.appendChild(document.createTextNode(' ' + suffix));
+            if (whitePart) {
+                node.appendChild(document.createTextNode(whitePart));
+            }
+            if (highlightPart) {
+                if (whitePart) node.appendChild(document.createTextNode(' '));
+                const span = el('span', 'hl', highlightPart);
+                span.style.color = 'var(--primary)';
+                span.style.transition = 'color 0.35s ease';
+                node.appendChild(span);
+            }
         }
 
         function renderBranding(settings) {
@@ -1253,10 +1259,23 @@
             $('footer-name').textContent = siteName;
 
             const match = siteName.match(/(.*?\bRound Table\b)/i);
-            const tablePart = match ? match[1].trim() : siteName;
-            const suffix = match ? siteName.substring(match[0].length).trim() : '';
-            setTitleParts($('nav-title'), tablePart, suffix);
-            setTitleParts($('hero-title'), tablePart, suffix);
+            const tablePart = match ? match[1].trim() : '';
+            const suffix = match ? siteName.substring(match[0].length).trim() : siteName;
+
+            if (tablePart && suffix) {
+                setTitleParts($('nav-title'), tablePart, suffix);
+                setTitleParts($('hero-title'), tablePart, suffix);
+            } else {
+                const words = siteName.split(' ');
+                if (words.length > 1) {
+                    const lastWord = words.pop();
+                    setTitleParts($('nav-title'), words.join(' '), lastWord);
+                    setTitleParts($('hero-title'), words.join(' '), lastWord);
+                } else {
+                    setTitleParts($('nav-title'), siteName, '');
+                    setTitleParts($('hero-title'), siteName, '');
+                }
+            }
 
             const logo = safeUrl(settings.logo_overlay_url);
             const navLogo = $('nav-logo');
