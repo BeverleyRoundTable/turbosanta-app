@@ -22,6 +22,38 @@ import CashBucketModal from './CashBucketModal';
 import PrintRouteSheetModal from './PrintRouteSheetModal';
 import PrintLanyardsModal from './PrintLanyardsModal';
 
+function getEquivalentDateNextYear(dateStr) {
+  if (!dateStr) {
+    const nextYear = new Date().getFullYear() + 1;
+    return `${nextYear}-12-01`;
+  }
+  const parts = String(dateStr).split('-');
+  if (parts.length !== 3) return dateStr;
+
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10) - 1;
+  const day = parseInt(parts[2], 10);
+  const d = new Date(year, month, day, 12, 0, 0);
+  if (isNaN(d.getTime())) return dateStr;
+
+  // Adding 364 days (52 weeks * 7 days) ensures the exact same day of the week
+  // (e.g. Wednesday to Wednesday, Friday to Friday) in the equivalent week of next year's campaign.
+  d.setDate(d.getDate() + 364);
+
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
+}
+
+function formatRouteDateWithWeekday(dateStr) {
+  if (!dateStr) return '';
+  const parts = String(dateStr).split('-');
+  if (parts.length !== 3) return dateStr;
+  const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10), 12, 0, 0);
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+}
 
 export default function AdminPortal({ session, onLogout, tableData, onUpdateTableData }) {
   const [activeTab, setActiveTab] = useState('announcements'); // Default to announcements
@@ -798,8 +830,53 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     setTimeout(() => setSaveStatus(''), 3500);
   };
 
+  // Route Duplication for Next Season (equivalent weekday calculation)
+  const handleCopyRouteForNextYear = (sourceRoute) => {
+    const routeStreets = (tableData?.streets || []).filter(s => s.route_id === sourceRoute.id);
+    const nextDate = getEquivalentDateNextYear(sourceRoute.date);
+
+    const newRoute = {
+      id: `route_${Date.now()}`,
+      name: sourceRoute.name,
+      date: nextDate,
+      start_time: sourceRoute.start_time || '18:00',
+      end_time: sourceRoute.end_time || '20:30',
+      gpx_url: sourceRoute.gpx_url || sourceRoute.gpxUrl || '',
+      gpx_file_name: sourceRoute.gpx_file_name || (sourceRoute.gpx_url ? 'route.gpx' : ''),
+      planned_stops: sourceRoute.planned_stops || [],
+      streets: routeStreets.map(s => ({ street_name: s.street_name })),
+      sponsor_name: sourceRoute.sponsor_name || '',
+      sponsor_link: sourceRoute.sponsor_link || '',
+      sponsor_description: sourceRoute.sponsor_description || '',
+      sponsor_logo_url: sourceRoute.sponsor_logo_url || sourceRoute.sponsor_logo || '',
+      notes: sourceRoute.notes || '',
+      isCopy: true,
+      originalDate: sourceRoute.date
+    };
+
+    setEditingRoute(newRoute);
+    setIsRouteModalOpen(true);
+  };
+
   // Route Delete Handler
   const handleDeleteRoute = async (routeId) => {
+    const routeToDelete = (tableData?.routes || []).find(r => r.id === routeId);
+    const isPastRoute = routeToDelete && (
+      routeToDelete.status === 'Completed' ||
+      (routeToDelete.date && new Date(routeToDelete.date + 'T23:59:59') < new Date())
+    );
+
+    if (isPastRoute) {
+      const confirmMsg = `⚠️ This route has already run and is preserved for your Table's official season history, public archive, and charity Gift Aid audit.\n\nTo run this route again next year, click "Cancel" and use "Copy for Next Year" instead.\n\nAre you sure you want to permanently delete this completed route?`;
+      if (!window.confirm(confirmMsg)) {
+        return;
+      }
+    } else {
+      if (!window.confirm(`Are you sure you want to delete route "${routeToDelete?.name || ''}"?`)) {
+        return;
+      }
+    }
+
     setSaveStatus('Deleting route from database...');
     if (onUpdateTableData) {
       onUpdateTableData(prev => ({
@@ -1414,203 +1491,481 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
             </div>
 
             {/* Route Cards */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {(tableData?.routes || []).length === 0 ? (
-                <div style={{
-                  background: '#0d0d0b',
-                  border: '1px dashed rgba(251, 175, 51, 0.4)',
-                  borderRadius: '14px',
-                  padding: '24px 22px'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{
-                        background: 'rgba(251, 175, 51, 0.15)',
-                        color: 'var(--primary)',
-                        fontSize: '11px',
-                        fontWeight: 800,
-                        letterSpacing: '0.8px',
-                        padding: '4px 10px',
-                        borderRadius: '20px',
-                        border: '1px solid rgba(251, 175, 51, 0.3)',
-                        textTransform: 'uppercase'
-                      }}>
-                        ✨ Interactive Route Template (Preview Only — Zero Public Data)
-                      </span>
-                    </div>
-                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      Your public timetable remains 100% clean until you click "Save Route"
-                    </span>
-                  </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+              {(() => {
+                const allRoutes = tableData?.routes || [];
+                const now = new Date();
 
-                  {/* Example Route Preview Card */}
-                  <div style={{
-                    background: 'rgba(21, 21, 19, 0.95)',
-                    border: '1px solid rgba(251, 175, 51, 0.25)',
-                    borderRadius: '12px',
-                    padding: '20px 22px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: '16px'
-                  }}>
-                    <div style={{ flex: 1, minWidth: '260px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px', flexWrap: 'wrap' }}>
-                        <strong style={{ fontSize: '19px', color: '#fff' }}>
-                          Molescroft & Woodhall Way
-                        </strong>
-                        <span style={{ fontSize: '11px', color: '#86efac', background: 'rgba(34, 197, 94, 0.15)', border: '1px solid #22c55e', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                          EXAMPLE TEMPLATE
+                const plannedRoutes = [];
+                const completedRoutes = [];
+
+                allRoutes.forEach(r => {
+                  let isPast = false;
+                  if (r.status === 'Completed') {
+                    isPast = true;
+                  } else if (r.date) {
+                    const d = new Date(r.date + 'T23:59:59');
+                    if (!isNaN(d.getTime()) && d < now) {
+                      isPast = true;
+                    }
+                  }
+
+                  if (isPast) {
+                    completedRoutes.push(r);
+                  } else {
+                    plannedRoutes.push(r);
+                  }
+                });
+
+                plannedRoutes.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+                completedRoutes.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+                if (allRoutes.length === 0) {
+                  return (
+                    <div style={{
+                      background: '#0d0d0b',
+                      border: '1px dashed rgba(251, 175, 51, 0.4)',
+                      borderRadius: '14px',
+                      padding: '24px 22px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{
+                            background: 'rgba(251, 175, 51, 0.15)',
+                            color: 'var(--primary)',
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            letterSpacing: '0.8px',
+                            padding: '4px 10px',
+                            borderRadius: '20px',
+                            border: '1px solid rgba(251, 175, 51, 0.3)',
+                            textTransform: 'uppercase'
+                          }}>
+                            ✨ Interactive Route Template (Preview Only — Zero Public Data)
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                          Your public timetable remains 100% clean until you click "Save Route"
                         </span>
                       </div>
-                      <div style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: 600, marginBottom: '8px' }}>
-                        📅 Wednesday 17 Dec • ⏰ 18:00 - 20:30 • 📍 Meet: Pavilion Car Park (HU17 7JS)
-                      </div>
-                      <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                        <strong>Sample Streets:</strong> Woodhall Way, The Park, Copandale Road, Molescroft Park, Woodhall Close, Chestnut Avenue
-                      </div>
-                      <div style={{ fontSize: '12px', color: '#86efac', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span>⭐ Sponsored by:</span> <strong>Beverley Building Society</strong>
-                      </div>
-                    </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingRoute({
-                            name: 'Molescroft & Woodhall Way',
-                            date: new Date().toISOString().slice(0, 10),
-                            start_time: '18:00',
-                            end_time: '20:30',
-                            streets: [
-                              { street_name: 'Woodhall Way' },
-                              { street_name: 'The Park' },
-                              { street_name: 'Copandale Road' },
-                              { street_name: 'Molescroft Park' },
-                              { street_name: 'Woodhall Close' },
-                              { street_name: 'Chestnut Avenue' }
-                            ],
-                            sponsor_name: 'Beverley Building Society',
-                            sponsor_link: 'https://example.com'
-                          });
-                          setIsRouteModalOpen(true);
-                        }}
-                        className="btn-primary"
-                        style={{ padding: '10px 18px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-                      >
-                        <FileText size={16} />
-                        <span>Use as Template</span>
-                      </button>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                        Pre-fills route modal
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                (tableData?.routes || []).map(r => {
-                  const routeStreets = (tableData?.streets || []).filter(s => s.route_id === r.id);
-                  return (
-                    <div
-                      key={r.id}
-                      style={{
-                        background: '#0d0d0b',
-                        border: '1px solid var(--border)',
+                      {/* Example Route Preview Card */}
+                      <div style={{
+                        background: 'rgba(21, 21, 19, 0.95)',
+                        border: '1px solid rgba(251, 175, 51, 0.25)',
                         borderRadius: '12px',
-                        padding: '20px 24px',
+                        padding: '20px 22px',
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
                         flexWrap: 'wrap',
                         gap: '16px'
-                      }}
-                    >
-                      <div style={{ flex: 1, minWidth: '240px' }}>
-                        <strong style={{ fontSize: '20px', color: '#fff', display: 'block', marginBottom: '4px' }}>
-                          {r.name}
-                        </strong>
-                        <div style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: 600, marginBottom: '8px' }}>
-                          📅 {r.date} • ⏰ {r.start_time || '18:00'} - {r.end_time || '20:30'}
-                        </div>
-                        <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                          <strong>Streets:</strong> {routeStreets.map(s => s.street_name).join(', ') || 'None specified'}
-                        </div>
-                        {r.sponsor_name && (
-                          <div style={{ fontSize: '12px', color: '#86efac', marginTop: '6px' }}>
-                            ⭐ Sponsored by: <strong>{r.sponsor_name}</strong>
+                      }}>
+                        <div style={{ flex: 1, minWidth: '260px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                            <strong style={{ fontSize: '19px', color: '#fff' }}>
+                              Molescroft & Woodhall Way
+                            </strong>
+                            <span style={{ fontSize: '11px', color: '#86efac', background: 'rgba(34, 197, 94, 0.15)', border: '1px solid #22c55e', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                              EXAMPLE TEMPLATE
+                            </span>
                           </div>
-                        )}
-                      </div>
+                          <div style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: 600, marginBottom: '8px' }}>
+                            📅 Wednesday 17 Dec • ⏰ 18:00 - 20:30 • 📍 Meet: Pavilion Car Park (HU17 7JS)
+                          </div>
+                          <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                            <strong>Sample Streets:</strong> Woodhall Way, The Park, Copandale Road, Molescroft Park, Woodhall Close, Chestnut Avenue
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#86efac', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span>⭐ Sponsored by:</span> <strong>Beverley Building Society</strong>
+                          </div>
+                        </div>
 
-                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyWhatsAppBriefing(r)}
-                          className="btn-secondary"
-                          style={{
-                            padding: '8px 12px',
-                            fontSize: '12px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            background: copiedRouteId === r.id ? 'rgba(34, 197, 94, 0.25)' : 'rgba(34, 197, 94, 0.1)',
-                            borderColor: '#22c55e',
-                            color: '#86efac'
-                          }}
-                          title="Copy formatted run sheet and open WhatsApp"
-                        >
-                          {copiedRouteId === r.id ? <Check size={14} /> : <Share2 size={14} />}
-                          <span>{copiedRouteId === r.id ? 'Copied Briefing!' : 'WhatsApp Briefing'}</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSheetRoute(r);
-                            setIsRouteSheetOpen(true);
-                          }}
-                          className="btn-secondary"
-                          style={{
-                            padding: '8px 12px',
-                            fontSize: '12px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            borderColor: 'var(--primary)',
-                            color: 'var(--primary)'
-                          }}
-                          title="Print A4 Driver & Marshal Route Clipboard Sheet"
-                        >
-                          <Printer size={14} />
-                          <span>A4 Route Sheet</span>
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            setEditingRoute({ ...r, streets: routeStreets });
-                            setIsRouteModalOpen(true);
-                          }}
-                          className="btn-secondary"
-                          style={{ padding: '8px 14px', fontSize: '13px' }}
-                        >
-                          <Edit3 size={15} />
-                          <span>Edit</span>
-                        </button>
-
-                        <button
-                          onClick={() => handleDeleteRoute(r.id)}
-                          className="btn-secondary"
-                          style={{ padding: '8px 14px', fontSize: '13px', borderColor: '#d31c1c', color: '#fca5a5' }}
-                        >
-                          <Trash2 size={15} />
-                        </button>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingRoute({
+                                name: 'Molescroft & Woodhall Way',
+                                date: new Date().toISOString().slice(0, 10),
+                                start_time: '18:00',
+                                end_time: '20:30',
+                                streets: [
+                                  { street_name: 'Woodhall Way' },
+                                  { street_name: 'The Park' },
+                                  { street_name: 'Copandale Road' },
+                                  { street_name: 'Molescroft Park' },
+                                  { street_name: 'Woodhall Close' },
+                                  { street_name: 'Chestnut Avenue' }
+                                ],
+                                sponsor_name: 'Beverley Building Society',
+                                sponsor_link: 'https://example.com'
+                              });
+                              setIsRouteModalOpen(true);
+                            }}
+                            className="btn-primary"
+                            style={{ padding: '10px 18px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                          >
+                            <FileText size={16} />
+                            <span>Use as Template</span>
+                          </button>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                            Pre-fills route modal
+                          </span>
+                        </div>
                       </div>
                     </div>
                   );
-                })
-              )}
+                }
+
+                return (
+                  <>
+                    {/* SECTION 1: Planned & Upcoming Routes */}
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Calendar size={18} color="var(--primary)" />
+                          <h3 style={{ fontSize: '17px', fontWeight: 700, margin: 0, color: '#fff' }}>
+                            Planned & Upcoming Routes ({plannedRoutes.length})
+                          </h3>
+                        </div>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                          Active scheduled runs for tonight and upcoming dates
+                        </span>
+                      </div>
+
+                      {plannedRoutes.length === 0 ? (
+                        <div style={{
+                          background: '#0d0d0b',
+                          border: '1px dashed var(--border)',
+                          borderRadius: '12px',
+                          padding: '20px 24px',
+                          color: 'var(--text-muted)',
+                          fontSize: '13px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          flexWrap: 'wrap',
+                          gap: '12px'
+                        }}>
+                          <span>No upcoming routes scheduled. Click <strong>Add New Route</strong> or copy a completed route from below.</span>
+                          <button
+                            onClick={() => {
+                              setEditingRoute(null);
+                              setIsRouteModalOpen(true);
+                            }}
+                            className="btn-primary"
+                            style={{ padding: '8px 14px', fontSize: '12px' }}
+                          >
+                            <Plus size={15} />
+                            <span>Add New Route</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                          {plannedRoutes.map(r => {
+                            const routeStreets = (tableData?.streets || []).filter(s => s.route_id === r.id);
+                            return (
+                              <div
+                                key={r.id}
+                                style={{
+                                  background: '#0d0d0b',
+                                  border: '1px solid var(--border)',
+                                  borderRadius: '12px',
+                                  padding: '20px 24px',
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  flexWrap: 'wrap',
+                                  gap: '16px'
+                                }}
+                              >
+                                <div style={{ flex: 1, minWidth: '240px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                    <strong style={{ fontSize: '20px', color: '#fff' }}>
+                                      {r.name}
+                                    </strong>
+                                    <span style={{
+                                      background: 'rgba(251, 175, 51, 0.15)',
+                                      color: 'var(--primary)',
+                                      border: '1px solid var(--border-gold)',
+                                      fontSize: '10px',
+                                      fontWeight: 800,
+                                      padding: '2px 8px',
+                                      borderRadius: '4px',
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.5px'
+                                    }}>
+                                      Upcoming
+                                    </span>
+                                  </div>
+                                  <div style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: 600, marginBottom: '8px' }}>
+                                    📅 {formatRouteDateWithWeekday(r.date)} • ⏰ {r.start_time || '18:00'} - {r.end_time || '20:30'}
+                                  </div>
+                                  <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                                    <strong>Streets:</strong> {routeStreets.map(s => s.street_name).join(', ') || 'None specified'}
+                                  </div>
+                                  {r.sponsor_name && (
+                                    <div style={{ fontSize: '12px', color: '#86efac', marginTop: '6px' }}>
+                                      ⭐ Sponsored by: <strong>{r.sponsor_name}</strong>
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopyWhatsAppBriefing(r)}
+                                    className="btn-secondary"
+                                    style={{
+                                      padding: '8px 12px',
+                                      fontSize: '12px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      background: copiedRouteId === r.id ? 'rgba(34, 197, 94, 0.25)' : 'rgba(34, 197, 94, 0.1)',
+                                      borderColor: '#22c55e',
+                                      color: '#86efac'
+                                    }}
+                                    title="Copy formatted run sheet and open WhatsApp"
+                                  >
+                                    {copiedRouteId === r.id ? <Check size={14} /> : <Share2 size={14} />}
+                                    <span>{copiedRouteId === r.id ? 'Copied Briefing!' : 'WhatsApp Briefing'}</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSheetRoute(r);
+                                      setIsRouteSheetOpen(true);
+                                    }}
+                                    className="btn-secondary"
+                                    style={{
+                                      padding: '8px 12px',
+                                      fontSize: '12px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      borderColor: 'var(--primary)',
+                                      color: 'var(--primary)'
+                                    }}
+                                    title="Print A4 Driver & Marshal Route Clipboard Sheet"
+                                  >
+                                    <Printer size={14} />
+                                    <span>A4 Route Sheet</span>
+                                  </button>
+
+                                  <button
+                                    onClick={() => {
+                                      setEditingRoute({ ...r, streets: routeStreets });
+                                      setIsRouteModalOpen(true);
+                                    }}
+                                    className="btn-secondary"
+                                    style={{ padding: '8px 14px', fontSize: '13px' }}
+                                  >
+                                    <Edit3 size={15} />
+                                    <span>Edit</span>
+                                  </button>
+
+                                  <button
+                                    onClick={() => handleDeleteRoute(r.id)}
+                                    className="btn-secondary"
+                                    style={{ padding: '8px 14px', fontSize: '13px', borderColor: '#d31c1c', color: '#fca5a5' }}
+                                  >
+                                    <Trash2 size={15} />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* SECTION 2: Completed Routes (Archived Season Records) */}
+                    {completedRoutes.length > 0 && (
+                      <div style={{ marginTop: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <CheckCircle2 size={18} color="#22c55e" />
+                            <h3 style={{ fontSize: '17px', fontWeight: 700, margin: 0, color: '#fff' }}>
+                              Completed Routes ({completedRoutes.length})
+                            </h3>
+                          </div>
+                          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                            Archived runs preserved for official Table season history
+                          </span>
+                        </div>
+
+                        {/* Preserved notice banner */}
+                        <div style={{
+                          background: 'rgba(34, 197, 94, 0.05)',
+                          border: '1px solid rgba(34, 197, 94, 0.25)',
+                          borderRadius: '12px',
+                          padding: '14px 18px',
+                          marginBottom: '14px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px'
+                        }}>
+                          <CheckCircle2 size={20} color="#22c55e" style={{ flexShrink: 0 }} />
+                          <div>
+                            <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>
+                              Preserved Season Records
+                            </div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                              These routes have already run and are preserved for your Table's official season history, public archive, and charity Gift Aid audit. To run any of these routes again next year, click <strong>Copy for Next Year</strong> rather than editing past dates.
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                          {completedRoutes.map(r => {
+                            const routeStreets = (tableData?.streets || []).filter(s => s.route_id === r.id);
+                            return (
+                              <div
+                                key={r.id}
+                                style={{
+                                  background: '#0b0b0a',
+                                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                                  borderRadius: '12px',
+                                  padding: '18px 24px',
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  flexWrap: 'wrap',
+                                  gap: '16px'
+                                }}
+                              >
+                                <div style={{ flex: 1, minWidth: '240px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                    <strong style={{ fontSize: '19px', color: '#eaeae5' }}>
+                                      {r.name}
+                                    </strong>
+                                    <span style={{
+                                      background: 'rgba(34, 197, 94, 0.15)',
+                                      color: '#86efac',
+                                      border: '1px solid #22c55e',
+                                      fontSize: '10px',
+                                      fontWeight: 800,
+                                      padding: '2px 8px',
+                                      borderRadius: '4px',
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.5px'
+                                    }}>
+                                      ✓ Completed
+                                    </span>
+                                  </div>
+                                  <div style={{ fontSize: '13px', color: '#aaa', fontWeight: 600, marginBottom: '8px' }}>
+                                    📅 {formatRouteDateWithWeekday(r.date)} • ⏰ {r.start_time || '18:00'} - {r.end_time || '20:30'}
+                                  </div>
+                                  <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                                    <strong>Streets:</strong> {routeStreets.map(s => s.street_name).join(', ') || 'None specified'}
+                                  </div>
+                                  {r.sponsor_name && (
+                                    <div style={{ fontSize: '12px', color: '#86efac', marginTop: '6px' }}>
+                                      ⭐ Sponsored by: <strong>{r.sponsor_name}</strong>
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                  {/* 📋 Copy Route for Next Year */}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopyRouteForNextYear(r)}
+                                    className="btn-primary"
+                                    style={{
+                                      padding: '8px 14px',
+                                      fontSize: '12px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      background: 'linear-gradient(135deg, #FBAF33, #e59b20)',
+                                      color: '#000',
+                                      fontWeight: 700,
+                                      border: 'none',
+                                      borderRadius: '8px',
+                                      cursor: 'pointer'
+                                    }}
+                                    title={`Duplicate route for equivalent weekday next year (${getEquivalentDateNextYear(r.date)})`}
+                                  >
+                                    <Copy size={14} />
+                                    <span>Copy for Next Year</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopyWhatsAppBriefing(r)}
+                                    className="btn-secondary"
+                                    style={{
+                                      padding: '8px 12px',
+                                      fontSize: '12px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      background: copiedRouteId === r.id ? 'rgba(34, 197, 94, 0.25)' : 'rgba(34, 197, 94, 0.1)',
+                                      borderColor: '#22c55e',
+                                      color: '#86efac'
+                                    }}
+                                    title="Copy formatted run sheet and open WhatsApp"
+                                  >
+                                    {copiedRouteId === r.id ? <Check size={14} /> : <Share2 size={14} />}
+                                    <span>{copiedRouteId === r.id ? 'Copied Briefing!' : 'WhatsApp Briefing'}</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSheetRoute(r);
+                                      setIsRouteSheetOpen(true);
+                                    }}
+                                    className="btn-secondary"
+                                    style={{
+                                      padding: '8px 12px',
+                                      fontSize: '12px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      borderColor: 'var(--primary)',
+                                      color: 'var(--primary)'
+                                    }}
+                                    title="Print A4 Driver & Marshal Route Clipboard Sheet"
+                                  >
+                                    <Printer size={14} />
+                                    <span>A4 Route Sheet</span>
+                                  </button>
+
+                                  <button
+                                    onClick={() => {
+                                      setEditingRoute({ ...r, streets: routeStreets });
+                                      setIsRouteModalOpen(true);
+                                    }}
+                                    className="btn-secondary"
+                                    style={{ padding: '8px 14px', fontSize: '13px' }}
+                                  >
+                                    <Edit3 size={15} />
+                                    <span>Edit</span>
+                                  </button>
+
+                                  <button
+                                    onClick={() => handleDeleteRoute(r.id)}
+                                    className="btn-secondary"
+                                    style={{ padding: '8px 14px', fontSize: '13px', borderColor: '#d31c1c', color: '#fca5a5' }}
+                                    title="Delete completed route (Protected)"
+                                  >
+                                    <Trash2 size={15} />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
         )}

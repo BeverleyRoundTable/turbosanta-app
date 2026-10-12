@@ -1,12 +1,22 @@
 import React, { useState, useRef } from 'react';
-import { X, Calendar, Clock, MapPin, Building2, Save, Trash2, UploadCloud, FileText, CheckCircle2, Navigation, ExternalLink } from 'lucide-react';
+import { X, Calendar, Clock, MapPin, Building2, Save, Trash2, UploadCloud, FileText, CheckCircle2, Navigation, ExternalLink, Sparkles } from 'lucide-react';
 import DropzoneUpload from './DropzoneUpload';
 import { uploadAssetToR2 } from '../services/api';
+
+function formatRouteDateWithWeekday(dateStr) {
+  if (!dateStr) return '';
+  const parts = String(dateStr).split('-');
+  if (parts.length !== 3) return dateStr;
+  const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10), 12, 0, 0);
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+}
 
 export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, onDeleteRoute }) {
   if (!isOpen) return null;
 
-  const isEditing = Boolean(route?.id);
+  const isCopy = Boolean(route?.isCopy);
+  const isEditing = Boolean(route?.id) && !isCopy;
   const gpxFileInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
@@ -126,21 +136,40 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
       return;
     }
 
+    const isPastOriginal = route?.date && new Date(route.date + 'T23:59:59') < new Date();
+    const isNewDateFuture = formData.date && new Date(formData.date + 'T23:59:59') >= new Date();
+
+    let targetId = formData.id;
+    if (isEditing && isPastOriginal && isNewDateFuture) {
+      const wantCopy = window.confirm(
+        `💡 You are changing the date of a completed route from ${route.date} to ${formData.date}.\n\n` +
+        `Would you like to SAVE AS A NEW ROUTE for next year instead? This preserves your Table's official past season records and Gift Aid audit.\n\n` +
+        `Click "OK" to Save as New Route (Recommended).\n` +
+        `Click "Cancel" to Overwrite the past route.`
+      );
+      if (wantCopy) {
+        targetId = `route_${Date.now()}`;
+      }
+    }
+
     const streetsArray = formData.streetsText
       .split(',')
       .map(s => s.trim())
       .filter(Boolean)
       .map((st, idx) => ({
-        id: `${formData.id}_st_${idx}`,
-        route_id: formData.id,
+        id: `${targetId}_st_${idx}`,
+        route_id: targetId,
         street_name: st,
         sequence_order: idx + 1
       }));
 
     const updatedRoute = {
       ...formData,
+      id: targetId,
       streets: streetsArray
     };
+    delete updatedRoute.isCopy;
+    delete updatedRoute.originalDate;
 
     onSaveRoute(updatedRoute, streetsArray);
     onClose();
@@ -187,7 +216,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
           zIndex: 10
         }}>
           <h2 className="brand-font" style={{ fontSize: 'clamp(16px, 3.5vw, 22px)', margin: 0, color: '#fff' }}>
-            {isEditing ? `Edit Route: ${route.name}` : 'Add New Sleigh Route'}
+            {isCopy ? `Copy Route for Next Season: ${route.name}` : (isEditing ? `Edit Route: ${route.name}` : 'Add New Sleigh Route')}
           </h2>
           <button
             onClick={onClose}
@@ -205,6 +234,24 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} style={{ padding: 'clamp(16px, 3.5vw, 24px) clamp(12px, 3.5vw, 28px)' }}>
+          {isCopy && (
+            <div style={{
+              background: 'rgba(251, 175, 51, 0.1)',
+              border: '1px solid rgba(251, 175, 51, 0.35)',
+              borderRadius: '12px',
+              padding: '12px 16px',
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}>
+              <Sparkles size={20} color="var(--primary)" style={{ flexShrink: 0 }} />
+              <div style={{ fontSize: '13px', color: '#fff', lineHeight: 1.4 }}>
+                <strong>Duplicating Route for Next Season:</strong> All street lists, GPX trace, and sponsor details are pre-filled. The date below has been automatically matched to the equivalent weekday next year ({formatRouteDateWithWeekday(formData.date)}) — adjust if needed.
+              </div>
+            </div>
+          )}
+
           {/* Basic Route Details */}
           <div style={{ display: 'grid', gap: '16px', marginBottom: '24px' }}>
             <div>
@@ -251,6 +298,12 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                     boxSizing: 'border-box'
                   }}
                 />
+                {formData.date && (
+                  <div style={{ fontSize: '11px', color: isCopy ? 'var(--primary)' : 'var(--text-muted)', marginTop: '4px' }}>
+                    {isCopy ? '📅 Pre-selected equivalent weekday: ' : '📅 '}
+                    <strong>{formatRouteDateWithWeekday(formData.date)}</strong>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -602,7 +655,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                 }}
               >
                 <Save size={16} />
-                <span>Save Route</span>
+                <span>{isCopy ? 'Save as New Route' : 'Save Route'}</span>
               </button>
             </div>
           </div>
