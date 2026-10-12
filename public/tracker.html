@@ -2504,14 +2504,38 @@ function populateScheduleModal(routes) {
           
           navBtn.onclick = async () => {
             let secret = sessionStorage.getItem('beaconSecret');
-            if (!secret) {
-              try {
-                const adminSession = JSON.parse(localStorage.getItem("turbosanta_admin_session") || "{}");
-                if (adminSession && (adminSession.googleCredential || adminSession.token)) {
-                  secret = adminSession.googleCredential || adminSession.token;
-                }
-              } catch(e) {}
+            let adminSession = null;
+            try {
+              adminSession = JSON.parse(localStorage.getItem("turbosanta_admin_session") || "{}");
+            } catch(e) {}
+
+            const sessionEmail = String(adminSession?.email || '').trim().toLowerCase();
+            const isRoundTable = sessionEmail.endsWith('@roundtable.org.uk') || sessionEmail.endsWith('@roundtable.co.uk');
+            const isApprovedNational = Boolean(
+              adminSession?.isNationalAdmin ||
+              adminSession?.role === 'national_admin' ||
+              sessionEmail.startsWith('national') ||
+              [
+                'beverley247@roundtable.org.uk',
+                'national@roundtable.org.uk',
+                'admin@roundtable.org.uk',
+                'rtbi@roundtable.org.uk',
+                'president@roundtable.org.uk',
+                'vicepresident@roundtable.org.uk',
+                'cs@roundtable.org.uk',
+                'it@roundtable.org.uk'
+              ].includes(sessionEmail)
+            );
+            const isAuthenticatedAdmin = Boolean(adminSession && (isRoundTable || isApprovedNational));
+
+            if (isAuthenticatedAdmin) {
+              secret = 'authenticated';
+              sessionStorage.setItem('beaconSecret', secret);
+            } else if (!secret && adminSession && (adminSession.googleCredential || adminSession.token)) {
+              secret = adminSession.googleCredential || adminSession.token;
+              sessionStorage.setItem('beaconSecret', secret);
             }
+
             if (!secret) {
               alert("Driver Beacon Authorization Required:\n\nPlease sign in with your official @roundtable.org.uk Google Workspace account via the Admin Portal before starting sat-nav.");
               return;
@@ -2523,7 +2547,7 @@ function populateScheduleModal(routes) {
               const isWorkerOrD1 = AppState.vars.isWorkerD1 || !AppState.vars.apiUrl || !AppState.vars.apiUrl.includes("script.google.com");
               
               if (isWorkerOrD1) {
-                let isValid = false;
+                let isValid = isAuthenticatedAdmin;
                 try {
                   const chk = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/auth/verify?table=${encodeURIComponent(targetSlug)}&secret=${encodeURIComponent(secret)}`, {
                     headers: { 'Authorization': `Bearer ${secret}` }

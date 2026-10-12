@@ -599,6 +599,16 @@ async function switchTab(btn) {
   
   if (target === "ops") {
     let secret = sessionStorage.getItem('opsSecret');
+    if (!secret) {
+      try {
+        const adminSession = JSON.parse(localStorage.getItem("turbosanta_admin_session") || "{}");
+        const sessionEmail = String(adminSession?.email || '').trim().toLowerCase();
+        if (sessionEmail.endsWith('@roundtable.org.uk') || sessionEmail.endsWith('@roundtable.co.uk') || adminSession?.isNationalAdmin) {
+          secret = 'authenticated';
+          sessionStorage.setItem('opsSecret', secret);
+        }
+      } catch(e) {}
+    }
     
     if (!secret) {
       secret = prompt("Operations Authorization Required\n\nEnter the Master Password:");

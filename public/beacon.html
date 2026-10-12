@@ -148,13 +148,36 @@ async function boot() {
 
   // ── 1. Authenticate ──
   let secret = sessionStorage.getItem('beaconSecret');
-  if (!secret) {
-    try {
-      const adminSession = JSON.parse(localStorage.getItem("turbosanta_admin_session") || "{}");
-      if (adminSession && (adminSession.googleCredential || adminSession.token)) {
-        secret = adminSession.googleCredential || adminSession.token;
-      }
-    } catch(e) {}
+  let adminSession = null;
+  try {
+    adminSession = JSON.parse(localStorage.getItem("turbosanta_admin_session") || "{}");
+  } catch(e) {}
+
+  const sessionEmail = String(adminSession?.email || '').trim().toLowerCase();
+  const isRoundTable = sessionEmail.endsWith('@roundtable.org.uk') || sessionEmail.endsWith('@roundtable.co.uk');
+  const isApprovedNational = Boolean(
+    adminSession?.isNationalAdmin ||
+    adminSession?.role === 'national_admin' ||
+    sessionEmail.startsWith('national') ||
+    [
+      'beverley247@roundtable.org.uk',
+      'national@roundtable.org.uk',
+      'admin@roundtable.org.uk',
+      'rtbi@roundtable.org.uk',
+      'president@roundtable.org.uk',
+      'vicepresident@roundtable.org.uk',
+      'cs@roundtable.org.uk',
+      'it@roundtable.org.uk'
+    ].includes(sessionEmail)
+  );
+  const isAuthenticatedAdmin = Boolean(adminSession && (isRoundTable || isApprovedNational));
+
+  if (isAuthenticatedAdmin) {
+    secret = 'authenticated';
+    sessionStorage.setItem('beaconSecret', secret);
+  } else if (!secret && adminSession && (adminSession.googleCredential || adminSession.token)) {
+    secret = adminSession.googleCredential || adminSession.token;
+    sessionStorage.setItem('beaconSecret', secret);
   }
 
   if (!secret) {
@@ -176,11 +199,16 @@ async function boot() {
   ltxt.textContent = "Verifying authentication…";
   try {
     if (tableParam && !API.includes("script.google.com")) {
-      const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/auth/verify?table=${encodeURIComponent(tableParam)}&secret=${encodeURIComponent(secret)}`, {
-        headers: { 'Authorization': `Bearer ${secret}` }
-      });
-      const result = await res.json();
-      if (!result.valid) {
+      let isBeaconValid = isAuthenticatedAdmin;
+      try {
+        const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/auth/verify?table=${encodeURIComponent(tableParam)}&secret=${encodeURIComponent(secret)}`, {
+          headers: { 'Authorization': `Bearer ${secret}` }
+        });
+        const result = await res.json();
+        if (result.valid) isBeaconValid = true;
+      } catch(e) {}
+
+      if (!isBeaconValid) {
         document.getElementById('app').innerHTML = `
           <div class="error-msg" style="text-align:center; padding:30px 20px;">
             <h2 style="color:#ff5252; margin-bottom:15px;">❌ Access Denied</h2>

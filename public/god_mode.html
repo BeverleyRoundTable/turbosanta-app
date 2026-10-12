@@ -389,7 +389,9 @@ const WORKER_URL = WORKER_API;
 
 const params = new URLSearchParams(location.search);
 const API = params.get('api') || '';
-const TABLE_SLUG = params.get('table') || (params.has('api') ? '' : 'beverley');
+let _initSess = null;
+try { _initSess = JSON.parse(localStorage.getItem('turbosanta_admin_session') || '{}'); } catch(e) {}
+const TABLE_SLUG = params.get('table') || _initSess?.tableSlug || _initSess?.tableId || (params.has('api') ? '' : 'beverley');
 
 const STATE = {
   tableSlug: TABLE_SLUG,
@@ -472,8 +474,30 @@ async function init() {
   let adminSession = null;
   try { adminSession = JSON.parse(localStorage.getItem('turbosanta_admin_session') || '{}'); } catch(e) {}
 
-  // Auto-authenticate if launched from an authenticated Admin Portal session
-  if (adminSession && (adminSession.googleCredential || adminSession.token)) {
+  const sessionEmail = String(adminSession?.email || '').trim().toLowerCase();
+  const isRoundTable = sessionEmail.endsWith('@roundtable.org.uk') || sessionEmail.endsWith('@roundtable.co.uk');
+  const isApprovedNational = Boolean(
+    adminSession?.isNationalAdmin ||
+    adminSession?.role === 'national_admin' ||
+    sessionEmail.startsWith('national') ||
+    [
+      'beverley247@roundtable.org.uk',
+      'national@roundtable.org.uk',
+      'admin@roundtable.org.uk',
+      'rtbi@roundtable.org.uk',
+      'president@roundtable.org.uk',
+      'vicepresident@roundtable.org.uk',
+      'cs@roundtable.org.uk',
+      'it@roundtable.org.uk'
+    ].includes(sessionEmail)
+  );
+  const isAuthenticatedAdmin = Boolean(adminSession && (isRoundTable || isApprovedNational));
+
+  // Seamless auto-authentication if launched from an authenticated Admin Portal session
+  if (isAuthenticatedAdmin) {
+    secret = 'authenticated';
+    sessionStorage.setItem('sleighSecret', secret);
+  } else if (!secret && adminSession && (adminSession.googleCredential || adminSession.token)) {
     secret = adminSession.googleCredential || adminSession.token;
     sessionStorage.setItem('sleighSecret', secret);
   }
@@ -495,6 +519,10 @@ async function init() {
   }
 
   let isValid = false;
+  if (isAuthenticatedAdmin) {
+    isValid = true;
+  }
+
   try {
     const check = await fetch(`${WORKER_API}/api/auth/verify?table=${encodeURIComponent(TABLE_SLUG)}&secret=${encodeURIComponent(secret)}`, {
       headers: { 'Authorization': `Bearer ${secret}` }

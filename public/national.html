@@ -872,6 +872,8 @@ function handleGoogleCredentialResponse(response) {
     picture: payload.picture || '',
     role: 'national_admin',
     isNationalAdmin: true,
+    token: response?.credential || `ts2_${btoa(email + '_' + Date.now())}`,
+    googleCredential: response?.credential || null,
     authenticatedAt: new Date().toISOString()
   };
   localStorage.setItem('turbosanta_admin_session', JSON.stringify(adminSession));
