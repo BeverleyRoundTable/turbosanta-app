@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TurboSanta 2.0 — Google Sheet & Excel Data Importer</title>
+  <title>TurboSanta 2.0 � Google Sheet & Excel Data Importer</title>
   <meta name="theme-color" content="#0d0d0b">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -343,7 +343,7 @@
   <!-- HEADER -->
   <header class="migrate-header">
     <div class="header-left">
-      <img src="https://brt-23f.pages.dev/icons/RTBI_Santa.png" alt="TurboSanta Logo">
+      <img src="/icons/RTBI_Santa.png" alt="TurboSanta Logo">
       <div>
         <h1>TURBOSANTA <span>MIGRATION ENGINE</span></h1>
         <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Auto-Populate 2.0 Database from TurboSanta 1.0 Google Sheets</p>
@@ -375,7 +375,7 @@
       <div class="steps-row">
         <div class="step-item">
           <div class="step-num">1</div>
-          <div class="step-text">Open your 1.0 Google Sheet: click <strong>File → Download → Microsoft Excel (.xlsx)</strong></div>
+          <div class="step-text">Open your 1.0 Google Sheet: click <strong>File ? Download ? Microsoft Excel (.xlsx)</strong></div>
         </div>
         <div class="step-item">
           <div class="step-num">2</div>
@@ -505,19 +505,19 @@
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px;">
             <div>
               <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Sleigh Display Name</div>
-              <div style="font-size: 16px; font-weight: 700; color: #fff; margin-top: 2px;" id="prevSleighName">—</div>
+              <div style="font-size: 16px; font-weight: 700; color: #fff; margin-top: 2px;" id="prevSleighName">�</div>
             </div>
             <div>
               <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Fundraising Goal</div>
-              <div style="font-size: 16px; font-weight: 700; color: var(--primary); margin-top: 2px;" id="prevGoal">—</div>
+              <div style="font-size: 16px; font-weight: 700; color: var(--primary); margin-top: 2px;" id="prevGoal">�</div>
             </div>
             <div>
               <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Charity Name</div>
-              <div style="font-size: 16px; font-weight: 700; color: #fff; margin-top: 2px;" id="prevCharity">—</div>
+              <div style="font-size: 16px; font-weight: 700; color: #fff; margin-top: 2px;" id="prevCharity">�</div>
             </div>
             <div>
               <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Donate URL</div>
-              <div style="font-size: 12px; color: #86efac; word-break: break-all; margin-top: 2px;" id="prevDonateUrl">—</div>
+              <div style="font-size: 12px; color: #86efac; word-break: break-all; margin-top: 2px;" id="prevDonateUrl">�</div>
             </div>
           </div>
           <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border);">
@@ -858,7 +858,7 @@
           CURRENT_DATA = result;
           renderParsedPreview(result);
           generateSql();
-          showStatus(`✓ Workbook loaded! Found ${result.routes.length} routes, ${result.streets.length} streets, and ${result.volunteers.length} volunteers.`, 'success');
+          showStatus(`? Workbook loaded! Found ${result.routes.length} routes, ${result.streets.length} streets, and ${result.volunteers.length} volunteers.`, 'success');
         } catch (err) {
           console.error(err);
           showStatus(`Parse error: ${err.message}`, 'error');
@@ -888,14 +888,14 @@
           <td style="font-weight:700; color:#fff;">${r.name}</td>
           <td style="color:var(--text-muted);">${r.date || 'TBD'}</td>
           <td style="color:var(--text-muted);">${r.start_time} - ${r.end_time}</td>
-          <td>${r.gpx_url ? '<span style="color:#86efac; font-size:11px;">✓ Linked</span>' : '<span style="color:var(--text-muted); font-size:11px;">None</span>'}</td>
+          <td>${r.gpx_url ? '<span style="color:#86efac; font-size:11px;">? Linked</span>' : '<span style="color:var(--text-muted); font-size:11px;">None</span>'}</td>
           <td><span class="tag">${r.streets_count} streets</span></td>
         </tr>
       `).join('') || '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No routes found</td></tr>';
 
       // Streets List
       const streetsDiv = document.getElementById('streetsList');
-      streetsDiv.innerHTML = data.streets.map(s => `<span class="street-tag">📍 ${s.street_name}</span>`).join('') || '<p style="color:var(--text-muted);">No streets parsed.</p>';
+      streetsDiv.innerHTML = data.streets.map(s => `<span class="street-tag">?? ${s.street_name}</span>`).join('') || '<p style="color:var(--text-muted);">No streets parsed.</p>';
 
       // Volunteers Table
       const volTbody = document.getElementById('volunteersTableBody');
@@ -904,19 +904,19 @@
           <td style="font-weight:700; color:#fff;">${v.name}</td>
           <td><span class="tag" style="background:rgba(59,130,246,0.15); color:#93c5fd;">${v.role}</span></td>
           <td style="color:var(--text-muted);">${v.route_name}</td>
-          <td style="color:var(--text-muted);">${v.phone || '—'}</td>
+          <td style="color:var(--text-muted);">${v.phone || '�'}</td>
           <td><span style="color:${v.checked_in ? '#86efac' : 'var(--text-muted)'}; font-size:11px;">${v.checked_in ? 'Checked In' : 'Confirmed'}</span></td>
         </tr>
       `).join('') || '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No volunteer records found</td></tr>';
 
       // Settings
       document.getElementById('prevSleighName').innerText = data.settings.sleigh_display_name;
-      document.getElementById('prevGoal').innerText = `£${data.settings.fundraising_goal}`;
+      document.getElementById('prevGoal').innerText = `�${data.settings.fundraising_goal}`;
       document.getElementById('prevCharity').innerText = data.settings.charity_name || 'Round Table Charity';
-      document.getElementById('prevDonateUrl').innerText = data.settings.donate_url || '—';
+      document.getElementById('prevDonateUrl').innerText = data.settings.donate_url || '�';
 
       const paList = document.getElementById('paPresetsList');
-      paList.innerHTML = data.settings.pa_presets.slice(0, 6).map(p => `<li style="font-size:12px; color:var(--text-muted);">📢 "${p}"</li>`).join('') || '<li style="font-size:12px; color:var(--text-muted);">No presets in sheet</li>';
+      paList.innerHTML = data.settings.pa_presets.slice(0, 6).map(p => `<li style="font-size:12px; color:var(--text-muted);">?? "${p}"</li>`).join('') || '<li style="font-size:12px; color:var(--text-muted);">No presets in sheet</li>';
 
       // Sponsors Table
       const spTbody = document.getElementById('sponsorsTableBody');
@@ -925,8 +925,8 @@
           <td style="font-weight:700; color:#fff;">${sp.company}</td>
           <td style="color:var(--text-muted);">${sp.sponsorship_type}</td>
           <td style="color:var(--text-muted);">${sp.route_name || 'Season Sponsor'}</td>
-          <td style="color:#86efac; font-weight:700;">£${sp.amount_pledged}</td>
-          <td>${sp.logo_url ? '<span style="color:#86efac; font-size:11px;">✓ Logo</span>' : '<span style="color:var(--text-muted); font-size:11px;">None</span>'}</td>
+          <td style="color:#86efac; font-weight:700;">�${sp.amount_pledged}</td>
+          <td>${sp.logo_url ? '<span style="color:#86efac; font-size:11px;">? Logo</span>' : '<span style="color:var(--text-muted); font-size:11px;">None</span>'}</td>
         </tr>
       `).join('') || '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No sponsors detected</td></tr>';
     }
@@ -980,7 +980,7 @@
         });
 
         confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
-        showStatus(`🎉 Migration Successful! Table '${slug}' populated with ${CURRENT_DATA.routes.length} routes and ${CURRENT_DATA.streets.length} streets in Cloudflare D1 SQL!`, 'success');
+        showStatus(`?? Migration Successful! Table '${slug}' populated with ${CURRENT_DATA.routes.length} routes and ${CURRENT_DATA.streets.length} streets in Cloudflare D1 SQL!`, 'success');
       } catch (err) {
         showStatus(`Notice: Local save complete. API note: ${err.message}`, 'info');
       } finally {

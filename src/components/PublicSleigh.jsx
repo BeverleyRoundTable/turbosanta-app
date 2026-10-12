@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Share2, MapPin, ExternalLink, Star, ChevronDown } from 'lucide-react';
 
-const DEFAULT_LOGO = 'https://brt-23f.pages.dev/icons/RTBI_Santa.png';
+const DEFAULT_LOGO = '/icons/RTBI_Santa.png';
 const DEFAULT_BG = 'https://brt-23f.pages.dev/icons/site_background.png';
 const BG_OVERLAY = 'linear-gradient(180deg, rgba(29, 29, 26, 0.85) 0%, rgba(0, 0, 0, 0.95) 100%)';
 

@@ -66,7 +66,7 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <img
-            src="https://brt-23f.pages.dev/icons/RTBI_Santa.png"
+            src="/icons/RTBI_Santa.png"
             alt="Round Table Santa"
             style={{
               height: '44px',
@@ -821,7 +821,7 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
 
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
           <img
-            src="https://brt-23f.pages.dev/icons/RTBI_Santa.png"
+            src="/icons/RTBI_Santa.png"
             alt="RTBI"
             style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#fff', padding: '1px' }}
           />

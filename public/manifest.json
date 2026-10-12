@@ -8,12 +8,12 @@
   "theme_color": "#FBAF33",
   "icons": [
     {
-      "src": "https://brt-23f.pages.dev/icons/RTBI_Santa.png",
+      "src": "/icons/RTBI_Santa.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "https://brt-23f.pages.dev/icons/RTBI_Santa.png",
+      "src": "/icons/RTBI_Santa.png",
       "sizes": "512x512",
       "type": "image/png"
     }

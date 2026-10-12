@@ -55,7 +55,7 @@ export default function Navbar({ tableData, onBackToPortal }) {
           color: 'var(--text-main)'
         }}>
           <img
-            src="https://brt-23f.pages.dev/icons/RTBI_Santa.png"
+            src="/icons/RTBI_Santa.png"
             alt="Round Table Santa"
             style={{
               height: '46px',
