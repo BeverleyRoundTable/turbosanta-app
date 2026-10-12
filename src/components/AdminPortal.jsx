@@ -416,8 +416,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     gemini_api_key: tableData?.table?.gemini_api_key || '',
     expenses: tableData?.table?.expenses !== undefined ? tableData?.table?.expenses : (tableData?.expenses !== undefined ? tableData?.expenses : 0),
     expenses_json: tableData?.table?.expenses_json || tableData?.expenses_json || null,
-    background_mode: tableData?.table?.background_mode || (typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${tableSlug}_bg_mode`) : null) || 'video',
-    background_video_url: tableData?.table?.background_video_url || (typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${tableSlug}_bg_video`) : null) || '',
+    background_mode: tableData?.table?.background_mode || (typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${currentTableSlug}_bg_mode`) : null) || 'video',
+    background_video_url: tableData?.table?.background_video_url || (typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${currentTableSlug}_bg_video`) : null) || '',
     background_url: tableData?.table?.background_url || ''
   });
 
