@@ -424,6 +424,7 @@
           <button class="profile-btn active" data-profile="foot" onclick="setProfile(this)">🚶 Walking</button>
           <button class="profile-btn" data-profile="driving" onclick="setProfile(this)">🚗 Driving</button>
           <button class="profile-btn" data-profile="bike" onclick="setProfile(this)">🚴 Cycling</button>
+          <button class="profile-btn" data-profile="direct" onclick="setProfile(this)">🛷 Direct / Sleigh</button>
         </div>
         <div class="wp-list" id="wpList"></div>
         <div class="btn-row" style="justify-content: center;">
@@ -697,6 +698,16 @@ window.deleteWpIndex = async function(i) {
 
 async function routeAllWaypoints() {
   if (waypoints.length < 2) return;
+
+  // DIRECT / SLEIGH MODE: Bypass OSRM entirely
+  // Snaps directly between user clicks, preventing detours and snickets
+  if (routingProfile === 'direct') {
+    snappedGeometry = waypoints.map(w => [w.lat, w.lng]);
+    roadNameMap = new Array(snappedGeometry.length).fill('');
+    drawSnappedRoute();
+    return;
+  }
+
   if (routingInProgress) return;
   routingInProgress = true;
 
@@ -712,6 +723,19 @@ async function routeAllWaypoints() {
     const data = await res.json();
 
     if (data.code !== 'Ok' || !data.routes || !data.routes[0]) {
+      snappedGeometry = waypoints.map(w => [w.lat, w.lng]);
+      drawSnappedRoute();
+      return;
+    }
+
+    // DETOUR SAFETY CHECK:
+    // If driving mode took an absurd detour (e.g. >2.5x straight-line distance)
+    // because of a pedestrian zone, fall back to direct lines between clicks
+    const straightKm = calcDist(waypoints.map(w => [w.lat, w.lng]));
+    const routedKm = data.routes[0].distance / 1000;
+    
+    if (routingProfile === 'driving' && routedKm > straightKm * 2.5) {
+      console.warn("Detected pedestrian-zone detour. Falling back to direct road placement.");
       snappedGeometry = waypoints.map(w => [w.lat, w.lng]);
       drawSnappedRoute();
       return;
