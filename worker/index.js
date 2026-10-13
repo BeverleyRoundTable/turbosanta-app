@@ -1004,7 +1004,7 @@ SANTA'S SPOKEN RESPONSE:`;
         return jsonResponse({ error: "Unauthorized: Admin credentials required to update settings" }, 401);
       }
 
-      const {
+      let {
         sleigh_display_name,
         fundraising_goal,
         expenses,
