@@ -150,7 +150,15 @@
         if (!res.ok) throw new Error("API " + res.status);
         return res.json();
       })
-      .then(function (data) { return data.routes || []; });
+      .then(function (data) {
+        if (data && data.table && data.table.logo_url) {
+          var iconEl = document.getElementById("site-favicon") || document.querySelector("link[rel='icon']");
+          if (iconEl && iconEl.href !== data.table.logo_url) iconEl.href = data.table.logo_url;
+          var appleIconEl = document.getElementById("site-apple-touch-icon") || document.querySelector("link[rel='apple-touch-icon']");
+          if (appleIconEl && appleIconEl.href !== data.table.logo_url) appleIconEl.href = data.table.logo_url;
+        }
+        return data.routes || [];
+      });
   }
 
   /* ---------- widget styling & injection ---------- */
@@ -220,6 +228,9 @@
 
     var el = document.createElement(WIDGET_TAG);
     el.setAttribute("agent-id", finalAgentId);
+    el.setAttribute("default-expanded", "true");
+    el.setAttribute("always-expanded", "true");
+    el.setAttribute("show-resize-button", "true");
 
     // Safely inject dynamic variables if valid ASCII string
     if (lastRouteInfo && typeof lastRouteInfo === "string") {

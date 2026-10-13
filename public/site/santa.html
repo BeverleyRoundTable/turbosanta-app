@@ -20,6 +20,10 @@ caches your custom fonts for a year, drastically speeding up load times:
     <title>Santa Sleigh Live Tracker | Beverley Round Table</title>
     <meta name="description" content="Follow Santa live on his journey, check when he is visiting your street, and help us raise vital funds for the local community this Christmas!">
 
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" id="site-favicon" href="https://roundtablesantasleigh.co.uk/icons/Beverley_Santa_Logo.png">
+    <link rel="apple-touch-icon" id="site-apple-touch-icon" href="https://roundtablesantasleigh.co.uk/icons/Beverley_Santa_Logo.png">
+
   <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "cffba8ec428244afb6e6301c783e10a4"}'></script><!-- End Cloudflare Web Analytics -->
   
     <!-- Open Graph / Social Sharing -->
@@ -878,6 +882,15 @@ function renderDonations(donations, settings) {
                 if (!response.ok) throw new Error('Failed to load routes');
                 
                 const raw = await response.json();
+                
+                // Dynamic Favicon from table logo_url in Cloudflare D1
+                const dynamicLogo = raw.table?.logo_url || raw.settings?.logo_url;
+                if (dynamicLogo) {
+                    const fav = document.getElementById('site-favicon') || document.querySelector("link[rel='icon']");
+                    if (fav && fav.href !== dynamicLogo) fav.href = dynamicLogo;
+                    const appleFav = document.getElementById('site-apple-touch-icon') || document.querySelector("link[rel='apple-touch-icon']");
+                    if (appleFav && appleFav.href !== dynamicLogo) appleFav.href = dynamicLogo;
+                }
                 
                 // Normalize D1 payload
                 const donations = {
