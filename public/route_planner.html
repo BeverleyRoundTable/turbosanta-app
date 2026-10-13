@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1116,15 +1116,21 @@ function copyCSV() {
 // EXISTING ROUTES (API INTEGRATION)
 // ═══════════════════════════════════════
 const params = new URLSearchParams(location.search);
-let API_URL = params.get("api") || localStorage.getItem("SANTA_API") || sessionStorage.getItem("SANTA_API");
-
-if (API_URL) {
-  localStorage.setItem("SANTA_API", API_URL); 
-  sessionStorage.setItem("SANTA_API", API_URL);
+const tableParam = params.get("table") || window.__sleighTableSlug || localStorage.getItem("turbosanta_last_table") || "beverley";
+if (tableParam) {
+  localStorage.setItem("turbosanta_last_table", tableParam);
 }
 
+const legacyApi = params.get("api");
 const WORKER_URL = "https://santaproxy.beverley247.workers.dev/";
-const DATA_URL = API_URL ? `${WORKER_URL}?ttl=30&target=${encodeURIComponent(API_URL)}` : null;
+
+let DATA_URL = null;
+if (legacyApi) {
+  localStorage.setItem("SANTA_API", legacyApi);
+  DATA_URL = `${WORKER_URL}?ttl=30&target=${encodeURIComponent(legacyApi)}`;
+} else {
+  DATA_URL = `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableParam)}`;
+}
 
 function normaliseUrl(url) {
   const u = String(url || '').trim();
@@ -1147,13 +1153,16 @@ async function loadExistingRoutes() {
   if (!DATA_URL) return;
   try {
     const res = await fetch(DATA_URL, { cache: "no-store" });
+    if (!res.ok) return;
     const data = await res.json();
-    const routes = (data.routes || []).filter(r => r.gpxUrl);
+    const routes = (data.routes || []).filter(r => r.gpx_url || r.gpxUrl);
 
     for (let i = 0; i < routes.length; i++) {
       const route = routes[i];
+      const gpxUrl = route.gpx_url || route.gpxUrl;
+      const routeName = route.name || route.routeName || 'Existing route';
       try {
-        const gpxRes = await fetch(normaliseUrl(route.gpxUrl), { cache: "no-store" });
+        const gpxRes = await fetch(normaliseUrl(gpxUrl), { cache: "no-store" });
         if (!gpxRes.ok) continue;
         const gpxText = await gpxRes.text();
 
@@ -1179,11 +1188,12 @@ async function loadExistingRoutes() {
             dashArray: '8 6' 
           }).addTo(map);
           
-          layer.bindTooltip(route.routeName || 'Existing route', { sticky: true });
+          const tooltipContent = route.date ? `<strong>${routeName}</strong><br><small style="color:#fbaf33;">${route.date}</small>` : `<strong>${routeName}</strong>`;
+          layer.bindTooltip(tooltipContent, { sticky: true });
           existingRouteLayers.push(layer);
         }
       } catch(e) {
-        console.error('Failed to load specific route GPX:', route.routeName, e);
+        console.error('Failed to load specific route GPX:', routeName, e);
       }
     }
 

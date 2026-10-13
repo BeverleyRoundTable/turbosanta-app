@@ -1496,7 +1496,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
 
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 <a
-                  href="/route_planner.html"
+                  href={`/route_planner.html?table=${encodeURIComponent(currentTableSlug)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-secondary"
@@ -5818,6 +5818,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         route={editingRoute}
         onSaveRoute={handleSaveRoute}
         onDeleteRoute={handleDeleteRoute}
+        tableSlug={currentTableSlug}
       />
 
       {/* Operating Expenses & Receipts Modal */}

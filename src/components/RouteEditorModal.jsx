@@ -12,7 +12,7 @@ function formatRouteDateWithWeekday(dateStr) {
   return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, onDeleteRoute }) {
+export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, onDeleteRoute, tableSlug = 'beverley' }) {
   if (!isOpen) return null;
 
   const isCopy = Boolean(route?.isCopy);
@@ -369,7 +369,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                   </span>
                 </div>
                 <a
-                  href="/route_planner.html"
+                  href={`/route_planner.html?table=${encodeURIComponent(tableSlug || 'beverley')}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{

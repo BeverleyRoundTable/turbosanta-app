@@ -577,7 +577,7 @@
               <li>Click <strong>Detect Streets</strong> to auto-extract every visited street via reverse-geocoding.</li>
               <li>Export high-density (5m/10m) GPX files.</li>
             </ul>
-            <a href="/route_planner.html" target="_blank" class="btn" style="margin-top: 10px;">Launch Route Planner <i class="fa-solid fa-route"></i></a>
+            <a href="/route_planner.html?table=beverley" id="linkRoutePlanner" target="_blank" class="btn" style="margin-top: 10px;">Launch Route Planner <i class="fa-solid fa-route"></i></a>
           </div>
         </div>
       </section>
@@ -834,6 +834,10 @@
       // Update Migration Link
       const linkMigrate = document.getElementById('guideMigrateLaunchBtn');
       if (linkMigrate) linkMigrate.href = `/migrate.html?table=${slug}`;
+
+      // Update Route Planner Link
+      const linkPlanner = document.getElementById('linkRoutePlanner');
+      if (linkPlanner) linkPlanner.href = `/route_planner.html?table=${slug}`;
 
       // Update any element displaying the active table name in Proper Case
       document.querySelectorAll('.active-table-name').forEach(el => {
