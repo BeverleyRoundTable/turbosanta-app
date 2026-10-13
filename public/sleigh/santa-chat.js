@@ -520,14 +520,14 @@
           <div class="ts-avatar">🎅</div>
           <div class="ts-status-dot" title="Connected to Lapland"></div>
         </div>
-        <h3 class="ts-title">Talk to Father Christmas</h3>
+        <h3 class="ts-title">Talk to Santa</h3>
         <div class="ts-subtitle">${town} Round Table Sleigh</div>
         <div class="ts-route-badge">${routeBadgeText}</div>
       </div>
 
       <div class="ts-dialog-area" id="ts-dialog-area">
         <div class="ts-bubble santa">
-          Ho ho ho! Merry Christmas! I am Father Christmas speaking to you live from Lapland! 
+          Ho ho ho! Merry Christmas! I am Santa speaking to you live from Lapland! 
           Tap the big golden microphone below to speak with me!
         </div>
       </div>

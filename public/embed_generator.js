@@ -172,7 +172,7 @@ function generateAllEmbeds() {
   // 05: Elf Cam (Lapland)
   setLink("elfcamLink", buildUrl("elf_cam.html"));
 
-  // 06: Letter to Father Christmas
+  // 06: Letter to Santa
   setLink("letterLink", buildUrl("letter.html"));
 
   // 07: Magic Mailbox

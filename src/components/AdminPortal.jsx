@@ -29,11 +29,11 @@ export const PUBLIC_SLOT_OPTIONS = [
   { id: 'countdown', label: 'Christmas Eve Departure Countdown Clock', desc: 'Live countdown ticker to Santa departure from Lapland on Christmas Eve.', preview: (slug) => `/countdown.html?table=${encodeURIComponent(slug)}` },
   { id: 'door_hanger', label: 'Official Door Hanger Generator', desc: 'Printable festive door hangers with live tracking QR code for families.', preview: (slug) => `/door_hanger.html?table=${encodeURIComponent(slug)}` },
   { id: 'elf_cam', label: 'Lapland Elf Cam (Live Workshop Stream)', desc: 'Live camera feed and status updates directly from Santa Workshop in Lapland.', preview: (slug) => `/elf_cam.html?table=${encodeURIComponent(slug)}` },
-  { id: 'letter', label: 'Letter to Father Christmas (Wish List Writer)', desc: 'Festive letter stationery for children to write wish lists straight to Lapland.', preview: (slug) => `/letter.html?table=${encodeURIComponent(slug)}` },
+  { id: 'letter', label: 'Letter to Santa (Wish List Writer)', desc: 'Festive letter stationery for children to write wish lists straight to Lapland.', preview: (slug) => `/letter.html?table=${encodeURIComponent(slug)}` },
   { id: 'magic_mailbox', label: 'Magic Lapland Mailbox (Voice Messages)', desc: 'Digital mailbox allowing children to record audio messages directly for Santa.', preview: (slug) => `/magic_mailbox.html?table=${encodeURIComponent(slug)}` },
   { id: 'nice_list', label: 'Official Lapland Nice List Certificate', desc: 'Customizable certificate proving the child made Santa Good List this Christmas.', preview: (slug) => `/nice_list.html?table=${encodeURIComponent(slug)}` },
   { id: 'adopt_reindeer', label: 'Adopt an Official Sleigh Reindeer', desc: 'Adopt Rudolph, Dasher, Prancer, or Comet and print an adoption certificate.', preview: (slug) => `/adopt_reindeer.html?table=${encodeURIComponent(slug)}` },
-  { id: 'santa_chat', label: 'Talk to Santa (Voice & Chat Hotline)', desc: 'Interactive phone booth to speak out loud with Father Christmas in Lapland.', preview: (slug) => `/santa_chat.html?table=${encodeURIComponent(slug)}` },
+  { id: 'santa_chat', label: 'Talk to Santa (Voice & Chat Hotline)', desc: 'Interactive phone booth to speak out loud with Santa in Lapland.', preview: (slug) => `/santa_chat.html?table=${encodeURIComponent(slug)}` },
   { id: 'santa_frame', label: 'Santa Visited Photo Frame Stamper', desc: 'Commemorative photo frame to stamp family pictures with date of Santa visit.', preview: (slug) => `/santa_frame.html?table=${encodeURIComponent(slug)}` },
   { id: 'santa_studio', label: 'Santa Audio Studio (Workshop Dispatch)', desc: 'Santa workshop audio portal for recording festive voice messages and replies.', preview: (slug) => `/santa_studio.html?table=${encodeURIComponent(slug)}` },
   { id: 'snowman', label: 'Snowman Maker & Creator Studio', desc: 'Interactive snowman builder allowing kids to customise hats, scarves, and mittens.', preview: (slug) => `/snowman.html?table=${encodeURIComponent(slug)}` },
@@ -4678,7 +4678,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                         </span>
                       </div>
                       <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 10px 0', lineHeight: 1.4 }}>
-                        Send a test question to verify that Father Christmas responds with your configured Gemini model (<code style={{ color: '#FBAF33' }}>{formData.gemini_model || 'auto'}</code>) and local route awareness before going live.
+                        Send a test question to verify that Santa responds with your configured Gemini model (<code style={{ color: '#FBAF33' }}>{formData.gemini_model || 'auto'}</code>) and local route awareness before going live.
                       </p>
 
                       <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
