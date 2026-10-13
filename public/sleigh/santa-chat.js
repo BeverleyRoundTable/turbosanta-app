@@ -171,37 +171,43 @@
 
   function ensureShadowFillStyle(el) {
     if (!el) return;
-    var apply = function () {
-      if (!el.shadowRoot) return false;
-      var sheet = el.shadowRoot.querySelector(".sheet");
-      if (sheet && !el.shadowRoot.getElementById("santa-fill-style")) {
-        var s = document.createElement("style");
-        s.id = "santa-fill-style";
-        s.textContent =
-          ".overlay {" +
-          "  inset: 8px !important;" +
-          "  right: 8px !important;" +
-          "}" +
-          ".sheet {" +
-          "  width: 100% !important;" +
-          "  max-width: 100% !important;" +
-          "  height: 100% !important;" +
-          "  max-height: 100% !important;" +
-          "  border-radius: 24px !important;" +
-          "}";
-        el.shadowRoot.appendChild(s);
+    function injectStyle() {
+      try {
+        if (!el.shadowRoot) return false;
+        var sheet = el.shadowRoot.querySelector(".sheet");
+        if (sheet && !el.shadowRoot.getElementById("santa-fill-style")) {
+          var s = document.createElement("style");
+          s.id = "santa-fill-style";
+          s.textContent =
+            ".overlay {" +
+            "  inset: 8px !important;" +
+            "  right: 8px !important;" +
+            "}" +
+            ".sheet {" +
+            "  width: 100% !important;" +
+            "  max-width: 100% !important;" +
+            "  height: 100% !important;" +
+            "  max-height: 100% !important;" +
+            "  border-radius: 24px !important;" +
+            "}";
+          el.shadowRoot.appendChild(s);
+        }
         return true;
-      }
-      return false;
-    };
+      } catch (e) { return false; }
+    }
 
-    var attempts = 0;
+    var obs = null;
     var timer = setInterval(function () {
-      attempts++;
-      if (apply() || attempts > 60) {
-        clearInterval(timer);
+      if (el.shadowRoot) {
+        injectStyle();
+        if (!obs && window.MutationObserver) {
+          obs = new MutationObserver(function () {
+            injectStyle();
+          });
+          obs.observe(el.shadowRoot, { childList: true, subtree: true });
+        }
       }
-    }, 250);
+    }, 300);
   }
 
   function injectWidget(agentId) {
@@ -214,7 +220,18 @@
 
     var el = document.createElement(WIDGET_TAG);
     el.setAttribute("agent-id", finalAgentId);
-    el.setAttribute("dynamic-variables", JSON.stringify({ route_info: lastRouteInfo }));
+
+    // Safely inject dynamic variables if valid ASCII string
+    if (lastRouteInfo && typeof lastRouteInfo === "string") {
+      var cleanRoute = lastRouteInfo.replace(/[^\x20-\x7E]/g, "").trim();
+      if (cleanRoute) {
+        try {
+          el.setAttribute("dynamic-variables", JSON.stringify({ route_info: cleanRoute }));
+        } catch (e) {
+          console.warn("[SantaChat] Dynamic variables error:", e);
+        }
+      }
+    }
 
     if (CONFIG.labels.action) el.setAttribute("action-text", CONFIG.labels.action);
     if (CONFIG.labels.start) el.setAttribute("start-call-text", CONFIG.labels.start);

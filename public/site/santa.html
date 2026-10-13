@@ -383,25 +383,27 @@ caches your custom fonts for a year, drastically speeding up load times:
 
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                    <div>
-                        <div class="inline-flex items-center gap-2 bg-brt-red/20 text-brt-red px-4 py-2 rounded-full font-heading font-bold uppercase text-sm mb-6 border border-brt-red/30">
+                    <div class="text-center lg:text-left flex flex-col items-center lg:items-start">
+                        <div class="inline-flex items-center gap-2 bg-brt-red/20 text-brt-red px-4 py-2 rounded-full font-heading font-bold uppercase text-sm mb-6 border border-brt-red/30 mx-auto lg:mx-0">
                             <span class="relative flex h-3 w-3">
                               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brt-red opacity-75"></span>
                               <span class="relative inline-flex rounded-full h-3 w-3 bg-brt-red"></span>
                             </span>
                             Live AI Connection
                         </div>
-                        <h2 class="font-heading font-black text-4xl md:text-5xl uppercase text-white mb-6 leading-tight">Talk to Santa <br><span class="text-brt-red">LIVE from Lapland!</span></h2>
-                        <div class="space-y-4 font-body text-gray-300 text-lg">
-                            <p>The big man himself has hooked up his magical telephone to Beverley and he's ready for a natter! Ask him about Rudolph, the elves, or tell him what's top of your Christmas list.</p>
-                            <ul class="list-disc pl-5 space-y-2 text-gray-400">
-                                <li><strong class="text-white">Tap the phone</strong> to start the call.</li>
-                                <li><strong class="text-white">Talk out loud</strong>, or type if you're feeling shy — he answers in his own jolly voice!</li>
-                                <li>You've got <strong class="text-white">3 magical minutes</strong> before he dashes back to the workshop!</li>
-                            </ul>
-                            <div class="mt-8 p-5 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm">
+                        <h2 class="font-heading font-black text-4xl md:text-5xl uppercase text-white mb-6 leading-tight text-center lg:text-left">Talk to Santa <br><span class="text-brt-red">LIVE from Lapland!</span></h2>
+                        <div class="space-y-4 font-body text-gray-300 text-lg w-full">
+                            <p class="max-w-xl mx-auto lg:mx-0 text-center lg:text-left">The big man himself has hooked up his magical telephone to Beverley and he's ready for a natter! Ask him about Rudolph, the elves, or tell him what's top of your Christmas list.</p>
+                            <div class="text-center lg:text-left my-2">
+                                <ul class="list-disc text-left inline-block pl-6 space-y-2 text-gray-400 max-w-md">
+                                    <li><strong class="text-white">Tap the phone</strong> to start the call.</li>
+                                    <li><strong class="text-white">Talk out loud</strong>, or type if you're feeling shy — he answers in his own jolly voice!</li>
+                                    <li>You've got <strong class="text-white">3 magical minutes</strong> before he dashes back to the workshop!</li>
+                                </ul>
+                            </div>
+                            <div class="mt-8 p-5 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm max-w-lg mx-auto lg:mx-0 text-left">
                                 <p class="text-sm flex items-start gap-3 text-gray-400">
-                                    <i class="fa-solid fa-shield-halved text-brt-red mt-1 text-lg"></i> 
+                                    <i class="fa-solid fa-shield-halved text-brt-red mt-1 text-lg shrink-0"></i> 
                                     <span>For the grown-ups: Powered by highly advanced AI voice magic from ElevenLabs. No audio is recorded or stored.</span>
                                 </p>
                             </div>
@@ -410,7 +412,7 @@ caches your custom fonts for a year, drastically speeding up load times:
                     <div class="flex justify-center lg:justify-end">
                         <div class="bg-gradient-to-b from-white/10 to-transparent p-4 rounded-[2.5rem] border border-brt-red/30 shadow-[0_0_40px_rgba(211,28,28,0.15)] w-full max-w-md relative">
                             <!-- ELEVENLABS CHAT IFRAME -->
-                            <iframe id="santa-chat-iframe" src="https://roundtablesantasleigh.co.uk/santa_chat.html?table=beverley" allow="microphone; autoplay" class="w-full h-[600px] border-0 rounded-[2rem] bg-[#1d1d1a] iframe-loading" title="Talk to Santa Claus" loading="lazy" onload="this.classList.remove('iframe-loading')"></iframe>
+                            <iframe id="santa-chat-iframe" src="https://roundtablesantasleigh.co.uk/santa_chat.html?table=beverley" allow="microphone *; autoplay *; speaker-selection *; clipboard-write *" class="w-full h-[600px] border-0 rounded-[2rem] bg-[#1d1d1a] iframe-loading" title="Talk to Santa Claus" loading="lazy" onload="this.classList.remove('iframe-loading')"></iframe>
                         </div>
                     </div>
                 </div>
@@ -571,7 +573,7 @@ caches your custom fonts for a year, drastically speeding up load times:
         // ---------------------------------------------------------
         const TABLE_SLUG = 'beverley';
         const D1_API_URL = `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${TABLE_SLUG}`;
-        const FRAME_BASE = window.location.origin.includes('localhost') ? window.location.origin : 'https://turbosanta-app.pages.dev';
+        const FRAME_BASE = window.location.origin.includes('localhost') ? window.location.origin : 'https://roundtablesantasleigh.co.uk';
 
         // Helper to parse route dates safely
         function parseRouteDate(v) {
@@ -1071,7 +1073,9 @@ function renderDonations(donations, settings) {
             const santaChatUrl = `${FRAME_BASE}/santa_chat.html?table=${TABLE_SLUG}`;
             const santaChatFrame = document.getElementById('santa-chat-iframe');
             if (santaChatFrame) {
-                santaChatFrame.src = santaChatUrl;
+                if (!santaChatFrame.src || !santaChatFrame.src.includes('santa_chat.html')) {
+                    santaChatFrame.src = santaChatUrl;
+                }
                 santaChatFrame.onload = () => santaChatFrame.classList.remove('iframe-loading');
             }
 
