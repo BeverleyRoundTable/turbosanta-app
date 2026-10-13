@@ -213,8 +213,14 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
       msg += `🗺️ *Streets (${streetNames.length}):*\n${streetNames.join(', ')}\n\n`;
     }
 
-    if (route.sponsor_name) {
-      msg += `⭐ *Tonight's Sponsor:* ${route.sponsor_name}\n\n`;
+    const routeSponsors = Array.isArray(route.sponsors) && route.sponsors.length > 0
+      ? route.sponsors.filter(s => s && s.name)
+      : (route.sponsor_name ? [{ name: route.sponsor_name }] : []);
+
+    if (routeSponsors.length === 1) {
+      msg += `⭐ *Tonight's Sponsor:* ${routeSponsors[0].name}\n\n`;
+    } else if (routeSponsors.length > 1) {
+      msg += `⭐ *Tonight's Sponsors:* ${routeSponsors.map(s => s.name).join(', ')}\n\n`;
     }
 
     msg += `📱 *Live Public Tracker:* ${trackerUrl}\n`;
@@ -882,6 +888,12 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
       gpx_file_name: sourceRoute.gpx_file_name || (sourceRoute.gpx_url ? 'route.gpx' : ''),
       planned_stops: sourceRoute.planned_stops || [],
       streets: routeStreets.map(s => ({ street_name: s.street_name })),
+      sponsors: sourceRoute.sponsors || (sourceRoute.sponsor_name ? [{
+        name: sourceRoute.sponsor_name,
+        link: sourceRoute.sponsor_link || '',
+        description: sourceRoute.sponsor_description || '',
+        logo_url: sourceRoute.sponsor_logo_url || sourceRoute.sponsor_logo || ''
+      }] : []),
       sponsor_name: sourceRoute.sponsor_name || '',
       sponsor_link: sourceRoute.sponsor_link || '',
       sponsor_description: sourceRoute.sponsor_description || '',
@@ -1742,11 +1754,17 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                                   <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                                     <strong>Streets:</strong> {routeStreets.map(s => s.street_name).join(', ') || 'None specified'}
                                   </div>
-                                  {r.sponsor_name && (
-                                    <div style={{ fontSize: '12px', color: '#86efac', marginTop: '6px' }}>
-                                      ⭐ Sponsored by: <strong>{r.sponsor_name}</strong>
-                                    </div>
-                                  )}
+                                  {(() => {
+                                     const routeSponsors = Array.isArray(r.sponsors) && r.sponsors.length > 0
+                                       ? r.sponsors.filter(s => s && s.name)
+                                       : (r.sponsor_name ? [{ name: r.sponsor_name }] : []);
+                                     if (routeSponsors.length === 0) return null;
+                                     return (
+                                       <div style={{ fontSize: '12px', color: '#86efac', marginTop: '6px' }}>
+                                         ⭐ Sponsored by: <strong>{routeSponsors.map(s => s.name).join(' • ')}</strong>
+                                       </div>
+                                     );
+                                   })()}
                                 </div>
 
                                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -1899,11 +1917,17 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                                   <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                                     <strong>Streets:</strong> {routeStreets.map(s => s.street_name).join(', ') || 'None specified'}
                                   </div>
-                                  {r.sponsor_name && (
-                                    <div style={{ fontSize: '12px', color: '#86efac', marginTop: '6px' }}>
-                                      ⭐ Sponsored by: <strong>{r.sponsor_name}</strong>
-                                    </div>
-                                  )}
+                                  {(() => {
+                                     const routeSponsors = Array.isArray(r.sponsors) && r.sponsors.length > 0
+                                       ? r.sponsors.filter(s => s && s.name)
+                                       : (r.sponsor_name ? [{ name: r.sponsor_name }] : []);
+                                     if (routeSponsors.length === 0) return null;
+                                     return (
+                                       <div style={{ fontSize: '12px', color: '#86efac', marginTop: '6px' }}>
+                                         ⭐ Sponsored by: <strong>{routeSponsors.map(s => s.name).join(' • ')}</strong>
+                                       </div>
+                                     );
+                                   })()}
                                 </div>
 
                                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>

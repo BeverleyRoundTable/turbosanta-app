@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { X, Calendar, Clock, MapPin, Building2, Save, Trash2, UploadCloud, FileText, CheckCircle2, Navigation, ExternalLink, Sparkles } from 'lucide-react';
+import { X, Calendar, Clock, MapPin, Building2, Save, Trash2, UploadCloud, FileText, CheckCircle2, Navigation, ExternalLink, Sparkles, Plus } from 'lucide-react';
 import DropzoneUpload from './DropzoneUpload';
 import { uploadAssetToR2 } from '../services/api';
 
@@ -18,6 +18,28 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
   const isCopy = Boolean(route?.isCopy);
   const isEditing = Boolean(route?.id) && !isCopy;
   const gpxFileInputRef = useRef(null);
+
+  const getInitialSponsors = () => {
+    if (Array.isArray(route?.sponsors) && route.sponsors.length > 0) {
+      return route.sponsors.map(s => ({
+        name: s.name || s.sponsor_name || '',
+        link: s.link || s.sponsor_link || '',
+        description: s.description || s.sponsor_description || '',
+        logo_url: s.logo_url || s.sponsor_logo_url || s.sponsor_logo || ''
+      }));
+    }
+    if (route?.sponsor_name || route?.sponsor_logo_url || route?.sponsor_logo) {
+      return [{
+        name: route.sponsor_name || '',
+        link: route.sponsor_link || '',
+        description: route.sponsor_description || '',
+        logo_url: route.sponsor_logo_url || route.sponsor_logo || ''
+      }];
+    }
+    return [];
+  };
+
+  const [sponsors, setSponsors] = useState(getInitialSponsors);
 
   const [formData, setFormData] = useState({
     id: route?.id || `route_${Date.now()}`,
@@ -129,6 +151,21 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
     reader.readAsText(file);
   };
 
+  const handleAddSponsor = () => {
+    setSponsors(prev => [
+      ...prev,
+      { name: '', link: '', description: '', logo_url: '' }
+    ]);
+  };
+
+  const handleRemoveSponsor = (index) => {
+    setSponsors(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateSponsor = (index, field, value) => {
+    setSponsors(prev => prev.map((s, i) => i === index ? { ...s, [field]: value } : s));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.name.trim()) {
@@ -163,10 +200,25 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
         sequence_order: idx + 1
       }));
 
+    const validSponsors = sponsors
+      .map(s => ({
+        name: (s.name || '').trim(),
+        link: (s.link || '').trim(),
+        description: (s.description || '').trim(),
+        logo_url: (s.logo_url || '').trim()
+      }))
+      .filter(s => s.name || s.logo_url);
+
     const updatedRoute = {
       ...formData,
       id: targetId,
-      streets: streetsArray
+      streets: streetsArray,
+      sponsors: validSponsors,
+      sponsors_json: validSponsors.length > 0 ? JSON.stringify(validSponsors) : null,
+      sponsor_name: validSponsors[0]?.name || '',
+      sponsor_link: validSponsors[0]?.link || '',
+      sponsor_description: validSponsors[0]?.description || '',
+      sponsor_logo_url: validSponsors[0]?.logo_url || ''
     };
     delete updatedRoute.isCopy;
     delete updatedRoute.originalDate;
@@ -493,7 +545,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
             </div>
           </div>
 
-          {/* Route Sponsor Section (with Drag & Drop Logo Upload) */}
+          {/* Route Sponsor Section (with Multi-Sponsor Support & Drag & Drop Logo Upload) */}
           <div style={{
             background: '#0d0d0b',
             border: '1px solid rgba(251, 175, 51, 0.3)',
@@ -501,88 +553,192 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
             padding: '20px',
             marginBottom: '24px'
           }}>
-            <h3 className="brand-font" style={{ fontSize: '16px', color: 'var(--primary)', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Building2 size={18} />
-              <span>Route Sponsor Attribution</span>
-            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+              <h3 className="brand-font" style={{ fontSize: '16px', color: 'var(--primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Building2 size={18} />
+                <span>Route Sponsor Attribution</span>
+                <span style={{ fontSize: '12px', fontWeight: 'normal', color: sponsors.length ? '#86efac' : 'var(--text-muted)' }}>
+                  {sponsors.length === 0 ? '(0 — Hidden on tracker)' : sponsors.length === 1 ? '(1 sponsor)' : `(${sponsors.length} sponsors)`}
+                </span>
+              </h3>
 
-            <div style={{ display: 'grid', gap: '14px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                    Sponsor Company Name
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.sponsor_name}
-                    onChange={(e) => setFormData({ ...formData, sponsor_name: e.target.value })}
-                    placeholder="e.g. Acme Plumbing Ltd"
-                    style={{
-                      width: '100%',
-                      background: '#151513',
-                      border: '1px solid var(--border)',
-                      borderRadius: '6px',
-                      padding: '8px 12px',
-                      color: '#fff',
-                      fontSize: '14px',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                    Sponsor Website Link
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.sponsor_link}
-                    onChange={(e) => setFormData({ ...formData, sponsor_link: e.target.value })}
-                    placeholder="https://example.co.uk"
-                    style={{
-                      width: '100%',
-                      background: '#151513',
-                      border: '1px solid var(--border)',
-                      borderRadius: '6px',
-                      padding: '8px 12px',
-                      color: '#fff',
-                      fontSize: '14px',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                  Sponsor Promotional Note (Displays on Tonight's Spotlight)
-                </label>
-                <input
-                  type="text"
-                  value={formData.sponsor_description}
-                  onChange={(e) => setFormData({ ...formData, sponsor_description: e.target.value })}
-                  placeholder="Proudly keeping Santa on the road for Beverley charities!"
-                  style={{
-                    width: '100%',
-                    background: '#151513',
-                    border: '1px solid var(--border)',
-                    borderRadius: '6px',
-                    padding: '8px 12px',
-                    color: '#fff',
-                    fontSize: '14px',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              {/* Direct Drag & Drop Upload for Sponsor Logo */}
-              <DropzoneUpload
-                label="Sponsor Logo (.png)"
-                currentImage={formData.sponsor_logo_url}
-                onImageSelected={(url) => setFormData({ ...formData, sponsor_logo_url: url })}
-                helperText="Upload sponsor's transparent logo directly (No GitHub upload required!)."
-              />
+              <button
+                type="button"
+                onClick={handleAddSponsor}
+                className="btn-secondary"
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '12px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  borderColor: 'var(--primary)',
+                  color: 'var(--primary)'
+                }}
+              >
+                <Plus size={14} />
+                <span>Add Sponsor</span>
+              </button>
             </div>
+
+            {sponsors.length === 0 ? (
+              <div style={{
+                padding: '16px',
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px dashed var(--border)',
+                borderRadius: '8px',
+                textAlign: 'center',
+                color: 'var(--text-muted)',
+                fontSize: '13px'
+              }}>
+                <p style={{ margin: '0 0 10px 0' }}>
+                  No sponsors assigned to this route. If this night has local business sponsors (or multiple co-sponsors), click below to add them.
+                </p>
+                <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>
+                  When left empty, the sponsor section will be completely hidden from the public tracker for this route.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleAddSponsor}
+                  className="btn-secondary"
+                  style={{ padding: '6px 14px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Plus size={14} />
+                  <span>Add Sponsor to Route</span>
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {sponsors.map((sp, idx) => (
+                  <div key={idx} style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '10px',
+                    padding: '16px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+                        Sponsor #{idx + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSponsor(idx)}
+                        className="btn-secondary"
+                        style={{
+                          padding: '4px 8px',
+                          fontSize: '11px',
+                          color: '#fca5a5',
+                          borderColor: 'rgba(239, 68, 68, 0.3)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        <Trash2 size={12} />
+                        <span>Remove</span>
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'grid', gap: '12px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                            Sponsor Company Name
+                          </label>
+                          <input
+                            type="text"
+                            value={sp.name}
+                            onChange={(e) => handleUpdateSponsor(idx, 'name', e.target.value)}
+                            placeholder="e.g. Acme Plumbing Ltd"
+                            style={{
+                              width: '100%',
+                              background: '#151513',
+                              border: '1px solid var(--border)',
+                              borderRadius: '6px',
+                              padding: '8px 12px',
+                              color: '#fff',
+                              fontSize: '14px',
+                              boxSizing: 'border-box'
+                            }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                            Sponsor Website Link
+                          </label>
+                          <input
+                            type="url"
+                            value={sp.link}
+                            onChange={(e) => handleUpdateSponsor(idx, 'link', e.target.value)}
+                            placeholder="https://example.co.uk"
+                            style={{
+                              width: '100%',
+                              background: '#151513',
+                              border: '1px solid var(--border)',
+                              borderRadius: '6px',
+                              padding: '8px 12px',
+                              color: '#fff',
+                              fontSize: '14px',
+                              boxSizing: 'border-box'
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                          Sponsor Promotional Note (Displays on Tonight's Spotlight)
+                        </label>
+                        <input
+                          type="text"
+                          value={sp.description}
+                          onChange={(e) => handleUpdateSponsor(idx, 'description', e.target.value)}
+                          placeholder="Proudly keeping Santa on the road for local charities!"
+                          style={{
+                            width: '100%',
+                            background: '#151513',
+                            border: '1px solid var(--border)',
+                            borderRadius: '6px',
+                            padding: '8px 12px',
+                            color: '#fff',
+                            fontSize: '14px',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                      </div>
+
+                      <DropzoneUpload
+                        label="Sponsor Logo (.png)"
+                        currentImage={sp.logo_url}
+                        onImageSelected={(url) => handleUpdateSponsor(idx, 'logo_url', url)}
+                        helperText="Upload sponsor's transparent logo directly (No GitHub upload required!)."
+                      />
+                    </div>
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={handleAddSponsor}
+                  className="btn-secondary"
+                  style={{
+                    padding: '8px 14px',
+                    fontSize: '13px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    borderColor: 'var(--primary)',
+                    color: 'var(--primary)',
+                    marginTop: '4px'
+                  }}
+                >
+                  <Plus size={15} />
+                  <span>Add Another Sponsor</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Action Buttons */}

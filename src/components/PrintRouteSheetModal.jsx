@@ -78,8 +78,14 @@ export default function PrintRouteSheetModal({
       msg += `🗺️ *Streets (${streetList.length}):*\n${streetList.join(', ')}\n\n`;
     }
 
-    if (route.sponsor_name) {
-      msg += `⭐ *Tonight's Sponsor:* ${route.sponsor_name}\n\n`;
+    const routeSponsors = Array.isArray(route.sponsors) && route.sponsors.length > 0
+      ? route.sponsors.filter(s => s && s.name)
+      : (route.sponsor_name ? [{ name: route.sponsor_name }] : []);
+
+    if (routeSponsors.length === 1) {
+      msg += `⭐ *Tonight's Sponsor:* ${routeSponsors[0].name}\n\n`;
+    } else if (routeSponsors.length > 1) {
+      msg += `⭐ *Tonight's Sponsors:* ${routeSponsors.map(s => s.name).join(', ')}\n\n`;
     }
 
     msg += `📱 *Live Public Tracker:* ${trackerUrl}\n`;
@@ -361,11 +367,17 @@ export default function PrintRouteSheetModal({
               <div style={{ fontWeight: 800, fontSize: '13px' }}>📅 {dateFormatted}</div>
               <div style={{ marginTop: '2px' }}>⏰ Muster: <strong>{meetingTimeStr}</strong> | Rollout: <strong>{route.start_time || '18:00'}</strong></div>
               <div style={{ color: '#4b5563', marginTop: '2px' }}>📍 Meet: <strong>{meetingLocation}</strong></div>
-              {route.sponsor_name && (
-                <div style={{ marginTop: '3px', fontWeight: 700, color: '#15803d' }}>
-                  ⭐ Sponsored by: {route.sponsor_name}
-                </div>
-              )}
+              {(() => {
+                const routeSponsors = Array.isArray(route.sponsors) && route.sponsors.length > 0
+                  ? route.sponsors.filter(s => s && s.name)
+                  : (route.sponsor_name ? [{ name: route.sponsor_name }] : []);
+                if (routeSponsors.length === 0) return null;
+                return (
+                  <div style={{ marginTop: '3px', fontWeight: 700, color: '#15803d' }}>
+                    ⭐ Sponsored by: {routeSponsors.map(s => s.name).join(' • ')}
+                  </div>
+                );
+              })()}
             </div>
           </div>
 

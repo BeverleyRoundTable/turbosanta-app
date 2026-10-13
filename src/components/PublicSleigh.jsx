@@ -434,6 +434,16 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
           day,
           routeName: r.name || r.routeName,
           streets: routeStreets,
+          sponsors: (Array.isArray(r.sponsors) && r.sponsors.length > 0)
+            ? r.sponsors.filter(s => s && (s.name || s.logo_url))
+            : ((r.sponsor_name || r.sponsorName || r.sponsor_logo_url || r.sponsor_logo)
+                ? [{
+                    name: r.sponsor_name || r.sponsorName || '',
+                    logo_url: r.sponsor_logo_url || r.sponsorUrl || r.sponsor_logo || '',
+                    link: r.sponsor_link || r.sponsorLink || '',
+                    description: r.sponsor_description || r.sponsorDescription || ''
+                  }]
+                : []),
           sponsorName: r.sponsor_name || r.sponsorName,
           sponsorUrl: r.sponsor_logo_url || r.sponsorUrl || r.sponsor_logo,
           sponsorLink: r.sponsor_link || r.sponsorLink,
@@ -921,7 +931,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
               marginBottom: '35px',
               boxShadow: '0 0 25px rgba(251, 175, 51, 0.2), 0 10px 30px rgba(0,0,0,0.6)',
               display: 'grid',
-              gridTemplateColumns: todayItem.sponsorName ? 'repeat(auto-fit, minmax(280px, 1fr))' : '1fr',
+              gridTemplateColumns: (todayItem.sponsors && todayItem.sponsors.length > 0) ? 'repeat(auto-fit, minmax(280px, 1fr))' : '1fr',
               gap: '25px',
               alignItems: 'center'
             }}>
@@ -963,7 +973,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                 )}
               </div>
 
-              {todayItem.sponsorName && (
+              {todayItem.sponsors && todayItem.sponsors.length > 0 && (
                 <div style={{
                   background: 'rgba(251, 175, 51, 0.06)',
                   border: '1px solid var(--primary)',
@@ -973,37 +983,54 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                 }}>
                   <div
                     className="brand-font"
-                    style={{ fontSize: '12px', color: 'var(--primary)', textTransform: 'uppercase', fontWeight: 800, marginBottom: '10px', letterSpacing: '1.2px' }}>
-                    ⭐ TONIGHT'S SPONSOR:
+                    style={{ fontSize: '12px', color: 'var(--primary)', textTransform: 'uppercase', fontWeight: 800, marginBottom: '12px', letterSpacing: '1.2px' }}>
+                    ⭐ {todayItem.sponsors.length > 1 ? "TONIGHT'S SPONSORS:" : "TONIGHT'S SPONSOR:"}
                   </div>
-                  <div style={{ display: 'flex', gap: '14px', alignItems: 'center', marginBottom: '8px' }}>
-                    {todayItem.sponsorUrl && (
-                      <img
-                        src={todayItem.sponsorUrl}
-                        alt={todayItem.sponsorName}
-                        style={{ width: '60px', height: '60px', objectFit: 'contain', background: '#FFFFFF', borderRadius: '8px', padding: '4px', flexShrink: 0 }}
-                      />
-                    )}
-                    <div>
-                      {todayItem.sponsorLink ? (
-                        <a
-                          href={todayItem.sponsorLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: '17px', textDecoration: 'none' }}
-                        >
-                          {todayItem.sponsorName} &rarr;
-                        </a>
-                      ) : (
-                        <strong style={{ color: '#FFFFFF', fontSize: '17px' }}>{todayItem.sponsorName}</strong>
-                      )}
-                    </div>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: todayItem.sponsors.length > 1 ? 'repeat(auto-fit, minmax(220px, 1fr))' : '1fr',
+                    gap: '14px'
+                  }}>
+                    {todayItem.sponsors.map((sp, idx) => (
+                      <div key={idx} style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                        padding: todayItem.sponsors.length > 1 ? '10px' : '0',
+                        background: todayItem.sponsors.length > 1 ? 'rgba(255,255,255,0.03)' : 'transparent',
+                        borderRadius: '8px'
+                      }}>
+                        <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+                          {sp.logo_url && (
+                            <img
+                              src={sp.logo_url}
+                              alt={sp.name}
+                              style={{ width: '56px', height: '56px', objectFit: 'contain', background: '#FFFFFF', borderRadius: '8px', padding: '4px', flexShrink: 0 }}
+                            />
+                          )}
+                          <div>
+                            {sp.link ? (
+                              <a
+                                href={sp.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: '16px', textDecoration: 'none' }}
+                              >
+                                {sp.name} &rarr;
+                              </a>
+                            ) : (
+                              <strong style={{ color: '#FFFFFF', fontSize: '16px' }}>{sp.name}</strong>
+                            )}
+                          </div>
+                        </div>
+                        {sp.description && (
+                          <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                            {sp.description}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                  {todayItem.sponsorDescription && (
-                    <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                      {todayItem.sponsorDescription}
-                    </div>
-                  )}
                 </div>
               )}
             </div>
@@ -1053,28 +1080,34 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                     </div>
                   )}
 
-                  {r.sponsorName && (
+                  {r.sponsors && r.sponsors.length > 0 && (
                     <div style={{ marginTop: 'auto', paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
                       <div
                         className="brand-font"
                         style={{ fontSize: '11px', color: 'var(--primary)', textTransform: 'uppercase', fontWeight: 800, marginBottom: '8px', letterSpacing: '1.2px' }}>
                         SPONSORED BY:
                       </div>
-                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                        {r.sponsorUrl && (
-                          <img
-                            src={r.sponsorUrl}
-                            alt={r.sponsorName}
-                            style={{ width: '44px', height: '44px', objectFit: 'contain', background: '#FFFFFF', borderRadius: '6px', padding: '3px', flexShrink: 0 }}
-                          />
-                        )}
-                        {r.sponsorLink ? (
-                          <a href={r.sponsorLink} target="_blank" rel="noopener noreferrer" style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: '14px', textDecoration: 'none' }}>
-                            {r.sponsorName} &rarr;
-                          </a>
-                        ) : (
-                          <strong style={{ color: '#FFFFFF', fontSize: '14px' }}>{r.sponsorName}</strong>
-                        )}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {r.sponsors.map((sp, sIdx) => (
+                          <div key={sIdx} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            {sp.logo_url && (
+                              <img
+                                src={sp.logo_url}
+                                alt={sp.name}
+                                style={{ width: '40px', height: '40px', objectFit: 'contain', background: '#FFFFFF', borderRadius: '6px', padding: '3px', flexShrink: 0 }}
+                              />
+                            )}
+                            <div>
+                              {sp.link ? (
+                                <a href={sp.link} target="_blank" rel="noopener noreferrer" style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: '13px', textDecoration: 'none' }}>
+                                  {sp.name} &rarr;
+                                </a>
+                              ) : (
+                                <strong style={{ color: '#FFFFFF', fontSize: '13px' }}>{sp.name}</strong>
+                              )}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}

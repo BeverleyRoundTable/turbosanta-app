@@ -1758,52 +1758,73 @@
 
             card.appendChild(routeInfo);
 
-            if (route.sponsorName) {
+            const routeSponsors = (Array.isArray(route.sponsors) && route.sponsors.length > 0)
+                ? route.sponsors.filter(s => s && (s.name || s.logo_url))
+                : ((route.sponsorName || route.sponsorUrl)
+                    ? [{
+                        name: route.sponsorName,
+                        logo_url: route.sponsorUrl,
+                        link: route.sponsorLink,
+                        description: route.sponsorDescription
+                    }]
+                    : []);
+
+            if (routeSponsors.length > 0) {
                 const sponsorBox = el('div', 'today-sponsor-box');
 
-                const label = el('div', '', "⭐ TONIGHT'S SPONSOR:");
+                const label = el('div', '', routeSponsors.length > 1 ? "⭐ TONIGHT'S SPONSORS:" : "⭐ TONIGHT'S SPONSOR:");
                 label.style.cssText = 'font-size: 12px; color: var(--primary); text-transform: uppercase; font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px;';
                 sponsorBox.appendChild(label);
 
-                const contentFlex = el('div');
-                contentFlex.style.cssText = 'display: flex; gap: 15px; align-items: center; margin-bottom: 8px;';
+                const sponsorsGrid = el('div');
+                sponsorsGrid.style.cssText = 'display: grid; grid-template-columns: ' + (routeSponsors.length > 1 ? 'repeat(auto-fit, minmax(220px, 1fr))' : '1fr') + '; gap: 14px;';
 
-                if (route.sponsorUrl) {
-                    const img = document.createElement('img');
-                    img.src = safeUrl(route.sponsorUrl);
-                    img.alt = String(route.sponsorName);
-                    img.style.cssText = 'width: 65px; height: 65px; object-fit: contain; background: #fff; border-radius: 8px; padding: 4px; flex-shrink: 0;';
-                    contentFlex.appendChild(img);
-                }
+                routeSponsors.forEach(sp => {
+                    const itemBox = el('div');
+                    itemBox.style.cssText = 'display: flex; flex-direction: column; gap: 8px;' + (routeSponsors.length > 1 ? ' background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px;' : '');
 
-                const sponsorMatch = sponsors.find(sp => sp.name === route.sponsorName);
-                const sponsorLink = sponsorMatch ? safeUrl(sponsorMatch.sponsorLink) : safeUrl(route.sponsorLink);
+                    const contentFlex = el('div');
+                    contentFlex.style.cssText = 'display: flex; gap: 14px; align-items: center;';
 
-                const textFlex = el('div');
-                if (sponsorLink) {
-                    const a = document.createElement('a');
-                    a.href = sponsorLink;
-                    a.target = '_blank';
-                    a.rel = 'noopener noreferrer';
-                    a.textContent = String(route.sponsorName);
-                    a.style.cssText = 'color: var(--text-main); font-weight: bold; text-decoration: none; font-size: 18px;';
-                    a.onmouseover = () => a.style.textDecoration = 'underline';
-                    a.onmouseout = () => a.style.textDecoration = 'none';
-                    textFlex.appendChild(a);
-                } else {
-                    const strong = el('strong', '', String(route.sponsorName));
-                    strong.style.cssText = 'color: var(--text-main); font-size: 18px;';
-                    textFlex.appendChild(strong);
-                }
-                contentFlex.appendChild(textFlex);
-                sponsorBox.appendChild(contentFlex);
+                    const logoUrl = safeUrl(sp.logo_url || sp.sponsorUrl);
+                    if (logoUrl) {
+                        const img = document.createElement('img');
+                        img.src = logoUrl;
+                        img.alt = String(sp.name || 'Sponsor');
+                        img.style.cssText = 'width: 55px; height: 55px; object-fit: contain; background: #fff; border-radius: 8px; padding: 4px; flex-shrink: 0;';
+                        contentFlex.appendChild(img);
+                    }
 
-                if (route.sponsorDescription) {
-                    const desc = el('div', '', String(route.sponsorDescription));
-                    desc.style.cssText = 'font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-top: 10px;';
-                    sponsorBox.appendChild(desc);
-                }
+                    const textFlex = el('div');
+                    const spLink = safeUrl(sp.link || sp.sponsorLink);
+                    if (spLink) {
+                        const a = document.createElement('a');
+                        a.href = spLink;
+                        a.target = '_blank';
+                        a.rel = 'noopener noreferrer sponsored';
+                        a.textContent = String(sp.name || 'Sponsor');
+                        a.style.cssText = 'color: var(--text-main); font-weight: bold; text-decoration: none; font-size: 16px;';
+                        a.onmouseover = () => a.style.textDecoration = 'underline';
+                        a.onmouseout = () => a.style.textDecoration = 'none';
+                        textFlex.appendChild(a);
+                    } else {
+                        const strong = el('strong', '', String(sp.name || ''));
+                        strong.style.cssText = 'color: var(--text-main); font-size: 16px;';
+                        textFlex.appendChild(strong);
+                    }
+                    contentFlex.appendChild(textFlex);
+                    itemBox.appendChild(contentFlex);
 
+                    if (sp.description || sp.sponsorDescription) {
+                        const desc = el('div', '', String(sp.description || sp.sponsorDescription));
+                        desc.style.cssText = 'font-size: 13px; color: var(--text-muted); line-height: 1.5;';
+                        itemBox.appendChild(desc);
+                    }
+
+                    sponsorsGrid.appendChild(itemBox);
+                });
+
+                sponsorBox.appendChild(sponsorsGrid);
                 card.appendChild(sponsorBox);
             }
 
@@ -2447,18 +2468,31 @@
                                 currency: '£',
                                 lastUpdatePretty: 'Live'
                             },
-                            routes: (data.routes || []).map(r => ({
-                                ...r,
-                                routeName: r.name || r.routeName,
-                                date: r.date,
-                                'Start Time': r.start_time || '18:00',
-                                'End Time': r.end_time || '20:30',
-                                streets: r.streets || (data.streets?.filter(s => s.route_id === r.id).map(s => s.street_name).join(', ')) || '',
-                                sponsorName: r.sponsor_name || r.sponsorName || '',
-                                sponsorUrl: r.sponsor_logo_url || r.sponsor_logo || r.sponsorUrl || '',
-                                sponsorLink: r.sponsor_link || r.sponsor_url || r.sponsorLink || '',
-                                sponsorDescription: r.sponsor_description || r.sponsorDescription || ''
-                            })),
+                            routes: (data.routes || []).map(r => {
+                                const rSponsors = (Array.isArray(r.sponsors) && r.sponsors.length > 0)
+                                    ? r.sponsors.filter(s => s && (s.name || s.logo_url))
+                                    : ((r.sponsor_name || r.sponsorName || r.sponsor_logo_url || r.sponsor_logo)
+                                        ? [{
+                                            name: r.sponsor_name || r.sponsorName || '',
+                                            logo_url: r.sponsor_logo_url || r.sponsor_logo || r.sponsorUrl || '',
+                                            link: r.sponsor_link || r.sponsor_url || r.sponsorLink || '',
+                                            description: r.sponsor_description || r.sponsorDescription || ''
+                                        }]
+                                        : []);
+                                return {
+                                    ...r,
+                                    routeName: r.name || r.routeName,
+                                    date: r.date,
+                                    'Start Time': r.start_time || '18:00',
+                                    'End Time': r.end_time || '20:30',
+                                    streets: r.streets || (data.streets?.filter(s => s.route_id === r.id).map(s => s.street_name).join(', ')) || '',
+                                    sponsors: rSponsors,
+                                    sponsorName: rSponsors[0]?.name || r.sponsor_name || r.sponsorName || '',
+                                    sponsorUrl: rSponsors[0]?.logo_url || r.sponsor_logo_url || r.sponsor_logo || r.sponsorUrl || '',
+                                    sponsorLink: rSponsors[0]?.link || r.sponsor_link || r.sponsor_url || r.sponsorLink || '',
+                                    sponsorDescription: rSponsors[0]?.description || r.sponsor_description || r.sponsorDescription || ''
+                                };
+                            }),
                             sponsors: data.sponsors || []
                         };
                         applySettings(adapted, '');
@@ -2504,19 +2538,32 @@
                                 currency: '£',
                                 lastUpdatePretty: 'Just now'
                             },
-                            routes: (data.routes || []).map(r => ({
-                                ...r,
-                                routeName: r.name || r.routeName,
-                                date: r.date,
-                                'Start Time': r.start_time || '18:00',
-                                'End Time': r.end_time || '20:30',
-                                notes: r.notes || '',
-                                streets: r.streets || (data.streets?.filter(s => s.route_id === r.id).map(s => s.street_name).join(', ')) || '',
-                                sponsorName: r.sponsor_name || '',
-                                sponsorUrl: r.sponsor_logo_url || r.sponsor_logo || '',
-                                sponsorLink: r.sponsor_link || '',
-                                sponsorDescription: r.sponsor_description || ''
-                            })),
+                            routes: (data.routes || []).map(r => {
+                                const rSponsors = (Array.isArray(r.sponsors) && r.sponsors.length > 0)
+                                    ? r.sponsors.filter(s => s && (s.name || s.logo_url))
+                                    : ((r.sponsor_name || r.sponsor_logo_url || r.sponsor_logo)
+                                        ? [{
+                                            name: r.sponsor_name || '',
+                                            logo_url: r.sponsor_logo_url || r.sponsor_logo || '',
+                                            link: r.sponsor_link || '',
+                                            description: r.sponsor_description || ''
+                                        }]
+                                        : []);
+                                return {
+                                    ...r,
+                                    routeName: r.name || r.routeName,
+                                    date: r.date,
+                                    'Start Time': r.start_time || '18:00',
+                                    'End Time': r.end_time || '20:30',
+                                    notes: r.notes || '',
+                                    streets: r.streets || (data.streets?.filter(s => s.route_id === r.id).map(s => s.street_name).join(', ')) || '',
+                                    sponsors: rSponsors,
+                                    sponsorName: rSponsors[0]?.name || r.sponsor_name || '',
+                                    sponsorUrl: rSponsors[0]?.logo_url || r.sponsor_logo_url || r.sponsor_logo || '',
+                                    sponsorLink: rSponsors[0]?.link || r.sponsor_link || '',
+                                    sponsorDescription: rSponsors[0]?.description || r.sponsor_description || ''
+                                };
+                            }),
                             sponsors: data.sponsors || data.table?.partners || [],
                             headlineSponsor: data.table?.headline_sponsor_name ? {
                                 name: data.table.headline_sponsor_name,

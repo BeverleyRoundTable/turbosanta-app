@@ -392,12 +392,48 @@ export default {
         status: "Resting in Lapland"
       };
 
+      // Format routes and parse sponsors_json for multi-sponsor support
+      const formattedRoutes = (routes.results || []).map(r => {
+        let sponsors = [];
+        if (r.sponsors_json) {
+          try {
+            const parsed = typeof r.sponsors_json === 'string' ? JSON.parse(r.sponsors_json) : r.sponsors_json;
+            if (Array.isArray(parsed)) {
+              sponsors = parsed.filter(sp => sp && (sp.name || sp.sponsor_name || sp.logo_url || sp.sponsor_logo || sp.sponsor_logo_url));
+            }
+          } catch(e) {}
+        }
+        if (sponsors.length === 0 && (r.sponsor_name || r.sponsor_logo || r.sponsor_logo_url)) {
+          sponsors = [{
+            name: r.sponsor_name || '',
+            logo_url: r.sponsor_logo_url || r.sponsor_logo || '',
+            link: r.sponsor_link || '',
+            description: r.sponsor_description || ''
+          }];
+        }
+        sponsors = sponsors.map(s => ({
+          name: s.name || s.sponsor_name || '',
+          logo_url: s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '',
+          link: s.link || s.sponsor_link || '',
+          description: s.description || s.sponsor_description || ''
+        }));
+        return {
+          ...r,
+          sponsors,
+          sponsor_name: sponsors[0]?.name || r.sponsor_name || '',
+          sponsor_logo: sponsors[0]?.logo_url || r.sponsor_logo || '',
+          sponsor_logo_url: sponsors[0]?.logo_url || r.sponsor_logo_url || r.sponsor_logo || '',
+          sponsor_link: sponsors[0]?.link || r.sponsor_link || '',
+          sponsor_description: sponsors[0]?.description || r.sponsor_description || ''
+        };
+      });
+
       return jsonResponse({
         table: tableConfig,
         settings: tableConfig,
         expenses: Number(table.expenses || 0),
         expenses_json: tableConfig.expenses_json,
-        routes: routes.results || [],
+        routes: formattedRoutes,
         streets: streets.results || [],
         live_sleigh: liveSleighData,
         donationsLedger: (ledger && ledger.results) || [],
@@ -1104,6 +1140,7 @@ SANTA'S SPOKEN RESPONSE:`;
       try { await env.DB.prepare("ALTER TABLE routes ADD COLUMN sponsor_logo TEXT").run(); } catch(e){}
       try { await env.DB.prepare("ALTER TABLE routes ADD COLUMN sponsor_link TEXT").run(); } catch(e){}
       try { await env.DB.prepare("ALTER TABLE routes ADD COLUMN sponsor_description TEXT").run(); } catch(e){}
+      try { await env.DB.prepare("ALTER TABLE routes ADD COLUMN sponsors_json TEXT").run(); } catch(e){}
 
       // POST/PUT: Upsert route & streets
       if (request.method === "POST" || request.method === "PUT") {
@@ -1120,17 +1157,49 @@ SANTA'S SPOKEN RESPONSE:`;
         const startTime = r.start_time || "18:00";
         const endTime = r.end_time || "20:30";
         const gpxUrl = r.gpx_url || r.gpxUrl || "";
-        const sponsorName = r.sponsor_name || r.sponsorName || "";
-        const sponsorLogo = r.sponsor_logo_url || r.sponsor_logo || r.sponsorLogo || "";
-        const sponsorLink = r.sponsor_link || r.sponsorLink || "";
-        const sponsorDesc = r.sponsor_description || r.sponsorDescription || "";
         const notes = r.notes || "";
         const status = r.status || "Scheduled";
 
+        // Multi-sponsor normalization
+        let sponsorsList = [];
+        if (Array.isArray(r.sponsors)) {
+          sponsorsList = r.sponsors.filter(sp => sp && (sp.name || sp.sponsor_name || sp.logo_url || sp.sponsor_logo || sp.sponsor_logo_url));
+        } else if (r.sponsors_json) {
+          try {
+            const parsed = typeof r.sponsors_json === 'string' ? JSON.parse(r.sponsors_json) : r.sponsors_json;
+            if (Array.isArray(parsed)) {
+              sponsorsList = parsed.filter(sp => sp && (sp.name || sp.sponsor_name || sp.logo_url || sp.sponsor_logo || sp.sponsor_logo_url));
+            }
+          } catch(e) {}
+        }
+
+        if (sponsorsList.length === 0 && (r.sponsor_name || r.sponsorName || r.sponsor_logo_url || r.sponsor_logo || r.sponsorLogo)) {
+          sponsorsList = [{
+            name: r.sponsor_name || r.sponsorName || '',
+            logo_url: r.sponsor_logo_url || r.sponsor_logo || r.sponsorLogo || '',
+            link: r.sponsor_link || r.sponsorLink || '',
+            description: r.sponsor_description || r.sponsorDescription || ''
+          }];
+        }
+
+        sponsorsList = sponsorsList.map(s => ({
+          name: (s.name || s.sponsor_name || '').trim(),
+          logo_url: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
+          link: (s.link || s.sponsor_link || '').trim(),
+          description: (s.description || s.sponsor_description || '').trim()
+        }));
+
+        const sponsorsJson = sponsorsList.length > 0 ? JSON.stringify(sponsorsList) : null;
+        const primarySponsor = sponsorsList[0] || {};
+        const sponsorName = primarySponsor.name || r.sponsor_name || r.sponsorName || "";
+        const sponsorLogo = primarySponsor.logo_url || r.sponsor_logo_url || r.sponsor_logo || r.sponsorLogo || "";
+        const sponsorLink = primarySponsor.link || r.sponsor_link || r.sponsorLink || "";
+        const sponsorDesc = primarySponsor.description || r.sponsor_description || r.sponsorDescription || "";
+
         // Upsert Route in D1
         await env.DB.prepare(`
-          INSERT INTO routes (id, table_id, name, date, start_time, end_time, status, notes, gpx_url, sponsor_name, sponsor_logo, sponsor_link, sponsor_description)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO routes (id, table_id, name, date, start_time, end_time, status, notes, gpx_url, sponsor_name, sponsor_logo, sponsor_link, sponsor_description, sponsors_json)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(id) DO UPDATE SET
             table_id = excluded.table_id,
             name = excluded.name,
@@ -1143,8 +1212,9 @@ SANTA'S SPOKEN RESPONSE:`;
             sponsor_name = excluded.sponsor_name,
             sponsor_logo = excluded.sponsor_logo,
             sponsor_link = excluded.sponsor_link,
-            sponsor_description = excluded.sponsor_description
-        `).bind(routeId, table.id, name, date, startTime, endTime, status, notes, gpxUrl, sponsorName, sponsorLogo, sponsorLink, sponsorDesc).run();
+            sponsor_description = excluded.sponsor_description,
+            sponsors_json = excluded.sponsors_json
+        `).bind(routeId, table.id, name, date, startTime, endTime, status, notes, gpxUrl, sponsorName, sponsorLogo, sponsorLink, sponsorDesc, sponsorsJson).run();
 
         // Sync Streets for this route
         await env.DB.prepare("DELETE FROM route_streets WHERE table_id = ? AND route_id = ?").bind(table.id, routeId).run();
@@ -1174,6 +1244,8 @@ SANTA'S SPOKEN RESPONSE:`;
             status,
             notes,
             gpx_url: gpxUrl,
+            sponsors: sponsorsList,
+            sponsors_json: sponsorsJson,
             sponsor_name: sponsorName,
             sponsor_logo: sponsorLogo,
             sponsor_link: sponsorLink,
