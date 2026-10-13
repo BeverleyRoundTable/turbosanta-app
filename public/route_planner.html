@@ -250,6 +250,42 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .wp-count { font-size: 11px; color: var(--primary); font-weight: 700; }
+
+  .mobile-map-toggle {
+    display: none;
+    position: absolute;
+    bottom: 24px;
+    right: 16px;
+    z-index: 1000;
+    background: #161614;
+    color: var(--primary);
+    border: 2px solid var(--primary);
+    border-radius: 30px;
+    padding: 10px 16px;
+    font-weight: 800;
+    font-size: 12px;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.7);
+  }
+
+  @media (max-width: 768px) {
+    .app { height: 100vh; overflow: hidden; }
+    .top-bar { padding: 10px 14px; gap: 8px; flex-wrap: wrap; }
+    .top-bar h1 { font-size: 18px; }
+    .top-bar-right { gap: 8px; }
+    .mode-btn { padding: 8px 10px; font-size: 11px; }
+    .main { flex-direction: column; height: calc(100vh - 58px); }
+    .map-area { flex: 1 1 52%; height: 52vh; min-height: 240px; width: 100%; position: relative; }
+    .sidebar { width: 100%; flex: 1 1 48%; height: 48vh; max-height: 48vh; border-right: none; border-top: 1px solid var(--border); overflow-y: auto; }
+    .sb-section { padding: 16px 14px; }
+    .profile-row { margin-top: 10px; }
+    .profile-btn { padding: 8px 6px; font-size: 12px; }
+    .stats-grid { gap: 6px; }
+    .stat { padding: 10px 12px; }
+    .stat-value { font-size: 22px; }
+    .mobile-map-toggle { display: inline-flex; align-items: center; gap: 6px; }
+  }
 </style>
 </head>
 <body>
@@ -281,12 +317,12 @@
       <div class="sb-section" id="placeSection" style="display:none">
         <div class="sb-label">Build Route <span class="wp-count" id="wpCount">0 pts</span></div>
         <div class="place-info">
-          <strong>Next Click Mode:</strong> Select what profile new clicks use. Switch to <strong>🛷 Direct</strong> before clicking pedestrian zones to avoid detours and snickets.
+          <strong>Mode For Next Clicks:</strong> Click <strong>🚶 Walking</strong> before plotting through pedestrian zones, then switch back to <strong>🚗 Driving</strong> on main roads.
         </div>
         <div class="profile-row">
           <button class="profile-btn active" data-profile="driving" onclick="setActiveToolProfile(this)">🚗 Driving</button>
-          <button class="profile-btn" data-profile="direct" onclick="setActiveToolProfile(this)">🛷 Direct (Precinct)</button>
           <button class="profile-btn" data-profile="foot" onclick="setActiveToolProfile(this)">🚶 Walking</button>
+          <button class="profile-btn" data-profile="direct" onclick="setActiveToolProfile(this)">🛷 Direct (Precinct)</button>
           <button class="profile-btn" data-profile="bike" onclick="setActiveToolProfile(this)">🚴 Cycling</button>
         </div>
         <div class="wp-list" id="wpList"></div>
@@ -346,11 +382,27 @@
         <strong>Route Preview</strong>
         <span id="legendText">—</span>
       </div>
+      <button id="mobileMapExpandBtn" class="mobile-map-toggle" onclick="toggleMobileMap()">🔍 Full Map</button>
     </div>
   </div>
 </div>
 
 <script>
+let isMobileFullMap = false;
+function toggleMobileMap() {
+  const sb = document.querySelector('.sidebar');
+  const btn = document.getElementById('mobileMapExpandBtn');
+  isMobileFullMap = !isMobileFullMap;
+  if (isMobileFullMap) {
+    if (sb) sb.style.display = 'none';
+    if (btn) btn.innerHTML = '⚙️ Controls';
+  } else {
+    if (sb) sb.style.display = 'flex';
+    if (btn) btn.innerHTML = '🔍 Full Map';
+  }
+  setTimeout(() => { if (map) map.invalidateSize(); }, 50);
+}
+
 let mode = 'upload';
 let activeClickProfile = 'driving';
 let waypoints = [];
@@ -360,6 +412,9 @@ let detectedStreets = [];
 let roadNameMap = [];
 let geocodeAbort = false;
 let routingInProgress = false;
+
+// Per-segment in-memory cache to guarantee previously snapped segments never get lost or overwritten
+const legCache = new Map();
 
 let snappedLayer = null;
 let uploadLayer = null;
@@ -393,6 +448,12 @@ function setActiveToolProfile(btn) {
   document.querySelectorAll('.profile-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   activeClickProfile = btn.dataset.profile;
+
+  // KEY FIX: Arms the last placed point with this profile so the NEXT point clicked uses this mode!
+  if (waypoints.length > 0) {
+    waypoints[waypoints.length - 1].nextMode = activeClickProfile;
+    updateWpUI();
+  }
 }
 
 map.on('click', async e => {
@@ -428,8 +489,8 @@ function updateWpUI() {
           <span class="wp-leg-label">Leg ${i + 1} ➔${i + 2}:</span>
           <select class="wp-leg-select" onchange="updateLegMode(${i}, this.value)">
             <option value="driving" ${w.nextMode === 'driving' ? 'selected' : ''}>🚗 Driving (Road)</option>
+            <option value="foot" ${w.nextMode === 'foot' ? 'selected' : ''}>🚶 Walking (Precinct)</option>
             <option value="direct" ${w.nextMode === 'direct' ? 'selected' : ''}>🛷 Direct (Precinct)</option>
-            <option value="foot" ${w.nextMode === 'foot' ? 'selected' : ''}>🚶 Walking</option>
             <option value="bike" ${w.nextMode === 'bike' ? 'selected' : ''}>🚴 Cycling</option>
           </select>
         </div>
@@ -545,6 +606,7 @@ function clearAllWaypoints() {
   waypointMarkers = [];
   waypoints = [];
   detectedStreets = [];
+  legCache.clear();
   document.getElementById('streetList').innerHTML = '';
   document.getElementById('streetCountLabel').textContent = '0';
   document.getElementById('streetActions').style.display = 'none';
@@ -567,6 +629,10 @@ window.deleteWpIndex = async function(i) {
   }
 };
 
+function getLegCacheKey(from, to, mode) {
+  return `${from.lat.toFixed(6)},${from.lng.toFixed(6)}->${to.lat.toFixed(6)},${to.lng.toFixed(6)}@${mode}`;
+}
+
 async function routeAllWaypoints() {
   if (waypoints.length < 2) return;
   if (routingInProgress) return;
@@ -585,43 +651,71 @@ async function routeAllWaypoints() {
       const to = waypoints[i + 1];
       const legMode = from.nextMode || 'driving';
 
+      // 1. Direct Straight-Line Mode
       if (legMode === 'direct') {
         if (combinedGeometry.length === 0) combinedGeometry.push([from.lat, from.lng]);
         combinedGeometry.push([to.lat, to.lng]);
-      } else {
-        const baseUrl = routingServers[legMode] || routingServers.driving;
-        const url = `${baseUrl}/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson&steps=true`;
+        continue;
+      }
 
-        try {
-          const res = await fetch(url);
-          const data = await res.json();
-
-          if (data.code === 'Ok' && data.routes && data.routes[0]) {
-            const segCoords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
-
-            (data.routes[0].legs || []).forEach(leg => {
-              (leg.steps || []).forEach(step => {
-                const name = (step.name || '').trim();
-                if (name && !seenStreets.has(name.toLowerCase())) {
-                  seenStreets.add(name.toLowerCase());
-                  discoveredStreets.push(name);
-                }
-              });
-            });
-
-            if (combinedGeometry.length === 0) {
-              combinedGeometry.push(...segCoords);
-            } else {
-              combinedGeometry.push(...segCoords.slice(1));
-            }
-          } else {
-            if (combinedGeometry.length === 0) combinedGeometry.push([from.lat, from.lng]);
-            combinedGeometry.push([to.lat, to.lng]);
-          }
-        } catch(e) {
-          if (combinedGeometry.length === 0) combinedGeometry.push([from.lat, from.lng]);
-          combinedGeometry.push([to.lat, to.lng]);
+      // 2. Check local memory cache (prevents rate limits and stops old legs being overridden)
+      const key = getLegCacheKey(from, to, legMode);
+      if (legCache.has(key)) {
+        const cached = legCache.get(key);
+        if (combinedGeometry.length === 0) {
+          combinedGeometry.push(...cached.coords);
+        } else {
+          combinedGeometry.push(...cached.coords.slice(1));
         }
+        (cached.streets || []).forEach(name => {
+          if (name && !seenStreets.has(name.toLowerCase())) {
+            seenStreets.add(name.toLowerCase());
+            discoveredStreets.push(name);
+          }
+        });
+        continue;
+      }
+
+      // 3. Fetch newly placed/changed leg from OSRM
+      const baseUrl = routingServers[legMode] || routingServers.driving;
+      const url = `${baseUrl}/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson&steps=true`;
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data.code === 'Ok' && data.routes && data.routes[0]) {
+          const segCoords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+          const legStreets = [];
+
+          (data.routes[0].legs || []).forEach(leg => {
+            (leg.steps || []).forEach(step => {
+              const name = (step.name || '').trim();
+              if (name && !seenStreets.has(name.toLowerCase())) {
+                seenStreets.add(name.toLowerCase());
+                discoveredStreets.push(name);
+              }
+              if (name) legStreets.push(name);
+            });
+          });
+
+          // Store in cache so this leg is permanent
+          legCache.set(key, { coords: segCoords, streets: legStreets });
+
+          if (combinedGeometry.length === 0) {
+            combinedGeometry.push(...segCoords);
+          } else {
+            combinedGeometry.push(...segCoords.slice(1));
+          }
+        } else {
+          const fallback = [[from.lat, from.lng], [to.lat, to.lng]];
+          if (combinedGeometry.length === 0) combinedGeometry.push(...fallback);
+          else combinedGeometry.push(fallback[1]);
+        }
+      } catch (e) {
+        const fallback = [[from.lat, from.lng], [to.lat, to.lng]];
+        if (combinedGeometry.length === 0) combinedGeometry.push(...fallback);
+        else combinedGeometry.push(fallback[1]);
       }
     }
 
@@ -960,6 +1054,102 @@ function copyCSV() {
     }
   });
 }
+
+// ═══════════════════════════════════════
+// EXISTING ROUTES (API INTEGRATION)
+// ═══════════════════════════════════════
+const params = new URLSearchParams(location.search);
+const tableParam = params.get("table") || window.__sleighTableSlug || localStorage.getItem("turbosanta_last_table") || "beverley";
+if (tableParam) {
+  localStorage.setItem("turbosanta_last_table", tableParam);
+}
+
+const legacyApi = params.get("api");
+const WORKER_URL = "https://santaproxy.beverley247.workers.dev/";
+
+let DATA_URL = null;
+if (legacyApi) {
+  localStorage.setItem("SANTA_API", legacyApi);
+  DATA_URL = `${WORKER_URL}?ttl=30&target=${encodeURIComponent(legacyApi)}`;
+} else {
+  DATA_URL = `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableParam)}`;
+}
+
+function normaliseUrl(url) {
+  const u = String(url || '').trim();
+  if (!u) return '';
+  if (/^https?:\/\//i.test(u)) return u;
+  if (u.startsWith('//')) return 'https:' + u;
+  return 'https://' + u.replace(/^\/+/, '');
+}
+
+const COLOUR_TIERS = [
+  { s: 90, l: 55 }, { s: 85, l: 38 }, { s: 80, l: 70 }, { s: 95, l: 46 }
+];
+function routeColour(index) {
+  const hue = Math.round((index * 137.508) % 360);
+  const tier = COLOUR_TIERS[Math.floor(index / 8) % COLOUR_TIERS.length];
+  return `hsl(${hue}, ${tier.s}%, ${tier.l}%)`;
+}
+
+async function loadExistingRoutes() {
+  if (!DATA_URL) return;
+  try {
+    const res = await fetch(DATA_URL, { cache: "no-store" });
+    if (!res.ok) return;
+    const data = await res.json();
+    const routes = (data.routes || []).filter(r => r.gpx_url || r.gpxUrl);
+
+    for (let i = 0; i < routes.length; i++) {
+      const route = routes[i];
+      const gpxUrl = route.gpx_url || route.gpxUrl;
+      const routeName = route.name || route.routeName || 'Existing route';
+      try {
+        const gpxRes = await fetch(normaliseUrl(gpxUrl), { cache: "no-store" });
+        if (!gpxRes.ok) continue;
+        const gpxText = await gpxRes.text();
+
+        const parser = new DOMParser();
+        const gpx = parser.parseFromString(gpxText, 'text/xml');
+        const pts = [];
+        
+        const nodes = gpx.querySelectorAll('trkpt').length ? gpx.querySelectorAll('trkpt') : (gpx.querySelectorAll('rtept').length ? gpx.querySelectorAll('rtept') : gpx.querySelectorAll('wpt'));
+        
+        nodes.forEach(pt => {
+          const lat = parseFloat(pt.getAttribute('lat'));
+          const lon = parseFloat(pt.getAttribute('lon'));
+          if (!isNaN(lat) && !isNaN(lon)) pts.push([lat, lon]);
+        });
+
+        if (pts.length > 1) {
+          const strokeColor = routeColour(i);
+          
+          const layer = L.polyline(pts, { 
+            color: strokeColor, 
+            weight: 4,
+            opacity: 0.65,
+            dashArray: '8 6' 
+          }).addTo(map);
+          
+          const tooltipContent = route.date ? `<strong>${routeName}</strong><br><small style="color:#fbaf33;">${route.date}</small>` : `<strong>${routeName}</strong>`;
+          layer.bindTooltip(tooltipContent, { sticky: true });
+          existingRouteLayers.push(layer);
+        }
+      } catch(e) {
+        console.error('Failed to load specific route GPX:', routeName, e);
+      }
+    }
+
+    if (existingRouteLayers.length > 0) {
+      const featureGroup = L.featureGroup(existingRouteLayers);
+      map.fitBounds(featureGroup.getBounds(), { padding: [40, 40] });
+    }
+  } catch(e) {
+    console.error('Failed to load routes from API:', e);
+  }
+}
+
+loadExistingRoutes();
 </script>
 </body>
 </html>
