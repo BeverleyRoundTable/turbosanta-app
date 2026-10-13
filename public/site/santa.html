@@ -831,9 +831,10 @@ function renderDonations(donations, settings) {
                                 ${route.routeName}
                             </h3>
                             ${streetsText ? `
-                                <p class="font-body text-gray-300 text-sm sm:text-base leading-relaxed">
-                                    ${streetsText}
-                                </p>
+                                <div class="font-body text-gray-300 text-sm leading-relaxed mt-2">
+                                    <span class="text-xs font-heading font-bold uppercase tracking-wider text-brt-red/90 block mb-0.5">Streets on Route:</span>
+                                    <p class="text-gray-300">${streetsText}</p>
+                                </div>
                             ` : ''}
                         </div>
 
@@ -917,11 +918,18 @@ function renderDonations(donations, settings) {
                 const rawRoutes = Array.isArray(raw.routes) ? raw.routes : [];
                 const routes = rawRoutes.map(r => {
                     const spList = extractRouteSponsors(r);
+                    const routeStreets = (raw.streets || [])
+                        .filter(s => s.route_id === r.id)
+                        .sort((a, b) => (a.sequence_order || 0) - (b.sequence_order || 0))
+                        .map(s => s.street_name);
+                    const streetsCombined = r.streets || (routeStreets.length ? routeStreets.join(', ') : '');
                     return {
+                        id: r.id,
                         routeName: r.name || r.routeName,
                         date: r.date,
                         'Start Time': r.start_time || r['Start Time'] || '18:00',
                         'End Time': r.end_time || r['End Time'] || '20:30',
+                        streets: streetsCombined,
                         gpxUrl: r.gpx_url || r.gpxUrl || '',
                         sponsors: spList,
                         sponsorName: spList.map(s => s.name).filter(Boolean).join(' • ') || (r.sponsor_name || ''),
