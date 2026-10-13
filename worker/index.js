@@ -266,6 +266,8 @@ export default {
         )
       `).run().catch(() => {});
       await env.DB.prepare("ALTER TABLE donations ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN public_slot_1 TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN public_slot_2 TEXT").run().catch(() => {});
 
       await env.DB.prepare(`
         CREATE TABLE IF NOT EXISTS season_history (
@@ -347,10 +349,14 @@ export default {
         santa_voice_provider: (slug === 'beverley') ? (table.santa_voice_provider || 'gemini') : 'gemini',
         elevenlabs_agent_id: (slug === 'beverley') ? (table.elevenlabs_agent_id || env.ELEVENLABS_AGENT_ID || '') : '',
         total_views: Number(table.total_views || 0),
-        enable_santa_chat: Boolean(table.enable_santa_chat || table.public_slot_1 === 'santa_chat' || table.public_slot_2 === 'santa_chat'),
-        enable_colouring: Boolean(table.enable_colouring || table.public_slot_1 === 'colouring' || table.public_slot_2 === 'colouring'),
-        public_slot_1: table.public_slot_1 || (table.enable_santa_chat ? 'santa_chat' : null),
-        public_slot_2: table.public_slot_2 || (table.enable_colouring ? 'colouring' : null),
+        enable_santa_chat: Boolean((table.public_slot_1 === 'santa_chat' || table.public_slot_2 === 'santa_chat') || (table.public_slot_1 === undefined && table.enable_santa_chat)),
+        enable_colouring: Boolean((table.public_slot_1 === 'colouring' || table.public_slot_2 === 'colouring') || (table.public_slot_2 === undefined && table.enable_colouring)),
+        public_slot_1: (table.public_slot_1 !== undefined && table.public_slot_1 !== null)
+          ? (String(table.public_slot_1).trim() === '' || String(table.public_slot_1).trim() === 'none' ? null : String(table.public_slot_1).trim())
+          : (table.enable_santa_chat ? 'santa_chat' : null),
+        public_slot_2: (table.public_slot_2 !== undefined && table.public_slot_2 !== null)
+          ? (String(table.public_slot_2).trim() === '' || String(table.public_slot_2).trim() === 'none' ? null : String(table.public_slot_2).trim())
+          : (table.enable_colouring ? 'colouring' : null),
         donation_breakdown: (breakdown && breakdown.results) || []
       };
 

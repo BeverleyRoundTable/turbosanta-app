@@ -914,6 +914,7 @@
             <a href="#tracker">Live Tracker</a>
             <a href="#routes">Routes</a>
             <a href="#memory-book" id="nav-memory-book">Memory Book</a>
+            <a href="#faq" id="nav-faq">FAQ</a>
             <a href="#donate" id="nav-donate">Donate</a>
         </div>
     </nav>
@@ -1023,6 +1024,9 @@
             <iframe id="memory-book-iframe" height="900" title="Santa Memory Book" loading="lazy" allow="camera; microphone; geolocation"></iframe>
         </div>
     </section>
+
+    <!-- MODULAR PUBLIC FEATURE SLOTS (Configurable Max 2 Slots per Table: Underneath Memory Book & Above FAQ) -->
+    <div id="modular-feature-slots"></div>
 
     <!-- Sponsors Section -->
     <section id="sponsors" style="display: none;">
@@ -1945,6 +1949,307 @@
             label.textContent = msg;
         }
 
+        const PUBLIC_FEATURE_CATALOG = {
+            bingo: {
+                id: 'bingo',
+                anchorId: 'bingo',
+                navLabel: 'Bingo',
+                badge: 'Interactive Family Game',
+                title: 'CHRISTMAS',
+                titleHighlight: 'BINGO',
+                description: 'Play along with interactive digital Christmas Bingo while you wait for Santa to visit your street!',
+                embedSrc: slug => `/bingo.html?table=${encodeURIComponent(slug)}`,
+                fullscreenSrc: slug => `/bingo.html?table=${encodeURIComponent(slug)}`,
+                fullscreenLabel: 'Play Bingo Full-Screen',
+                height: 720,
+                maxWidth: 900
+            },
+            colouring: {
+                id: 'colouring',
+                anchorId: 'colouring',
+                navLabel: 'Colouring',
+                badge: 'Printable Lapland Studio',
+                title: 'FESTIVE',
+                titleHighlight: 'COLOURING BOOK',
+                description: "Personalise and print free Santa Sleigh colouring sheets at home on A4 paper! Add your child's name and share their artwork with our sleigh volunteers!",
+                embedSrc: slug => `/colouring_page.html?table=${encodeURIComponent(slug)}`,
+                fullscreenSrc: slug => `/colouring_page.html?table=${encodeURIComponent(slug)}`,
+                fullscreenLabel: 'Open Colouring Studio Full-Screen',
+                height: 800,
+                maxWidth: 1000
+            },
+            countdown: {
+                id: 'countdown',
+                anchorId: 'countdown',
+                navLabel: 'Countdown',
+                badge: 'Lapland Departure Clock',
+                title: 'CHRISTMAS EVE',
+                titleHighlight: 'COUNTDOWN',
+                description: "Watch the live countdown tick away to Santa's big departure from Lapland on Christmas Eve!",
+                embedSrc: slug => `/countdown.html?table=${encodeURIComponent(slug)}`,
+                fullscreenSrc: slug => `/countdown.html?table=${encodeURIComponent(slug)}`,
+                fullscreenLabel: 'View Countdown Full-Screen',
+                height: 420,
+                maxWidth: 840
+            },
+            door_hanger: {
+                id: 'door_hanger',
+                anchorId: 'door-hanger',
+                navLabel: 'Door Hanger',
+                badge: 'Printable Sleigh Alert',
+                title: 'OFFICIAL',
+                titleHighlight: 'DOOR HANGER',
+                description: 'Customise and print festive Santa Sleigh door hangers for your front door with live tracking QR code so Santa knows to stop!',
+                embedSrc: slug => `/door_hanger.html?table=${encodeURIComponent(slug)}`,
+                fullscreenSrc: slug => `/door_hanger.html?table=${encodeURIComponent(slug)}`,
+                fullscreenLabel: 'Open Door Hanger Full-Screen',
+                height: 740,
+                maxWidth: 840
+            },
+            elf_cam: {
+                id: 'elf_cam',
+                anchorId: 'elf-cam',
+                navLabel: 'Elf Cam',
+                badge: 'Live from Lapland Workshop',
+                title: 'LAPLAND',
+                titleHighlight: 'ELF CAM',
+                description: "Tune in directly to Santa's Workshop in Lapland! See elf packing status, current Rovaniemi weather, and live sleigh camera telemetry.",
+                embedSrc: slug => `/elf_cam.html?table=${encodeURIComponent(slug)}`,
+                fullscreenSrc: slug => `/elf_cam.html?table=${encodeURIComponent(slug)}`,
+                fullscreenLabel: 'Open Elf Cam Full-Screen',
+                height: 680,
+                maxWidth: 840
+            },
+            letter: {
+                id: 'letter',
+                anchorId: 'letter',
+                navLabel: 'Letter to Santa',
+                badge: 'Official Lapland Post',
+                title: 'LETTER TO',
+                titleHighlight: 'FATHER CHRISTMAS',
+                description: 'Children can write their Christmas wish list on official Round Table festive stationery and print it out to send directly to Lapland!',
+                embedSrc: slug => `/letter.html?table=${encodeURIComponent(slug)}`,
+                fullscreenSrc: slug => `/letter.html?table=${encodeURIComponent(slug)}`,
+                fullscreenLabel: 'Open Letter Writer Full-Screen',
+                height: 760,
+                maxWidth: 900
+            },
+            magic_mailbox: {
+                id: 'magic_mailbox',
+                anchorId: 'magic-mailbox',
+                navLabel: 'Magic Mailbox',
+                badge: 'Direct Audio Line to Santa',
+                title: 'MAGIC LAPLAND',
+                titleHighlight: 'MAILBOX',
+                description: "Record and post your digital voice messages and festive questions directly to Santa's elves in Lapland.",
+                embedSrc: slug => `/magic_mailbox.html?table=${encodeURIComponent(slug)}`,
+                fullscreenSrc: slug => `/magic_mailbox.html?table=${encodeURIComponent(slug)}`,
+                fullscreenLabel: 'Open Magic Mailbox Full-Screen',
+                height: 700,
+                maxWidth: 840
+            },
+            nice_list: {
+                id: 'nice_list',
+                anchorId: 'nice-list',
+                navLabel: 'Nice List',
+                badge: 'Lapland Certified',
+                title: 'OFFICIAL',
+                titleHighlight: 'NICE LIST CERTIFICATE',
+                description: "Customise and print an official Lapland certificate certifying that your child has officially made Santa's Good List this Christmas.",
+                embedSrc: slug => `/nice_list.html?table=${encodeURIComponent(slug)}`,
+                fullscreenSrc: slug => `/nice_list.html?table=${encodeURIComponent(slug)}`,
+                fullscreenLabel: 'Generate Certificate Full-Screen',
+                height: 740,
+                maxWidth: 900
+            },
+            adopt_reindeer: {
+                id: 'adopt_reindeer',
+                anchorId: 'adopt-reindeer',
+                navLabel: 'Adopt Reindeer',
+                badge: 'Official Sleigh Keeper',
+                title: 'ADOPT A',
+                titleHighlight: 'SLEIGH REINDEER',
+                description: "Adopt one of Santa's flying reindeer, choose your keeper name, and print your official Round Table adoption certificate!",
+                embedSrc: slug => `/adopt_reindeer.html?table=${encodeURIComponent(slug)}`,
+                fullscreenSrc: slug => `/adopt_reindeer.html?table=${encodeURIComponent(slug)}`,
+                fullscreenLabel: 'Adopt a Reindeer Full-Screen',
+                height: 740,
+                maxWidth: 900
+            },
+            santa_chat: {
+                id: 'santa_chat',
+                anchorId: 'santa-chat',
+                navLabel: 'Santa Chat',
+                badge: 'Live Audio Connection to Lapland',
+                title: 'TALK TO',
+                titleHighlight: 'FATHER CHRISTMAS',
+                description: 'Children and families can speak directly with Father Christmas in Lapland! Ask when he is visiting your street, how Rudolph is doing, or hear a jolly festive story.',
+                embedSrc: slug => `/santa_chat.html?table=${encodeURIComponent(slug)}`,
+                fullscreenSrc: slug => `/santa_chat.html?table=${encodeURIComponent(slug)}`,
+                fullscreenLabel: 'Open Voice Hotline Full-Screen',
+                height: 640,
+                maxWidth: 540,
+                allowMicrophone: true
+            },
+            santa_frame: {
+                id: 'santa_frame',
+                anchorId: 'santa-frame',
+                navLabel: 'Santa Visited',
+                badge: 'Memory Photo Stamper',
+                title: 'SANTA VISITED',
+                titleHighlight: 'PHOTO FRAME',
+                description: 'Upload a festive family photo to stamp it with our official Santa Visited commemorative frame and date stamp.',
+                embedSrc: slug => `/santa_frame.html?table=${encodeURIComponent(slug)}`,
+                fullscreenSrc: slug => `/santa_frame.html?table=${encodeURIComponent(slug)}`,
+                fullscreenLabel: 'Open Photo Frame Full-Screen',
+                height: 720,
+                maxWidth: 840
+            },
+            santa_studio: {
+                id: 'santa_studio',
+                anchorId: 'santa-studio',
+                navLabel: 'Santa Studio',
+                badge: 'Workshop Voice Booth',
+                title: 'SANTA',
+                titleHighlight: 'AUDIO STUDIO',
+                description: 'Festive voice recording and reply booth for volunteers and families to exchange holiday cheer.',
+                embedSrc: slug => `/santa_studio.html?table=${encodeURIComponent(slug)}`,
+                fullscreenSrc: slug => `/santa_studio.html?table=${encodeURIComponent(slug)}`,
+                fullscreenLabel: 'Open Audio Studio Full-Screen',
+                height: 740,
+                maxWidth: 840
+            },
+            snowman: {
+                id: 'snowman',
+                anchorId: 'snowman-builder',
+                navLabel: 'Snowman Maker',
+                badge: 'Interactive Winter Builder',
+                title: 'SNOWMAN',
+                titleHighlight: 'CREATOR STUDIO',
+                description: 'Customise and build your own snowman with hats, scarves, jumpers, and mittens to download and share with family!',
+                embedSrc: slug => `/snowman.html?table=${encodeURIComponent(slug)}`,
+                fullscreenSrc: slug => `/snowman.html?table=${encodeURIComponent(slug)}`,
+                fullscreenLabel: 'Open Snowman Maker Full-Screen',
+                height: 720,
+                maxWidth: 900
+            },
+            spot_santa: {
+                id: 'spot_santa',
+                anchorId: 'spot-santa',
+                navLabel: 'Spot Santa',
+                badge: 'Community Sightings',
+                title: 'SPOT',
+                titleHighlight: 'SANTA SIGHTINGS',
+                description: 'Snap a photo of Santa passing down your street and pin your sighting to our community map!',
+                embedSrc: slug => `/spot_santa_form.html?table=${encodeURIComponent(slug)}`,
+                fullscreenSrc: slug => `/spot_santa_form.html?table=${encodeURIComponent(slug)}`,
+                fullscreenLabel: 'Submit Sighting Full-Screen',
+                height: 700,
+                maxWidth: 600
+            }
+        };
+
+        function renderModularSlots(settings) {
+            const container = $('modular-feature-slots');
+            if (!container) return;
+            container.replaceChildren();
+
+            // Clear previous dynamic modular nav links
+            document.querySelectorAll('.nav-modular-slot').forEach(n => n.remove());
+
+            const raw1 = (settings && settings.public_slot_1) || (settings && settings.enable_santa_chat ? 'santa_chat' : null);
+            const raw2 = (settings && settings.public_slot_2) || (settings && settings.enable_colouring ? 'colouring' : null);
+
+            const slot1 = (raw1 && PUBLIC_FEATURE_CATALOG[raw1]) ? PUBLIC_FEATURE_CATALOG[raw1] : null;
+            const slot2 = (raw2 && raw2 !== raw1 && PUBLIC_FEATURE_CATALOG[raw2]) ? PUBLIC_FEATURE_CATALOG[raw2] : null;
+
+            const activeSlots = [slot1, slot2].filter(Boolean);
+            if (!activeSlots.length) return;
+
+            const slug = window.__sleighTableSlug || 'beverley';
+            const navLinks = document.querySelector('.nav-links');
+            const navFaq = $('nav-faq');
+            const navDonate = $('nav-donate');
+            const navAnchorTarget = navFaq || navDonate;
+
+            activeSlots.forEach(slot => {
+                // 1. Add Nav Link
+                if (navLinks) {
+                    const navA = document.createElement('a');
+                    navA.href = '#' + slot.anchorId;
+                    navA.textContent = slot.navLabel;
+                    navA.className = 'nav-modular-slot';
+                    if (navAnchorTarget) {
+                        navLinks.insertBefore(navA, navAnchorTarget);
+                    } else {
+                        navLinks.appendChild(navA);
+                    }
+                }
+
+                // 2. Build Section
+                const sec = document.createElement('section');
+                sec.id = slot.anchorId;
+                if (slot.maxWidth) {
+                    sec.style.maxWidth = slot.maxWidth + 'px';
+                }
+
+                const hdr = document.createElement('div');
+                hdr.className = 'section-header';
+
+                if (slot.badge) {
+                    const badge = document.createElement('div');
+                    badge.style.cssText = 'display: inline-flex; align-items: center; gap: 6px; background: rgba(251, 175, 51, 0.12); border: 1px solid rgba(251, 175, 51, 0.3); border-radius: 9999px; padding: 4px 12px; font-size: 11px; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;';
+                    badge.textContent = slot.badge;
+                    hdr.appendChild(badge);
+                }
+
+                const h2 = document.createElement('h2');
+                h2.innerHTML = slot.title + ' <span class="hl">' + slot.titleHighlight + '</span>';
+                hdr.appendChild(h2);
+
+                if (slot.description) {
+                    const p = document.createElement('p');
+                    p.textContent = slot.description;
+                    hdr.appendChild(p);
+                }
+
+                sec.appendChild(hdr);
+
+                // Iframe Container
+                const ifrWrap = document.createElement('div');
+                ifrWrap.className = 'iframe-container';
+
+                const ifr = document.createElement('iframe');
+                ifr.id = slot.anchorId + '-iframe';
+                ifr.height = String(slot.height || 700);
+                ifr.title = slot.title + ' ' + slot.titleHighlight;
+                ifr.loading = 'lazy';
+                ifr.src = slot.embedSrc(slug);
+                ifr.style.width = '100%';
+                ifr.style.border = 'none';
+                ifr.style.display = 'block';
+
+                let allowAttrs = ['camera', 'microphone', 'geolocation'];
+                if (slot.allowMicrophone) allowAttrs.push('autoplay');
+                ifr.allow = allowAttrs.join('; ');
+
+                ifrWrap.appendChild(ifr);
+                sec.appendChild(ifrWrap);
+
+                if (slot.fullscreenSrc) {
+                    const fsA = document.createElement('a');
+                    fsA.className = 'tracker-fs';
+                    fsA.href = slot.fullscreenSrc(slug);
+                    fsA.target = '_blank';
+                    fsA.rel = 'noopener';
+                    fsA.textContent = slot.fullscreenLabel || 'Open Full-Screen';
+                    sec.appendChild(fsA);
+                }
+
+                container.appendChild(sec);
+            });
+        }
+
         function safely(name, fn) {
             try { fn(); } catch (err) { console.error('Render failed: ' + name, err); }
         }
@@ -2009,6 +2314,8 @@
                     partSec.style.display = 'none';
                 }
             });
+
+            safely('modular_slots', () => renderModularSlots(settings));
         }
 
         const SETUP_ERROR_HTML = "Could not load data from the provided API. Please check the URL and ensure your Google Script is deployed as a Web App accessible to 'Anyone'.";

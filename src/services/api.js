@@ -285,10 +285,17 @@ export async function sendElfChatMessage(message, tableData) {
 
 export async function saveTableSettings(tableSlug = "beverley", settings = {}, explicitSecret = null) {
   try {
+    const session = getCurrentSession();
+    const token = explicitSecret || session?.googleCredential || session?.token;
+    const bodyPayload = { ...settings };
+    if (token && !bodyPayload.secret) {
+      bodyPayload.secret = token;
+    }
+
     const res = await fetch(`${API_BASE}/api/table/settings?table=${encodeURIComponent(tableSlug)}`, {
       method: "POST",
       headers: getAuthHeaders(explicitSecret),
-      body: JSON.stringify(settings)
+      body: JSON.stringify(bodyPayload)
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
