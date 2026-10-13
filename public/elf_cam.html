@@ -1,341 +1,544 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TurboSanta — Elf Cam</title>
-  
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TurboSanta — Lapland Elf Cam</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-  
-  <style>
-  @font-face {
-    font-family: 'Eurostile';
-    src: url('/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
-    font-weight: 700;
-    font-style: normal;
-    font-display: swap;
-  }
 
-    /* ═══════════════════════════════════════ */
-    /* TURBOSANTA DESIGN SYSTEM */
-    /* ═══════════════════════════════════════ */
+  <style>
+    @font-face {
+      font-family: 'Eurostile';
+      src: url('/site/Eurostile_Extended_2_Bold.woff2') format('woff2'),
+           url('/site/Eurostile_Extended_2_Bold.otf') format('opentype');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+
     :root {
+      --primary: #FBAF33;
       --gold: #FBAF33;
-      --gold-dim: rgba(251,175,51,0.12);
-      --gold-glow: rgba(251,175,51,0.25);
-      --dark: #0d0d0b;
-      --surface: #161614;
-      --surface-2: #1e1e1b;
+      --gold-dim: rgba(251, 175, 51, 0.12);
+      --gold-glow: rgba(251, 175, 51, 0.25);
+      --border-gold: rgba(251, 175, 51, 0.3);
+      --bg-dark: #1D1D1A;
+      --surface: #151513;
+      --surface-2: #1c1c18;
       --surface-3: #252522;
-      --border: rgba(255,255,255,0.08);
-      --border-gold: rgba(251,175,51,0.2);
+      --bg-input: #0d0d0b;
+      --border: rgba(255, 255, 255, 0.12);
+      --text: #FFFFFF;
+      --text-dim: rgba(255, 255, 255, 0.7);
+      --text-muted: rgba(255, 255, 255, 0.35);
       --red: #D31C1C;
-      --green: #2ecc71;
-      --text: #eaeae5;
-      --text-dim: rgba(255,255,255,0.55);
-      --text-muted: rgba(255,255,255,0.3);
+      --green: #22c55e;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    
+
     body {
-      background: var(--dark);
+      background: var(--bg-dark);
       color: var(--text);
-      font-family: 'Open Sans', sans-serif;
+      font-family: 'Open Sans', system-ui, -apple-system, sans-serif;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 40px 24px;
+      padding: 32px 18px 60px;
       -webkit-font-smoothing: antialiased;
     }
 
     .app {
       width: 100%;
-      max-width: 400px;
+      max-width: 680px;
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
     }
 
-    /* ── HEADER ── */
-    header { margin-bottom: 32px; width: 100%; }
-    header h1 {
-      font-family: 'Eurostile', sans-serif;
-      font-size: 48px;
-      letter-spacing: 2px;
-      color: #fff;
-      line-height: 1;
-      margin-bottom: 8px;
-    }
-    header h1 span { color: var(--gold); }
-    header p {
-      color: var(--text-dim);
-      font-size: 15px;
-      font-weight: 500;
+    /* Header */
+    header {
+      margin-bottom: 24px;
+      width: 100%;
     }
 
-    /* ── STATUS PANEL ── */
-    .status-box {
+    header h1 {
+      font-family: 'Eurostile', sans-serif;
+      font-size: clamp(32px, 6vw, 44px);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #fff;
+      line-height: 1.1;
+      margin-bottom: 8px;
+    }
+
+    header h1 span {
+      color: var(--gold);
+    }
+
+    header p {
+      color: var(--text-dim);
+      font-size: 14px;
+      font-weight: 500;
+      max-width: 520px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    /* Telemetry Grid */
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      width: 100%;
+      margin-bottom: 20px;
+    }
+
+    .telemetry-card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 32px 24px;
-      width: 100%;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-      margin-bottom: 24px;
+      border-radius: 10px;
+      padding: 12px 10px;
+      text-align: center;
     }
-    
-    .status-label {
+
+    .telemetry-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .telemetry-val {
+      font-family: 'Eurostile', sans-serif;
+      font-size: 14px;
+      color: var(--gold);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    /* Viewfinder Screen */
+    .viewfinder-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      width: 100%;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .viewfinder-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 16px;
+      background: #0d0d0b;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .rec-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       font-family: 'DM Mono', monospace;
       font-size: 11px;
       font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      color: var(--text-muted);
-      margin-bottom: 12px;
-    }
-    
-    .status-indicator {
-      font-family: 'Eurostile', sans-serif;
-      font-size: 48px;
-      letter-spacing: 2px;
       color: var(--red);
-      line-height: 1;
-    }
-    
-    .status-indicator.active {
-      color: var(--green);
-      animation: pulse 2s infinite alternate;
-    }
-    
-    @keyframes pulse {
-      from { text-shadow: 0 0 8px rgba(46,204,113,0.2); }
-      to { text-shadow: 0 0 24px rgba(46,204,113,0.6); }
+      letter-spacing: 1px;
     }
 
-    /* ── BUTTONS ── */
-    .btn {
+    .rec-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--red);
+      animation: blink 1.2s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+    .timestamp {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .feed-viewport {
+      position: relative;
       width: 100%;
-      font-family: 'Open Sans', sans-serif;
+      height: 380px;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .feed-bg {
+      position: absolute;
+      inset: 0;
+      background: 
+        linear-gradient(180deg, rgba(13, 13, 11, 0.3) 0%, rgba(13, 13, 11, 0.75) 100%),
+        url('/site/site_background.png');
+      background-size: cover;
+      background-position: center;
+    }
+
+    #snowCanvas {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .feed-overlay-text {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      right: 16px;
+      z-index: 3;
+      text-align: left;
+      background: rgba(13, 13, 11, 0.75);
+      backdrop-filter: blur(4px);
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .feed-overlay-title {
+      font-family: 'Eurostile', sans-serif;
+      font-size: 13px;
       font-weight: 700;
-      font-size: 16px;
+      color: var(--gold);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .feed-overlay-status {
+      font-size: 12px;
+      color: #fff;
+      line-height: 1.4;
+    }
+
+    /* Video & Canvas Elements */
+    #cameraVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+
+    #snapshotCanvas {
+      display: none;
+    }
+
+    /* Controls */
+    .controls-row {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      flex: 1;
+      min-width: 160px;
+      font-family: 'Eurostile', 'Open Sans', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
       border: none;
       border-radius: 8px;
-      padding: 18px 24px;
+      padding: 14px 20px;
       cursor: pointer;
-      transition: transform 0.1s, background 0.2s, box-shadow 0.2s;
-      text-align: center;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.15s ease;
     }
-    
-    .btn:active { transform: scale(0.97); }
-    
+
     .btn-gold {
       background: var(--gold);
       color: #000;
-      box-shadow: 0 4px 20px var(--gold-glow);
     }
-    
-    .btn-gold:hover { background: #e59d28; }
-    
-    .btn-stop {
-      background: rgba(211,28,28,0.15);
-      color: var(--red);
-      border: 1px solid rgba(211,28,28,0.3);
-      box-shadow: none;
-    }
-    
-    .btn-stop:hover { background: rgba(211,28,28,0.25); }
 
-    /* ── VIDEO & PREVIEW ── */
-    #video, #canvas { display: none; }
-    
-    #preview {
-      margin-top: 24px;
-      width: 100%;
-      border-radius: 10px;
+    .btn-gold:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px var(--gold-glow);
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      color: #fff;
       border: 1px solid var(--border);
-      display: none;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
 
-    /* ── LOG CONSOLE ── */
-    #log {
-      margin-top: 24px;
-      width: 100%;
+    .btn-secondary:hover {
+      border-color: var(--gold);
+      color: var(--gold);
       background: var(--surface-2);
+    }
+
+    .btn-stop {
+      background: rgba(211, 28, 28, 0.15);
+      color: var(--red);
+      border: 1px solid rgba(211, 28, 28, 0.35);
+    }
+
+    /* Log Box */
+    .log-box {
+      margin-top: 16px;
+      width: 100%;
+      background: #0d0d0b;
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 14px 16px;
+      padding: 10px 14px;
       font-family: 'DM Mono', monospace;
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text-dim);
       text-align: left;
-      height: 64px;
+      height: 48px;
       overflow: hidden;
-      line-height: 1.5;
+      display: flex;
+      align-items: center;
     }
-    
-    .log-error { color: var(--red) !important; font-weight: 700; }
-    .log-success { color: var(--green) !important; font-weight: 700; }
 
+    @media (max-width: 600px) {
+      .telemetry-grid {
+        grid-template-columns: 1fr;
+      }
+      .feed-viewport {
+        height: 280px;
+      }
+      .controls-row {
+        flex-direction: column;
+      }
+      .btn {
+        width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
 
   <div class="app">
     <header>
-      <h1>ELF <span>CAM</span></h1>
-      <p>Mount phone to dashboard or wear on harness. Keep this page open.</p>
+      <h1>LAPLAND <span>ELF CAM</span></h1>
+      <p>Direct live camera feed and operational telemetry from Santa Claus Workshop in Rovaniemi, Lapland.</p>
     </header>
 
-    <div class="status-box">
-      <div class="status-label">Elf Cam Status</div>
-      <div class="status-indicator" id="statusText">OFFLINE</div>
+    <!-- Telemetry Status Grid -->
+    <div class="telemetry-grid">
+      <div class="telemetry-card">
+        <div class="telemetry-label">LOCATION</div>
+        <div class="telemetry-val">LAPLAND (66.5° N)</div>
+      </div>
+      <div class="telemetry-card">
+        <div class="telemetry-label">ARCTIC WEATHER</div>
+        <div class="telemetry-val">-8°C · FLURRIES</div>
+      </div>
+      <div class="telemetry-card">
+        <div class="telemetry-label">WORKSHOP OUTPUT</div>
+        <div class="telemetry-val">99.4% PACKAGED</div>
+      </div>
     </div>
 
-    <button class="btn btn-gold" id="startBtn">▶ Start Auto-Camera</button>
+    <!-- Live Viewfinder Screen -->
+    <div class="viewfinder-card">
+      <div class="viewfinder-bar">
+        <div class="rec-badge">
+          <span class="rec-dot"></span>
+          <span>LIVE FEED · LAPLAND CAM 01</span>
+        </div>
+        <div class="timestamp" id="clockDisplay">ROVANIEMI 00:00:00 UTC+2</div>
+      </div>
 
-    <video id="video" autoplay playsinline></video>
-    <canvas id="canvas"></canvas>
-    <img id="preview" alt="Last Photo Snapped">
+      <div class="feed-viewport">
+        <div class="feed-bg" id="feedBg"></div>
+        <video id="cameraVideo" autoplay playsinline></video>
+        <canvas id="snowCanvas"></canvas>
+        <canvas id="snapshotCanvas"></canvas>
 
-    <div id="log">Waiting to start...</div>
+        <div class="feed-overlay-text">
+          <div class="feed-overlay-title" id="overlayTitle">WORKSHOP SECTOR 4: PACKAGING DECK</div>
+          <div class="feed-overlay-status" id="overlayStatus">Head Elves inspecting toy runners and sleigh harness. Rudolph and Comet on standby.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Controls -->
+    <div class="controls-row">
+      <button class="btn btn-gold" id="cameraToggleBtn" onclick="toggleCamera()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+        <span id="cameraBtnLabel">SNAP ELF POLAROID</span>
+      </button>
+
+      <button class="btn btn-secondary" onclick="refreshFeed()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+        <span>CYCLE LAPLAND CAM</span>
+      </button>
+    </div>
+
+    <!-- Telemetry Log -->
+    <div class="log-box" id="logBox">
+      STATUS: CONNECTED TO LAPLAND SLEIGH TELEMETRY NETWORK
+    </div>
   </div>
 
   <script>
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const startBtn = document.getElementById('startBtn');
-    const statusText = document.getElementById('statusText');
-    const preview = document.getElementById('preview');
-    const log = document.getElementById('log');
+    const params = new URLSearchParams(window.location.search);
+    const tableSlug = (params.get("table") || "beverley").toLowerCase().trim();
+    const apiUrl = params.get("api") || "";
 
-    let stream = null;
-    let captureInterval = null;
-    const SNAP_INTERVAL_MS = 60000; // Takes a photo every 60 seconds
+    const video = document.getElementById("cameraVideo");
+    const snowCanvas = document.getElementById("snowCanvas");
+    const snapshotCanvas = document.getElementById("snapshotCanvas");
+    const logBox = document.getElementById("logBox");
+    const cameraBtnLabel = document.getElementById("cameraBtnLabel");
+    const cameraToggleBtn = document.getElementById("cameraToggleBtn");
+    const overlayTitle = document.getElementById("overlayTitle");
+    const overlayStatus = document.getElementById("overlayStatus");
 
-    // Grab the API URL from memory, just like the tracker does
-    const params = new URLSearchParams(location.search);
-    const apiUrl = params.get("api") || localStorage.getItem("SANTA_API");
+    let isCameraActive = false;
+    let cameraStream = null;
 
-    if (!apiUrl) {
-      log.innerHTML = "<span class='log-error'>❌ ERROR: No API URL found. Open the main tracker link first!</span>";
-      startBtn.disabled = true;
-      startBtn.style.opacity = 0.5;
-    } else {
-      localStorage.setItem("SANTA_API", apiUrl);
+    // Live Lapland Clock (UTC+2)
+    function updateClock() {
+      const now = new Date();
+      const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+      const laplandTime = new Date(utc + (3600000 * 2));
+      const timeStr = laplandTime.toTimeString().split(' ')[0];
+      const el = document.getElementById("clockDisplay");
+      if (el) el.textContent = `ROVANIEMI ${timeStr} UTC+2`;
     }
+    setInterval(updateClock, 1000);
+    updateClock();
 
-    function addLog(msg, type = "normal") {
-      if (type === "error") {
-        log.innerHTML = `<span class="log-error">${msg}</span>`;
-      } else if (type === "success") {
-        log.innerHTML = `<span class="log-success">${msg}</span>`;
-      } else {
-        log.innerText = msg;
-      }
-      console.log(msg);
+    // Snow animation on canvas
+    const ctx = snowCanvas.getContext("2d");
+    let flakes = [];
+
+    function resizeSnow() {
+      snowCanvas.width = snowCanvas.parentElement.clientWidth;
+      snowCanvas.height = snowCanvas.parentElement.clientHeight;
+      flakes = Array.from({ length: 45 }, () => ({
+        x: Math.random() * snowCanvas.width,
+        y: Math.random() * snowCanvas.height,
+        r: Math.random() * 2 + 1,
+        speed: Math.random() * 1.5 + 0.5
+      }));
     }
+    window.addEventListener("resize", resizeSnow);
+    resizeSnow();
 
-    async function startCamera() {
-      try {
-        // Request the rear camera
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        video.srcObject = stream;
-        
-        statusText.innerText = "BROADCASTING";
-        statusText.className = "status-indicator active";
-        
-        startBtn.innerText = "🛑 Stop Camera";
-        startBtn.className = "btn btn-stop";
-        
-        addLog("Camera started. First photo snapping in 5s...");
-        
-        // Take the first picture quickly, then start the loop
-        setTimeout(snapAndUpload, 5000);
-        captureInterval = setInterval(snapAndUpload, SNAP_INTERVAL_MS);
-
-      } catch (err) {
-        addLog("❌ Camera Error: " + err.message, "error");
-        alert("Could not access camera. Make sure permissions are granted!");
-      }
+    function drawSnow() {
+      ctx.clearRect(0, 0, snowCanvas.width, snowCanvas.height);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+      ctx.beginPath();
+      flakes.forEach(f => {
+        ctx.moveTo(f.x, f.y);
+        ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+        f.y += f.speed;
+        f.x += Math.sin(f.y / 20) * 0.4;
+        if (f.y > snowCanvas.height) { f.y = 0; f.x = Math.random() * snowCanvas.width; }
+      });
+      ctx.fill();
+      requestAnimationFrame(drawSnow);
     }
+    requestAnimationFrame(drawSnow);
 
-    function stopCamera() {
-      if (stream) { stream.getTracks().forEach(track => track.stop()); }
-      clearInterval(captureInterval);
-      
-      statusText.innerText = "OFFLINE";
-      statusText.className = "status-indicator";
-      
-      startBtn.innerText = "▶ Start Auto-Camera";
-      startBtn.className = "btn btn-gold";
-      
-      addLog("Camera stopped.");
-    }
-
-    async function snapAndUpload() {
-      if (!stream) return;
-      addLog("📸 Snapping photo...");
-
-      // 1. Calculate a much smaller size (Max 800px wide)
-      const MAX_WIDTH = 800;
-      let width = video.videoWidth;
-      let height = video.videoHeight;
-      
-      if (width > MAX_WIDTH) {
-        height = Math.floor(height * (MAX_WIDTH / width));
-        width = MAX_WIDTH;
-      }
-
-      // 2. Draw the shrunken image to the canvas
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, width, height);
-
-      // 3. Compress to a lightweight JPEG (Usually under 100KB!)
-      const base64Image = canvas.toDataURL('image/jpeg', 0.85);
-      
-      // Show local preview
-      preview.src = base64Image;
-      preview.style.display = "block";
-
-      addLog("☁ Uploading lightweight photo to Google Sheet...");
-
-      try {
-        const payload = {
-          action: "uploadElfCam",
-          imageData: base64Image
-        };
-
-        const response = await fetch(apiUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "text/plain" // Forces strict CORS bypass
-          },
-          body: JSON.stringify(payload)
-        });
-
-        const data = await response.json();
-        if (data.ok) {
-          addLog("✅ Upload Success! Next photo in 60s.", "success");
-        } else {
-          addLog("❌ Upload Failed: " + data.error, "error");
+    // Camera Mode for family Elf Polaroid
+    async function toggleCamera() {
+      if (!isCameraActive) {
+        try {
+          cameraStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "user" }
+          });
+          video.srcObject = cameraStream;
+          video.style.display = "block";
+          isCameraActive = true;
+          cameraBtnLabel.textContent = "CAPTURE POLAROID";
+          cameraToggleBtn.classList.add("btn-stop");
+          cameraToggleBtn.classList.remove("btn-gold");
+          logBox.textContent = "ELF CAM: FRONT CAMERA ACTIVE · READY TO SNAP POLAROID";
+        } catch(err) {
+          logBox.textContent = "CAMERA NOTICE: " + err.message.toUpperCase();
         }
-      } catch (err) {
-        addLog("❌ Network Error: Could not reach Google. Retrying next loop.", "error");
+      } else {
+        // Capture snapshot
+        snapshotCanvas.width = video.videoWidth || 640;
+        snapshotCanvas.height = video.videoHeight || 480;
+        const sCtx = snapshotCanvas.getContext("2d");
+        sCtx.drawImage(video, 0, 0, snapshotCanvas.width, snapshotCanvas.height);
+
+        // Download polaroid
+        const link = document.createElement("a");
+        link.download = `lapland_elf_cam_${Date.now()}.jpg`;
+        link.href = snapshotCanvas.toDataURL("image/jpeg", 0.9);
+        link.click();
+
+        // Stop camera
+        if (cameraStream) {
+          cameraStream.getTracks().forEach(t => t.stop());
+        }
+        video.style.display = "none";
+        isCameraActive = false;
+        cameraBtnLabel.textContent = "SNAP ELF POLAROID";
+        cameraToggleBtn.classList.remove("btn-stop");
+        cameraToggleBtn.classList.add("btn-gold");
+        logBox.textContent = "POLAROID SAVED · BROADCASTING BACK TO LAPLAND WORKSHOP";
       }
     }
 
-    startBtn.addEventListener("click", () => {
-      if (statusText.innerText === "OFFLINE") { startCamera(); } 
-      else { stopCamera(); }
-    });
+    const WORKSHOP_STATIONS = [
+      { title: "WORKSHOP SECTOR 1: REINDEER STABLES", status: "Rudolph, Comet and Dasher eating Arctic moss. Harness bells polished." },
+      { title: "WORKSHOP SECTOR 2: TOY PACKAGING DECK", status: "Wrapping ribbon machines running at full capacity. Quality check complete." },
+      { title: "WORKSHOP SECTOR 3: SLEIGH RUNWAY LAUNCHPAD", status: "Rovaniemi runway lights cleared of snow. Flight path programmed for tonight." },
+      { title: "WORKSHOP SECTOR 4: WEATHER OBSERVATORY", status: "High pressure front over Lapland. Optimal conditions for Christmas Eve departure." }
+    ];
+
+    let currentStationIdx = 0;
+    function refreshFeed() {
+      currentStationIdx = (currentStationIdx + 1) % WORKSHOP_STATIONS.length;
+      const st = WORKSHOP_STATIONS[currentStationIdx];
+      overlayTitle.textContent = st.title;
+      overlayStatus.textContent = st.status;
+      logBox.textContent = `SWITCHED TO ${st.title} · TELEMETRY OK`;
+    }
+
+    // Multi-tenant check
+    async function loadTableInfo() {
+      try {
+        const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableSlug)}`);
+        const json = await res.json();
+        if (json.table) {
+          const name = json.table.sleigh_display_name || json.table.name || "Round Table Santa Sleigh";
+          overlayStatus.textContent = `Preparing direct transmission to ${name}. Telemetry locked to Lapland.`;
+        }
+      } catch(e) {}
+    }
+    loadTableInfo();
   </script>
 </body>
 </html>

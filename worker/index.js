@@ -731,7 +731,7 @@ export default {
         : `TONIGHT'S ROUTE: The sleigh is not on the streets tonight. ${nextRoute ? `Next upcoming visit is on ${nextRoute.date} for the "${nextRoute.name || 'sleigh'}" route.` : 'All scheduled routes for this year can be checked on our live map.'}`;
 
       // 2. Build Safeguarded Father Christmas Spoken System Prompt
-      const systemPrompt = `You are Father Christmas (Santa Claus), speaking live from the North Pole Workshop and the Round Table Santa Sleigh to children and families in ${townName}.
+      const systemPrompt = `You are Father Christmas (Santa Claus), speaking live from the Lapland Workshop and the Round Table Santa Sleigh to children and families in ${townName}.
 Your words will be spoken aloud to children using browser text-to-speech audio, so you MUST follow these voice rules:
 - Keep your answers short: 1 to 3 friendly, cheerful sentences maximum (around 30-50 words total).
 - Speak with warmth, wonder, and a jolly British festive tone ("Ho ho ho!").
@@ -821,7 +821,7 @@ SANTA'S SPOKEN RESPONSE:`;
 
       // 4. Built-in Infallible Fallback Festive Generator
       const lower = userMessage.toLowerCase();
-      let fallbackReply = `Ho ho ho! Merry Christmas to you in ${townName}! The elves and reindeer send you their warmest wishes from the North Pole!`;
+      let fallbackReply = `Ho ho ho! Merry Christmas to you in ${townName}! The elves and reindeer send you their warmest wishes from Lapland!`;
 
       if (lower.includes("reindeer") || lower.includes("rudolph")) {
         fallbackReply = `Ho ho ho! Rudolph is doing splendidly! He is resting his glowing red nose and munching on delicious crunchy carrots with Dasher and Dancer!`;

@@ -601,7 +601,8 @@ async function submitMessage(e) {
       consentRetain: document.getElementById('consentRetain').checked
     };
 
-    const res = await fetch(API, { method: 'POST', body: JSON.stringify(payload) });
+    const targetEndpoint = API || ('https://turbosanta-api.beverley247.workers.dev/api/magic-mailbox?table=' + encodeURIComponent(tableSlug));
+    const res = await fetch(targetEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const result = await res.json();
 
     if (!result.ok) {

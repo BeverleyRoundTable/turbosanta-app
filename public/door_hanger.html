@@ -350,8 +350,8 @@
     </div>
 
     <div class="btn-row">
-      <button class="btn btn-gold" onclick="generate()">Generate Preview</button>
-      <button class="btn btn-ghost" onclick="window.print()">🖨 Print</button>
+      <button class="btn btn-gold" onclick="generate()">GENERATE PREVIEW</button>
+      <button class="btn btn-ghost" onclick="window.print()">PRINT</button>
     </div>
 
     <div class="info-text">Print on thick card stock for best results. Cut along the edges and hang on your door handle.</div>
@@ -471,7 +471,7 @@ function generate() {
   
   container.innerHTML = html;
   
-  const qrTarget = CFG.trackerUrl || ('https://brt-23f.pages.dev/sleigh/tracker?api=' + encodeURIComponent(API));
+  const qrTarget = CFG.trackerUrl || ('https://roundtablesantasleigh.co.uk/tracker.html?table=' + encodeURIComponent(tableSlug));
   
   for (let i = 0; i < count; i++) {
     const slot = document.getElementById('qrSlot_' + i);

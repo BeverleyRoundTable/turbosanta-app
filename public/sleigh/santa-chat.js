@@ -527,7 +527,7 @@
 
       <div class="ts-dialog-area" id="ts-dialog-area">
         <div class="ts-bubble santa">
-          Ho ho ho! Merry Christmas! I am Father Christmas speaking to you live from the North Pole! 
+          Ho ho ho! Merry Christmas! I am Father Christmas speaking to you live from Lapland! 
           Tap the big golden microphone below to speak with me!
         </div>
       </div>
@@ -681,7 +681,7 @@
       .catch(function (err) {
         isThinking = false;
         console.warn("Santa Voice error:", err);
-        var fallback = "Ho ho ho! A snowy winter gust rattled our North Pole radio! Remember to always be kind to your family, and keep an eye on our live tracker!";
+        var fallback = "Ho ho ho! A snowy winter gust rattled our Lapland radio! Remember to always be kind to your family, and keep an eye on our live tracker!";
         addBubble("santa", fallback);
         speakSanta(fallback);
       });

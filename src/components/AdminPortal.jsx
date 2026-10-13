@@ -24,16 +24,20 @@ import PrintLanyardsModal from './PrintLanyardsModal';
 
 export const PUBLIC_SLOT_OPTIONS = [
   { id: '', label: 'None (Disabled)', desc: 'Slot is empty. No extra feature rendered on your public site.' },
-  { id: 'santa_chat', label: 'Talk to Santa (Voice & Chat Hotline)', desc: 'Interactive phone booth / microphone hotline to speak out loud with Santa Claus.', preview: (slug) => `/santa_chat.html?table=${encodeURIComponent(slug)}` },
-  { id: 'colouring', label: 'Festive Colouring Book (A4 Printable Studio)', desc: 'Personalized A4 colouring sheets for children to print and colour at home.', preview: (slug) => `/colouring_page.html?table=${encodeURIComponent(slug)}` },
-  { id: 'letter', label: 'Letter to Father Christmas (Wish List Writer)', desc: 'Festive letter stationery for children to write and print wish lists for Santa.', preview: (slug) => `/letter.html?table=${encodeURIComponent(slug)}` },
-  { id: 'nice_list', label: 'Official North Pole Nice List Certificate', desc: 'Customizable certificate proving the child made Santa\'s Good List this Christmas.', preview: (slug) => `/nice_list.html?table=${encodeURIComponent(slug)}` },
-  { id: 'adopt_reindeer', label: 'Adopt an Official Sleigh Reindeer', desc: 'Adopt Rudolph, Dasher, Prancer, or Comet and print an adoption certificate.', preview: (slug) => `/adopt_reindeer.html?table=${encodeURIComponent(slug)}` },
   { id: 'bingo', label: 'Christmas Sleigh Bingo Game', desc: 'Kerbside spotting game for families waiting on the pavement for the sleigh.', preview: (slug) => `/bingo.html?table=${encodeURIComponent(slug)}` },
-  { id: 'snowman', label: 'Snowman & Holiday Selfie Photo Booth', desc: 'Festive photo frame to snap holiday selfies and share with family.', preview: (slug) => `/snowman.html?table=${encodeURIComponent(slug)}` },
-  { id: 'magic_mailbox', label: 'Magic North Pole Mailbox', desc: 'Digital mailbox allowing children to post questions directly to Santa\'s workshop.', preview: (slug) => `/magic_mailbox.html?table=${encodeURIComponent(slug)}` },
-  { id: 'suggest', label: 'Suggest a Street or Route Stop', desc: 'Community request box allowing residents to suggest street stops for next year.', preview: (slug) => `/suggest.html?table=${encodeURIComponent(slug)}` },
-  { id: 'countdown', label: 'Christmas Eve Departure Countdown Clock', desc: 'Live countdown ticker to Santa\'s Christmas Eve departure with snowfall.', preview: (slug) => `/countdown.html?table=${encodeURIComponent(slug)}` }
+  { id: 'colouring', label: 'Festive Colouring Book (A4 Printable Studio)', desc: 'Personalized A4 colouring sheets for children to print and colour at home.', preview: (slug) => `/colouring_page.html?table=${encodeURIComponent(slug)}` },
+  { id: 'countdown', label: 'Christmas Eve Departure Countdown Clock', desc: 'Live countdown ticker to Santa departure from Lapland on Christmas Eve.', preview: (slug) => `/countdown.html?table=${encodeURIComponent(slug)}` },
+  { id: 'door_hanger', label: 'Official Door Hanger Generator', desc: 'Printable festive door hangers with live tracking QR code for families.', preview: (slug) => `/door_hanger.html?table=${encodeURIComponent(slug)}` },
+  { id: 'elf_cam', label: 'Lapland Elf Cam (Live Workshop Stream)', desc: 'Live camera feed and status updates directly from Santa Workshop in Lapland.', preview: (slug) => `/elf_cam.html?table=${encodeURIComponent(slug)}` },
+  { id: 'letter', label: 'Letter to Father Christmas (Wish List Writer)', desc: 'Festive letter stationery for children to write wish lists straight to Lapland.', preview: (slug) => `/letter.html?table=${encodeURIComponent(slug)}` },
+  { id: 'magic_mailbox', label: 'Magic Lapland Mailbox (Voice Messages)', desc: 'Digital mailbox allowing children to record audio messages directly for Santa.', preview: (slug) => `/magic_mailbox.html?table=${encodeURIComponent(slug)}` },
+  { id: 'nice_list', label: 'Official Lapland Nice List Certificate', desc: 'Customizable certificate proving the child made Santa Good List this Christmas.', preview: (slug) => `/nice_list.html?table=${encodeURIComponent(slug)}` },
+  { id: 'adopt_reindeer', label: 'Adopt an Official Sleigh Reindeer', desc: 'Adopt Rudolph, Dasher, Prancer, or Comet and print an adoption certificate.', preview: (slug) => `/adopt_reindeer.html?table=${encodeURIComponent(slug)}` },
+  { id: 'santa_chat', label: 'Talk to Santa (Voice & Chat Hotline)', desc: 'Interactive phone booth to speak out loud with Father Christmas in Lapland.', preview: (slug) => `/santa_chat.html?table=${encodeURIComponent(slug)}` },
+  { id: 'santa_frame', label: 'Santa Visited Photo Frame Stamper', desc: 'Commemorative photo frame to stamp family pictures with date of Santa visit.', preview: (slug) => `/santa_frame.html?table=${encodeURIComponent(slug)}` },
+  { id: 'santa_studio', label: 'Santa Audio Studio (Workshop Dispatch)', desc: 'Santa workshop audio portal for recording festive voice messages and replies.', preview: (slug) => `/santa_studio.html?table=${encodeURIComponent(slug)}` },
+  { id: 'snowman', label: 'Snowman Maker & Creator Studio', desc: 'Interactive snowman builder allowing kids to customise hats, scarves, and mittens.', preview: (slug) => `/snowman.html?table=${encodeURIComponent(slug)}` },
+  { id: 'spot_santa', label: 'Spot Santa Sightings & Photo Pinning', desc: 'Community Santa sightings map allowing residents to upload photos with location.', preview: (slug) => `/spot_santa_form.html?table=${encodeURIComponent(slug)}` }
 ];
 
 function getEquivalentDateNextYear(dateStr) {

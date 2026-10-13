@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>TurboSanta — Spot Santa</title>
+  <title>TurboSanta — Spot Santa Sightings</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -13,13 +13,13 @@
   <script src="https://unpkg.com/exifr/dist/lite.umd.js"></script>
 
   <style>
-  @font-face {
-    font-family: 'Eurostile';
-    src: url('/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
-    font-weight: 700;
-    font-style: normal;
-    font-display: swap;
-  }
+    @font-face {
+      font-family: 'Eurostile';
+      src: url('/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
 
     :root {
       --gold: #FBAF33;
@@ -34,21 +34,23 @@
       --text: #eaeae5;
       --text-dim: rgba(255,255,255,0.55);
       --text-muted: rgba(255,255,255,0.3);
+      --green: #22c55e;
+      --red: #D31C1C;
     }
 
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      padding: 24px;
-      font-family: 'Open Sans', sans-serif;
+      padding: 24px 16px;
+      font-family: 'Open Sans', system-ui, -apple-system, sans-serif;
       background: var(--dark);
       color: var(--text);
       -webkit-font-smoothing: antialiased;
       min-height: 100vh;
       display: flex;
       justify-content: center;
-      align-items: flex-start; /* Allows scrolling if it gets too tall */
+      align-items: flex-start;
     }
 
     .card {
@@ -57,14 +59,13 @@
       border: 1px solid var(--border);
       padding: 32px 24px;
       box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-      max-width: 480px;
+      max-width: 500px;
       width: 100%;
       position: relative;
       overflow: hidden;
       text-align: center;
     }
 
-    /* Subtle background glow effect */
     .card::before {
       content: '';
       position: absolute;
@@ -89,9 +90,10 @@
       gap: 6px;
       padding: 6px 16px;
       border-radius: 20px;
+      font-family: 'Eurostile', sans-serif;
       font-size: 11px;
       font-weight: 700;
-      letter-spacing: 2px;
+      letter-spacing: 1.5px;
       text-transform: uppercase;
       background: var(--gold-dim);
       color: var(--gold);
@@ -101,30 +103,40 @@
 
     h2 {
       font-family: 'Eurostile', sans-serif;
-      font-size: clamp(32px, 8vw, 48px);
+      font-size: clamp(32px, 8vw, 44px);
       letter-spacing: 2px;
-      line-height: 0.9;
+      line-height: 1;
+      text-transform: uppercase;
       color: #fff;
-      margin: 0 0 24px 0;
+      margin: 0 0 10px 0;
     }
 
     h2 span { color: var(--gold); }
 
-    /* Custom File Input Styling */
+    .subtitle {
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-bottom: 22px;
+      line-height: 1.4;
+    }
+
     .upload-label {
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       margin: 0 auto 16px;
-      padding: 14px 24px;
+      padding: 14px 20px;
       border-radius: 8px;
       background: var(--surface-2);
-      border: 1px dashed var(--border);
+      border: 1px dashed var(--border-gold);
       cursor: pointer;
+      font-family: 'Eurostile', sans-serif;
       font-weight: 700;
-      font-size: 14px;
-      color: var(--text);
+      font-size: 13px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--gold);
       transition: all 0.2s ease;
       width: 100%;
     }
@@ -132,11 +144,7 @@
     .upload-label:hover {
       border-color: var(--gold);
       background: var(--surface-3);
-      color: var(--gold);
-    }
-
-    .upload-label:active {
-      transform: scale(0.98);
+      box-shadow: 0 0 12px var(--gold-dim);
     }
 
     .upload-label input {
@@ -144,40 +152,53 @@
     }
 
     #preview {
+      width: 100%;
+      max-height: 240px;
+      object-fit: cover;
       border-radius: 8px;
       border: 1px solid var(--border);
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       margin-bottom: 16px;
+      display: none;
     }
 
     #map {
-      height: 160px;
+      height: 180px;
       border-radius: 8px;
       border: 1px solid var(--border);
       margin-bottom: 16px;
-      background: var(--surface-2); /* placeholder color before load */
-      z-index: 0; /* Keeps Leaflet inside the card visually */
+      background: var(--surface-2);
+      z-index: 0;
+    }
+
+    .map-helper {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: -10px;
+      margin-bottom: 14px;
+      text-align: left;
     }
 
     textarea {
       width: 100%;
       margin-bottom: 16px;
-      padding: 14px;
+      padding: 12px 14px;
       border-radius: 8px;
       border: 1px solid var(--border);
       background: var(--surface-2);
       color: var(--text);
       font-family: 'Open Sans', sans-serif;
-      font-size: 14px;
+      font-size: 13px;
       resize: vertical;
-      min-height: 80px;
+      min-height: 70px;
       outline: none;
-      transition: border 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
 
     textarea:focus {
       border-color: var(--gold);
-      box-shadow: 0 0 0 3px var(--gold-glow);
+      box-shadow: 0 0 0 2px var(--gold-glow);
     }
 
     textarea::placeholder {
@@ -193,56 +214,281 @@
       background: var(--gold);
       color: #000;
       font-weight: 700;
-      font-family: 'Open Sans', sans-serif;
-      font-size: 15px;
+      font-family: 'Eurostile', sans-serif;
+      font-size: 14px;
       text-transform: uppercase;
       letter-spacing: 1px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      gap: 8px;
       transition: all 0.2s ease;
     }
 
     button:hover {
-      background: #e59d28;
-      transform: translateY(-2px);
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px var(--gold-glow);
     }
 
-    button:active {
-      transform: translateY(0);
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
     }
 
     #status {
-      margin-top: 16px;
-      font-size: 13px;
-      font-weight: 600;
+      margin-top: 14px;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
       color: var(--text-dim);
+      min-height: 18px;
+      text-transform: uppercase;
     }
 
+    .status-ok { color: var(--green) !important; }
+    .status-err { color: var(--red) !important; }
   </style>
 </head>
 
 <body>
 <div class="card">
-  <div class="hero-badge">📍 Tracker</div>
+  <div class="hero-badge">SLEIGH TRACKER</div>
   <h2>SPOT <span>SANTA!</span></h2>
+  <div class="subtitle">Did you spot Father Christmas on your road? Snap a photo, confirm your location, and pin your sighting to the community map.</div>
 
   <label class="upload-label">
-    📸 Tap to take/upload a photo
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+    <span id="uploadLabelText">TAP TO TAKE OR UPLOAD PHOTO</span>
     <input id="photo" type="file" accept="image/*" capture="environment">
   </label>
 
-  <img id="preview" style="width:100%; display:none;">
+  <img id="preview" alt="Sighting Preview">
 
   <div id="map"></div>
+  <div class="map-helper">PIN LOCATION: TAP MAP TO ADJUST PIN IF NEEDED</div>
 
-  <textarea id="caption" maxlength="200" placeholder="Where did you spot him? Add an optional caption…"></textarea>
+  <textarea id="caption" maxlength="200" placeholder="Where did you spot him? (e.g. Molescroft Road, waving from window)"></textarea>
 
-  <button onclick="submitPhoto()">Submit Sighting</button>
+  <button id="submitBtn" onclick="submitPhoto()">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+    <span id="btnLabel">SUBMIT SIGHTING</span>
+  </button>
 
   <p id="status"></p>
 </div>
 
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const tableSlug = (params.get("table") || "beverley").toLowerCase().trim();
+  const apiUrl = params.get("api") || "";
+
+  let currentLat = 53.8436;
+  let currentLng = -0.4286;
+  let map = null;
+  let pinMarker = null;
+  let compressedBase64 = null;
+
+  // Custom Gold Pin Marker for Leaflet
+  const goldIcon = L.divIcon({
+    className: 'custom-gold-pin',
+    html: '<div style="background:#FBAF33;width:18px;height:18px;border-radius:50%;border:2px solid #000;box-shadow:0 0 8px rgba(251,175,51,0.8);"></div>',
+    iconSize: [18, 18],
+    iconAnchor: [9, 9]
+  });
+
+  // Initialize Map
+  function initMap(lat, lng) {
+    currentLat = lat;
+    currentLng = lng;
+
+    map = L.map('map', { attributionControl: false }).setView([lat, lng], 14);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18
+    }).addTo(map);
+
+    pinMarker = L.marker([lat, lng], { icon: goldIcon, draggable: true }).addTo(map);
+
+    pinMarker.on('dragend', function(e) {
+      const pos = e.target.getLatLng();
+      currentLat = pos.lat;
+      currentLng = pos.lng;
+    });
+
+    map.on('click', function(e) {
+      currentLat = e.latlng.lat;
+      currentLng = e.latlng.lng;
+      pinMarker.setLatLng(e.latlng);
+    });
+  }
+
+  // Fetch Table Center or Fallback
+  async function loadTableLocation() {
+    try {
+      const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableSlug)}`);
+      const data = await res.json();
+      if (data && data.routes && data.routes.length > 0) {
+        const firstRoute = data.routes[0];
+        if (firstRoute.lat && firstRoute.lng) {
+          initMap(parseFloat(firstRoute.lat), parseFloat(firstRoute.lng));
+          return;
+        }
+      }
+    } catch(e) {}
+    // Default fallback (Beverley)
+    initMap(53.8436, -0.4286);
+  }
+
+  // Handle Photo Selection & EXIF GPS
+  document.getElementById('photo').addEventListener('change', async function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    document.getElementById('uploadLabelText').textContent = file.name.slice(0, 24);
+
+    // 1. Image Preview
+    const preview = document.getElementById('preview');
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      preview.src = evt.target.result;
+      preview.style.display = 'block';
+
+      // Compress to lightweight JPEG
+      compressImage(evt.target.result);
+    };
+    reader.readAsDataURL(file);
+
+    // 2. EXIF GPS Reading via exifr
+    try {
+      if (window.exifr) {
+        const gps = await exifr.gps(file);
+        if (gps && gps.latitude && gps.longitude) {
+          currentLat = gps.latitude;
+          currentLng = gps.longitude;
+          if (map && pinMarker) {
+            map.setView([currentLat, currentLng], 15);
+            pinMarker.setLatLng([currentLat, currentLng]);
+            document.getElementById('status').textContent = 'LOCATION DETECTED FROM PHOTO METADATA';
+            document.getElementById('status').className = 'status-ok';
+          }
+          return;
+        }
+      }
+    } catch(err) {
+      console.warn("EXIF extraction skipped:", err);
+    }
+
+    // 3. Fallback: Browser Geolocation
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        function(pos) {
+          currentLat = pos.coords.latitude;
+          currentLng = pos.coords.longitude;
+          if (map && pinMarker) {
+            map.setView([currentLat, currentLng], 15);
+            pinMarker.setLatLng([currentLat, currentLng]);
+            document.getElementById('status').textContent = 'CURRENT LOCATION DETECTED';
+            document.getElementById('status').className = 'status-ok';
+          }
+        },
+        function() {
+          document.getElementById('status').textContent = 'TAP MAP TO CONFIRM SIGHTING SPOT';
+        },
+        { timeout: 8000 }
+      );
+    }
+  });
+
+  // Client-Side Canvas Compression (Max 1200px width, 0.82 quality)
+  function compressImage(dataUrl) {
+    const img = new Image();
+    img.onload = function() {
+      const MAX_WIDTH = 1200;
+      let width = img.width;
+      let height = img.height;
+      if (width > MAX_WIDTH) {
+        height = Math.round(height * (MAX_WIDTH / width));
+        width = MAX_WIDTH;
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      compressedBase64 = canvas.toDataURL('image/jpeg', 0.82);
+    };
+    img.src = dataUrl;
+  }
+
+  // Submit Photo Sighting to Memory Book / Polaroids API
+  async function submitPhoto() {
+    const statusEl = document.getElementById('status');
+    const submitBtn = document.getElementById('submitBtn');
+    const caption = document.getElementById('caption').value.trim();
+
+    if (!compressedBase64) {
+      statusEl.textContent = 'PLEASE SELECT OR SNAP A PHOTO FIRST';
+      statusEl.className = 'status-err';
+      return;
+    }
+
+    submitBtn.disabled = true;
+    document.getElementById('btnLabel').textContent = 'UPLOADING SIGHTING...';
+    statusEl.textContent = 'TRANSMITTING SIGHTING TO SLEIGH VOLUNTEERS...';
+    statusEl.className = '';
+
+    const payload = {
+      action: 'uploadMemoryPhoto',
+      imageData: compressedBase64,
+      caption: caption,
+      latitude: currentLat,
+      longitude: currentLng,
+      mediaType: 'image',
+      year: new Date().getFullYear(),
+      tableSlug: tableSlug,
+      status: 'pending'
+    };
+
+    try {
+      if (apiUrl) {
+        await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify(payload)
+        });
+      } else {
+        await fetch(`https://turbosanta-api.beverley247.workers.dev/api/memory-book?table=${encodeURIComponent(tableSlug)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      }
+
+      statusEl.textContent = 'THANK YOU! YOUR SIGHTING HAS BEEN SUBMITTED FOR SCREENING.';
+      statusEl.className = 'status-ok';
+      document.getElementById('btnLabel').textContent = 'SIGHTING SUBMITTED';
+
+      setTimeout(() => {
+        document.getElementById('caption').value = '';
+        document.getElementById('preview').style.display = 'none';
+        document.getElementById('photo').value = '';
+        document.getElementById('uploadLabelText').textContent = 'TAP TO TAKE OR UPLOAD PHOTO';
+        submitBtn.disabled = false;
+        document.getElementById('btnLabel').textContent = 'SUBMIT SIGHTING';
+      }, 3500);
+
+    } catch(err) {
+      statusEl.textContent = 'ERROR SUBMITTING SIGHTING. PLEASE RETRY.';
+      statusEl.className = 'status-err';
+      submitBtn.disabled = false;
+      document.getElementById('btnLabel').textContent = 'SUBMIT SIGHTING';
+    }
+  }
+
+  loadTableLocation();
+</script>
 </body>
 </html>

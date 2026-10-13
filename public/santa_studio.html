@@ -386,7 +386,9 @@
 </div>
 
 <script>
-const API = new URLSearchParams(location.search).get('api') || '';
+const params = new URLSearchParams(location.search);
+const tableSlug = (params.get('table') || 'beverley').toLowerCase().trim();
+const API = params.get('api') || ('https://turbosanta-api.beverley247.workers.dev/api/magic-mailbox?table=' + encodeURIComponent(tableSlug));
 
 let secret = '';
 let volunteerName = '';

@@ -12,6 +12,7 @@ function formatTownName(str) {
 // ==============================================================================
 // TurboSanta — Multi-Tenant Universal Direct Links Generator
 // Supports both Cloudflare D1 Multi-Tenant (?table=slug) and Legacy Sheets (?api=)
+// Strictly Curated 14 Public Interactive Features
 // ==============================================================================
 
 const params = new URLSearchParams(window.location.search);
@@ -155,106 +156,51 @@ function setValue(id, val) {
 }
 
 function generateAllEmbeds() {
-  // Direct Links in alphabetical order (A to Z)
-  // A
-  setLink("addressLink", buildUrl("address.html"));
-
-  // B
-  setLink("beaconLink", buildUrl("beacon.html"));
+  // Direct Links in alphabetical order (A to Z) for the 14 Curated Public Features
+  // 01: Bingo
   setLink("bingoLink", buildUrl("bingo.html"));
 
-  // C
-  setLink("carouselLink", buildUrl("carousel.html"));
+  // 02: Colouring
   setLink("colouringpageLink", buildUrl("colouring_page.html"));
-  setLink("countdownLink", buildUrl("countdown.html"));
-  setLink("crewLink", buildUrl("crew.html"));
 
-  // D
+  // 03: Countdown
+  setLink("countdownLink", buildUrl("countdown.html"));
+
+  // 04: Door Hanger
   setLink("doorhangerLink", buildUrl("door_hanger.html"));
 
-  // E
+  // 05: Elf Cam (Lapland)
   setLink("elfcamLink", buildUrl("elf_cam.html"));
 
-  // G
-  setLink("giftaidLink", buildUrl("gift_aid.html"));
-  setLink("godModeLink", buildUrl("god_mode.html"));
-
-  // K
-  setLink("knowledgeBaseLink", buildUrl("knowledge-base.html"));
-
-  // L
+  // 06: Letter to Father Christmas
   setLink("letterLink", buildUrl("letter.html"));
 
-  // M
+  // 07: Magic Mailbox
   setLink("magicmailboxLink", buildUrl("magic_mailbox.html"));
-  setLink("memorybookLink", buildUrl("memory_book.html"));
 
-  // N
+  // 08: Nice List
   setLink("niceListLink", buildUrl("nice_list.html"));
 
-  // P
-  setLink("partnerReportLink", buildUrl("partner_report.html"));
-
-  // Q
-  setLink("qrPosterLink", buildUrl("qr_poster.html"));
-
-  // R
+  // 09: Reindeer Adoption
   setLink("reindeerLink", buildUrl("adopt_reindeer.html"));
-  setLink("routeCardLink", buildUrl("route_card.html"));
-  setLink("routeplannerLink", buildUrl("route_planner.html"));
-  setLink("routesLink", buildUrl("routes.html"));
 
-  // S
+  // 10: Santa Chat Hotline
   setLink("santachatLink", buildUrl("santa_chat.html"));
-  setLink("santasleighLink", buildUrl(""));
-  setLink("santastudioLink", buildUrl("santa_studio.html"));
+
+  // 11: Santa Frame
   setLink("santasBeenLink", buildUrl("santa_frame.html"));
-  setLink("satnavLink", buildUrl("tracker.html", "driver=1"));
-  setLink("seasonWrapLink", buildUrl("season_wrap.html"));
-  setLink("blueprintLink", buildUrl("blueprint.html"));
+
+  // 12: Santa Studio
+  setLink("santastudioLink", buildUrl("santa_studio.html"));
+
+  // 13: Snowman Maker
   setLink("snowmanLink", buildUrl("snowman.html"));
-  setLink("suggestLink", buildUrl("suggest.html"));
 
-  // T
-  setLink("thankYouLink", buildUrl("thank_you.html"));
-  setLink("trackerLink", buildUrl("tracker.html"));
-  setLink("trackerKioskLink", buildUrl("tracker.html", "kiosk=1"));
+  // 14: Spot Santa Sightings
+  setLink("spotsantaLink", buildUrl("spot_santa_form.html"));
 
-  // V
-  setLink("volunteercertLink", buildUrl("volunteer_cert.html"));
-
-  loadRoutes();
-}
-
-async function loadRoutes() {
-  const gpxEl = document.getElementById("gpxList");
-  if (!gpxEl) return;
-  try {
-    let routes = [];
-    if (currentApi) {
-      const res = await fetch(currentApi);
-      const json = await res.json();
-      routes = json.routes || [];
-    } else {
-      const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(currentTable || "beverley")}`);
-      const json = await res.json();
-      routes = json.routes || [];
-    }
-
-    if (!routes || !routes.length) {
-      gpxEl.value = "No routes currently scheduled for this table.";
-      return;
-    }
-
-    const output = routes.map(r => {
-      const name = r.routeName || r.name || "Route";
-      return buildUrl("gpx_animation.html", `route=${encodeURIComponent(name)}`);
-    }).join("\r\n");
-
-    gpxEl.value = output;
-  } catch (e) {
-    gpxEl.value = "GPX animation links available when routes are created.";
-  }
+  // Update card counter
+  filterLinks(document.getElementById('filterInput')?.value || '');
 }
 
 function filterLinks(query) {
