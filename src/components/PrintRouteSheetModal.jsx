@@ -59,7 +59,136 @@ export default function PrintRouteSheetModal({
   } catch (e) {}
 
   const handlePrint = () => {
-    window.print();
+    const printArea = document.getElementById('route-sheet-print-area');
+    if (!printArea) {
+      window.print();
+      return;
+    }
+
+    let printIframe = document.getElementById('print-manifest-iframe');
+    if (!printIframe) {
+      printIframe = document.createElement('iframe');
+      printIframe.id = 'print-manifest-iframe';
+      printIframe.style.position = 'fixed';
+      printIframe.style.right = '0';
+      printIframe.style.bottom = '0';
+      printIframe.style.width = '0';
+      printIframe.style.height = '0';
+      printIframe.style.border = '0';
+      printIframe.style.visibility = 'hidden';
+      document.body.appendChild(printIframe);
+    }
+
+    const doc = printIframe.contentDocument || printIframe.contentWindow.document;
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>${(tableName || 'Round Table').toUpperCase()} Santa Sleigh - Run Sheet - ${route.name}</title>
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 8mm 10mm;
+            }
+            * {
+              box-sizing: border-box;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            html, body {
+              margin: 0;
+              padding: 0;
+              background: #ffffff !important;
+              color: #111827 !important;
+              font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+              font-size: 11px;
+              line-height: 1.35;
+            }
+            .route-sheet-print-card {
+              width: 100%;
+              background: #ffffff;
+              color: #111827;
+              padding: 0;
+            }
+            .sheet-header-flex {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+              border-bottom: 2px solid #111827;
+              padding-bottom: 8px;
+              margin-bottom: 10px;
+              gap: 12px;
+            }
+            .sheet-contact-grid {
+              display: grid;
+              grid-template-columns: repeat(4, 1fr);
+              gap: 8px;
+              background: #f3f4f6;
+              border: 1px solid #d1d5db;
+              border-radius: 6px;
+              padding: 8px 12px;
+              margin-bottom: 10px;
+              font-size: 10.5px;
+            }
+            .sheet-table-wrap {
+              width: 100%;
+              overflow: visible;
+              margin-bottom: 10px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              font-size: 10.5px;
+              border: 1.5px solid #111827;
+              page-break-inside: auto;
+            }
+            tr {
+              page-break-inside: avoid;
+              page-break-after: auto;
+            }
+            th, td {
+              border: 1px solid #e5e7eb;
+              padding: 4px 8px;
+            }
+            th {
+              background: #111827 !important;
+              color: #ffffff !important;
+            }
+            .sheet-handover-grid {
+              display: grid;
+              grid-template-columns: 1.3fr 1fr;
+              gap: 12px;
+              margin-top: 10px;
+              border-top: 1.5px solid #111827;
+              padding-top: 8px;
+              page-break-inside: avoid;
+            }
+            a {
+              color: #1d4ed8;
+              text-decoration: underline;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="route-sheet-print-card">
+            ${printArea.innerHTML}
+          </div>
+        </body>
+      </html>
+    `);
+    doc.close();
+
+    setTimeout(() => {
+      try {
+        printIframe.contentWindow.focus();
+        printIframe.contentWindow.print();
+      } catch (err) {
+        console.warn('Iframe print fallback to window.print():', err);
+        window.print();
+      }
+    }, 250);
   };
 
   const handleCopyWhatsApp = () => {
@@ -109,7 +238,7 @@ export default function PrintRouteSheetModal({
   };
 
   return (
-    <div style={{
+    <div className="route-sheet-modal-overlay" style={{
       position: 'fixed',
       inset: 0,
       background: 'rgba(0, 0, 0, 0.85)',
@@ -166,28 +295,78 @@ export default function PrintRouteSheetModal({
           }
         }
 
-        /* Physical A4 Printout Styles */
+        /* Physical A4 Printout Styles (for Direct Browser Print / Ctrl+P) */
         @media print {
-          body * {
-            visibility: hidden !important;
+          @page {
+            size: A4 portrait;
+            margin: 8mm 10mm;
           }
-          #route-sheet-print-area, #route-sheet-print-area * {
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+            min-height: auto !important;
+            background: #ffffff !important;
+            color: #111827 !important;
+            overflow: visible !important;
+          }
+          body * {
+            visibility: hidden;
+          }
+          .route-sheet-modal-overlay,
+          .route-sheet-modal-container,
+          #route-sheet-print-area,
+          #route-sheet-print-area * {
             visibility: visible !important;
           }
-          #route-sheet-print-area {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 100% !important;
+          .route-sheet-modal-overlay {
+            position: static !important;
+            inset: auto !important;
+            display: block !important;
+            background: transparent !important;
+            backdrop-filter: none !important;
+            padding: 0 !important;
             margin: 0 !important;
-            padding: 8mm 10mm !important;
+            width: 100% !important;
+            height: auto !important;
+            overflow: visible !important;
+            z-index: auto !important;
+          }
+          .route-sheet-modal-container {
+            position: static !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            max-width: 100% !important;
+            max-height: none !important;
+            height: auto !important;
+            overflow: visible !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          #route-sheet-print-area {
+            position: static !important;
+            display: block !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
             background: #ffffff !important;
-            color: #000000 !important;
+            color: #111827 !important;
             box-shadow: none !important;
             border: none !important;
+            overflow: visible !important;
+            page-break-inside: auto !important;
           }
-          .no-print {
+          .no-print,
+          .no-print * {
             display: none !important;
+            visibility: hidden !important;
           }
           .sheet-contact-grid {
             grid-template-columns: repeat(4, 1fr) !important;
@@ -201,12 +380,8 @@ export default function PrintRouteSheetModal({
             grid-template-columns: 1.3fr 1fr !important;
           }
           a {
-            color: #000000 !important;
-            text-decoration: none !important;
-          }
-          @page {
-            size: A4 portrait;
-            margin: 6mm;
+            color: #1d4ed8 !important;
+            text-decoration: underline !important;
           }
         }
       `}</style>
