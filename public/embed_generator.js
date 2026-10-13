@@ -8,8 +8,9 @@ function formatTownName(str) {
     .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join(' ');
 }
+
 // ==============================================================================
-// TurboSanta — Multi-Tenant Universal Embed Generator
+// TurboSanta — Multi-Tenant Universal Direct Links Generator
 // Supports both Cloudflare D1 Multi-Tenant (?table=slug) and Legacy Sheets (?api=)
 // ==============================================================================
 
@@ -79,20 +80,6 @@ function updateColorTheme(newColor) {
 }
 window.updateColorTheme = updateColorTheme;
 
-function handleThemeSelect(val) {
-  const picker = document.getElementById("customColorPicker");
-  if (val === 'custom') {
-    if (picker) {
-      picker.style.display = 'inline-block';
-      updateColorTheme(picker.value);
-    }
-  } else {
-    if (picker) picker.style.display = 'none';
-    updateColorTheme(val);
-  }
-}
-window.handleThemeSelect = handleThemeSelect;
-
 function buildUrl(filename, extraParams = "") {
   const query = getTargetQuery();
   const sep = filename && filename.includes("?") ? "&" : "?";
@@ -104,19 +91,6 @@ function buildUrl(filename, extraParams = "") {
 function updateDisplay() {
   if (currentColor) {
     applyEmbedTheme(currentColor);
-    const select = document.getElementById("colorThemeSelect");
-    if (select) {
-      if (currentColor.toLowerCase().includes('fbaf33')) select.value = '#FBAF33';
-      else if (currentColor.toLowerCase().includes('d31c1c')) select.value = '#D31C1C';
-      else {
-        select.value = 'custom';
-        const picker = document.getElementById("customColorPicker");
-        if (picker) {
-          picker.style.display = 'inline-block';
-          picker.value = currentColor.startsWith('#') ? currentColor : '#' + currentColor;
-        }
-      }
-    }
   }
   const display = document.getElementById("apiDisplay");
   if (display) {
@@ -142,6 +116,11 @@ function updateDisplay() {
     hubLink.href = `/hub.html?table=${encodeURIComponent(currentTable || "beverley")}`;
   }
 
+  const adminLink = document.getElementById("adminLinkHeader");
+  if (adminLink) {
+    adminLink.href = `/?table=${encodeURIComponent(currentTable || "beverley")}`;
+  }
+
   generateAllEmbeds();
 }
 
@@ -153,7 +132,6 @@ function updateTableSlug(newSlug) {
   if (slug) {
     currentTable = slug;
     currentApi = "";
-    // Update URL query string without reloading
     const newUrl = new URL(window.location.href);
     newUrl.searchParams.set("table", slug);
     newUrl.searchParams.delete("api");
@@ -163,273 +141,89 @@ function updateTableSlug(newSlug) {
 }
 window.updateTableSlug = updateTableSlug;
 
-function generateAllEmbeds() {
-  // 1. Santa Sleigh Turnkey App
-  const santasleighUrl = buildUrl("");
-  setValue("santasleighLink", santasleighUrl);
-  setValue("santasleighEmbed", `<div style="width:100%;max-width:1200px;margin:0 auto;">
-  <iframe
-    src="${santasleighUrl}"
-    style="width:100%;height:100vh;min-height:800px;border:none;border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,0.5);"
-    allow="geolocation; screen-wake-lock; camera; microphone"
-    loading="lazy">
-  </iframe>
-</div>`);
-
-  // 2. Thermometers
-  const miniThermo = `<div data-santa-mini></div>
-<script>
-(function() {
-    const s = document.createElement('script');
-    s.src = '${BASE_URL}/donations_v2.js';
-    s.onload = () => { 
-        window.BRT_DONATE_API = 'https://turbosanta-api.beverley247.workers.dev/api/payload?${getTargetQuery()}'; 
-        if (typeof BRT_DONATE_INIT === 'function') BRT_DONATE_INIT(); 
-    };
-    document.head.appendChild(s);
-})();
-<\/script>`;
-  setValue("miniThermo", miniThermo);
-
-  const fullThermo = `<div data-santa-thermo></div>
-<script>
-(function() {
-    const s = document.createElement('script');
-    s.src = '${BASE_URL}/donations_v2.js';
-    s.onload = () => {
-        window.BRT_DONATE_API = 'https://turbosanta-api.beverley247.workers.dev/api/payload?${getTargetQuery()}';
-        if (typeof BRT_DONATE_INIT === 'function') BRT_DONATE_INIT();
-    };
-    document.head.appendChild(s);
-})();
-<\/script>`;
-  setValue("fullThermo", fullThermo);
-
-  // 3. Carousel
-  setValue("carouselLink", `<iframe
-  src="${buildUrl("carousel.html")}"
-  style="width:100%;height:450px;border:none;border-radius:16px;overflow:hidden;background:transparent;"
-  allowtransparency="true"
-  scrolling="no"
-  loading="lazy">
-</iframe>`);
-
-  // 4. Address & Street Lookup
-  const addressUrl = buildUrl("address.html");
-  setValue("addressLink", addressUrl);
-  setValue("addressLookup", `<div style="width:100%;max-width:900px;margin:0 auto;">
-  <iframe
-    id="addressFrame"
-    src="${addressUrl}"
-    style="width:100%;height:550px;border:none;border-radius:16px;transition:height .25s ease;background:transparent;"
-    allowtransparency="true"
-    allow="geolocation"
-    scrolling="no"
-    loading="lazy">
-  </iframe>
-</div>
-<script>
-  window.addEventListener("message", (e) => {
-    if (e.data && e.data.addressLookupHeight) {
-      const frame = document.getElementById("addressFrame");
-      if (frame) frame.style.height = e.data.addressLookupHeight + "px";
-    }
-  });
-<\/script>`);
-
-  // 5. Nice List
-  setValue("niceListEmbed", `<div style="width:100%;max-width:720px;margin:0 auto;">
-  <iframe
-    id="niceListFrame"
-    src="${buildUrl("nice_list.html")}"
-    style="width:100%;height:500px;border:none;border-radius:16px;transition:height .25s ease;background:transparent;"
-    allowtransparency="true"
-    scrolling="no"
-    loading="lazy">
-  </iframe>
-</div>`);
-
-  // 6. Santa's Been Photo Frame
-  setValue("santasBeenEmbed", `<div style="width:100%;max-width:440px;margin:0 auto;">
-  <iframe
-    id="santasBeenFrame"
-    src="${buildUrl("santa_frame.html")}"
-    style="width:100%;height:560px;border:none;border-radius:20px;overflow:hidden;background:transparent;"
-    allowtransparency="true"
-    scrolling="no"
-    loading="lazy">
-  </iframe>
-</div>`);
-
-  // 7. Tracker Embeds
-  const trackerUrl = buildUrl("tracker.html");
-  setValue("trackerLink", trackerUrl);
-  setValue("recommendedTracker", `<div style="width:100%;max-width:1000px;margin:0 auto;">
-  <iframe
-    src="${trackerUrl}"
-    style="width:100%;height:80vh;min-height:550px;border:none;border-radius:16px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.5);background:transparent;"
-    allowtransparency="true"
-    allow="geolocation; screen-wake-lock"
-    scrolling="no"
-    loading="lazy">
-  </iframe>
-</div>`);
-
-  // 8. Tracker Kiosk Mode
-  const trackerKioskUrl = buildUrl("tracker.html", "kiosk=1");
-  setValue("trackerKioskLink", trackerKioskUrl);
-  setValue("recommendedTrackerKiosk", `<div style="width:100%;margin:0 auto;">
-  <iframe
-    src="${trackerKioskUrl}"
-    style="width:100%;height:90vh;min-height:600px;border:none;border-radius:16px;overflow:hidden;background:transparent;"
-    allowtransparency="true"
-    scrolling="no"
-    loading="lazy">
-  </iframe>
-</div>`);
-
-  // 9. Routes List & Route Card
-  const routesUrl = buildUrl("routes.html");
-  setValue("routesLink", routesUrl);
-  setValue("recommendedRoutes", `<div style="width:100%;max-width:1000px;margin:0 auto;">
-  <iframe
-    id="routesFrame"
-    src="${routesUrl}"
-    style="width:100%;height:600px;border:none;border-radius:16px;transition:height .25s ease;background:transparent;"
-    allowtransparency="true"
-    scrolling="no"
-    loading="lazy">
-  </iframe>
-</div>`);
-
-  const routeCardUrl = buildUrl("route_card.html");
-  setValue("routeCardLink", routeCardUrl);
-  setValue("recommendedRouteCard", `<div style="width:100%;max-width:800px;margin:0 auto;">
-  <iframe
-    id="routeCardFrame"
-    src="${routeCardUrl}"
-    style="width:100%;height:350px;border:none;border-radius:16px;transition:height .25s ease;background:transparent;"
-    allowtransparency="true"
-    scrolling="no"
-    loading="lazy">
-  </iframe>
-</div>`);
-
-  // 10. Snowman Face Photo
-  setValue("snowmanFrameEmbed", `<div style="width:100%;max-width:900px;margin:0 auto;">
-  <iframe
-    src="${buildUrl("snowman.html")}"
-    style="width:100%;height:600px;border:none;border-radius:20px;overflow:hidden;background:transparent;"
-    allowtransparency="true"
-    scrolling="no"
-    loading="lazy">
-  </iframe>
-</div>`);
-
-  // 11. Reports & Admin
-  setValue("seasonWrapLink", buildUrl("season_wrap.html"));
-  setValue("godModeLink", buildUrl("god_mode.html"));
-  setValue("qrPosterLink", buildUrl("qr_poster.html"));
-  setValue("thankYouLink", buildUrl("thank_you.html"));
-  setValue("reindeerLink", buildUrl("adopt_reindeer.html"));
-  
-  // 12. Crew Hub & Volunteer Sign-Up
-  const crewUrl = buildUrl("crew.html");
-  setValue("crewLink", crewUrl);
-  setValue("crewEmbed", `<div style="width:100%;max-width:900px;margin:0 auto;">
-  <iframe
-    src="${crewUrl}"
-    style="width:100%;height:750px;border:none;border-radius:16px;background:transparent;"
-    loading="lazy">
-  </iframe>
-</div>`);
-
-  // 13. Letters & Mailbox
-  const letterUrl = buildUrl("letter.html");
-  setValue("letterLink", letterUrl);
-  setValue("recommendedLetter", `<div style="width:100%;max-width:600px;margin:0 auto;">
-  <iframe
-    src="${letterUrl}"
-    style="width:100%;height:650px;border:none;border-radius:16px;transition:height .25s ease;background:transparent;"
-    allowtransparency="true"
-    scrolling="no"
-    loading="lazy">
-  </iframe>
-</div>`);
-
-  // 14. Interactive Widgets
-  setValue("suggestLink", buildUrl("suggest.html"));
-  setValue("elfcamLink", buildUrl("elf_cam.html"));
-  setValue("satnavLink", buildUrl("tracker.html", "driver=1"));
-  setValue("beaconLink", buildUrl("beacon.html"));
-  setValue("doorhangerLink", buildUrl("door_hanger.html"));
-  setValue("colouringpageLink", buildUrl("colouring_page.html"));
-  setValue("volunteercertLink", buildUrl("volunteer_cert.html"));
-  setValue("bingoLink", buildUrl("bingo.html"));
-  setValue("routeplannerLink", buildUrl("route_planner.html"));
-
-  const countdownUrl = buildUrl("countdown.html");
-  setValue("countdownLink", countdownUrl);
-  setValue("countdownEmbed", `<div style="width:100%;max-width:600px;margin:0 auto;">
-  <iframe
-    src="${countdownUrl}"
-    style="width:100%;height:180px;border:none;border-radius:12px;background:transparent;"
-    scrolling="no"
-    loading="lazy">
-  </iframe>
-</div>`);
-
-  const giftaidUrl = buildUrl("gift_aid.html");
-  setValue("giftaidLink", giftaidUrl);
-  setValue("giftaidEmbed", `<div style="width:100%;max-width:700px;margin:0 auto;">
-  <iframe
-    src="${giftaidUrl}"
-    style="width:100%;height:650px;border:none;border-radius:16px;background:transparent;"
-    loading="lazy">
-  </iframe>
-</div>`);
-
-  const memorybookUrl = buildUrl("memory_book.html");
-  setValue("memorybookLink", memorybookUrl);
-  setValue("memorybookEmbed", `<div style="width:100%;max-width:1000px;margin:0 auto;">
-  <iframe
-    src="${memorybookUrl}"
-    style="width:100%;height:850px;border:none;border-radius:16px;background:transparent;"
-    allow="camera; microphone; geolocation"
-    loading="lazy">
-  </iframe>
-</div>`);
-
-  const santachatUrl = buildUrl("santa_chat.html");
-  setValue("santachatLink", santachatUrl);
-  setValue("santachatEmbed", `<div style="width:100%;max-width:500px;margin:0 auto;">
-  <iframe
-    src="${santachatUrl}"
-    style="width:100%;height:600px;border:none;border-radius:24px;background:#1d1d1a;"
-    allow="microphone"
-    loading="lazy">
-  </iframe>
-</div>`);
-
-  const blueprintUrl = buildUrl("blueprint.html");
-  setValue("blueprintLink", blueprintUrl);
-  setValue("blueprintEmbed", `<div style="width:100%;max-width:1000px;margin:0 auto;">
-  <iframe
-    src="${blueprintUrl}"
-    style="width:100%;height:620px;border:none;border-radius:24px;background:transparent;"
-    loading="lazy">
-  </iframe>
-</div>`);
-
-  setValue("magicmailboxLink", buildUrl("magic_mailbox.html"));
-  setValue("santastudioLink", buildUrl("santa_studio.html"));
-
-  loadRoutes();
+function setLink(id, url) {
+  setValue(id, url);
+  const openEl = document.getElementById(id + "_open");
+  if (openEl) {
+    openEl.href = url;
+  }
 }
 
 function setValue(id, val) {
   const el = document.getElementById(id);
   if (el) el.value = (val || "").trim();
+}
+
+function generateAllEmbeds() {
+  // Direct Links in alphabetical order (A to Z)
+  // A
+  setLink("addressLink", buildUrl("address.html"));
+
+  // B
+  setLink("beaconLink", buildUrl("beacon.html"));
+  setLink("bingoLink", buildUrl("bingo.html"));
+
+  // C
+  setLink("carouselLink", buildUrl("carousel.html"));
+  setLink("colouringpageLink", buildUrl("colouring_page.html"));
+  setLink("countdownLink", buildUrl("countdown.html"));
+  setLink("crewLink", buildUrl("crew.html"));
+
+  // D
+  setLink("doorhangerLink", buildUrl("door_hanger.html"));
+
+  // E
+  setLink("elfcamLink", buildUrl("elf_cam.html"));
+
+  // G
+  setLink("giftaidLink", buildUrl("gift_aid.html"));
+  setLink("godModeLink", buildUrl("god_mode.html"));
+
+  // K
+  setLink("knowledgeBaseLink", buildUrl("knowledge-base.html"));
+
+  // L
+  setLink("letterLink", buildUrl("letter.html"));
+
+  // M
+  setLink("magicmailboxLink", buildUrl("magic_mailbox.html"));
+  setLink("memorybookLink", buildUrl("memory_book.html"));
+
+  // N
+  setLink("niceListLink", buildUrl("nice_list.html"));
+
+  // P
+  setLink("partnerReportLink", buildUrl("partner_report.html"));
+
+  // Q
+  setLink("qrPosterLink", buildUrl("qr_poster.html"));
+
+  // R
+  setLink("reindeerLink", buildUrl("adopt_reindeer.html"));
+  setLink("routeCardLink", buildUrl("route_card.html"));
+  setLink("routeplannerLink", buildUrl("route_planner.html"));
+  setLink("routesLink", buildUrl("routes.html"));
+
+  // S
+  setLink("santachatLink", buildUrl("santa_chat.html"));
+  setLink("santasleighLink", buildUrl(""));
+  setLink("santastudioLink", buildUrl("santa_studio.html"));
+  setLink("santasBeenLink", buildUrl("santa_frame.html"));
+  setLink("satnavLink", buildUrl("tracker.html", "driver=1"));
+  setLink("seasonWrapLink", buildUrl("season_wrap.html"));
+  setLink("blueprintLink", buildUrl("blueprint.html"));
+  setLink("snowmanLink", buildUrl("snowman.html"));
+  setLink("suggestLink", buildUrl("suggest.html"));
+
+  // T
+  setLink("thankYouLink", buildUrl("thank_you.html"));
+  setLink("trackerLink", buildUrl("tracker.html"));
+  setLink("trackerKioskLink", buildUrl("tracker.html", "kiosk=1"));
+
+  // V
+  setLink("volunteercertLink", buildUrl("volunteer_cert.html"));
+
+  loadRoutes();
 }
 
 async function loadRoutes() {
@@ -462,6 +256,24 @@ async function loadRoutes() {
     gpxEl.value = "GPX animation links available when routes are created.";
   }
 }
+
+function filterLinks(query) {
+  const q = (query || "").toLowerCase().trim();
+  const cards = document.querySelectorAll('.card[data-title]');
+  let visibleCount = 0;
+  cards.forEach(card => {
+    const title = (card.getAttribute('data-title') || '').toLowerCase();
+    const desc = (card.querySelector('.card-desc')?.textContent || '').toLowerCase();
+    const matches = !q || title.includes(q) || desc.includes(q);
+    card.style.display = matches ? '' : 'none';
+    if (matches) visibleCount++;
+  });
+  const countEl = document.getElementById('linkCount');
+  if (countEl) {
+    countEl.textContent = q ? `Showing ${visibleCount} of ${cards.length} links` : `${cards.length} links available`;
+  }
+}
+window.filterLinks = filterLinks;
 
 document.addEventListener("DOMContentLoaded", () => {
   updateDisplay();

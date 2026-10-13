@@ -101,3 +101,15 @@ CREATE TABLE IF NOT EXISTS lesson_upvotes (
 );
 
 CREATE INDEX IF NOT EXISTS idx_lesson_upvotes_tip_table ON lesson_upvotes(lesson_id, table_id);
+
+-- ==============================================================================
+-- Table Modules & AI Voice Santa (Selectable Modules & Dual-Engine)
+-- ==============================================================================
+ALTER TABLE tables ADD COLUMN elevenlabs_agent_id TEXT;
+ALTER TABLE tables ADD COLUMN santa_voice_provider TEXT DEFAULT 'gemini';
+ALTER TABLE tables ADD COLUMN enable_santa_chat BOOLEAN DEFAULT 0;
+ALTER TABLE tables ADD COLUMN enable_colouring BOOLEAN DEFAULT 0;
+ALTER TABLE tables ADD COLUMN total_views INTEGER DEFAULT 0;
+ALTER TABLE tables ADD COLUMN public_slot_1 TEXT;
+ALTER TABLE tables ADD COLUMN public_slot_2 TEXT;
+

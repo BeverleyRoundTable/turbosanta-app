@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Share2, MapPin, ExternalLink, Star, ChevronDown } from 'lucide-react';
+import { API_BASE } from '../services/api';
 
 const DEFAULT_LOGO = '/icons/RTBI_Santa.png';
 const DEFAULT_BG = '/icons/site_background.png';
@@ -35,6 +36,150 @@ function parseRouteDate(v) {
   return isNaN(d) ? null : d;
 }
 
+export const PUBLIC_FEATURE_CATALOG = {
+  santa_chat: {
+    id: 'santa_chat',
+    anchorId: 'santa-chat',
+    navLabel: 'Santa Chat',
+    badge: 'Live Audio Connection to North Pole',
+    title: 'TALK TO',
+    titleHighlight: 'FATHER CHRISTMAS',
+    description: "Children and families can speak directly with Father Christmas! Ask when he's visiting your street, how Rudolph is doing, or hear a jolly festive story.",
+    embedSrc: (slug) => `/santa_chat.html?table=${encodeURIComponent(slug)}`,
+    fullscreenSrc: (slug) => `/santa_chat.html?table=${encodeURIComponent(slug)}`,
+    fullscreenLabel: 'Open Voice Hotline Full-Screen',
+    height: 640,
+    maxWidth: 540,
+    allowMicrophone: true
+  },
+  colouring: {
+    id: 'colouring',
+    anchorId: 'colouring',
+    navLabel: 'Colouring',
+    badge: 'Free Printable Holiday Activities',
+    title: 'FESTIVE',
+    titleHighlight: 'COLOURING BOOK',
+    description: "Personalise and print free Santa Sleigh colouring sheets at home on A4 paper! Add your child's name and share their artwork with our sleigh volunteers!",
+    embedSrc: (slug) => `/colouring_page.html?table=${encodeURIComponent(slug)}`,
+    fullscreenSrc: (slug) => `/colouring_page.html?table=${encodeURIComponent(slug)}`,
+    fullscreenLabel: 'Open Colouring Studio Full-Screen',
+    height: 800,
+    maxWidth: 1000
+  },
+  letter: {
+    id: 'letter',
+    anchorId: 'letter',
+    navLabel: 'Letter to Santa',
+    badge: 'Official North Pole Post',
+    title: 'LETTER TO',
+    titleHighlight: 'FATHER CHRISTMAS',
+    description: "Children can write their Christmas wish list on official Round Table festive stationery and print it out to send to the North Pole!",
+    embedSrc: (slug) => `/letter.html?table=${encodeURIComponent(slug)}`,
+    fullscreenSrc: (slug) => `/letter.html?table=${encodeURIComponent(slug)}`,
+    fullscreenLabel: 'Open Letter Writer Full-Screen',
+    height: 760,
+    maxWidth: 900
+  },
+  nice_list: {
+    id: 'nice_list',
+    anchorId: 'nice-list',
+    navLabel: 'Nice List',
+    badge: 'North Pole Certified',
+    title: 'OFFICIAL',
+    titleHighlight: 'NICE LIST CERTIFICATE',
+    description: "Customise and print an official North Pole certificate certifying that your child has officially made Santa's Good List this Christmas.",
+    embedSrc: (slug) => `/nice_list.html?table=${encodeURIComponent(slug)}`,
+    fullscreenSrc: (slug) => `/nice_list.html?table=${encodeURIComponent(slug)}`,
+    fullscreenLabel: 'Generate Certificate Full-Screen',
+    height: 740,
+    maxWidth: 900
+  },
+  adopt_reindeer: {
+    id: 'adopt_reindeer',
+    anchorId: 'adopt-reindeer',
+    navLabel: 'Adopt Reindeer',
+    badge: 'Official Sleigh Keeper',
+    title: 'ADOPT A',
+    titleHighlight: 'SLEIGH REINDEER',
+    description: "Adopt one of Santa's flying reindeer, choose your keeper name, and print your official Round Table adoption certificate!",
+    embedSrc: (slug) => `/adopt_reindeer.html?table=${encodeURIComponent(slug)}`,
+    fullscreenSrc: (slug) => `/adopt_reindeer.html?table=${encodeURIComponent(slug)}`,
+    fullscreenLabel: 'Adopt a Reindeer Full-Screen',
+    height: 740,
+    maxWidth: 900
+  },
+  bingo: {
+    id: 'bingo',
+    anchorId: 'sleigh-bingo',
+    navLabel: 'Sleigh Bingo',
+    badge: 'Kerbside Family Game',
+    title: 'CHRISTMAS SLEIGH',
+    titleHighlight: 'BINGO GAME',
+    description: "Play along while waiting on the pavement! Tap off items as Santa passes by: flashing lights, Rudolph's nose, mince pies, and festive hats.",
+    embedSrc: (slug) => `/bingo.html?table=${encodeURIComponent(slug)}`,
+    fullscreenSrc: (slug) => `/bingo.html?table=${encodeURIComponent(slug)}`,
+    fullscreenLabel: 'Play Sleigh Bingo Full-Screen',
+    height: 700,
+    maxWidth: 840
+  },
+  snowman: {
+    id: 'snowman',
+    anchorId: 'snowman-selfie',
+    navLabel: 'Photo Frame',
+    badge: 'Festive Photo Booth',
+    title: 'SNOWMAN',
+    titleHighlight: 'SELFIE BOOTH',
+    description: 'Snap a fun festive photo inside our interactive Santa Sleigh photo booth frame to download and share with family!',
+    embedSrc: (slug) => `/snowman.html?table=${encodeURIComponent(slug)}`,
+    fullscreenSrc: (slug) => `/snowman.html?table=${encodeURIComponent(slug)}`,
+    fullscreenLabel: 'Open Photo Frame Full-Screen',
+    height: 700,
+    maxWidth: 840
+  },
+  magic_mailbox: {
+    id: 'magic_mailbox',
+    anchorId: 'magic-mailbox',
+    navLabel: 'Magic Mailbox',
+    badge: 'Direct Line to Santa',
+    title: 'MAGIC NORTH POLE',
+    titleHighlight: 'MAILBOX',
+    description: "Post your digital Christmas messages and festive wishes directly to Santa's workshop elves.",
+    embedSrc: (slug) => `/magic_mailbox.html?table=${encodeURIComponent(slug)}`,
+    fullscreenSrc: (slug) => `/magic_mailbox.html?table=${encodeURIComponent(slug)}`,
+    fullscreenLabel: 'Open Magic Mailbox Full-Screen',
+    height: 700,
+    maxWidth: 840
+  },
+  suggest: {
+    id: 'suggest',
+    anchorId: 'suggest-route',
+    navLabel: 'Suggest Stop',
+    badge: 'Community Route Feedback',
+    title: 'SUGGEST A',
+    titleHighlight: 'ROUTE STOP',
+    description: "Tell our Round Table volunteers which street, cul-de-sac, or neighbourhood you'd love Santa to visit next season!",
+    embedSrc: (slug) => `/suggest.html?table=${encodeURIComponent(slug)}`,
+    fullscreenSrc: (slug) => `/suggest.html?table=${encodeURIComponent(slug)}`,
+    fullscreenLabel: 'Suggest a Stop Full-Screen',
+    height: 680,
+    maxWidth: 840
+  },
+  countdown: {
+    id: 'countdown',
+    anchorId: 'countdown',
+    navLabel: 'Countdown',
+    badge: 'North Pole Launch Clock',
+    title: 'CHRISTMAS EVE',
+    titleHighlight: 'COUNTDOWN',
+    description: "Watch the live countdown tick away to Santa's big departure from the North Pole on Christmas Eve!",
+    embedSrc: (slug) => `/countdown.html?table=${encodeURIComponent(slug)}`,
+    fullscreenSrc: (slug) => `/countdown.html?table=${encodeURIComponent(slug)}`,
+    fullscreenLabel: 'View Countdown Full-Screen',
+    height: 420,
+    maxWidth: 840
+  }
+};
+
 export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }) {
   const [addressFrameHeight, setAddressFrameHeight] = useState(500);
   const [showFab, setShowFab] = useState(false);
@@ -66,6 +211,24 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
     mq.addEventListener?.('change', handler);
     return () => mq.removeEventListener?.('change', handler);
   }, []);
+
+  // 👁️ Record unique visit beacon to update D1 total_views (session deduplicated)
+  useEffect(() => {
+    if (activeTableSlug) {
+      try {
+        const sessionKey = 'ts_view_counted_' + activeTableSlug;
+        if (!sessionStorage.getItem(sessionKey)) {
+          sessionStorage.setItem(sessionKey, '1');
+          const beaconEndpoint = `${API_BASE}/api/track-view?table=${encodeURIComponent(activeTableSlug)}`;
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon(beaconEndpoint);
+          } else {
+            fetch(beaconEndpoint, { method: 'POST', keepalive: true }).catch(() => {});
+          }
+        }
+      } catch (e) {}
+    }
+  }, [activeTableSlug]);
 
   const videoRef = React.useRef(null);
   const heroRef = React.useRef(null);
@@ -231,6 +394,12 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
 
   const isBeverley = activeTableSlug === 'beverley' || table.slug === 'beverley';
 
+  const rawSlot1 = table.public_slot_1 || (table.enable_santa_chat ? 'santa_chat' : null);
+  const rawSlot2 = table.public_slot_2 || (table.enable_colouring ? 'colouring' : null);
+  const slot1Meta = rawSlot1 && PUBLIC_FEATURE_CATALOG[rawSlot1] ? PUBLIC_FEATURE_CATALOG[rawSlot1] : null;
+  const slot2Meta = (rawSlot2 && rawSlot2 !== rawSlot1 && PUBLIC_FEATURE_CATALOG[rawSlot2]) ? PUBLIC_FEATURE_CATALOG[rawSlot2] : null;
+  const activeSlots = [slot1Meta, slot2Meta].filter(Boolean);
+
   return (
     <div style={{
       fontFamily: "'Open Sans', sans-serif",
@@ -285,7 +454,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
             maxWidth: '100vw',
             boxSizing: 'border-box'
           }}>
-            📢 {table.live_announcement.replace(/^\s*(\?\?|📢|🎅)+\s*/g, '')}
+            {table.live_announcement.replace(/^\s*(\?\?|📢|🎅)+\s*/g, '')}
           </div>
         )}
 
@@ -308,6 +477,10 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
             <a href="#tracker" className="brand-font">Tracker</a>
             <a href="#routes" className="brand-font">Routes</a>
             <a href="#photos" className="brand-font">Photos</a>
+            {activeSlots.map(slot => (
+              <a key={slot.id} href={`#${slot.anchorId}`} className="brand-font">{slot.navLabel}</a>
+            ))}
+            <a href="#faq" className="brand-font">FAQ</a>
             <a href="#donate" className="brand-font nav-donate-pill">Donate</a>
           </div>
         </nav>
@@ -941,6 +1114,100 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
             />
           </div>
         </section>
+
+        {/* MODULAR PUBLIC FEATURE SLOTS (Max 2 Slots: Underneath Memory Book & Above FAQ) */}
+        {activeSlots.map((slot) => {
+          const isSlotSanta = slot.id === 'santa_chat';
+          return (
+            <section
+              key={slot.id}
+              id={slot.anchorId}
+              style={{
+                padding: '60px 20px',
+                maxWidth: slot.maxWidth ? `${slot.maxWidth}px` : '1000px',
+                margin: '0 auto',
+                scrollMarginTop: '80px',
+                position: 'relative'
+              }}
+            >
+              <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: 'rgba(251, 175, 51, 0.1)',
+                  border: '1px solid rgba(251, 175, 51, 0.3)',
+                  borderRadius: '20px',
+                  padding: '6px 14px',
+                  marginBottom: '14px',
+                  fontSize: '12px',
+                  color: 'var(--primary)',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  <span>{slot.badge}</span>
+                </div>
+                <h2 className="brand-font" style={{ fontSize: '38px', color: '#FFFFFF', textShadow: '0 2px 8px rgba(0,0,0,0.8)', margin: '0 0 10px 0' }}>
+                  {slot.title} <span style={{ color: 'var(--primary)' }}>{slot.titleHighlight}</span>
+                </h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '16px', maxWidth: '640px', margin: '0 auto' }}>
+                  {slot.description}
+                </p>
+              </div>
+
+              <div style={{
+                width: '100%',
+                maxWidth: slot.maxWidth ? `${slot.maxWidth}px` : '1000px',
+                margin: '0 auto',
+                background: '#151513',
+                borderRadius: '24px',
+                border: isSlotSanta ? '2px solid rgba(251, 175, 51, 0.4)' : '1px solid var(--border)',
+                overflow: 'hidden',
+                boxShadow: isSlotSanta
+                  ? '0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(251, 175, 51, 0.15)'
+                  : '0 20px 50px rgba(0,0,0,0.7)'
+              }}>
+                <iframe
+                  id={`feature-${slot.id}-embed`}
+                  src={slot.embedSrc(activeTableSlug)}
+                  allow={slot.allowMicrophone ? "microphone" : undefined}
+                  style={{ width: '100%', height: `${slot.height}px`, border: 'none', display: 'block' }}
+                  title={`${slot.title} ${slot.titleHighlight}`}
+                  loading="lazy"
+                />
+              </div>
+
+              {slot.fullscreenSrc && (
+                <div style={{ textAlign: 'center', marginTop: '18px' }}>
+                  <a
+                    href={slot.fullscreenSrc(activeTableSlug)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="brand-font"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      background: 'rgba(251, 175, 51, 0.15)',
+                      border: '1px solid var(--primary)',
+                      color: 'var(--primary)',
+                      padding: '10px 22px',
+                      borderRadius: '10px',
+                      textDecoration: 'none',
+                      fontWeight: 700,
+                      fontSize: '13px',
+                      letterSpacing: '0.5px',
+                      textTransform: 'uppercase'
+                    }}
+                  >
+                    <span>{slot.fullscreenLabel} &rarr;</span>
+                  </a>
+                </div>
+              )}
+            </section>
+          );
+        })}
 
         {/* 7. FAQ & Safety Section */}
         <section id="faq" style={{ padding: '60px 20px', maxWidth: '840px', margin: '0 auto', scrollMarginTop: '80px' }}>

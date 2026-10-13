@@ -1,207 +1,383 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>TurboSanta — Embed Code Generator</title>
+  <title>TurboSanta — Direct Links Directory</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
   <style>
-  @font-face {
-    font-family: 'Eurostile';
-    src: url('/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
-    font-weight: 700;
-    font-style: normal;
-    font-display: swap;
-  }
-
-    /* ═══════════════════════════════════════ */
-    /* TURBOSANTA DESIGN SYSTEM */
-    /* ═══════════════════════════════════════ */
-    :root {
-      --gold: #FBAF33;
-      --gold-dim: rgba(251,175,51,0.12);
-      --gold-glow: rgba(251,175,51,0.25);
-      --dark: #0d0d0b;
-      --surface: #161614;
-      --surface-2: #1e1e1b;
-      --surface-3: #252522;
-      --border: rgba(255,255,255,0.08);
-      --border-hover: rgba(255,255,255,0.15);
-      --text: #eaeae5;
-      --text-dim: rgba(255,255,255,0.55);
-      --text-muted: rgba(255,255,255,0.3);
-      --red: #D31C1C;
-      --green: #2ecc71;
+    @font-face {
+      font-family: 'Eurostile';
+      src: url('/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
     }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --primary: #FBAF33;
+      --accent: #FFFFFF;
+      --bg-dark: #1D1D1A;
+      --bg-card: #151513;
+      --bg-card-subtle: #1c1c18;
+      --bg-input: #0d0d0b;
+      --text-main: #FFFFFF;
+      --text-muted: rgba(255, 255, 255, 0.7);
+      --border: rgba(255, 255, 255, 0.15);
+      --border-hover: rgba(251, 175, 51, 0.4);
+      --on-primary: #000000;
+      --success: #22c55e;
+      --alert: #d31c1c;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
     body {
-      font-family: 'Open Sans', sans-serif;
-      background: var(--dark);
-      color: var(--text);
+      min-height: 100vh;
+      font-family: 'Open Sans', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-dark);
+      background-image: 
+        linear-gradient(180deg, rgba(29, 29, 26, 0.94) 0%, rgba(0, 0, 0, 0.98) 100%),
+        url('https://brt-23f.pages.dev/icons/site_background.png');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      color: var(--text-main);
       line-height: 1.6;
-      -webkit-font-smoothing: antialiased;
-      padding: 64px 20px 80px;
-      max-width: 900px;
+      padding: 48px 20px 80px;
+    }
+
+    .container {
+      max-width: 960px;
       margin: 0 auto;
     }
 
-    /* ── HEADER ── */
-    .header-wrap {
+    /* Header */
+    .header {
+      margin-bottom: 28px;
       text-align: center;
-      margin-bottom: 56px;
-      width: 100%;
     }
 
-    h1 {
+    .header h1 {
       font-family: 'Eurostile', sans-serif;
-      font-size: 56px;
-      font-weight: 400;
-      letter-spacing: 2px;
-      line-height: 1.1;
-      margin-bottom: 16px;
-      color: #fff;
-    }
-
-    .api-display-wrap {
-      display: inline-block;
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      padding: 8px 24px;
-      border-radius: 100px;
-      font-family: 'DM Mono', monospace;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-dim);
-      letter-spacing: 1px;
+      font-size: 38px;
+      letter-spacing: 1.5px;
       text-transform: uppercase;
-      /* FIX: Prevent wide strings from breaking the layout */
-      max-width: 100%; 
-      overflow-wrap: break-word;
-    }
-
-    .api-display-wrap span {
-      color: var(--gold);
-      font-weight: 700;
-      /* FIX: Force long API strings to break to the next line */
-      word-break: break-all;
-    }
-
-    /* ── BLOCKS / CARDS ── */
-    .block {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      padding: 32px 40px;
-      border-radius: 16px;
-      margin-bottom: 24px;
-      transition: border-color 0.2s ease, transform 0.2s ease;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    }
-
-    .block:hover {
-      border-color: rgba(251,175,51,0.2);
-      transform: translateY(-2px);
-    }
-
-    .block h2 {
-      font-family: 'Eurostile', sans-serif;
-      font-size: 32px;
-      letter-spacing: 1px;
       color: #fff;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       line-height: 1.2;
+    }
+
+    .header p {
+      color: var(--text-muted);
+      font-size: 15px;
+      max-width: 700px;
+      margin: 0 auto 20px;
+    }
+
+    /* Controls Bar */
+    .control-bar {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .slug-group {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
+      flex-wrap: wrap;
     }
 
-    .block p {
-      font-size: 14px;
-      color: var(--text-dim);
-      margin-bottom: 20px;
-      line-height: 1.5;
-    }
-
-    .block p strong {
-      color: #fff;
-    }
-
-    /* ── TEXTAREAS ── */
-    textarea {
-      width: 100%;
-      height: 120px;
-      background: var(--surface-2);
-      color: var(--text);
-      padding: 16px 20px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      font-family: 'DM Mono', monospace;
+    .slug-label {
+      font-family: 'Eurostile', sans-serif;
       font-size: 13px;
-      resize: vertical;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      outline: none;
-      line-height: 1.5;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
     }
 
-    textarea:focus {
-      border-color: var(--gold);
-      box-shadow: 0 0 0 3px var(--gold-glow);
-    }
-
-    /* ── BUTTONS ── */
-    button.copy {
+    .slug-input {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 8px;
       font-family: 'Open Sans', sans-serif;
       font-weight: 700;
       font-size: 14px;
-      margin-top: 20px;
-      padding: 12px 28px;
+      width: 170px;
+      text-align: center;
+      text-transform: capitalize;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .slug-input:focus {
+      border-color: var(--primary);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .target-pill {
+      display: inline-block;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .target-pill span {
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    /* Search Bar */
+    .search-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .search-box {
+      position: relative;
+      flex: 1;
+      min-width: 260px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: #fff;
+      padding: 10px 14px 10px 40px;
+      font-family: 'Open Sans', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: var(--primary);
+    }
+
+    .link-counter {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 22px 24px;
+      margin-bottom: 14px;
+      transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .card-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--primary);
+      background: rgba(251, 175, 51, 0.12);
+      border: 1px solid rgba(251, 175, 51, 0.25);
+      padding: 2px 7px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    .card-title {
+      font-family: 'Eurostile', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #fff;
+      margin: 0;
+    }
+
+    .card-desc {
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1.5;
+      margin-bottom: 14px;
+    }
+
+    /* Link Row */
+    .link-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .link-input {
+      flex: 1;
+      min-width: 260px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--primary);
+      padding: 10px 14px;
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .link-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(251, 175, 51, 0.2);
+    }
+
+    /* Buttons matching Admin Portal */
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 16px;
+      background: var(--primary);
+      color: var(--on-primary);
+      font-family: 'Eurostile', 'Open Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
       border: none;
       border-radius: 8px;
-      background: var(--surface-3);
-      color: #fff;
       cursor: pointer;
       transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(251, 175, 51, 0.35);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 15px;
+      background: transparent;
+      color: #fff;
       border: 1px solid var(--border);
+      font-family: 'Eurostile', 'Open Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.15s ease;
+      white-space: nowrap;
     }
 
-    button.copy:hover {
-      background: var(--gold);
-      color: #000;
-      border-color: var(--gold);
+    .btn-secondary:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: rgba(251, 175, 51, 0.05);
     }
 
-    button.copy:active {
-      transform: scale(0.97);
-    }
-
-    /* Responsive adjustments */
-    @media (max-width: 600px) {
+    @media (max-width: 680px) {
       body {
-        padding: 32px 16px 60px; /* Reduced top padding on mobile */
+        padding: 32px 14px 60px;
       }
-      .header-wrap {
-        margin-bottom: 40px;
+      .header h1 {
+        font-size: 28px;
       }
-      h1 { 
-        font-size: 38px; /* Slightly smaller to fit nicely */
+      .control-bar {
+        flex-direction: column;
+        align-items: stretch;
       }
-      .api-display-wrap { 
-        font-size: 11px;
-        padding: 10px 16px;
-        border-radius: 16px; /* Switch from pill to rounded box for multiline */
-        display: block; /* Allows it to expand downward naturally */
+      .slug-group {
+        justify-content: space-between;
+      }
+      .slug-input {
+        flex: 1;
+      }
+      .nav-links {
+        justify-content: center;
+      }
+      .card {
+        padding: 18px 16px;
+      }
+      .link-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .link-input {
         width: 100%;
       }
-      .block {
-        padding: 24px 20px;
-      }
-      .block h2 {
-        font-size: 28px;
+      .btn-primary, .btn-secondary {
+        width: 100%;
       }
     }
   </style>
@@ -210,372 +386,904 @@
 </head>
 
 <body>
+  <div class="container">
 
-  <div class="header-wrap">
-    <h1>🎅 TURBOSANTA EMBED GENERATOR</h1>
-    <p style="color:var(--text-dim); margin-bottom:18px; font-size:15px; max-width:680px; margin-left:auto; margin-right:auto;">
-      Use the auto-generated turnkey Santa Sleigh site for your Round Table, or copy any individual iFrame embed codes below to drop live interactive widgets straight onto your own website.
-    </p>
-    <div style="display:flex; justify-content:center; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
-      <span style="font-size:13px; font-weight:700; color:var(--gold); text-transform:uppercase; letter-spacing:1px;">Active Table Slug:</span>
-      <input id="tableSlugInput" type="text" value="Beverley" placeholder="e.g. Beverley, Harrogate" style="background:var(--surface-2); border:1px solid var(--border); color:#fff; padding:8px 16px; border-radius:8px; font-family:'Open Sans',sans-serif; font-weight:700; font-size:14px; width:180px; text-align:center; text-transform:capitalize;" onkeydown="if(event.key==='Enter') updateTableSlug()" oninput="if(typeof formatTownName === 'function') this.value = formatTownName(this.value)" />
-      <button onclick="updateTableSlug()" style="background:var(--gold); color:#000; border:none; padding:8px 18px; border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">Apply</button>
-      <a id="hubLinkHeader" href="/hub.html?table=beverley" target="_blank" style="display:inline-flex; align-items:center; gap:6px; background:rgba(46,204,113,0.15); color:var(--green); border:1px solid rgba(46,204,113,0.3); padding:8px 16px; border-radius:8px; font-weight:700; font-size:13px; text-decoration:none;">🚀 Table Command Hub</a>
-      <a id="guideLinkHeader" href="/guide.html?table=beverley" target="_blank" style="display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,0.08); color:#fff; border:1px solid var(--border); padding:8px 16px; border-radius:8px; font-weight:700; font-size:13px; text-decoration:none;">📖 Master Guide</a>
+    <!-- Header -->
+    <header class="header">
+      <h1>TURBOSANTA DIRECT LINKS DIRECTORY</h1>
+      <p>
+        Official direct URLs and tools for Round Table Santa Sleigh operations. Select your active table below to customize all links.
+      </p>
+
+      <!-- Control Bar -->
+      <div class="control-bar">
+        <div class="slug-group">
+          <span class="slug-label">Active Table:</span>
+          <input
+            id="tableSlugInput"
+            class="slug-input"
+            type="text"
+            value="Beverley"
+            placeholder="e.g. Beverley, Shirley"
+            onkeydown="if(event.key==='Enter') updateTableSlug()"
+            oninput="if(typeof formatTownName === 'function') this.value = formatTownName(this.value)"
+          />
+          <button class="btn-primary" onclick="updateTableSlug()">Apply</button>
+        </div>
+
+        <div class="nav-links">
+          <div class="target-pill">Target: <span id="apiDisplay">Beverley</span></div>
+          <a id="hubLinkHeader" href="/hub.html?table=beverley" target="_blank" class="btn-secondary">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+            <span>Command Hub</span>
+          </a>
+          <a id="guideLinkHeader" href="/guide.html?table=beverley" target="_blank" class="btn-secondary">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            <span>Master Guide</span>
+          </a>
+          <a id="adminLinkHeader" href="/?table=beverley" class="btn-secondary">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span>Admin Portal</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Search & Results Counter -->
+      <div class="search-bar">
+        <div class="search-box">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input
+            id="filterInput"
+            class="search-input"
+            type="text"
+            placeholder="Search direct links by name or keyword..."
+            oninput="if(typeof filterLinks === 'function') filterLinks(this.value)"
+          />
+        </div>
+        <div id="linkCount" class="link-counter">36 links available</div>
+      </div>
+    </header>
+
+    <!-- Direct Links in Alphabetical Order (A to Z) -->
+
+    <!-- 01: Address & Street Lookup -->
+    <div class="card" data-title="address & street lookup">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">01</span>
+          <h2 class="card-title">Address &amp; Street Lookup</h2>
+        </div>
+      </div>
+      <p class="card-desc">Interactive street and address finder allowing residents to verify if and when Santa visits their road.</p>
+      <div class="link-row">
+        <input type="text" id="addressLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('addressLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="addressLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
     </div>
-    <div class="api-display-wrap">
-      Target: <span id="apiDisplay">Loading...</span>
+
+    <!-- 02: Beacon (GPS Transmitter) -->
+    <div class="card" data-title="beacon gps transmitter">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">02</span>
+          <h2 class="card-title">Beacon (GPS Transmitter)</h2>
+        </div>
+      </div>
+      <p class="card-desc">Dedicated GPS transmitter optimized for in-cab glovebox devices and spare phones transmitting telemetry reliably.</p>
+      <div class="link-row">
+        <input type="text" id="beaconLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('beaconLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="beaconLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
     </div>
+
+    <!-- 03: Bingo Game -->
+    <div class="card" data-title="bingo game">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">03</span>
+          <h2 class="card-title">Bingo Game</h2>
+        </div>
+      </div>
+      <p class="card-desc">Interactive family Christmas bingo card for children watching the sleigh pass by on tour nights.</p>
+      <div class="link-row">
+        <input type="text" id="bingoLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('bingoLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="bingoLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 04: Carousel (Photo Gallery) -->
+    <div class="card" data-title="carousel photo gallery">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">04</span>
+          <h2 class="card-title">Carousel (Photo Gallery)</h2>
+        </div>
+      </div>
+      <p class="card-desc">Festive community photo carousel and sponsor gallery showcasing sleigh memories.</p>
+      <div class="link-row">
+        <input type="text" id="carouselLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('carouselLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="carouselLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 05: Colouring Page -->
+    <div class="card" data-title="colouring page">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">05</span>
+          <h2 class="card-title">Colouring Page</h2>
+        </div>
+      </div>
+      <p class="card-desc">Printable and interactive digital Christmas colouring sheets for children and schools.</p>
+      <div class="link-row">
+        <input type="text" id="colouringpageLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('colouringpageLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="colouringpageLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 06: Countdown to Christmas -->
+    <div class="card" data-title="countdown to christmas">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">06</span>
+          <h2 class="card-title">Countdown to Christmas</h2>
+        </div>
+      </div>
+      <p class="card-desc">Live ticking countdown timer counting down the hours and minutes to Christmas Eve.</p>
+      <div class="link-row">
+        <input type="text" id="countdownLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('countdownLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="countdownLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 07: Crew Hub & Volunteer Check-in -->
+    <div class="card" data-title="crew hub volunteer check-in">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">07</span>
+          <h2 class="card-title">Crew Hub &amp; Volunteer Check-in</h2>
+        </div>
+      </div>
+      <p class="card-desc">Volunteer registration, route check-in, muster briefing, and safety guide for collectors.</p>
+      <div class="link-row">
+        <input type="text" id="crewLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('crewLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="crewLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 08: Door Hanger -->
+    <div class="card" data-title="door hanger">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">08</span>
+          <h2 class="card-title">Door Hanger</h2>
+        </div>
+      </div>
+      <p class="card-desc">Printable door hanger notice for households along the route to inform families Santa is visiting.</p>
+      <div class="link-row">
+        <input type="text" id="doorhangerLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('doorhangerLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="doorhangerLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 09: Elf Cam -->
+    <div class="card" data-title="elf cam">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">09</span>
+          <h2 class="card-title">Elf Cam</h2>
+        </div>
+      </div>
+      <p class="card-desc">Interactive North Pole elf webcam live stream effect for social sharing.</p>
+      <div class="link-row">
+        <input type="text" id="elfcamLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('elfcamLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="elfcamLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 10: Gift Aid Declaration -->
+    <div class="card" data-title="gift aid declaration">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">10</span>
+          <h2 class="card-title">Gift Aid Declaration</h2>
+        </div>
+      </div>
+      <p class="card-desc">HMRC R68-compliant Gift Aid donation declaration form boosting charitable funds by 25%.</p>
+      <div class="link-row">
+        <input type="text" id="giftaidLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('giftaidLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="giftaidLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 11: God Mode Fleet Dashboard -->
+    <div class="card" data-title="god mode fleet dashboard">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">11</span>
+          <h2 class="card-title">God Mode Fleet Dashboard</h2>
+        </div>
+      </div>
+      <p class="card-desc">Real-time operational command center with live GPS telemetry, fleet status, and national oversight.</p>
+      <div class="link-row">
+        <input type="text" id="godModeLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('godModeLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="godModeLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 12: GPX Route Animations -->
+    <div class="card" data-title="gpx route animations">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">12</span>
+          <h2 class="card-title">GPX Route Animations</h2>
+        </div>
+      </div>
+      <p class="card-desc">Dynamic animated video route previews generated automatically from scheduled routes for social media.</p>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <textarea id="gpxList" class="link-input" style="height: 100px; resize: vertical;" readonly></textarea>
+        <div>
+          <button class="btn-primary" onclick="copyCode('gpxList', this)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            <span>Copy All Route Links</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 13: Knowledge Base -->
+    <div class="card" data-title="knowledge base">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">13</span>
+          <h2 class="card-title">Knowledge Base</h2>
+        </div>
+      </div>
+      <p class="card-desc">Searchable operations documentation, setup guides, volunteer instructions, and best practice playbook.</p>
+      <div class="link-row">
+        <input type="text" id="knowledgeBaseLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('knowledgeBaseLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="knowledgeBaseLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 14: Letter to Santa -->
+    <div class="card" data-title="letter to santa">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">14</span>
+          <h2 class="card-title">Letter to Santa</h2>
+        </div>
+      </div>
+      <p class="card-desc">Interactive digital letter-writing tool allowing children to write and send festive wish lists to the North Pole.</p>
+      <div class="link-row">
+        <input type="text" id="letterLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('letterLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="letterLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 15: Magic Mailbox -->
+    <div class="card" data-title="magic mailbox">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">15</span>
+          <h2 class="card-title">Magic Mailbox</h2>
+        </div>
+      </div>
+      <p class="card-desc">Virtual festive postbox delivering letters directly to Santa's Lapland workshop with animated delivery confirmation.</p>
+      <div class="link-row">
+        <input type="text" id="magicmailboxLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('magicmailboxLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="magicmailboxLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 16: Memory Book -->
+    <div class="card" data-title="memory book">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">16</span>
+          <h2 class="card-title">Memory Book</h2>
+        </div>
+      </div>
+      <p class="card-desc">Digital polaroid photo album and community gallery where families upload and view photos with Santa.</p>
+      <div class="link-row">
+        <input type="text" id="memorybookLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('memorybookLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="memorybookLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 17: Nice List Certificate -->
+    <div class="card" data-title="nice list certificate">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">17</span>
+          <h2 class="card-title">Nice List Certificate</h2>
+        </div>
+      </div>
+      <p class="card-desc">Official North Pole Good Deed verification and personalized certificate lookup for children.</p>
+      <div class="link-row">
+        <input type="text" id="niceListLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('niceListLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="niceListLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 18: Partner Impact Report -->
+    <div class="card" data-title="partner impact report">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">18</span>
+          <h2 class="card-title">Partner Impact Report</h2>
+        </div>
+      </div>
+      <p class="card-desc">End-of-season analytics, reach metrics, and community impact report designed for local sponsors and corporate partners.</p>
+      <div class="link-row">
+        <input type="text" id="partnerReportLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('partnerReportLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="partnerReportLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 19: QR Poster Generator -->
+    <div class="card" data-title="qr poster generator">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">19</span>
+          <h2 class="card-title">QR Poster Generator</h2>
+        </div>
+      </div>
+      <p class="card-desc">High-resolution printable posters with dynamic QR codes connecting straight to live tracking and donations.</p>
+      <div class="link-row">
+        <input type="text" id="qrPosterLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('qrPosterLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="qrPosterLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 20: Reindeer Adoption -->
+    <div class="card" data-title="reindeer adoption">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">20</span>
+          <h2 class="card-title">Reindeer Adoption</h2>
+        </div>
+      </div>
+      <p class="card-desc">Interactive digital certificate generator allowing children to adopt one of Santa's reindeer.</p>
+      <div class="link-row">
+        <input type="text" id="reindeerLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('reindeerLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="reindeerLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 21: Route Card (Tonight's Route) -->
+    <div class="card" data-title="route card tonight's route">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">21</span>
+          <h2 class="card-title">Route Card (Tonight's Route)</h2>
+        </div>
+      </div>
+      <p class="card-desc">Compact spotlight card summarizing tonight's active route name, departure time, and scheduled streets.</p>
+      <div class="link-row">
+        <input type="text" id="routeCardLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('routeCardLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="routeCardLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 22: Route Planner -->
+    <div class="card" data-title="route planner">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">22</span>
+          <h2 class="card-title">Route Planner</h2>
+        </div>
+      </div>
+      <p class="card-desc">Interactive route drawing map with road snapping, GPX export, and turn-by-turn road list generator.</p>
+      <div class="link-row">
+        <input type="text" id="routeplannerLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('routeplannerLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="routeplannerLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 23: Routes & Schedules -->
+    <div class="card" data-title="routes & schedules">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">23</span>
+          <h2 class="card-title">Routes &amp; Schedules</h2>
+        </div>
+      </div>
+      <p class="card-desc">Complete calendar of tour dates, start times, route descriptions, and street corridors for the season.</p>
+      <div class="link-row">
+        <input type="text" id="routesLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('routesLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="routesLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 24: Santa Chat (AI Voice Hotline) -->
+    <div class="card" data-title="santa chat ai voice hotline">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">24</span>
+          <h2 class="card-title">Santa Chat (AI Voice Hotline)</h2>
+        </div>
+      </div>
+      <p class="card-desc">Live interactive voice phone hotline connecting children directly to Santa Claus with child safeguards.</p>
+      <div class="link-row">
+        <input type="text" id="santachatLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('santachatLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="santachatLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 25: Santa Sleigh (Full Turnkey Website) -->
+    <div class="card" data-title="santa sleigh full turnkey website">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">25</span>
+          <h2 class="card-title">Santa Sleigh (Full Turnkey Website)</h2>
+        </div>
+      </div>
+      <p class="card-desc">The complete public Santa sleigh site with live map, tonight's spotlight, schedules, donations, and FAQs.</p>
+      <div class="link-row">
+        <input type="text" id="santasleighLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('santasleighLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="santasleighLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 26: Santa Studio -->
+    <div class="card" data-title="santa studio">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">26</span>
+          <h2 class="card-title">Santa Studio</h2>
+        </div>
+      </div>
+      <p class="card-desc">Festive greeting card studio and community photo creator for creating personalized Santa memories.</p>
+      <div class="link-row">
+        <input type="text" id="santastudioLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('santastudioLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="santastudioLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 27: Santa's Been Photo Frame -->
+    <div class="card" data-title="santa's been photo frame">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">27</span>
+          <h2 class="card-title">Santa's Been Photo Frame</h2>
+        </div>
+      </div>
+      <p class="card-desc">Living room camera photo proof generator placing Santa into family photos on Christmas morning.</p>
+      <div class="link-row">
+        <input type="text" id="santasBeenLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('santasBeenLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="santasBeenLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 28: Sat-Nav & Transmit (Solo Driver Mode) -->
+    <div class="card" data-title="sat-nav & transmit solo driver mode">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">28</span>
+          <h2 class="card-title">Sat-Nav &amp; Transmit (Solo Driver Mode)</h2>
+        </div>
+      </div>
+      <p class="card-desc">Turn-by-turn driving routing arrows combined with simultaneous background GPS transmission in one interface.</p>
+      <div class="link-row">
+        <input type="text" id="satnavLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('satnavLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="satnavLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 29: Season Wrap Report -->
+    <div class="card" data-title="season wrap report">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">29</span>
+          <h2 class="card-title">Season Wrap Report</h2>
+        </div>
+      </div>
+      <p class="card-desc">End-of-season summary of miles covered, street visits, and funds raised for local charitable causes.</p>
+      <div class="link-row">
+        <input type="text" id="seasonWrapLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('seasonWrapLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="seasonWrapLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 30: Sleigh Workshop Blueprint -->
+    <div class="card" data-title="sleigh workshop blueprint">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">30</span>
+          <h2 class="card-title">Sleigh Workshop Blueprint</h2>
+        </div>
+      </div>
+      <p class="card-desc">Interactive technical vehicle schematic highlighting lighting, sound systems, power, and build sponsors.</p>
+      <div class="link-row">
+        <input type="text" id="blueprintLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('blueprintLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="blueprintLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 31: Snowman Face Photo Frame -->
+    <div class="card" data-title="snowman face photo frame">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">31</span>
+          <h2 class="card-title">Snowman Face Photo Frame</h2>
+        </div>
+      </div>
+      <p class="card-desc">Interactive snowman face cutout photo frame widget for families and social media photos.</p>
+      <div class="link-row">
+        <input type="text" id="snowmanLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('snowmanLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="snowmanLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 32: Suggest a Route -->
+    <div class="card" data-title="suggest a route">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">32</span>
+          <h2 class="card-title">Suggest a Route</h2>
+        </div>
+      </div>
+      <p class="card-desc">Community submission form for local residents to suggest streets and stops for next year's tour.</p>
+      <div class="link-row">
+        <input type="text" id="suggestLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('suggestLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="suggestLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 33: Thank You Card -->
+    <div class="card" data-title="thank you card">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">33</span>
+          <h2 class="card-title">Thank You Card</h2>
+        </div>
+      </div>
+      <p class="card-desc">Post-visit printable and digital thank you card for sponsors, volunteers, and local donors.</p>
+      <div class="link-row">
+        <input type="text" id="thankYouLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('thankYouLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="thankYouLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 34: Tracker (Live Sleigh Map) -->
+    <div class="card" data-title="tracker live sleigh map">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">34</span>
+          <h2 class="card-title">Tracker (Live Sleigh Map)</h2>
+        </div>
+      </div>
+      <p class="card-desc">Real-time public GPS tracking map with live sleigh position, routes, and turn-by-turn road progress.</p>
+      <div class="link-row">
+        <input type="text" id="trackerLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('trackerLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="trackerLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 35: Tracker (TV / Kiosk Display) -->
+    <div class="card" data-title="tracker tv kiosk display">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">35</span>
+          <h2 class="card-title">Tracker (TV / Kiosk Display)</h2>
+        </div>
+      </div>
+      <p class="card-desc">Fullscreen unattended kiosk mode designed for pubs, community halls, and sponsor shop windows.</p>
+      <div class="link-row">
+        <input type="text" id="trackerKioskLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('trackerKioskLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="trackerKioskLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 36: Volunteer Certificate -->
+    <div class="card" data-title="volunteer certificate">
+      <div class="card-header">
+        <div class="card-title-group">
+          <span class="card-badge">36</span>
+          <h2 class="card-title">Volunteer Certificate</h2>
+        </div>
+      </div>
+      <p class="card-desc">Personalized printable appreciation certificate for bucket collectors, elves, and volunteer helpers.</p>
+      <div class="link-row">
+        <input type="text" id="volunteercertLink" class="link-input" readonly />
+        <button class="btn-primary" onclick="copyCode('volunteercertLink', this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy Link</span>
+        </button>
+        <a id="volunteercertLink_open" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+          <span>Open Link</span>
+        </a>
+      </div>
+    </div>
+
   </div>
 
-  <div class="block">
-    <h2>🎅 Santa Sleigh (Turnkey Auto-Generated Website)</h2>
-    <p>The complete, full-page Santa Sleigh experience (Tracker, Routes, Thermometer, Sponsors, FAQ) ready to drop into any webpage on your existing site.</p>
-    <textarea id="santasleighEmbed" style="height:150px;"></textarea>
-    <button class="copy" onclick="copyCode('santasleighEmbed')">Copy iFrame Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Santa Sleigh (Direct Link)</h2>
-    <textarea id="santasleighLink"></textarea>
-    <button class="copy" onclick="copyCode('santasleighLink')">Copy Link</button>
-  </div>
-
-  <div class="block">
-    <h2>Address Lookup (Link)</h2>
-    <textarea id="addressLink"></textarea>
-    <button class="copy" onclick="copyCode('addressLink')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Address Lookup (Recommended Embed)</h2>
-    <textarea id="addressLookup" style="height:220px;"></textarea>
-    <button class="copy" onclick="copyCode('addressLookup')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Beacon Standalone (Glovebox / Spare Phone)</h2>
-    <p>
-      <strong>Bulletproof Setup:</strong> Use this on a dedicated, plugged-in spare phone to transmit GPS reliably without being disturbed.
-    </p>
-    <textarea id="beaconLink"></textarea>
-    <button class="copy" onclick="copyCode('beaconLink')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Bingo (Link)</h2>
-    <textarea id="bingoLink"></textarea>
-    <button class="copy" onclick="copyCode('bingoLink')">Copy Code</button>
-  </div>
-  
-  <div class="block">
-    <h2>Carousel (Recommended Embed)</h2>
-    <textarea id="carouselLink" style="height:220px;"></textarea>
-    <button class="copy" onclick="copyCode('carouselLink')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Countdown (Link)</h2>
-    <textarea id="countdownLink"></textarea>
-    <button class="copy" onclick="copyCode('countdownLink')">Copy Link</button>
-  </div>
-
-  <div class="block">
-    <h2>⏱️ Christmas Countdown Banner (Recommended Embed)</h2>
-    <p>Live ticking countdown banner to Christmas Eve for your homepage or header.</p>
-    <textarea id="countdownEmbed" style="height:150px;"></textarea>
-    <button class="copy" onclick="copyCode('countdownEmbed')">Copy iFrame Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Crew Sign-up/Check-in (Link)</h2>
-    <textarea id="crewLink"></textarea>
-    <button class="copy" onclick="copyCode('crewLink')">Copy Link</button>
-  </div>
-
-  <div class="block">
-    <h2>👥 Crew Hub & Volunteer Sign-Up (Recommended Embed)</h2>
-    <p>Allow volunteers to sign up for routes and check in on route night directly on your website.</p>
-    <textarea id="crewEmbed" style="height:180px;"></textarea>
-    <button class="copy" onclick="copyCode('crewEmbed')">Copy iFrame Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Colouring Page (Link)</h2>
-    <textarea id="colouringpageLink"></textarea>
-    <button class="copy" onclick="copyCode('colouringpageLink')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Door Hanger (Link)</h2>
-    <textarea id="doorhangerLink"></textarea>
-    <button class="copy" onclick="copyCode('doorhangerLink')">Copy Code</button>
-  </div>
-  
-  <div class="block">
-    <h2>Elf Cam (Link)</h2>
-    <textarea id="elfcamLink"></textarea>
-    <button class="copy" onclick="copyCode('elfcamLink')">Copy Code</button>
-  </div>
-  
-  <div class="block">
-    <h2>Full Thermometer (Recommended Embed)</h2>
-    <textarea id="fullThermo" style="height:220px;"></textarea>
-    <button class="copy" onclick="copyCode('fullThermo')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>God Mode Dashboard (Link)</h2>
-    <textarea id="godModeLink"></textarea>
-    <button class="copy" onclick="copyCode('godModeLink')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Gift Aid (Link)</h2>
-    <textarea id="giftaidLink"></textarea>
-    <button class="copy" onclick="copyCode('giftaidLink')">Copy Link</button>
-  </div>
-
-  <div class="block">
-    <h2>🎁 HMRC Gift Aid Declaration (Recommended Embed)</h2>
-    <p>Boost donations by 25% with this HMRC R68-compliant Gift Aid declaration form.</p>
-    <textarea id="giftaidEmbed" style="height:180px;"></textarea>
-    <button class="copy" onclick="copyCode('giftaidEmbed')">Copy iFrame Code</button>
-  </div>
-  
-  <div class="block">
-    <h2>GPX Animation Links (Auto)</h2>
-    <textarea id="gpxList" style="height:200px;"></textarea>
-    <button class="copy" onclick="copyCode('gpxList')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Letter to Santa (Link)</h2>
-    <textarea id="letterLink"></textarea>
-    <button class="copy" onclick="copyCode('letterLink')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Letter to Santa (Recommended Embed)</h2>
-    <textarea id="recommendedLetter" style="height:220px;"></textarea>
-    <button class="copy" onclick="copyCode('recommendedLetter')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Magic Mailbox (Link)</h2>
-    <textarea id="magicmailboxLink"></textarea>
-    <button class="copy" onclick="copyCode('magicmailboxLink')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Memory Book (Link)</h2>
-    <textarea id="memorybookLink"></textarea>
-    <button class="copy" onclick="copyCode('memorybookLink')">Copy Link</button>
-  </div>
-
-  <div class="block">
-    <h2>📸 Digital Memory Book & Gallery (Recommended Embed)</h2>
-    <p>Allow families to upload and browse festive community photos with Santa.</p>
-    <textarea id="memorybookEmbed" style="height:180px;"></textarea>
-    <button class="copy" onclick="copyCode('memorybookEmbed')">Copy iFrame Code</button>
-  </div>
-  
-  <div class="block">
-    <h2>Mini Thermometer (Recommended Embed)</h2>
-    <textarea id="miniThermo" style="height:220px;"></textarea>
-    <button class="copy" onclick="copyCode('miniThermo')">Copy Code</button>
-  </div>
-  
-  <div class="block">
-    <h2>QR Poster Generator (Link)</h2>
-    <textarea id="qrPosterLink"></textarea>
-    <button class="copy" onclick="copyCode('qrPosterLink')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Reindeer Adoption (Link)</h2>
-    <textarea id="reindeerLink"></textarea>
-    <button class="copy" onclick="copyCode('reindeerLink')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Route Card (Link)</h2>
-    <textarea id="routeCardLink"></textarea>
-    <button class="copy" onclick="copyCode('routeCardLink')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Route Card (Recommended Embed)</h2>
-    <textarea id="recommendedRouteCard" style="height:220px;"></textarea>
-    <button class="copy" onclick="copyCode('recommendedRouteCard')">Copy Code</button>
-  </div>
-  
-  <div class="block">
-    <h2>Route Planner (Link)</h2>
-    <textarea id="routeplannerLink"></textarea>
-    <button class="copy" onclick="copyCode('routeplannerLink')">Copy Code</button>
-  </div>
-  
-  <div class="block">
-    <h2>Routes (Link)</h2>
-    <textarea id="routesLink"></textarea>
-    <button class="copy" onclick="copyCode('routesLink')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Routes (Recommended Embed)</h2>
-    <textarea id="recommendedRoutes" style="height:220px;"></textarea>
-    <button class="copy" onclick="copyCode('recommendedRoutes')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Santa Nice List</h2>
-    <textarea id="niceListEmbed" style="height:220px;"></textarea>
-    <button class="copy" onclick="copyCode('niceListEmbed')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Santa’s Been – Photo Generator</h2>
-    <textarea id="santasBeenEmbed" style="height:220px;"></textarea>
-    <button class="copy" onclick="copyCode('santasBeenEmbed')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Santa Studio (Link)</h2>
-    <textarea id="santastudioLink"></textarea>
-    <button class="copy" onclick="copyCode('santastudioLink')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>🧑‍🎄 Talk to Santa LIVE (Beverley Custom &mdash; ElevenLabs AI Voice Call)</h2>
-    <p>A magical live voice phone booth where children can talk out loud with Santa directly from your website. <em>(Custom integration developed for Beverley Round Table &mdash; requires ElevenLabs agent setup if adopted by other Tables).</em></p>
-    <textarea id="santachatEmbed" style="height:180px;"></textarea>
-    <button class="copy" onclick="copyCode('santachatEmbed')">Copy iFrame Code</button>
-  </div>
-
-  <div class="block">
-    <h2>🚜 Santa's Workshop Sleigh Blueprint (Beverley Custom Tuk-Tuk)</h2>
-    <p>Interactive vehicle diagram with pulsing hot spots highlighting lights, sound, generator, and build partners. <em>(Custom build schematic for Beverley Round Table's electric tuk-tuk sleigh).</em></p>
-    <textarea id="blueprintEmbed" style="height:180px;"></textarea>
-    <button class="copy" onclick="copyCode('blueprintEmbed')">Copy iFrame Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Sat-Nav & Transmit (Solo Driver Link)</h2>
-    <p>
-      <strong>All-in-One Setup:</strong> Turn-by-turn routing arrow + background GPS transmitting in one app. <em>Warning: Driver must keep the screen on and not switch apps!</em>
-    </p>
-    <textarea id="satnavLink"></textarea>
-    <button class="copy" onclick="copyCode('satnavLink')">Copy Code</button>
-  </div>
-  
-  <div class="block">
-    <h2>Season Wrap Report (Link)</h2>
-    <textarea id="seasonWrapLink"></textarea>
-    <button class="copy" onclick="copyCode('seasonWrapLink')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Snowman Frame – Face Photo</h2>
-    <textarea id="snowmanFrameEmbed" style="height:220px;"></textarea>
-    <button class="copy" onclick="copyCode('snowmanFrameEmbed')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Suggest Routes (Link)</h2>
-    <textarea id="suggestLink"></textarea>
-    <button class="copy" onclick="copyCode('suggestLink')">Copy Code</button>
-  </div>
-  
-  <div class="block">
-    <h2>Thank You Card (Link)</h2>
-    <textarea id="thankYouLink"></textarea>
-    <button class="copy" onclick="copyCode('thankYouLink')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Tracker (Link)</h2>
-    <textarea id="trackerLink"></textarea>
-    <button class="copy" onclick="copyCode('trackerLink')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Tracker (Recommended Embed)</h2>
-    <textarea id="recommendedTracker" style="height:220px;"></textarea>
-    <button class="copy" onclick="copyCode('recommendedTracker')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Tracker: TV/Kiosk Mode (Link)</h2>
-    <textarea id="trackerKioskLink"></textarea>
-    <button class="copy" onclick="copyCode('trackerKioskLink')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Tracker: TV/Kiosk Mode (Recommended Embed)</h2>
-    <textarea id="recommendedTrackerKiosk" style="height:220px;"></textarea>
-    <button class="copy" onclick="copyCode('recommendedTrackerKiosk')">Copy Code</button>
-  </div>
-
-  <div class="block">
-    <h2>Volunteer Certificate (Link)</h2>
-    <textarea id="volunteercertLink"></textarea>
-    <button class="copy" onclick="copyCode('volunteercertLink')">Copy Code</button> 
-  </div>
-  
   <script>
-    function copyCode(id){
+    function copyCode(id, btnElement) {
       const el = document.getElementById(id);
+      if (!el) return;
       el.select();
       navigator.clipboard.writeText(el.value);
-      
-      const btn = el.nextElementSibling;
-      const originalText = btn.innerText;
-      btn.innerText = "Copied! ✨";
-      btn.style.background = "var(--gold)";
-      btn.style.color = "#000";
-      
-      setTimeout(() => { 
-        btn.innerText = originalText; 
-        btn.style.background = "";
-        btn.style.color = "";
+
+      const btn = btnElement || el.nextElementSibling;
+      if (!btn) return;
+      const originalHTML = btn.innerHTML;
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>Copied</span>';
+      btn.style.background = 'var(--primary)';
+      btn.style.color = '#000';
+
+      setTimeout(() => {
+        btn.innerHTML = originalHTML;
+        btn.style.background = '';
+        btn.style.color = '';
       }, 1500);
     }
 
-    // ════════════════════════════════════════════════════════════
-    // 🎅 MASTER REGISTRY AUTO-PING
-    // Fires silently in the background whenever a user opens the 
-    // embed generator from their spreadsheet.
-    // ════════════════════════════════════════════════════════════
+    // Auto-ping Master Registry silently if API param is passed
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const apiParam = urlParams.get('api');
-      
+
       if (apiParam) {
-        // 1. Fetch the Table's data to get their ID and Name
         fetch(apiParam)
           .then(response => response.json())
           .then(data => {
             if (data && data.settings) {
               const sleighId = data.settings.sleigh_name || "unknown-table";
               const sleighName = data.settings.sleigh_display_name || "Santa Sleigh";
-              
-              // 2. Fire the payload directly to the Master Registry
               const registryUrl = "https://script.google.com/macros/s/AKfycbydqxlwWkD7Kh7IJisZSiweBBbsXDy7smUxpOvT5eLVQxsDO2PqwrJyQI_3y4kwnJB6/exec";
-              
+
               fetch(registryUrl, {
                 method: 'POST',
-                mode: 'no-cors', // Bypasses browser cross-origin blocks for blind background posts
-                headers: {
-                  'Content-Type': 'text/plain' // Must be text/plain for no-cors to work
-                },
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify({
                   id: sleighId,
                   name: sleighName,
                   api: apiParam
                 })
               }).then(() => {
-                console.log("🎅 Successfully registered with Master Registry!");
+                console.log("Successfully registered with Master Registry");
               }).catch(err => console.error("Registry ping failed:", err));
             }
           })
@@ -583,6 +1291,5 @@
       }
     });
   </script>
-
 </body>
 </html>

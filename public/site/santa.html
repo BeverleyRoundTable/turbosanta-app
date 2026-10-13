@@ -953,6 +953,14 @@ function renderDonations(donations, settings) {
                 blueprintFrame.onload = () => blueprintFrame.classList.remove('iframe-loading');
             }
 
+            // 5. Set Santa Chat / Voice Iframe
+            const santaChatUrl = `${FRAME_BASE}/santa_chat.html?table=${TABLE_SLUG}`;
+            const santaChatFrame = document.getElementById('santa-chat-iframe');
+            if (santaChatFrame) {
+                santaChatFrame.src = santaChatUrl;
+                santaChatFrame.onload = () => santaChatFrame.classList.remove('iframe-loading');
+            }
+
             // 5. Fetch the Routes list
             fetchSleighRoutes();
 

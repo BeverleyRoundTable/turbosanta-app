@@ -7,7 +7,7 @@ import {
   Camera, Video, Image as ImageIcon, FolderDown, Eye, EyeOff, Sparkles, Filter,
   CreditCard, Key, Zap, RefreshCw, Send, Link2,
   BarChart3, TrendingUp, Award, Printer, PieChart, Receipt,
-  Mail, HardDrive, AlertTriangle, Database, FileText, Coins, Share2, QrCode
+  Mail, HardDrive, AlertTriangle, Database, FileText, Coins, Share2, QrCode, ArrowUpDown
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { logoutAdmin, isNationalAdmin } from '../services/auth';
@@ -21,6 +21,20 @@ import KnowledgeBase from './KnowledgeBase';
 import CashBucketModal from './CashBucketModal';
 import PrintRouteSheetModal from './PrintRouteSheetModal';
 import PrintLanyardsModal from './PrintLanyardsModal';
+
+export const PUBLIC_SLOT_OPTIONS = [
+  { id: '', label: 'None (Disabled)', desc: 'Slot is empty. No extra feature rendered on your public site.' },
+  { id: 'santa_chat', label: 'Talk to Santa (Voice & Chat Hotline)', desc: 'Interactive phone booth / microphone hotline to speak out loud with Santa Claus.', preview: (slug) => `/santa_chat.html?table=${encodeURIComponent(slug)}` },
+  { id: 'colouring', label: 'Festive Colouring Book (A4 Printable Studio)', desc: 'Personalized A4 colouring sheets for children to print and colour at home.', preview: (slug) => `/colouring_page.html?table=${encodeURIComponent(slug)}` },
+  { id: 'letter', label: 'Letter to Father Christmas (Wish List Writer)', desc: 'Festive letter stationery for children to write and print wish lists for Santa.', preview: (slug) => `/letter.html?table=${encodeURIComponent(slug)}` },
+  { id: 'nice_list', label: 'Official North Pole Nice List Certificate', desc: 'Customizable certificate proving the child made Santa\'s Good List this Christmas.', preview: (slug) => `/nice_list.html?table=${encodeURIComponent(slug)}` },
+  { id: 'adopt_reindeer', label: 'Adopt an Official Sleigh Reindeer', desc: 'Adopt Rudolph, Dasher, Prancer, or Comet and print an adoption certificate.', preview: (slug) => `/adopt_reindeer.html?table=${encodeURIComponent(slug)}` },
+  { id: 'bingo', label: 'Christmas Sleigh Bingo Game', desc: 'Kerbside spotting game for families waiting on the pavement for the sleigh.', preview: (slug) => `/bingo.html?table=${encodeURIComponent(slug)}` },
+  { id: 'snowman', label: 'Snowman & Holiday Selfie Photo Booth', desc: 'Festive photo frame to snap holiday selfies and share with family.', preview: (slug) => `/snowman.html?table=${encodeURIComponent(slug)}` },
+  { id: 'magic_mailbox', label: 'Magic North Pole Mailbox', desc: 'Digital mailbox allowing children to post questions directly to Santa\'s workshop.', preview: (slug) => `/magic_mailbox.html?table=${encodeURIComponent(slug)}` },
+  { id: 'suggest', label: 'Suggest a Street or Route Stop', desc: 'Community request box allowing residents to suggest street stops for next year.', preview: (slug) => `/suggest.html?table=${encodeURIComponent(slug)}` },
+  { id: 'countdown', label: 'Christmas Eve Departure Countdown Clock', desc: 'Live countdown ticker to Santa\'s Christmas Eve departure with snowfall.', preview: (slug) => `/countdown.html?table=${encodeURIComponent(slug)}` }
+];
 
 function getEquivalentDateNextYear(dateStr) {
   if (!dateStr) {
@@ -446,6 +460,12 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     headline_sponsor_tagline: tableData?.table?.headline_sponsor_tagline || '',
     gemini_model: localStorage.getItem('turbosanta_global_gemini_model') || tableData?.table?.gemini_model || 'auto',
     gemini_api_key: tableData?.table?.gemini_api_key || '',
+    santa_voice_provider: tableData?.table?.santa_voice_provider || 'gemini',
+    elevenlabs_agent_id: tableData?.table?.elevenlabs_agent_id || '',
+    enable_santa_chat: Boolean(tableData?.table?.enable_santa_chat),
+    enable_colouring: Boolean(tableData?.table?.enable_colouring),
+    public_slot_1: tableData?.table?.public_slot_1 || (tableData?.table?.enable_santa_chat ? 'santa_chat' : '') || '',
+    public_slot_2: tableData?.table?.public_slot_2 || (tableData?.table?.enable_colouring ? 'colouring' : '') || '',
     expenses: tableData?.table?.expenses !== undefined ? tableData?.table?.expenses : (tableData?.expenses !== undefined ? tableData?.expenses : 0),
     expenses_json: tableData?.table?.expenses_json || tableData?.expenses_json || null,
     background_mode: tableData?.table?.background_mode || (typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${currentTableSlug}_bg_mode`) : null) || 'image',
@@ -477,6 +497,12 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         headline_sponsor_tagline: tableData.table.headline_sponsor_tagline !== undefined ? tableData.table.headline_sponsor_tagline : prev.headline_sponsor_tagline,
         gemini_model: localStorage.getItem('turbosanta_global_gemini_model') || tableData.table.gemini_model || prev.gemini_model || 'auto',
         gemini_api_key: tableData.table.gemini_api_key !== undefined ? tableData.table.gemini_api_key : prev.gemini_api_key,
+        santa_voice_provider: tableData.table.santa_voice_provider || 'gemini',
+        elevenlabs_agent_id: tableData.table.elevenlabs_agent_id !== undefined ? tableData.table.elevenlabs_agent_id : (prev.elevenlabs_agent_id || ''),
+        enable_santa_chat: Boolean(tableData.table.enable_santa_chat),
+        enable_colouring: Boolean(tableData.table.enable_colouring),
+        public_slot_1: tableData.table.public_slot_1 !== undefined ? (tableData.table.public_slot_1 || '') : (tableData.table.enable_santa_chat ? 'santa_chat' : prev.public_slot_1 || ''),
+        public_slot_2: tableData.table.public_slot_2 !== undefined ? (tableData.table.public_slot_2 || '') : (tableData.table.enable_colouring ? 'colouring' : prev.public_slot_2 || ''),
         expenses: tableData.table.expenses !== undefined ? tableData.table.expenses : (tableData.expenses !== undefined ? tableData.expenses : prev.expenses),
         expenses_json: tableData.table.expenses_json !== undefined ? tableData.table.expenses_json : (tableData.expenses_json !== undefined ? tableData.expenses_json : prev.expenses_json),
         background_mode: tableData.table.background_mode !== undefined ? tableData.table.background_mode : (prev.background_mode || 'image'),
@@ -4141,6 +4167,318 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 />
               </div>
 
+              {/* PUBLIC SITE MODULAR FEATURE SLOTS & AI VOICE (MAX 2 SLOTS) */}
+              <div style={{
+                background: '#0d0d0b',
+                border: '1px solid rgba(251, 175, 51, 0.35)',
+                borderRadius: '12px',
+                padding: 'clamp(14px, 3vw, 20px)',
+                maxWidth: '100%',
+                boxSizing: 'border-box'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Sparkles size={18} color="var(--primary)" />
+                    <strong style={{ fontSize: '16px', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Public Page Modular Feature Slots
+                    </strong>
+                  </div>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    padding: '3px 8px',
+                    borderRadius: '4px',
+                    background: 'rgba(251, 175, 51, 0.15)',
+                    color: 'var(--primary)',
+                    border: '1px solid rgba(251, 175, 51, 0.3)'
+                  }}>
+                    Max 2 Modules &bull; Opt-In Only
+                  </span>
+                </div>
+
+                <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '0 0 16px 0', lineHeight: 1.5 }}>
+                  Choose up to 2 interactive features to display on your Round Table&apos;s public website between the Community Memory Book and FAQ sections. Slots are deselected by default to keep public pages lightweight and fast. You can customize the display order using the swap button below.
+                </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px', marginBottom: '14px' }}>
+                  {/* Slot 1 Selection */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: formData.public_slot_1 ? '1px solid var(--primary)' : '1px solid var(--border)',
+                    borderRadius: '10px',
+                    padding: '14px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Slot 1 (Upper Module)
+                      </span>
+                      {formData.public_slot_1 ? (
+                        <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e' }}>Active</span>
+                      ) : (
+                        <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-muted)' }}>Disabled</span>
+                      )}
+                    </div>
+
+                    <select
+                      value={formData.public_slot_1 || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, public_slot_1: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        background: '#151513',
+                        color: '#fff',
+                        border: '1px solid var(--border)',
+                        borderRadius: '6px',
+                        padding: '10px',
+                        fontSize: '13px',
+                        fontWeight: 600
+                      }}
+                    >
+                      {PUBLIC_SLOT_OPTIONS.map(opt => (
+                        <option key={`slot1-${opt.id}`} value={opt.id}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.4, minHeight: '34px' }}>
+                      {PUBLIC_SLOT_OPTIONS.find(o => o.id === (formData.public_slot_1 || ''))?.desc}
+                    </div>
+
+                    {formData.public_slot_1 && PUBLIC_SLOT_OPTIONS.find(o => o.id === formData.public_slot_1)?.preview && (
+                      <a
+                        href={PUBLIC_SLOT_OPTIONS.find(o => o.id === formData.public_slot_1).preview(currentTableSlug)}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          fontSize: '11px',
+                          color: 'var(--primary)',
+                          textDecoration: 'none',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontWeight: 700,
+                          marginTop: 'auto'
+                        }}
+                      >
+                        <ExternalLink size={12} />
+                        <span>Preview Slot 1 Feature &rarr;</span>
+                      </a>
+                    )}
+                  </div>
+
+                  {/* Slot 2 Selection */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: formData.public_slot_2 ? '1px solid var(--primary)' : '1px solid var(--border)',
+                    borderRadius: '10px',
+                    padding: '14px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Slot 2 (Lower Module)
+                      </span>
+                      {formData.public_slot_2 ? (
+                        <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e' }}>Active</span>
+                      ) : (
+                        <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-muted)' }}>Disabled</span>
+                      )}
+                    </div>
+
+                    <select
+                      value={formData.public_slot_2 || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, public_slot_2: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        background: '#151513',
+                        color: '#fff',
+                        border: '1px solid var(--border)',
+                        borderRadius: '6px',
+                        padding: '10px',
+                        fontSize: '13px',
+                        fontWeight: 600
+                      }}
+                    >
+                      {PUBLIC_SLOT_OPTIONS.map(opt => (
+                        <option key={`slot2-${opt.id}`} value={opt.id}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.4, minHeight: '34px' }}>
+                      {PUBLIC_SLOT_OPTIONS.find(o => o.id === (formData.public_slot_2 || ''))?.desc}
+                    </div>
+
+                    {formData.public_slot_2 && PUBLIC_SLOT_OPTIONS.find(o => o.id === formData.public_slot_2)?.preview && (
+                      <a
+                        href={PUBLIC_SLOT_OPTIONS.find(o => o.id === formData.public_slot_2).preview(currentTableSlug)}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          fontSize: '11px',
+                          color: 'var(--primary)',
+                          textDecoration: 'none',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontWeight: 700,
+                          marginTop: 'auto'
+                        }}
+                      >
+                        <ExternalLink size={12} />
+                        <span>Preview Slot 2 Feature &rarr;</span>
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                {/* Swap Order Button & Active Status */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        public_slot_1: prev.public_slot_2 || '',
+                        public_slot_2: prev.public_slot_1 || ''
+                      }));
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      background: 'rgba(255, 255, 255, 0.06)',
+                      border: '1px solid var(--border)',
+                      color: '#fff',
+                      padding: '8px 14px',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <ArrowUpDown size={14} color="var(--primary)" />
+                    <span>Swap Slot 1 &amp; Slot 2 Display Order</span>
+                  </button>
+
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    {(!formData.public_slot_1 && !formData.public_slot_2)
+                      ? 'No modular features currently active (default lean page).'
+                      : `${(formData.public_slot_1 ? 1 : 0) + (formData.public_slot_2 ? 1 : 0)} of 2 slots active.`}
+                  </span>
+                </div>
+
+                {/* Voice Engine Configuration (Shown when Santa Chat is in Slot 1 or Slot 2) */}
+                {(formData.public_slot_1 === 'santa_chat' || formData.public_slot_2 === 'santa_chat') && (
+                  <div style={{
+                    marginTop: '14px',
+                    padding: '14px',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid rgba(251, 175, 51, 0.25)',
+                    borderRadius: '10px'
+                  }}>
+                    {isMasterAdmin ? (
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            Voice Engine Configuration (Beverley Custom Selection):
+                          </span>
+                          <span style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            padding: '2px 7px',
+                            borderRadius: '4px',
+                            background: formData.santa_voice_provider === 'elevenlabs' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(34, 197, 94, 0.2)',
+                            color: formData.santa_voice_provider === 'elevenlabs' ? '#60a5fa' : '#22c55e',
+                            border: `1px solid ${formData.santa_voice_provider === 'elevenlabs' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`
+                          }}>
+                            {formData.santa_voice_provider === 'elevenlabs' ? 'ElevenLabs Active' : 'Gemini Flash 3.8 Active'}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px', marginBottom: '12px' }}>
+                          {/* Option 1: Gemini */}
+                          <div
+                            onClick={() => setFormData(prev => ({ ...prev, santa_voice_provider: 'gemini' }))}
+                            style={{
+                              background: formData.santa_voice_provider === 'gemini' ? 'rgba(34, 197, 94, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                              border: `2px solid ${formData.santa_voice_provider === 'gemini' ? '#22c55e' : 'var(--border)'}`,
+                              borderRadius: '10px',
+                              padding: '12px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                              <strong style={{ color: '#fff', fontSize: '13px' }}>Google Gemini Voice Santa</strong>
+                              <span style={{ fontSize: '10px', background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>$0 FLEET</span>
+                            </div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Free tier, route aware, native child safeguards.</div>
+                          </div>
+
+                          {/* Option 2: ElevenLabs */}
+                          <div
+                            onClick={() => setFormData(prev => ({ ...prev, santa_voice_provider: 'elevenlabs' }))}
+                            style={{
+                              background: formData.santa_voice_provider === 'elevenlabs' ? 'rgba(59, 130, 246, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                              border: `2px solid ${formData.santa_voice_provider === 'elevenlabs' ? '#60a5fa' : 'var(--border)'}`,
+                              borderRadius: '10px',
+                              padding: '12px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                              <strong style={{ color: '#fff', fontSize: '13px' }}>ElevenLabs Custom Agent</strong>
+                              <span style={{ fontSize: '10px', background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>BEVERLEY</span>
+                            </div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Personal ElevenLabs conversational agent.</div>
+                          </div>
+                        </div>
+
+                        {formData.santa_voice_provider === 'elevenlabs' && (
+                          <div style={{ background: 'rgba(0, 0, 0, 0.4)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: '8px', padding: '10px' }}>
+                            <label style={{ display: 'block', fontSize: '12px', color: '#93c5fd', fontWeight: 600, marginBottom: '4px' }}>
+                              ElevenLabs Agent ID:
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.elevenlabs_agent_id || ''}
+                              onChange={(e) => setFormData(prev => ({ ...prev, elevenlabs_agent_id: e.target.value }))}
+                              placeholder="e.g. agent_4401kxaqcqygfb4940wnc4a9haeh"
+                              style={{
+                                width: '100%',
+                                background: '#161614',
+                                border: '1px solid var(--border)',
+                                borderRadius: '6px',
+                                padding: '8px 10px',
+                                color: '#fff',
+                                fontSize: '13px',
+                                fontFamily: 'monospace'
+                              }}
+                            />
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                              Saved privately in your table database row. Never exposed in public git or to other tables.
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Sparkles size={16} color="#22c55e" />
+                        <div style={{ fontSize: '12px', color: '#fff' }}>
+                          Voice Engine: <strong style={{ color: '#22c55e' }}>Google Gemini Voice Santa</strong> &bull; Free Fleet Tier ($0 Cost), route-aware with child safeguards.
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* AI Intelligence & Gemini Fleet Advisor Settings */}
               {isMasterAdmin ? (
                 <div style={{
@@ -4294,6 +4632,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       )}
                     </div>
                   </div>
+
+
 
                   {/* APPROVED NATIONAL BOARD EMAILS (MASTER ADMIN ONLY) */}
                   <div style={{
@@ -4460,6 +4800,12 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       headline_sponsor_tagline: formData.headline_sponsor_tagline || null,
                       gemini_model: formData.gemini_model || 'auto',
                       gemini_api_key: formData.gemini_api_key || '',
+                      santa_voice_provider: formData.santa_voice_provider || 'gemini',
+                      elevenlabs_agent_id: formData.elevenlabs_agent_id || '',
+                      public_slot_1: formData.public_slot_1 || '',
+                      public_slot_2: formData.public_slot_2 || '',
+                      enable_santa_chat: (formData.public_slot_1 === 'santa_chat' || formData.public_slot_2 === 'santa_chat'),
+                      enable_colouring: (formData.public_slot_1 === 'colouring' || formData.public_slot_2 === 'colouring'),
                       approved_national_emails: approvedEmails,
                       background_mode: formData.background_mode || 'image',
                       background_video_url: formData.background_video_url || null,

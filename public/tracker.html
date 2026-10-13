@@ -2904,6 +2904,22 @@ try {
         const tableSlug = params.get("table") || (params.has("api") ? "" : "beverley");
         AppState.vars.tableSlug = tableSlug;
 
+        // 👁️ Record unique visit beacon to update D1 total_views (session deduplicated)
+        if (tableSlug) {
+          try {
+            const sessionKey = 'ts_view_counted_' + tableSlug;
+            if (!sessionStorage.getItem(sessionKey)) {
+              sessionStorage.setItem(sessionKey, '1');
+              const beaconEndpoint = (AppState.vars.workerApi || 'https://turbosanta-api.beverley247.workers.dev') + '/api/track-view?table=' + encodeURIComponent(tableSlug);
+              if (navigator.sendBeacon) {
+                navigator.sendBeacon(beaconEndpoint);
+              } else {
+                fetch(beaconEndpoint, { method: 'POST', keepalive: true }).catch(() => {});
+              }
+            }
+          } catch(e) {}
+        }
+
         const explicitApi = params.get("api");
         if (!explicitApi && tableSlug) {
           AppState.vars.isWorkerD1 = true;

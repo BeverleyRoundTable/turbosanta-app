@@ -245,7 +245,7 @@ export default {
     }
 
     // If table still doesn't exist in D1 (and not creating one via migrate or init), return 404
-    if (!table && path !== "/api/migrate" && path !== "/api/table/init" && path !== "/api/table/provision") {
+    if (!table && path !== "/api/migrate" && path !== "/api/table/init" && path !== "/api/table/provision" && path !== "/api/track-view") {
       return jsonResponse({ error: `Table '${slug}' not found in database.` }, 404);
     }
 
@@ -344,6 +344,13 @@ export default {
         partners: table.partners_json ? JSON.parse(table.partners_json) : [],
         gemini_model: table.gemini_model || "auto",
         gemini_api_key: isAdmin ? (table.gemini_api_key || "") : (table.gemini_api_key ? "••••••••" : ""),
+        santa_voice_provider: (slug === 'beverley') ? (table.santa_voice_provider || 'gemini') : 'gemini',
+        elevenlabs_agent_id: (slug === 'beverley') ? (table.elevenlabs_agent_id || env.ELEVENLABS_AGENT_ID || '') : '',
+        total_views: Number(table.total_views || 0),
+        enable_santa_chat: Boolean(table.enable_santa_chat || table.public_slot_1 === 'santa_chat' || table.public_slot_2 === 'santa_chat'),
+        enable_colouring: Boolean(table.enable_colouring || table.public_slot_1 === 'colouring' || table.public_slot_2 === 'colouring'),
+        public_slot_1: table.public_slot_1 || (table.enable_santa_chat ? 'santa_chat' : null),
+        public_slot_2: table.public_slot_2 || (table.enable_colouring ? 'colouring' : null),
         donation_breakdown: (breakdown && breakdown.results) || []
       };
 
@@ -649,6 +656,196 @@ export default {
     }
 
     // ==============================================================
+    // 👁️ 3B. TRACKER PAGE VIEW BEACON (POST /api/track-view)
+    // ==============================================================
+    if (path === "/api/track-view" && request.method === "POST") {
+      let body = {};
+      try { body = await request.json(); } catch(e) { body = {}; }
+      const targetSlug = (url.searchParams.get("table") || body.table || body.slug || slug || "beverley").toLowerCase().trim();
+
+      try {
+        await env.DB.prepare("ALTER TABLE tables ADD COLUMN total_views INTEGER DEFAULT 0").run();
+      } catch(e) {}
+
+      try {
+        await env.DB.prepare("UPDATE tables SET total_views = COALESCE(total_views, 0) + 1 WHERE slug = ? OR id = ?")
+          .bind(targetSlug, targetSlug).run();
+
+        const updated = await env.DB.prepare("SELECT total_views FROM tables WHERE slug = ? OR id = ?").bind(targetSlug, targetSlug).first();
+        return jsonResponse({ ok: true, views: updated?.total_views || 1, table: targetSlug });
+      } catch(viewErr) {
+        return jsonResponse({ ok: true, views: 1, table: targetSlug, note: "Recorded without DB lock" });
+      }
+    }
+
+    // ==============================================================
+    // 🎅 3C. SANTA AI VOICE CONVERSATION (POST /api/santa-voice)
+    // ==============================================================
+    if (path === "/api/santa-voice" && request.method === "POST") {
+      let body = {};
+      try { body = await request.json(); } catch(e) { body = {}; }
+
+      const userMessage = (body.message || "").trim();
+      if (!userMessage) {
+        return jsonResponse({ error: "Missing message parameter" }, 400);
+      }
+
+      const conversationHistory = Array.isArray(body.history) ? body.history : [];
+      const targetTableId = table?.id || slug;
+      const townName = (table?.sleigh_display_name || table?.name || slug).replace(/Round Table.*$/i, '').trim() || slug;
+
+      // 1. Gather local route context
+      const todayIso = new Date().toISOString().slice(0, 10);
+      let todayRoute = null;
+      let nextRoute = null;
+      let routeStreets = [];
+
+      try {
+        const routes = await env.DB.prepare("SELECT * FROM routes WHERE table_id = ? ORDER BY date ASC").bind(targetTableId).all();
+        if (routes?.results) {
+          todayRoute = routes.results.find(r => r.date === todayIso);
+          nextRoute = routes.results.filter(r => r.date && r.date > todayIso)[0];
+          if (todayRoute) {
+            const streetsRes = await env.DB.prepare("SELECT street_name FROM route_streets WHERE route_id = ? ORDER BY sequence_order ASC").bind(todayRoute.id).all();
+            routeStreets = (streetsRes?.results || []).map(s => s.street_name);
+          }
+        }
+      } catch(e) {}
+
+      // Sleigh live status
+      let sleighStatusText = "Resting peacefully in the Lapland workshop getting polished for flight";
+      try {
+        const latestGps = await env.DB.prepare("SELECT lat, lng, speed, road_name, timestamp FROM telemetry WHERE table_id = ? ORDER BY timestamp DESC LIMIT 1").bind(targetTableId).first();
+        if (latestGps?.timestamp) {
+          const normStr = String(latestGps.timestamp).trim().replace(' ', 'T');
+          const gpsTime = new Date(normStr.endsWith('Z') ? normStr : normStr + 'Z').getTime();
+          const isFresh = !isNaN(gpsTime) && (Date.now() - gpsTime) <= 5 * 60 * 1000;
+          if (isFresh) {
+            sleighStatusText = `Currently OUT LIVE ON ROUTE in ${townName}! Sleigh is moving along ${latestGps.road_name || 'the local streets'} at ${Math.round(latestGps.speed || 0)} mph! Listen for the sleigh bells!`;
+          }
+        }
+      } catch(e) {}
+
+      const routeContext = todayRoute
+        ? `TONIGHT'S ROUTE: Sleigh IS VISITING tonight on the "${todayRoute.name || 'Community Route'}" starting around ${todayRoute.start_time || '18:00'}. Active streets tonight: ${routeStreets.slice(0, 15).join(', ') || 'various local streets'}.`
+        : `TONIGHT'S ROUTE: The sleigh is not on the streets tonight. ${nextRoute ? `Next upcoming visit is on ${nextRoute.date} for the "${nextRoute.name || 'sleigh'}" route.` : 'All scheduled routes for this year can be checked on our live map.'}`;
+
+      // 2. Build Safeguarded Father Christmas Spoken System Prompt
+      const systemPrompt = `You are Father Christmas (Santa Claus), speaking live from the North Pole Workshop and the Round Table Santa Sleigh to children and families in ${townName}.
+Your words will be spoken aloud to children using browser text-to-speech audio, so you MUST follow these voice rules:
+- Keep your answers short: 1 to 3 friendly, cheerful sentences maximum (around 30-50 words total).
+- Speak with warmth, wonder, and a jolly British festive tone ("Ho ho ho!").
+- Do NOT use asterisks, markdown bolding, emojis, or bullet points in your reply, because your text will be read aloud by an audio synthesizer. Speak clean, natural spoken sentences only.
+
+CRITICAL CHILD SAFEGUARDS (MUST BE STRICTLY FOLLOWED AT ALL TIMES):
+1. PRESERVE THE MAGIC: Never break character. Never mention you are an AI, a computer program, a language model, or created by Google or any tech company. You are the real Father Christmas.
+2. GIFTS & EXPECTATIONS: NEVER promise specific expensive presents, video game consoles (PlayStation, Xbox, Nintendo Switch), smartphones, iPads, quad bikes, or live pets (puppies, kittens). If a child asks for a specific toy or console, say: "Ho ho ho! The elves in my workshop are working very hard making wonderful surprises! Remember, the very best present of all is kindness and spending joyful time with your family."
+3. CHILD PRIVACY & COPPA: Never ask for or store a child's surname, full address, phone number, school, or passwords. If a child mentions an address, acknowledge it warmly without repeating private details.
+4. COMFORT & REASSURANCE: If a child expresses sadness, missing someone, or distress, be deeply comforting and loving. Tell them Father Christmas sends them the biggest Christmas hug, and encourage them to share a warm cuddle with their grown-up.
+5. BEDTIME & CHRISTMAS EVE RULES: Remind them to be good, listen to their grown-ups, and make sure they are fast asleep on Christmas Eve so the reindeer can land safely! Don't forget a carrot for Rudolph and a mince pie!
+6. LOCAL SLEIGH KNOWLEDGE:
+- Location/Town: ${townName} (organized by ${table?.charity_name || 'Round Table'}).
+- Tonight: ${routeContext}
+- Sleigh Current Status: ${sleighStatusText}
+
+CONVERSATION CONTEXT:
+${conversationHistory.slice(-4).map(h => `${h.role === 'user' ? 'Child' : 'Santa'}: ${h.text}`).join('\n')}
+
+CHILD SAID: "${userMessage}"
+SANTA'S SPOKEN RESPONSE:`;
+
+      // 3. Connect to Google Gemini Flash
+      let nationalTable = null;
+      if (slug !== 'beverley') {
+        try {
+          nationalTable = await env.DB.prepare("SELECT gemini_model, gemini_api_key FROM tables WHERE slug = 'beverley'").first();
+        } catch(e) {}
+      }
+
+      const geminiApiKey = table?.gemini_api_key || nationalTable?.gemini_api_key || env.GEMINI_API_KEY;
+      const rawModel = body.model || table?.gemini_model || nationalTable?.gemini_model || env.GEMINI_MODEL || "auto";
+      const primaryModel = resolveGeminiModel(rawModel);
+
+      if (geminiApiKey) {
+        try {
+          let geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${primaryModel}:generateContent?key=${geminiApiKey}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{
+                role: "user",
+                parts: [{ text: systemPrompt }]
+              }],
+              generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 150
+              }
+            })
+          });
+
+          // Cascade fallbacks if needed
+          if (!geminiRes.ok) {
+            const fallbacks = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-1.5-flash"].filter(m => m !== primaryModel);
+            for (const fb of fallbacks) {
+              console.warn(`Santa Voice: Model ${primaryModel} failed (${geminiRes.status}). Retrying with ${fb}...`);
+              geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${fb}:generateContent?key=${geminiApiKey}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  contents: [{ role: "user", parts: [{ text: systemPrompt }] }],
+                  generationConfig: { temperature: 0.7, maxOutputTokens: 150 }
+                })
+              });
+              if (geminiRes.ok) break;
+            }
+          }
+
+          if (geminiRes.ok) {
+            const geminiData = await geminiRes.json();
+            let replyText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (replyText) {
+              // Clean any accidental markdown or quotes
+              replyText = replyText.replace(/[*#_~`"]/g, '').trim();
+              return jsonResponse({
+                ok: true,
+                reply: replyText,
+                model: primaryModel,
+                grounded: true
+              });
+            }
+          }
+        } catch(geminiErr) {
+          console.warn("Gemini Santa Voice API call failed:", geminiErr);
+        }
+      }
+
+      // 4. Built-in Infallible Fallback Festive Generator
+      const lower = userMessage.toLowerCase();
+      let fallbackReply = `Ho ho ho! Merry Christmas to you in ${townName}! The elves and reindeer send you their warmest wishes from the North Pole!`;
+
+      if (lower.includes("reindeer") || lower.includes("rudolph")) {
+        fallbackReply = `Ho ho ho! Rudolph is doing splendidly! He is resting his glowing red nose and munching on delicious crunchy carrots with Dasher and Dancer!`;
+      } else if (lower.includes("elf") || lower.includes("elves") || lower.includes("workshop")) {
+        fallbackReply = `The elves are busier than ever in the toy workshop, painting wooden toys and wrapping presents with shiny red ribbons!`;
+      } else if (lower.includes("where are you") || lower.includes("where is santa") || lower.includes("location")) {
+        fallbackReply = `Ho ho ho! ${sleighStatusText}`;
+      } else if (lower.includes("street") || lower.includes("tonight") || lower.includes("when are you coming") || lower.includes("visit")) {
+        fallbackReply = todayRoute
+          ? `Ho ho ho! Yes indeed, we are out in ${townName} tonight on the ${todayRoute.name || 'sleigh'} route! Listen closely for the sleigh bells around ${todayRoute.start_time || 'six o clock'}!`
+          : `Ho ho ho! The sleigh is resting today, but you can check our live route timetable on the map above to see our next magical visit!`;
+      } else if (lower.includes("present") || lower.includes("gift") || lower.includes("want") || lower.includes("toy")) {
+        fallbackReply = `Ho ho ho! My elves are working very hard on lots of wonderful surprises! Remember that the greatest present of all is kindness, love, and being helpful to your family!`;
+      }
+
+      return jsonResponse({
+        ok: true,
+        reply: fallbackReply,
+        model: "built-in-santa-synth",
+        grounded: false
+      });
+    }
+
+    // ==============================================================
     // 📍 4. DRIVER GPS BEACON INGEST (PUT /api/telemetry)
     // ==============================================================
     if (path === "/api/telemetry" && request.method === "PUT") {
@@ -761,7 +958,13 @@ export default {
         headline_sponsor_url,
         headline_sponsor_tagline,
         gemini_model,
-        gemini_api_key
+        gemini_api_key,
+        santa_voice_provider,
+        elevenlabs_agent_id,
+        enable_santa_chat,
+        enable_colouring,
+        public_slot_1,
+        public_slot_2
       } = body;
 
       // Ensure columns exist in tables schema
@@ -782,6 +985,13 @@ export default {
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN headline_sponsor_tagline TEXT").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN gemini_model TEXT DEFAULT 'auto'").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN gemini_api_key TEXT").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN santa_voice_provider TEXT DEFAULT 'gemini'").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN elevenlabs_agent_id TEXT").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN total_views INTEGER DEFAULT 0").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN enable_santa_chat BOOLEAN DEFAULT 0").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN enable_colouring BOOLEAN DEFAULT 0").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN public_slot_1 TEXT").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN public_slot_2 TEXT").run(); } catch(e) {}
 
       try {
         await env.DB.prepare(`
@@ -806,7 +1016,13 @@ export default {
             headline_sponsor_url = COALESCE(?, headline_sponsor_url),
             headline_sponsor_tagline = COALESCE(?, headline_sponsor_tagline),
             gemini_model = COALESCE(?, gemini_model),
-            gemini_api_key = COALESCE(?, gemini_api_key)
+            gemini_api_key = COALESCE(?, gemini_api_key),
+            santa_voice_provider = COALESCE(?, santa_voice_provider),
+            elevenlabs_agent_id = COALESCE(?, elevenlabs_agent_id),
+            enable_santa_chat = COALESCE(?, enable_santa_chat),
+            enable_colouring = COALESCE(?, enable_colouring),
+            public_slot_1 = COALESCE(?, public_slot_1),
+            public_slot_2 = COALESCE(?, public_slot_2)
           WHERE id = ?
         `).bind(
           sleigh_display_name !== undefined ? sleigh_display_name : null,
@@ -830,6 +1046,12 @@ export default {
           headline_sponsor_tagline !== undefined ? headline_sponsor_tagline : null,
           gemini_model !== undefined ? gemini_model : null,
           gemini_api_key !== undefined ? gemini_api_key : null,
+          santa_voice_provider !== undefined ? santa_voice_provider : null,
+          elevenlabs_agent_id !== undefined ? elevenlabs_agent_id : null,
+          enable_santa_chat !== undefined ? (enable_santa_chat ? 1 : 0) : ((public_slot_1 === 'santa_chat' || public_slot_2 === 'santa_chat') ? 1 : null),
+          enable_colouring !== undefined ? (enable_colouring ? 1 : 0) : ((public_slot_1 === 'colouring' || public_slot_2 === 'colouring') ? 1 : null),
+          public_slot_1 !== undefined ? (public_slot_1 || '') : null,
+          public_slot_2 !== undefined ? (public_slot_2 || '') : null,
           table.id
         ).run();
 

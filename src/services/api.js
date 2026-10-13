@@ -1,6 +1,6 @@
 import { getCurrentSession } from './auth';
 
-const API_BASE = "https://turbosanta-api.beverley247.workers.dev";
+export const API_BASE = "https://turbosanta-api.beverley247.workers.dev";
 const LOCAL_AGENT_URL = "http://127.0.0.1:8080";
 
 function getAuthHeaders(explicitSecret) {
