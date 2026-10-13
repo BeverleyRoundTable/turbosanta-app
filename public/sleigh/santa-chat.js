@@ -170,6 +170,17 @@
   function applyFullBoxStyles(widgetEl) {
     try {
       if (!widgetEl || !widgetEl.shadowRoot) return false;
+
+      // 1. Programmatically trigger the widget's built-in expansion box button if present
+      try {
+        var expandBtn = widgetEl.shadowRoot.querySelector(
+          'button[aria-label="Expand widget"], button[title="Expand widget"], button[aria-label*="Expand"], button[title*="Expand"]'
+        );
+        if (expandBtn) {
+          expandBtn.click();
+        }
+      } catch (btnErr) {}
+
       var styleId = "santa-fullbox-sheet-override";
       if (widgetEl.shadowRoot.getElementById(styleId)) return true;
       var st = document.createElement("style");
@@ -178,9 +189,11 @@
         ":host { width: 100% !important; height: 100% !important; display: block !important; max-width: 100% !important; max-height: 100% !important; position: absolute !important; inset: 0 !important; }\n" +
         ".sheet, [data-variant=compact].sheet, [data-variant=expanded].sheet, [data-variant=fullscreen].sheet {\n" +
         "  width: 100% !important; max-width: 100% !important; height: 100% !important; max-height: 100% !important;\n" +
-        "  inset: 0 !important; margin: 0 !important; border-radius: 0 !important; border: none !important;\n" +
+        "  inset: 0 !important; margin: 0 auto !important; border-radius: 16px !important;\n" +
+        "  box-sizing: border-box !important;\n" +
         "}\n" +
-        ".sheet > div { width: 100% !important; height: 100% !important; }\n";
+        ".sheet > div { width: 100% !important; height: 100% !important; }\n" +
+        ".overlay { position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; padding: 0 !important; }\n";
       widgetEl.shadowRoot.appendChild(st);
       return true;
     } catch (err) {
@@ -191,7 +204,7 @@
   function keepFullBoxActive(widgetEl) {
     if (!widgetEl) return;
     var attempts = 0;
-    var maxAttempts = 50; // run for ~5 seconds
+    var maxAttempts = 60; // run for ~6 seconds
     var timer = setInterval(function () {
       attempts++;
       applyFullBoxStyles(widgetEl);

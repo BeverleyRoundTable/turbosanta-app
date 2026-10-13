@@ -33,7 +33,6 @@ export const PUBLIC_SLOT_OPTIONS = [
   { id: 'magic_mailbox', label: 'Magic Lapland Mailbox (Voice Messages)', desc: 'Digital mailbox allowing children to record audio messages directly for Santa.', preview: (slug) => `/magic_mailbox.html?table=${encodeURIComponent(slug)}` },
   { id: 'nice_list', label: 'Official Lapland Nice List Certificate', desc: 'Customizable certificate proving the child made Santa Good List this Christmas.', preview: (slug) => `/nice_list.html?table=${encodeURIComponent(slug)}` },
   { id: 'adopt_reindeer', label: 'Adopt an Official Sleigh Reindeer', desc: 'Adopt Rudolph, Dasher, Prancer, or Comet and print an adoption certificate.', preview: (slug) => `/adopt_reindeer.html?table=${encodeURIComponent(slug)}` },
-  { id: 'santa_chat', label: 'Talk to Santa (Voice & Chat Hotline)', desc: 'Interactive phone booth to speak out loud with Santa in Lapland.', preview: (slug) => `/santa_chat.html?table=${encodeURIComponent(slug)}` },
   { id: 'santa_frame', label: 'Santa Visited Photo Frame Stamper', desc: 'Commemorative photo frame to stamp family pictures with date of Santa visit.', preview: (slug) => `/santa_frame.html?table=${encodeURIComponent(slug)}` },
   { id: 'santa_studio', label: 'Santa Audio Studio (Workshop Dispatch)', desc: 'Santa workshop audio portal for recording festive voice messages and replies.', preview: (slug) => `/santa_studio.html?table=${encodeURIComponent(slug)}` },
   { id: 'snowman', label: 'Snowman Maker & Creator Studio', desc: 'Interactive snowman builder allowing kids to customise hats, scarves, and mittens.', preview: (slug) => `/snowman.html?table=${encodeURIComponent(slug)}` },
@@ -80,9 +79,6 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   const [liveGps, setLiveGps] = useState(tableData?.live_sleigh || null);
   const [isDetectingModel, setIsDetectingModel] = useState(false);
   const [detectStatus, setDetectStatus] = useState('');
-  const [testVoiceQuestion, setTestVoiceQuestion] = useState('When are you visiting our town?');
-  const [isTestingVoice, setIsTestingVoice] = useState(false);
-  const [testVoiceResult, setTestVoiceResult] = useState(null);
 
   const currentTableSlug = session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley';
   const isMasterAdmin = currentTableSlug === 'beverley' || session?.tableId === 'beverley' || isNationalAdmin(session?.email);
@@ -473,13 +469,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     headline_sponsor_tagline: tableData?.table?.headline_sponsor_tagline || '',
     gemini_model: tableData?.table?.gemini_model || localStorage.getItem('turbosanta_global_gemini_model') || 'auto',
     gemini_api_key: tableData?.table?.gemini_api_key || '',
-    santa_voice_provider: tableData?.table?.santa_voice_provider || 'gemini',
-    elevenlabs_agent_id: tableData?.table?.elevenlabs_agent_id || '',
-    santa_voice_pitch: tableData?.table?.santa_voice_pitch ?? 0.74,
-    santa_voice_rate: tableData?.table?.santa_voice_rate ?? 0.85,
-    enable_santa_chat: Boolean(tableData?.table?.enable_santa_chat),
     enable_colouring: Boolean(tableData?.table?.enable_colouring),
-    public_slot_1: tableData?.table?.public_slot_1 || (tableData?.table?.enable_santa_chat ? 'santa_chat' : '') || '',
+    public_slot_1: tableData?.table?.public_slot_1 || '',
     public_slot_2: tableData?.table?.public_slot_2 || (tableData?.table?.enable_colouring ? 'colouring' : '') || '',
     expenses: tableData?.table?.expenses !== undefined ? tableData?.table?.expenses : (tableData?.expenses !== undefined ? tableData?.expenses : 0),
     expenses_json: tableData?.table?.expenses_json || tableData?.expenses_json || null,
@@ -512,13 +503,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         headline_sponsor_tagline: tableData.table.headline_sponsor_tagline !== undefined ? tableData.table.headline_sponsor_tagline : prev.headline_sponsor_tagline,
         gemini_model: tableData.table.gemini_model !== undefined ? (tableData.table.gemini_model || 'auto') : (prev.gemini_model || 'auto'),
         gemini_api_key: tableData.table.gemini_api_key !== undefined ? tableData.table.gemini_api_key : prev.gemini_api_key,
-        santa_voice_provider: tableData.table.santa_voice_provider || 'gemini',
-        elevenlabs_agent_id: tableData.table.elevenlabs_agent_id !== undefined ? tableData.table.elevenlabs_agent_id : (prev.elevenlabs_agent_id || ''),
-        santa_voice_pitch: tableData.table.santa_voice_pitch !== undefined ? tableData.table.santa_voice_pitch : (prev.santa_voice_pitch ?? 0.74),
-        santa_voice_rate: tableData.table.santa_voice_rate !== undefined ? tableData.table.santa_voice_rate : (prev.santa_voice_rate ?? 0.85),
-        enable_santa_chat: Boolean(tableData.table.enable_santa_chat),
         enable_colouring: Boolean(tableData.table.enable_colouring),
-        public_slot_1: tableData.table.public_slot_1 !== undefined ? (tableData.table.public_slot_1 || '') : (tableData.table.enable_santa_chat ? 'santa_chat' : prev.public_slot_1 || ''),
+        public_slot_1: tableData.table.public_slot_1 !== undefined ? (tableData.table.public_slot_1 || '') : (prev.public_slot_1 || ''),
         public_slot_2: tableData.table.public_slot_2 !== undefined ? (tableData.table.public_slot_2 || '') : (tableData.table.enable_colouring ? 'colouring' : prev.public_slot_2 || ''),
         expenses: tableData.table.expenses !== undefined ? tableData.table.expenses : (tableData.expenses !== undefined ? tableData.expenses : prev.expenses),
         expenses_json: tableData.table.expenses_json !== undefined ? tableData.table.expenses_json : (tableData.expenses_json !== undefined ? tableData.expenses_json : prev.expenses_json),
@@ -3245,28 +3231,6 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 </pre>
               </div>
 
-              {/* Widget 4: Talk to Santa Lapland Call (Beverley Exclusive) */}
-              {currentTableSlug === 'beverley' && (
-                <div style={{ background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <strong style={{ fontSize: '16px', color: '#fff' }}>4. Talk to Santa Claus (AI Voice Call)</strong>
-                    <button
-                      onClick={() => copyToClipboard('chat', `<iframe src="https://roundtablesantasleigh.co.uk/santa_chat.html?table=${session.tableId || 'beverley'}" width="100%" height="680" style="border:none;border-radius:16px;" allow="microphone"></iframe>`)}
-                      className="btn-primary"
-                      style={{ padding: '6px 14px', fontSize: '12px' }}
-                    >
-                      {copiedKey === 'chat' ? <Check size={14} /> : <Copy size={14} />}
-                      <span>{copiedKey === 'chat' ? 'Copied!' : 'Copy Code'}</span>
-                    </button>
-                  </div>
-                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '10px' }}>
-                    Interactive AI phone hotline connecting directly to Lapland with voice input (ElevenLabs ConvAI).
-                  </p>
-                  <pre style={{ background: '#151513', padding: '12px', borderRadius: '8px', fontSize: '12px', color: 'var(--primary)', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
-{`<iframe src="https://roundtablesantasleigh.co.uk/santa_chat.html?table=${session.tableId || 'beverley'}" width="100%" height="680" style="border:none;border-radius:16px;" allow="microphone"></iframe>`}
-                  </pre>
-                </div>
-              )}
             </div>
           </div>
         )}
@@ -4273,13 +4237,11 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                         fontWeight: 600
                       }}
                     >
-                      {PUBLIC_SLOT_OPTIONS
-                        .filter(opt => opt.id !== 'santa_chat' || currentTableSlug === 'beverley')
-                        .map(opt => (
-                          <option key={`slot1-${opt.id}`} value={opt.id}>
-                            {opt.label}
-                          </option>
-                        ))}
+                      {PUBLIC_SLOT_OPTIONS.map(opt => (
+                        <option key={`slot1-${opt.id}`} value={opt.id}>
+                          {opt.label}
+                        </option>
+                      ))}
                     </select>
 
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.4, minHeight: '34px' }}>
@@ -4343,13 +4305,11 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                         fontWeight: 600
                       }}
                     >
-                      {PUBLIC_SLOT_OPTIONS
-                        .filter(opt => opt.id !== 'santa_chat' || currentTableSlug === 'beverley')
-                        .map(opt => (
-                          <option key={`slot2-${opt.id}`} value={opt.id}>
-                            {opt.label}
-                          </option>
-                        ))}
+                      {PUBLIC_SLOT_OPTIONS.map(opt => (
+                        <option key={`slot2-${opt.id}`} value={opt.id}>
+                          {opt.label}
+                        </option>
+                      ))}
                     </select>
 
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.4, minHeight: '34px' }}>
@@ -4414,59 +4374,6 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       : `${(formData.public_slot_1 ? 1 : 0) + (formData.public_slot_2 ? 1 : 0)} of 2 slots active.`}
                   </span>
                 </div>
-
-                {/* ElevenLabs Santa Voice Configuration (Exclusively for Beverley when Santa Chat is active) */}
-                {currentTableSlug === 'beverley' && (formData.public_slot_1 === 'santa_chat' || formData.public_slot_2 === 'santa_chat') && (
-                  <div style={{
-                    marginTop: '14px',
-                    padding: '14px',
-                    background: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid rgba(251, 175, 51, 0.25)',
-                    borderRadius: '10px'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        ElevenLabs Santa Voice Configuration (Beverley Exclusive):
-                      </span>
-                      <span style={{
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        padding: '2px 7px',
-                        borderRadius: '4px',
-                        background: 'rgba(59, 130, 246, 0.2)',
-                        color: '#60a5fa',
-                        border: '1px solid rgba(59, 130, 246, 0.3)'
-                      }}>
-                        ElevenLabs ConvAI Active
-                      </span>
-                    </div>
-
-                    <div style={{ background: 'rgba(0, 0, 0, 0.4)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: '8px', padding: '10px' }}>
-                      <label style={{ display: 'block', fontSize: '12px', color: '#93c5fd', fontWeight: 600, marginBottom: '4px' }}>
-                        ElevenLabs Agent ID:
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.elevenlabs_agent_id || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, elevenlabs_agent_id: e.target.value }))}
-                        placeholder="agent_4401kxaqcqygfb4940wnc4a9haeh (defaults to Cloudflare Secret)"
-                        style={{
-                          width: '100%',
-                          background: '#161614',
-                          border: '1px solid var(--border)',
-                          borderRadius: '6px',
-                          padding: '8px 10px',
-                          color: '#fff',
-                          fontSize: '13px',
-                          fontFamily: 'monospace'
-                        }}
-                      />
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                        Loaded securely via Cloudflare Worker secret (<code>ELEVENLABS_AGENT_ID</code>). Enter an Agent ID above only if you wish to override the secret.
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* AI Intelligence & Gemini Fleet Advisor Settings */}
@@ -4811,13 +4718,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       headline_sponsor_tagline: formData.headline_sponsor_tagline || null,
                       gemini_model: chosenGeminiModel,
                       gemini_api_key: formData.gemini_api_key || '',
-                      santa_voice_provider: formData.santa_voice_provider || 'gemini',
-                      elevenlabs_agent_id: formData.elevenlabs_agent_id || '',
-                      santa_voice_pitch: formData.santa_voice_pitch !== undefined ? parseFloat(formData.santa_voice_pitch) : 0.74,
-                      santa_voice_rate: formData.santa_voice_rate !== undefined ? parseFloat(formData.santa_voice_rate) : 0.85,
                       public_slot_1: formData.public_slot_1 || '',
                       public_slot_2: formData.public_slot_2 || '',
-                      enable_santa_chat: (formData.public_slot_1 === 'santa_chat' || formData.public_slot_2 === 'santa_chat'),
                       enable_colouring: (formData.public_slot_1 === 'colouring' || formData.public_slot_2 === 'colouring'),
                       approved_national_emails: approvedEmails,
                       background_mode: formData.background_mode || 'image',

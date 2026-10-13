@@ -2280,9 +2280,6 @@
                 let targetSrc = slot.embedSrc(slug);
                 const joinChar = targetSrc.includes('?') ? '&' : '?';
                 targetSrc += joinChar + 'embed=1&primary=' + encodeURIComponent(primaryHex) + '&accent=' + encodeURIComponent(accentHex);
-                if (slot.id === 'santa_chat') {
-                    targetSrc += '&provider=' + encodeURIComponent(voiceProvider);
-                }
                 ifr.src = targetSrc;
                 ifr.setAttribute('scrolling', 'no');
                 ifr.style.width = '100%';

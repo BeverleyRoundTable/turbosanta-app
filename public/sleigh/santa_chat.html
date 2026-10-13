@@ -21,8 +21,22 @@
     min-height: 100%;
     box-sizing: border-box;
     overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 </style>
+<script>
+  (function() {
+    var p = new URLSearchParams(window.location.search);
+    var t = (p.get('table') || 'beverley').toLowerCase().trim();
+    if (t !== 'beverley' && !p.get('agent_id')) {
+      document.addEventListener("DOMContentLoaded", function() {
+        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-family:sans-serif;font-size:14px;text-align:center;padding:20px;">Santa Chat is private to Beverley Round Table.</div>';
+      });
+    }
+  })();
+</script>
 <script src="/embed-theme.js"></script>
 </head>
 <body>
