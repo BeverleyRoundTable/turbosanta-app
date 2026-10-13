@@ -7,11 +7,11 @@ import {
   Camera, Video, Image as ImageIcon, FolderDown, Eye, EyeOff, Sparkles, Filter,
   CreditCard, Key, Zap, RefreshCw, Send, Link2,
   BarChart3, TrendingUp, Award, Printer, PieChart, Receipt,
-  Mail, HardDrive, AlertTriangle, Database, FileText, Coins, Share2, QrCode, ArrowUpDown
+  Mail, HardDrive, AlertTriangle, Database, FileText, Coins, Share2, QrCode, ArrowUpDown, Volume2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { logoutAdmin, isNationalAdmin } from '../services/auth';
-import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, saveRoute, deleteRoute } from '../services/api';
+import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, testSantaVoice, saveRoute, deleteRoute } from '../services/api';
 import DropzoneUpload from './DropzoneUpload';
 import RouteEditorModal from './RouteEditorModal';
 import ExpensesModal from './ExpensesModal';
@@ -80,6 +80,9 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   const [liveGps, setLiveGps] = useState(tableData?.live_sleigh || null);
   const [isDetectingModel, setIsDetectingModel] = useState(false);
   const [detectStatus, setDetectStatus] = useState('');
+  const [testVoiceQuestion, setTestVoiceQuestion] = useState('When are you visiting our town?');
+  const [isTestingVoice, setIsTestingVoice] = useState(false);
+  const [testVoiceResult, setTestVoiceResult] = useState(null);
 
   const currentTableSlug = session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley';
   const isMasterAdmin = currentTableSlug === 'beverley' || session?.tableId === 'beverley' || isNationalAdmin(session?.email);
@@ -462,7 +465,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     headline_sponsor_logo: tableData?.table?.headline_sponsor_logo || '',
     headline_sponsor_url: tableData?.table?.headline_sponsor_url || '',
     headline_sponsor_tagline: tableData?.table?.headline_sponsor_tagline || '',
-    gemini_model: localStorage.getItem('turbosanta_global_gemini_model') || tableData?.table?.gemini_model || 'auto',
+    gemini_model: tableData?.table?.gemini_model || localStorage.getItem('turbosanta_global_gemini_model') || 'auto',
     gemini_api_key: tableData?.table?.gemini_api_key || '',
     santa_voice_provider: tableData?.table?.santa_voice_provider || 'gemini',
     elevenlabs_agent_id: tableData?.table?.elevenlabs_agent_id || '',
@@ -499,7 +502,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         headline_sponsor_logo: tableData.table.headline_sponsor_logo !== undefined ? tableData.table.headline_sponsor_logo : prev.headline_sponsor_logo,
         headline_sponsor_url: tableData.table.headline_sponsor_url !== undefined ? tableData.table.headline_sponsor_url : prev.headline_sponsor_url,
         headline_sponsor_tagline: tableData.table.headline_sponsor_tagline !== undefined ? tableData.table.headline_sponsor_tagline : prev.headline_sponsor_tagline,
-        gemini_model: localStorage.getItem('turbosanta_global_gemini_model') || tableData.table.gemini_model || prev.gemini_model || 'auto',
+        gemini_model: tableData.table.gemini_model !== undefined ? (tableData.table.gemini_model || 'auto') : (prev.gemini_model || 'auto'),
         gemini_api_key: tableData.table.gemini_api_key !== undefined ? tableData.table.gemini_api_key : prev.gemini_api_key,
         santa_voice_provider: tableData.table.santa_voice_provider || 'gemini',
         elevenlabs_agent_id: tableData.table.elevenlabs_agent_id !== undefined ? tableData.table.elevenlabs_agent_id : (prev.elevenlabs_agent_id || ''),
@@ -4518,89 +4521,108 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     Enter your Google Gemini model constant (e.g. <strong style={{ color: '#FBAF33' }}>gemini-3.8-flash</strong>, <strong style={{ color: '#FBAF33' }}>flash 3.8</strong>, <strong style={{ color: '#FBAF33' }}>gemini-3.6-flash</strong>, or <strong style={{ color: '#FBAF33' }}>flash 3.6</strong>). You can type it manually, or click <strong>"Detect Latest Free Model from Google"</strong> to query Google's live backend. This saves as the system-wide constant across all UK Round Tables with zero individual API fees.
                   </p>
 
-                  <div style={{ maxWidth: '520px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ maxWidth: '640px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
                       <label style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
                         Global Gemini Model Constant
                       </label>
-                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setFormData(prev => ({ ...prev, gemini_model: 'auto' }));
-                            localStorage.setItem('turbosanta_global_gemini_model', 'auto');
-                            setDetectStatus('🔄 Auto Mode Selected: Zero maintenance! Will always automatically track newest Google Free Tier Flash.');
-                            setTimeout(() => setDetectStatus(''), 6000);
-                          }}
-                          style={{
-                            background: String(formData.gemini_model || '').toLowerCase() === 'auto' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                            border: String(formData.gemini_model || '').toLowerCase() === 'auto' ? '1px solid #22c55e' : '1px solid var(--border)',
-                            borderRadius: '6px',
-                            color: String(formData.gemini_model || '').toLowerCase() === 'auto' ? '#22c55e' : 'var(--text-muted)',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            padding: '4px 8px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}
-                          title="Set model to auto-advance"
-                        >
-                          <Sparkles size={11} />
-                          <span>Use Auto Mode</span>
-                        </button>
-                        <button
-                          type="button"
-                          disabled={isDetectingModel}
-                          onClick={async () => {
-                            setIsDetectingModel(true);
-                            setDetectStatus('Querying Google backend...');
-                            try {
-                              const res = await fetchLatestAiModels(currentTableSlug);
-                              const detected = (res && res.latest) ? res.latest : 'gemini-3.8-flash';
-                              setFormData(prev => ({ ...prev, gemini_model: detected }));
-                              localStorage.setItem('turbosanta_global_gemini_model', detected);
-                              setDetectStatus(`⚡ Connected to Google API: ${detected} detected as newest free model!`);
-                            } catch(e) {
-                              setFormData(prev => ({ ...prev, gemini_model: 'gemini-3.8-flash' }));
-                              localStorage.setItem('turbosanta_global_gemini_model', 'gemini-3.8-flash');
-                              setDetectStatus('⚡ Set to newest free model: gemini-3.8-flash');
-                            } finally {
-                              setIsDetectingModel(false);
-                              setTimeout(() => setDetectStatus(''), 7000);
-                            }
-                          }}
-                          style={{
-                            background: 'rgba(251, 175, 51, 0.1)',
-                            border: '1px solid rgba(251, 175, 51, 0.4)',
-                            borderRadius: '6px',
-                            color: 'var(--primary)',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            padding: '4px 10px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '5px'
-                          }}
-                        >
-                          <Zap size={12} />
-                          <span>{isDetectingModel ? 'Checking Google...' : '⚡ Detect from Google'}</span>
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        disabled={isDetectingModel}
+                        onClick={async () => {
+                          setIsDetectingModel(true);
+                          setDetectStatus('Querying Google backend...');
+                          try {
+                            const res = await fetchLatestAiModels(currentTableSlug);
+                            const detected = (res && res.latest) ? res.latest : 'gemini-3.8-flash';
+                            setFormData(prev => ({ ...prev, gemini_model: detected }));
+                            localStorage.setItem('turbosanta_global_gemini_model', detected);
+                            setDetectStatus(`⚡ Connected to Google API: ${detected} detected as newest free model!`);
+                          } catch(e) {
+                            setFormData(prev => ({ ...prev, gemini_model: 'gemini-3.8-flash' }));
+                            localStorage.setItem('turbosanta_global_gemini_model', 'gemini-3.8-flash');
+                            setDetectStatus('⚡ Set to newest free model: gemini-3.8-flash');
+                          } finally {
+                            setIsDetectingModel(false);
+                            setTimeout(() => setDetectStatus(''), 7000);
+                          }
+                        }}
+                        style={{
+                          background: 'rgba(251, 175, 51, 0.1)',
+                          border: '1px solid rgba(251, 175, 51, 0.4)',
+                          borderRadius: '6px',
+                          color: 'var(--primary)',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          padding: '4px 10px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px'
+                        }}
+                      >
+                        <Zap size={12} />
+                        <span>{isDetectingModel ? 'Checking Google...' : '⚡ Detect from Google'}</span>
+                      </button>
+                    </div>
+
+                    {/* Quick Preset Buttons */}
+                    <div style={{ display: 'flex', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                      {[
+                        { id: 'auto', label: 'Auto (Dynamic)', badge: 'Recommended' },
+                        { id: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash', badge: 'Newest Free' },
+                        { id: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash', badge: 'Stable' },
+                        { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash', badge: 'Legacy' }
+                      ].map(preset => {
+                        const isSelected = (formData.gemini_model || 'auto').toLowerCase() === preset.id.toLowerCase();
+                        return (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, gemini_model: preset.id }));
+                              localStorage.setItem('turbosanta_global_gemini_model', preset.id);
+                              setDetectStatus(`Selected: ${preset.label}`);
+                              setTimeout(() => setDetectStatus(''), 4000);
+                            }}
+                            style={{
+                              background: isSelected ? 'rgba(34, 197, 94, 0.18)' : 'rgba(255, 255, 255, 0.04)',
+                              border: isSelected ? '1px solid #22c55e' : '1px solid var(--border)',
+                              borderRadius: '6px',
+                              padding: '5px 9px',
+                              fontSize: '11px',
+                              fontWeight: isSelected ? 800 : 600,
+                              color: isSelected ? '#22c55e' : 'var(--text-muted)',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px'
+                            }}
+                          >
+                            <span>{preset.label}</span>
+                            <span style={{
+                              fontSize: '9px',
+                              background: isSelected ? 'rgba(34, 197, 94, 0.25)' : 'rgba(255, 255, 255, 0.08)',
+                              padding: '1px 4px',
+                              borderRadius: '3px'
+                            }}>
+                              {preset.badge}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
 
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       <input
                         type="text"
-                        value={formData.gemini_model || 'auto'}
+                        value={formData.gemini_model ?? ''}
                         onChange={(e) => {
                           const val = e.target.value;
                           setFormData(prev => ({ ...prev, gemini_model: val }));
                           localStorage.setItem('turbosanta_global_gemini_model', val);
                         }}
-                        placeholder="e.g. auto, gemini-3.8-flash, flash 3.8, flash 3.6"
+                        placeholder="auto (defaults to gemini-3.8-flash)"
                         style={{
                           flex: 1,
                           width: '100%',
@@ -4625,14 +4647,171 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
 
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e' }}></span>
-                      {['auto', 'latest', 'latest-flash'].includes(String(formData.gemini_model || '').toLowerCase().trim()) ? (
+                      {['auto', 'latest', 'latest-flash', ''].includes(String(formData.gemini_model || '').toLowerCase().trim()) ? (
                         <span>
                           System Constant: <strong style={{ color: '#FBAF33' }}>AUTO MODE (Zero Maintenance)</strong> &bull; Auto-resolves to Google's newest free tier Flash engine (gemini-3.8-flash)
                         </span>
                       ) : (
                         <span>
-                          System Constant: <strong style={{ color: '#fff' }}>{formData.gemini_model || 'gemini-3.8-flash'}</strong> &bull; Pointed to Google Generative Language Free Tier ($0 Cost)
+                          System Constant: <strong style={{ color: '#fff' }}>{formData.gemini_model}</strong> &bull; Pointed to Google Generative Language Free Tier ($0 Cost)
                         </span>
+                      )}
+                    </div>
+
+                    {/* LIVE GEMINI & SANTA VOICE TESTER */}
+                    <div style={{
+                      marginTop: '16px',
+                      padding: '14px',
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px solid rgba(251, 175, 51, 0.25)',
+                      borderRadius: '8px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Volume2 size={14} color="var(--primary)" />
+                          <strong style={{ fontSize: '12px', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            Live Gemini Voice &amp; Safeguards Simulator
+                          </strong>
+                        </div>
+                        <span style={{ fontSize: '10px', color: '#22c55e', background: 'rgba(34, 197, 94, 0.15)', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                          Ready to Test
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 10px 0', lineHeight: 1.4 }}>
+                        Send a test question to verify that Father Christmas responds with your configured Gemini model (<code style={{ color: '#FBAF33' }}>{formData.gemini_model || 'auto'}</code>) and local route awareness before going live.
+                      </p>
+
+                      <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                        <input
+                          type="text"
+                          value={testVoiceQuestion}
+                          onChange={(e) => setTestVoiceQuestion(e.target.value)}
+                          placeholder="e.g. When are you visiting our street? / How is Rudolph?"
+                          style={{
+                            flex: '1 1 240px',
+                            background: '#161614',
+                            border: '1px solid var(--border)',
+                            borderRadius: '6px',
+                            padding: '8px 10px',
+                            color: '#fff',
+                            fontSize: '13px'
+                          }}
+                        />
+                        <button
+                          type="button"
+                          disabled={isTestingVoice}
+                          onClick={async () => {
+                            setIsTestingVoice(true);
+                            setTestVoiceResult(null);
+                            try {
+                              const chosenModel = formData.gemini_model && formData.gemini_model.trim() ? formData.gemini_model.trim() : 'auto';
+                              const res = await testSantaVoice(testVoiceQuestion || 'When are you visiting our town?', currentTableSlug, chosenModel);
+                              setTestVoiceResult(res);
+                              if (res && res.reply && typeof window !== 'undefined' && window.speechSynthesis) {
+                                window.speechSynthesis.cancel();
+                                const utt = new SpeechSynthesisUtterance(res.reply);
+                                utt.rate = 0.88;
+                                utt.pitch = 0.82;
+                                window.speechSynthesis.speak(utt);
+                              }
+                            } catch(e) {
+                              setTestVoiceResult({ ok: false, error: e.message });
+                            } finally {
+                              setIsTestingVoice(false);
+                            }
+                          }}
+                          style={{
+                            background: 'var(--primary)',
+                            color: '#000',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '8px 14px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            cursor: isTestingVoice ? 'not-allowed' : 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}
+                        >
+                          <Zap size={13} />
+                          <span>{isTestingVoice ? 'Querying Gemini...' : 'Test Santa Voice'}</span>
+                        </button>
+                      </div>
+
+                      {/* Quick preset chips for test queries */}
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                        {[
+                          'When are you visiting our town?',
+                          'How is Rudolph doing tonight?',
+                          'Can I have a quad bike for Christmas?'
+                        ].map(q => (
+                          <button
+                            key={q}
+                            type="button"
+                            onClick={() => setTestVoiceQuestion(q)}
+                            style={{
+                              background: testVoiceQuestion === q ? 'rgba(251, 175, 51, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                              border: testVoiceQuestion === q ? '1px solid var(--primary)' : '1px solid var(--border)',
+                              borderRadius: '4px',
+                              padding: '3px 8px',
+                              fontSize: '11px',
+                              color: testVoiceQuestion === q ? 'var(--primary)' : 'var(--text-muted)',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            &ldquo;{q}&rdquo;
+                          </button>
+                        ))}
+                      </div>
+
+                      {testVoiceResult && (
+                        <div style={{
+                          padding: '12px',
+                          borderRadius: '8px',
+                          background: testVoiceResult.ok ? 'rgba(34, 197, 94, 0.08)' : 'rgba(239, 68, 68, 0.1)',
+                          border: testVoiceResult.ok ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)'
+                        }}>
+                          {testVoiceResult.ok ? (
+                            <div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
+                                <span style={{ fontSize: '11px', color: '#22c55e', fontWeight: 700 }}>
+                                  ✅ Live Santa Spoken Response Received ({testVoiceResult.model || 'Gemini Flash'}):
+                                </span>
+                                {typeof window !== 'undefined' && window.speechSynthesis && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      window.speechSynthesis.cancel();
+                                      const utt = new SpeechSynthesisUtterance(testVoiceResult.reply);
+                                      utt.rate = 0.88;
+                                      utt.pitch = 0.82;
+                                      window.speechSynthesis.speak(utt);
+                                    }}
+                                    style={{
+                                      background: 'rgba(255, 255, 255, 0.08)',
+                                      border: '1px solid var(--border)',
+                                      color: '#fff',
+                                      fontSize: '10px',
+                                      borderRadius: '4px',
+                                      padding: '2px 6px',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    🔊 Replay Voice
+                                  </button>
+                                )}
+                              </div>
+                              <p style={{ margin: 0, fontSize: '13px', color: '#fff', fontStyle: 'italic', lineHeight: 1.5 }}>
+                                &ldquo;{testVoiceResult.reply}&rdquo;
+                              </p>
+                            </div>
+                          ) : (
+                            <div style={{ color: '#ef4444', fontSize: '12px' }}>
+                              ❌ Error testing Santa Voice: {testVoiceResult.error || 'Check network connection'}
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -4781,7 +4960,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   onClick={async () => {
                     const tableSlug = session?.tableId || session?.tableSlug || tableData?.table?.slug || 'beverley';
                     localStorage.setItem('custom_national_admin_emails', JSON.stringify(approvedEmails));
-                    localStorage.setItem('turbosanta_global_gemini_model', formData.gemini_model || 'auto');
+                    const chosenGeminiModel = formData.gemini_model && formData.gemini_model.trim() ? formData.gemini_model.trim() : 'auto';
+                    localStorage.setItem('turbosanta_global_gemini_model', chosenGeminiModel);
                     const payload = {
                       sleigh_display_name: formData.sleigh_display_name,
                       fundraising_goal: formData.fundraising_goal,
@@ -4802,7 +4982,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       headline_sponsor_logo: formData.headline_sponsor_logo || null,
                       headline_sponsor_url: formData.headline_sponsor_url || null,
                       headline_sponsor_tagline: formData.headline_sponsor_tagline || null,
-                      gemini_model: formData.gemini_model || 'auto',
+                      gemini_model: chosenGeminiModel,
                       gemini_api_key: formData.gemini_api_key || '',
                       santa_voice_provider: formData.santa_voice_provider || 'gemini',
                       elevenlabs_agent_id: formData.elevenlabs_agent_id || '',

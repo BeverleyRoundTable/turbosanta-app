@@ -2150,8 +2150,13 @@
         };
 
         function renderModularSlots(settings) {
-            const container = $('modular-feature-slots');
-            if (!container) return;
+            let container = $('modular-feature-slots');
+            if (!container) {
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', () => renderModularSlots(settings));
+                }
+                return;
+            }
             container.replaceChildren();
 
             // Clear previous dynamic modular nav links
@@ -2166,7 +2171,7 @@
             const activeSlots = [slot1, slot2].filter(Boolean);
             if (!activeSlots.length) return;
 
-            const slug = window.__sleighTableSlug || 'beverley';
+            const slug = (settings && (settings.slug || settings.id)) || window.__sleighTableSlug || 'beverley';
             const navLinks = document.querySelector('.nav-links');
             const navFaq = $('nav-faq');
             const navDonate = $('nav-donate');
@@ -2390,6 +2395,8 @@
                         }
                         const adapted = {
                             settings: {
+                                ...(data.table || {}),
+                                ...(data.settings || {}),
                                 sleigh_display_name: data.table?.sleigh_display_name || (data.table?.name ? `${data.table.name} Santa Sleigh` : 'Santa Sleigh'),
                                 table_name: data.table?.name || 'Round Table',
                                 primary_color: data.table?.primary_color || '#FBAF33',
@@ -2445,6 +2452,8 @@
                         const data = checkPayload(raw);
                         const adapted = {
                             settings: {
+                                ...(data.table || {}),
+                                ...(data.settings || {}),
                                 sleigh_display_name: data.table?.sleigh_display_name || (data.table?.name ? `${data.table.name} Santa Sleigh` : 'Santa Sleigh'),
                                 table_name: data.table?.name || 'Round Table',
                                 primary_color: data.table?.primary_color || '#FBAF33',

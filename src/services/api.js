@@ -385,6 +385,21 @@ export async function fetchLatestAiModels(tableSlug = "beverley") {
   }
 }
 
+export async function testSantaVoice(message = "When are you visiting our town?", tableSlug = "beverley", model = "auto") {
+  try {
+    const res = await fetch(`${API_BASE}/api/santa-voice?table=${encodeURIComponent(tableSlug)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, model })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error("testSantaVoice error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
 export async function saveRoute(tableSlug = "beverley", route = {}, streets = [], explicitSecret = null) {
   try {
     const res = await fetch(`${API_BASE}/api/routes?table=${encodeURIComponent(tableSlug)}`, {

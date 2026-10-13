@@ -268,6 +268,9 @@ export default {
       await env.DB.prepare("ALTER TABLE donations ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP").run().catch(() => {});
       await env.DB.prepare("ALTER TABLE tables ADD COLUMN public_slot_1 TEXT").run().catch(() => {});
       await env.DB.prepare("ALTER TABLE tables ADD COLUMN public_slot_2 TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN gemini_model TEXT DEFAULT 'auto'").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN santa_voice_provider TEXT DEFAULT 'gemini'").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN elevenlabs_agent_id TEXT").run().catch(() => {});
 
       await env.DB.prepare(`
         CREATE TABLE IF NOT EXISTS season_history (
