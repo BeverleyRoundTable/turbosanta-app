@@ -51,7 +51,11 @@ class ErrorBoundary extends React.Component {
             </button>
             <button
               onClick={() => {
-                localStorage.removeItem('turbosanta_admin_session');
+                try {
+                  localStorage.removeItem('turbosanta_admin_session');
+                  localStorage.removeItem('ts2_admin_session');
+                  sessionStorage.clear();
+                } catch(e) {}
                 window.location.href = '/?view=landing';
               }}
               style={{

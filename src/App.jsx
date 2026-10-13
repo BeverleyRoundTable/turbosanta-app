@@ -4,7 +4,7 @@ import PublicSleigh from './components/PublicSleigh';
 import AdminLoginModal from './components/AdminLoginModal';
 import AdminPortal from './components/AdminPortal';
 import { fetchTablePayload, getTableFallback } from './services/api';
-import { getCurrentSession } from './services/auth';
+import { getCurrentSession, logoutAdmin } from './services/auth';
 import { Shield } from 'lucide-react';
 
 export default function App() {
@@ -37,6 +37,7 @@ export default function App() {
   const initialAdminParam = urlParams.get('admin') === '1' || urlParams.get('admin') === 'true' || urlParams.get('god') === '1' || urlParams.get('god') === 'true';
   const isPublicExplicitlyRequested = urlParams.get('view') === 'public' || urlParams.get('public') === '1';
   const isLandingRequested = urlParams.get('view') === 'landing' || urlParams.get('landing') === '1';
+  const [landingRequested, setLandingRequested] = useState(isLandingRequested);
 
   const pathname = window.location.pathname.toLowerCase();
   if (pathname === '/gift-aid' || pathname === '/gift-aid/' || pathname === '/sleigh/gift_aid' || pathname === '/sleigh/gift_aid/') {
@@ -54,7 +55,7 @@ export default function App() {
   // Unless user specifically requested public or landing preview.
   const shouldDefaultToAdmin = Boolean(
     initialAdminParam || 
-    (initialSession && !isPublicExplicitlyRequested && !isLandingRequested)
+    (initialSession && !isPublicExplicitlyRequested && !landingRequested)
   );
 
   const [viewMode, setViewMode] = useState(shouldDefaultToAdmin ? 'admin' : 'public');
@@ -67,6 +68,26 @@ export default function App() {
   const [activeTableSlug, setActiveTableSlug] = useState(resolvedTableSlug);
   const [tableData, setTableData] = useState(null);
   const [loading, setLoading] = useState(Boolean(resolvedTableSlug && (shouldDefaultToAdmin || initialTableParam)));
+
+  const handleLogout = () => {
+    logoutAdmin();
+    setAdminSession(null);
+    if (!initialTableParam) {
+      setActiveTableSlug(null);
+      setLandingRequested(true);
+    }
+    setViewMode('public');
+    const url = new URL(window.location.href);
+    url.searchParams.delete('admin');
+    url.searchParams.delete('god');
+    url.searchParams.delete('view');
+    url.searchParams.delete('landing');
+    if (!initialTableParam) {
+      url.searchParams.delete('table');
+    }
+    const newSearch = url.searchParams.toString();
+    window.history.pushState(null, '', url.pathname + (newSearch ? `?${newSearch}` : ''));
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -99,8 +120,9 @@ export default function App() {
       });
   }, [activeTableSlug]);
 
-  // ROOT LANDING & PORTAL LOGIN VIEW (when no table is specified)
-  if (!activeTableSlug && viewMode !== 'admin') {
+  // ROOT LANDING & PORTAL LOGIN VIEW (when no table is specified, or landing view requested)
+  const isLandingView = (landingRequested || !activeTableSlug) && viewMode !== 'admin';
+  if (isLandingView) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <LandingPortal
@@ -110,8 +132,13 @@ export default function App() {
             setIsLoginModalOpen(true);
           }}
           onSelectTable={(slug) => {
+            setLandingRequested(false);
             setActiveTableSlug(slug);
-            window.history.pushState(null, '', `/?table=${encodeURIComponent(slug)}`);
+            const url = new URL(window.location.href);
+            url.searchParams.delete('view');
+            url.searchParams.delete('landing');
+            url.searchParams.set('table', slug);
+            window.history.pushState(null, '', url.pathname + url.search);
           }}
         />
 
@@ -125,6 +152,7 @@ export default function App() {
             const slug = session.tableSlug || 'beverley';
             setActiveTableSlug(slug);
             setViewMode('admin');
+            setLandingRequested(false);
             window.history.pushState(null, '', `/?table=${encodeURIComponent(slug)}&admin=1`);
           }}
         />
@@ -163,10 +191,7 @@ export default function App() {
     return (
       <AdminPortal
         session={adminSession}
-        onLogout={() => {
-          setAdminSession(null);
-          setViewMode('public');
-        }}
+        onLogout={handleLogout}
         tableData={tableData}
         onUpdateTableData={setTableData}
       />
@@ -194,23 +219,40 @@ export default function App() {
             <Shield size={14} />
             <span>Signed in as <strong>{adminSession.email}</strong></span>
           </span>
-          <button
-            onClick={() => setViewMode('admin')}
-            className="brand-font"
-            style={{
-              background: 'var(--primary, #FBAF33)',
-              color: '#000',
-              border: 'none',
-              borderRadius: '4px',
-              padding: '6px 12px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              fontSize: '11px',
-              letterSpacing: '1px'
-            }}
-          >
-            Open God Mode Dashboard
-          </button>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <button
+              onClick={() => setViewMode('admin')}
+              className="brand-font"
+              style={{
+                background: 'var(--primary, #FBAF33)',
+                color: '#000',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '6px 12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                fontSize: '11px',
+                letterSpacing: '1px'
+              }}
+            >
+              Open God Mode Dashboard
+            </button>
+            <button
+              onClick={handleLogout}
+              style={{
+                background: 'rgba(239, 68, 68, 0.15)',
+                color: '#fca5a5',
+                border: '1px solid #7f1d1d',
+                borderRadius: '4px',
+                padding: '6px 12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontSize: '11px'
+              }}
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
       )}
 
@@ -234,7 +276,11 @@ export default function App() {
         onClose={() => setIsLoginModalOpen(false)}
         onLoginSuccess={(session) => {
           setAdminSession(session);
+          const slug = session.tableSlug || activeTableSlug || 'beverley';
+          setActiveTableSlug(slug);
           setViewMode('admin');
+          setLandingRequested(false);
+          window.history.pushState(null, '', `/?table=${encodeURIComponent(slug)}&admin=1`);
         }}
       />
     </div>

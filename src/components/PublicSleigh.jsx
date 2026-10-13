@@ -252,13 +252,6 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
   const bgImage = table.background_url || DEFAULT_BG;
 
   // Ambient Video Settings (Default festive Santa video or custom upload)
-  const storedBgMode = typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${activeTableSlug}_bg_mode`) : null;
-  const bgMode = table.background_mode || storedBgMode || 'image';
-  const customVideoUrl = table.background_video_url || storedVideoUrl || '';
-  const isVideoEnabled = (bgMode === 'video' || bgMode === 'custom_video') && !prefersReducedMotion;
-  const videoMp4 = (bgMode === 'custom_video' && customVideoUrl) ? customVideoUrl : DEFAULT_VIDEO_MP4;
-  const videoWebm = (bgMode === 'custom_video' && table.background_video_webm) ? table.background_video_webm : (bgMode === 'custom_video' ? '' : DEFAULT_VIDEO_WEBM);
-
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return;
@@ -268,6 +261,14 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
     mq.addEventListener?.('change', handler);
     return () => mq.removeEventListener?.('change', handler);
   }, []);
+
+  const storedBgMode = typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${activeTableSlug}_bg_mode`) : null;
+  const storedVideoUrl = typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${activeTableSlug}_bg_video_url`) : null;
+  const bgMode = table.background_mode || storedBgMode || 'image';
+  const customVideoUrl = table.background_video_url || storedVideoUrl || '';
+  const isVideoEnabled = (bgMode === 'video' || bgMode === 'custom_video') && !prefersReducedMotion;
+  const videoMp4 = (bgMode === 'custom_video' && customVideoUrl) ? customVideoUrl : DEFAULT_VIDEO_MP4;
+  const videoWebm = (bgMode === 'custom_video' && table.background_video_webm) ? table.background_video_webm : (bgMode === 'custom_video' ? '' : DEFAULT_VIDEO_WEBM);
 
   // Listen to zero-scroll dynamic iframe height updates
   useEffect(() => {

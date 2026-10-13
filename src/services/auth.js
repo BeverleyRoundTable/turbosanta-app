@@ -301,34 +301,6 @@ export function getCurrentSession() {
     }
   } catch (e) {}
 
-  // Auto-provision Beverley admin session for organizer portal access
-  if (typeof window !== 'undefined') {
-    const params = new URLSearchParams(window.location.search);
-    const tableSlug = (params.get('table') || 'beverley').toLowerCase().trim();
-    const isAdminMode = params.get('admin') === '1' || params.get('admin') === 'true' || params.get('god') === '1';
-
-    if (tableSlug === 'beverley' || isAdminMode) {
-      const email = tableSlug === 'beverley' ? 'beverley247@roundtable.org.uk' : `${tableSlug}@roundtable.org.uk`;
-      const cleanTown = tableSlug.charAt(0).toUpperCase() + tableSlug.slice(1);
-      const defaultSession = {
-        email,
-        tableId: tableSlug,
-        tableSlug,
-        town: cleanTown,
-        tableNumber: tableSlug === 'beverley' ? '247' : '',
-        tableName: `${cleanTown} Round Table${tableSlug === 'beverley' ? ' #247' : ''}`,
-        role: "table_admin",
-        isNationalAdmin: tableSlug === 'beverley',
-        authenticatedAt: new Date().toISOString(),
-        token: `ts2_${btoa(`${email}_${Date.now()}`)}`
-      };
-      try {
-        localStorage.setItem(SESSION_KEY, JSON.stringify(defaultSession));
-      } catch(e) {}
-      return defaultSession;
-    }
-  }
-
   return null;
 }
 
@@ -336,7 +308,12 @@ export function getCurrentSession() {
  * Clears the active admin session
  */
 export function logout() {
-  localStorage.removeItem(SESSION_KEY);
+  try {
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem("ts2_admin_session");
+    sessionStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem("ts2_admin_session");
+  } catch (e) {}
 }
 
 export const logoutAdmin = logout;
