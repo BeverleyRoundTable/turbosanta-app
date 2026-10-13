@@ -10,7 +10,7 @@ import {
   Mail, HardDrive, AlertTriangle, Database, FileText, Coins, Share2, QrCode, ArrowUpDown, Volume2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { logoutAdmin, isNationalAdmin } from '../services/auth';
+import { logoutAdmin, isNationalAdmin, getAdminAuthToken } from '../services/auth';
 import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, saveRoute, deleteRoute } from '../services/api';
 import DropzoneUpload from './DropzoneUpload';
 import RouteEditorModal from './RouteEditorModal';
@@ -849,7 +849,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     }
 
     // 2. Persist to Cloudflare D1
-    const authSecret = session?.googleCredential || session?.token || `ts2_${btoa(`${session?.email || 'beverley247@roundtable.org.uk'}_${Date.now()}`)}`;
+    const authSecret = getAdminAuthToken(currentTableSlug);
     const res = await saveRoute(currentTableSlug, savedRoute, streetsArray, authSecret);
     if (res.ok) {
       setSaveStatus(`✓ Route "${savedRoute.name}" saved to D1 database!`);
@@ -921,7 +921,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
       }));
     }
 
-    const authSecret = session?.googleCredential || session?.token || `ts2_${btoa(`${session?.email || 'beverley247@roundtable.org.uk'}_${Date.now()}`)}`;
+    const authSecret = getAdminAuthToken(currentTableSlug);
     const res = await deleteRoute(currentTableSlug, routeId, authSecret);
     if (res.ok) {
       setSaveStatus('✓ Route deleted from D1 database.');

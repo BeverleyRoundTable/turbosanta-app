@@ -215,7 +215,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
       streets: streetsArray,
       sponsors: validSponsors,
       sponsors_json: validSponsors.length > 0 ? JSON.stringify(validSponsors) : null,
-      sponsor_name: validSponsors[0]?.name || '',
+      sponsor_name: validSponsors.map(s => s.name).filter(Boolean).join(' • ') || (validSponsors[0]?.name || ''),
       sponsor_link: validSponsors[0]?.link || '',
       sponsor_description: validSponsors[0]?.description || '',
       sponsor_logo_url: validSponsors[0]?.logo_url || ''
