@@ -65,27 +65,12 @@ export default function PrintRouteSheetModal({
       return;
     }
 
-    let printIframe = document.getElementById('print-manifest-iframe');
-    if (!printIframe) {
-      printIframe = document.createElement('iframe');
-      printIframe.id = 'print-manifest-iframe';
-      printIframe.style.position = 'fixed';
-      printIframe.style.right = '0';
-      printIframe.style.bottom = '0';
-      printIframe.style.width = '0';
-      printIframe.style.height = '0';
-      printIframe.style.border = '0';
-      printIframe.style.visibility = 'hidden';
-      document.body.appendChild(printIframe);
-    }
-
-    const doc = printIframe.contentDocument || printIframe.contentWindow.document;
-    doc.open();
-    doc.write(`
+    const htmlContent = `
       <!DOCTYPE html>
       <html>
         <head>
           <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
           <title>${(tableName || 'Round Table').toUpperCase()} Santa Sleigh - Run Sheet - ${route.name}</title>
           <style>
             @page {
@@ -99,15 +84,50 @@ export default function PrintRouteSheetModal({
             }
             html, body {
               margin: 0;
-              padding: 0;
+              padding: 10px;
               background: #ffffff !important;
               color: #111827 !important;
               font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
               font-size: 11px;
               line-height: 1.35;
             }
+            @media print {
+              body { padding: 0 !important; }
+              .mobile-print-bar { display: none !important; }
+            }
+            .mobile-print-bar {
+              display: flex;
+              gap: 10px;
+              margin-bottom: 14px;
+              padding-bottom: 10px;
+              border-bottom: 1px solid #e5e7eb;
+            }
+            .btn-print {
+              background: #d31c1c;
+              color: #ffffff;
+              border: none;
+              padding: 10px 18px;
+              border-radius: 8px;
+              font-weight: 700;
+              font-size: 14px;
+              cursor: pointer;
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+            }
+            .btn-close {
+              background: #f3f4f6;
+              color: #111827;
+              border: 1px solid #d1d5db;
+              padding: 10px 14px;
+              border-radius: 8px;
+              font-size: 14px;
+              cursor: pointer;
+            }
             .route-sheet-print-card {
               width: 100%;
+              max-width: 820px;
+              margin: 0 auto;
               background: #ffffff;
               color: #111827;
               padding: 0;
@@ -131,6 +151,11 @@ export default function PrintRouteSheetModal({
               padding: 8px 12px;
               margin-bottom: 10px;
               font-size: 10.5px;
+            }
+            @media screen and (max-width: 600px) {
+              .sheet-contact-grid {
+                grid-template-columns: 1fr 1fr;
+              }
             }
             .sheet-table-wrap {
               width: 100%;
@@ -165,6 +190,11 @@ export default function PrintRouteSheetModal({
               padding-top: 8px;
               page-break-inside: avoid;
             }
+            @media screen and (max-width: 600px) {
+              .sheet-handover-grid {
+                grid-template-columns: 1fr;
+              }
+            }
             a {
               color: #1d4ed8;
               text-decoration: underline;
@@ -172,12 +202,67 @@ export default function PrintRouteSheetModal({
           </style>
         </head>
         <body>
+          <div class="mobile-print-bar">
+            <button class="btn-print" onclick="window.print()">🖨️ Tap to Print / Save PDF</button>
+            <button class="btn-close" onclick="window.close()">✕ Close</button>
+          </div>
           <div class="route-sheet-print-card">
             ${printArea.innerHTML}
           </div>
+          <script>
+            function triggerPrint() {
+              setTimeout(function() {
+                try { window.print(); } catch(e) {}
+              }, 350);
+            }
+            if (document.readyState === 'complete') {
+              triggerPrint();
+            } else {
+              window.addEventListener('load', triggerPrint);
+            }
+          </script>
         </body>
       </html>
-    `);
+    `;
+
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || ('ontouchstart' in window && window.innerWidth <= 820);
+
+    if (isMobile) {
+      // Mobile browsers (iOS Safari & Android Chrome) cannot print from invisible iframes.
+      // Opening a clean window/tab triggers the native mobile AirPrint / Print dialog directly.
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+        setTimeout(() => {
+          try {
+            printWindow.focus();
+            printWindow.print();
+          } catch(e) {}
+        }, 500);
+        return;
+      }
+    }
+
+    // Desktop: Use invisible iframe for seamless in-page printing
+    let printIframe = document.getElementById('print-manifest-iframe');
+    if (!printIframe) {
+      printIframe = document.createElement('iframe');
+      printIframe.id = 'print-manifest-iframe';
+      printIframe.style.position = 'fixed';
+      printIframe.style.right = '0';
+      printIframe.style.bottom = '0';
+      printIframe.style.width = '0';
+      printIframe.style.height = '0';
+      printIframe.style.border = '0';
+      printIframe.style.visibility = 'hidden';
+      document.body.appendChild(printIframe);
+    }
+
+    const doc = printIframe.contentDocument || printIframe.contentWindow.document;
+    doc.open();
+    doc.write(htmlContent);
     doc.close();
 
     setTimeout(() => {

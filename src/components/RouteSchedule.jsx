@@ -1,11 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Star, Clock, CheckCircle2, MapPin, Building2, ExternalLink } from 'lucide-react';
 import { extractRouteSponsors } from '../utils/sponsors';
 
 export default function RouteSchedule({ tableData }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [addressFrameHeight, setAddressFrameHeight] = useState(640);
   const routes = tableData?.routes || [];
   const streets = tableData?.streets || [];
+
+  // Listen for dynamic iframe resizing from address.html
+  useEffect(() => {
+    const handleMessage = (e) => {
+      const h = e.data && Number(e.data.addressLookupHeight);
+      if (Number.isFinite(h) && h >= 300 && h <= 5000) {
+        setAddressFrameHeight(Math.round(h));
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   // Find if there is a route today
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -49,11 +62,13 @@ export default function RouteSchedule({ tableData }) {
           title="Santa Address & Street Lookup"
           style={{
             width: '100%',
-            height: '640px',
+            height: `${addressFrameHeight}px`,
+            minHeight: '520px',
             border: 'none',
             borderRadius: '20px',
             backgroundColor: '#151513',
-            display: 'block'
+            display: 'block',
+            transition: 'height 0.25s ease'
           }}
           allow="geolocation"
           loading="lazy"
