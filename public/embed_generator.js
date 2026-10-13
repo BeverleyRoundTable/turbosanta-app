@@ -95,9 +95,9 @@ function updateDisplay() {
   const display = document.getElementById("apiDisplay");
   if (display) {
     if (currentApi) {
-      display.textContent = `Legacy API: ${currentApi}`;
+      display.textContent = `LEGACY API: ${currentApi.toUpperCase()}`;
     } else {
-      display.textContent = `Active Table: ${formatTownName(currentTable || "beverley")}`;
+      display.textContent = formatTownName(currentTable || "beverley").toUpperCase();
     }
   }
 
@@ -270,7 +270,7 @@ function filterLinks(query) {
   });
   const countEl = document.getElementById('linkCount');
   if (countEl) {
-    countEl.textContent = q ? `Showing ${visibleCount} of ${cards.length} links` : `${cards.length} links available`;
+    countEl.textContent = q ? `SHOWING ${visibleCount} OF ${cards.length} LINKS` : `${cards.length} LINKS AVAILABLE`;
   }
 }
 window.filterLinks = filterLinks;
