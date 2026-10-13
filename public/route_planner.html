@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0d0d0b">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com">
 <link rel="preload" href="https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.woff2" as="font" type="font/woff2" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
@@ -15,9 +15,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 
 <style>
-  /* ═══════════════════════════════════════ */
-  /* TURBOSANTA DESIGN SYSTEM */
-  /* ═══════════════════════════════════════ */
   @font-face {
     font-family: 'Eurostile';
     src: url('/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
@@ -58,14 +55,8 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  .app { 
-    display: flex; 
-    flex-direction: column; 
-    height: 100vh; 
-    width: 100vw;
-  }
+  .app { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
   
-  /* ── TOP BAR ── */
   .top-bar {
     padding: 16px 24px;
     background: var(--surface);
@@ -115,17 +106,10 @@
   .mode-btn:hover { color: #fff; background: var(--surface-3); }
   .mode-btn.active { background: var(--primary); color: var(--on-primary); }
 
-  /* ── LAYOUT ── */
-  .main { 
-    display: flex; 
-    flex: 1; 
-    height: calc(100vh - 65px);
-    width: 100%;
-    position: relative;
-  }
+  .main { display: flex; flex: 1; height: calc(100vh - 65px); width: 100%; position: relative; }
 
   .sidebar {
-    width: 400px;
+    width: 420px;
     background: var(--surface);
     flex-shrink: 0;
     border-right: 1px solid var(--border);
@@ -135,23 +119,9 @@
     z-index: 500;
   }
   
-  .map-area { 
-    flex: 1; 
-    position: relative; 
-    height: 100%;
-    width: 100%;
-  }
+  .map-area { flex: 1; position: relative; height: 100%; width: 100%; }
+  #map { position: absolute; inset: 0; background: #000; }
 
-  #map { 
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: #000; 
-  }
-
-  /* ── SIDEBAR SECTIONS ── */
   .sb-section { padding: 24px; border-bottom: 1px solid var(--border); }
   
   .sb-label {
@@ -167,7 +137,6 @@
     justify-content: space-between;
   }
 
-  /* ── DROPZONE ── */
   .dropzone {
     border: 2px dashed var(--border);
     border-radius: 12px;
@@ -178,10 +147,7 @@
     position: relative;
     background: var(--surface-2);
   }
-  .dropzone:hover, .dropzone.dragover {
-    border-color: var(--primary);
-    background: var(--primary-dim);
-  }
+  .dropzone:hover, .dropzone.dragover { border-color: var(--primary); background: var(--primary-dim); }
   .dropzone-icon { font-size: 32px; margin-bottom: 8px; display: block; }
   .dropzone-text { font-size: 13px; font-weight: 600; color: var(--text-dim); }
   .dropzone-text em { color: var(--primary); font-style: normal; }
@@ -198,7 +164,6 @@
   .file-badge-meta { font-family: 'Open Sans', sans-serif; font-size: 10px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
   .file-badge-clear { background: none; border: none; color: var(--red); cursor: pointer; font-size: 16px; padding: 4px; }
 
-  /* ── PLACE MODE UI ── */
   .place-info {
     background: rgba(var(--primary-rgb),0.05);
     border: 1px solid var(--border-primary);
@@ -210,77 +175,59 @@
   }
   .place-info strong { color: var(--primary); }
 
-  .profile-row { display: flex; gap: 8px; margin-top: 16px; }
+  .profile-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
   .profile-btn {
-    flex: 1; padding: 10px 8px; border-radius: 6px;
-    font-family: 'Open Sans', sans-serif; font-size: 13px; font-weight: 700;
+    padding: 10px 8px; border-radius: 6px;
+    font-family: 'Open Sans', sans-serif; font-size: 12px; font-weight: 700;
     cursor: pointer; border: 1px solid var(--border);
     background: var(--surface-2); color: var(--text-dim);
     transition: all 0.15s; text-align: center;
   }
   .profile-btn:hover { background: var(--surface-3); color: #fff; }
-  .profile-btn.active {
-    background: var(--primary-dim); color: var(--primary); border-color: var(--border-primary);
-  }
+  .profile-btn.active { background: var(--primary-dim); color: var(--primary); border-color: var(--border-primary); }
 
-  /* ── STATS GRID ── */
   .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .stat {
-    background: var(--surface-2); border: 1px solid var(--border);
-    border-radius: 8px; padding: 12px 16px;
-  }
-  .stat-value {
-    font-family: 'Eurostile', 'Open Sans', sans-serif; font-size: 32px; letter-spacing: 1px;
-    color: #fff; line-height: 1; margin-bottom: 4px;
-  }
-  .stat-label {
-    font-family: 'Open Sans', sans-serif; font-size: 10px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted);
-  }
+  .stat { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; }
+  .stat-value { font-family: 'Eurostile', 'Open Sans', sans-serif; font-size: 32px; letter-spacing: 1px; color: #fff; line-height: 1; margin-bottom: 4px; }
+  .stat-label { font-family: 'Open Sans', sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); }
   .stat-value.primary { color: var(--primary); }
 
-  /* ── SLIDERS & SELECTS ── */
-  .speed-row { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
-  .speed-row label { font-family: 'Open Sans', sans-serif; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+  .speed-row, .density-row { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+  .speed-row label, .density-row label { font-family: 'Open Sans', sans-serif; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
   .speed-row input[type=range] { flex: 1; accent-color: var(--primary); }
   .speed-val { font-family: 'Open Sans', sans-serif; font-size: 12px; font-weight: 700; color: var(--primary); min-width: 48px; text-align: right; }
+  .density-row select { flex: 1; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; color: #fff; font-family: 'Open Sans', sans-serif; font-size: 13px; font-weight: 600; outline: none; cursor: pointer; }
 
-  .density-row { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
-  .density-row label { font-family: 'Open Sans', sans-serif; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
-  .density-row select {
-    flex: 1; background: var(--surface-2); border: 1px solid var(--border);
-    border-radius: 6px; padding: 10px 12px; color: #fff; font-family: 'Open Sans', sans-serif;
-    font-size: 13px; font-weight: 600; outline: none; cursor: pointer;
-  }
-
-  /* ── LISTS (STREETS / WAYPOINTS) ── */
-  .street-list, .wp-list { max-height: 240px; overflow-y: auto; margin-top: 12px; padding-right: 12px; }
-  .street-item, .wp-item {
-    display: flex; align-items: center; gap: 12px; padding: 8px 0;
-    border-bottom: 1px solid var(--border); font-size: 13px;
-  }
-  .street-item:last-child, .wp-item:last-child { border-bottom: none; }
-  
-  .street-num, .wp-idx {
-    font-family: 'Open Sans', sans-serif; font-size: 11px; color: var(--primary);
-    font-weight: 700; min-width: 20px; text-align: right;
-  }
-  .street-name { font-weight: 600; color: #fff; flex: 1; }
+  .wp-list { max-height: 280px; overflow-y: auto; margin-top: 12px; padding-right: 6px; }
+  .wp-item { display: flex; flex-direction: column; gap: 6px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .wp-header { display: flex; align-items: center; gap: 12px; width: 100%; }
+  .wp-idx { font-family: 'Open Sans', sans-serif; font-size: 11px; color: var(--primary); font-weight: 700; min-width: 20px; text-align: right; }
   .wp-coords { color: var(--text-dim); font-family: 'Open Sans', monospace; font-size: 12px; flex: 1; }
-  .street-loading { text-align: center; padding: 20px; color: var(--text-dim); font-size: 13px; }
-
-  .wp-del {
-    background: none; border: none; color: var(--red); cursor: pointer;
-    font-size: 14px; padding: 4px; opacity: 0.6; transition: 0.2s;
-  }
+  .wp-del { background: none; border: none; color: var(--red); cursor: pointer; font-size: 14px; padding: 4px; opacity: 0.6; transition: 0.2s; }
   .wp-del:hover { opacity: 1; }
 
-  /* ── BUTTONS ── */
-  .btn {
-    padding: 12px 16px; border-radius: 12px; font-weight: 900; font-size: 14px;
-    font-family: 'Eurostile', 'Open Sans', sans-serif; letter-spacing: 1px; text-transform: uppercase; 
-    cursor: pointer; border: none; transition: transform 0.1s, filter 0.2s; width: 100%; text-align: center;
+  .wp-leg-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-left: 32px; background: rgba(255,255,255,0.02); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border);
   }
+  .wp-leg-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); }
+  .wp-leg-select {
+    background: var(--surface-2); color: #fff; border: 1px solid var(--border); border-radius: 4px;
+    padding: 3px 6px; font-size: 11px; font-family: inherit; outline: none; cursor: pointer;
+  }
+
+  .wp-stop-panel { margin-left: 32px; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px; border: 1px solid var(--border-primary); }
+  .wp-stop-toggle { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--primary); text-transform: uppercase; cursor: pointer; }
+  .wp-stop-input { margin-top: 6px; width: 100%; background: var(--surface); border: 1px solid var(--border); color: #fff; padding: 6px 8px; border-radius: 4px; font-family: inherit; font-size: 12px; box-sizing: border-box; }
+  .wp-stop-input:focus { outline: none; border-color: var(--primary); }
+
+  .street-list { max-height: 200px; overflow-y: auto; margin-top: 12px; padding-right: 12px; }
+  .street-item { display: flex; align-items: center; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .street-num { font-size: 11px; color: var(--primary); font-weight: 700; min-width: 20px; text-align: right; }
+  .street-name { font-weight: 600; color: #fff; flex: 1; }
+  .street-loading { text-align: center; padding: 14px; color: var(--text-dim); font-size: 12px; }
+
+  .btn { padding: 12px 16px; border-radius: 12px; font-weight: 900; font-size: 14px; font-family: 'Eurostile', 'Open Sans', sans-serif; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; border: none; transition: transform 0.1s, filter 0.2s; width: 100%; text-align: center; }
   .btn:active { transform: scale(0.97); }
   .btn-primary { background: var(--primary); color: var(--on-primary); }
   .btn-primary:hover { filter: brightness(0.92); }
@@ -291,101 +238,18 @@
   .btn-sm { padding: 10px 14px; font-size: 13px; width: auto; }
   .btn-row { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
 
-  /* ── PROGRESS BAR ── */
   .progress { height: 4px; background: var(--surface-2); border-radius: 2px; margin-top: 12px; overflow: hidden; }
   .progress-bar { height: 100%; background: var(--primary); transition: width 0.3s; }
 
-  /* ── MAP OVERLAYS ── */
-  .map-legend {
-    position: absolute; bottom: 20px; left: 20px; z-index: 1000;
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 12px; padding: 12px 16px; font-size: 12px; color: var(--text-dim);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-  }
-  .map-legend strong {
-    color: #fff; display: block; margin-bottom: 4px; font-size: 14px; font-weight: 700;
-  }
+  .map-legend { position: absolute; bottom: 20px; left: 20px; z-index: 1000; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; font-size: 12px; color: var(--text-dim); box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+  .map-legend strong { color: #fff; display: block; margin-bottom: 4px; font-size: 14px; font-weight: 700; }
 
-  .map-toast {
-    position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000;
-    background: var(--primary); color: var(--on-primary); padding: 8px 20px; border-radius: 100px;
-    font-family: 'Open Sans', sans-serif; font-size: 11px; font-weight: 700; 
-    text-transform: uppercase; letter-spacing: 1px; pointer-events: none; display: none;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-  }
-
-  .routing-spinner {
-    position: absolute; top: 20px; right: 20px; z-index: 1000;
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 100px; padding: 8px 16px; font-family: 'Open Sans', sans-serif;
-    font-size: 11px; color: var(--primary); font-weight: 700; display: none; align-items: center; gap: 10px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5); text-transform: uppercase; letter-spacing: 1px;
-  }
-  .mini-spin {
-    width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--primary);
-    border-radius: 50%; animation: spin 0.6s linear infinite; flex-shrink: 0;
-  }
+  .map-toast { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; background: var(--primary); color: var(--on-primary); padding: 8px 20px; border-radius: 100px; font-family: 'Open Sans', sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; pointer-events: none; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+  .routing-spinner { position: absolute; top: 20px; right: 20px; z-index: 1000; background: var(--surface); border: 1px solid var(--border); border-radius: 100px; padding: 8px 16px; font-size: 11px; color: var(--primary); font-weight: 700; display: none; align-items: center; gap: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); text-transform: uppercase; letter-spacing: 1px; }
+  .mini-spin { width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.6s linear infinite; flex-shrink: 0; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .wp-count { font-family: 'Open Sans', sans-serif; font-size: 11px; color: var(--primary); font-weight: 700; }
-  .leaflet-top, .leaflet-bottom { z-index: 500 !important; }
-
-  /* ── WAYPOINT STOPS UI ── */
-  .wp-item { flex-direction: column; align-items: stretch; }
-  .wp-header { display: flex; align-items: center; gap: 12px; width: 100%; }
-  .wp-stop-panel { 
-    margin-top: 8px; margin-left: 32px; padding: 8px; 
-    background: rgba(0,0,0,0.2); border-radius: 6px; 
-    border: 1px solid var(--border-primary); 
-  }
-  .wp-stop-toggle { 
-    display: flex; align-items: center; gap: 6px; 
-    font-size: 11px; font-weight: 700; color: var(--primary); 
-    text-transform: uppercase; cursor: pointer; 
-  }
-  .wp-stop-input { 
-    margin-top: 6px; width: 100%; background: var(--surface); 
-    border: 1px solid var(--border); color: #fff; 
-    padding: 6px 8px; border-radius: 4px; 
-    font-family: inherit; font-size: 12px; 
-  }
-  .wp-stop-input:focus { outline: none; border-color: var(--primary); }
-
-  .mobile-map-toggle {
-    display: none;
-    position: absolute;
-    bottom: 24px;
-    right: 16px;
-    z-index: 1000;
-    background: #161614;
-    color: var(--primary);
-    border: 2px solid var(--primary);
-    border-radius: 30px;
-    padding: 10px 16px;
-    font-weight: 800;
-    font-size: 12px;
-    text-transform: uppercase;
-    cursor: pointer;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.7);
-  }
-
-  @media (max-width: 768px) {
-    .app { height: 100vh; overflow: hidden; }
-    .top-bar { padding: 10px 14px; gap: 8px; flex-wrap: wrap; }
-    .top-bar h1 { font-size: 18px; }
-    .top-bar-right { gap: 8px; }
-    .mode-btn { padding: 8px 10px; font-size: 11px; }
-    .main { flex-direction: column; height: calc(100vh - 58px); }
-    .map-area { flex: 1 1 52%; height: 52vh; min-height: 240px; width: 100%; position: relative; }
-    .sidebar { width: 100%; flex: 1 1 48%; height: 48vh; max-height: 48vh; border-right: none; border-top: 1px solid var(--border); overflow-y: auto; }
-    .sb-section { padding: 16px 14px; }
-    .profile-row { margin-top: 10px; }
-    .profile-btn { padding: 8px 6px; font-size: 12px; }
-    .stats-grid { gap: 6px; }
-    .stat { padding: 10px 12px; }
-    .stat-value { font-size: 22px; }
-    .mobile-map-toggle { display: inline-flex; align-items: center; gap: 6px; }
-  }
+  .wp-count { font-size: 11px; color: var(--primary); font-weight: 700; }
 </style>
 </head>
 <body>
@@ -417,14 +281,13 @@
       <div class="sb-section" id="placeSection" style="display:none">
         <div class="sb-label">Build Route <span class="wp-count" id="wpCount">0 pts</span></div>
         <div class="place-info">
-          <strong>Click the map</strong> to place waypoints. The route auto-snaps to real roads between each point.<br>
-          <strong>Drag</strong> markers to adjust. <strong>Right-click</strong> to delete.
+          <strong>Next Click Mode:</strong> Select what profile new clicks use. Switch to <strong>🛷 Direct</strong> before clicking pedestrian zones to avoid detours and snickets.
         </div>
         <div class="profile-row">
-          <button class="profile-btn active" data-profile="foot" onclick="setProfile(this)">🚶 Walking</button>
-          <button class="profile-btn" data-profile="driving" onclick="setProfile(this)">🚗 Driving</button>
-          <button class="profile-btn" data-profile="bike" onclick="setProfile(this)">🚴 Cycling</button>
-          <button class="profile-btn" data-profile="direct" onclick="setProfile(this)">🛷 Direct / Sleigh</button>
+          <button class="profile-btn active" data-profile="driving" onclick="setActiveToolProfile(this)">🚗 Driving</button>
+          <button class="profile-btn" data-profile="direct" onclick="setActiveToolProfile(this)">🛷 Direct (Precinct)</button>
+          <button class="profile-btn" data-profile="foot" onclick="setActiveToolProfile(this)">🚶 Walking</button>
+          <button class="profile-btn" data-profile="bike" onclick="setActiveToolProfile(this)">🚴 Cycling</button>
         </div>
         <div class="wp-list" id="wpList"></div>
         <div class="btn-row" style="justify-content: center;">
@@ -469,7 +332,7 @@
         <div class="btn-row" id="streetActions" style="display:none">
           <button class="btn btn-primary btn-sm" id="btnCopyStreets" style="flex:1;" onclick="copyStreets()">📋 Copy Street Names</button>
           <button class="btn btn-dim btn-sm" id="btnCopyCSV" onclick="copyCSV()">📄 CSV</button>
-          <button class="btn btn-dim btn-sm" onclick="detectStreets()">🔄 Re-scan</button>
+          <button class="btn btn-dim btn-sm" onclick="detectStreets()">🔄 Reverse-Geocode All</button>
         </div>
       </div>
 
@@ -483,29 +346,13 @@
         <strong>Route Preview</strong>
         <span id="legendText">—</span>
       </div>
-      <button id="mobileMapExpandBtn" class="mobile-map-toggle" onclick="toggleMobileMap()">🔍 Full Map</button>
     </div>
   </div>
 </div>
 
 <script>
-let isMobileFullMap = false;
-function toggleMobileMap() {
-  const sb = document.querySelector('.sidebar');
-  const btn = document.getElementById('mobileMapExpandBtn');
-  isMobileFullMap = !isMobileFullMap;
-  if (isMobileFullMap) {
-    if (sb) sb.style.display = 'none';
-    if (btn) btn.innerHTML = '⚙️ Controls';
-  } else {
-    if (sb) sb.style.display = 'flex';
-    if (btn) btn.innerHTML = '🔍 Full Map';
-  }
-  setTimeout(() => { if (map) map.invalidateSize(); }, 50);
-}
-
 let mode = 'upload';
-let routingProfile = 'foot';
+let activeClickProfile = 'driving';
 let waypoints = [];
 let snappedGeometry = [];
 let uploadedPoints = [];
@@ -525,13 +372,11 @@ const routingServers = {
   bike: 'https://routing.openstreetmap.de/routed-bike/route/v1/driving'
 };
 
-// MAP INITIALIZATION
 const map = L.map('map', { zoomControl: true, preferCanvas: true }).setView([52.4708, -1.9207], 15);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap', maxZoom: 19
 }).addTo(map);
 
-// Trigger size recount after map loads to eliminate zero-height layout rendering bugs
 setTimeout(() => { map.invalidateSize(); }, 200);
 
 function setMode(m) {
@@ -544,18 +389,22 @@ function setMode(m) {
   map.getContainer().style.cursor = m === 'place' ? 'crosshair' : '';
 }
 
-function setProfile(btn) {
+function setActiveToolProfile(btn) {
   document.querySelectorAll('.profile-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  routingProfile = btn.dataset.profile;
-  if (waypoints.length >= 2) routeAllWaypoints();
+  activeClickProfile = btn.dataset.profile;
 }
 
 map.on('click', async e => {
   if (mode !== 'place') return;
   const { lat, lng } = e.latlng;
   addWaypointMarker(lat, lng);
-  waypoints.push({ lat, lng, isStop: false, stopName: '' }); 
+  waypoints.push({
+    lat, lng,
+    isStop: false,
+    stopName: '',
+    nextMode: activeClickProfile
+  });
   updateWpUI();
   if (waypoints.length >= 2) await routeAllWaypoints();
   updateStats();
@@ -564,25 +413,47 @@ map.on('click', async e => {
 function updateWpUI() {
   document.getElementById('wpCount').textContent = waypoints.length + ' pts';
   const list = document.getElementById('wpList');
-  list.innerHTML = waypoints.map((w, i) => `
-    <div class="wp-item">
-      <div class="wp-header">
-        <span class="wp-idx">${i + 1}</span>
-        <span class="wp-coords">${w.lat.toFixed(5)}, ${w.lng.toFixed(5)}</span>
-        <button class="wp-del" onclick="deleteWpIndex(${i})" title="Remove">✕</button>
+  list.innerHTML = waypoints.map((w, i) => {
+    const isLast = i === waypoints.length - 1;
+    return `
+      <div class="wp-item">
+        <div class="wp-header">
+          <span class="wp-idx">${i + 1}</span>
+          <span class="wp-coords">${w.lat.toFixed(5)}, ${w.lng.toFixed(5)}</span>
+          <button class="wp-del" onclick="deleteWpIndex(${i})" title="Remove">✕</button>
+        </div>
+
+        ${!isLast ? `
+        <div class="wp-leg-row">
+          <span class="wp-leg-label">Leg ${i + 1} ➔${i + 2}:</span>
+          <select class="wp-leg-select" onchange="updateLegMode(${i}, this.value)">
+            <option value="driving" ${w.nextMode === 'driving' ? 'selected' : ''}>🚗 Driving (Road)</option>
+            <option value="direct" ${w.nextMode === 'direct' ? 'selected' : ''}>🛷 Direct (Precinct)</option>
+            <option value="foot" ${w.nextMode === 'foot' ? 'selected' : ''}>🚶 Walking</option>
+            <option value="bike" ${w.nextMode === 'bike' ? 'selected' : ''}>🚴 Cycling</option>
+          </select>
+        </div>
+        ` : ''}
+
+        <div class="wp-stop-panel">
+          <label class="wp-stop-toggle">
+            <input type="checkbox" onchange="toggleStop(${i}, this.checked)" ${w.isStop ? 'checked' : ''}>
+            Mark as Planned Stop
+          </label>
+          <input type="text" class="wp-stop-input" placeholder="e.g., The Dog & Duck Pub" 
+                 value="${w.stopName}" oninput="updateStopName(${i}, this.value)" 
+                 style="display: ${w.isStop ? 'block' : 'none'}">
+        </div>
       </div>
-      <div class="wp-stop-panel">
-        <label class="wp-stop-toggle">
-          <input type="checkbox" onchange="toggleStop(${i}, this.checked)" ${w.isStop ? 'checked' : ''}>
-          Mark as Planned Stop
-        </label>
-        <input type="text" class="wp-stop-input" placeholder="e.g., The Dog & Duck Pub" 
-               value="${w.stopName}" oninput="updateStopName(${i}, this.value)" 
-               style="display: ${w.isStop ? 'block' : 'none'}">
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
+
+window.updateLegMode = async function(index, modeVal) {
+  waypoints[index].nextMode = modeVal;
+  await routeAllWaypoints();
+  updateStats();
+};
 
 window.toggleStop = function(index, isChecked) {
   waypoints[index].isStop = isChecked;
@@ -694,20 +565,10 @@ window.deleteWpIndex = async function(i) {
     else clearSnappedRoute();
     updateStats();
   }
-}
+};
 
 async function routeAllWaypoints() {
   if (waypoints.length < 2) return;
-
-  // DIRECT / SLEIGH MODE: Bypass OSRM entirely
-  // Snaps directly between user clicks, preventing detours and snickets
-  if (routingProfile === 'direct') {
-    snappedGeometry = waypoints.map(w => [w.lat, w.lng]);
-    roadNameMap = new Array(snappedGeometry.length).fill('');
-    drawSnappedRoute();
-    return;
-  }
-
   if (routingInProgress) return;
   routingInProgress = true;
 
@@ -715,69 +576,66 @@ async function routeAllWaypoints() {
   spinner.style.display = 'flex';
 
   try {
-    const coords = waypoints.map(w => `${w.lng},${w.lat}`).join(';');
-    const baseUrl = routingServers[routingProfile];
-    const url = `${baseUrl}/${coords}?overview=full&geometries=geojson&steps=true`;
+    let combinedGeometry = [];
+    let discoveredStreets = [];
+    const seenStreets = new Set();
 
-    const res = await fetch(url);
-    const data = await res.json();
+    for (let i = 0; i < waypoints.length - 1; i++) {
+      const from = waypoints[i];
+      const to = waypoints[i + 1];
+      const legMode = from.nextMode || 'driving';
 
-    if (data.code !== 'Ok' || !data.routes || !data.routes[0]) {
-      snappedGeometry = waypoints.map(w => [w.lat, w.lng]);
-      drawSnappedRoute();
-      return;
-    }
+      if (legMode === 'direct') {
+        if (combinedGeometry.length === 0) combinedGeometry.push([from.lat, from.lng]);
+        combinedGeometry.push([to.lat, to.lng]);
+      } else {
+        const baseUrl = routingServers[legMode] || routingServers.driving;
+        const url = `${baseUrl}/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson&steps=true`;
 
-    // DETOUR SAFETY CHECK:
-    // If driving mode took an absurd detour (e.g. >2.5x straight-line distance)
-    // because of a pedestrian zone, fall back to direct lines between clicks
-    const straightKm = calcDist(waypoints.map(w => [w.lat, w.lng]));
-    const routedKm = data.routes[0].distance / 1000;
-    
-    if (routingProfile === 'driving' && routedKm > straightKm * 2.5) {
-      console.warn("Detected pedestrian-zone detour. Falling back to direct road placement.");
-      snappedGeometry = waypoints.map(w => [w.lat, w.lng]);
-      drawSnappedRoute();
-      return;
-    }
+        try {
+          const res = await fetch(url);
+          const data = await res.json();
 
-    const geojsonCoords = data.routes[0].geometry.coordinates;
-    snappedGeometry = geojsonCoords.map(c => [c[1], c[0]]);
+          if (data.code === 'Ok' && data.routes && data.routes[0]) {
+            const segCoords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
 
-    roadNameMap = new Array(snappedGeometry.length).fill('');
-    try {
-      let geomIdx = 0;
-      for (const leg of (data.routes[0].legs || [])) {
-        for (const step of (leg.steps || [])) {
-          const stepName = (step.name || '').trim();
-          const stepGeomLen = step.geometry?.coordinates?.length || 0;
-          for (let g = 0; g < stepGeomLen && geomIdx < roadNameMap.length; g++, geomIdx++) {
-            roadNameMap[geomIdx] = stepName;
+            (data.routes[0].legs || []).forEach(leg => {
+              (leg.steps || []).forEach(step => {
+                const name = (step.name || '').trim();
+                if (name && !seenStreets.has(name.toLowerCase())) {
+                  seenStreets.add(name.toLowerCase());
+                  discoveredStreets.push(name);
+                }
+              });
+            });
+
+            if (combinedGeometry.length === 0) {
+              combinedGeometry.push(...segCoords);
+            } else {
+              combinedGeometry.push(...segCoords.slice(1));
+            }
+          } else {
+            if (combinedGeometry.length === 0) combinedGeometry.push([from.lat, from.lng]);
+            combinedGeometry.push([to.lat, to.lng]);
           }
+        } catch(e) {
+          if (combinedGeometry.length === 0) combinedGeometry.push([from.lat, from.lng]);
+          combinedGeometry.push([to.lat, to.lng]);
         }
       }
-    } catch(e) { console.warn(e); }
+    }
 
-    const osrmStreets = [];
-    const seenOsrm = new Set();
-    (data.routes[0].legs || []).forEach(leg => {
-      (leg.steps || []).forEach(step => {
-        const name = (step.name || '').trim();
-        if (name && name !== '' && !seenOsrm.has(name.toLowerCase())) {
-          seenOsrm.add(name.toLowerCase());
-          osrmStreets.push(name);
-        }
-      });
-    });
+    snappedGeometry = combinedGeometry;
+    roadNameMap = new Array(snappedGeometry.length).fill('');
 
-    if (osrmStreets.length > 0) {
-      detectedStreets = osrmStreets;
+    if (discoveredStreets.length > 0) {
+      detectedStreets = discoveredStreets;
       const streetList = document.getElementById('streetList');
-      streetList.innerHTML = osrmStreets.map((s, i) =>
-        `<div class="street-item"><span class="street-num">${i + 1}</span><span class="street-name">${s}</span></div>`
+      streetList.innerHTML = discoveredStreets.map((s, idx) =>
+        `<div class="street-item"><span class="street-num">${idx + 1}</span><span class="street-name">${s}</span></div>`
       ).join('');
-      document.getElementById('streetCountLabel').textContent = osrmStreets.length;
-      document.getElementById('streetStatus').textContent = `Done — ${osrmStreets.length} street${osrmStreets.length !== 1 ? 's' : ''} detected (via routing)`;
+      document.getElementById('streetCountLabel').textContent = discoveredStreets.length;
+      document.getElementById('streetStatus').textContent = `Done — ${discoveredStreets.length} street${discoveredStreets.length !== 1 ? 's' : ''} detected`;
       document.getElementById('streetStatus').style.display = 'block';
       document.getElementById('progressWrap').style.display = 'none';
       document.getElementById('streetActions').style.display = 'flex';
@@ -803,7 +661,6 @@ function drawSnappedRoute() {
   }).addTo(map);
 
   updateStats();
-  if (detectedStreets.length === 0) detectStreets();
 }
 
 function clearSnappedRoute() {
@@ -941,26 +798,6 @@ function densifyPoints(points, intervalM) {
   return dense;
 }
 
-function densifyWithNames(points, intervalM, names) {
-  if (points.length < 2) return { points: [...points], names: names.length ? [names[0]] : [''] };
-  const denseP = [points[0]];
-  const denseN = [names[0] || ''];
-  for (let i = 1; i < points.length; i++) {
-    const [lat1, lon1] = points[i-1];
-    const [lat2, lon2] = points[i];
-    const roadName = names[i] || names[i-1] || '';
-    const seg = haversine(lat1, lon1, lat2, lon2) * 1000;
-    if (seg <= intervalM) { denseP.push(points[i]); denseN.push(roadName); continue; }
-    const n = Math.ceil(seg / intervalM);
-    for (let s = 1; s <= n; s++) {
-      const t = s / n;
-      denseP.push([lat1+(lat2-lat1)*t, lon1+(lon2-lon1)*t]);
-      denseN.push(roadName);
-    }
-  }
-  return { points: denseP, names: denseN };
-}
-
 function escXml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function exportDenseGPX() {
@@ -968,17 +805,7 @@ function exportDenseGPX() {
   if (pts.length < 2) { alert('Build or upload a route first.'); return; }
 
   const density = parseInt(document.getElementById('densitySelect').value);
-  const hasNames = roadNameMap.length === pts.length && roadNameMap.some(n => n);
-  let dense, denseNames;
-
-  if (hasNames) {
-    const result = densifyWithNames(pts, density, roadNameMap);
-    dense = result.points;
-    denseNames = result.names;
-  } else {
-    dense = densifyPoints(pts, density);
-    denseNames = null;
-  }
+  const dense = densifyPoints(pts, density);
 
   let wptTags = '';
   waypoints.forEach((w, i) => {
@@ -988,10 +815,7 @@ function exportDenseGPX() {
     }
   });
 
-  const trkpts = dense.map((p, i) => {
-    const nameTag = denseNames && denseNames[i] ? `\n        <name>${escXml(denseNames[i])}</name>` : '';
-    return `      <trkpt lat="${p[0].toFixed(7)}" lon="${p[1].toFixed(7)}">${nameTag}\n      </trkpt>`;
-  }).join('\n');
+  const trkpts = dense.map(p => `      <trkpt lat="${p[0].toFixed(7)}" lon="${p[1].toFixed(7)}">\n      </trkpt>`).join('\n');
 
   const gpx = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="TurboSanta Route Planner">
@@ -1120,6 +944,7 @@ function copyStreets() {
     }
   });
 }
+
 function copyCSV() {
   if (!detectedStreets.length) return;
   navigator.clipboard.writeText(`#,Street\n${detectedStreets.map((s,i)=>`${i+1},"${s}"`).join('\n')}`).then(() => {
@@ -1135,102 +960,6 @@ function copyCSV() {
     }
   });
 }
-
-// ═══════════════════════════════════════
-// EXISTING ROUTES (API INTEGRATION)
-// ═══════════════════════════════════════
-const params = new URLSearchParams(location.search);
-const tableParam = params.get("table") || window.__sleighTableSlug || localStorage.getItem("turbosanta_last_table") || "beverley";
-if (tableParam) {
-  localStorage.setItem("turbosanta_last_table", tableParam);
-}
-
-const legacyApi = params.get("api");
-const WORKER_URL = "https://santaproxy.beverley247.workers.dev/";
-
-let DATA_URL = null;
-if (legacyApi) {
-  localStorage.setItem("SANTA_API", legacyApi);
-  DATA_URL = `${WORKER_URL}?ttl=30&target=${encodeURIComponent(legacyApi)}`;
-} else {
-  DATA_URL = `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableParam)}`;
-}
-
-function normaliseUrl(url) {
-  const u = String(url || '').trim();
-  if (!u) return '';
-  if (/^https?:\/\//i.test(u)) return u;
-  if (u.startsWith('//')) return 'https:' + u;
-  return 'https://' + u.replace(/^\/+/, '');
-}
-
-const COLOUR_TIERS = [
-  { s: 90, l: 55 }, { s: 85, l: 38 }, { s: 80, l: 70 }, { s: 95, l: 46 }
-];
-function routeColour(index) {
-  const hue = Math.round((index * 137.508) % 360);
-  const tier = COLOUR_TIERS[Math.floor(index / 8) % COLOUR_TIERS.length];
-  return `hsl(${hue}, ${tier.s}%, ${tier.l}%)`;
-}
-
-async function loadExistingRoutes() {
-  if (!DATA_URL) return;
-  try {
-    const res = await fetch(DATA_URL, { cache: "no-store" });
-    if (!res.ok) return;
-    const data = await res.json();
-    const routes = (data.routes || []).filter(r => r.gpx_url || r.gpxUrl);
-
-    for (let i = 0; i < routes.length; i++) {
-      const route = routes[i];
-      const gpxUrl = route.gpx_url || route.gpxUrl;
-      const routeName = route.name || route.routeName || 'Existing route';
-      try {
-        const gpxRes = await fetch(normaliseUrl(gpxUrl), { cache: "no-store" });
-        if (!gpxRes.ok) continue;
-        const gpxText = await gpxRes.text();
-
-        const parser = new DOMParser();
-        const gpx = parser.parseFromString(gpxText, 'text/xml');
-        const pts = [];
-        
-        const nodes = gpx.querySelectorAll('trkpt').length ? gpx.querySelectorAll('trkpt') : (gpx.querySelectorAll('rtept').length ? gpx.querySelectorAll('rtept') : gpx.querySelectorAll('wpt'));
-        
-        nodes.forEach(pt => {
-          const lat = parseFloat(pt.getAttribute('lat'));
-          const lon = parseFloat(pt.getAttribute('lon'));
-          if (!isNaN(lat) && !isNaN(lon)) pts.push([lat, lon]);
-        });
-
-        if (pts.length > 1) {
-          const strokeColor = routeColour(i);
-          
-          const layer = L.polyline(pts, { 
-            color: strokeColor, 
-            weight: 4,
-            opacity: 0.65,
-            dashArray: '8 6' 
-          }).addTo(map);
-          
-          const tooltipContent = route.date ? `<strong>${routeName}</strong><br><small style="color:#fbaf33;">${route.date}</small>` : `<strong>${routeName}</strong>`;
-          layer.bindTooltip(tooltipContent, { sticky: true });
-          existingRouteLayers.push(layer);
-        }
-      } catch(e) {
-        console.error('Failed to load specific route GPX:', routeName, e);
-      }
-    }
-
-    if (existingRouteLayers.length > 0) {
-      const featureGroup = L.featureGroup(existingRouteLayers);
-      map.fitBounds(featureGroup.getBounds(), { padding: [40, 40] });
-    }
-  } catch(e) {
-    console.error('Failed to load routes from API:', e);
-  }
-}
-
-loadExistingRoutes();
 </script>
 </body>
 </html>
