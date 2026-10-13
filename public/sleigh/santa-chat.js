@@ -153,7 +153,7 @@
       .then(function (data) { return data.routes || []; });
   }
 
-  /* ---------- full-box shadow styling ---------- */
+  /* ---------- widget styling & injection ---------- */
 
   function ensureInlineStyle() {
     if (document.getElementById("santa-inline-style")) return;
@@ -162,57 +162,10 @@
     style.textContent =
       WIDGET_TAG + ".santa-inline {" +
       "position:absolute !important;inset:0 !important;display:block !important;" +
-      "width:100% !important;height:100% !important;max-width:100% !important;max-height:100% !important;" +
+      "width:100% !important;height:100% !important;" +
       "}";
     document.head.appendChild(style);
   }
-
-  function applyFullBoxStyles(widgetEl) {
-    try {
-      if (!widgetEl || !widgetEl.shadowRoot) return false;
-
-      // 1. Programmatically trigger the widget's built-in expansion box button if present
-      try {
-        var expandBtn = widgetEl.shadowRoot.querySelector(
-          'button[aria-label="Expand widget"], button[title="Expand widget"], button[aria-label*="Expand"], button[title*="Expand"]'
-        );
-        if (expandBtn) {
-          expandBtn.click();
-        }
-      } catch (btnErr) {}
-
-      var styleId = "santa-fullbox-sheet-override";
-      if (widgetEl.shadowRoot.getElementById(styleId)) return true;
-      var st = document.createElement("style");
-      st.id = styleId;
-      st.textContent =
-        ":host { width: 100% !important; height: 100% !important; display: block !important; max-width: 100% !important; max-height: 100% !important; position: absolute !important; inset: 0 !important; }\n" +
-        ".sheet, [data-variant=compact].sheet, [data-variant=expanded].sheet, [data-variant=fullscreen].sheet {\n" +
-        "  width: 100% !important; max-width: 100% !important; height: 100% !important; max-height: 100% !important;\n" +
-        "  inset: 0 !important; margin: 0 auto !important; border-radius: 16px !important;\n" +
-        "  box-sizing: border-box !important;\n" +
-        "}\n" +
-        ".sheet > div { width: 100% !important; height: 100% !important; }\n" +
-        ".overlay { position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; padding: 0 !important; }\n";
-      widgetEl.shadowRoot.appendChild(st);
-      return true;
-    } catch (err) {
-      return false;
-    }
-  }
-
-  function keepFullBoxActive(widgetEl) {
-    if (!widgetEl) return;
-    var attempts = 0;
-    var maxAttempts = 60; // run for ~6 seconds
-    var timer = setInterval(function () {
-      attempts++;
-      applyFullBoxStyles(widgetEl);
-      if (attempts >= maxAttempts) clearInterval(timer);
-    }, 100);
-  }
-
-  /* ---------- widget injection ---------- */
 
   function injectWidget(agentId) {
     if (injected) return;
@@ -225,14 +178,6 @@
     var el = document.createElement(WIDGET_TAG);
     el.setAttribute("agent-id", finalAgentId);
     el.setAttribute("dynamic-variables", JSON.stringify({ route_info: lastRouteInfo }));
-    
-    // Full Box / Expansion Box configuration:
-    // Expands to occupy the full part of its iframe
-    el.setAttribute("variant", "expanded");
-    el.setAttribute("default-expanded", "true");
-    el.setAttribute("always-expanded", "true");
-    el.setAttribute("placement", "bottom");
-    el.setAttribute("show-resize-button", "true");
 
     if (CONFIG.labels.action) el.setAttribute("action-text", CONFIG.labels.action);
     if (CONFIG.labels.start) el.setAttribute("start-call-text", CONFIG.labels.start);
@@ -242,8 +187,8 @@
     if (MOUNT) {
       ensureInlineStyle();
       el.className = "santa-inline";
+      el.setAttribute("placement", "bottom");
       MOUNT.appendChild(el);
-      keepFullBoxActive(el);
     } else {
       document.body.appendChild(el);
     }
@@ -255,7 +200,7 @@
     document.body.appendChild(script);
 
     injected = true;
-    console.info("[SantaChat] ElevenLabs ConvAI loaded (full-box expanded). Agent: " + finalAgentId);
+    console.info("[SantaChat] ElevenLabs ConvAI loaded (inline). Agent: " + finalAgentId);
   }
 
   function removeWidget() {
