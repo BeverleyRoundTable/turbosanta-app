@@ -2108,8 +2108,8 @@
                 embedSrc: slug => `/santa_chat.html?table=${encodeURIComponent(slug)}`,
                 fullscreenSrc: slug => `/santa_chat.html?table=${encodeURIComponent(slug)}`,
                 fullscreenLabel: 'Open Voice Hotline Full-Screen',
-                height: 640,
-                maxWidth: 540,
+                height: 680,
+                maxWidth: 760,
                 allowMicrophone: true
             },
             santa_frame: {
@@ -2200,16 +2200,21 @@
             // Clear previous dynamic modular nav links
             document.querySelectorAll('.nav-modular-slot').forEach(n => n.remove());
 
-            const raw1 = (settings && settings.public_slot_1) || (settings && settings.enable_santa_chat ? 'santa_chat' : null);
-            const raw2 = (settings && settings.public_slot_2) || (settings && settings.enable_colouring ? 'colouring' : null);
+            const slug = (settings && (settings.slug || settings.id)) || window.__sleighTableSlug || 'beverley';
+            const isBeverley = String(slug).toLowerCase() === 'beverley';
+
+            const raw1 = (settings && settings.public_slot_1 === 'santa_chat' && !isBeverley)
+                ? null
+                : ((settings && settings.public_slot_1) || (isBeverley && settings && settings.enable_santa_chat ? 'santa_chat' : null));
+            const raw2 = (settings && settings.public_slot_2 === 'santa_chat' && !isBeverley)
+                ? null
+                : ((settings && settings.public_slot_2) || (settings && settings.enable_colouring ? 'colouring' : null));
 
             const slot1 = (raw1 && PUBLIC_FEATURE_CATALOG[raw1]) ? PUBLIC_FEATURE_CATALOG[raw1] : null;
             const slot2 = (raw2 && raw2 !== raw1 && PUBLIC_FEATURE_CATALOG[raw2]) ? PUBLIC_FEATURE_CATALOG[raw2] : null;
 
             const activeSlots = [slot1, slot2].filter(Boolean);
             if (!activeSlots.length) return;
-
-            const slug = (settings && (settings.slug || settings.id)) || window.__sleighTableSlug || 'beverley';
             const primaryHex = (settings && settings.primary_color) || '#D31C1C';
             const accentHex = (settings && settings.accent_color) || '#FBAF33';
             const voiceProvider = (settings && settings.santa_voice_provider) || 'gemini';

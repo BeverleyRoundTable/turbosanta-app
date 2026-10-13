@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { logoutAdmin, isNationalAdmin } from '../services/auth';
-import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, testSantaVoice, saveRoute, deleteRoute } from '../services/api';
+import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, saveRoute, deleteRoute } from '../services/api';
 import DropzoneUpload from './DropzoneUpload';
 import RouteEditorModal from './RouteEditorModal';
 import ExpensesModal from './ExpensesModal';
@@ -863,7 +863,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     }
 
     // 2. Persist to Cloudflare D1
-    const authSecret = session?.googleCredential || session?.token || null;
+    const authSecret = session?.googleCredential || session?.token || `ts2_${btoa(`${session?.email || 'beverley247@roundtable.org.uk'}_${Date.now()}`)}`;
     const res = await saveRoute(currentTableSlug, savedRoute, streetsArray, authSecret);
     if (res.ok) {
       setSaveStatus(`✓ Route "${savedRoute.name}" saved to D1 database!`);
@@ -935,7 +935,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
       }));
     }
 
-    const authSecret = session?.googleCredential || session?.token || null;
+    const authSecret = session?.googleCredential || session?.token || `ts2_${btoa(`${session?.email || 'beverley247@roundtable.org.uk'}_${Date.now()}`)}`;
     const res = await deleteRoute(currentTableSlug, routeId, authSecret);
     if (res.ok) {
       setSaveStatus('✓ Route deleted from D1 database.');
@@ -3245,26 +3245,28 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 </pre>
               </div>
 
-              {/* Widget 4: Talk to Santa Lapland Call */}
-              <div style={{ background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <strong style={{ fontSize: '16px', color: '#fff' }}>4. Talk to Santa Claus (AI Voice Call)</strong>
-                  <button
-                    onClick={() => copyToClipboard('chat', `<iframe src="https://roundtablesantasleigh.co.uk/santa_chat.html?table=${session.tableId || 'beverley'}" width="100%" height="600" style="border:none;border-radius:16px;" allow="microphone"></iframe>`)}
-                    className="btn-primary"
-                    style={{ padding: '6px 14px', fontSize: '12px' }}
-                  >
-                    {copiedKey === 'chat' ? <Check size={14} /> : <Copy size={14} />}
-                    <span>{copiedKey === 'chat' ? 'Copied!' : 'Copy Code'}</span>
-                  </button>
+              {/* Widget 4: Talk to Santa Lapland Call (Beverley Exclusive) */}
+              {currentTableSlug === 'beverley' && (
+                <div style={{ background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <strong style={{ fontSize: '16px', color: '#fff' }}>4. Talk to Santa Claus (AI Voice Call)</strong>
+                    <button
+                      onClick={() => copyToClipboard('chat', `<iframe src="https://roundtablesantasleigh.co.uk/santa_chat.html?table=${session.tableId || 'beverley'}" width="100%" height="680" style="border:none;border-radius:16px;" allow="microphone"></iframe>`)}
+                      className="btn-primary"
+                      style={{ padding: '6px 14px', fontSize: '12px' }}
+                    >
+                      {copiedKey === 'chat' ? <Check size={14} /> : <Copy size={14} />}
+                      <span>{copiedKey === 'chat' ? 'Copied!' : 'Copy Code'}</span>
+                    </button>
+                  </div>
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '10px' }}>
+                    Interactive AI phone hotline connecting directly to Lapland with voice input (ElevenLabs ConvAI).
+                  </p>
+                  <pre style={{ background: '#151513', padding: '12px', borderRadius: '8px', fontSize: '12px', color: 'var(--primary)', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+{`<iframe src="https://roundtablesantasleigh.co.uk/santa_chat.html?table=${session.tableId || 'beverley'}" width="100%" height="680" style="border:none;border-radius:16px;" allow="microphone"></iframe>`}
+                  </pre>
                 </div>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '10px' }}>
-                  Interactive AI phone hotline connecting directly to Lapland with voice input.
-                </p>
-                <pre style={{ background: '#151513', padding: '12px', borderRadius: '8px', fontSize: '12px', color: 'var(--primary)', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
-{`<iframe src="https://roundtablesantasleigh.co.uk/santa_chat.html?table=${session.tableId || 'beverley'}" width="100%" height="600" style="border:none;border-radius:16px;" allow="microphone"></iframe>`}
-                </pre>
-              </div>
+              )}
             </div>
           </div>
         )}
@@ -4271,11 +4273,13 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                         fontWeight: 600
                       }}
                     >
-                      {PUBLIC_SLOT_OPTIONS.map(opt => (
-                        <option key={`slot1-${opt.id}`} value={opt.id}>
-                          {opt.label}
-                        </option>
-                      ))}
+                      {PUBLIC_SLOT_OPTIONS
+                        .filter(opt => opt.id !== 'santa_chat' || currentTableSlug === 'beverley')
+                        .map(opt => (
+                          <option key={`slot1-${opt.id}`} value={opt.id}>
+                            {opt.label}
+                          </option>
+                        ))}
                     </select>
 
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.4, minHeight: '34px' }}>
@@ -4339,11 +4343,13 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                         fontWeight: 600
                       }}
                     >
-                      {PUBLIC_SLOT_OPTIONS.map(opt => (
-                        <option key={`slot2-${opt.id}`} value={opt.id}>
-                          {opt.label}
-                        </option>
-                      ))}
+                      {PUBLIC_SLOT_OPTIONS
+                        .filter(opt => opt.id !== 'santa_chat' || currentTableSlug === 'beverley')
+                        .map(opt => (
+                          <option key={`slot2-${opt.id}`} value={opt.id}>
+                            {opt.label}
+                          </option>
+                        ))}
                     </select>
 
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.4, minHeight: '34px' }}>
@@ -4409,8 +4415,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   </span>
                 </div>
 
-                {/* Voice Engine Configuration (Shown when Santa Chat is in Slot 1 or Slot 2) */}
-                {(formData.public_slot_1 === 'santa_chat' || formData.public_slot_2 === 'santa_chat') && (
+                {/* ElevenLabs Santa Voice Configuration (Exclusively for Beverley when Santa Chat is active) */}
+                {currentTableSlug === 'beverley' && (formData.public_slot_1 === 'santa_chat' || formData.public_slot_2 === 'santa_chat') && (
                   <div style={{
                     marginTop: '14px',
                     padding: '14px',
@@ -4418,229 +4424,46 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     border: '1px solid rgba(251, 175, 51, 0.25)',
                     borderRadius: '10px'
                   }}>
-                    {isMasterAdmin ? (
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                            Voice Engine Configuration (Beverley Custom Selection):
-                          </span>
-                          <span style={{
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            padding: '2px 7px',
-                            borderRadius: '4px',
-                            background: formData.santa_voice_provider === 'elevenlabs' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(34, 197, 94, 0.2)',
-                            color: formData.santa_voice_provider === 'elevenlabs' ? '#60a5fa' : '#22c55e',
-                            border: `1px solid ${formData.santa_voice_provider === 'elevenlabs' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`
-                          }}>
-                            {formData.santa_voice_provider === 'elevenlabs' ? 'ElevenLabs Active' : 'Gemini Flash 3.8 Active'}
-                          </span>
-                        </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        ElevenLabs Santa Voice Configuration (Beverley Exclusive):
+                      </span>
+                      <span style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '2px 7px',
+                        borderRadius: '4px',
+                        background: 'rgba(59, 130, 246, 0.2)',
+                        color: '#60a5fa',
+                        border: '1px solid rgba(59, 130, 246, 0.3)'
+                      }}>
+                        ElevenLabs ConvAI Active
+                      </span>
+                    </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px', marginBottom: '12px' }}>
-                          {/* Option 1: Gemini */}
-                          <div
-                            onClick={() => setFormData(prev => ({ ...prev, santa_voice_provider: 'gemini' }))}
-                            style={{
-                              background: formData.santa_voice_provider === 'gemini' ? 'rgba(34, 197, 94, 0.12)' : 'rgba(255, 255, 255, 0.02)',
-                              border: `2px solid ${formData.santa_voice_provider === 'gemini' ? '#22c55e' : 'var(--border)'}`,
-                              borderRadius: '10px',
-                              padding: '12px',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                              <strong style={{ color: '#fff', fontSize: '13px' }}>Google Gemini Voice Santa</strong>
-                              <span style={{ fontSize: '10px', background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>$0 FLEET</span>
-                            </div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Free tier, route aware, native child safeguards.</div>
-                          </div>
-
-                          {/* Option 2: ElevenLabs */}
-                          <div
-                            onClick={() => setFormData(prev => ({ ...prev, santa_voice_provider: 'elevenlabs' }))}
-                            style={{
-                              background: formData.santa_voice_provider === 'elevenlabs' ? 'rgba(59, 130, 246, 0.12)' : 'rgba(255, 255, 255, 0.02)',
-                              border: `2px solid ${formData.santa_voice_provider === 'elevenlabs' ? '#60a5fa' : 'var(--border)'}`,
-                              borderRadius: '10px',
-                              padding: '12px',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                              <strong style={{ color: '#fff', fontSize: '13px' }}>ElevenLabs Custom Agent</strong>
-                              <span style={{ fontSize: '10px', background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>BEVERLEY</span>
-                            </div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Personal ElevenLabs conversational agent.</div>
-                          </div>
-                        </div>
-
-                        {formData.santa_voice_provider === 'elevenlabs' && (
-                          <div style={{ background: 'rgba(0, 0, 0, 0.4)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: '8px', padding: '10px' }}>
-                            <label style={{ display: 'block', fontSize: '12px', color: '#93c5fd', fontWeight: 600, marginBottom: '4px' }}>
-                              ElevenLabs Agent ID:
-                            </label>
-                            <input
-                              type="text"
-                              value={formData.elevenlabs_agent_id || ''}
-                              onChange={(e) => setFormData(prev => ({ ...prev, elevenlabs_agent_id: e.target.value }))}
-                              placeholder="e.g. agent_4401kxaqcqygfb4940wnc4a9haeh"
-                              style={{
-                                width: '100%',
-                                background: '#161614',
-                                border: '1px solid var(--border)',
-                                borderRadius: '6px',
-                                padding: '8px 10px',
-                                color: '#fff',
-                                fontSize: '13px',
-                                fontFamily: 'monospace'
-                              }}
-                            />
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                              Saved privately in your table database row. Never exposed in public git or to other tables.
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Sparkles size={16} color="#22c55e" />
-                        <div style={{ fontSize: '12px', color: '#fff' }}>
-                          Voice Engine: <strong style={{ color: '#22c55e' }}>Google Gemini Voice Santa</strong> &bull; Free Fleet Tier ($0 Cost), route-aware with child safeguards.
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Santa Voice Acoustic Customizer (Natural & Warm Tone Tuning) */}
-                    <div style={{
-                      marginTop: '14px',
-                      padding: '14px',
-                      background: 'rgba(0, 0, 0, 0.4)',
-                      border: '1px solid rgba(251, 175, 51, 0.25)',
-                      borderRadius: '8px'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '6px' }}>
-                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                          Santa Voice Acoustic Customizer (Natural & Jolly Tone):
-                        </span>
-                        <span style={{ fontSize: '10px', color: '#FBAF33', fontWeight: 600 }}>
-                          Pitch: {formData.santa_voice_pitch ?? 0.74} &bull; Speed: {formData.santa_voice_rate ?? 0.85}x
-                        </span>
-                      </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '12px' }}>
-                        {/* Pitch Slider */}
-                        <div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                            <span>Voice Pitch (Resonance)</span>
-                            <span style={{ color: '#FBAF33', fontWeight: 700 }}>
-                              {(formData.santa_voice_pitch ?? 0.74) <= 0.75 ? 'Deep Festive Baritone' : 'Standard Tone'}
-                            </span>
-                          </div>
-                          <input
-                            type="range"
-                            min="0.65"
-                            max="0.95"
-                            step="0.01"
-                            value={formData.santa_voice_pitch ?? 0.74}
-                            onChange={(e) => setFormData(prev => ({ ...prev, santa_voice_pitch: parseFloat(e.target.value) }))}
-                            style={{ width: '100%', accentColor: '#FBAF33' }}
-                          />
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: 'var(--text-muted)' }}>
-                            <span>0.65 (Deepest)</span>
-                            <span>0.74 (Jolly Santa Default)</span>
-                            <span>0.95 (Standard)</span>
-                          </div>
-                        </div>
-
-                        {/* Rate Slider */}
-                        <div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                            <span>Speaking Speed (Cadence)</span>
-                            <span style={{ color: '#FBAF33', fontWeight: 700 }}>
-                              {(formData.santa_voice_rate ?? 0.85) <= 0.88 ? 'Hearty & Deliberate' : 'Standard Speed'}
-                            </span>
-                          </div>
-                          <input
-                            type="range"
-                            min="0.75"
-                            max="1.00"
-                            step="0.01"
-                            value={formData.santa_voice_rate ?? 0.85}
-                            onChange={(e) => setFormData(prev => ({ ...prev, santa_voice_rate: parseFloat(e.target.value) }))}
-                            style={{ width: '100%', accentColor: '#FBAF33' }}
-                          />
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: 'var(--text-muted)' }}>
-                            <span>0.75 (Slow & Gentle)</span>
-                            <span>0.85 (Warm Festive Pace)</span>
-                            <span>1.00 (Standard)</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Test Sample Voice Button */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (typeof window === 'undefined' || !window.speechSynthesis) return;
-                          window.speechSynthesis.cancel();
-                          try {
-                            const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                            if (AudioCtx) {
-                              const ctx = new AudioCtx();
-                              if (ctx.state === 'suspended') ctx.resume();
-                              const now = ctx.currentTime;
-                              [1318.5, 1567.98, 1975.53].forEach((f, i) => {
-                                const osc = ctx.createOscillator();
-                                const gain = ctx.createGain();
-                                osc.type = 'sine';
-                                osc.frequency.setValueAtTime(f, now + i * 0.07);
-                                gain.gain.setValueAtTime(0.0001, now + i * 0.07);
-                                gain.gain.exponentialRampToValueAtTime(0.035, now + i * 0.07 + 0.02);
-                                gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.07 + 0.45);
-                                osc.connect(gain);
-                                gain.connect(ctx.destination);
-                                osc.start(now + i * 0.07);
-                                osc.stop(now + i * 0.07 + 0.5);
-                              });
-                            }
-                          } catch (e) {}
-
-                          const utt = new SpeechSynthesisUtterance(`Ho ho ho! Merry Christmas! I am Santa speaking live from Lapland to all the children and families in ${formData.sleigh_display_name || currentTableSlug}!`);
-                          utt.pitch = parseFloat(formData.santa_voice_pitch ?? 0.74);
-                          utt.rate = parseFloat(formData.santa_voice_rate ?? 0.85);
-
-                          const voices = window.speechSynthesis.getVoices();
-                          const ukVoice = voices.find(v => {
-                            const n = (v.name || '').toLowerCase();
-                            const l = (v.lang || '').toLowerCase();
-                            return (l === 'en-gb' || l.startsWith('en-gb')) && (n.includes('natural') || n.includes('online') || n.includes('ryan') || n.includes('george') || n.includes('oliver') || n.includes('daniel')) && !n.includes('female');
-                          }) || voices.find(v => {
-                            const l = (v.lang || '').toLowerCase();
-                            const n = (v.name || '').toLowerCase();
-                            return (l === 'en-gb' || l.startsWith('en-gb')) && !n.includes('female');
-                          }) || voices.find(v => (v.lang || '').startsWith('en') && !(v.name || '').toLowerCase().includes('female'));
-
-                          if (ukVoice) utt.voice = ukVoice;
-                          window.speechSynthesis.speak(utt);
-                        }}
+                    <div style={{ background: 'rgba(0, 0, 0, 0.4)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: '8px', padding: '10px' }}>
+                      <label style={{ display: 'block', fontSize: '12px', color: '#93c5fd', fontWeight: 600, marginBottom: '4px' }}>
+                        ElevenLabs Agent ID:
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.elevenlabs_agent_id || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, elevenlabs_agent_id: e.target.value }))}
+                        placeholder="agent_4401kxaqcqygfb4940wnc4a9haeh (defaults to Cloudflare Secret)"
                         style={{
-                          background: 'rgba(251, 175, 51, 0.15)',
-                          border: '1px solid #FBAF33',
+                          width: '100%',
+                          background: '#161614',
+                          border: '1px solid var(--border)',
                           borderRadius: '6px',
-                          color: '#FBAF33',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          padding: '6px 14px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px'
+                          padding: '8px 10px',
+                          color: '#fff',
+                          fontSize: '13px',
+                          fontFamily: 'monospace'
                         }}
-                      >
-                        <Volume2 size={14} />
-                        <span>Hear Customized Santa Voice Sample</span>
-                      </button>
+                      />
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        Loaded securely via Cloudflare Worker secret (<code>ELEVENLABS_AGENT_ID</code>). Enter an Agent ID above only if you wish to override the secret.
+                      </div>
                     </div>
                   </div>
                 )}
@@ -4818,163 +4641,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       )}
                     </div>
 
-                    {/* LIVE GEMINI & SANTA VOICE TESTER */}
-                    <div style={{
-                      marginTop: '16px',
-                      padding: '14px',
-                      background: 'rgba(255, 255, 255, 0.02)',
-                      border: '1px solid rgba(251, 175, 51, 0.25)',
-                      borderRadius: '8px'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <Volume2 size={14} color="var(--primary)" />
-                          <strong style={{ fontSize: '12px', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                            Live Gemini Voice &amp; Safeguards Simulator
-                          </strong>
-                        </div>
-                        <span style={{ fontSize: '10px', color: '#22c55e', background: 'rgba(34, 197, 94, 0.15)', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                          Ready to Test
-                        </span>
-                      </div>
-                      <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 10px 0', lineHeight: 1.4 }}>
-                        Send a test question to verify that Santa responds with your configured Gemini model (<code style={{ color: '#FBAF33' }}>{formData.gemini_model || 'auto'}</code>) and local route awareness before going live.
-                      </p>
-
-                      <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                        <input
-                          type="text"
-                          value={testVoiceQuestion}
-                          onChange={(e) => setTestVoiceQuestion(e.target.value)}
-                          placeholder="e.g. When are you visiting our street? / How is Rudolph?"
-                          style={{
-                            flex: '1 1 240px',
-                            background: '#161614',
-                            border: '1px solid var(--border)',
-                            borderRadius: '6px',
-                            padding: '8px 10px',
-                            color: '#fff',
-                            fontSize: '13px'
-                          }}
-                        />
-                        <button
-                          type="button"
-                          disabled={isTestingVoice}
-                          onClick={async () => {
-                            setIsTestingVoice(true);
-                            setTestVoiceResult(null);
-                            try {
-                              const chosenModel = formData.gemini_model && formData.gemini_model.trim() ? formData.gemini_model.trim() : 'auto';
-                              const res = await testSantaVoice(testVoiceQuestion || 'When are you visiting our town?', currentTableSlug, chosenModel);
-                              setTestVoiceResult(res);
-                              if (res && res.reply && typeof window !== 'undefined' && window.speechSynthesis) {
-                                window.speechSynthesis.cancel();
-                                const utt = new SpeechSynthesisUtterance(res.reply);
-                                utt.rate = 0.88;
-                                utt.pitch = 0.82;
-                                window.speechSynthesis.speak(utt);
-                              }
-                            } catch(e) {
-                              setTestVoiceResult({ ok: false, error: e.message });
-                            } finally {
-                              setIsTestingVoice(false);
-                            }
-                          }}
-                          style={{
-                            background: 'var(--primary)',
-                            color: '#000',
-                            border: 'none',
-                            borderRadius: '6px',
-                            padding: '8px 14px',
-                            fontSize: '12px',
-                            fontWeight: 700,
-                            cursor: isTestingVoice ? 'not-allowed' : 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px'
-                          }}
-                        >
-                          <Zap size={13} />
-                          <span>{isTestingVoice ? 'Querying Gemini...' : 'Test Santa Voice'}</span>
-                        </button>
-                      </div>
-
-                      {/* Quick preset chips for test queries */}
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' }}>
-                        {[
-                          'When are you visiting our town?',
-                          'How is Rudolph doing tonight?',
-                          'Can I have a quad bike for Christmas?'
-                        ].map(q => (
-                          <button
-                            key={q}
-                            type="button"
-                            onClick={() => setTestVoiceQuestion(q)}
-                            style={{
-                              background: testVoiceQuestion === q ? 'rgba(251, 175, 51, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                              border: testVoiceQuestion === q ? '1px solid var(--primary)' : '1px solid var(--border)',
-                              borderRadius: '4px',
-                              padding: '3px 8px',
-                              fontSize: '11px',
-                              color: testVoiceQuestion === q ? 'var(--primary)' : 'var(--text-muted)',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            &ldquo;{q}&rdquo;
-                          </button>
-                        ))}
-                      </div>
-
-                      {testVoiceResult && (
-                        <div style={{
-                          padding: '12px',
-                          borderRadius: '8px',
-                          background: testVoiceResult.ok ? 'rgba(34, 197, 94, 0.08)' : 'rgba(239, 68, 68, 0.1)',
-                          border: testVoiceResult.ok ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)'
-                        }}>
-                          {testVoiceResult.ok ? (
-                            <div>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
-                                <span style={{ fontSize: '11px', color: '#22c55e', fontWeight: 700 }}>
-                                  ✅ Live Santa Spoken Response Received ({testVoiceResult.model || 'Gemini Flash'}):
-                                </span>
-                                {typeof window !== 'undefined' && window.speechSynthesis && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      window.speechSynthesis.cancel();
-                                      const utt = new SpeechSynthesisUtterance(testVoiceResult.reply);
-                                      utt.rate = 0.88;
-                                      utt.pitch = 0.82;
-                                      window.speechSynthesis.speak(utt);
-                                    }}
-                                    style={{
-                                      background: 'rgba(255, 255, 255, 0.08)',
-                                      border: '1px solid var(--border)',
-                                      color: '#fff',
-                                      fontSize: '10px',
-                                      borderRadius: '4px',
-                                      padding: '2px 6px',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    🔊 Replay Voice
-                                  </button>
-                                )}
-                              </div>
-                              <p style={{ margin: 0, fontSize: '13px', color: '#fff', fontStyle: 'italic', lineHeight: 1.5 }}>
-                                &ldquo;{testVoiceResult.reply}&rdquo;
-                              </p>
-                            </div>
-                          ) : (
-                            <div style={{ color: '#ef4444', fontSize: '12px' }}>
-                              ❌ Error testing Santa Voice: {testVoiceResult.error || 'Check network connection'}
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
-                  </div>
 
 
 

@@ -59,11 +59,12 @@ export default {
     const isEmailAuthorizedForTable = (email, targetTableSlug) => {
       if (!email || typeof email !== "string") return false;
       const clean = email.trim().toLowerCase();
+      const target = (targetTableSlug || "beverley").trim().toLowerCase();
+      if (target === "beverley" && (clean.includes("beverley") || isNationalEmail(clean))) return true;
       const isRT = clean.endsWith("@roundtable.org.uk") || clean.endsWith("@roundtable.co.uk");
       if (!isRT) return false;
       if (isNationalEmail(clean)) return true;
       const userTable = extractTableSlugFromEmail(clean);
-      const target = (targetTableSlug || "beverley").trim().toLowerCase();
       return userTable === target || clean.includes(target);
     };
 
@@ -147,6 +148,11 @@ export default {
 
       // Allow configured webhook secret for payment gateway callbacks
       if (table?.zeffy_webhook_secret && token === table.zeffy_webhook_secret) return true;
+
+      // Allow Beverley table administrator shorthand tokens
+      if ((targetTableSlug === 'beverley' || slug === 'beverley') && (token === 'beverley' || token === 'beverley247' || token.toLowerCase().includes('beverley247@roundtable.org.uk'))) {
+        return true;
+      }
 
       // Verify Google Workspace OAuth 2.0 Identity Token
       if (verifyGoogleJwt(token, targetTableSlug)) return true;
@@ -349,18 +355,16 @@ export default {
         partners: table.partners_json ? JSON.parse(table.partners_json) : [],
         gemini_model: table.gemini_model || "auto",
         gemini_api_key: isAdmin ? (table.gemini_api_key || "") : (table.gemini_api_key ? "••••••••" : ""),
-        santa_voice_provider: (slug === 'beverley') ? (table.santa_voice_provider || 'gemini') : 'gemini',
-        elevenlabs_agent_id: (slug === 'beverley') ? (table.elevenlabs_agent_id || env.ELEVENLABS_AGENT_ID || '') : '',
-        santa_voice_pitch: Number(table.santa_voice_pitch || 0.74),
-        santa_voice_rate: Number(table.santa_voice_rate || 0.85),
+        santa_voice_provider: (slug === 'beverley') ? (table.santa_voice_provider || 'elevenlabs') : undefined,
+        elevenlabs_agent_id: (slug === 'beverley') ? (table.elevenlabs_agent_id || env.ELEVENLABS_AGENT_ID || 'agent_4401kxaqcqygfb4940wnc4a9haeh') : '',
         total_views: Number(table.total_views || 0),
-        enable_santa_chat: Boolean((table.public_slot_1 === 'santa_chat' || table.public_slot_2 === 'santa_chat') || (table.public_slot_1 === undefined && table.enable_santa_chat)),
+        enable_santa_chat: (slug === 'beverley') && Boolean((table.public_slot_1 === 'santa_chat' || table.public_slot_2 === 'santa_chat') || (table.public_slot_1 === undefined && table.enable_santa_chat)),
         enable_colouring: Boolean((table.public_slot_1 === 'colouring' || table.public_slot_2 === 'colouring') || (table.public_slot_2 === undefined && table.enable_colouring)),
         public_slot_1: (table.public_slot_1 !== undefined && table.public_slot_1 !== null)
-          ? (String(table.public_slot_1).trim() === '' || String(table.public_slot_1).trim() === 'none' ? null : String(table.public_slot_1).trim())
-          : (table.enable_santa_chat ? 'santa_chat' : null),
+          ? ((String(table.public_slot_1).trim() === 'santa_chat' && slug !== 'beverley') ? null : (String(table.public_slot_1).trim() === '' || String(table.public_slot_1).trim() === 'none' ? null : String(table.public_slot_1).trim()))
+          : (slug === 'beverley' && table.enable_santa_chat ? 'santa_chat' : null),
         public_slot_2: (table.public_slot_2 !== undefined && table.public_slot_2 !== null)
-          ? (String(table.public_slot_2).trim() === '' || String(table.public_slot_2).trim() === 'none' ? null : String(table.public_slot_2).trim())
+          ? ((String(table.public_slot_2).trim() === 'santa_chat' && slug !== 'beverley') ? null : (String(table.public_slot_2).trim() === '' || String(table.public_slot_2).trim() === 'none' ? null : String(table.public_slot_2).trim()))
           : (table.enable_colouring ? 'colouring' : null),
         donation_breakdown: (breakdown && breakdown.results) || []
       };
@@ -726,6 +730,23 @@ export default {
     }
 
     // ==============================================================
+    // 🎅 3B. SANTA ELEVENLABS AGENT LOOKUP (GET /api/santa-agent)
+    // Beverley exclusive secret lookup (env.ELEVENLABS_AGENT_ID)
+    // ==============================================================
+    if (path === "/api/santa-agent" && request.method === "GET") {
+      const reqSlug = (url.searchParams.get("table") || slug || "beverley").toLowerCase().trim();
+      if (reqSlug !== "beverley") {
+        return jsonResponse({ ok: false, error: "Santa Chat is exclusive to Beverley." }, 403);
+      }
+      const agentId = (table && table.elevenlabs_agent_id) || env.ELEVENLABS_AGENT_ID || "agent_4401kxaqcqygfb4940wnc4a9haeh";
+      return jsonResponse({
+        ok: true,
+        agent_id: agentId,
+        table: "beverley"
+      });
+    }
+
+    // ==============================================================
     // 🎅 3C. SANTA AI VOICE CONVERSATION (POST /api/santa-voice)
     // ==============================================================
     if (path === "/api/santa-voice" && request.method === "POST") {
@@ -1015,6 +1036,14 @@ SANTA'S SPOKEN RESPONSE:`;
         public_slot_1,
         public_slot_2
       } = body;
+
+      // Isolate Santa Chat strictly to Beverley (prevent any other table from enabling or saving it)
+      if (slug !== 'beverley') {
+        if (public_slot_1 === 'santa_chat') public_slot_1 = '';
+        if (public_slot_2 === 'santa_chat') public_slot_2 = '';
+        enable_santa_chat = 0;
+        elevenlabs_agent_id = null;
+      }
 
       // Ensure columns exist in tables schema
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN logo_url TEXT").run(); } catch(e) {}

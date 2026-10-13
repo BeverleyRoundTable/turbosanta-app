@@ -174,8 +174,8 @@ export const PUBLIC_FEATURE_CATALOG = {
     embedSrc: (slug) => `/santa_chat.html?table=${encodeURIComponent(slug)}`,
     fullscreenSrc: (slug) => `/santa_chat.html?table=${encodeURIComponent(slug)}`,
     fullscreenLabel: 'Open Voice Hotline Full-Screen',
-    height: 640,
-    maxWidth: 540,
+    height: 680,
+    maxWidth: 760,
     allowMicrophone: true
   },
   santa_frame: {
@@ -481,8 +481,12 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
 
   const isBeverley = activeTableSlug === 'beverley' || table.slug === 'beverley';
 
-  const rawSlot1 = table.public_slot_1 || (table.enable_santa_chat ? 'santa_chat' : null);
-  const rawSlot2 = table.public_slot_2 || (table.enable_colouring ? 'colouring' : null);
+  const rawSlot1 = (table.public_slot_1 === 'santa_chat' && !isBeverley)
+    ? null
+    : (table.public_slot_1 || (isBeverley && table.enable_santa_chat ? 'santa_chat' : null));
+  const rawSlot2 = (table.public_slot_2 === 'santa_chat' && !isBeverley)
+    ? null
+    : (table.public_slot_2 || (table.enable_colouring ? 'colouring' : null));
   const slot1Meta = rawSlot1 && PUBLIC_FEATURE_CATALOG[rawSlot1] ? PUBLIC_FEATURE_CATALOG[rawSlot1] : null;
   const slot2Meta = (rawSlot2 && rawSlot2 !== rawSlot1 && PUBLIC_FEATURE_CATALOG[rawSlot2]) ? PUBLIC_FEATURE_CATALOG[rawSlot2] : null;
   const activeSlots = [slot1Meta, slot2Meta].filter(Boolean);
