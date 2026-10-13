@@ -113,3 +113,9 @@ ALTER TABLE tables ADD COLUMN total_views INTEGER DEFAULT 0;
 ALTER TABLE tables ADD COLUMN public_slot_1 TEXT;
 ALTER TABLE tables ADD COLUMN public_slot_2 TEXT;
 
+-- ==============================================================================
+-- Route Multi-Sponsor Attribution (Distinct Logo, Link, & Note for Each Sponsor)
+-- ==============================================================================
+ALTER TABLE routes ADD COLUMN sponsors_json TEXT;
+
+

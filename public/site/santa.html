@@ -709,7 +709,7 @@ function renderDonations(donations, settings) {
     }
 }
 
-                // --- RENDER TONIGHT'S HERO SPOTLIGHT ---
+        // --- RENDER TONIGHT'S HERO SPOTLIGHT ---
         function renderTodaySpotlight({ route, d }, sponsors, parent) {
             const start = route['Start Time'] || '';
             const end = route['End Time'] || '';
@@ -721,18 +721,26 @@ function renderDonations(donations, settings) {
                 : [];
             const streetsText = streetsArray.join(', ');
 
-            const hasSponsor = Boolean(route.sponsorName);
-            const sponsorMatch = sponsors.find(sp => sp.name === route.sponsorName);
-            const sponsorLink = sponsorMatch ? safeUrl(sponsorMatch.sponsorLink) : safeUrl(route.sponsorLink);
+            const routeSponsors = Array.isArray(route.sponsors) && route.sponsors.length > 0
+                ? route.sponsors
+                : (route.sponsorName ? [{
+                    name: route.sponsorName,
+                    logo_url: route.sponsorLogo,
+                    link: route.sponsorLink,
+                    description: route.sponsorDescription
+                  }] : []);
+
+            const hasSponsors = routeSponsors.length > 0;
+            const sponsorHeading = routeSponsors.length > 1 ? "Tonight's Featured Sponsors" : "Tonight's Featured Sponsor";
 
             parent.innerHTML = `
                 <div class="bg-gradient-to-br from-brt-red/15 via-[#181815] to-black/90 border-2 border-brt-red rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-8 shadow-[0_0_35px_rgba(211,28,28,0.35)] relative overflow-hidden transition-all duration-300">
                     <!-- Subtle Festive Ambient Glow -->
                     <div class="absolute -top-16 -right-16 w-56 h-56 bg-brt-red/15 rounded-full blur-[70px] pointer-events-none"></div>
 
-                    <div class="grid grid-cols-1 ${hasSponsor ? 'lg:grid-cols-12' : ''} gap-6 lg:gap-8 items-center relative z-10">
+                    <div class="grid grid-cols-1 ${hasSponsors ? 'lg:grid-cols-12' : ''} gap-6 lg:gap-8 items-center relative z-10">
                         <!-- Route Details -->
-                        <div class="${hasSponsor ? 'lg:col-span-7' : 'w-full'}">
+                        <div class="${hasSponsors ? 'lg:col-span-7' : 'w-full'}">
                             <div class="inline-flex items-center bg-brt-red text-white text-xs font-heading font-black uppercase px-3.5 py-1.5 rounded-full mb-3 tracking-wider shadow-[0_0_12px_rgba(211,28,28,0.6)]">
                             Tonight's Route
                             </div>
@@ -750,31 +758,35 @@ function renderDonations(donations, settings) {
                         </div>
 
                         <!-- Tonight's Sponsor Showcase (if present) -->
-                        ${hasSponsor ? `
-                            <div class="lg:col-span-5 bg-black/60 border border-brt-red/40 rounded-2xl p-5 sm:p-6 shadow-xl backdrop-blur-sm">
-                                <div class="text-[11px] font-heading font-black text-brt-red uppercase tracking-widest mb-3">
-                                Tonight's Featured Sponsor
+                        ${hasSponsors ? `
+                            <div class="lg:col-span-5 bg-black/60 border border-brt-red/40 rounded-2xl p-5 sm:p-6 shadow-xl backdrop-blur-sm space-y-3">
+                                <div class="text-[11px] font-heading font-black text-brt-red uppercase tracking-widest flex items-center gap-1.5">
+                                    <i class="fa-solid fa-star text-xs"></i> ${sponsorHeading}
                                 </div>
-                                <div class="flex items-start gap-4">
-                                    ${route.sponsorUrl ? `
-                                        <img src="${safeUrl(route.sponsorUrl)}" alt="${route.sponsorName}" class="w-16 h-16 sm:w-20 sm:h-20 object-contain bg-white rounded-xl p-2 shrink-0 shadow-md">
-                                    ` : ''}
-                                    <div class="flex-1">
-                                        ${sponsorLink ? `
-                                            <a href="${sponsorLink}" target="_blank" rel="noopener noreferrer" class="font-heading font-bold text-lg sm:text-xl text-white hover:text-brt-red hover:underline transition-colors block leading-snug">
-                                                ${route.sponsorName} <i class="fa-solid fa-arrow-up-right-from-square text-xs ml-1 opacity-70"></i>
-                                            </a>
-                                        ` : `
-                                            <div class="font-heading font-bold text-lg sm:text-xl text-white leading-snug">
-                                                ${route.sponsorName}
+                                <div class="grid grid-cols-1 ${routeSponsors.length > 1 ? 'sm:grid-cols-2 gap-3.5' : 'gap-3'}">
+                                    ${routeSponsors.map(sp => `
+                                        <div class="flex items-start gap-3.5 p-3 rounded-xl ${routeSponsors.length > 1 ? 'bg-white/5 border border-white/5' : ''}">
+                                            ${sp.logo_url ? `
+                                                <img src="${safeUrl(sp.logo_url)}" alt="${sp.name}" class="w-14 h-14 sm:w-16 sm:h-16 object-contain bg-white rounded-xl p-1.5 shrink-0 shadow-md">
+                                            ` : ''}
+                                            <div class="flex-1 min-w-0">
+                                                ${sp.link ? `
+                                                    <a href="${safeUrl(sp.link)}" target="_blank" rel="noopener noreferrer" class="font-heading font-bold text-base sm:text-lg text-white hover:text-brt-red hover:underline transition-colors block leading-snug truncate">
+                                                        ${sp.name} <i class="fa-solid fa-arrow-up-right-from-square text-[10px] ml-0.5 opacity-70"></i>
+                                                    </a>
+                                                ` : `
+                                                    <div class="font-heading font-bold text-base sm:text-lg text-white leading-snug truncate">
+                                                        ${sp.name}
+                                                    </div>
+                                                `}
+                                                ${sp.description ? `
+                                                    <p class="font-body text-xs text-gray-300 mt-1 leading-relaxed">
+                                                        ${sp.description}
+                                                    </p>
+                                                ` : ''}
                                             </div>
-                                        `}
-                                        ${route.sponsorDescription ? `
-                                            <p class="font-body text-xs sm:text-sm text-gray-300 mt-2 leading-relaxed">
-                                                ${route.sponsorDescription}
-                                            </p>
-                                        ` : ''}
-                                    </div>
+                                        </div>
+                                    `).join('')}
                                 </div>
                             </div>
                         ` : ''}
@@ -807,17 +819,43 @@ function renderDonations(donations, settings) {
                 renderDonations(donations, settings);
 
                 const rawRoutes = Array.isArray(raw.routes) ? raw.routes : [];
-                const routes = rawRoutes.map(r => ({
-                    routeName: r.name || r.routeName,
-                    date: r.date,
-                    'Start Time': r.start_time || r['Start Time'] || '18:00',
-                    'End Time': r.end_time || r['End Time'] || '20:30',
-                    gpxUrl: r.gpx_url || r.gpxUrl || '',
-                    sponsorName: r.sponsor_name || r.sponsorName || '',
-                    sponsorLogo: r.sponsor_logo || r.sponsorLogo || '',
-                    sponsorLink: r.sponsor_link || r.sponsorLink || '',
-                    sponsorDescription: r.sponsor_description || r.sponsorDescription || ''
-                }));
+                const routes = rawRoutes.map(r => {
+                    let spList = [];
+                    if (Array.isArray(r.sponsors) && r.sponsors.length > 0) {
+                        spList = r.sponsors;
+                    } else if (r.sponsors_json) {
+                        try {
+                            const parsed = typeof r.sponsors_json === 'string' ? JSON.parse(r.sponsors_json) : r.sponsors_json;
+                            if (Array.isArray(parsed)) spList = parsed;
+                        } catch (e) {}
+                    }
+                    if (spList.length === 0 && (r.sponsor_name || r.sponsor_logo || r.sponsor_logo_url)) {
+                        spList = [{
+                            name: r.sponsor_name || '',
+                            logo_url: r.sponsor_logo_url || r.sponsor_logo || '',
+                            link: r.sponsor_link || '',
+                            description: r.sponsor_description || ''
+                        }];
+                    }
+                    spList = spList.map(s => ({
+                        name: s.name || s.sponsor_name || '',
+                        logo_url: s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '',
+                        link: s.link || s.sponsor_link || '',
+                        description: s.description || s.sponsor_description || ''
+                    }));
+                    return {
+                        routeName: r.name || r.routeName,
+                        date: r.date,
+                        'Start Time': r.start_time || r['Start Time'] || '18:00',
+                        'End Time': r.end_time || r['End Time'] || '20:30',
+                        gpxUrl: r.gpx_url || r.gpxUrl || '',
+                        sponsors: spList,
+                        sponsorName: spList.map(s => s.name).filter(Boolean).join(' • ') || (r.sponsor_name || ''),
+                        sponsorLogo: spList[0]?.logo_url || r.sponsor_logo || '',
+                        sponsorLink: spList[0]?.link || r.sponsor_link || '',
+                        sponsorDescription: spList[0]?.description || r.sponsor_description || ''
+                    };
+                });
                 const sponsors = Array.isArray(raw.table?.partners) ? raw.table.partners : (Array.isArray(raw.sponsors) ? raw.sponsors : []);
                 
                 if(loader) loader.remove();

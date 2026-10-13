@@ -28,7 +28,30 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
         logo_url: s.logo_url || s.sponsor_logo_url || s.sponsor_logo || ''
       }));
     }
+    if (route?.sponsors_json) {
+      try {
+        const parsed = typeof route.sponsors_json === 'string' ? JSON.parse(route.sponsors_json) : route.sponsors_json;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map(s => ({
+            name: s.name || s.sponsor_name || '',
+            link: s.link || s.sponsor_link || '',
+            description: s.description || s.sponsor_description || '',
+            logo_url: s.logo_url || s.sponsor_logo_url || s.sponsor_logo || ''
+          }));
+        }
+      } catch (e) {}
+    }
     if (route?.sponsor_name || route?.sponsor_logo_url || route?.sponsor_logo) {
+      // Auto-decompose if previously joined with ' • ' or ' | '
+      if (route.sponsor_name && (route.sponsor_name.includes(' • ') || route.sponsor_name.includes(' | '))) {
+        const parts = route.sponsor_name.split(/\s*(?:•|\|)\s*/).filter(Boolean);
+        return parts.map((partName, idx) => ({
+          name: partName,
+          link: idx === 0 ? (route.sponsor_link || '') : '',
+          description: idx === 0 ? (route.sponsor_description || '') : '',
+          logo_url: idx === 0 ? (route.sponsor_logo_url || route.sponsor_logo || '') : ''
+        }));
+      }
       return [{
         name: route.sponsor_name || '',
         link: route.sponsor_link || '',
