@@ -7,7 +7,8 @@ import {
   Camera, Video, Image as ImageIcon, FolderDown, Eye, EyeOff, Sparkles, Filter,
   CreditCard, Key, Zap, RefreshCw, Send, Link2,
   BarChart3, TrendingUp, Award, Printer, PieChart, Receipt,
-  Mail, HardDrive, AlertTriangle, Database, FileText, Coins, Share2, QrCode, ArrowUpDown, Volume2
+  Mail, HardDrive, AlertTriangle, Database, FileText, Coins, Share2, QrCode, ArrowUpDown, Volume2,
+  Phone, MessageCircle, UserCheck, Search
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { logoutAdmin, isNationalAdmin, getAdminAuthToken } from '../services/auth';
@@ -162,6 +163,185 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   const [isLanyardsModalOpen, setIsLanyardsModalOpen] = useState(false);
   const [copiedRouteId, setCopiedRouteId] = useState(null);
   const [selectedCrewRouteId, setSelectedCrewRouteId] = useState('');
+
+  // Volunteer Roster & Crew Communication State
+  const [volunteers, setVolunteers] = useState([]);
+  const [loadingVolunteers, setLoadingVolunteers] = useState(false);
+  const [volunteerSearch, setVolunteerSearch] = useState('');
+  const [volunteerRouteFilter, setVolunteerRouteFilter] = useState('all');
+  const [volunteerCopiedType, setVolunteerCopiedType] = useState(null); // 'emails' | 'phones'
+
+  const fetchVolunteersList = async () => {
+    const slug = currentTableSlug;
+    const secret = session?.googleCredential || session?.token || getAdminAuthToken(slug);
+    setLoadingVolunteers(true);
+    try {
+      const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/volunteers?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(secret)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setVolunteers(data);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch volunteers:", e);
+    } finally {
+      setLoadingVolunteers(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'crew') {
+      fetchVolunteersList();
+    }
+  }, [activeTab, currentTableSlug]);
+
+  const getVolName = (v) => v.name || v["Volunteer Name"] || 'Volunteer';
+  const getVolRole = (v) => v.role || v["Role"] || 'General Elf';
+  const getVolPhone = (v) => v.phone || v["Phone Number"] || '';
+  const getVolEmail = (v) => v.email || v["Email"] || '';
+  const getVolOrg = (v) => v.organisation || v["Organisation"] || '';
+  const getVolRoute = (v) => v.route_name || v["RouteName"] || '';
+  const getVolStatus = (v) => v.status || v["Check-in Status"] || 'Confirmed';
+  const getVolBucket = (v) => v.bucket_number || v["Bucket Number"] || '';
+
+  const formatPhoneForWhatsApp = (phone) => {
+    if (!phone) return '';
+    let cleaned = phone.replace(/\D/g, '');
+    if (cleaned.startsWith('0')) {
+      cleaned = '44' + cleaned.slice(1);
+    }
+    return cleaned;
+  };
+
+  const handleEmailAllVolunteers = (volList, routeName) => {
+    const emails = Array.from(new Set(
+      volList
+        .map(v => getVolEmail(v).trim())
+        .filter(e => e && e.includes('@'))
+    ));
+
+    if (emails.length === 0) {
+      alert("No email addresses found for the selected volunteers.");
+      return;
+    }
+
+    const table = tableData?.table || {};
+    const tableName = table.sleigh_display_name || table.name || 'Round Table Santa Sleigh';
+    const activeRouteObj = (tableData?.routes || []).find(r => r.name === routeName || r.id === routeName);
+    const startTm = activeRouteObj?.start_time || '17:30 / 18:00';
+    const subject = encodeURIComponent(`🎅 Santa Sleigh Volunteer Briefing - ${routeName && routeName !== 'all' ? routeName : 'Upcoming Route'}`);
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://roundtablesantasleigh.co.uk';
+    const bodyText = encodeURIComponent(
+`Hi Team,
+
+Thank you for volunteering with the ${tableName}!
+
+Route: ${routeName && routeName !== 'all' ? routeName : 'Santa Sleigh Tour'}
+Muster Time: ${startTm}
+
+Important volunteer briefing & reminders:
+• Please dress warmly in layers and wear sturdy walking shoes or boots.
+• High-visibility vests and collecting buckets/card readers will be handed out at muster.
+• Keep children on the pavement and stay alert to passing traffic.
+• Live Sleigh Tracker: ${origin}/?table=${encodeURIComponent(currentTableSlug)}
+
+Looking forward to bringing the Christmas magic tonight!
+
+Best regards,
+${tableName} Organizers`
+    );
+
+    // Bcc ensures privacy/GDPR compliance
+    const mailtoUrl = `mailto:?bcc=${encodeURIComponent(emails.join(','))}&subject=${subject}&body=${bodyText}`;
+    window.location.href = mailtoUrl;
+  };
+
+  const handleCopyVolunteerEmails = (volList) => {
+    const emails = Array.from(new Set(
+      volList
+        .map(v => getVolEmail(v).trim())
+        .filter(e => e && e.includes('@'))
+    ));
+
+    if (emails.length === 0) {
+      alert("No email addresses found for the selected volunteers.");
+      return;
+    }
+
+    const str = emails.join(', ');
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(str).then(() => {
+        setVolunteerCopiedType('emails');
+        setSaveStatus(`📋 Copied ${emails.length} volunteer email(s) to clipboard (ready for Bcc)!`);
+        setTimeout(() => {
+          setVolunteerCopiedType(null);
+          setSaveStatus('');
+        }, 3000);
+      });
+    } else {
+      window.prompt('Copy email addresses:', str);
+    }
+  };
+
+  const handleCopyVolunteerPhones = (volList) => {
+    const phones = Array.from(new Set(
+      volList
+        .map(v => getVolPhone(v).trim())
+        .filter(p => p.length >= 5)
+    ));
+
+    if (phones.length === 0) {
+      alert("No phone numbers found for the selected volunteers.");
+      return;
+    }
+
+    const str = phones.join('\n');
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(str).then(() => {
+        setVolunteerCopiedType('phones');
+        setSaveStatus(`📋 Copied ${phones.length} volunteer phone number(s) to clipboard!`);
+        setTimeout(() => {
+          setVolunteerCopiedType(null);
+          setSaveStatus('');
+        }, 3000);
+      });
+    } else {
+      window.prompt('Copy phone numbers:', str);
+    }
+  };
+
+  const handleExportVolunteerCsv = (volList) => {
+    if (!volList || volList.length === 0) {
+      alert("No volunteers available to export.");
+      return;
+    }
+
+    const headers = ["Name", "Role", "Phone", "Email", "Organisation", "Route Name", "Bucket Number", "Status"];
+    const rows = volList.map(v => [
+      `"${getVolName(v).replace(/"/g, '""')}"`,
+      `"${getVolRole(v).replace(/"/g, '""')}"`,
+      `"${getVolPhone(v).replace(/"/g, '""')}"`,
+      `"${getVolEmail(v).replace(/"/g, '""')}"`,
+      `"${getVolOrg(v).replace(/"/g, '""')}"`,
+      `"${getVolRoute(v).replace(/"/g, '""')}"`,
+      `"${getVolBucket(v).replace(/"/g, '""')}"`,
+      `"${getVolStatus(v).replace(/"/g, '""')}"`
+    ]);
+
+    const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `volunteers_${currentTableSlug}_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setSaveStatus(`📥 Exported ${volList.length} volunteer(s) to CSV spreadsheet!`);
+    setTimeout(() => setSaveStatus(''), 3000);
+  };
 
   // 1-Tap WhatsApp Crew Run Sheet & Safety Briefing Generator (Tool 2)
   const handleCopyWhatsAppBriefing = (route) => {
@@ -3350,6 +3530,460 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 })()}
               </div>
             </div>
+
+            {/* VOLUNTEER ROSTER & FREE COMMUNICATIONS HUB */}
+            {(() => {
+              const uniqueRouteNames = Array.from(new Set([
+                ...(tableData?.routes || []).map(r => r.name).filter(Boolean),
+                ...volunteers.map(v => getVolRoute(v)).filter(Boolean)
+              ]));
+
+              const filteredVolunteers = volunteers.filter(v => {
+                if (volunteerRouteFilter !== 'all') {
+                  const vRoute = (getVolRoute(v) || '').trim().toLowerCase();
+                  const targetRoute = volunteerRouteFilter.trim().toLowerCase();
+                  if (vRoute !== targetRoute) return false;
+                }
+                if (volunteerSearch.trim()) {
+                  const q = volunteerSearch.toLowerCase().trim();
+                  const name = getVolName(v).toLowerCase();
+                  const phone = getVolPhone(v).toLowerCase();
+                  const email = getVolEmail(v).toLowerCase();
+                  const org = getVolOrg(v).toLowerCase();
+                  const role = getVolRole(v).toLowerCase();
+                  const route = getVolRoute(v).toLowerCase();
+                  return name.includes(q) || phone.includes(q) || email.includes(q) || org.includes(q) || role.includes(q) || route.includes(q);
+                }
+                return true;
+              });
+
+              return (
+                <div style={{
+                  background: '#0d0d0b',
+                  border: '1px solid rgba(251, 175, 51, 0.25)',
+                  borderRadius: '12px',
+                  padding: 'clamp(14px, 3vw, 22px)',
+                  marginBottom: '26px'
+                }}>
+                  {/* Header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '18px' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <Users size={20} color="var(--primary)" />
+                        <h3 className="brand-font" style={{ fontSize: '18px', color: '#fff', margin: 0 }}>
+                          Live Volunteer Roster &amp; Communications
+                        </h3>
+                        <span style={{
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          background: 'rgba(251, 175, 51, 0.15)',
+                          color: 'var(--primary)',
+                          border: '1px solid rgba(251, 175, 51, 0.3)',
+                          padding: '2px 8px',
+                          borderRadius: '100px'
+                        }}>
+                          {filteredVolunteers.length} {filteredVolunteers.length === 1 ? 'Elf' : 'Elves'}
+                        </span>
+                      </div>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>
+                        Volunteers who signed up via your public Crew Hub (<code style={{ color: 'var(--primary)' }}>/crew.html?table={currentTableSlug}</code>). Contact them instantly for free via Email Bcc, WhatsApp, or CSV export.
+                      </p>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={fetchVolunteersList}
+                        disabled={loadingVolunteers}
+                        className="btn-secondary"
+                        style={{ padding: '8px 12px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        title="Refresh volunteer list from database"
+                      >
+                        <RefreshCw size={13} className={loadingVolunteers ? 'animate-spin' : ''} />
+                        <span>{loadingVolunteers ? 'Loading...' : 'Refresh'}</span>
+                      </button>
+                      <a
+                        href={`/crew.html?table=${encodeURIComponent(currentTableSlug)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-secondary"
+                        style={{ padding: '8px 12px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#86efac', borderColor: 'rgba(34, 197, 94, 0.3)' }}
+                        title="Open public crew sign-up page"
+                      >
+                        <ExternalLink size={13} />
+                        <span>Open Sign-Up Page</span>
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Action Bar & Filters */}
+                  <div style={{
+                    background: '#151513',
+                    border: '1px solid var(--border)',
+                    borderRadius: '10px',
+                    padding: '14px',
+                    marginBottom: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px'
+                  }}>
+                    {/* Top row: Filter & Search */}
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                      <div style={{ flex: '1 1 220px', minWidth: '180px' }}>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
+                          Filter by Route Night:
+                        </label>
+                        <select
+                          value={volunteerRouteFilter}
+                          onChange={(e) => setVolunteerRouteFilter(e.target.value)}
+                          style={{
+                            width: '100%',
+                            background: '#0d0d0b',
+                            border: '1px solid var(--border)',
+                            borderRadius: '6px',
+                            padding: '8px 10px',
+                            color: '#fff',
+                            fontSize: '13px'
+                          }}
+                        >
+                          <option value="all">🌟 All Routes ({volunteers.length} total)</option>
+                          {uniqueRouteNames.map(rn => (
+                            <option key={rn} value={rn}>
+                              {rn} ({volunteers.filter(v => getVolRoute(v) === rn).length})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div style={{ flex: '1 1 200px', minWidth: '160px' }}>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
+                          Search Volunteer:
+                        </label>
+                        <div style={{ position: 'relative' }}>
+                          <input
+                            type="text"
+                            value={volunteerSearch}
+                            onChange={(e) => setVolunteerSearch(e.target.value)}
+                            placeholder="Search name, phone, email, org..."
+                            style={{
+                              width: '100%',
+                              background: '#0d0d0b',
+                              border: '1px solid var(--border)',
+                              borderRadius: '6px',
+                              padding: '8px 10px 8px 30px',
+                              color: '#fff',
+                              fontSize: '13px',
+                              boxSizing: 'border-box'
+                            }}
+                          />
+                          <Search size={14} style={{ position: 'absolute', left: '10px', top: '10px', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom row: 1-Click Free Communication Buttons */}
+                    <div style={{
+                      display: 'flex',
+                      gap: '8px',
+                      flexWrap: 'wrap',
+                      alignItems: 'center',
+                      paddingTop: '8px',
+                      borderTop: '1px solid rgba(255, 255, 255, 0.06)'
+                    }}>
+                      {/* Email All (Free Bcc) */}
+                      <button
+                        type="button"
+                        onClick={() => handleEmailAllVolunteers(filteredVolunteers, volunteerRouteFilter)}
+                        disabled={filteredVolunteers.length === 0}
+                        className="btn-primary"
+                        style={{
+                          padding: '8px 14px',
+                          fontSize: '12px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          background: 'var(--primary)',
+                          color: '#000',
+                          fontWeight: 700
+                        }}
+                        title="Open mail client with all volunteer emails in Bcc (protects privacy)"
+                      >
+                        <Mail size={14} />
+                        <span>Email {filteredVolunteers.length > 0 ? `(${filteredVolunteers.length})` : ''} via Free Bcc</span>
+                      </button>
+
+                      {/* Copy Emails */}
+                      <button
+                        type="button"
+                        onClick={() => handleCopyVolunteerEmails(filteredVolunteers)}
+                        disabled={filteredVolunteers.length === 0}
+                        className="btn-secondary"
+                        style={{
+                          padding: '8px 12px',
+                          fontSize: '12px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                        title="Copy all volunteer email addresses as comma-separated list"
+                      >
+                        {volunteerCopiedType === 'emails' ? <Check size={14} color="#86efac" /> : <Copy size={14} />}
+                        <span>{volunteerCopiedType === 'emails' ? 'Emails Copied!' : 'Copy Emails'}</span>
+                      </button>
+
+                      {/* Copy Phones */}
+                      <button
+                        type="button"
+                        onClick={() => handleCopyVolunteerPhones(filteredVolunteers)}
+                        disabled={filteredVolunteers.length === 0}
+                        className="btn-secondary"
+                        style={{
+                          padding: '8px 12px',
+                          fontSize: '12px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                        title="Copy all volunteer phone numbers"
+                      >
+                        {volunteerCopiedType === 'phones' ? <Check size={14} color="#86efac" /> : <Phone size={14} />}
+                        <span>{volunteerCopiedType === 'phones' ? 'Phones Copied!' : 'Copy Phones'}</span>
+                      </button>
+
+                      {/* Export CSV */}
+                      <button
+                        type="button"
+                        onClick={() => handleExportVolunteerCsv(filteredVolunteers)}
+                        disabled={filteredVolunteers.length === 0}
+                        className="btn-secondary"
+                        style={{
+                          padding: '8px 12px',
+                          fontSize: '12px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          borderColor: 'rgba(59, 130, 246, 0.4)',
+                          color: '#93c5fd'
+                        }}
+                        title="Download clean CSV spreadsheet for Excel or Google Sheets"
+                      >
+                        <Download size={14} />
+                        <span>Export CSV</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Volunteer Table / Cards */}
+                  {loadingVolunteers ? (
+                    <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                      <div style={{ display: 'inline-block', width: '28px', height: '28px', border: '3px solid rgba(251,175,51,0.2)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '10px' }} />
+                      <div>Loading volunteer roster...</div>
+                    </div>
+                  ) : filteredVolunteers.length === 0 ? (
+                    <div style={{
+                      padding: '36px 20px',
+                      textAlign: 'center',
+                      background: '#151513',
+                      borderRadius: '10px',
+                      border: '1px dashed var(--border)'
+                    }}>
+                      <Users size={36} style={{ color: 'var(--text-muted)', opacity: 0.4, margin: '0 auto 10px', display: 'block' }} />
+                      <div style={{ fontSize: '15px', fontWeight: 600, color: '#fff' }}>
+                        {volunteers.length === 0 ? 'No Volunteers Registered Yet' : 'No Volunteers Found Matching Filter'}
+                      </div>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '13px', maxWidth: '420px', margin: '6px auto 14px', lineHeight: 1.5 }}>
+                        {volunteers.length === 0
+                          ? 'Share your public Crew Hub link with helpers, Rotary, 41 Club, or local sports teams so they can sign up for routes!'
+                          : 'Try selecting "All Routes" or clearing your search query.'}
+                      </p>
+                      {volunteers.length === 0 && (
+                        <a
+                          href={`/crew.html?table=${encodeURIComponent(currentTableSlug)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-primary"
+                          style={{ padding: '8px 16px', fontSize: '12px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          <ExternalLink size={14} />
+                          <span>Preview Crew Sign-Up Form</span>
+                        </a>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '10px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                        <thead>
+                          <tr style={{ background: '#151513', borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                            <th style={{ padding: '12px 14px' }}>Volunteer</th>
+                            <th style={{ padding: '12px 14px' }}>Role</th>
+                            <th style={{ padding: '12px 14px' }}>Route Night</th>
+                            <th style={{ padding: '12px 14px' }}>Contact</th>
+                            <th style={{ padding: '12px 14px', textAlign: 'right' }}>1-Tap Quick Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredVolunteers.map((vol, idx) => {
+                            const name = getVolName(vol);
+                            const role = getVolRole(vol);
+                            const phone = getVolPhone(vol);
+                            const email = getVolEmail(vol);
+                            const org = getVolOrg(vol);
+                            const route = getVolRoute(vol);
+                            const intlPhone = formatPhoneForWhatsApp(phone);
+                            const waMsg = `Hi ${name}, thank you for volunteering with the Round Table Santa Sleigh for "${route || 'our route'}"! Here are tonight's muster details...`;
+
+                            return (
+                              <tr
+                                key={vol.id || idx}
+                                style={{
+                                  borderBottom: idx < filteredVolunteers.length - 1 ? '1px solid rgba(255, 255, 255, 0.05)' : 'none',
+                                  background: idx % 2 === 0 ? '#0d0d0b' : '#11110f'
+                                }}
+                              >
+                                {/* Volunteer & Org */}
+                                <td style={{ padding: '12px 14px', verticalAlign: 'middle' }}>
+                                  <div style={{ fontWeight: 700, color: '#fff', fontSize: '13.5px' }}>{name}</div>
+                                  {org && (
+                                    <span style={{
+                                      fontSize: '10.5px',
+                                      background: 'rgba(255, 255, 255, 0.08)',
+                                      color: 'var(--text-muted)',
+                                      padding: '1px 6px',
+                                      borderRadius: '3px',
+                                      display: 'inline-block',
+                                      marginTop: '2px'
+                                    }}>
+                                      {org}
+                                    </span>
+                                  )}
+                                </td>
+
+                                {/* Role */}
+                                <td style={{ padding: '12px 14px', verticalAlign: 'middle' }}>
+                                  <span style={{
+                                    background: role.toLowerCase().includes('driver') ? 'rgba(59, 130, 246, 0.15)' :
+                                                role.toLowerCase().includes('santa') ? 'rgba(239, 68, 68, 0.15)' :
+                                                'rgba(34, 197, 94, 0.15)',
+                                    color: role.toLowerCase().includes('driver') ? '#93c5fd' :
+                                           role.toLowerCase().includes('santa') ? '#fca5a5' :
+                                           '#86efac',
+                                    border: '1px solid currentColor',
+                                    padding: '2px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.5px'
+                                  }}>
+                                    {role}
+                                  </span>
+                                </td>
+
+                                {/* Route */}
+                                <td style={{ padding: '12px 14px', verticalAlign: 'middle', color: '#e5e7eb' }}>
+                                  <div style={{ fontWeight: 600 }}>{route || 'Unassigned / General'}</div>
+                                </td>
+
+                                {/* Contact info */}
+                                <td style={{ padding: '12px 14px', verticalAlign: 'middle' }}>
+                                  {phone && (
+                                    <div style={{ fontSize: '12.5px', color: '#fff', fontFamily: 'monospace' }}>
+                                      📞 {phone}
+                                    </div>
+                                  )}
+                                  {email && (
+                                    <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', overflowWrap: 'anywhere' }}>
+                                      ✉️ {email}
+                                    </div>
+                                  )}
+                                </td>
+
+                                {/* 1-Tap Quick Actions */}
+                                <td style={{ padding: '12px 14px', verticalAlign: 'middle', textAlign: 'right' }}>
+                                  <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
+                                    {/* WhatsApp */}
+                                    {intlPhone ? (
+                                      <a
+                                        href={`https://wa.me/${intlPhone}?text=${encodeURIComponent(waMsg)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
+                                          background: '#22c55e',
+                                          color: '#000',
+                                          padding: '6px 10px',
+                                          borderRadius: '6px',
+                                          fontSize: '11px',
+                                          fontWeight: 700,
+                                          textDecoration: 'none',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '4px',
+                                          transition: 'opacity 0.15s'
+                                        }}
+                                        title={`Send free WhatsApp message to ${name}`}
+                                      >
+                                        <MessageCircle size={13} />
+                                        <span>WhatsApp</span>
+                                      </a>
+                                    ) : null}
+
+                                    {/* Call */}
+                                    {phone ? (
+                                      <a
+                                        href={`tel:${phone}`}
+                                        style={{
+                                          background: 'rgba(255,255,255,0.08)',
+                                          color: '#fff',
+                                          border: '1px solid var(--border)',
+                                          padding: '6px 8px',
+                                          borderRadius: '6px',
+                                          fontSize: '11px',
+                                          textDecoration: 'none',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '4px'
+                                        }}
+                                        title={`Call ${name} on ${phone}`}
+                                      >
+                                        <Phone size={12} />
+                                        <span>Call</span>
+                                      </a>
+                                    ) : null}
+
+                                    {/* Email */}
+                                    {email ? (
+                                      <a
+                                        href={`mailto:${email}?subject=${encodeURIComponent('🎅 Santa Sleigh Volunteer Briefing - ' + (route || 'Upcoming Run'))}&body=${encodeURIComponent('Hi ' + name + ',\n\nThank you for volunteering for the Round Table Santa Sleigh!\n\nRoute: ' + (route || 'Tonight') + '\n\n')}`}
+                                        style={{
+                                          background: 'rgba(255,255,255,0.08)',
+                                          color: 'var(--primary)',
+                                          border: '1px solid var(--border)',
+                                          padding: '6px 8px',
+                                          borderRadius: '6px',
+                                          fontSize: '11px',
+                                          textDecoration: 'none',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '4px'
+                                        }}
+                                        title={`Send individual email to ${name}`}
+                                      >
+                                        <Mail size={12} />
+                                        <span>Email</span>
+                                      </a>
+                                    ) : null}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Crew Alert Broadcaster */}
             <div style={{ background: '#0d0d0b', border: '1px solid rgba(211,28,28,0.3)', borderRadius: '12px', padding: '16px 20px', marginBottom: '30px', boxSizing: 'border-box', maxWidth: '100%' }}>
