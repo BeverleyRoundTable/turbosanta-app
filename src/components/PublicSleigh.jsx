@@ -268,6 +268,27 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
     return () => mq.removeEventListener?.('change', handler);
   }, []);
 
+  // Listen to zero-scroll dynamic iframe height updates
+  useEffect(() => {
+    const handleResizeMsg = (e) => {
+      if (e.data && (e.data.type === 'turbosanta-resize' || e.data.height || e.data.frameHeight || e.data.routesHeight || e.data.letterHeight || e.data.niceListHeight || e.data.santasBeenHeight || e.data.snowmanFrameHeight || e.data.addressLookupHeight)) {
+        const h = e.data.height || e.data.frameHeight || e.data.routesHeight || e.data.letterHeight || e.data.niceListHeight || e.data.santasBeenHeight || e.data.snowmanFrameHeight || e.data.addressLookupHeight;
+        if (typeof h === 'number' && h > 60) {
+          const iframes = document.querySelectorAll('iframe');
+          for (let i = 0; i < iframes.length; i++) {
+            if (iframes[i].contentWindow === e.source) {
+              iframes[i].style.height = `${h + 8}px`;
+              iframes[i].setAttribute('height', `${h + 8}`);
+              break;
+            }
+          }
+        }
+      }
+    };
+    window.addEventListener('message', handleResizeMsg);
+    return () => window.removeEventListener('message', handleResizeMsg);
+  }, []);
+
   // 👁️ Record unique visit beacon to update D1 total_views (session deduplicated)
   useEffect(() => {
     if (activeTableSlug) {
@@ -1224,14 +1245,25 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                   ? '0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(251, 175, 51, 0.15)'
                   : '0 20px 50px rgba(0,0,0,0.7)'
               }}>
-                <iframe
-                  id={`feature-${slot.id}-embed`}
-                  src={slot.embedSrc(activeTableSlug)}
-                  allow={slot.allowMicrophone ? "microphone" : undefined}
-                  style={{ width: '100%', height: `${slot.height}px`, border: 'none', display: 'block' }}
-                  title={`${slot.title} ${slot.titleHighlight}`}
-                  loading="lazy"
-                />
+                {(() => {
+                  let targetSrc = slot.embedSrc(activeTableSlug);
+                  const joinChar = targetSrc.includes('?') ? '&' : '?';
+                  targetSrc += `${joinChar}embed=1&primary=${encodeURIComponent(primaryColor)}&accent=${encodeURIComponent(table.accent_color || '#FBAF33')}`;
+                  if (isSlotSanta) {
+                    targetSrc += `&provider=${encodeURIComponent(table.santa_voice_provider || 'gemini')}`;
+                  }
+                  return (
+                    <iframe
+                      id={`feature-${slot.id}-embed`}
+                      src={targetSrc}
+                      scrolling="no"
+                      allow={slot.allowMicrophone ? "microphone" : undefined}
+                      style={{ width: '100%', height: `${slot.height}px`, border: 'none', display: 'block', overflow: 'hidden' }}
+                      title={`${slot.title} ${slot.titleHighlight}`}
+                      loading="lazy"
+                    />
+                  );
+                })()}
               </div>
 
               {slot.fullscreenSrc && (

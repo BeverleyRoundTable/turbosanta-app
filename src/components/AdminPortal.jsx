@@ -469,6 +469,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     gemini_api_key: tableData?.table?.gemini_api_key || '',
     santa_voice_provider: tableData?.table?.santa_voice_provider || 'gemini',
     elevenlabs_agent_id: tableData?.table?.elevenlabs_agent_id || '',
+    santa_voice_pitch: tableData?.table?.santa_voice_pitch ?? 0.74,
+    santa_voice_rate: tableData?.table?.santa_voice_rate ?? 0.85,
     enable_santa_chat: Boolean(tableData?.table?.enable_santa_chat),
     enable_colouring: Boolean(tableData?.table?.enable_colouring),
     public_slot_1: tableData?.table?.public_slot_1 || (tableData?.table?.enable_santa_chat ? 'santa_chat' : '') || '',
@@ -506,6 +508,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         gemini_api_key: tableData.table.gemini_api_key !== undefined ? tableData.table.gemini_api_key : prev.gemini_api_key,
         santa_voice_provider: tableData.table.santa_voice_provider || 'gemini',
         elevenlabs_agent_id: tableData.table.elevenlabs_agent_id !== undefined ? tableData.table.elevenlabs_agent_id : (prev.elevenlabs_agent_id || ''),
+        santa_voice_pitch: tableData.table.santa_voice_pitch !== undefined ? tableData.table.santa_voice_pitch : (prev.santa_voice_pitch ?? 0.74),
+        santa_voice_rate: tableData.table.santa_voice_rate !== undefined ? tableData.table.santa_voice_rate : (prev.santa_voice_rate ?? 0.85),
         enable_santa_chat: Boolean(tableData.table.enable_santa_chat),
         enable_colouring: Boolean(tableData.table.enable_colouring),
         public_slot_1: tableData.table.public_slot_1 !== undefined ? (tableData.table.public_slot_1 || '') : (tableData.table.enable_santa_chat ? 'santa_chat' : prev.public_slot_1 || ''),
@@ -4482,6 +4486,138 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                         </div>
                       </div>
                     )}
+
+                    {/* Santa Voice Acoustic Customizer (Natural & Warm Tone Tuning) */}
+                    <div style={{
+                      marginTop: '14px',
+                      padding: '14px',
+                      background: 'rgba(0, 0, 0, 0.4)',
+                      border: '1px solid rgba(251, 175, 51, 0.25)',
+                      borderRadius: '8px'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '6px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Santa Voice Acoustic Customizer (Natural & Jolly Tone):
+                        </span>
+                        <span style={{ fontSize: '10px', color: '#FBAF33', fontWeight: 600 }}>
+                          Pitch: {formData.santa_voice_pitch ?? 0.74} &bull; Speed: {formData.santa_voice_rate ?? 0.85}x
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '12px' }}>
+                        {/* Pitch Slider */}
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                            <span>Voice Pitch (Resonance)</span>
+                            <span style={{ color: '#FBAF33', fontWeight: 700 }}>
+                              {(formData.santa_voice_pitch ?? 0.74) <= 0.75 ? 'Deep Festive Baritone' : 'Standard Tone'}
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0.65"
+                            max="0.95"
+                            step="0.01"
+                            value={formData.santa_voice_pitch ?? 0.74}
+                            onChange={(e) => setFormData(prev => ({ ...prev, santa_voice_pitch: parseFloat(e.target.value) }))}
+                            style={{ width: '100%', accentColor: '#FBAF33' }}
+                          />
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: 'var(--text-muted)' }}>
+                            <span>0.65 (Deepest)</span>
+                            <span>0.74 (Jolly Santa Default)</span>
+                            <span>0.95 (Standard)</span>
+                          </div>
+                        </div>
+
+                        {/* Rate Slider */}
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                            <span>Speaking Speed (Cadence)</span>
+                            <span style={{ color: '#FBAF33', fontWeight: 700 }}>
+                              {(formData.santa_voice_rate ?? 0.85) <= 0.88 ? 'Hearty & Deliberate' : 'Standard Speed'}
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0.75"
+                            max="1.00"
+                            step="0.01"
+                            value={formData.santa_voice_rate ?? 0.85}
+                            onChange={(e) => setFormData(prev => ({ ...prev, santa_voice_rate: parseFloat(e.target.value) }))}
+                            style={{ width: '100%', accentColor: '#FBAF33' }}
+                          />
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: 'var(--text-muted)' }}>
+                            <span>0.75 (Slow & Gentle)</span>
+                            <span>0.85 (Warm Festive Pace)</span>
+                            <span>1.00 (Standard)</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Test Sample Voice Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (typeof window === 'undefined' || !window.speechSynthesis) return;
+                          window.speechSynthesis.cancel();
+                          try {
+                            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                            if (AudioCtx) {
+                              const ctx = new AudioCtx();
+                              if (ctx.state === 'suspended') ctx.resume();
+                              const now = ctx.currentTime;
+                              [1318.5, 1567.98, 1975.53].forEach((f, i) => {
+                                const osc = ctx.createOscillator();
+                                const gain = ctx.createGain();
+                                osc.type = 'sine';
+                                osc.frequency.setValueAtTime(f, now + i * 0.07);
+                                gain.gain.setValueAtTime(0.0001, now + i * 0.07);
+                                gain.gain.exponentialRampToValueAtTime(0.035, now + i * 0.07 + 0.02);
+                                gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.07 + 0.45);
+                                osc.connect(gain);
+                                gain.connect(ctx.destination);
+                                osc.start(now + i * 0.07);
+                                osc.stop(now + i * 0.07 + 0.5);
+                              });
+                            }
+                          } catch (e) {}
+
+                          const utt = new SpeechSynthesisUtterance(`Ho ho ho! Merry Christmas! I am Santa speaking live from Lapland to all the children and families in ${formData.sleigh_display_name || currentTableSlug}!`);
+                          utt.pitch = parseFloat(formData.santa_voice_pitch ?? 0.74);
+                          utt.rate = parseFloat(formData.santa_voice_rate ?? 0.85);
+
+                          const voices = window.speechSynthesis.getVoices();
+                          const ukVoice = voices.find(v => {
+                            const n = (v.name || '').toLowerCase();
+                            const l = (v.lang || '').toLowerCase();
+                            return (l === 'en-gb' || l.startsWith('en-gb')) && (n.includes('natural') || n.includes('online') || n.includes('ryan') || n.includes('george') || n.includes('oliver') || n.includes('daniel')) && !n.includes('female');
+                          }) || voices.find(v => {
+                            const l = (v.lang || '').toLowerCase();
+                            const n = (v.name || '').toLowerCase();
+                            return (l === 'en-gb' || l.startsWith('en-gb')) && !n.includes('female');
+                          }) || voices.find(v => (v.lang || '').startsWith('en') && !(v.name || '').toLowerCase().includes('female'));
+
+                          if (ukVoice) utt.voice = ukVoice;
+                          window.speechSynthesis.speak(utt);
+                        }}
+                        style={{
+                          background: 'rgba(251, 175, 51, 0.15)',
+                          border: '1px solid #FBAF33',
+                          borderRadius: '6px',
+                          color: '#FBAF33',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          padding: '6px 14px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <Volume2 size={14} />
+                        <span>Hear Customized Santa Voice Sample</span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -4986,6 +5122,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       gemini_api_key: formData.gemini_api_key || '',
                       santa_voice_provider: formData.santa_voice_provider || 'gemini',
                       elevenlabs_agent_id: formData.elevenlabs_agent_id || '',
+                      santa_voice_pitch: formData.santa_voice_pitch !== undefined ? parseFloat(formData.santa_voice_pitch) : 0.74,
+                      santa_voice_rate: formData.santa_voice_rate !== undefined ? parseFloat(formData.santa_voice_rate) : 0.85,
                       public_slot_1: formData.public_slot_1 || '',
                       public_slot_2: formData.public_slot_2 || '',
                       enable_santa_chat: (formData.public_slot_1 === 'santa_chat' || formData.public_slot_2 === 'santa_chat'),

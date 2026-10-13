@@ -192,6 +192,17 @@
       el.className = "santa-inline";
       el.setAttribute("placement", "bottom");
       MOUNT.appendChild(el);
+
+      // Safety Guard: if ElevenLabs widget fails or stays empty in container, fallback to Gemini
+      setTimeout(function () {
+        var hasRendered = el && el.shadowRoot && el.shadowRoot.firstElementChild;
+        if (!hasRendered && MOUNT) {
+          console.warn("[SantaChat] ElevenLabs widget container empty — auto-falling back to Gemini Voice Santa.");
+          try { el.remove(); } catch(e) {}
+          injected = false;
+          injectGeminiVoiceWidget(tablePayload);
+        }
+      }, 2500);
     } else {
       document.body.appendChild(el);
     }
@@ -211,18 +222,21 @@
      ENGINE 2: GOOGLE GEMINI FLASH 3.8 VOICE SANTA (Fleet Default)
      ============================================================ */
 
-  function ensureGeminiVoiceStyles() {
-    if (document.getElementById("santa-gemini-styles")) return;
+  function ensureGeminiVoiceStyles(primary, accent) {
+    var p = primary || "#D31C1C";
+    var a = accent || "#FBAF33";
+    var existing = document.getElementById("santa-gemini-styles");
+    if (existing) existing.remove();
     var style = document.createElement("style");
     style.id = "santa-gemini-styles";
     style.textContent = `
       .ts-santa-card {
-        background: radial-gradient(circle at 50% 0%, #2a2a22 0%, #151513 80%);
-        border: 2px solid #FBAF33;
+        background: radial-gradient(circle at 50% 0%, #242420 0%, #11110f 85%);
+        border: 2px solid ${a};
         border-radius: 20px;
-        box-shadow: 0 15px 45px rgba(0,0,0,0.7), 0 0 25px rgba(251, 175, 51, 0.2);
+        box-shadow: 0 15px 45px rgba(0,0,0,0.7), 0 0 25px ${a}33;
         color: #fff;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -234,10 +248,10 @@
       }
       .ts-santa-card * { box-sizing: border-box; }
       .ts-header {
-        background: linear-gradient(180deg, rgba(211, 28, 28, 0.3) 0%, rgba(21, 21, 19, 0) 100%);
+        background: linear-gradient(180deg, ${p}40 0%, rgba(21, 21, 19, 0) 100%);
         padding: 18px 20px 12px;
         text-align: center;
-        border-bottom: 1px solid rgba(251, 175, 51, 0.2);
+        border-bottom: 1px solid ${a}33;
         position: relative;
       }
       .ts-avatar-wrap {
@@ -250,8 +264,8 @@
         height: 68px;
         border-radius: 50%;
         background: #111;
-        border: 3px solid #FBAF33;
-        box-shadow: 0 0 16px rgba(251, 175, 51, 0.5);
+        border: 3px solid ${a};
+        box-shadow: 0 0 16px ${a}66;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -271,17 +285,19 @@
       }
       .ts-title {
         margin: 0;
+        font-family: 'Eurostile', sans-serif;
         font-size: 20px;
         font-weight: 800;
         letter-spacing: 0.5px;
+        text-transform: uppercase;
         color: #fff;
         text-shadow: 0 2px 4px rgba(0,0,0,0.5);
       }
       .ts-subtitle {
         margin: 4px 0 0;
         font-size: 12px;
-        color: #FBAF33;
-        font-weight: 600;
+        color: ${a};
+        font-weight: 700;
         letter-spacing: 0.5px;
         text-transform: uppercase;
       }
@@ -290,7 +306,7 @@
         align-items: center;
         gap: 6px;
         background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(251, 175, 51, 0.3);
+        border: 1px solid ${a}4d;
         border-radius: 12px;
         padding: 5px 12px;
         font-size: 11px;
@@ -306,8 +322,8 @@
         display: flex;
         flex-direction: column;
         gap: 12px;
-        min-height: 200px;
-        max-height: 320px;
+        min-height: 180px;
+        max-height: 280px;
       }
       .ts-bubble {
         padding: 12px 16px;
@@ -320,15 +336,15 @@
       .ts-bubble.santa {
         align-self: flex-start;
         background: rgba(255, 255, 255, 0.07);
-        border: 1px solid rgba(251, 175, 51, 0.25);
+        border: 1px solid ${a}40;
         color: #fff;
         border-bottom-left-radius: 4px;
       }
       .ts-bubble.user {
         align-self: flex-end;
-        background: #FBAF33;
+        background: ${a};
         color: #000;
-        font-weight: 600;
+        font-weight: 700;
         border-bottom-right-radius: 4px;
       }
       .ts-controls {
@@ -344,9 +360,9 @@
         width: 76px;
         height: 76px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #d31c1c 0%, #FBAF33 100%);
+        background: linear-gradient(135deg, ${p} 0%, ${a} 100%);
         border: 3px solid #fff;
-        box-shadow: 0 6px 20px rgba(211, 28, 28, 0.5), 0 0 15px rgba(251, 175, 51, 0.3);
+        box-shadow: 0 6px 20px ${p}80, 0 0 15px ${a}4d;
         color: #fff;
         display: flex;
         align-items: center;
@@ -364,12 +380,12 @@
         transform: scale(0.96);
       }
       .ts-mic-btn.listening {
-        background: #d31c1c;
+        background: ${p};
         animation: tsPulse 1.2s infinite;
       }
       .ts-mic-btn.speaking {
         background: #22c55e;
-        border-color: #FBAF33;
+        border-color: ${a};
         animation: tsPulseGreen 1.2s infinite;
       }
       .ts-mic-btn.thinking {
@@ -379,7 +395,7 @@
       .ts-status-label {
         font-size: 13px;
         font-weight: 700;
-        color: #FBAF33;
+        color: ${a};
         letter-spacing: 0.3px;
         text-align: center;
         min-height: 18px;
@@ -402,9 +418,9 @@
         transition: background 0.15s, color 0.15s;
       }
       .ts-chip:hover {
-        background: rgba(251, 175, 51, 0.2);
-        color: #FBAF33;
-        border-color: #FBAF33;
+        background: ${a}33;
+        color: ${a};
+        border-color: ${a};
       }
       .ts-text-fallback {
         width: 100%;
@@ -423,10 +439,10 @@
         outline: none;
       }
       .ts-text-fallback input:focus {
-        border-color: #FBAF33;
+        border-color: ${a};
       }
       .ts-text-fallback button {
-        background: #FBAF33;
+        background: ${a};
         color: #000;
         border: none;
         border-radius: 8px;
@@ -436,7 +452,7 @@
         cursor: pointer;
       }
       @keyframes tsPulse {
-        0% { box-shadow: 0 0 0 0 rgba(211, 28, 28, 0.7); }
+        0% { box-shadow: 0 0 0 0 ${p}b3; }
         70% { box-shadow: 0 0 0 16px rgba(211, 28, 28, 0); }
         100% { box-shadow: 0 0 0 0 rgba(211, 28, 28, 0); }
       }
@@ -453,7 +469,7 @@
         position: fixed;
         bottom: 24px;
         right: 24px;
-        background: linear-gradient(135deg, #d31c1c 0%, #FBAF33 100%);
+        background: linear-gradient(135deg, ${p} 0%, ${a} 100%);
         color: #000;
         border: none;
         border-radius: 50px;
@@ -465,7 +481,7 @@
         font-size: 15px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        box-shadow: 0 8px 30px rgba(251, 175, 51, 0.4);
+        box-shadow: 0 8px 30px ${a}66;
         cursor: pointer;
         z-index: 99999;
       }
@@ -473,20 +489,100 @@
     document.head.appendChild(style);
   }
 
+  // Web Audio Festive Sleigh Bell Synthesizer
+  function playSleighBellChime() {
+    try {
+      var AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      var ctx = new AudioCtx();
+      if (ctx.state === "suspended") ctx.resume();
+      var now = ctx.currentTime;
+      var chimeFrequencies = [1318.5, 1567.98, 1975.53]; // E6, G6, B6
+      chimeFrequencies.forEach(function (f, i) {
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(f, now + i * 0.07);
+        gain.gain.setValueAtTime(0.0001, now + i * 0.07);
+        gain.gain.exponentialRampToValueAtTime(0.035, now + i * 0.07 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.07 + 0.45);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + i * 0.07);
+        osc.stop(now + i * 0.07 + 0.5);
+      });
+    } catch (e) {}
+  }
+
+  // Santa Neural Voice Matcher
+  var cachedVoices = [];
+  function cacheVoices() {
+    if (!window.speechSynthesis) return;
+    cachedVoices = window.speechSynthesis.getVoices() || [];
+  }
+  cacheVoices();
+  if (window.speechSynthesis) {
+    window.speechSynthesis.onvoiceschanged = cacheVoices;
+  }
+
+  function getBestSantaVoice() {
+    if (!cachedVoices.length) cacheVoices();
+    var voices = cachedVoices;
+    if (!voices || !voices.length) return null;
+
+    var scored = voices.map(function (v) {
+      var score = 0;
+      var name = (v.name || "").toLowerCase();
+      var lang = (v.lang || "").toLowerCase();
+
+      // 1. Language preference: British English (en-GB)
+      if (lang === "en-gb" || lang.startsWith("en-gb")) score += 100;
+      else if (lang.startsWith("en")) score += 30;
+
+      // 2. High-definition Neural / Online Natural voices (Edge, Chrome, Safari)
+      if (name.includes("natural") || name.includes("online")) score += 95;
+      if (name.includes("neural")) score += 95;
+
+      // 3. Known warm, jolly British male voices
+      if (name.includes("ryan")) score += 85;
+      if (name.includes("george")) score += 75;
+      if (name.includes("oliver")) score += 70;
+      if (name.includes("daniel")) score += 65;
+      if (name.includes("arthur")) score += 60;
+      if (name.includes("male") && !name.includes("female")) score += 50;
+
+      // 4. Heavily penalize robotic desktop voices & female voices
+      if (name.includes("female") || name.includes("zira") || name.includes("hazel") || name.includes("susan") || name.includes("catherine") || name.includes("linda")) {
+        score -= 300;
+      }
+      if (name.includes("desktop") && !name.includes("natural")) {
+        score -= 40;
+      }
+
+      return { voice: v, score: score };
+    });
+
+    scored.sort(function (a, b) { return b.score - a.score; });
+    return (scored[0] && scored[0].score > 0) ? scored[0].voice : null;
+  }
+
   function injectGeminiVoiceWidget(payload) {
     if (injected) return;
-    ensureGeminiVoiceStyles();
 
     var slug = resolveTableSlug();
     var tableInfo = (payload && payload.table) || {};
+    var primaryCol = (tableInfo && tableInfo.primary_color) || param("primary") || "#D31C1C";
+    var accentCol = (tableInfo && tableInfo.accent_color) || param("accent") || "#FBAF33";
+    ensureGeminiVoiceStyles(primaryCol, accentCol);
+
     var town = (tableInfo.sleigh_display_name || tableInfo.name || slug).replace(/Round Table.*$/i, '').trim() || slug;
     var routes = (payload && payload.routes) || [];
     var todayRoute = getTodayRoute(routes);
     var nextRoute = getNextRoute(routes);
 
     var routeBadgeText = todayRoute
-      ? "🛷 Out tonight on the " + (todayRoute.name || "sleigh") + " route!"
-      : (nextRoute ? "📅 Next sleigh visit: " + fmtDate(nextRoute.date) : "✨ Resting in Lapland workshop");
+      ? "Out tonight on the " + (todayRoute.name || "sleigh") + " route!"
+      : (nextRoute ? "Next sleigh visit: " + fmtDate(nextRoute.date) : "Resting in Lapland workshop");
 
     // Conversation state
     var history = [];
@@ -528,7 +624,7 @@
       <div class="ts-dialog-area" id="ts-dialog-area">
         <div class="ts-bubble santa">
           Ho ho ho! Merry Christmas! I am Santa speaking to you live from Lapland! 
-          Tap the big golden microphone below to speak with me!
+          Tap the big golden microphone below or ask a question to speak with me!
         </div>
       </div>
 
@@ -554,6 +650,18 @@
     if (MOUNT) {
       MOUNT.innerHTML = "";
       MOUNT.appendChild(card);
+      // Continuous zero-scroll height messaging to parent window
+      var notifyMountHeight = function () {
+        var h = Math.max(card.scrollHeight, card.offsetHeight, 540);
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: "turbosanta-resize", height: h }, "*");
+        }
+      };
+      notifyMountHeight();
+      setTimeout(notifyMountHeight, 300);
+      if (window.ResizeObserver) {
+        new ResizeObserver(notifyMountHeight).observe(card);
+      }
     } else {
       // Floating launcher button
       var launcher = document.createElement("button");
@@ -593,6 +701,10 @@
       b.textContent = text;
       dialogArea.appendChild(b);
       dialogArea.scrollTop = dialogArea.scrollHeight;
+      if (MOUNT && window.parent && window.parent !== window) {
+        var h = Math.max(card.scrollHeight, card.offsetHeight, 540);
+        window.parent.postMessage({ type: "turbosanta-resize", height: h }, "*");
+      }
     }
 
     function setStatus(text, stateClass) {
@@ -606,17 +718,16 @@
         return;
       }
       window.speechSynthesis.cancel();
-      var utt = new SpeechSynthesisUtterance(text);
-      utt.rate = 0.88;
-      utt.pitch = 0.82; // Deep, warm Santa voice
+      playSleighBellChime();
 
-      var voices = window.speechSynthesis.getVoices();
-      var ukVoice = voices.find(function (v) {
-        return v.lang && (v.lang === "en-GB" || v.lang.startsWith("en-GB")) && !v.name.includes("Female");
-      }) || voices.find(function (v) {
-        return v.lang && v.lang.startsWith("en-");
-      });
-      if (ukVoice) utt.voice = ukVoice;
+      var utt = new SpeechSynthesisUtterance(text);
+      var configuredPitch = (tablePayload && tablePayload.table && tablePayload.table.santa_voice_pitch) || 0.74;
+      var configuredRate = (tablePayload && tablePayload.table && tablePayload.table.santa_voice_rate) || 0.85;
+      utt.pitch = Math.max(0.65, Math.min(1.0, parseFloat(configuredPitch)));
+      utt.rate = Math.max(0.75, Math.min(1.0, parseFloat(configuredRate)));
+
+      var santaVoice = getBestSantaVoice();
+      if (santaVoice) utt.voice = santaVoice;
 
       isSpeaking = true;
       setStatus("Santa is speaking... 🔊", "speaking");
@@ -810,17 +921,9 @@
         var selectedProvider = "gemini";
         if (forcedProvider === "elevenlabs" || forcedProvider === "gemini") {
           selectedProvider = forcedProvider;
-        } else if (isBeverley) {
-          // Beverley can have either Gemini or ElevenLabs
-          if (tableProvider === "gemini") {
-            selectedProvider = "gemini";
-          } else if (tableProvider === "elevenlabs" || hasExplicitAgent) {
-            selectedProvider = "elevenlabs";
-          } else {
-            selectedProvider = "elevenlabs";
-          }
+        } else if (isBeverley && tableProvider === "elevenlabs") {
+          selectedProvider = "elevenlabs";
         } else {
-          // All other tables rely on Gemini solely
           selectedProvider = "gemini";
         }
 

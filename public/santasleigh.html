@@ -2149,6 +2149,23 @@
             }
         };
 
+        // Listen to zero-scroll dynamic iframe height updates
+        window.addEventListener('message', function (e) {
+            if (e.data && (e.data.type === 'turbosanta-resize' || e.data.height || e.data.frameHeight || e.data.routesHeight || e.data.letterHeight || e.data.niceListHeight || e.data.santasBeenHeight || e.data.snowmanFrameHeight || e.data.addressLookupHeight)) {
+                var h = e.data.height || e.data.frameHeight || e.data.routesHeight || e.data.letterHeight || e.data.niceListHeight || e.data.santasBeenHeight || e.data.snowmanFrameHeight || e.data.addressLookupHeight;
+                if (typeof h === 'number' && h > 60) {
+                    var iframes = document.querySelectorAll('iframe');
+                    for (var i = 0; i < iframes.length; i++) {
+                        if (iframes[i].contentWindow === e.source) {
+                            iframes[i].style.height = (h + 8) + 'px';
+                            iframes[i].setAttribute('height', (h + 8));
+                            break;
+                        }
+                    }
+                }
+            }
+        });
+
         function renderModularSlots(settings) {
             let container = $('modular-feature-slots');
             if (!container) {
@@ -2172,6 +2189,10 @@
             if (!activeSlots.length) return;
 
             const slug = (settings && (settings.slug || settings.id)) || window.__sleighTableSlug || 'beverley';
+            const primaryHex = (settings && settings.primary_color) || '#D31C1C';
+            const accentHex = (settings && settings.accent_color) || '#FBAF33';
+            const voiceProvider = (settings && settings.santa_voice_provider) || 'gemini';
+
             const navLinks = document.querySelector('.nav-links');
             const navFaq = $('nav-faq');
             const navDonate = $('nav-donate');
@@ -2229,10 +2250,19 @@
                 ifr.height = String(slot.height || 700);
                 ifr.title = slot.title + ' ' + slot.titleHighlight;
                 ifr.loading = 'lazy';
-                ifr.src = slot.embedSrc(slug);
+
+                let targetSrc = slot.embedSrc(slug);
+                const joinChar = targetSrc.includes('?') ? '&' : '?';
+                targetSrc += joinChar + 'embed=1&primary=' + encodeURIComponent(primaryHex) + '&accent=' + encodeURIComponent(accentHex);
+                if (slot.id === 'santa_chat') {
+                    targetSrc += '&provider=' + encodeURIComponent(voiceProvider);
+                }
+                ifr.src = targetSrc;
+                ifr.setAttribute('scrolling', 'no');
                 ifr.style.width = '100%';
                 ifr.style.border = 'none';
                 ifr.style.display = 'block';
+                ifr.style.overflow = 'hidden';
 
                 let allowAttrs = ['camera', 'microphone', 'geolocation'];
                 if (slot.allowMicrophone) allowAttrs.push('autoplay');

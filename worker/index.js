@@ -351,6 +351,8 @@ export default {
         gemini_api_key: isAdmin ? (table.gemini_api_key || "") : (table.gemini_api_key ? "••••••••" : ""),
         santa_voice_provider: (slug === 'beverley') ? (table.santa_voice_provider || 'gemini') : 'gemini',
         elevenlabs_agent_id: (slug === 'beverley') ? (table.elevenlabs_agent_id || env.ELEVENLABS_AGENT_ID || '') : '',
+        santa_voice_pitch: Number(table.santa_voice_pitch || 0.74),
+        santa_voice_rate: Number(table.santa_voice_rate || 0.85),
         total_views: Number(table.total_views || 0),
         enable_santa_chat: Boolean((table.public_slot_1 === 'santa_chat' || table.public_slot_2 === 'santa_chat') || (table.public_slot_1 === undefined && table.enable_santa_chat)),
         enable_colouring: Boolean((table.public_slot_1 === 'colouring' || table.public_slot_2 === 'colouring') || (table.public_slot_2 === undefined && table.enable_colouring)),
@@ -970,6 +972,8 @@ SANTA'S SPOKEN RESPONSE:`;
         gemini_api_key,
         santa_voice_provider,
         elevenlabs_agent_id,
+        santa_voice_pitch,
+        santa_voice_rate,
         enable_santa_chat,
         enable_colouring,
         public_slot_1,
@@ -996,6 +1000,8 @@ SANTA'S SPOKEN RESPONSE:`;
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN gemini_api_key TEXT").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN santa_voice_provider TEXT DEFAULT 'gemini'").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN elevenlabs_agent_id TEXT").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN santa_voice_pitch REAL DEFAULT 0.74").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN santa_voice_rate REAL DEFAULT 0.85").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN total_views INTEGER DEFAULT 0").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN enable_santa_chat BOOLEAN DEFAULT 0").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN enable_colouring BOOLEAN DEFAULT 0").run(); } catch(e) {}
@@ -1028,6 +1034,8 @@ SANTA'S SPOKEN RESPONSE:`;
             gemini_api_key = COALESCE(?, gemini_api_key),
             santa_voice_provider = COALESCE(?, santa_voice_provider),
             elevenlabs_agent_id = COALESCE(?, elevenlabs_agent_id),
+            santa_voice_pitch = COALESCE(?, santa_voice_pitch),
+            santa_voice_rate = COALESCE(?, santa_voice_rate),
             enable_santa_chat = COALESCE(?, enable_santa_chat),
             enable_colouring = COALESCE(?, enable_colouring),
             public_slot_1 = COALESCE(?, public_slot_1),
@@ -1057,6 +1065,8 @@ SANTA'S SPOKEN RESPONSE:`;
           gemini_api_key !== undefined ? gemini_api_key : null,
           santa_voice_provider !== undefined ? santa_voice_provider : null,
           elevenlabs_agent_id !== undefined ? elevenlabs_agent_id : null,
+          santa_voice_pitch !== undefined ? parseFloat(santa_voice_pitch) : null,
+          santa_voice_rate !== undefined ? parseFloat(santa_voice_rate) : null,
           enable_santa_chat !== undefined ? (enable_santa_chat ? 1 : 0) : ((public_slot_1 === 'santa_chat' || public_slot_2 === 'santa_chat') ? 1 : null),
           enable_colouring !== undefined ? (enable_colouring ? 1 : 0) : ((public_slot_1 === 'colouring' || public_slot_2 === 'colouring') ? 1 : null),
           public_slot_1 !== undefined ? (public_slot_1 || '') : null,

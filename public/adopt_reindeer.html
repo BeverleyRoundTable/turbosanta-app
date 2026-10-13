@@ -1,6 +1,7 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="/embed-theme.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>>TurboSanta — Adopt a Reindeer</title>
@@ -378,7 +379,7 @@
 <body>
 <div class="app">
   <header>
-    <h1>🦌 ADOPT A <span>REINDEER</span></h1>
+    <h1>ADOPT A <span>REINDEER</span></h1>
     <p>Choose your reindeer and get an official adoption certificate!</p>
   </header>
 
@@ -391,7 +392,7 @@
 
   <div class="form-panel">
     <h3>Choose Your Reindeer</h3>
-    <button class="random-btn" onclick="randomReindeer()">🎲 Pick a Random Reindeer!</button>
+    <button class="random-btn" onclick="randomReindeer()">Pick a Random Reindeer!</button>
     <div class="reindeer-grid" id="reindeerGrid"></div>
   </div>
 
@@ -405,7 +406,9 @@
 <div class="render-area" id="renderArea"></div>
 
 <script>
-const API = new URLSearchParams(location.search).get('api') || '';
+const params = new URLSearchParams(location.search);
+const tableSlug = params.get('table') || 'beverley';
+const API = params.get('api') || ('https://turbosanta-api.beverley247.workers.dev/api/payload?table=' + encodeURIComponent(tableSlug));
 
 const REINDEER = [
   { name: 'Dasher', emoji: '🦌', trait: 'The fastest of them all' },
@@ -423,9 +426,11 @@ let selectedReindeer = null;
 let settings = {};
 
 // Load settings if API provided
-if (API) {
+if (window.__sleighPrefetchedData && window.__sleighPrefetchedData.table) {
+  settings = window.__sleighPrefetchedData.table;
+} else if (API) {
   fetch(API).then(r => r.json()).then(data => {
-    settings = data.settings || {};
+    settings = (data && (data.table || data.settings)) || {};
   }).catch(() => {});
 }
 
