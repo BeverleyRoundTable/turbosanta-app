@@ -1166,6 +1166,78 @@
 
         function asArray(v) { return Array.isArray(v) ? v : []; }
 
+        function extractRouteSponsors(r) {
+            if (!r) return [];
+            if (Array.isArray(r.sponsors) && r.sponsors.length > 0) {
+                const valid = r.sponsors
+                    .filter(s => s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url))
+                    .map(s => ({
+                        name: (s.name || s.sponsor_name || '').trim(),
+                        logo_url: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
+                        link: (s.link || s.sponsor_link || '').trim(),
+                        description: (s.description || s.sponsor_description || '').trim()
+                    }));
+                if (valid.length > 0) return valid;
+            }
+            if (r.sponsors_json) {
+                try {
+                    const parsed = typeof r.sponsors_json === 'string' ? JSON.parse(r.sponsors_json) : r.sponsors_json;
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        const valid = parsed
+                            .filter(s => s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url))
+                            .map(s => ({
+                                name: (s.name || s.sponsor_name || '').trim(),
+                                logo_url: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
+                                link: (s.link || s.sponsor_link || '').trim(),
+                                description: (s.description || s.sponsor_description || '').trim()
+                            }));
+                        if (valid.length > 0) return valid;
+                    }
+                } catch (e) {}
+            }
+            if (r.notes) {
+                try {
+                    const match = r.notes.match(/<!--\s*SPONSORS_DATA:\s*(\[.*?\])\s*-->/s) ||
+                                  r.notes.match(/\[SPONSORS_JSON:\s*(\[.*?\])\s*\]/s);
+                    if (match && match[1]) {
+                        const parsed = JSON.parse(match[1]);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            const valid = parsed
+                                .filter(s => s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url))
+                                .map(s => ({
+                                    name: (s.name || s.sponsor_name || '').trim(),
+                                    logo_url: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
+                                    link: (s.link || s.sponsor_link || '').trim(),
+                                    description: (s.description || s.sponsor_description || '').trim()
+                                }));
+                            if (valid.length > 0) return valid;
+                        }
+                    }
+                } catch (e) {}
+            }
+            const rawName = (r.sponsor_name || r.sponsorName || '').trim();
+            if (rawName && (rawName.includes(' • ') || rawName.includes(' | '))) {
+                const parts = rawName.split(/\s*(?:•|\|)\s*/).filter(Boolean);
+                if (parts.length > 1) {
+                    return parts.map((pName, idx) => ({
+                        name: pName.trim(),
+                        logo_url: idx === 0 ? (r.sponsor_logo || r.sponsor_logo_url || r.sponsorLogo || r.sponsorUrl || '').trim() : '',
+                        link: idx === 0 ? (r.sponsor_link || r.sponsorLink || '').trim() : '',
+                        description: idx === 0 ? (r.sponsor_description || r.sponsorDescription || '').trim() : ''
+                    }));
+                }
+            }
+            if (rawName || r.sponsor_logo || r.sponsor_logo_url || r.sponsorLogo || r.sponsorUrl) {
+                return [{
+                    name: rawName,
+                    logo_url: (r.sponsor_logo || r.sponsor_logo_url || r.sponsorLogo || r.sponsorUrl || '').trim(),
+                    link: (r.sponsor_link || r.sponsorLink || '').trim(),
+                    description: (r.sponsor_description || r.sponsorDescription || '').trim()
+                }];
+            }
+            return [];
+        }
+
         function parseColor(v) {
             if (typeof v !== 'string') return null;
             const s = v.trim();
@@ -2473,16 +2545,7 @@
                                 lastUpdatePretty: 'Live'
                             },
                             routes: (data.routes || []).map(r => {
-                                const rSponsors = (Array.isArray(r.sponsors) && r.sponsors.length > 0)
-                                    ? r.sponsors.filter(s => s && (s.name || s.logo_url))
-                                    : ((r.sponsor_name || r.sponsorName || r.sponsor_logo_url || r.sponsor_logo)
-                                        ? [{
-                                            name: r.sponsor_name || r.sponsorName || '',
-                                            logo_url: r.sponsor_logo_url || r.sponsor_logo || r.sponsorUrl || '',
-                                            link: r.sponsor_link || r.sponsor_url || r.sponsorLink || '',
-                                            description: r.sponsor_description || r.sponsorDescription || ''
-                                        }]
-                                        : []);
+                                const rSponsors = extractRouteSponsors(r);
                                 return {
                                     ...r,
                                     routeName: r.name || r.routeName,
@@ -2491,7 +2554,7 @@
                                     'End Time': r.end_time || '20:30',
                                     streets: r.streets || (data.streets?.filter(s => s.route_id === r.id).map(s => s.street_name).join(', ')) || '',
                                     sponsors: rSponsors,
-                                    sponsorName: rSponsors[0]?.name || r.sponsor_name || r.sponsorName || '',
+                                    sponsorName: rSponsors.map(s => s.name).filter(Boolean).join(' • ') || (r.sponsor_name || r.sponsorName || ''),
                                     sponsorUrl: rSponsors[0]?.logo_url || r.sponsor_logo_url || r.sponsor_logo || r.sponsorUrl || '',
                                     sponsorLink: rSponsors[0]?.link || r.sponsor_link || r.sponsor_url || r.sponsorLink || '',
                                     sponsorDescription: rSponsors[0]?.description || r.sponsor_description || r.sponsorDescription || ''
@@ -2543,16 +2606,7 @@
                                 lastUpdatePretty: 'Just now'
                             },
                             routes: (data.routes || []).map(r => {
-                                const rSponsors = (Array.isArray(r.sponsors) && r.sponsors.length > 0)
-                                    ? r.sponsors.filter(s => s && (s.name || s.logo_url))
-                                    : ((r.sponsor_name || r.sponsor_logo_url || r.sponsor_logo)
-                                        ? [{
-                                            name: r.sponsor_name || '',
-                                            logo_url: r.sponsor_logo_url || r.sponsor_logo || '',
-                                            link: r.sponsor_link || '',
-                                            description: r.sponsor_description || ''
-                                        }]
-                                        : []);
+                                const rSponsors = extractRouteSponsors(r);
                                 return {
                                     ...r,
                                     routeName: r.name || r.routeName,
@@ -2562,7 +2616,7 @@
                                     notes: r.notes || '',
                                     streets: r.streets || (data.streets?.filter(s => s.route_id === r.id).map(s => s.street_name).join(', ')) || '',
                                     sponsors: rSponsors,
-                                    sponsorName: rSponsors[0]?.name || r.sponsor_name || '',
+                                    sponsorName: rSponsors.map(s => s.name).filter(Boolean).join(' • ') || (r.sponsor_name || ''),
                                     sponsorUrl: rSponsors[0]?.logo_url || r.sponsor_logo_url || r.sponsor_logo || '',
                                     sponsorLink: rSponsors[0]?.link || r.sponsor_link || '',
                                     sponsorDescription: rSponsors[0]?.description || r.sponsor_description || ''

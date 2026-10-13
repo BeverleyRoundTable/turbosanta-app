@@ -12,6 +12,7 @@ import {
 import confetti from 'canvas-confetti';
 import { logoutAdmin, isNationalAdmin, getAdminAuthToken } from '../services/auth';
 import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, saveRoute, deleteRoute } from '../services/api';
+import { extractRouteSponsors } from '../utils/sponsors';
 import DropzoneUpload from './DropzoneUpload';
 import RouteEditorModal from './RouteEditorModal';
 import ExpensesModal from './ExpensesModal';
@@ -874,12 +875,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
       gpx_file_name: sourceRoute.gpx_file_name || (sourceRoute.gpx_url ? 'route.gpx' : ''),
       planned_stops: sourceRoute.planned_stops || [],
       streets: routeStreets.map(s => ({ street_name: s.street_name })),
-      sponsors: sourceRoute.sponsors || (sourceRoute.sponsor_name ? [{
-        name: sourceRoute.sponsor_name,
-        link: sourceRoute.sponsor_link || '',
-        description: sourceRoute.sponsor_description || '',
-        logo_url: sourceRoute.sponsor_logo_url || sourceRoute.sponsor_logo || ''
-      }] : []),
+      sponsors: extractRouteSponsors(sourceRoute),
       sponsor_name: sourceRoute.sponsor_name || '',
       sponsor_link: sourceRoute.sponsor_link || '',
       sponsor_description: sourceRoute.sponsor_description || '',

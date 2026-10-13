@@ -558,6 +558,78 @@
     });
   }
 
+  function extractRouteSponsors(route) {
+    if (!route) return [];
+    if (Array.isArray(route.sponsors) && route.sponsors.length > 0) {
+      const valid = route.sponsors
+        .filter(s => s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url))
+        .map(s => ({
+          name: (s.name || s.sponsor_name || '').trim(),
+          logo_url: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
+          link: (s.link || s.sponsor_link || '').trim(),
+          description: (s.description || s.sponsor_description || '').trim()
+        }));
+      if (valid.length > 0) return valid;
+    }
+    if (route.sponsors_json) {
+      try {
+        const parsed = typeof route.sponsors_json === 'string' ? JSON.parse(route.sponsors_json) : route.sponsors_json;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const valid = parsed
+            .filter(s => s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url))
+            .map(s => ({
+              name: (s.name || s.sponsor_name || '').trim(),
+              logo_url: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
+              link: (s.link || s.sponsor_link || '').trim(),
+              description: (s.description || s.sponsor_description || '').trim()
+            }));
+          if (valid.length > 0) return valid;
+        }
+      } catch (e) {}
+    }
+    if (route.notes) {
+      try {
+        const match = route.notes.match(/<!--\s*SPONSORS_DATA:\s*(\[.*?\])\s*-->/s) ||
+                      route.notes.match(/\[SPONSORS_JSON:\s*(\[.*?\])\s*\]/s);
+        if (match && match[1]) {
+          const parsed = JSON.parse(match[1]);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const valid = parsed
+              .filter(s => s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url))
+              .map(s => ({
+                name: (s.name || s.sponsor_name || '').trim(),
+                logo_url: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
+                link: (s.link || s.sponsor_link || '').trim(),
+                description: (s.description || s.sponsor_description || '').trim()
+              }));
+            if (valid.length > 0) return valid;
+          }
+        }
+      } catch (e) {}
+    }
+    const rawName = (route.sponsor_name || route.sponsorName || route.sponsor || route['Sponsor'] || '').trim();
+    if (rawName && (rawName.includes(' • ') || rawName.includes(' | '))) {
+      const parts = rawName.split(/\s*(?:•|\|)\s*/).filter(Boolean);
+      if (parts.length > 1) {
+        return parts.map((pName, idx) => ({
+          name: pName.trim(),
+          logo_url: idx === 0 ? (route.sponsor_logo || route.sponsor_logo_url || route.sponsorLogo || route.sponsorUrl || '').trim() : '',
+          link: idx === 0 ? (route.sponsor_link || route.sponsorLink || '').trim() : '',
+          description: idx === 0 ? (route.sponsor_description || route.sponsorDescription || '').trim() : ''
+        }));
+      }
+    }
+    if (rawName || route.sponsor_logo || route.sponsor_logo_url || route.sponsorLogo || route.sponsorUrl) {
+      return [{
+        name: rawName,
+        logo_url: (route.sponsor_logo || route.sponsor_logo_url || route.sponsorLogo || route.sponsorUrl || '').trim(),
+        link: (route.sponsor_link || route.sponsorLink || '').trim(),
+        description: (route.sponsor_description || route.sponsorDescription || '').trim()
+      }];
+    }
+    return [];
+  }
+
   async function loadRouteData() {
     const resultsDiv = document.getElementById('results');
     const btn = document.getElementById('locateBtn');
@@ -584,11 +656,13 @@
       if(data && data.routes) {
         routesData = data.routes.map(r => {
           const routeStreets = (data.streets || []).filter(s => s.route_id === r.id).map(s => s.street_name);
+          const spList = extractRouteSponsors(r);
           return {
             ...r,
             routeName: r.name || r.routeName || 'Santa Route',
             streets: r.streets || (routeStreets.length ? routeStreets.join(', ') : ''),
-            gpxUrl: r.gpxUrl || r.gpx_url || ''
+            gpxUrl: r.gpxUrl || r.gpx_url || '',
+            sponsors: spList
           };
         });
         const loadedLayers = [];
@@ -750,32 +824,64 @@
           routeDateObj.getDate() === now.getDate()
         );
 
-        const sponsorName = route.sponsor_name || route.sponsorName || route.sponsor || route['Sponsor'] || '';
-        const sponsorLogo = route.sponsor_logo || route.sponsorLogo || route.sponsorUrl || '';
-
-        // Pin / GPS lookups know the distance; street lookups know the street name
-        let locationLine = '';
-        if (route.distance != null) {
-          locationLine = `📍 This route passes roughly <span style="color: var(--text);">${route.distance} meters</span> from your pin.`;
-        } else if (currentStreet) {
-          locationLine = `📍 Santa visits <span style="color: var(--text);">${esc(currentStreet)}</span> on this route.`;
-        }
-
-        // Today emphasis banner with extra text info
-        const todayBanner = isToday ? `
-          <div style="background: rgba(251, 175, 51, 0.15); border: 1px solid var(--primary); border-radius: 8px; padding: 10px 14px; margin-top: 10px; display: flex; align-items: center; gap: 10px;">
-            <span style="background: var(--primary); color: #000; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 100px; text-transform: uppercase;">TODAY!</span>
-            <span style="font-size: 13px; font-weight: 700; color: #fff;">🎅 Santa is on this route TONIGHT! Track him live from ${route['Start Time'] || '17:30'}</span>
-          </div>
-        ` : '';
+        const sponsors = (Array.isArray(route.sponsors) && route.sponsors.length > 0)
+          ? route.sponsors
+          : extractRouteSponsors(route);
 
         // Route sponsor attribution
-        const sponsorHtml = sponsorName ? `
-          <div style="border-top: 1px solid var(--border); margin-top: 14px; padding-top: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--primary);">
-            <span>⭐ Proudly sponsored by: <strong style="color: #fff;">${esc(sponsorName)}</strong></span>
-            ${sponsorLogo ? `<img src="${esc(sponsorLogo)}" alt="${esc(sponsorName)}" style="height: 20px; object-fit: contain; background: #fff; padding: 1px 6px; border-radius: 4px;" />` : ''}
-          </div>
-        ` : '';
+        let sponsorHtml = '';
+        if (sponsors.length === 1) {
+          const sp = sponsors[0];
+          const spLink = sp.link
+            ? `<a href="${esc(sp.link)}" target="_blank" rel="noopener noreferrer sponsored" style="color: #fff; text-decoration: underline; font-weight: 700;">${esc(sp.name)} ↗</a>`
+            : `<strong style="color: #fff;">${esc(sp.name)}</strong>`;
+          const spLogo = sp.logo_url
+            ? `<img src="${esc(sp.logo_url)}" alt="${esc(sp.name)}" style="height: 22px; max-width: 90px; object-fit: contain; background: #fff; padding: 2px 6px; border-radius: 4px;" />`
+            : '';
+          const spDesc = sp.description
+            ? `<p style="margin: 4px 0 0; font-size: 12px; color: var(--text-dim); line-height: 1.35;">${esc(sp.description)}</p>`
+            : '';
+
+          sponsorHtml = `
+            <div style="border-top: 1px solid var(--border); margin-top: 14px; padding-top: 10px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--primary);">
+                <span>⭐ Proudly sponsored by: ${spLink}</span>
+                ${spLogo}
+              </div>
+              ${spDesc}
+            </div>
+          `;
+        } else if (sponsors.length > 1) {
+          sponsorHtml = `
+            <div style="border-top: 1px solid var(--border); margin-top: 14px; padding-top: 10px;">
+              <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary); margin-bottom: 8px;">
+                ⭐ TONIGHT'S ROUTE SPONSORS (${sponsors.length}):
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
+                ${sponsors.map(sp => {
+                  const sLink = sp.link
+                    ? `<a href="${esc(sp.link)}" target="_blank" rel="noopener noreferrer sponsored" style="color: #fff; font-weight: 700; text-decoration: underline; font-size: 13px;">${esc(sp.name)} ↗</a>`
+                    : `<strong style="color: #fff; font-size: 13px;">${esc(sp.name)}</strong>`;
+                  const sLogo = sp.logo_url
+                    ? `<img src="${esc(sp.logo_url)}" alt="${esc(sp.name)}" style="height: 20px; max-width: 80px; object-fit: contain; background: #fff; padding: 2px 5px; border-radius: 4px;" />`
+                    : '';
+                  const sDesc = sp.description
+                    ? `<div style="font-size: 11px; color: var(--text-dim); margin-top: 4px; line-height: 1.3;">${esc(sp.description)}</div>`
+                    : '';
+                  return `
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; justify-content: space-between;">
+                      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                        ${sLink}
+                        ${sLogo}
+                      </div>
+                      ${sDesc}
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          `;
+        }
 
         resultsDiv.innerHTML += `
           <div class="addr-route-card ${isToday ? 'is-today' : ''}" data-route-name="${route.routeName}" style="--route-color: ${route.color || PRIMARY};">

@@ -406,9 +406,33 @@ export default {
             }
           } catch(e) {}
         }
-        if (sponsors.length === 0 && (r.sponsor_name || r.sponsor_logo || r.sponsor_logo_url)) {
+        if (sponsors.length === 0 && r.notes) {
+          try {
+            const match = r.notes.match(/<!--\s*SPONSORS_DATA:\s*(\[.*?\])\s*-->/s) ||
+                          r.notes.match(/\[SPONSORS_JSON:\s*(\[.*?\])\s*\]/s);
+            if (match && match[1]) {
+              const parsed = JSON.parse(match[1]);
+              if (Array.isArray(parsed)) {
+                sponsors = parsed.filter(sp => sp && (sp.name || sp.sponsor_name || sp.logo_url || sp.sponsor_logo || sp.sponsor_logo_url));
+              }
+            }
+          } catch(e) {}
+        }
+        const rawName = (r.sponsor_name || '').trim();
+        if (sponsors.length === 0 && rawName && (rawName.includes(' • ') || rawName.includes(' | '))) {
+          const parts = rawName.split(/\s*(?:•|\|)\s*/).filter(Boolean);
+          if (parts.length > 1) {
+            sponsors = parts.map((partName, idx) => ({
+              name: partName.trim(),
+              logo_url: idx === 0 ? (r.sponsor_logo_url || r.sponsor_logo || '') : '',
+              link: idx === 0 ? (r.sponsor_link || '') : '',
+              description: idx === 0 ? (r.sponsor_description || '') : ''
+            }));
+          }
+        }
+        if (sponsors.length === 0 && (rawName || r.sponsor_logo || r.sponsor_logo_url)) {
           sponsors = [{
-            name: r.sponsor_name || '',
+            name: rawName,
             logo_url: r.sponsor_logo_url || r.sponsor_logo || '',
             link: r.sponsor_link || '',
             description: r.sponsor_description || ''
@@ -423,7 +447,8 @@ export default {
         return {
           ...r,
           sponsors,
-          sponsor_name: sponsors[0]?.name || r.sponsor_name || '',
+          sponsors_json: sponsors.length > 0 ? JSON.stringify(sponsors) : null,
+          sponsor_name: sponsors.map(s => s.name).filter(Boolean).join(' • ') || (r.sponsor_name || ''),
           sponsor_logo: sponsors[0]?.logo_url || r.sponsor_logo || '',
           sponsor_logo_url: sponsors[0]?.logo_url || r.sponsor_logo_url || r.sponsor_logo || '',
           sponsor_link: sponsors[0]?.link || r.sponsor_link || '',
@@ -1201,9 +1226,35 @@ SANTA'S SPOKEN RESPONSE:`;
           } catch(e) {}
         }
 
-        if (sponsorsList.length === 0 && (r.sponsor_name || r.sponsorName || r.sponsor_logo_url || r.sponsor_logo || r.sponsorLogo)) {
+        if (sponsorsList.length === 0 && r.notes) {
+          try {
+            const match = r.notes.match(/<!--\s*SPONSORS_DATA:\s*(\[.*?\])\s*-->/s) ||
+                          r.notes.match(/\[SPONSORS_JSON:\s*(\[.*?\])\s*\]/s);
+            if (match && match[1]) {
+              const parsed = JSON.parse(match[1]);
+              if (Array.isArray(parsed)) {
+                sponsorsList = parsed.filter(sp => sp && (sp.name || sp.sponsor_name || sp.logo_url || sp.sponsor_logo || sp.sponsor_logo_url));
+              }
+            }
+          } catch(e) {}
+        }
+
+        const rawSponsorName = (r.sponsor_name || r.sponsorName || "").trim();
+        if (sponsorsList.length === 0 && rawSponsorName && (rawSponsorName.includes(' • ') || rawSponsorName.includes(' | '))) {
+          const parts = rawSponsorName.split(/\s*(?:•|\|)\s*/).filter(Boolean);
+          if (parts.length > 1) {
+            sponsorsList = parts.map((partName, idx) => ({
+              name: partName.trim(),
+              logo_url: idx === 0 ? (r.sponsor_logo_url || r.sponsor_logo || r.sponsorLogo || "") : "",
+              link: idx === 0 ? (r.sponsor_link || r.sponsorLink || "") : "",
+              description: idx === 0 ? (r.sponsor_description || r.sponsorDescription || "") : ""
+            }));
+          }
+        }
+
+        if (sponsorsList.length === 0 && (rawSponsorName || r.sponsor_logo_url || r.sponsor_logo || r.sponsorLogo)) {
           sponsorsList = [{
-            name: r.sponsor_name || r.sponsorName || '',
+            name: rawSponsorName,
             logo_url: r.sponsor_logo_url || r.sponsor_logo || r.sponsorLogo || '',
             link: r.sponsor_link || r.sponsorLink || '',
             description: r.sponsor_description || r.sponsorDescription || ''
@@ -1219,10 +1270,15 @@ SANTA'S SPOKEN RESPONSE:`;
 
         const sponsorsJson = sponsorsList.length > 0 ? JSON.stringify(sponsorsList) : null;
         const primarySponsor = sponsorsList[0] || {};
-        const sponsorName = primarySponsor.name || r.sponsor_name || r.sponsorName || "";
+        const sponsorName = sponsorsList.map(s => s.name).filter(Boolean).join(' • ') || (primarySponsor.name || rawSponsorName || "");
         const sponsorLogo = primarySponsor.logo_url || r.sponsor_logo_url || r.sponsor_logo || r.sponsorLogo || "";
         const sponsorLink = primarySponsor.link || r.sponsor_link || r.sponsorLink || "";
         const sponsorDesc = primarySponsor.description || r.sponsor_description || r.sponsorDescription || "";
+
+        const existingNotes = (r.notes || "").replace(/<!--\s*SPONSORS_DATA:.*?-->/gs, '').trim();
+        const finalNotes = sponsorsList.length > 0
+          ? (existingNotes ? `${existingNotes}\n<!-- SPONSORS_DATA:${JSON.stringify(sponsorsList)} -->` : `<!-- SPONSORS_DATA:${JSON.stringify(sponsorsList)} -->`)
+          : existingNotes;
 
         // Upsert Route in D1
         await env.DB.prepare(`
@@ -1242,7 +1298,7 @@ SANTA'S SPOKEN RESPONSE:`;
             sponsor_link = excluded.sponsor_link,
             sponsor_description = excluded.sponsor_description,
             sponsors_json = excluded.sponsors_json
-        `).bind(routeId, table.id, name, date, startTime, endTime, status, notes, gpxUrl, sponsorName, sponsorLogo, sponsorLink, sponsorDesc, sponsorsJson).run();
+        `).bind(routeId, table.id, name, date, startTime, endTime, status, finalNotes, gpxUrl, sponsorName, sponsorLogo, sponsorLink, sponsorDesc, sponsorsJson).run();
 
         // Sync Streets for this route
         await env.DB.prepare("DELETE FROM route_streets WHERE table_id = ? AND route_id = ?").bind(table.id, routeId).run();

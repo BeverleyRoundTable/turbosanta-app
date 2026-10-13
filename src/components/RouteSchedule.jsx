@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Star, Clock, CheckCircle2, MapPin, Building2, ExternalLink } from 'lucide-react';
+import { extractRouteSponsors } from '../utils/sponsors';
 
 export default function RouteSchedule({ tableData }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -208,24 +209,74 @@ export default function RouteSchedule({ tableData }) {
           </div>
 
           {/* Sponsor Box if available */}
-          {todayRoute.sponsor_name && (
-            <div style={{
-              background: 'rgba(251, 175, 51, 0.08)',
-              border: '1px solid var(--primary)',
-              borderRadius: '12px',
-              padding: '20px'
-            }}>
-              <div style={{ fontSize: '12px', color: 'var(--primary)', fontWeight: 800, textTransform: 'uppercase', marginBottom: '8px' }}>
-                ⭐ TONIGHT'S SPONSOR:
+          {(() => {
+            const todaySponsors = extractRouteSponsors(todayRoute);
+            if (todaySponsors.length === 0) return null;
+            return (
+              <div style={{
+                background: 'rgba(251, 175, 51, 0.08)',
+                border: '1px solid var(--primary)',
+                borderRadius: '12px',
+                padding: '20px'
+              }}>
+                <div style={{ fontSize: '12px', color: 'var(--primary)', fontWeight: 800, textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.05em' }}>
+                  ⭐ {todaySponsors.length > 1 ? "TONIGHT'S SPONSORS:" : "TONIGHT'S SPONSOR:"}
+                </div>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: todaySponsors.length > 1 ? 'repeat(auto-fit, minmax(220px, 1fr))' : '1fr',
+                  gap: '16px'
+                }}>
+                  {todaySponsors.map((sp, idx) => (
+                    <div key={idx} style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      padding: todaySponsors.length > 1 ? '12px' : '0',
+                      background: todaySponsors.length > 1 ? 'rgba(255, 255, 255, 0.03)' : 'transparent',
+                      borderRadius: '8px',
+                      border: todaySponsors.length > 1 ? '1px solid rgba(251, 175, 51, 0.15)' : 'none'
+                    }}>
+                      {sp.logo_url && (
+                        <img
+                          src={sp.logo_url}
+                          alt={sp.name || 'Sponsor'}
+                          style={{
+                            maxHeight: '44px',
+                            maxWidth: '180px',
+                            objectFit: 'contain',
+                            background: '#fff',
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            alignSelf: 'flex-start'
+                          }}
+                        />
+                      )}
+                      {sp.link ? (
+                        <a
+                          href={sp.link}
+                          target="_blank"
+                          rel="noopener noreferrer sponsored"
+                          style={{ fontSize: '16px', color: '#fff', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                          onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
+                          onMouseLeave={e => e.currentTarget.style.color = '#fff'}
+                        >
+                          {sp.name} <ExternalLink size={14} />
+                        </a>
+                      ) : (
+                        <strong style={{ fontSize: '16px', color: '#fff' }}>{sp.name}</strong>
+                      )}
+                      {sp.description && (
+                        <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
+                          {sp.description}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
-              <strong style={{ fontSize: '18px', color: '#fff' }}>{todayRoute.sponsor_name}</strong>
-              {todayRoute.sponsor_description && (
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '6px 0 0 0' }}>
-                  {todayRoute.sponsor_description}
-                </p>
-              )}
-            </div>
-          )}
+            );
+          })()}
         </div>
       )}
 
@@ -238,6 +289,7 @@ export default function RouteSchedule({ tableData }) {
         {routes.map(r => {
           const routeStreets = streets.filter(s => s.route_id === r.id);
           const isPast = r.date && new Date(r.date) < new Date(todayStr);
+          const cardSponsors = extractRouteSponsors(r);
 
           return (
             <div key={r.id} style={{
@@ -289,19 +341,37 @@ export default function RouteSchedule({ tableData }) {
               </div>
 
               {/* Sponsor Box */}
-              {r.sponsor_name && (
+              {cardSponsors.length > 0 && (
                 <div style={{
                   borderTop: '1px solid var(--border)',
                   paddingTop: '12px',
                   marginTop: 'auto',
                   fontSize: '13px',
                   display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
+                  flexDirection: 'column',
+                  gap: '6px',
                   color: 'var(--primary)'
                 }}>
-                  <Building2 size={16} />
-                  <span>Sponsored by <strong>{r.sponsor_name}</strong></span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <Building2 size={14} />
+                    <span>{cardSponsors.length > 1 ? `SPONSORED BY (${cardSponsors.length}):` : 'SPONSORED BY:'}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+                    {cardSponsors.map((sp, idx) => (
+                      <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: '6px' }}>
+                        {sp.logo_url && (
+                          <img src={sp.logo_url} alt="" style={{ height: '18px', maxWidth: '70px', objectFit: 'contain', background: '#fff', padding: '1px 3px', borderRadius: '3px' }} />
+                        )}
+                        {sp.link ? (
+                          <a href={sp.link} target="_blank" rel="noopener noreferrer sponsored" style={{ color: '#fff', textDecoration: 'none', fontWeight: 600 }}>
+                            {sp.name} ↗
+                          </a>
+                        ) : (
+                          <strong style={{ color: '#fff' }}>{sp.name}</strong>
+                        )}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

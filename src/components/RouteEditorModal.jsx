@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { X, Calendar, Clock, MapPin, Building2, Save, Trash2, UploadCloud, FileText, CheckCircle2, Navigation, ExternalLink, Sparkles, Plus } from 'lucide-react';
 import DropzoneUpload from './DropzoneUpload';
 import { uploadAssetToR2 } from '../services/api';
+import { extractRouteSponsors } from '../utils/sponsors';
 
 function formatRouteDateWithWeekday(dateStr) {
   if (!dateStr) return '';
@@ -20,46 +21,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
   const gpxFileInputRef = useRef(null);
 
   const getInitialSponsors = () => {
-    if (Array.isArray(route?.sponsors) && route.sponsors.length > 0) {
-      return route.sponsors.map(s => ({
-        name: s.name || s.sponsor_name || '',
-        link: s.link || s.sponsor_link || '',
-        description: s.description || s.sponsor_description || '',
-        logo_url: s.logo_url || s.sponsor_logo_url || s.sponsor_logo || ''
-      }));
-    }
-    if (route?.sponsors_json) {
-      try {
-        const parsed = typeof route.sponsors_json === 'string' ? JSON.parse(route.sponsors_json) : route.sponsors_json;
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map(s => ({
-            name: s.name || s.sponsor_name || '',
-            link: s.link || s.sponsor_link || '',
-            description: s.description || s.sponsor_description || '',
-            logo_url: s.logo_url || s.sponsor_logo_url || s.sponsor_logo || ''
-          }));
-        }
-      } catch (e) {}
-    }
-    if (route?.sponsor_name || route?.sponsor_logo_url || route?.sponsor_logo) {
-      // Auto-decompose if previously joined with ' • ' or ' | '
-      if (route.sponsor_name && (route.sponsor_name.includes(' • ') || route.sponsor_name.includes(' | '))) {
-        const parts = route.sponsor_name.split(/\s*(?:•|\|)\s*/).filter(Boolean);
-        return parts.map((partName, idx) => ({
-          name: partName,
-          link: idx === 0 ? (route.sponsor_link || '') : '',
-          description: idx === 0 ? (route.sponsor_description || '') : '',
-          logo_url: idx === 0 ? (route.sponsor_logo_url || route.sponsor_logo || '') : ''
-        }));
-      }
-      return [{
-        name: route.sponsor_name || '',
-        link: route.sponsor_link || '',
-        description: route.sponsor_description || '',
-        logo_url: route.sponsor_logo_url || route.sponsor_logo || ''
-      }];
-    }
-    return [];
+    return extractRouteSponsors(route);
   };
 
   const [sponsors, setSponsors] = useState(getInitialSponsors);
@@ -232,10 +194,16 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
       }))
       .filter(s => s.name || s.logo_url);
 
+    const existingNotes = (route?.notes || formData?.notes || '').replace(/<!--\s*SPONSORS_DATA:.*?-->/gs, '').trim();
+    const finalNotes = validSponsors.length > 0
+      ? (existingNotes ? `${existingNotes}\n<!-- SPONSORS_DATA:${JSON.stringify(validSponsors)} -->` : `<!-- SPONSORS_DATA:${JSON.stringify(validSponsors)} -->`)
+      : existingNotes;
+
     const updatedRoute = {
       ...formData,
       id: targetId,
       streets: streetsArray,
+      notes: finalNotes,
       sponsors: validSponsors,
       sponsors_json: validSponsors.length > 0 ? JSON.stringify(validSponsors) : null,
       sponsor_name: validSponsors.map(s => s.name).filter(Boolean).join(' • ') || (validSponsors[0]?.name || ''),

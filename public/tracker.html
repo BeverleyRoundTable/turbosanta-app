@@ -1048,19 +1048,96 @@ body.dim-ui .route-sponsor:hover { opacity: 0.85; }
             lastUpdatePretty: 'Live'
           };
         }
+  function extractRouteSponsors(r) {
+    if (!r) return [];
+    if (Array.isArray(r.sponsors) && r.sponsors.length > 0) {
+      const valid = r.sponsors
+        .filter(s => s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url))
+        .map(s => ({
+          name: (s.name || s.sponsor_name || '').trim(),
+          logo_url: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
+          link: (s.link || s.sponsor_link || '').trim(),
+          description: (s.description || s.sponsor_description || '').trim()
+        }));
+      if (valid.length > 0) return valid;
+    }
+    if (r.sponsors_json) {
+      try {
+        const parsed = typeof r.sponsors_json === 'string' ? JSON.parse(r.sponsors_json) : r.sponsors_json;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const valid = parsed
+            .filter(s => s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url))
+            .map(s => ({
+              name: (s.name || s.sponsor_name || '').trim(),
+              logo_url: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
+              link: (s.link || s.sponsor_link || '').trim(),
+              description: (s.description || s.sponsor_description || '').trim()
+            }));
+          if (valid.length > 0) return valid;
+        }
+      } catch (e) {}
+    }
+    if (r.notes) {
+      try {
+        const match = r.notes.match(/<!--\s*SPONSORS_DATA:\s*(\[.*?\])\s*-->/s) ||
+                      r.notes.match(/\[SPONSORS_JSON:\s*(\[.*?\])\s*\]/s);
+        if (match && match[1]) {
+          const parsed = JSON.parse(match[1]);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const valid = parsed
+              .filter(s => s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url))
+              .map(s => ({
+                name: (s.name || s.sponsor_name || '').trim(),
+                logo_url: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
+                link: (s.link || s.sponsor_link || '').trim(),
+                description: (s.description || s.sponsor_description || '').trim()
+              }));
+            if (valid.length > 0) return valid;
+          }
+        }
+      } catch (e) {}
+    }
+    const rawName = (r.sponsor_name || r.sponsorName || '').trim();
+    if (rawName && (rawName.includes(' • ') || rawName.includes(' | '))) {
+      const parts = rawName.split(/\s*(?:•|\|)\s*/).filter(Boolean);
+      if (parts.length > 1) {
+        return parts.map((pName, idx) => ({
+          name: pName.trim(),
+          logo_url: idx === 0 ? (r.sponsor_logo || r.sponsor_logo_url || r.sponsorLogo || r.sponsorUrl || '').trim() : '',
+          link: idx === 0 ? (r.sponsor_link || r.sponsorLink || '').trim() : '',
+          description: idx === 0 ? (r.sponsor_description || r.sponsorDescription || '').trim() : ''
+        }));
+      }
+    }
+    if (rawName || r.sponsor_logo || r.sponsor_logo_url || r.sponsorLogo || r.sponsorUrl) {
+      return [{
+        name: rawName,
+        logo_url: (r.sponsor_logo || r.sponsor_logo_url || r.sponsorLogo || r.sponsorUrl || '').trim(),
+        link: (r.sponsor_link || r.sponsorLink || '').trim(),
+        description: (r.sponsor_description || r.sponsorDescription || '').trim()
+      }];
+    }
+    return [];
+  }
+
         if (data.routes && Array.isArray(data.routes)) {
-          data.routes = data.routes.map(r => ({
-            ...r,
-            routeName: r.name || r.routeName,
-            date: r.date,
-            'Start Time': r.start_time || '18:00',
-            'End Time': r.end_time || '20:30',
-            gpxUrl: r.gpx_url || r.gpxUrl || '',
-            sponsorName: r.sponsor_name || r.sponsorName || '',
-            sponsorUrl: r.sponsor_logo || r.sponsor_logo_url || r.sponsorUrl || '',
-            sponsorLink: r.sponsor_link || r.sponsorLink || '',
-            streets: r.streets || (data.streets?.filter(s => s.route_id === r.id).map(s => s.street_name).join(', ')) || ''
-          }));
+          data.routes = data.routes.map(r => {
+            const spList = extractRouteSponsors(r);
+            return {
+              ...r,
+              routeName: r.name || r.routeName,
+              date: r.date,
+              'Start Time': r.start_time || '18:00',
+              'End Time': r.end_time || '20:30',
+              gpxUrl: r.gpx_url || r.gpxUrl || '',
+              sponsors: spList,
+              sponsorName: spList.map(s => s.name).filter(Boolean).join(' • ') || (r.sponsor_name || r.sponsorName || ''),
+              sponsorUrl: spList[0]?.logo_url || r.sponsor_logo || r.sponsor_logo_url || r.sponsorUrl || '',
+              sponsorLink: spList[0]?.link || r.sponsor_link || r.sponsorLink || '',
+              sponsorDescription: spList[0]?.description || r.sponsor_description || r.sponsorDescription || '',
+              streets: r.streets || (data.streets?.filter(s => s.route_id === r.id).map(s => s.street_name).join(', ')) || ''
+            };
+          });
         }
         return data;
       }
@@ -3161,21 +3238,118 @@ try {
       });
     }
 
-    if (AppState.flags.isKiosk && route?.sponsorUrl && Utils.isValidImageUrl(route.sponsorUrl)) { const span = document.createElement('span'); span.textContent = 'Proudly sponsored by'; const img = document.createElement('img'); img.alt = route.sponsorName || 'Sponsor'; img.onerror = () => { AppState.vars.kioskSponsorReady = false; AppState.dom.sponsorBox.classList.remove('visible'); }; img.src = Utils.resolveImageUrl(route.sponsorUrl); AppState.dom.sponsorBox.innerHTML = ''; AppState.dom.sponsorBox.appendChild(span); AppState.dom.sponsorBox.appendChild(img); AppState.vars.kioskSponsorReady = true; }
+    const routeSponsors = (Array.isArray(route?.sponsors) && route.sponsors.length > 0)
+      ? route.sponsors
+      : extractRouteSponsors(route);
+
+    if (AppState.flags.isKiosk && routeSponsors.length > 0) {
+      const validKioskSponsors = routeSponsors.filter(s => s && (s.name || s.logo_url));
+      if (validKioskSponsors.length > 0) {
+        let kIdx = 0;
+        const renderKioskSponsor = (sp) => {
+          AppState.dom.sponsorBox.innerHTML = '';
+          const span = document.createElement('span');
+          span.textContent = validKioskSponsors.length > 1 ? `Proudly sponsored by (${kIdx + 1}/${validKioskSponsors.length})` : 'Proudly sponsored by';
+          AppState.dom.sponsorBox.appendChild(span);
+          if (sp.logo_url && Utils.isValidImageUrl(sp.logo_url)) {
+            const img = document.createElement('img');
+            img.alt = sp.name || 'Sponsor';
+            img.src = Utils.resolveImageUrl(sp.logo_url);
+            AppState.dom.sponsorBox.appendChild(img);
+          } else {
+            const strong = document.createElement('strong');
+            strong.textContent = sp.name;
+            strong.style.color = '#fff';
+            strong.style.fontSize = '0.9em';
+            AppState.dom.sponsorBox.appendChild(strong);
+          }
+          AppState.vars.kioskSponsorReady = true;
+        };
+        renderKioskSponsor(validKioskSponsors[0]);
+        if (validKioskSponsors.length > 1) {
+          setInterval(() => {
+            kIdx = (kIdx + 1) % validKioskSponsors.length;
+            renderKioskSponsor(validKioskSponsors[kIdx]);
+          }, 5000);
+        }
+      }
+    }
     
-    // Non-kiosk route sponsor — set src/href once at init; visibility is toggled per poll in updateTracker
-    if (!AppState.flags.isKiosk && !AppState.flags.isDriver && route?.sponsorUrl && Utils.isValidImageUrl(route.sponsorUrl)) {
+    // Non-kiosk route sponsor — support multiple distinct sponsors via smooth rotating spotlight
+    if (!AppState.flags.isKiosk && !AppState.flags.isDriver && routeSponsors.length > 0) {
       const rs = document.getElementById('routeSponsor');
-      if (rs) {
-        const img = rs.querySelector('img');
-        img.alt = route.sponsorName ? `${route.sponsorName} logo` : 'Sponsor logo';
-        img.onerror = () => { AppState.vars.sponsorReady = false; rs.classList.remove('visible'); };
-        img.onload = () => { if (window.layoutOverlays) window.layoutOverlays(); };
-        img.src = Utils.resolveImageUrl(route.sponsorUrl);
-        if (route.sponsorName) rs.setAttribute('aria-label', `Tonight's route sponsor: ${route.sponsorName}`);
-        if (route.sponsorLink) { rs.href = route.sponsorLink; } else { rs.removeAttribute('href'); }
-        rs.addEventListener('click', () => { try { fetch(`${AppState.vars.apiUrl}?function=logSponsorClick&route=${encodeURIComponent(route.routeName || '')}&sponsor=${encodeURIComponent(route.sponsorName || route.sponsorLink || 'unknown')}`, { keepalive: true }).catch(() => {}); } catch(e) {} });
-        AppState.vars.sponsorReady = true;
+      const validSponsors = routeSponsors.filter(s => s && (s.name || s.logo_url));
+      if (rs && validSponsors.length > 0) {
+        let activeIdx = 0;
+        let isHovered = false;
+        rs.addEventListener('mouseenter', () => { isHovered = true; });
+        rs.addEventListener('mouseleave', () => { isHovered = false; });
+
+        const renderActiveSponsor = (idx) => {
+          const sp = validSponsors[idx];
+          if (!sp) return;
+
+          rs.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+          rs.style.opacity = '0.4';
+
+          setTimeout(() => {
+            rs.innerHTML = '';
+            const span = document.createElement('span');
+            span.textContent = validSponsors.length > 1 ? `Sponsored by (${idx + 1}/${validSponsors.length})` : 'Sponsored by';
+            rs.appendChild(span);
+
+            if (sp.logo_url && Utils.isValidImageUrl(sp.logo_url)) {
+              const img = document.createElement('img');
+              img.alt = sp.name ? `${sp.name} logo` : 'Sponsor logo';
+              img.onerror = () => {
+                img.style.display = 'none';
+                if (!sp.name) {
+                  AppState.vars.sponsorReady = false;
+                  rs.classList.remove('visible');
+                }
+              };
+              img.onload = () => { if (window.layoutOverlays) window.layoutOverlays(); };
+              img.src = Utils.resolveImageUrl(sp.logo_url);
+              rs.appendChild(img);
+            } else {
+              const strong = document.createElement('strong');
+              strong.textContent = sp.name;
+              strong.style.color = '#fff';
+              strong.style.fontWeight = '700';
+              strong.style.fontSize = '12px';
+              rs.appendChild(strong);
+            }
+
+            if (sp.name) rs.setAttribute('aria-label', `Tonight's route sponsor: ${sp.name}`);
+            if (sp.link) {
+              rs.href = sp.link;
+            } else {
+              rs.removeAttribute('href');
+            }
+
+            rs.onclick = () => {
+              try {
+                fetch(`${AppState.vars.apiUrl}?function=logSponsorClick&route=${encodeURIComponent(route.routeName || '')}&sponsor=${encodeURIComponent(sp.name || sp.link || 'unknown')}`, { keepalive: true }).catch(() => {});
+              } catch(e) {}
+            };
+
+            rs.style.opacity = '1';
+            AppState.vars.sponsorReady = true;
+            rs.classList.add('visible');
+            if (window.layoutOverlays) window.layoutOverlays();
+          }, 200);
+        };
+
+        renderActiveSponsor(0);
+
+        if (validSponsors.length > 1) {
+          setInterval(() => {
+            if (!isHovered && rs.classList.contains('visible')) {
+              activeIdx = (activeIdx + 1) % validSponsors.length;
+              renderActiveSponsor(activeIdx);
+            }
+          }, 4500);
+        }
       }
     }
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Share2, MapPin, ExternalLink, Star, ChevronDown } from 'lucide-react';
 import { API_BASE } from '../services/api';
+import { extractRouteSponsors } from '../utils/sponsors';
 
 const DEFAULT_LOGO = '/icons/RTBI_Santa.png';
 const DEFAULT_BG = '/icons/site_background.png';
@@ -428,26 +429,19 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
 
         const routeStreets = r.streets || (rawStreets.filter(s => s.route_id === r.id).map(s => s.street_name).join(', ')) || '';
 
+        const routeSponsors = extractRouteSponsors(r);
+
         return {
           ...r,
           d,
           day,
           routeName: r.name || r.routeName,
           streets: routeStreets,
-          sponsors: (Array.isArray(r.sponsors) && r.sponsors.length > 0)
-            ? r.sponsors.filter(s => s && (s.name || s.logo_url))
-            : ((r.sponsor_name || r.sponsorName || r.sponsor_logo_url || r.sponsor_logo)
-                ? [{
-                    name: r.sponsor_name || r.sponsorName || '',
-                    logo_url: r.sponsor_logo_url || r.sponsorUrl || r.sponsor_logo || '',
-                    link: r.sponsor_link || r.sponsorLink || '',
-                    description: r.sponsor_description || r.sponsorDescription || ''
-                  }]
-                : []),
-          sponsorName: r.sponsor_name || r.sponsorName,
-          sponsorUrl: r.sponsor_logo_url || r.sponsorUrl || r.sponsor_logo,
-          sponsorLink: r.sponsor_link || r.sponsorLink,
-          sponsorDescription: r.sponsor_description || r.sponsorDescription
+          sponsors: routeSponsors,
+          sponsorName: routeSponsors.map(s => s.name).filter(Boolean).join(' • ') || r.sponsor_name || r.sponsorName,
+          sponsorUrl: routeSponsors[0]?.logo_url || r.sponsor_logo_url || r.sponsorUrl || r.sponsor_logo,
+          sponsorLink: routeSponsors[0]?.link || r.sponsor_link || r.sponsorLink,
+          sponsorDescription: routeSponsors[0]?.description || r.sponsor_description || r.sponsorDescription
         };
       })
       .filter(Boolean)

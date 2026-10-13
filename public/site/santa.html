@@ -591,6 +591,78 @@ caches your custom fonts for a year, drastically speeding up load times:
             } catch (e) { return ''; }
         }
 
+        function extractRouteSponsors(r) {
+            if (!r) return [];
+            if (Array.isArray(r.sponsors) && r.sponsors.length > 0) {
+                const valid = r.sponsors
+                    .filter(s => s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url))
+                    .map(s => ({
+                        name: (s.name || s.sponsor_name || '').trim(),
+                        logo_url: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
+                        link: (s.link || s.sponsor_link || '').trim(),
+                        description: (s.description || s.sponsor_description || '').trim()
+                    }));
+                if (valid.length > 0) return valid;
+            }
+            if (r.sponsors_json) {
+                try {
+                    const parsed = typeof r.sponsors_json === 'string' ? JSON.parse(r.sponsors_json) : r.sponsors_json;
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        const valid = parsed
+                            .filter(s => s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url))
+                            .map(s => ({
+                                name: (s.name || s.sponsor_name || '').trim(),
+                                logo_url: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
+                                link: (s.link || s.sponsor_link || '').trim(),
+                                description: (s.description || s.sponsor_description || '').trim()
+                            }));
+                        if (valid.length > 0) return valid;
+                    }
+                } catch (e) {}
+            }
+            if (r.notes) {
+                try {
+                    const match = r.notes.match(/<!--\s*SPONSORS_DATA:\s*(\[.*?\])\s*-->/s) ||
+                                  r.notes.match(/\[SPONSORS_JSON:\s*(\[.*?\])\s*\]/s);
+                    if (match && match[1]) {
+                        const parsed = JSON.parse(match[1]);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            const valid = parsed
+                                .filter(s => s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url))
+                                .map(s => ({
+                                    name: (s.name || s.sponsor_name || '').trim(),
+                                    logo_url: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
+                                    link: (s.link || s.sponsor_link || '').trim(),
+                                    description: (s.description || s.sponsor_description || '').trim()
+                                }));
+                            if (valid.length > 0) return valid;
+                        }
+                    }
+                } catch (e) {}
+            }
+            const rawName = (r.sponsor_name || r.sponsorName || '').trim();
+            if (rawName && (rawName.includes(' • ') || rawName.includes(' | '))) {
+                const parts = rawName.split(/\s*(?:•|\|)\s*/).filter(Boolean);
+                if (parts.length > 1) {
+                    return parts.map((pName, idx) => ({
+                        name: pName.trim(),
+                        logo_url: idx === 0 ? (r.sponsor_logo || r.sponsor_logo_url || '').trim() : '',
+                        link: idx === 0 ? (r.sponsor_link || '').trim() : '',
+                        description: idx === 0 ? (r.sponsor_description || '').trim() : ''
+                    }));
+                }
+            }
+            if (rawName || r.sponsor_logo || r.sponsor_logo_url) {
+                return [{
+                    name: rawName,
+                    logo_url: (r.sponsor_logo || r.sponsor_logo_url || '').trim(),
+                    link: (r.sponsor_link || '').trim(),
+                    description: (r.sponsor_description || '').trim()
+                }];
+            }
+            return [];
+        }
+
         // Renders the "Our Generous Sponsors" logo strip from the API sponsors array
         function renderSponsors(sponsors) {
             const section = document.getElementById('sponsors');
@@ -820,29 +892,7 @@ function renderDonations(donations, settings) {
 
                 const rawRoutes = Array.isArray(raw.routes) ? raw.routes : [];
                 const routes = rawRoutes.map(r => {
-                    let spList = [];
-                    if (Array.isArray(r.sponsors) && r.sponsors.length > 0) {
-                        spList = r.sponsors;
-                    } else if (r.sponsors_json) {
-                        try {
-                            const parsed = typeof r.sponsors_json === 'string' ? JSON.parse(r.sponsors_json) : r.sponsors_json;
-                            if (Array.isArray(parsed)) spList = parsed;
-                        } catch (e) {}
-                    }
-                    if (spList.length === 0 && (r.sponsor_name || r.sponsor_logo || r.sponsor_logo_url)) {
-                        spList = [{
-                            name: r.sponsor_name || '',
-                            logo_url: r.sponsor_logo_url || r.sponsor_logo || '',
-                            link: r.sponsor_link || '',
-                            description: r.sponsor_description || ''
-                        }];
-                    }
-                    spList = spList.map(s => ({
-                        name: s.name || s.sponsor_name || '',
-                        logo_url: s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '',
-                        link: s.link || s.sponsor_link || '',
-                        description: s.description || s.sponsor_description || ''
-                    }));
+                    const spList = extractRouteSponsors(r);
                     return {
                         routeName: r.name || r.routeName,
                         date: r.date,
@@ -911,18 +961,44 @@ function renderDonations(donations, settings) {
                     const dateText = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
                     
                     let sponsorHtml = '';
-                    if (route.sponsorName) {
-                        const sponsorMatch = sponsors.find(sp => sp.name === route.sponsorName);
-                        const sponsorLink = sponsorMatch ? safeUrl(sponsorMatch.sponsorLink) : safeUrl(route.sponsorLink);
-                        
-                        sponsorHtml = `
-                            <div class="mt-auto pt-4 border-t border-white/10 flex items-center gap-3">
-                                ${route.sponsorUrl ? `<img src="${safeUrl(route.sponsorUrl)}" alt="${route.sponsorName}" class="w-8 h-8 object-contain bg-white rounded-lg p-1 shrink-0 shadow-sm">` : ''}
-                                <div class="text-xs text-brt-red font-heading uppercase tracking-wide">
-                                    Sponsored by: ${sponsorLink ? `<a href="${sponsorLink}" target="_blank" rel="noopener noreferrer" class="text-white font-bold hover:underline normal-case">${route.sponsorName}</a>` : `<strong class="text-white normal-case">${route.sponsorName}</strong>`}
+                    const rSponsors = (Array.isArray(route.sponsors) && route.sponsors.length > 0)
+                        ? route.sponsors
+                        : extractRouteSponsors(route);
+
+                    if (rSponsors.length > 0) {
+                        if (rSponsors.length === 1) {
+                            const sp = rSponsors[0];
+                            const sponsorMatch = sponsors.find(s => s.name === sp.name);
+                            const spLink = sp.link ? safeUrl(sp.link) : (sponsorMatch ? safeUrl(sponsorMatch.sponsorLink) : '');
+                            sponsorHtml = `
+                                <div class="mt-auto pt-4 border-t border-white/10 flex items-center gap-3">
+                                    ${sp.logo_url ? `<img src="${safeUrl(sp.logo_url)}" alt="${sp.name}" class="w-8 h-8 object-contain bg-white rounded-lg p-1 shrink-0 shadow-sm">` : ''}
+                                    <div class="text-xs text-brt-red font-heading uppercase tracking-wide">
+                                        Sponsored by: ${spLink ? `<a href="${spLink}" target="_blank" rel="noopener noreferrer" class="text-white font-bold hover:underline normal-case">${sp.name}</a>` : `<strong class="text-white normal-case">${sp.name}</strong>`}
+                                    </div>
                                 </div>
-                            </div>
-                        `;
+                            `;
+                        } else {
+                            sponsorHtml = `
+                                <div class="mt-auto pt-4 border-t border-white/10 flex flex-col gap-2">
+                                    <div class="text-xs text-brt-red font-heading uppercase tracking-wide">
+                                        Sponsored by (${rSponsors.length}):
+                                    </div>
+                                    <div class="flex flex-wrap gap-2">
+                                        ${rSponsors.map(sp => {
+                                            const sponsorMatch = sponsors.find(s => s.name === sp.name);
+                                            const spLink = sp.link ? safeUrl(sp.link) : (sponsorMatch ? safeUrl(sponsorMatch.sponsorLink) : '');
+                                            return `
+                                                <div class="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5">
+                                                    ${sp.logo_url ? `<img src="${safeUrl(sp.logo_url)}" alt="${sp.name}" class="w-6 h-6 object-contain bg-white rounded p-0.5 shrink-0">` : ''}
+                                                    ${spLink ? `<a href="${spLink}" target="_blank" rel="noopener noreferrer" class="text-xs text-white font-bold hover:underline">${sp.name} ↗</a>` : `<span class="text-xs text-white font-bold">${sp.name}</span>`}
+                                                </div>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                            `;
+                        }
                     }
 
                     // Show ALL street names: slice(0, 8) and line-clamp-3 removed
