@@ -37,6 +37,8 @@ caches your custom fonts for a year, drastically speeding up load times:
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://roundtablesantasleigh.co.uk" crossorigin>
+    <link rel="preconnect" href="https://api.elevenlabs.io" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -416,7 +418,7 @@ caches your custom fonts for a year, drastically speeding up load times:
                     <div class="flex justify-center lg:justify-end">
                         <div class="bg-gradient-to-b from-white/10 to-transparent p-4 rounded-[2.5rem] border border-brt-red/30 shadow-[0_0_40px_rgba(211,28,28,0.15)] w-full max-w-md relative">
                             <!-- ELEVENLABS CHAT IFRAME -->
-                            <iframe id="santa-chat-iframe" src="https://roundtablesantasleigh.co.uk/santa_chat.html?table=beverley" allow="microphone *; autoplay *; speaker-selection *; clipboard-write *" class="w-full h-[600px] border-0 rounded-[2rem] bg-[#1d1d1a] iframe-loading" title="Talk to Santa Claus" loading="lazy" onload="this.classList.remove('iframe-loading')"></iframe>
+                            <iframe id="santa-chat-iframe" src="https://roundtablesantasleigh.co.uk/santa_chat.html?table=beverley" allow="microphone *; autoplay *; speaker-selection *; clipboard-write *" class="w-full h-[600px] border-0 rounded-[2rem] bg-[#1d1d1a] iframe-loading" title="Talk to Santa Claus" loading="eager" onload="this.classList.remove('iframe-loading')"></iframe>
                         </div>
                     </div>
                 </div>

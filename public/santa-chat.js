@@ -30,7 +30,9 @@
   };
 
   var WIDGET_TAG = "elevenlabs-convai";
-  var EMBED_SRC = "https://unpkg.com/@elevenlabs/convai-widget-embed";
+  var EMBED_SRC = (window.location.origin.includes("localhost") || window.location.origin.includes("roundtablesantasleigh.co.uk") || window.location.origin.includes("pages.dev"))
+    ? "/convai-widget-embed.js"
+    : "https://roundtablesantasleigh.co.uk/convai-widget-embed.js";
 
   var SCRIPT = document.currentScript;
   var MOUNT = null;
@@ -204,6 +206,8 @@
       } catch (e) { return false; }
     }
 
+    if (injectStyle()) return;
+
     var obs = null;
     var timer = setInterval(function () {
       if (el.shadowRoot) {
@@ -215,7 +219,9 @@
           obs.observe(el.shadowRoot, { childList: true, subtree: true });
         }
       }
-    }, 300);
+    }, 50);
+
+    setTimeout(function () { clearInterval(timer); }, 6000);
   }
 
   function injectWidget(agentId) {
@@ -226,47 +232,53 @@
       return;
     }
 
-    var el = document.createElement(WIDGET_TAG);
-    el.setAttribute("agent-id", finalAgentId);
-    el.setAttribute("default-expanded", "true");
-    el.setAttribute("always-expanded", "true");
-    el.setAttribute("show-resize-button", "true");
+    var el = document.querySelector(WIDGET_TAG);
+    if (!el) {
+      el = document.createElement(WIDGET_TAG);
+      el.setAttribute("agent-id", finalAgentId);
+      el.setAttribute("default-expanded", "true");
+      el.setAttribute("always-expanded", "true");
+      el.setAttribute("show-resize-button", "true");
 
-    // Safely inject dynamic variables if valid ASCII string
-    if (lastRouteInfo && typeof lastRouteInfo === "string") {
-      var cleanRoute = lastRouteInfo.replace(/[^\x20-\x7E]/g, "").trim();
-      if (cleanRoute) {
-        try {
-          el.setAttribute("dynamic-variables", JSON.stringify({ route_info: cleanRoute }));
-        } catch (e) {
-          console.warn("[SantaChat] Dynamic variables error:", e);
+      if (lastRouteInfo && typeof lastRouteInfo === "string") {
+        var cleanRoute = lastRouteInfo.replace(/[^\x20-\x7E]/g, "").trim();
+        if (cleanRoute) {
+          try {
+            el.setAttribute("dynamic-variables", JSON.stringify({ route_info: cleanRoute }));
+          } catch (e) {
+            console.warn("[SantaChat] Dynamic variables error:", e);
+          }
         }
+      }
+
+      if (CONFIG.labels.action) el.setAttribute("action-text", CONFIG.labels.action);
+      if (CONFIG.labels.start) el.setAttribute("start-call-text", CONFIG.labels.start);
+      if (CONFIG.labels.end) el.setAttribute("end-call-text", CONFIG.labels.end);
+      if (CONFIG.avatarUrl) el.setAttribute("avatar-image-url", CONFIG.avatarUrl);
+
+      if (MOUNT) {
+        ensureInlineStyle();
+        el.className = "santa-inline";
+        el.setAttribute("placement", "bottom");
+        MOUNT.appendChild(el);
+        ensureShadowFillStyle(el);
+      } else {
+        document.body.appendChild(el);
       }
     }
 
-    if (CONFIG.labels.action) el.setAttribute("action-text", CONFIG.labels.action);
-    if (CONFIG.labels.start) el.setAttribute("start-call-text", CONFIG.labels.start);
-    if (CONFIG.labels.end) el.setAttribute("end-call-text", CONFIG.labels.end);
-    if (CONFIG.avatarUrl) el.setAttribute("avatar-image-url", CONFIG.avatarUrl);
-
-    if (MOUNT) {
-      ensureInlineStyle();
-      el.className = "santa-inline";
-      el.setAttribute("placement", "bottom");
-      MOUNT.appendChild(el);
-      ensureShadowFillStyle(el);
-    } else {
-      document.body.appendChild(el);
+    if (!window.customElements || !window.customElements.get(WIDGET_TAG)) {
+      if (!document.querySelector('script[src*="convai-widget"]')) {
+        var script = document.createElement("script");
+        script.src = EMBED_SRC;
+        script.async = true;
+        script.type = "text/javascript";
+        document.head.appendChild(script);
+      }
     }
 
-    var script = document.createElement("script");
-    script.src = EMBED_SRC;
-    script.async = true;
-    script.type = "text/javascript";
-    document.body.appendChild(script);
-
     injected = true;
-    console.info("[SantaChat] ElevenLabs ConvAI loaded (inline). Agent: " + finalAgentId);
+    console.info("[SantaChat] ElevenLabs ConvAI loaded (instant). Agent: " + finalAgentId);
   }
 
   function removeWidget() {
@@ -296,31 +308,51 @@
     }
 
     var gated = CONFIG.routeNightsOnly && !OPTS.always;
+    var show = hasPreviewFlag() || !gated || OPTS.always || inManualWindow();
 
-    // Fetch secret agent ID and routes in parallel
+    // 1. INSTANT LOAD: inject widget immediately with default Beverley agent ID
+    if (show) {
+      injectWidget(CONFIG.agentId);
+    }
+
+    // 2. BACKGROUND SYNC: fetch Cloudflare secret agent ID, route info, and favicon in parallel
     Promise.all([
-      fetchAgentSecret(slug),
+      fetchAgentSecret(slug).catch(function () { return CONFIG.agentId; }),
       fetchRoutes(slug).catch(function () { return []; })
     ]).then(function (results) {
-      var agentId = results[0];
+      var agentId = results[0] || CONFIG.agentId;
       var routes = results[1] || [];
 
       var todayRoute = getTodayRoute(routes);
       var nextRoute = getNextRoute(routes);
       lastRouteInfo = buildRouteInfo(todayRoute, nextRoute);
 
-      var show = hasPreviewFlag() || !gated ||
+      var shouldShow = hasPreviewFlag() || !gated ||
         (todayRoute && withinHours(CONFIG.routeDayHours)) ||
         OPTS.always || inManualWindow();
 
-      if (show) {
-        injectWidget(agentId);
-      } else {
-        console.info("[SantaChat] Hidden (no route tonight / outside hours). Append ?santa=1 to preview.");
+      var el = document.querySelector(WIDGET_TAG);
+      if (shouldShow) {
+        if (!el) {
+          injectWidget(agentId);
+        } else {
+          if (agentId && agentId !== CONFIG.agentId) {
+            el.setAttribute("agent-id", agentId);
+          }
+          if (lastRouteInfo && typeof lastRouteInfo === "string") {
+            var cleanRoute = lastRouteInfo.replace(/[^\x20-\x7E]/g, "").trim();
+            if (cleanRoute) {
+              try {
+                el.setAttribute("dynamic-variables", JSON.stringify({ route_info: cleanRoute }));
+              } catch (e) {}
+            }
+          }
+        }
+      } else if (el) {
+        removeWidget();
       }
     }).catch(function (e) {
-      console.warn("[SantaChat] Init error (" + e.message + ") — using fallback agent ID.");
-      injectWidget(CONFIG.agentId);
+      console.warn("[SantaChat] Background sync error:", e);
     });
   }
 
