@@ -481,12 +481,14 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
 
   const isBeverley = activeTableSlug === 'beverley' || table.slug === 'beverley';
 
-  const rawSlot1 = (table.public_slot_1 === 'santa_chat' && !isBeverley)
-    ? null
-    : (table.public_slot_1 || (isBeverley && table.enable_santa_chat ? 'santa_chat' : null));
-  const rawSlot2 = (table.public_slot_2 === 'santa_chat' && !isBeverley)
-    ? null
-    : (table.public_slot_2 || (table.enable_colouring ? 'colouring' : null));
+  const resolveSlot = (slotVal) => {
+    if (!slotVal || slotVal === 'none' || slotVal === 'disabled' || slotVal === '') return null;
+    if (slotVal === 'santa_chat' && !isBeverley) return null;
+    return slotVal;
+  };
+
+  const rawSlot1 = resolveSlot(table.public_slot_1);
+  const rawSlot2 = resolveSlot(table.public_slot_2);
   const slot1Meta = rawSlot1 && PUBLIC_FEATURE_CATALOG[rawSlot1] ? PUBLIC_FEATURE_CATALOG[rawSlot1] : null;
   const slot2Meta = (rawSlot2 && rawSlot2 !== rawSlot1 && PUBLIC_FEATURE_CATALOG[rawSlot2]) ? PUBLIC_FEATURE_CATALOG[rawSlot2] : null;
   const activeSlots = [slot1Meta, slot2Meta].filter(Boolean);

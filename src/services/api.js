@@ -284,19 +284,36 @@ export async function sendElfChatMessage(message, tableData) {
 
 export async function saveTableSettings(tableSlug = "beverley", settings = {}, explicitSecret = null) {
   try {
-    const session = getCurrentSession();
-    const token = explicitSecret || session?.googleCredential || session?.token;
-    const bodyPayload = { ...settings };
-    if (token && !bodyPayload.secret) {
-      bodyPayload.secret = token;
+    const slug = (tableSlug || "beverley").toLowerCase().trim();
+    let token = explicitSecret;
+    if (!token || (!token.startsWith("ts2_") && !token.includes("beverley247"))) {
+      token = getAdminAuthToken(slug);
     }
 
-    const res = await fetch(`${API_BASE}/api/table/settings?table=${encodeURIComponent(tableSlug)}`, {
+    const bodyPayload = { ...settings, secret: token };
+
+    let res = await fetch(`${API_BASE}/api/table/settings?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(token)}`, {
       method: "POST",
-      headers: getAuthHeaders(explicitSecret),
+      headers: getAuthHeaders(token, slug),
       body: JSON.stringify(bodyPayload)
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    // If 401 unauthorized, automatically self-heal and retry using fresh table admin token
+    if (res.status === 401) {
+      console.warn("Retrying saveTableSettings with fresh table admin token...");
+      const healToken = getAdminAuthToken(slug);
+      bodyPayload.secret = healToken;
+      res = await fetch(`${API_BASE}/api/table/settings?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(healToken)}`, {
+        method: "POST",
+        headers: getAuthHeaders(healToken, slug),
+        body: JSON.stringify(bodyPayload)
+      });
+    }
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || `HTTP ${res.status}`);
+    }
     return await res.json();
   } catch (err) {
     console.error("Save table settings error:", err);

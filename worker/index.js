@@ -357,15 +357,14 @@ export default {
         gemini_api_key: isAdmin ? (table.gemini_api_key || "") : (table.gemini_api_key ? "••••••••" : ""),
         santa_voice_provider: (slug === 'beverley') ? (table.santa_voice_provider || 'elevenlabs') : undefined,
         elevenlabs_agent_id: (slug === 'beverley') ? (table.elevenlabs_agent_id || env.ELEVENLABS_AGENT_ID || 'agent_4401kxaqcqygfb4940wnc4a9haeh') : '',
-        total_views: Number(table.total_views || 0),
-        enable_santa_chat: (slug === 'beverley') && Boolean((table.public_slot_1 === 'santa_chat' || table.public_slot_2 === 'santa_chat') || (table.public_slot_1 === undefined && table.enable_santa_chat)),
-        enable_colouring: Boolean((table.public_slot_1 === 'colouring' || table.public_slot_2 === 'colouring') || (table.public_slot_2 === undefined && table.enable_colouring)),
+        enable_santa_chat: (slug === 'beverley') && Boolean(table.public_slot_1 === 'santa_chat' || table.public_slot_2 === 'santa_chat'),
+        enable_colouring: Boolean(table.public_slot_1 === 'colouring' || table.public_slot_2 === 'colouring'),
         public_slot_1: (table.public_slot_1 !== undefined && table.public_slot_1 !== null)
           ? ((String(table.public_slot_1).trim() === 'santa_chat' && slug !== 'beverley') ? null : (String(table.public_slot_1).trim() === '' || String(table.public_slot_1).trim() === 'none' ? null : String(table.public_slot_1).trim()))
-          : (slug === 'beverley' && table.enable_santa_chat ? 'santa_chat' : null),
+          : null,
         public_slot_2: (table.public_slot_2 !== undefined && table.public_slot_2 !== null)
           ? ((String(table.public_slot_2).trim() === 'santa_chat' && slug !== 'beverley') ? null : (String(table.public_slot_2).trim() === '' || String(table.public_slot_2).trim() === 'none' ? null : String(table.public_slot_2).trim()))
-          : (table.enable_colouring ? 'colouring' : null),
+          : null,
         donation_breakdown: (breakdown && breakdown.results) || []
       };
 
@@ -1132,8 +1131,8 @@ SANTA'S SPOKEN RESPONSE:`;
           elevenlabs_agent_id !== undefined ? elevenlabs_agent_id : null,
           santa_voice_pitch !== undefined ? parseFloat(santa_voice_pitch) : null,
           santa_voice_rate !== undefined ? parseFloat(santa_voice_rate) : null,
-          enable_santa_chat !== undefined ? (enable_santa_chat ? 1 : 0) : ((public_slot_1 === 'santa_chat' || public_slot_2 === 'santa_chat') ? 1 : null),
-          enable_colouring !== undefined ? (enable_colouring ? 1 : 0) : ((public_slot_1 === 'colouring' || public_slot_2 === 'colouring') ? 1 : null),
+          enable_santa_chat !== undefined ? (enable_santa_chat ? 1 : 0) : ((public_slot_1 === 'santa_chat' || public_slot_2 === 'santa_chat') ? 1 : 0),
+          enable_colouring !== undefined ? (enable_colouring ? 1 : 0) : ((public_slot_1 === 'colouring' || public_slot_2 === 'colouring') ? 1 : 0),
           public_slot_1 !== undefined ? (public_slot_1 || '') : null,
           public_slot_2 !== undefined ? (public_slot_2 || '') : null,
           table.id

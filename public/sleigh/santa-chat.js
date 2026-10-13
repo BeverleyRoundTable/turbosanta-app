@@ -163,8 +163,45 @@
       WIDGET_TAG + ".santa-inline {" +
       "position:absolute !important;inset:0 !important;display:block !important;" +
       "width:100% !important;height:100% !important;" +
+      "--el-overlay-padding:8px !important;" +
+      "--el-sheet-radius:24px !important;" +
       "}";
     document.head.appendChild(style);
+  }
+
+  function ensureShadowFillStyle(el) {
+    if (!el) return;
+    var apply = function () {
+      if (!el.shadowRoot) return false;
+      var sheet = el.shadowRoot.querySelector(".sheet");
+      if (sheet && !el.shadowRoot.getElementById("santa-fill-style")) {
+        var s = document.createElement("style");
+        s.id = "santa-fill-style";
+        s.textContent =
+          ".overlay {" +
+          "  inset: 8px !important;" +
+          "  right: 8px !important;" +
+          "}" +
+          ".sheet {" +
+          "  width: 100% !important;" +
+          "  max-width: 100% !important;" +
+          "  height: 100% !important;" +
+          "  max-height: 100% !important;" +
+          "  border-radius: 24px !important;" +
+          "}";
+        el.shadowRoot.appendChild(s);
+        return true;
+      }
+      return false;
+    };
+
+    var attempts = 0;
+    var timer = setInterval(function () {
+      attempts++;
+      if (apply() || attempts > 60) {
+        clearInterval(timer);
+      }
+    }, 250);
   }
 
   function injectWidget(agentId) {
@@ -189,6 +226,7 @@
       el.className = "santa-inline";
       el.setAttribute("placement", "bottom");
       MOUNT.appendChild(el);
+      ensureShadowFillStyle(el);
     } else {
       document.body.appendChild(el);
     }

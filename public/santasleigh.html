@@ -2203,12 +2203,14 @@
             const slug = (settings && (settings.slug || settings.id)) || window.__sleighTableSlug || 'beverley';
             const isBeverley = String(slug).toLowerCase() === 'beverley';
 
-            const raw1 = (settings && settings.public_slot_1 === 'santa_chat' && !isBeverley)
-                ? null
-                : ((settings && settings.public_slot_1) || (isBeverley && settings && settings.enable_santa_chat ? 'santa_chat' : null));
-            const raw2 = (settings && settings.public_slot_2 === 'santa_chat' && !isBeverley)
-                ? null
-                : ((settings && settings.public_slot_2) || (settings && settings.enable_colouring ? 'colouring' : null));
+            const resolveSlot = (slotVal) => {
+                if (!slotVal || slotVal === 'none' || slotVal === 'disabled' || slotVal === '') return null;
+                if (slotVal === 'santa_chat' && !isBeverley) return null;
+                return slotVal;
+            };
+
+            const raw1 = resolveSlot(settings && settings.public_slot_1);
+            const raw2 = resolveSlot(settings && settings.public_slot_2);
 
             const slot1 = (raw1 && PUBLIC_FEATURE_CATALOG[raw1]) ? PUBLIC_FEATURE_CATALOG[raw1] : null;
             const slot2 = (raw2 && raw2 !== raw1 && PUBLIC_FEATURE_CATALOG[raw2]) ? PUBLIC_FEATURE_CATALOG[raw2] : null;

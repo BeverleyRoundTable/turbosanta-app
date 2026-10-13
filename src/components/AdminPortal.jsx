@@ -4720,7 +4720,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       gemini_api_key: formData.gemini_api_key || '',
                       public_slot_1: formData.public_slot_1 || '',
                       public_slot_2: formData.public_slot_2 || '',
-                      enable_colouring: (formData.public_slot_1 === 'colouring' || formData.public_slot_2 === 'colouring'),
+                      enable_santa_chat: (formData.public_slot_1 === 'santa_chat' || formData.public_slot_2 === 'santa_chat') ? 1 : 0,
+                      enable_colouring: (formData.public_slot_1 === 'colouring' || formData.public_slot_2 === 'colouring') ? 1 : 0,
                       approved_national_emails: approvedEmails,
                       background_mode: formData.background_mode || 'image',
                       background_video_url: formData.background_video_url || null,
@@ -4753,9 +4754,11 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     if (res && res.ok) {
                       setSaveStatus('Settings successfully saved to database!');
                     } else {
-                      setSaveStatus('Saved locally!');
+                      const errMsg = res?.error || 'Database save failed';
+                      setSaveStatus(`Error saving: ${errMsg}`);
+                      alert(`Failed to save table settings to database:\n${errMsg}\n\nPlease check your admin connection or retry.`);
                     }
-                    setTimeout(() => setSaveStatus(''), 3000);
+                    setTimeout(() => setSaveStatus(''), 4000);
                   }}
                   className="btn-primary"
                   style={{ width: '100%', maxWidth: '250px' }}
