@@ -302,7 +302,7 @@ export default {
     const cleanTownName = rawDisplayName.replace(/santa'?s?/i, '').replace(/sleigh/i, '').replace(/round\s+table/i, '').trim() || (townSlug.charAt(0).toUpperCase() + townSlug.slice(1));
     const fullDisplayTitle = `${cleanTownName} Round Table Santa Sleigh — ${modeTitle}`;
     const description = `${cleanTownName} Round Table: ${modeDescSuffix}`;
-    const ogImage = tableObj.logo_url || tableObj.headline_sponsor_logo || 'https://brt-23f.pages.dev/icons/RTBI_Santa.png';
+    const ogImage = tableObj.logo_url || tableObj.headline_sponsor_logo || 'https://turbosanta-app.pages.dev/icons/RTBI_Santa.png';
 
     // HTMLRewriter transforms the HTML at edge speed
     const headInjection = `

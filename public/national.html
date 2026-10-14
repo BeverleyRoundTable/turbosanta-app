@@ -47,7 +47,7 @@
       background-color: var(--dark);
       background-image: 
         linear-gradient(180deg, rgba(29, 29, 26, 0.88) 0%, rgba(0, 0, 0, 0.96) 100%),
-        url('https://brt-23f.pages.dev/icons/site_background.png');
+        url('https://turbosanta-app.pages.dev/icons/site_background.png');
       background-size: cover;
       background-position: center;
       background-attachment: fixed;
@@ -85,7 +85,7 @@
       background-color: var(--dark);
       background-image: 
         linear-gradient(180deg, rgba(29, 29, 26, 0.92) 0%, rgba(0, 0, 0, 0.98) 100%),
-        url('https://brt-23f.pages.dev/icons/site_background.png');
+        url('https://turbosanta-app.pages.dev/icons/site_background.png');
       background-size: cover;
       background-position: center;
       z-index: 9999;
@@ -1194,7 +1194,7 @@ function extractLiveTableData(table, apiData) {
     todayStartTime: todayRoute ? todayRoute["Start Time"] : null,
     todayEndTime: todayRoute ? todayRoute["End Time"] : null,
     todaySponsor: todayRoute ? todayRoute.sponsorName : null,
-    iconUrl: settings.sleigh_icon_live || "https://brt-23f.pages.dev/icons/sleigh_icon.png"
+    iconUrl: settings.sleigh_icon_live || "https://turbosanta-app.pages.dev/icons/sleigh_icon.png"
   };
 }
 
@@ -1797,7 +1797,7 @@ async function renderMap(data) {
 
         if (!sleighMarkers[table.id]) {
           const icon = L.icon({ 
-            iconUrl: table.iconUrl || "https://brt-23f.pages.dev/icons/sleigh_icon.png", 
+            iconUrl: table.iconUrl || "https://turbosanta-app.pages.dev/icons/sleigh_icon.png", 
             iconSize: [64, 64], 
             iconAnchor: [32, 60],
             popupAnchor: [0, -50]

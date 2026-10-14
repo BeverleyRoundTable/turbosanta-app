@@ -124,7 +124,7 @@
             const preload = document.createElement("link");
             preload.id = "brt-eurostile-preload";
             preload.rel = "preload";
-            preload.href = "https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.woff2";
+            preload.href = "https://turbosanta-app.pages.dev/site/Eurostile_Extended_2_Bold.woff2";
             preload.as = "font";
             preload.type = "font/woff2";
             preload.crossOrigin = "anonymous";
@@ -138,10 +138,10 @@
 
 @font-face {
     font-family: 'Eurostile';
-    src: url('https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.woff2') format('woff2'),
-         url('https://brt-23f.pages.dev/fonts/eurostile-bold.woff2') format('woff2'),
-         url('https://brt-23f.pages.dev/fonts/eurostile-bold.woff') format('woff'),
-         url('https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.otf') format('opentype');
+    src: url('https://turbosanta-app.pages.dev/site/Eurostile_Extended_2_Bold.woff2') format('woff2'),
+         url('https://turbosanta-app.pages.dev/fonts/eurostile-bold.woff2') format('woff2'),
+         url('https://turbosanta-app.pages.dev/fonts/eurostile-bold.woff') format('woff'),
+         url('https://turbosanta-app.pages.dev/site/Eurostile_Extended_2_Bold.otf') format('opentype');
     font-weight: 700;
     font-style: normal;
     font-display: swap;

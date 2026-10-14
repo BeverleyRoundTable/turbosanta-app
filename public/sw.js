@@ -1,6 +1,6 @@
 const CACHE_NAME = 'sleigh-shell-v8'; // Bumped to v8: tap-to-copy social handle
 const STATIC_ASSETS = [
-    'https://brt-23f.pages.dev/icons/site_background.png',
+    'https://turbosanta-app.pages.dev/icons/site_background.png',
     '/icons/RTBI_Santa.png',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
 ];
@@ -53,7 +53,7 @@ self.addEventListener('fetch', (event) => {
         url.hostname.includes('fonts.googleapis.com') || 
         url.hostname.includes('fonts.gstatic.com') || 
         url.hostname.includes('cdnjs.cloudflare.com') ||
-        url.hostname.includes('brt-23f.pages.dev')
+        url.hostname.includes('turbosanta-app.pages.dev')
     ) {
         event.respondWith(
             caches.match(event.request).then((cached) => {

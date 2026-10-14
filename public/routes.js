@@ -173,14 +173,14 @@ function startRoutes() {
         
         // Define custom icons mimicking the exact logic from address.js
         const startIcon = L.icon({ 
-            iconUrl: "https://brt-23f.pages.dev/icons/start_icon.png", 
+            iconUrl: "https://turbosanta-app.pages.dev/icons/start_icon.png", 
             iconSize: [48, 48], 
             iconAnchor: [24, 48],
             shadowUrl: null // Explicitly disable shadow
         });
         
         const endIcon = L.icon({ 
-            iconUrl: "https://brt-23f.pages.dev/icons/end_icon.png", 
+            iconUrl: "https://turbosanta-app.pages.dev/icons/end_icon.png", 
             iconSize: [48, 48], 
             iconAnchor: [24, 48],
             shadowUrl: null // Explicitly disable shadow

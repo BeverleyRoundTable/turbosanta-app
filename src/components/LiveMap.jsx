@@ -55,7 +55,7 @@ export default function LiveMap({ tableData }) {
 
     // 📍 START POINT MARKER
     const startIcon = L.icon({
-      iconUrl: 'https://brt-23f.pages.dev/icons/start_icon.png',
+      iconUrl: 'https://turbosanta-app.pages.dev/icons/start_icon.png',
       iconSize: [36, 42],
       iconAnchor: [18, 42],
       popupAnchor: [0, -40]
@@ -66,7 +66,7 @@ export default function LiveMap({ tableData }) {
 
     // 🏁 END POINT MARKER
     const endIcon = L.icon({
-      iconUrl: 'https://brt-23f.pages.dev/icons/end_icon.png',
+      iconUrl: 'https://turbosanta-app.pages.dev/icons/end_icon.png',
       iconSize: [36, 42],
       iconAnchor: [18, 42],
       popupAnchor: [0, -40]

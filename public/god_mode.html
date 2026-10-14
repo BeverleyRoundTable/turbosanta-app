@@ -6,7 +6,7 @@
   <title>TurboSanta — God Mode</title>
   
   <!-- Preload Custom Font -->
-  <link rel="preload" href="https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="https://turbosanta-app.pages.dev/site/Eurostile_Extended_2_Bold.woff2" as="font" type="font/woff2" crossorigin>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,7 +23,7 @@
     /* ═══════════════════════════════════════ */
     @font-face {
       font-family: 'Eurostile';
-      src: url('https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+      src: url('https://turbosanta-app.pages.dev/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
       font-weight: 700;
       font-style: normal;
       font-display: swap;
@@ -621,7 +621,7 @@ async function fetchApiData() {
         sponsorUrl: r.sponsor_logo_url,
         sponsorLink: r.sponsor_link,
         sponsorDescription: r.sponsor_description,
-        gpxUrl: r.gpx_url || (TABLE_SLUG === 'beverley' ? 'https://brt-23f.pages.dev/sleigh/s.gpx' : null)
+        gpxUrl: r.gpx_url || (TABLE_SLUG === 'beverley' ? 'https://turbosanta-app.pages.dev/sleigh/s.gpx' : null)
       }));
       STATE.streets = raw.streets || [];
       STATE.tracker = { firebase_url: null };
@@ -643,7 +643,7 @@ async function fetchApiData() {
     updateUserMsgState(); 
 
     if (STATE.marker && STATE.settings) {
-      const pinUrl = STATE.settings.sleigh_icon_live || 'https://brt-23f.pages.dev/icons/sleigh_icon.png';
+      const pinUrl = STATE.settings.sleigh_icon_live || 'https://turbosanta-app.pages.dev/icons/sleigh_icon.png';
       STATE.marker.setIcon(L.icon({ iconUrl: pinUrl, iconSize: [64, 64], iconAnchor: [32, 60] }));
     }
   } catch(e) { console.error('API:', e); }
@@ -1328,7 +1328,7 @@ function initMap() {
     attribution: '© OpenStreetMap'
   }).addTo(STATE.map);
 
-  const iconUrl = s.sleigh_icon_live || 'https://brt-23f.pages.dev/icons/sleigh_icon.png';
+  const iconUrl = s.sleigh_icon_live || 'https://turbosanta-app.pages.dev/icons/sleigh_icon.png';
   STATE.marker = L.marker([startLat, startLng], {
     icon: L.icon({ iconUrl, iconSize: [64, 64], iconAnchor: [32, 60] })
   }).addTo(STATE.map);
@@ -1343,8 +1343,8 @@ function initMap() {
 }
 
 function loadGpxRoute(route, settings) {
-  const startIconUrl = settings.sleigh_icon_start || 'https://brt-23f.pages.dev/icons/start_icon.png';
-  const endIconUrl = settings.sleigh_icon_end || 'https://brt-23f.pages.dev/icons/end_icon.png';
+  const startIconUrl = settings.sleigh_icon_start || 'https://turbosanta-app.pages.dev/icons/start_icon.png';
+  const endIconUrl = settings.sleigh_icon_end || 'https://turbosanta-app.pages.dev/icons/end_icon.png';
 
   // ⭐ NEW: Fetch raw points for the progress bar calculation
   fetch(route.gpxUrl).then(r => r.text()).then(text => {
