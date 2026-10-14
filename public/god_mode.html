@@ -548,7 +548,7 @@ async function init() {
   initMap();
   document.getElementById('loader').classList.add('done');
   
-  fetchGps();
+  await fetchGps();
   // 🛡️ Initialize GPS Health without the direct Firebase URL
   GpsHealth.init();
   
@@ -659,12 +659,23 @@ async function fetchGps() {
       const res = await fetch(`${WORKER_API}/api/live-gps?table=${encodeURIComponent(TABLE_SLUG)}`);
       data = await res.json();
     }
-    if (data && data.lat) { 
+    if (data && (data.lat !== undefined || data.real_lat !== undefined)) { 
+      const wasLive = Boolean(STATE.gps?.is_fresh);
+      const isNowLive = Boolean(data.is_fresh);
       STATE.gps = data; 
       STATE.lastGpsUpdate = new Date(); 
       
-      if (!STATE.weather) {
-        fetchWeather();
+      // Update weather if not yet fetched, or if status transitioned to/from live
+      if (!STATE.weather || (wasLive !== isNowLive)) {
+        fetchWeather(true);
+      } else if (isNowLive && STATE.weatherLocation?.source === 'live_gps') {
+        const dist = haversineMeters(
+          { lat: STATE.weatherLocation.lat, lng: STATE.weatherLocation.lng },
+          { lat: Number(data.lat), lng: Number(data.lng) }
+        );
+        if (dist > 2000 && Date.now() - (STATE.lastWeatherTime || 0) > 300000) {
+          fetchWeather(true);
+        }
       }
     }
     updateGps();
@@ -694,23 +705,66 @@ function getWeatherEmoji(code) {
   return '🌡️ Unknown';
 }
 
-async function fetchWeather() {
-  const lat = STATE.gps?.lat; 
-  const lng = STATE.gps?.lng;
+function isLaplandCoord(lat) {
+  if (lat == null) return false;
+  return Number(lat) > 65; // Lapland fallback is ~66.54° N
+}
 
-  if (!lat || !lng) {
+function getEffectiveWeatherLocation() {
+  // 1. Live and fresh sleigh GPS (only if actively on route and not the resting Lapland pin)
+  if (STATE.gps && STATE.gps.is_fresh && STATE.gps.lat && !isLaplandCoord(STATE.gps.lat)) {
+    return { lat: Number(STATE.gps.lat), lng: Number(STATE.gps.lng), source: 'live_gps' };
+  }
+  // 2. Real table telemetry (last recorded position in town/route, never Lapland)
+  if (STATE.gps && STATE.gps.real_lat && !isLaplandCoord(STATE.gps.real_lat)) {
+    return { lat: Number(STATE.gps.real_lat), lng: Number(STATE.gps.real_lng), source: 'last_known_gps' };
+  }
+  // 3. Active / today route GPX track points
+  if (STATE.gpxRoute && STATE.gpxRoute.length > 0) {
+    const pt = STATE.gpxRoute[0];
+    if (pt.lat && !isLaplandCoord(pt.lat)) {
+      return { lat: Number(pt.lat), lng: Number(pt.lng), source: 'route_gpx' };
+    }
+  }
+  // 4. Map center if valid local area
+  if (STATE.map) {
+    const center = STATE.map.getCenter();
+    if (center && center.lat && !isLaplandCoord(center.lat)) {
+      return { lat: Number(center.lat), lng: Number(center.lng), source: 'map_center' };
+    }
+  }
+  // 5. Hardcoded Round Table British Isles HQ default fallback (Birmingham) instead of Lapland
+  return { lat: 52.47080954, lng: -1.92067402, source: 'hq_fallback' };
+}
+
+async function fetchWeather(force = false) {
+  const loc = getEffectiveWeatherLocation();
+  if (!loc) {
     const container = document.getElementById('weatherDetail');
-    if (container) {
+    if (container && !STATE.weather) {
       container.innerHTML = '<div class="no-route">Waiting for location data...</div>';
     }
     return;
   }
 
+  const now = Date.now();
+  if (!force && STATE.lastWeatherTime && (now - STATE.lastWeatherTime < 180000)) {
+    if (STATE.weatherLocation) {
+      const dist = haversineMeters(
+        { lat: STATE.weatherLocation.lat, lng: STATE.weatherLocation.lng },
+        { lat: loc.lat, lng: loc.lng }
+      );
+      if (dist < 2000) return;
+    }
+  }
+
   try {
-    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&windspeed_unit=mph`);
+    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.lat.toFixed(4)}&longitude=${loc.lng.toFixed(4)}&current_weather=true&windspeed_unit=mph`);
     const data = await res.json();
     if (data.current_weather) {
       STATE.weather = data.current_weather;
+      STATE.weatherLocation = loc;
+      STATE.lastWeatherTime = now;
       updateWeather();
     }
   } catch(e) { console.error('Weather fetching failed:', e); }
@@ -723,6 +777,8 @@ function updateWeather() {
   const w = STATE.weather;
   const condition = getWeatherEmoji(w.weathercode);
   const conditionColor = w.weathercode > 50 ? 'color: var(--red);' : '';
+  const isLiveGps = STATE.weatherLocation?.source === 'live_gps';
+  const locBadge = isLiveGps ? '🟢 Live Sleigh GPS' : '📍 Table Base Area';
   
   container.innerHTML = `
     <div class="gps-grid">
@@ -738,6 +794,10 @@ function updateWeather() {
         <div class="gps-label">Wind</div>
         <div class="gps-value">${w.windspeed} mph</div>
       </div>
+    </div>
+    <div style="font-size:11px; color:var(--text-muted); display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+      <span>${locBadge}</span>
+      <span>Open-Meteo</span>
     </div>`;
 }
   
@@ -1294,6 +1354,9 @@ function loadGpxRoute(route, settings) {
       lat: parseFloat(p.getAttribute("lat")),
       lng: parseFloat(p.getAttribute("lon"))
     }));
+    if (!STATE.weather || STATE.weatherLocation?.source === 'hq_fallback') {
+      fetchWeather();
+    }
   }).catch(e => console.error("Error parsing raw GPX for progress:", e));
   
   STATE.routeGlowLayer = new L.GPX(route.gpxUrl, {
