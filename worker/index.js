@@ -185,11 +185,13 @@ export default {
           const cleanTown = slug.charAt(0).toUpperCase() + slug.slice(1);
           const defaultName = `${cleanTown} Round Table Santa Sleigh`;
           let adminEmail = `${slug}@roundtable.org.uk`;
+          // National admins can open any table, but must not become its recorded owner.
+          const useTokenEmail = (em) => em && em.includes("@") && !isNationalEmail(em);
           if (bearerToken.startsWith("ts2_")) {
             try {
               const raw = atob(bearerToken.slice(4));
               const [em] = raw.split("_");
-              if (em && em.includes("@")) adminEmail = em.trim().toLowerCase();
+              if (useTokenEmail(em)) adminEmail = em.trim().toLowerCase();
             } catch(e){}
           } else if (bearerToken.includes(".")) {
             try {
@@ -197,7 +199,7 @@ export default {
               let b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
               while (b64.length % 4) b64 += "=";
               const p = JSON.parse(atob(b64));
-              if (p && p.email) adminEmail = p.email.trim().toLowerCase();
+              if (p && useTokenEmail(p.email)) adminEmail = p.email.trim().toLowerCase();
             } catch(e){}
           }
 
@@ -2576,6 +2578,18 @@ INSTRUCTIONS:
         console.error("Table upsert error:", upsertErr);
       }
 
+      // Route IDs are a global primary key, so always namespace them to the target table.
+      const routeIdMap = {};
+      const scopedRouteId = (id) => {
+        const clean = String(id || "");
+        return clean.startsWith(`${tableId}_`) ? clean : `${tableId}_${clean}`;
+      };
+      for (const r of routes) {
+        const newId = scopedRouteId(r.id);
+        routeIdMap[r.id] = newId;
+        r.id = newId;
+      }
+
       // Clean and Insert Routes
       if (routes.length > 0) {
         await env.DB.prepare("DELETE FROM route_streets WHERE table_id = ?").bind(tableId).run();
@@ -2592,10 +2606,11 @@ INSTRUCTIONS:
       // Insert Streets
       if (streets.length > 0) {
         for (const s of streets) {
+          const streetRouteId = routeIdMap[s.route_id] || scopedRouteId(s.route_id);
           await env.DB.prepare(`
             INSERT INTO route_streets (table_id, route_id, street_name, sequence_order)
             VALUES (?, ?, ?, ?)
-          `).bind(tableId, s.route_id, s.street_name, s.sequence_order || 1).run();
+          `).bind(tableId, streetRouteId, s.street_name, s.sequence_order || 1).run();
         }
       }
 

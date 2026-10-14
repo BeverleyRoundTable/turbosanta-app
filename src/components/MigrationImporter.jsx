@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { parseTurboSantaWorkbook, generateSqlMigration } from '../services/migrationParser';
+import { getAdminAuthToken } from '../services/auth';
 
 export default function MigrationImporter({ tableSlug = 'beverley', onApplyMigration, currentTableData }) {
   const [dragActive, setDragActive] = useState(false);
@@ -74,9 +75,13 @@ export default function MigrationImporter({ tableSlug = 'beverley', onApplyMigra
     try {
       // 1. Fire API call to Cloudflare Worker D1
       try {
+        const authToken = getAdminAuthToken(tableSlug);
         await fetch(`https://turbosanta-api.beverley247.workers.dev/api/migrate?table=${encodeURIComponent(tableSlug)}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+          },
           body: JSON.stringify({
             tableSlug,
             settings: parsedData.settings,

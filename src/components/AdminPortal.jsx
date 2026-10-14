@@ -6313,7 +6313,7 @@ ${tableName} Organizers`
         {/* TAB: 1.0 EXCEL & SHEETS IMPORTER */}
         {activeTab === 'migration' && (
           <MigrationImporter
-            tableSlug={session.tableId || 'beverley'}
+            tableSlug={tableData?.table?.slug || session.tableId || 'beverley'}
             currentTableData={tableData}
             onApplyMigration={(migratedData) => {
               if (onUpdateTableData) {
