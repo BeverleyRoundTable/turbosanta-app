@@ -1449,7 +1449,15 @@
         },
         isValidImageUrl(url) { if (!url || typeof url !== 'string') return false; try { const parsed = new URL(url); return ['http:', 'https:', 'data:'].includes(parsed.protocol); } catch { return false; } },
         resolveImageUrl(url) { if (!url || typeof url !== 'string' || !url.includes('drive.google.com')) return url; try { const u = new URL(url); const pathMatch = u.pathname.match(/\/file\/d\/([^/]+)/); const fileId = u.searchParams.get('id') || (pathMatch ? pathMatch[1] : null); return fileId ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w400` : url; } catch { return url; } },
-        async loadJSON(url) { const r = await fetch(url, { cache: "no-store" }); if (!r.ok) throw new Error(`Fetch failed: ${r.status}`); return r.json(); },
+        async loadJSON(url) {
+          const cacheBusted = url.includes('?') ? `${url}&_t=${Date.now()}` : `${url}?_t=${Date.now()}`;
+          const r = await fetch(cacheBusted, {
+            cache: "no-store",
+            headers: { 'Cache-Control': 'no-cache, no-store' }
+          });
+          if (!r.ok) throw new Error(`Fetch failed: ${r.status}`);
+          return r.json();
+        },
         haversineMeters(a, b) { const R = 6371000, dLat = (b.lat - a.lat) * Math.PI / 180, dLng = (b.lng - a.lng) * Math.PI / 180; const s = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(s)); },
         calculateSpeed(fixes) { if (fixes.length < AppConfig.API.MIN_FIXES_FOR_ETA) return null; const first = fixes[0], last = fixes[fixes.length - 1], elapsed = last.ts - first.ts; if (elapsed < AppConfig.API.MIN_ETA_WINDOW_MS) return null; return Math.min(Math.max((last.cumulative - first.cumulative) / (elapsed / 1000), 0.3), 31); },
         calculateRouteSpeed(routeFixes) { if (routeFixes.length < AppConfig.API.MIN_FIXES_FOR_ETA) return null; const first = routeFixes[0], last = routeFixes[routeFixes.length - 1], elapsed = last.ts - first.ts; if (elapsed < AppConfig.API.MIN_ETA_WINDOW_MS) return null; const dist = last.routeDist - first.routeDist; if (dist <= 0) return null; return Math.min(Math.max(dist / (elapsed / 1000), 0.1), 31); },
@@ -2108,6 +2116,27 @@
               if (rawSettings && !rawSettings.error) {
                 AppState.vars.latestApiData = normalizeApiData(rawSettings);
                 AppState.vars.lastSettingsFetch = now;
+
+                // Auto-sync routes & dismiss Santa's Workshop countdown if today's route becomes active
+                const todayStr = new Date().toISOString().slice(0, 10);
+                const currentRoutes = AppState.vars.latestApiData?.routes || [];
+                const matchingTodayRoute = currentRoutes.find(r => r.date === todayStr);
+
+                if (matchingTodayRoute) {
+                  AppState.vars.todayRoute = matchingTodayRoute;
+                  if (!AppState.vars.activeRoute || AppState.vars.activeRoute.id !== matchingTodayRoute.id) {
+                    AppState.vars.activeRoute = matchingTodayRoute;
+                  }
+                  const wsOverlay = document.getElementById('workshopOverlay');
+                  if (wsOverlay && (wsOverlay.style.display === 'flex' || wsOverlay.style.display === 'block')) {
+                    wsOverlay.style.display = 'none';
+                    if (WorkshopManager && WorkshopManager.timerId) {
+                      clearInterval(WorkshopManager.timerId);
+                      WorkshopManager.timerId = null;
+                    }
+                  }
+                }
+
                 if (typeof window.updateGiftAidDisplay === 'function') {
                   window.updateGiftAidDisplay();
                 }

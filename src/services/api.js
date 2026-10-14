@@ -169,7 +169,10 @@ export function getTableFallback(tableSlug = "beverley") {
 
 export async function fetchTablePayload(tableSlug = "beverley") {
   try {
-    const res = await fetch(`${API_BASE}/api/payload?table=${encodeURIComponent(tableSlug)}`);
+    const res = await fetch(`${API_BASE}/api/payload?table=${encodeURIComponent(tableSlug)}&_t=${Date.now()}`, {
+      cache: "no-store",
+      headers: { "Cache-Control": "no-cache, no-store" }
+    });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     if (data.error) throw new Error(data.error);
@@ -182,7 +185,10 @@ export async function fetchTablePayload(tableSlug = "beverley") {
 
 export async function fetchLiveGps(tableSlug = "beverley") {
   try {
-    const res = await fetch(`${API_BASE}/api/live-gps?table=${encodeURIComponent(tableSlug)}`);
+    const res = await fetch(`${API_BASE}/api/live-gps?table=${encodeURIComponent(tableSlug)}&_t=${Date.now()}`, {
+      cache: "no-store",
+      headers: { "Cache-Control": "no-cache, no-store" }
+    });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } catch (err) {
