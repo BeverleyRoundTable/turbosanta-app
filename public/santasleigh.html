@@ -1671,6 +1671,235 @@
             if (navDonate) navDonate.style.display = hasAny ? '' : 'none';
         }
 
+        // --- ROUTE STREETS PREVIEW & SEARCH MODAL ---
+        function isSantaStopSleigh(name) {
+            return /santa\s*stop/i.test(name || '');
+        }
+
+        function formatSantaStopSleigh(name) {
+            if (!name) return '';
+            if (!isSantaStopSleigh(name)) return name;
+            const stripped = name.replace(/santa\s*stop[:\s\-]*/i, '').trim();
+            return stripped ? `🎅 STOP: ${stripped}` : '🎅 SANTA STOP';
+        }
+
+        function openSleighStreetsModal(streets, routeName, dateText, timeText) {
+            let modal = document.getElementById('sleigh-streets-modal-container');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'sleigh-streets-modal-container';
+                document.body.appendChild(modal);
+            }
+
+            function render(searchQuery = '') {
+                const q = searchQuery.toLowerCase().trim();
+                const filtered = q ? streets.filter(s => s.toLowerCase().includes(q)) : streets;
+                const santaCount = streets.filter(isSantaStopSleigh).length;
+
+                modal.innerHTML = `
+                    <div id="sleigh-modal-backdrop" style="position: fixed; inset: 0; z-index: 99999; background: rgba(0, 0, 0, 0.82); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; padding: 16px;">
+                        <div style="width: 100%; max-width: 560px; max-height: 88vh; background: #141412; border: 1px solid rgba(var(--primary-rgb), 0.35); border-radius: 18px; box-shadow: 0 25px 60px rgba(0,0,0,0.9), 0 0 35px rgba(var(--primary-rgb), 0.15); display: flex; flex-direction: column; overflow: hidden;" onclick="event.stopPropagation()">
+                            <!-- Header -->
+                            <div style="padding: 20px 24px 16px 24px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); background: linear-gradient(180deg, rgba(var(--primary-rgb), 0.08) 0%, rgba(20, 20, 18, 0.4) 100%); position: relative;">
+                                <button type="button" id="sleigh-modal-close" style="position: absolute; top: 18px; right: 18px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 50%; width: 32px; height: 32px; color: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s ease;">
+                                    <i class="fa-solid fa-xmark" style="font-size: 15px;"></i>
+                                </button>
+
+                                <div class="brand-font" style="color: var(--primary); font-size: 12px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                                    <span>${dateText || ''}</span>
+                                    ${timeText ? `<span style="opacity: 0.6;">• ${timeText}</span>` : ''}
+                                </div>
+
+                                <h3 class="brand-font" style="font-size: 22px; color: #FFFFFF; margin: 0 0 6px 0; padding-right: 36px; line-height: 1.2;">
+                                    ${routeName || 'Route Street List'}
+                                </h3>
+
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 6px;">
+                                    <span style="font-size: 12px; font-weight: 600; color: #E5E7EB; background: rgba(255, 255, 255, 0.08); padding: 2px 8px; border-radius: 6px;">
+                                        ${streets.length} total streets & roads
+                                    </span>
+                                    ${santaCount > 0 ? `
+                                        <span style="font-size: 12px; font-weight: 700; color: #FECACA; background: rgba(211, 28, 28, 0.3); border: 1px solid rgba(211, 28, 28, 0.5); padding: 2px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
+                                            <i class="fa-solid fa-star" style="font-size: 11px;"></i> ${santaCount} Santa ${santaCount === 1 ? 'Stop' : 'Stops'}
+                                        </span>
+                                    ` : ''}
+                                </div>
+                            </div>
+
+                            <!-- Search Input -->
+                            <div style="padding: 12px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); background-color: #191916;">
+                                <div style="position: relative; display: flex; align-items: center;">
+                                    <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; color: var(--primary); font-size: 13px; pointer-events: none;"></i>
+                                    <input type="text" id="sleigh-modal-search" value="${searchQuery}" placeholder="Search ${streets.length} streets on this route..." style="width: 100%; padding: 9px 36px; font-size: 14px; color: #FFFFFF; background-color: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 10px; outline: none;" />
+                                    ${searchQuery ? `<button type="button" id="sleigh-search-clear" style="position: absolute; right: 10px; background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; display: flex; align-items: center;"><i class="fa-solid fa-circle-xmark"></i></button>` : ''}
+                                </div>
+                            </div>
+
+                            <!-- Scrollable List -->
+                            <div style="flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 8px;">
+                                ${filtered.length > 0 ? filtered.map(st => {
+                                    const stop = isSantaStopSleigh(st);
+                                    const origIdx = streets.indexOf(st) + 1;
+                                    return `
+                                        <div style="padding: ${stop ? '10px 14px' : '9px 12px'}; border-radius: 8px; background: ${stop ? 'linear-gradient(90deg, rgba(211, 28, 28, 0.25) 0%, rgba(211, 28, 28, 0.12) 100%)' : 'rgba(255, 255, 255, 0.03)'}; border: ${stop ? '1px solid rgba(211, 28, 28, 0.6)' : '1px solid rgba(255, 255, 255, 0.06)'}; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                                            <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+                                                <span style="font-size: 11px; font-family: monospace; font-weight: 700; color: ${stop ? '#FECACA' : 'rgba(255, 255, 255, 0.4)'}; background: ${stop ? 'rgba(211, 28, 28, 0.5)' : 'rgba(255, 255, 255, 0.05)'}; padding: 2px 6px; border-radius: 4px; flex-shrink: 0;">
+                                                    #${origIdx}
+                                                </span>
+                                                <span style="font-size: 14px; font-weight: ${stop ? '800' : '500'}; color: ${stop ? '#FFFFFF' : '#E5E7EB'}; word-break: break-word;">
+                                                    ${formatSantaStopSleigh(st)}
+                                                </span>
+                                            </div>
+                                            ${stop ? `
+                                                <span style="font-size: 10px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; color: #FFFFFF; background-color: #D31C1C; padding: 3px 8px; border-radius: 12px; box-shadow: 0 0 10px rgba(211, 28, 28, 0.6); flex-shrink: 0;">
+                                                    Designated Stop
+                                                </span>
+                                            ` : ''}
+                                        </div>
+                                    `;
+                                }).join('') : `
+                                    <div style="text-align: center; padding: 32px 16px; color: var(--text-muted); font-size: 14px;">
+                                        No streets or stops match "<strong>${searchQuery}</strong>".
+                                    </div>
+                                `}
+                            </div>
+
+                            <!-- Footer -->
+                            <div style="padding: 14px 20px; border-top: 1px solid rgba(255, 255, 255, 0.08); background-color: #191916; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                                <span style="font-size: 12px; color: var(--text-muted);">Showing ${filtered.length} of ${streets.length}</span>
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <button type="button" id="sleigh-modal-map" class="brand-font" style="padding: 7px 14px; font-size: 12px; font-weight: 700; color: #FFFFFF; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                        <i class="fa-solid fa-map-location-dot" style="font-size: 11px;"></i> View on Map
+                                    </button>
+                                    <button type="button" id="sleigh-modal-done" class="brand-font" style="padding: 7px 16px; font-size: 12px; font-weight: 700; color: #000000; background: var(--primary); border: none; border-radius: 8px; cursor: pointer;">
+                                        Done
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('sleigh-modal-backdrop').onclick = closeModal;
+                document.getElementById('sleigh-modal-close').onclick = closeModal;
+                document.getElementById('sleigh-modal-done').onclick = closeModal;
+                
+                const mapBtn = document.getElementById('sleigh-modal-map');
+                if (mapBtn) {
+                    mapBtn.onclick = () => {
+                        closeModal();
+                        const mapEl = document.getElementById('map') || document.getElementById('address-lookup-section') || document.getElementById('routes');
+                        if (mapEl) mapEl.scrollIntoView({ behavior: 'smooth' });
+                    };
+                }
+
+                const searchInput = document.getElementById('sleigh-modal-search');
+                if (searchInput) {
+                    searchInput.oninput = (e) => {
+                        render(e.target.value);
+                        const next = document.getElementById('sleigh-modal-search');
+                        if (next) {
+                            next.focus();
+                            next.setSelectionRange(next.value.length, next.value.length);
+                        }
+                    };
+                }
+                const clearBtn = document.getElementById('sleigh-search-clear');
+                if (clearBtn) {
+                    clearBtn.onclick = () => render('');
+                }
+            }
+
+            function closeModal() {
+                modal.innerHTML = '';
+                document.body.style.overflow = '';
+                document.removeEventListener('keydown', handleEsc);
+            }
+
+            function handleEsc(e) {
+                if (e.key === 'Escape') closeModal();
+            }
+
+            document.body.style.overflow = 'hidden';
+            document.addEventListener('keydown', handleEsc);
+            render('');
+        }
+
+        function createRouteStreetsPreview(streetsRaw, routeName, dateText, timeText, previewLimit = 5) {
+            const streets = Array.isArray(streetsRaw)
+                ? streetsRaw.map(s => String(s).trim()).filter(Boolean)
+                : String(streetsRaw || '').split(',').map(s => s.trim()).filter(Boolean);
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = 'streets-preview-wrapper';
+            wrapper.style.cssText = 'margin: 10px 0 14px 0; display: flex; flex-direction: column; flex-grow: 1;';
+
+            if (!streets.length) {
+                const empty = document.createElement('div');
+                empty.style.cssText = 'font-size: 13px; color: var(--text-muted); font-style: italic;';
+                empty.textContent = 'Full street list publishing soon.';
+                wrapper.appendChild(empty);
+                return wrapper;
+            }
+
+            const isStop = isSantaStopSleigh;
+            const formatStop = formatSantaStopSleigh;
+
+            const chipsContainer = document.createElement('div');
+            chipsContainer.style.cssText = 'display: flex; flex-wrap: wrap; gap: 6px; align-items: center;';
+
+            const visible = streets.slice(0, previewLimit);
+            const remaining = streets.length - visible.length;
+
+            visible.forEach(st => {
+                const stop = isStop(st);
+                const chip = document.createElement('span');
+                chip.style.cssText = stop
+                    ? 'font-size: 11px; font-weight: 800; color: #FFFFFF; background: rgba(211, 28, 28, 0.85); border: 1px solid rgba(255, 120, 120, 0.6); padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 0 10px rgba(211, 28, 28, 0.4);'
+                    : 'font-size: 11px; font-weight: 500; color: #E0E0DC; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.08); padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;';
+                
+                chip.innerHTML = (stop ? '<i class="fa-solid fa-star" style="font-size: 10px;"></i> ' : '') + formatStop(st);
+                chipsContainer.appendChild(chip);
+            });
+
+            if (remaining > 0) {
+                const moreTag = document.createElement('span');
+                moreTag.style.cssText = 'font-size: 11px; font-weight: 700; color: var(--primary); background: rgba(var(--primary-rgb), 0.1); border: 1px solid rgba(var(--primary-rgb), 0.25); padding: 3px 8px; border-radius: 6px; cursor: pointer;';
+                moreTag.textContent = `+${remaining} more...`;
+                moreTag.onclick = (e) => {
+                    e.stopPropagation();
+                    openSleighStreetsModal(streets, routeName, dateText, timeText);
+                };
+                chipsContainer.appendChild(moreTag);
+            }
+
+            wrapper.appendChild(chipsContainer);
+
+            if (remaining > 0) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'brand-font';
+                btn.style.cssText = 'margin-top: 12px; width: 100%; padding: 8px 12px; font-size: 11px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; background: rgba(var(--primary-rgb), 0.08); color: var(--primary); border: 1px solid rgba(var(--primary-rgb), 0.3); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s ease;';
+                btn.innerHTML = `<i class="fa-solid fa-map-pin" style="font-size: 11px;"></i> <span>View All ${streets.length} Streets & Stops</span> <i class="fa-solid fa-chevron-right" style="font-size: 10px; opacity: 0.7;"></i>`;
+                
+                btn.onmouseenter = () => {
+                    btn.style.background = 'rgba(var(--primary-rgb), 0.18)';
+                    btn.style.borderColor = 'var(--primary)';
+                };
+                btn.onmouseleave = () => {
+                    btn.style.background = 'rgba(var(--primary-rgb), 0.08)';
+                    btn.style.borderColor = 'rgba(var(--primary-rgb), 0.3)';
+                };
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    openSleighStreetsModal(streets, routeName, dateText, timeText);
+                };
+                wrapper.appendChild(btn);
+            }
+
+            return wrapper;
+        }
+
         // --- Routes Rendering ---
         function renderRoutes(routes, sponsors = []) {
             const container = $('routes-container');
@@ -1740,13 +1969,8 @@
                 card.appendChild(dateWrapper);
                 card.appendChild(el('h3', 'brand-font', String(route.routeName)));
 
-                if (route.streets) {
-                const streets = String(route.streets).split(',').map(s => s.trim()).filter(Boolean);
-                if (streets.length) {
-                    // Shows all street names and expands the box naturally
-                    card.appendChild(el('div', 'route-streets', streets.join(', ')));
-                }
-            }
+                const streetsPreview = createRouteStreetsPreview(route.streets, route.routeName, dateText, time, 5);
+                card.appendChild(streetsPreview);
 
                 if (route.sponsorName) {
                     const sponsorBox = el('div');
@@ -1818,15 +2042,8 @@
             title.style.margin = '4px 0 10px 0';
             routeInfo.appendChild(title);
 
-            if (route.streets) {
-            const streets = String(route.streets).split(',').map(s => s.trim()).filter(Boolean);
-            if (streets.length) {
-                // Shows all street names in full
-                const streetsEl = el('div', 'route-streets', streets.join(', '));
-                streetsEl.style.fontSize = '14px';
-                routeInfo.appendChild(streetsEl);
-            }
-        }
+            const streetsPreview = createRouteStreetsPreview(route.streets, route.routeName, dateText, time, 6);
+            routeInfo.appendChild(streetsPreview);
 
             card.appendChild(routeInfo);
 
