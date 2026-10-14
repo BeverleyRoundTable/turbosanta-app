@@ -819,7 +819,7 @@
       #workshopOverlay { padding: 15px 15px; justify-content: center; }
       .ws-card { padding: 15px 20px; }
       .ws-title { font-size: 26px; margin-bottom: 4px; }
-      .ws-card > p { display: none; } /* Hide intro paragraph to save space */
+      .ws-card > p { display: none; }
       .ws-countdown { font-size: 20px; padding: 8px; margin: 10px 0; }
       .ws-schedule { margin-bottom: 12px; }
       .ws-schedule-title { margin-bottom: 4px; padding-bottom: 4px; }
@@ -1010,16 +1010,18 @@
         }
       }
 
-      function loadCachedTheme(api) {
+      function loadCachedTheme(key) {
+        if (!key) return;
         try {
-          const c = localStorage.getItem('SANTA_THEME:' + api);
+          const c = localStorage.getItem('SANTA_THEME:' + key);
           if (c) applyTheme({ primary_color: c });
         } catch (e) {}
       }
-      function saveTheme(api, color) {
+      function saveTheme(key, color) {
+        if (!key) return;
         try {
-          if (parseColor(color)) localStorage.setItem('SANTA_THEME:' + api, String(color).trim());
-          else localStorage.removeItem('SANTA_THEME:' + api);
+          if (parseColor(color)) localStorage.setItem('SANTA_THEME:' + key, String(color).trim());
+          else localStorage.removeItem('SANTA_THEME:' + key);
         } catch (e) {}
       }
 
@@ -1145,127 +1147,31 @@
         return data;
       }
 
-      function getTableFallbackData(slug) {
-        const cleanSlug = (slug || 'beverley').toLowerCase();
-        const isShirley = cleanSlug === 'shirley';
-        const isBeverley = cleanSlug === 'beverley';
-        const todayStr = new Date().toISOString().slice(0, 10);
-
-        if (isShirley) {
-          return {
-            table: {
-              id: 'shirley_414',
-              name: 'Shirley Round Table',
-              slug: 'shirley',
-              sleigh_display_name: 'Shirley Round Table Santa Sleigh',
-              primary_color: '#D31C1C',
-              accent_color: '#FFFFFF',
-              donate_url: 'https://www.justgiving.com/shirleyroundtable',
-              charity_name: 'Shirley Round Table #414 Trust',
-              fundraising_goal: 5000,
-              total_raised: 420,
-              live_announcement: '🎅 Santa is visiting Haslucks Green & Colebrook tonight from 6:00 PM!',
-              tracking_active: true
-            },
-            routes: [
-              {
-                id: 'shirley_route_1',
-                name: 'Haslucks Green & Colebrook',
-                date: todayStr,
-                start_time: '18:00',
-                end_time: '20:30',
-                status: 'scheduled',
-                sponsor_name: 'Shirley Village Bakery',
-                sponsor_logo: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=100&auto=format&fit=crop&q=80',
-                sponsor_link: 'https://example.com/shirley-bakery',
-                sponsor_description: 'Supplying our volunteer elves with fresh festive treats!'
-              },
-              {
-                id: 'shirley_route_2',
-                name: 'Dickens Heath & Waterside',
-                date: '2026-12-09',
-                start_time: '18:00',
-                end_time: '20:30',
-                status: 'scheduled',
-                sponsor_name: 'Waterside Dental Practice',
-                sponsor_logo: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=100&auto=format&fit=crop&q=80',
-                sponsor_link: 'https://example.com/waterside-dental',
-                sponsor_description: "Proudly supporting children's charities in Dickens Heath."
-              },
-              {
-                id: 'shirley_route_3',
-                name: 'Monkspath & Shelly Crescent',
-                date: '2026-12-11',
-                start_time: '18:00',
-                end_time: '20:30',
-                status: 'scheduled',
-                sponsor_name: 'Solihull Community Motors',
-                sponsor_logo: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=100&auto=format&fit=crop&q=80',
-                sponsor_link: 'https://example.com/solihull-motors',
-                sponsor_description: 'Keeping the sleigh towing vehicle safe on the road!'
-              }
-            ],
-            streets: [
-              { route_id: 'shirley_route_1', street_name: 'Haslucks Green Road', sequence_order: 1 },
-              { route_id: 'shirley_route_1', street_name: 'Colebrook Road', sequence_order: 2 },
-              { route_id: 'shirley_route_1', street_name: 'Green Lane', sequence_order: 3 },
-              { route_id: 'shirley_route_1', street_name: 'Newlands Way', sequence_order: 4 },
-              { route_id: 'shirley_route_1', street_name: 'Stratford Road', sequence_order: 5 },
-              { route_id: 'shirley_route_2', street_name: 'Main Street', sequence_order: 1 },
-              { route_id: 'shirley_route_2', street_name: 'Waterside', sequence_order: 2 },
-              { route_id: 'shirley_route_2', street_name: 'Gorsey Lane', sequence_order: 3 },
-              { route_id: 'shirley_route_2', street_name: 'Tythe Barn Lane', sequence_order: 4 },
-              { route_id: 'shirley_route_2', street_name: 'Birchy Leasowes Lane', sequence_order: 5 },
-              { route_id: 'shirley_route_3', street_name: 'Shelly Crescent', sequence_order: 1 },
-              { route_id: 'shirley_route_3', street_name: 'Farmhouse Way', sequence_order: 2 },
-              { route_id: 'shirley_route_3', street_name: 'Frankholmes Drive', sequence_order: 3 },
-              { route_id: 'shirley_route_3', street_name: 'Hay Lane', sequence_order: 4 },
-              { route_id: 'shirley_route_3', street_name: 'Thornton Road', sequence_order: 5 }
-            ],
-            live_sleigh: {
-              lat: 52.4086,
-              lng: -1.8285,
-              road_name: 'Stratford Road, Shirley',
-              status: 'Resting in Lapland'
-            }
-          };
-        }
-
-        const properName = cleanSlug.charAt(0).toUpperCase() + cleanSlug.slice(1);
+      // Neutral, table-agnostic empty state if initial network request fails
+      function getEmptyFallbackData(slug) {
+        const cleanSlug = (slug || '').trim().toLowerCase();
+        const displayTitle = cleanSlug
+          ? `${cleanSlug.charAt(0).toUpperCase() + cleanSlug.slice(1)} Round Table Santa Sleigh`
+          : 'Round Table Santa Sleigh';
         return {
           table: {
-            id: isBeverley ? 'beverley_247' : cleanSlug,
-            name: `${properName} Round Table`,
+            id: cleanSlug || 'default',
+            name: displayTitle,
             slug: cleanSlug,
-            sleigh_display_name: `${properName} Round Table Santa Sleigh`,
-            primary_color: isBeverley ? '#FBAF33' : '#D31C1C',
+            sleigh_display_name: displayTitle,
+            primary_color: '#FBAF33',
             accent_color: '#FFFFFF',
-            donate_url: isBeverley ? 'https://www.zeffy.com/en-GB/donation-form/beverley-round-table-for-our-community' : '',
-            charity_name: `Local ${properName} Charities & Good Causes`,
-            fundraising_goal: 8000,
-            total_raised: 19,
+            donate_url: '',
+            fundraising_goal: 0,
+            total_raised: 0,
             live_announcement: null,
-            tracking_active: true
+            tracking_active: false
           },
-          routes: [
-            {
-              id: `${cleanSlug}_route_1`,
-              name: isBeverley ? 'East Route' : 'Main Route',
-              date: todayStr,
-              start_time: '18:00',
-              end_time: '20:30',
-              status: 'scheduled',
-              sponsor_name: null,
-              sponsor_link: null
-            }
-          ],
-          streets: [
-            { route_id: `${cleanSlug}_route_1`, street_name: 'High Street', sequence_order: 1 },
-            { route_id: `${cleanSlug}_route_1`, street_name: 'Market Place', sequence_order: 2 }
-          ],
+          routes: [],
+          streets: [],
           live_sleigh: {
-            lat: isBeverley ? 53.84508 : 52.4086,
-            lng: isBeverley ? -0.43636 : -1.8285,
+            lat: 66.5436,
+            lng: 25.8473,
             road_name: 'Lapland Workshop',
             status: 'Resting in Lapland'
           }
@@ -1517,17 +1423,17 @@
         ICONS: {
           PREVIEW: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-grey.png",
           CONFIRMED: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
-          FALLBACK_LIVE: "/icons/sleigh_icon.png",
-          FALLBACK_START: "/icons/start_icon.png",
-          FALLBACK_END: "/icons/end_icon.png",
-          BROWSER_ICON: "/icons/bell_icon.png"
+          FALLBACK_LIVE: "https://brt-23f.pages.dev/icons/sleigh_icon.png",
+          FALLBACK_START: "https://brt-23f.pages.dev/icons/start_icon.png",
+          FALLBACK_END: "https://brt-23f.pages.dev/icons/end_icon.png",
+          BROWSER_ICON: "https://brt-23f.pages.dev/icons/bell_icon.png"
         }
       };
 
       const AppState = {
         map: null, mlMap: null, marker: null, notifyMarker: null, gpxRoute: null, lastFix: null, recentFixes: [], routeFixes: [],
         flags: { follow: true, firstFix: true, isKiosk: false, gpxLoaded: false, snowActive: false, pageVisible: !document.hidden, awaitingPin: false, browserNotified: sessionStorage.getItem("SANTA_BROWSER_NOTIFIED") === "1", hasPassedSticky: sessionStorage.getItem("SANTA_HAS_PASSED") === "1", celebrationFired: sessionStorage.getItem("SANTA_CELEBRATION_FIRED") === "1", musicEnabled: false, beaconActive: false },
-        vars: { apiUrl: null, sleighName: "Santa Sleigh", staleSince: null, lastSnapIndex: 0, snowflakes: [], animRaf: null, pendingSubscription: null, notifyLatLng: null, lastVisualPos: null, escapeListener: null, lastElfCamUrl: null, lastSeenMsgTs: Number(sessionStorage.getItem('SANTA_LAST_MSG_TS')) || 0, pollTimer: null, consecutiveErrors: 0, musicUrl: null, currentMapHeading: 0, latestApiData: null, lastSettingsFetch: 0, lastTxTime: 0, lastLeafletRouteIdx: -1, lastMlRouteIdx: -1, userSnapCache: null, etaEmaSec: null },
+        vars: { apiUrl: null, tableSlug: "", sleighName: "Santa Sleigh", staleSince: null, lastSnapIndex: 0, snowflakes: [], animRaf: null, pendingSubscription: null, notifyLatLng: null, lastVisualPos: null, escapeListener: null, lastElfCamUrl: null, lastSeenMsgTs: Number(sessionStorage.getItem('SANTA_LAST_MSG_TS')) || 0, pollTimer: null, consecutiveErrors: 0, musicUrl: null, currentMapHeading: 0, latestApiData: null, lastSettingsFetch: 0, lastTxTime: 0, lastLeafletRouteIdx: -1, lastMlRouteIdx: -1, userSnapCache: null, etaEmaSec: null },
         dom: { loading: document.getElementById("loadingCover"), statusBox: document.getElementById("statusBox"), followBtn: document.getElementById("followBtn"), recenterBtn: document.getElementById("recenterBtn"), notifyBtn: document.getElementById("notifyBtn"), msgBtn: document.getElementById("msgBtn"), statusDot: document.getElementById("statusDot"), donateLink: document.getElementById("donateLink"), donateBox: document.getElementById("donateBox"), kioskBanner: document.getElementById("kioskBanner"), sponsorBox: document.getElementById("kioskSponsor"), toast: document.getElementById("toast"), snowCanvas: document.getElementById("snow"), shareBtn: document.getElementById("shareBtn"), musicBtn: document.getElementById("musicBtn"), fireworks: document.getElementById("fireworks") }
       };
 
@@ -2228,7 +2134,7 @@
 
           // 🚀 UNIVERSAL FIREBASE / D1 GATEWAY: Fetch via Cloudflare Worker
           const fastGpsUrl = AppState.vars.isWorkerD1
-            ? `https://turbosanta-api.beverley247.workers.dev/api/live-gps?table=${encodeURIComponent(AppState.vars.tableSlug || 'beverley')}`
+            ? `${WORKER_URL}/api/live-gps?table=${encodeURIComponent(AppState.vars.tableSlug)}`
             : `${WORKER_URL}?action=liveGps&api=${encodeURIComponent(AppState.vars.apiUrl)}`;
           
           let data = null;
@@ -2296,9 +2202,7 @@
           }
 
           if (!isFresh) {
-            // Stale GPS (> 5 mins)
             if (AppState.flags.gpxLoaded && AppState.gpxRoute && AppState.gpxRoute.length > 0) {
-              // On sleigh day with a loaded GPX route, frame tonight's route on first load so families can see the streets & drop pins
               AppState.marker.setLatLng(AppConfig.LOCATIONS.LAPLAND);
               if (AppState.flags.firstFix && AppState.dynamicRouteRemainingMain && !AppState.vars.notifyLatLng) {
                 AppState.map.fitBounds(AppState.dynamicRouteRemainingMain.getBounds(), { padding: [40, 40] });
@@ -2576,7 +2480,7 @@
         scheduleNextPoll();
       }
 
-      // --- CALENDAR EXPORT LOGIC (Local Floating Time — BST/GMT Safe) ---
+      // --- CALENDAR EXPORT LOGIC (Local Floating Time — Table & Timezone Agnostic) ---
       const CalendarHelper = {
         formatICSDate(dateStr, timeStr) {
           if (!timeStr) timeStr = "17:30";
@@ -2591,7 +2495,7 @@
           const end = this.formatICSDate(route.date, route["End Time"] || route["Start Time"]);
           const title = encodeURIComponent(`${AppState.vars.sleighName}: ${route.routeName}`);
           const loc = encodeURIComponent(`${route.routeName}`);
-          const details = encodeURIComponent(`The Round Table Santa Sleigh is visiting ${route.routeName}! Listen out for the music and track us live at: ${window.location.href.split('?')[0]}`);
+          const details = encodeURIComponent(`${AppState.vars.sleighName} is visiting ${route.routeName}! Listen out for the music and track us live at: ${window.location.href.split('?')[0]}`);
           
           return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&location=${loc}`;
         },
@@ -2601,7 +2505,7 @@
           const end = this.formatICSDate(route.date, route["End Time"] || route["Start Time"]);
           const title = `${AppState.vars.sleighName}: ${route.routeName}`;
           const loc = `${route.routeName}`;
-          const desc = `The Round Table Santa Sleigh is visiting ${route.routeName}! Track us live at: ${window.location.href.split('?')[0]}`;
+          const desc = `${AppState.vars.sleighName} is visiting ${route.routeName}! Track us live at: ${window.location.href.split('?')[0]}`;
 
           const icsData = [
             "BEGIN:VCALENDAR",
@@ -2743,13 +2647,14 @@
             navBtn.textContent = "VERIFYING...";
             let gpsLoggerUrl = null;
             try {
-              const targetSlug = AppState.vars.tableSlug || params.get("table") || "beverley";
+              const targetSlug = AppState.vars.tableSlug || params.get("table") || "";
               const isWorkerOrD1 = AppState.vars.isWorkerD1 || !AppState.vars.apiUrl || !AppState.vars.apiUrl.includes("script.google.com");
               
               if (isWorkerOrD1) {
+                if (!targetSlug) throw new Error("Missing ?table=SLUG parameter");
                 let isValid = false;
                 try {
-                  const chk = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/auth/verify?table=${encodeURIComponent(targetSlug)}&secret=${encodeURIComponent(secret)}`, {
+                  const chk = await fetch(`${WORKER_URL}/api/auth/verify?table=${encodeURIComponent(targetSlug)}&secret=${encodeURIComponent(secret)}`, {
                     headers: { 'Authorization': `Bearer ${secret}` }
                   });
                   const chkRes = await chk.json();
@@ -2762,7 +2667,7 @@
                   return;
                 }
                 sessionStorage.setItem('beaconSecret', secret);
-                gpsLoggerUrl = `https://turbosanta-api.beverley247.workers.dev/api/telemetry?table=${encodeURIComponent(targetSlug)}`;
+                gpsLoggerUrl = `${WORKER_URL}/api/telemetry?table=${encodeURIComponent(targetSlug)}`;
               } else {
                 const res = await fetch(Utils.appendQuery(AppState.vars.apiUrl, `function=verifyBeaconAuth&secret=${encodeURIComponent(secret)}`), {
                   headers: { 'Authorization': `Bearer ${secret}` }
@@ -3038,7 +2943,18 @@
           };
         }
         
-        const tableSlug = params.get("table") || (params.has("api") ? "" : "beverley");
+        // Resolve table slug or legacy API URL from URL parameters or saved storage (no hardcoded table names)
+        const rawTableParam = params.get("table") ? params.get("table").trim() : "";
+        const explicitApi = params.get("api") ? params.get("api").trim() : "";
+
+        if (rawTableParam) {
+          try {
+            localStorage.setItem("SANTA_TABLE", rawTableParam);
+            sessionStorage.setItem("SANTA_TABLE", rawTableParam);
+          } catch (e) {}
+        }
+
+        const tableSlug = rawTableParam || (!explicitApi ? (localStorage.getItem("SANTA_TABLE") || sessionStorage.getItem("SANTA_TABLE") || "") : "");
         AppState.vars.tableSlug = tableSlug;
 
         // 👁️ Record unique visit beacon to update D1 total_views (session deduplicated)
@@ -3047,7 +2963,7 @@
             const sessionKey = 'ts_view_counted_' + tableSlug;
             if (!sessionStorage.getItem(sessionKey)) {
               sessionStorage.setItem(sessionKey, '1');
-              const beaconEndpoint = (AppState.vars.workerApi || 'https://turbosanta-api.beverley247.workers.dev') + '/api/track-view?table=' + encodeURIComponent(tableSlug);
+              const beaconEndpoint = `${WORKER_URL}/api/track-view?table=${encodeURIComponent(tableSlug)}`;
               if (navigator.sendBeacon) {
                 navigator.sendBeacon(beaconEndpoint);
               } else {
@@ -3057,44 +2973,36 @@
           } catch(e) {}
         }
 
-        const explicitApi = params.get("api");
         if (!explicitApi && tableSlug) {
           AppState.vars.isWorkerD1 = true;
-          AppState.vars.workerApi = "https://turbosanta-api.beverley247.workers.dev";
-          AppState.vars.dataUrl = `${AppState.vars.workerApi}/api/payload?table=${encodeURIComponent(tableSlug)}`;
+          AppState.vars.workerApi = WORKER_URL;
+          AppState.vars.dataUrl = `${WORKER_URL}/api/payload?table=${encodeURIComponent(tableSlug)}`;
           AppState.vars.apiUrl = AppState.vars.dataUrl;
+          loadCachedTheme(tableSlug);
         } else {
-          AppState.vars.apiUrl = explicitApi || localStorage.getItem("SANTA_API") || sessionStorage.getItem("SANTA_API");
-          if (!AppState.vars.apiUrl && tableSlug) {
-            AppState.vars.isWorkerD1 = true;
-            AppState.vars.workerApi = "https://turbosanta-api.beverley247.workers.dev";
-            AppState.vars.dataUrl = `${AppState.vars.workerApi}/api/payload?table=${encodeURIComponent(tableSlug)}`;
-            AppState.vars.apiUrl = AppState.vars.dataUrl;
-          } else if (!AppState.vars.apiUrl) {
-            alert("Missing ?table=SLUG or ?api=URL");
+          AppState.vars.apiUrl = explicitApi || localStorage.getItem("SANTA_API") || sessionStorage.getItem("SANTA_API") || "";
+          if (!AppState.vars.apiUrl) {
+            AppState.dom.loading.style.display = "none";
+            AppState.dom.statusBox.textContent = "Tracker configuration missing (?table=SLUG or ?api=URL)";
             return;
           }
-        }
-
-        if (params.has("api") && !params.has("proxy")) {
-          localStorage.removeItem("SANTA_PROXY");
-          sessionStorage.removeItem("SANTA_PROXY");
-        }
-
-        if (!AppState.vars.isWorkerD1) {
-          AppState.vars.proxyUrl = params.get("proxy") || localStorage.getItem("SANTA_PROXY") || sessionStorage.getItem("SANTA_PROXY");
-          localStorage.setItem("SANTA_API", AppState.vars.apiUrl); 
-          sessionStorage.setItem("SANTA_API", AppState.vars.apiUrl);
-          loadCachedTheme(AppState.vars.apiUrl);
-
-          if (AppState.vars.proxyUrl) {
-            localStorage.setItem("SANTA_PROXY", AppState.vars.proxyUrl); 
-            sessionStorage.setItem("SANTA_PROXY", AppState.vars.proxyUrl);
+          if (params.has("api") && !params.has("proxy")) {
+            localStorage.removeItem("SANTA_PROXY");
+            sessionStorage.removeItem("SANTA_PROXY");
           }
+          AppState.vars.proxyUrl = params.get("proxy") || localStorage.getItem("SANTA_PROXY") || sessionStorage.getItem("SANTA_PROXY");
+          try {
+            localStorage.setItem("SANTA_API", AppState.vars.apiUrl); 
+            sessionStorage.setItem("SANTA_API", AppState.vars.apiUrl);
+            if (AppState.vars.proxyUrl) {
+              localStorage.setItem("SANTA_PROXY", AppState.vars.proxyUrl); 
+              sessionStorage.setItem("SANTA_PROXY", AppState.vars.proxyUrl);
+            }
+          } catch (e) {}
+          loadCachedTheme(AppState.vars.apiUrl);
           AppState.vars.dataUrl = AppState.vars.proxyUrl || AppState.vars.apiUrl;
-        } else {
-          loadCachedTheme(tableSlug);
         }
+
         requestWakeLock(); setInterval(() => { if (document.visibilityState === "visible") requestWakeLock(); }, 60000);
 
         let apiData;
@@ -3109,15 +3017,18 @@
                 throw new Error(raw?.error || "Endpoint returned error");
               }
             } catch (err) {
-              console.warn("Could not load API data from endpoint, using table fallback:", err);
-              apiData = normalizeApiData(getTableFallbackData(tableSlug));
+              console.warn("Could not load API data from endpoint, using empty skeleton state:", err);
+              apiData = normalizeApiData(getEmptyFallbackData(tableSlug));
             }
         }
 
         AppState.vars.latestApiData = apiData;
         AppState.vars.lastSettingsFetch = Date.now();
         if (apiData && apiData.settings) {
-          try { applyTheme(apiData.settings); saveTheme(AppState.vars.apiUrl, apiData.settings.primary_color); } catch (e) { console.warn('Theme not applied:', e); }
+          try {
+            applyTheme(apiData.settings);
+            saveTheme(tableSlug || AppState.vars.apiUrl, apiData.settings.primary_color);
+          } catch (e) { console.warn('Theme not applied:', e); }
         }
 
         // Setup Schedule Modal + Street Search
@@ -3281,9 +3192,9 @@
           const curTable = curData?.table || {};
           const gaVal = curSettings.enable_gift_aid !== undefined ? curSettings.enable_gift_aid : curTable.enable_gift_aid;
           const isGaEnabled = Boolean(gaVal === true || String(gaVal).toUpperCase() === 'TRUE');
+          const currentSlug = AppState.vars.tableSlug || curTable.slug || '';
 
-          if (isGaEnabled) {
-            const currentSlug = AppState.vars.tableSlug || 'beverley';
+          if (isGaEnabled && currentSlug) {
             gaLink.href = `/gift_aid.html?table=${encodeURIComponent(currentSlug)}`;
             gaLink.style.display = 'block';
           } else {
