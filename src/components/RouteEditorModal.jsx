@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, Calendar, Clock, MapPin, Building2, Save, Trash2, UploadCloud, FileText, CheckCircle2, Navigation, ExternalLink, Sparkles, Plus } from 'lucide-react';
 import DropzoneUpload from './DropzoneUpload';
 import { uploadAssetToR2 } from '../services/api';
@@ -41,6 +41,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
   };
 
   const initialMeta = extractRouteMeta(route);
+  const [sponsors, setSponsors] = useState(getInitialSponsors);
 
   const [formData, setFormData] = useState({
     id: route?.id || `route_${Date.now()}`,
@@ -53,7 +54,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
     gpx_url: route?.gpx_url || route?.gpxUrl || '',
     gpx_file_name: route?.gpx_file_name || (route?.gpx_url ? 'route.gpx' : ''),
     planned_stops: route?.planned_stops || [],
-    streetsText: route?.streets?.map(s => s.street_name).join(', ') || '',
+    streetsText: route?.streets?.map(s => typeof s === 'string' ? s : s.street_name).join(', ') || '',
     sponsor_name: route?.sponsor_name || '',
     sponsor_link: route?.sponsor_link || '',
     sponsor_description: route?.sponsor_description || '',
@@ -67,6 +68,34 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
   );
   const [isParsingGpx, setIsParsingGpx] = useState(false);
   const [isGpxDragging, setIsGpxDragging] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const meta = extractRouteMeta(route);
+    setSponsors(extractRouteSponsors(route));
+    setFormData({
+      id: route?.id || `route_${Date.now()}`,
+      name: route?.name || '',
+      date: route?.date || new Date().toISOString().slice(0, 10),
+      start_time: route?.start_time || '18:00',
+      end_time: route?.end_time || '20:30',
+      meeting_point: meta.meeting_point,
+      muster_time: meta.muster_time,
+      gpx_url: route?.gpx_url || route?.gpxUrl || '',
+      gpx_file_name: route?.gpx_file_name || (route?.gpx_url ? 'route.gpx' : ''),
+      planned_stops: route?.planned_stops || [],
+      streetsText: route?.streets?.map(s => typeof s === 'string' ? s : s.street_name).join(', ') || '',
+      sponsor_name: route?.sponsor_name || '',
+      sponsor_link: route?.sponsor_link || '',
+      sponsor_description: route?.sponsor_description || '',
+      sponsor_logo_url: route?.sponsor_logo_url || ''
+    });
+    setGpxStats(
+      route?.gpx_url
+        ? { pointsCount: 'Loaded', stopsCount: route?.planned_stops?.length || 0, distanceMi: '—' }
+        : null
+    );
+  }, [isOpen, route]);
 
   const handleGpxFile = async (file) => {
     if (!file) return;

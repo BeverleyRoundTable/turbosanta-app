@@ -72,21 +72,21 @@ export default function App() {
   const handleLogout = () => {
     logoutAdmin();
     setAdminSession(null);
-    if (!initialTableParam) {
-      setActiveTableSlug(null);
-      setLandingRequested(true);
-    }
+    setActiveTableSlug(null);
+    setLandingRequested(true);
     setViewMode('public');
-    const url = new URL(window.location.href);
-    url.searchParams.delete('admin');
-    url.searchParams.delete('god');
-    url.searchParams.delete('view');
-    url.searchParams.delete('landing');
-    if (!initialTableParam) {
-      url.searchParams.delete('table');
-    }
-    const newSearch = url.searchParams.toString();
-    window.history.pushState(null, '', url.pathname + (newSearch ? `?${newSearch}` : ''));
+    try {
+      localStorage.removeItem("turbosanta_admin_session");
+      localStorage.removeItem("ts2_admin_session");
+      sessionStorage.clear();
+    } catch (e) {}
+
+    // Hard redirect to clean homepage at roundtablesantasleigh.co.uk
+    const host = window.location.hostname.toLowerCase();
+    const homeUrl = (host.includes('roundtablesantasleigh.co.uk') || host.includes('pages.dev'))
+      ? 'https://roundtablesantasleigh.co.uk/'
+      : window.location.origin + '/';
+    window.location.replace(homeUrl);
   };
 
   useEffect(() => {
