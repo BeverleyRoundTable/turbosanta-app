@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -17,37 +17,54 @@
     /* --- BRAND FONT INJECTION --- */
     @font-face {
       font-family: 'Eurostile';
-      src: url('https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.woff2') format('woff2'),
+      src: url('/site/Eurostile_Extended_2_Bold.woff2') format('woff2'),
+           url('https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.woff2') format('woff2'),
            url('https://brt-23f.pages.dev/fonts/eurostile-bold.woff2') format('woff2'),
            url('https://brt-23f.pages.dev/fonts/eurostile-bold.woff') format('woff'),
            url('https://brt-23f.pages.dev/site/Eurostile_Extended_2_Bold.otf') format('opentype');
-      font-weight: 700;
+      font-weight: 100 900;
       font-style: normal;
       font-display: swap;
     }
 
-    /* --- BRAND VARIABLES --- */
+    /* --- BRAND VARIABLES (Matched to address.html) --- */
     :root {
-      /* Fallback variables, updated dynamically by applyTheme() */
+      /* Brand colour. Defaults are Round Table gold; applyTheme() overrides these from the DB
+         (settings.primary_color or table.primary_color). */
       --primary: #FBAF33;
       --primary-rgb: 251, 175, 51;
       --on-primary: #000000;
-      
-      --accent: #FFFFFF; /* White */
-      --bg-dark: #1D1D1A; /* Table Grey */
-      --bg-card: #000000; /* Black */
-      --text-main: #FFFFFF;
-      --text-muted: rgba(255, 255, 255, 0.7);
-      --border: rgba(255, 255, 255, 0.15);
+      --primary-dim: rgba(var(--primary-rgb), 0.12);
+      --primary-glow: rgba(var(--primary-rgb), 0.25);
+
+      --accent: #FFFFFF;
+      --dark: #0d0d0b;
+      --surface: #161614;
+      --surface-2: #1e1e1b;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-primary: rgba(var(--primary-rgb), 0.2);
+      --text: #eaeae5;
+      --text-dim: rgba(255, 255, 255, 0.55);
+      --text-muted: rgba(255, 255, 255, 0.3);
+      --red: #D31C1C;
+      --green: #2ecc71;
     }
+
+    * { box-sizing: border-box; }
 
     /* --- CORE STYLES --- */
     body {
       margin: 0;
       padding: 20px;
-      background-color: var(--bg-dark);
+      background: transparent;
       font-family: 'Open Sans', sans-serif;
-      color: var(--text-main);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Set by JS when the page is opened directly rather than embedded in an iframe */
+    html.standalone body {
+      background: var(--dark);
     }
 
     .blueprint-container {
@@ -62,11 +79,11 @@
     .sleigh-map {
       position: relative;
       width: 100%;
-      background: var(--bg-card); 
-      border-radius: 12px;
+      background: var(--surface);
+      border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-      border: 1px solid var(--border);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+      border: 1px solid var(--border-primary);
     }
 
     .base-image {
@@ -85,7 +102,7 @@
       border-radius: 50%;
       transform: translate(-50%, -50%);
       cursor: pointer;
-      box-shadow: 0 0 10px var(--primary);
+      box-shadow: 0 0 12px var(--primary-glow), 0 0 10px var(--primary);
       transition: all 0.3s ease;
       z-index: 10;
       touch-action: manipulation;
@@ -122,12 +139,12 @@
 
     /* --- INFO PANEL (DARK MODE) --- */
     .info-panel {
-      background: var(--bg-card);
+      background: linear-gradient(180deg, var(--primary-dim) 0%, var(--surface-2) 100%);
       padding: 24px;
-      border-radius: 12px;
+      border-radius: 14px;
       border: 1px solid var(--border);
       border-left: 5px solid var(--primary);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
       min-height: 120px;
     }
 
@@ -136,8 +153,8 @@
       font-size: 1.5rem;
       font-family: 'Eurostile', 'Open Sans', sans-serif;
       text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--text-main);
+      letter-spacing: 1.5px;
+      color: #FFFFFF;
     }
 
     .highlight-text {
@@ -152,7 +169,7 @@
     #panel-desc {
       margin: 0;
       line-height: 1.6;
-      color: var(--text-muted);
+      color: var(--text-dim);
     }
 
     .fade-in {
@@ -192,24 +209,33 @@
   </div>
 
   <script>
-    /* ---------- THEME & API SETUP ---------- */
+    /* ---------- STANDALONE DETECTION ---------- */
+    if (window.self === window.top) {
+      document.documentElement.classList.add('standalone');
+    }
+
+    /* ---------- THEME & DATABASE API SETUP ---------- */
     const params = new URLSearchParams(location.search);
     let API_URL = params.get("api") || localStorage.getItem("SANTA_API") || sessionStorage.getItem("SANTA_API");
+
+    if (params.has("api") && !params.has("proxy")) {
+      localStorage.removeItem("SANTA_PROXY");
+      sessionStorage.removeItem("SANTA_PROXY");
+    }
 
     if (API_URL) {
       localStorage.setItem("SANTA_API", API_URL); 
       sessionStorage.setItem("SANTA_API", API_URL);
-      
-      const WORKER_URL = "https://santaproxy.beverley247.workers.dev/";
-      const DATA_URL = `${WORKER_URL}?ttl=30&target=${encodeURIComponent(API_URL)}`;
-      
-      fetch(DATA_URL)
-        .then(r => r.json())
-        .then(data => {
-          if (data && data.settings) applyTheme(data.settings);
-        })
-        .catch(e => console.warn("Failed to load theme for blueprint", e));
     }
+
+    const tableSlug = params.get("table") || "beverley";
+    const WORKER_URL = "https://santaproxy.beverley247.workers.dev/";
+    const DATA_URL = API_URL
+      ? `${WORKER_URL}?ttl=30&target=${encodeURIComponent(API_URL)}`
+      : `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableSlug)}`;
+
+    const DEFAULT_PRIMARY = '#FBAF33';
+    let PRIMARY = DEFAULT_PRIMARY;
 
     function parseColor(v) {
       if (typeof v !== 'string') return null;
@@ -246,15 +272,24 @@
       const rgb = parseColor(raw);
       
       if (rgb) {
-        root.style.setProperty('--primary', String(raw).trim());
+        PRIMARY = String(raw).trim();
+        root.style.setProperty('--primary', PRIMARY);
         root.style.setProperty('--primary-rgb', rgb.join(', '));
         root.style.setProperty('--on-primary', readableTextOn(rgb));
       } else {
-        root.style.removeProperty('--primary');
-        root.style.removeProperty('--primary-rgb');
-        root.style.removeProperty('--on-primary');
+        PRIMARY = DEFAULT_PRIMARY;
+        ['--primary', '--primary-rgb', '--on-primary'].forEach(p => root.style.removeProperty(p));
       }
     }
+
+    fetch(DATA_URL, { cache: "no-store" })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          applyTheme(data.settings || data.table);
+        }
+      })
+      .catch(e => console.warn("Failed to load theme for blueprint:", e));
 
     // =========================================================================
     // 1. YOUR WEB APP URL (Site Analytics / Hub for silent logging)
@@ -318,7 +353,7 @@
         infoPanel.classList.add('fade-in');
 
         // Silently log the click to Google Sheets for your backend reporting
-        if(WEB_APP_URL !== "") {
+        if (WEB_APP_URL !== "") {
           fetch(WEB_APP_URL, {
             method: 'POST',
             mode: 'no-cors', 
@@ -332,12 +367,10 @@
     // =========================================================================
     // 4. DEV TOOL: COORDINATE FINDER (Triggered via URL: ?pinpoint=true)
     // =========================================================================
-    const urlParamsBlueprint = new URLSearchParams(window.location.search);
-    
-    if (urlParamsBlueprint.has('pinpoint')) {
+    if (params.has('pinpoint')) {
       const devBanner = document.createElement('div');
       devBanner.innerHTML = "🛠️ PINPOINT MODE ACTIVE: Click anywhere on the sleigh to get coordinates.";
-      devBanner.style.cssText = "background: #ff3333; color: white; text-align: center; padding: 10px; font-weight: bold; border-radius: 8px; margin-bottom: 15px;";
+      devBanner.style.cssText = "background: var(--red); color: white; text-align: center; padding: 10px; font-weight: bold; border-radius: 8px; margin-bottom: 15px;";
       document.querySelector('.blueprint-container').prepend(devBanner);
 
       document.getElementById('sleigh-image').addEventListener('click', function(e) {
@@ -350,28 +383,27 @@
         prompt("Copy your new coordinates:", coordinateString);
       });
     }
-    
-  </script>
 
-  <script>
-  function sendHeight() {
-    const height = document.documentElement.scrollHeight;
-    window.parent.postMessage({ frameHeight: height }, '*');
-  }
-  
-  // Send height when page loads
-  window.addEventListener('load', sendHeight);
-  
-  // Send height if window resizes
-  window.addEventListener('resize', sendHeight);
-  
-  // Send height when a hotspot is clicked
-  document.querySelectorAll('.hotspot').forEach(dot => {
-    dot.addEventListener('click', () => {
-      setTimeout(sendHeight, 50);
+    // =========================================================================
+    // 5. IFRAME HEIGHT SYNC
+    // =========================================================================
+    function sendHeight() {
+      const height = document.documentElement.scrollHeight;
+      window.parent.postMessage({ frameHeight: height }, '*');
+    }
+    
+    window.addEventListener('load', sendHeight);
+    window.addEventListener('resize', sendHeight);
+    
+    const observer = new MutationObserver(sendHeight);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    document.querySelectorAll('.hotspot').forEach(dot => {
+      dot.addEventListener('click', () => {
+        setTimeout(sendHeight, 50);
+      });
     });
-  });
-</script>
+  </script>
 
 </body>
 </html>
