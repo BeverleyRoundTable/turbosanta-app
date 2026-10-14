@@ -1194,7 +1194,7 @@ function extractLiveTableData(table, apiData) {
     todayStartTime: todayRoute ? todayRoute["Start Time"] : null,
     todayEndTime: todayRoute ? todayRoute["End Time"] : null,
     todaySponsor: todayRoute ? todayRoute.sponsorName : null,
-    iconUrl: settings.sleigh_icon_live || "https://i.ibb.co/Qj3vDbSR/Santa-Marker-11.png"
+    iconUrl: settings.sleigh_icon_live || "https://brt-23f.pages.dev/icons/sleigh_icon.png"
   };
 }
 
@@ -1797,7 +1797,7 @@ async function renderMap(data) {
 
         if (!sleighMarkers[table.id]) {
           const icon = L.icon({ 
-            iconUrl: table.iconUrl || "https://i.ibb.co/Qj3vDbSR/Santa-Marker-11.png", 
+            iconUrl: table.iconUrl || "https://brt-23f.pages.dev/icons/sleigh_icon.png", 
             iconSize: [64, 64], 
             iconAnchor: [32, 60],
             popupAnchor: [0, -50]
