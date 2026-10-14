@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Star, Clock, CheckCircle2, MapPin, Building2, ExternalLink } from 'lucide-react';
 import { extractRouteSponsors } from '../utils/sponsors';
+import RouteStreetsPreview from './RouteStreetsPreview';
 
 export default function RouteSchedule({ tableData }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -216,11 +217,18 @@ export default function RouteSchedule({ tableData }) {
               {todayRoute.name}
             </h3>
 
-            {/* Streets */}
-            <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-              <strong>Streets on route:</strong>{' '}
-              {streets.filter(s => s.route_id === todayRoute.id).map(s => s.street_name).join(', ') || 'See live map for details'}
-            </div>
+            <RouteStreetsPreview
+              streets={streets.filter(s => s.route_id === todayRoute.id).map(s => s.street_name)}
+              routeName={todayRoute.name}
+              dateText={todayRoute.date ? new Date(todayRoute.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : ''}
+              timeText={todayRoute.start_time ? `${todayRoute.start_time} - ${todayRoute.end_time || '20:30'}` : ''}
+              previewLimit={6}
+              accentColor="var(--primary)"
+              onViewMap={() => {
+                const el = document.getElementById('routes');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+            />
           </div>
 
           {/* Sponsor Box if available */}
@@ -341,19 +349,18 @@ export default function RouteSchedule({ tableData }) {
                 {r.name}
               </h3>
 
-              {/* Street list */}
-              <div style={{
-                fontSize: '14px',
-                color: 'var(--text-muted)',
-                marginBottom: '16px',
-                flex: 1
-              }}>
-                {routeStreets.length > 0 ? (
-                  routeStreets.map(s => s.street_name).join(', ')
-                ) : (
-                  <span>Full street list publishing soon.</span>
-                )}
-              </div>
+              <RouteStreetsPreview
+                streets={routeStreets.map(s => s.street_name)}
+                routeName={r.name}
+                dateText={r.date ? new Date(r.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : ''}
+                timeText={r.start_time ? `${r.start_time} - ${r.end_time || '20:30'}` : ''}
+                previewLimit={5}
+                accentColor="var(--primary)"
+                onViewMap={() => {
+                  const el = document.getElementById('routes');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+              />
 
               {/* Sponsor Box */}
               {cardSponsors.length > 0 && (

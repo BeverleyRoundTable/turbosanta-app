@@ -789,6 +789,199 @@ function renderDonations(donations, settings) {
     }
 }
 
+        // --- ROUTE STREETS PREVIEW & SEARCH MODAL ---
+        window.__routesStreetsMap = {};
+
+        function isSantaStopText(name) {
+            return /santa\s*stop/i.test(name || '');
+        }
+
+        function formatSantaStopText(name) {
+            if (!name) return '';
+            if (!isSantaStopText(name)) return name;
+            const stripped = name.replace(/santa\s*stop[:\s\-]*/i, '').trim();
+            return stripped ? `🎅 STOP: ${stripped}` : '🎅 SANTA STOP';
+        }
+
+        window.triggerStreetsModal = function(key) {
+            const data = window.__routesStreetsMap[key];
+            if (data) {
+                openStreetsModal(data.streets, data.routeName, data.dateText, data.timeText);
+            }
+        };
+
+        function renderStreetsPreviewHtml(streetsInput, routeName, dateText, timeText, previewLimit = 5) {
+            const streetsArray = Array.isArray(streetsInput)
+                ? streetsInput.map(s => String(s).trim()).filter(Boolean)
+                : String(streetsInput || '').split(',').map(s => s.trim()).filter(Boolean);
+
+            if (!streetsArray.length) {
+                return `<p class="font-body text-gray-400 text-sm italic mb-4 flex-grow">Full street list publishing soon.</p>`;
+            }
+
+            const routeKey = 'route_' + Math.random().toString(36).substring(2, 9);
+            window.__routesStreetsMap[routeKey] = {
+                streets: streetsArray,
+                routeName: routeName,
+                dateText: dateText,
+                timeText: timeText
+            };
+
+            const visible = streetsArray.slice(0, previewLimit);
+            const remaining = streetsArray.length - visible.length;
+
+            return `
+                <div class="my-3 flex flex-col flex-grow">
+                    <div class="flex flex-wrap gap-1.5 items-center">
+                        ${visible.map(st => {
+                            const stop = isSantaStopText(st);
+                            return `
+                                <span class="text-[11px] px-2 py-0.5 rounded-md font-medium leading-relaxed ${stop ? 'bg-red-600/90 text-white font-bold border border-red-400 shadow-sm' : 'bg-white/10 text-gray-200 border border-white/5'}">
+                                    ${stop ? '🎅 ' : ''}${formatSantaStopText(st)}
+                                </span>
+                            `;
+                        }).join('')}
+                        ${remaining > 0 ? `
+                            <button type="button" onclick="window.triggerStreetsModal('${routeKey}')" class="text-[11px] font-bold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 rounded-md transition-colors cursor-pointer">
+                                +${remaining} more...
+                            </button>
+                        ` : ''}
+                    </div>
+                    ${remaining > 0 ? `
+                        <button type="button" onclick="window.triggerStreetsModal('${routeKey}')" class="mt-3 w-full py-2 px-3 text-xs font-heading font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
+                            <i class="fa-solid fa-map-pin text-[11px]"></i>
+                            <span>View All ${streetsArray.length} Streets & Stops</span>
+                            <i class="fa-solid fa-chevron-right text-[10px] opacity-75"></i>
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function openStreetsModal(streets, routeName, dateText, timeText) {
+            let modal = document.getElementById('streets-modal-container');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'streets-modal-container';
+                document.body.appendChild(modal);
+            }
+
+            function renderModal(query = '') {
+                const q = query.toLowerCase().trim();
+                const filtered = q ? streets.filter(s => s.toLowerCase().includes(q)) : streets;
+                const santaCount = streets.filter(isSantaStopText).length;
+
+                modal.innerHTML = `
+                    <div id="streets-modal-backdrop" class="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+                        <div class="w-full max-w-lg max-h-[85vh] bg-[#141412] border border-amber-500/30 rounded-2xl shadow-2xl flex flex-col overflow-hidden" onclick="event.stopPropagation()">
+                            <!-- Header -->
+                            <div class="p-5 border-b border-white/10 bg-gradient-to-b from-amber-500/10 to-transparent relative">
+                                <button type="button" id="streets-modal-close" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-brt-red text-white flex items-center justify-center transition-colors">
+                                    <i class="fa-solid fa-xmark text-sm"></i>
+                                </button>
+                                <div class="font-heading font-bold text-xs uppercase tracking-wider text-amber-400 mb-1">
+                                    ${dateText || ''} ${timeText ? `| ${timeText}` : ''}
+                                </div>
+                                <h3 class="font-heading font-black text-2xl text-white pr-8 leading-tight">
+                                    ${routeName || 'Route Streets'}
+                                </h3>
+                                <div class="flex flex-wrap gap-2 items-center mt-2">
+                                    <span class="text-xs bg-white/10 text-gray-200 px-2.5 py-1 rounded-md font-medium">
+                                        ${streets.length} total streets & roads
+                                    </span>
+                                    ${santaCount > 0 ? `
+                                        <span class="text-xs bg-red-600/30 border border-red-500/50 text-red-200 px-2.5 py-1 rounded-md font-bold flex items-center gap-1">
+                                            <i class="fa-solid fa-star text-[10px]"></i> ${santaCount} Santa ${santaCount === 1 ? 'Stop' : 'Stops'}
+                                        </span>
+                                    ` : ''}
+                                </div>
+                            </div>
+
+                            <!-- Search Input -->
+                            <div class="p-3 bg-[#191916] border-b border-white/5">
+                                <div class="relative flex items-center">
+                                    <i class="fa-solid fa-magnifying-glass absolute left-3 text-amber-400 text-xs pointer-events-none"></i>
+                                    <input type="text" id="streets-modal-search" value="${query}" placeholder="Search ${streets.length} streets on this route..." class="w-full pl-9 pr-8 py-2 text-sm bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-amber-400 transition-colors" />
+                                    ${query ? `<button type="button" id="streets-search-clear" class="absolute right-2.5 text-gray-400 hover:text-white text-xs"><i class="fa-solid fa-circle-xmark"></i></button>` : ''}
+                                </div>
+                            </div>
+
+                            <!-- List -->
+                            <div class="flex-1 overflow-y-auto p-4 space-y-2">
+                                ${filtered.length > 0 ? filtered.map((st) => {
+                                    const stop = isSantaStopText(st);
+                                    const origIdx = streets.indexOf(st) + 1;
+                                    return `
+                                        <div class="p-2.5 rounded-lg border flex items-center justify-between gap-3 ${stop ? 'bg-red-950/40 border-red-600/60' : 'bg-white/[0.03] border-white/[0.06]'}">
+                                            <div class="flex items-center gap-2.5 min-w-0">
+                                                <span class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${stop ? 'bg-red-600/60 text-red-100' : 'bg-white/10 text-gray-400'} shrink-0">
+                                                    #${origIdx}
+                                                </span>
+                                                <span class="text-sm ${stop ? 'font-black text-white' : 'font-medium text-gray-200'} truncate">
+                                                    ${formatSantaStopText(st)}
+                                                </span>
+                                            </div>
+                                            ${stop ? `
+                                                <span class="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-red-600 text-white shadow-sm shrink-0">
+                                                    Designated Stop
+                                                </span>
+                                            ` : ''}
+                                        </div>
+                                    `;
+                                }).join('') : `
+                                    <div class="text-center py-8 text-gray-400 text-sm">
+                                        No streets match "<strong>${query}</strong>".
+                                    </div>
+                                `}
+                            </div>
+
+                            <!-- Footer -->
+                            <div class="p-3 bg-[#191916] border-t border-white/10 flex items-center justify-between">
+                                <span class="text-xs text-gray-400">Showing ${filtered.length} of ${streets.length}</span>
+                                <button type="button" id="streets-modal-done" class="px-4 py-1.5 text-xs font-bold font-heading uppercase tracking-wider bg-amber-500 hover:bg-amber-400 text-black rounded-lg transition-colors">
+                                    Done
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('streets-modal-backdrop').onclick = closeModal;
+                document.getElementById('streets-modal-close').onclick = closeModal;
+                document.getElementById('streets-modal-done').onclick = closeModal;
+
+                const searchInput = document.getElementById('streets-modal-search');
+                if (searchInput) {
+                    searchInput.oninput = (e) => {
+                        renderModal(e.target.value);
+                        const nextInput = document.getElementById('streets-modal-search');
+                        if (nextInput) {
+                            nextInput.focus();
+                            nextInput.setSelectionRange(nextInput.value.length, nextInput.value.length);
+                        }
+                    };
+                }
+                const clearBtn = document.getElementById('streets-search-clear');
+                if (clearBtn) {
+                    clearBtn.onclick = () => renderModal('');
+                }
+            }
+
+            function closeModal() {
+                modal.innerHTML = '';
+                document.body.style.overflow = '';
+                document.removeEventListener('keydown', handleEsc);
+            }
+
+            function handleEsc(e) {
+                if (e.key === 'Escape') closeModal();
+            }
+
+            document.body.style.overflow = 'hidden';
+            document.addEventListener('keydown', handleEsc);
+            renderModal('');
+        }
+
         // --- RENDER TONIGHT'S HERO SPOTLIGHT ---
         function renderTodaySpotlight({ route, d }, sponsors, parent) {
             const start = route['Start Time'] || '';
@@ -799,7 +992,7 @@ function renderDonations(donations, settings) {
             const streetsArray = route.streets 
                 ? String(route.streets).split(',').map(s => s.trim()).filter(Boolean) 
                 : [];
-            const streetsText = streetsArray.join(', ');
+            const streetsPreviewHtml = renderStreetsPreviewHtml(streetsArray, route.routeName, dateText, time, 6);
 
             const routeSponsors = Array.isArray(route.sponsors) && route.sponsors.length > 0
                 ? route.sponsors
@@ -830,12 +1023,7 @@ function renderDonations(donations, settings) {
                             <h3 class="font-heading font-black text-3xl sm:text-4xl lg:text-5xl text-white uppercase mb-3 leading-tight tracking-tight">
                                 ${route.routeName}
                             </h3>
-                            ${streetsText ? `
-                                <div class="font-body text-gray-300 text-sm leading-relaxed mt-2">
-                                    <span class="text-xs font-heading font-bold uppercase tracking-wider text-brt-red/90 block mb-0.5">Streets on Route:</span>
-                                    <p class="text-gray-300">${streetsText}</p>
-                                </div>
-                            ` : ''}
+                            ${streetsPreviewHtml}
                         </div>
 
                         <!-- Tonight's Sponsor Showcase (if present) -->
@@ -1033,14 +1221,7 @@ function renderDonations(donations, settings) {
                         }
                     }
 
-                    // Show ALL street names: slice(0, 8) and line-clamp-3 removed
-                    let streetsHtml = '';
-                    if (route.streets) {
-                        const streetsArray = String(route.streets).split(',').map(s => s.trim()).filter(Boolean);
-                        if (streetsArray.length) {
-                            streetsHtml = `<p class="font-body text-gray-400 text-sm leading-relaxed mb-4 flex-grow">${streetsArray.join(', ')}</p>`;
-                        }
-                    }
+                    const streetsHtml = renderStreetsPreviewHtml(route.streets, route.routeName, dateText, time, 5);
 
                     const card = document.createElement('div');
                     card.className = `bg-white/5 border border-white/10 rounded-2xl p-6 shadow-lg flex flex-col transition-all duration-300 ${isPast ? 'opacity-50 grayscale hover:grayscale-0' : 'hover:border-brt-red/50 hover:bg-white/10'}`;

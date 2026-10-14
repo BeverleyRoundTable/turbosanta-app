@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Share2, MapPin, ExternalLink, Star, ChevronDown } from 'lucide-react';
 import { API_BASE } from '../services/api';
 import { extractRouteSponsors } from '../utils/sponsors';
+import RouteStreetsPreview from './RouteStreetsPreview';
 
 const DEFAULT_LOGO = '/icons/RTBI_Santa.png';
 const DEFAULT_BG = '/icons/site_background.png';
@@ -967,11 +968,18 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                   {todayItem.routeName}
                 </h3>
 
-                {todayItem.streets && (
-                  <div style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                    {todayItem.streets}
-                  </div>
-                )}
+                <RouteStreetsPreview
+                  streets={todayItem.streets}
+                  routeName={todayItem.routeName}
+                  dateText={todayItem.d ? todayItem.d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : ''}
+                  timeText={todayItem.start_time ? `${todayItem.start_time} - ${todayItem.end_time || '20:30'}` : ''}
+                  previewLimit={6}
+                  accentColor="var(--primary)"
+                  onViewMap={() => {
+                    const el = document.getElementById('sleigh-map') || document.getElementById('routes');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                />
               </div>
 
               {todayItem.sponsors && todayItem.sponsors.length > 0 && (
@@ -1075,11 +1083,18 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                     {r.routeName}
                   </h3>
 
-                  {r.streets && (
-                    <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '15px' }}>
-                      {r.streets}
-                    </div>
-                  )}
+                  <RouteStreetsPreview
+                    streets={r.streets}
+                    routeName={r.routeName}
+                    dateText={r.d ? r.d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : ''}
+                    timeText={r.start_time ? `${r.start_time} - ${r.end_time || '20:30'}` : ''}
+                    previewLimit={5}
+                    accentColor="var(--primary)"
+                    onViewMap={() => {
+                      const el = document.getElementById('sleigh-map') || document.getElementById('routes');
+                      if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                  />
 
                   {r.sponsors && r.sponsors.length > 0 && (
                     <div style={{ marginTop: 'auto', paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
