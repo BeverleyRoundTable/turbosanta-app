@@ -598,6 +598,9 @@ async function fetchApiData() {
         donate_url: raw.table?.donate_url || '',
         live_announcement: raw.table?.live_announcement || '',
         logo_overlay_url: raw.table?.logo_url || '',
+        sleigh_icon_live: raw.table?.sleigh_icon_live || '',
+        sleigh_icon_start: raw.table?.sleigh_icon_start || '',
+        sleigh_icon_end: raw.table?.sleigh_icon_end || '',
         background_url: raw.table?.background_url || '',
         tracking_active: raw.table?.tracking_active !== false
       };
@@ -638,6 +641,11 @@ async function fetchApiData() {
     updateDashboard();
     updateCrewAlertButtonState();
     updateUserMsgState(); 
+
+    if (STATE.marker && STATE.settings) {
+      const pinUrl = STATE.settings.sleigh_icon_live || 'https://i.ibb.co/Qj3vDbSR/Santa-Marker-11.png';
+      STATE.marker.setIcon(L.icon({ iconUrl: pinUrl, iconSize: [64, 64], iconAnchor: [32, 60] }));
+    }
   } catch(e) { console.error('API:', e); }
 }
 

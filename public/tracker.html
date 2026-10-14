@@ -1108,12 +1108,16 @@
             accent_color: data.table.accent_color || '#FFFFFF',
             donate_url: data.table.donate_url || '',
             live_announcement: data.table.live_announcement || '',
+            sleigh_icon_live: data.table.sleigh_icon_live || '',
             background_music_url: data.table.background_music_url || '',
             enable_gift_aid: data.table.enable_gift_aid !== undefined ? data.table.enable_gift_aid : false
           };
         } else if (data.settings && data.table) {
           if (data.settings.enable_gift_aid === undefined && data.table.enable_gift_aid !== undefined) {
             data.settings.enable_gift_aid = data.table.enable_gift_aid;
+          }
+          if (!data.settings.sleigh_icon_live && data.table.sleigh_icon_live) {
+            data.settings.sleigh_icon_live = data.table.sleigh_icon_live;
           }
         }
         if (data.table && !data.donations) {
