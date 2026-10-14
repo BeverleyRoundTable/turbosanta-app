@@ -12,30 +12,10 @@ export default function PrintRouteSheetModal({
 }) {
   if (!isOpen || !route) return null;
 
-  const [leadMarshal, setLeadMarshal] = useState('');
-  const [towDriver, setTowDriver] = useState('');
-  const [meetingLocation, setMeetingLocation] = useState(route?.meeting_point || 'Depot / Pavilion Car Park');
-  const [isCopied, setIsCopied] = useState(false);
-
-  // Compute full domain and URLs
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://roundtablesantasleigh.co.uk';
-  const displayHost = origin.replace(/^https?:\/\//, '');
-  const beaconUrl = `${origin}/beacon.html?table=${tableSlug}`;
-  const beaconDisplayText = `${displayHost}/beacon.html?table=${tableSlug}`;
-  const trackerUrl = `${origin}/tracker.html?table=${tableSlug}`;
-  const trackerDisplayText = `${displayHost}/tracker.html?table=${tableSlug}`;
-
-  // Parse street list safely
-  const streetList = (streets && streets.length > 0)
-    ? streets.map(s => typeof s === 'string' ? s : (s.street_name || s.name)).filter(Boolean)
-    : (route.streets && route.streets.length > 0)
-      ? route.streets.map(s => typeof s === 'string' ? s : (s.street_name || s.name)).filter(Boolean)
-      : [];
-
-  // Calculate meeting time: 15 mins before start time
-  let meetingTimeStr = '17:45';
-  if (route.start_time) {
-    const parts = route.start_time.split(':');
+  // Helper to extract or calculate default muster time (15 mins before start time)
+  const calculateDefaultMuster = (startTime) => {
+    if (!startTime) return '17:45';
+    const parts = startTime.split(':');
     if (parts.length >= 2) {
       let h = parseInt(parts[0], 10);
       let m = parseInt(parts[1], 10) - 15;
@@ -43,9 +23,52 @@ export default function PrintRouteSheetModal({
         m += 60;
         h -= 1;
       }
-      meetingTimeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
     }
-  }
+    return '17:45';
+  };
+
+  const getInitialMeta = () => {
+    let point = route?.meeting_point || '';
+    let muster = route?.muster_time || '';
+    if (route?.notes) {
+      const match = route.notes.match(/<!--\s*ROUTE_META:\s*({.*?})\s*-->/s);
+      if (match && match[1]) {
+        try {
+          const parsed = JSON.parse(match[1]);
+          if (!point && parsed.meeting_point) point = parsed.meeting_point;
+          if (!muster && parsed.muster_time) muster = parsed.muster_time;
+        } catch(e) {}
+      }
+    }
+    return {
+      meetingLocation: point || 'Depot / Pavilion Car Park',
+      musterTime: muster || calculateDefaultMuster(route?.start_time)
+    };
+  };
+
+  const initialMeta = getInitialMeta();
+  const [leadMarshal, setLeadMarshal] = useState('');
+  const [towDriver, setTowDriver] = useState('');
+  const [meetingLocation, setMeetingLocation] = useState(initialMeta.meetingLocation);
+  const [musterTime, setMusterTime] = useState(initialMeta.musterTime);
+  const [isCopied, setIsCopied] = useState(false);
+
+  // Compute full domain and URLs
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://roundtablesantasleigh.co.uk';
+  const displayHost = origin.replace(/^https?:\/\//, '');
+  const cockpitUrl = `${origin}/tracker.html?table=${tableSlug}&driver=1`;
+  const cockpitDisplayText = `${displayHost}/tracker.html?table=${tableSlug}&driver=1`;
+  const trackerUrl = `${origin}/tracker.html?table=${tableSlug}`;
+  const trackerDisplayText = `${displayHost}/tracker.html?table=${tableSlug}`;
+  const beaconUrl = `${origin}/beacon.html?table=${tableSlug}`;
+
+  // Parse street list safely
+  const streetList = (streets && streets.length > 0)
+    ? streets.map(s => typeof s === 'string' ? s : (s.street_name || s.name)).filter(Boolean)
+    : (route.streets && route.streets.length > 0)
+      ? route.streets.map(s => typeof s === 'string' ? s : (s.street_name || s.name)).filter(Boolean)
+      : [];
 
   // Format date nicely
   let dateFormatted = route.date || 'Tonight';
@@ -281,7 +304,7 @@ export default function PrintRouteSheetModal({
     msg += `📅 *Date:* ${dateFormatted}\n`;
     msg += `📍 *Route:* ${route.name}\n`;
     msg += `📍 *Meeting Point:* ${meetingLocation}\n`;
-    msg += `⏰ *Crew Briefing:* ${meetingTimeStr} sharp (buckets & high-vis handover)\n`;
+    msg += `⏰ *Crew Muster:* ${musterTime || '17:45'} sharp (Buckets & high-vis handover)\n`;
     msg += `🦺 *Sleigh Rollout:* ${route.start_time || '18:00'} | *Finish:* ~${route.end_time || '20:30'}\n\n`;
 
     if (leadMarshal) msg += `🦺 *Lead Marshal:* ${leadMarshal}\n`;
@@ -303,7 +326,7 @@ export default function PrintRouteSheetModal({
     }
 
     msg += `📱 *Live Public Tracker:* ${trackerUrl}\n`;
-    msg += `🚗 *Sleigh Driver Beacon:* ${beaconUrl}\n\n`;
+    msg += `🚗 *Driver Cockpit (Sat-Nav & GPS):* ${cockpitUrl}\n\n`;
     msg += `🎄 *Safety Reminders:*\n`;
     msg += `• High-vis vests mandatory for all walking elves\n`;
     msg += `• Stay on pavements; never cross between tow car & sleigh\n`;
@@ -581,6 +604,17 @@ export default function PrintRouteSheetModal({
               style={{ width: '100%', background: '#151513', border: '1px solid var(--border)', borderRadius: '6px', padding: '6px 10px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
             />
           </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '4px' }}>
+              Muster / Arrival Time (Volunteers)
+            </label>
+            <input
+              type="time"
+              value={musterTime}
+              onChange={(e) => setMusterTime(e.target.value)}
+              style={{ width: '100%', background: '#151513', border: '1px solid var(--border)', borderRadius: '6px', padding: '6px 10px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
+            />
+          </div>
         </div>
 
         {/* =========================================================================
@@ -625,7 +659,7 @@ export default function PrintRouteSheetModal({
 
             <div className="sheet-header-right" style={{ textAlign: 'right', fontSize: '12px', flexShrink: 0 }}>
               <div style={{ fontWeight: 800, fontSize: '13px' }}>📅 {dateFormatted}</div>
-              <div style={{ marginTop: '2px' }}>⏰ Muster: <strong>{meetingTimeStr}</strong> | Rollout: <strong>{route.start_time || '18:00'}</strong></div>
+              <div style={{ marginTop: '2px' }}>⏰ Muster: <strong>{musterTime || '17:45'}</strong> | Rollout: <strong>{route.start_time || '18:00'}</strong></div>
               <div style={{ color: '#4b5563', marginTop: '2px' }}>📍 Meet: <strong>{meetingLocation}</strong></div>
               {(() => {
                 const routeSponsors = Array.isArray(route.sponsors) && route.sponsors.length > 0
@@ -666,28 +700,47 @@ export default function PrintRouteSheetModal({
               </strong>
             </div>
             <div>
-              <span style={{ color: '#4b5563', display: 'block', fontWeight: 700 }}>Driver Beacon Link:</span>
+              <span style={{ color: '#4b5563', display: 'block', fontWeight: 700 }}>Driver Cockpit (Sat-Nav &amp; GPS):</span>
               <a
-                href={beaconUrl}
+                href={cockpitUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
                   fontFamily: 'monospace',
-                  fontSize: '10px',
+                  fontSize: '9.5px',
                   color: '#1d4ed8',
                   wordBreak: 'break-all',
                   textDecoration: 'underline',
                   display: 'inline-block',
                   lineHeight: 1.3
                 }}
-                title="Tap to open Driver Beacon in browser"
+                title="Tap to open Driver Cockpit Sat-Nav in browser"
               >
-                {beaconDisplayText}
+                {cockpitDisplayText}
               </a>
             </div>
             <div>
-              <span style={{ color: '#4b5563', display: 'block', fontWeight: 700 }}>Emergency Services:</span>
-              <strong style={{ color: '#b91c1c' }}>999 Emergency &middot; 101 Police</strong>
+              <span style={{ color: '#4b5563', display: 'block', fontWeight: 700 }}>Live Public Tracker:</span>
+              <a
+                href={trackerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  fontFamily: 'monospace',
+                  fontSize: '9.5px',
+                  color: '#1d4ed8',
+                  wordBreak: 'break-all',
+                  textDecoration: 'underline',
+                  display: 'inline-block',
+                  lineHeight: 1.3
+                }}
+                title="Tap to open Live Public Tracker in browser"
+              >
+                {trackerDisplayText}
+              </a>
+              <div style={{ marginTop: '2px', fontSize: '9.5px', color: '#b91c1c', fontWeight: 700 }}>
+                🚨 999 Emergencies &middot; 101 Police
+              </div>
             </div>
           </div>
 

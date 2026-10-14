@@ -24,7 +24,23 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
     return extractRouteSponsors(route);
   };
 
-  const [sponsors, setSponsors] = useState(getInitialSponsors);
+  const extractRouteMeta = (r) => {
+    let meeting_point = r?.meeting_point || '';
+    let muster_time = r?.muster_time || '';
+    if (r?.notes) {
+      const m = r.notes.match(/<!--\s*ROUTE_META:\s*({.*?})\s*-->/s);
+      if (m && m[1]) {
+        try {
+          const parsed = JSON.parse(m[1]);
+          if (!meeting_point && parsed.meeting_point) meeting_point = parsed.meeting_point;
+          if (!muster_time && parsed.muster_time) muster_time = parsed.muster_time;
+        } catch(e) {}
+      }
+    }
+    return { meeting_point, muster_time };
+  };
+
+  const initialMeta = extractRouteMeta(route);
 
   const [formData, setFormData] = useState({
     id: route?.id || `route_${Date.now()}`,
@@ -32,6 +48,8 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
     date: route?.date || new Date().toISOString().slice(0, 10),
     start_time: route?.start_time || '18:00',
     end_time: route?.end_time || '20:30',
+    meeting_point: initialMeta.meeting_point,
+    muster_time: initialMeta.muster_time,
     gpx_url: route?.gpx_url || route?.gpxUrl || '',
     gpx_file_name: route?.gpx_file_name || (route?.gpx_url ? 'route.gpx' : ''),
     planned_stops: route?.planned_stops || [],
@@ -194,14 +212,34 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
       }))
       .filter(s => s.name || s.logo_url);
 
-    const existingNotes = (route?.notes || formData?.notes || '').replace(/<!--\s*SPONSORS_DATA:.*?-->/gs, '').trim();
-    const finalNotes = validSponsors.length > 0
-      ? (existingNotes ? `${existingNotes}\n<!-- SPONSORS_DATA:${JSON.stringify(validSponsors)} -->` : `<!-- SPONSORS_DATA:${JSON.stringify(validSponsors)} -->`)
-      : existingNotes;
+    const existingNotes = (route?.notes || formData?.notes || '')
+      .replace(/<!--\s*SPONSORS_DATA:.*?-->/gs, '')
+      .replace(/<!--\s*ROUTE_META:.*?-->/gs, '')
+      .trim();
+
+    const routeMeta = {
+      meeting_point: (formData.meeting_point || '').trim(),
+      muster_time: (formData.muster_time || '').trim()
+    };
+    const hasMeta = Boolean(routeMeta.meeting_point || routeMeta.muster_time);
+
+    let finalNotes = existingNotes;
+    if (validSponsors.length > 0) {
+      finalNotes = finalNotes
+        ? `${finalNotes}\n<!-- SPONSORS_DATA:${JSON.stringify(validSponsors)} -->`
+        : `<!-- SPONSORS_DATA:${JSON.stringify(validSponsors)} -->`;
+    }
+    if (hasMeta) {
+      finalNotes = finalNotes
+        ? `${finalNotes}\n<!-- ROUTE_META:${JSON.stringify(routeMeta)} -->`
+        : `<!-- ROUTE_META:${JSON.stringify(routeMeta)} -->`;
+    }
 
     const updatedRoute = {
       ...formData,
       id: targetId,
+      meeting_point: routeMeta.meeting_point,
+      muster_time: routeMeta.muster_time,
       streets: streetsArray,
       notes: finalNotes,
       sponsors: validSponsors,
@@ -389,6 +427,55 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                     boxSizing: 'border-box'
                   }}
                 />
+              </div>
+            </div>
+
+            {/* Muster / Meeting Point & Volunteer Arrival Time */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
+                  Muster / Meeting Point
+                </label>
+                <input
+                  type="text"
+                  value={formData.meeting_point}
+                  onChange={(e) => setFormData({ ...formData, meeting_point: e.target.value })}
+                  placeholder="e.g. Depot / Pavilion Car Park"
+                  style={{
+                    width: '100%',
+                    background: '#0d0d0b',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#fff',
+                    fontSize: '15px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
+                  Muster / Arrival Time (Volunteers)
+                </label>
+                <input
+                  type="time"
+                  value={formData.muster_time}
+                  onChange={(e) => setFormData({ ...formData, muster_time: e.target.value })}
+                  style={{
+                    width: '100%',
+                    background: '#0d0d0b',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#fff',
+                    fontSize: '15px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                  Leave blank to auto-default to 15 mins before start time.
+                </span>
               </div>
             </div>
 

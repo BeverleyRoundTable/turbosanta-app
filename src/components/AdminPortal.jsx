@@ -361,8 +361,20 @@ ${tableName} Organizers`
       }
     } catch(e) {}
 
-    let meetingTime = '17:45';
-    if (route.start_time) {
+    let meetingTime = route.muster_time;
+    let meetingPoint = route.meeting_point;
+    if (route.notes) {
+      const match = route.notes.match(/<!--\s*ROUTE_META:\s*({.*?})\s*-->/s);
+      if (match && match[1]) {
+        try {
+          const parsed = JSON.parse(match[1]);
+          if (!meetingTime && parsed.muster_time) meetingTime = parsed.muster_time;
+          if (!meetingPoint && parsed.meeting_point) meetingPoint = parsed.meeting_point;
+        } catch(e) {}
+      }
+    }
+
+    if (!meetingTime && route.start_time) {
       const parts = route.start_time.split(':');
       if (parts.length >= 2) {
         let h = parseInt(parts[0], 10);
@@ -371,17 +383,18 @@ ${tableName} Organizers`
         meetingTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
       }
     }
+    if (!meetingTime) meetingTime = '17:45';
 
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://roundtablesantasleigh.co.uk';
     const trackerUrl = `${origin}/tracker.html?table=${currentTableSlug}`;
-    const beaconUrl = `${origin}/beacon.html?table=${currentTableSlug}`;
+    const cockpitUrl = `${origin}/tracker.html?table=${currentTableSlug}&driver=1`;
     const tableName = tableData?.table?.name || session?.tableName || 'Round Table';
 
     let msg = `🎅 *${tableName.toUpperCase()} SANTA SLEIGH — TONIGHT'S RUN!* 🎅\n\n`;
     msg += `📅 *Date:* ${dateFormatted}\n`;
     msg += `📍 *Route:* ${route.name}\n`;
-    if (route.meeting_point) {
-      msg += `📍 *Meeting Point:* ${route.meeting_point}\n`;
+    if (meetingPoint) {
+      msg += `📍 *Meeting Point:* ${meetingPoint}\n`;
     }
     msg += `⏰ *Crew Muster:* ${meetingTime} sharp (Buckets & high-vis handover)\n`;
     msg += `🦺 *Rollout:* ${route.start_time || '18:00'} | *Finish:* ~${route.end_time || '20:30'}\n\n`;
@@ -401,7 +414,7 @@ ${tableName} Organizers`
     }
 
     msg += `📱 *Live Public Tracker:* ${trackerUrl}\n`;
-    msg += `🚗 *Sleigh Driver Beacon:* ${beaconUrl}\n\n`;
+    msg += `🚗 *Driver Cockpit (Sat-Nav & GPS):* ${cockpitUrl}\n\n`;
     msg += `🎄 *Safety Reminders:*\n`;
     msg += `• High-vis vests mandatory for all walking elves\n`;
     msg += `• Stay on pavements; never cross between tow car & sleigh\n`;
