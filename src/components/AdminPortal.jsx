@@ -5753,7 +5753,7 @@ ${tableName} Organizers`
                                 <input
                                   type="text"
                                   value={formData.notify_approaching_subject || ''}
-                                  placeholder="🎅 Ho Ho Ho! Santa is approaching your street!"
+                                  placeholder={`Santa is approaching your street! — ${formData.sleigh_display_name || 'Round Table'}`}
                                   onChange={(e) => setFormData(prev => ({ ...prev, notify_approaching_subject: e.target.value }))}
                                   style={{
                                     width: '100%',
@@ -5767,7 +5767,7 @@ ${tableName} Organizers`
                                   }}
                                 />
                                 <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                                  Default: <code>🎅 Ho Ho Ho! Santa is approaching your street!</code>
+                                  Default: <code>Santa is approaching your street! — {'{tableName}'}</code>
                                 </div>
                               </div>
 
@@ -5823,7 +5823,7 @@ ${tableName} Organizers`
                                 <input
                                   type="text"
                                   value={formData.notify_passed_subject || ''}
-                                  placeholder={`🎄 Thank You from Santa & ${formData.sleigh_display_name || 'Round Table'}!`}
+                                  placeholder={`Thank You from Santa & ${formData.sleigh_display_name || 'Round Table'}`}
                                   onChange={(e) => setFormData(prev => ({ ...prev, notify_passed_subject: e.target.value }))}
                                   style={{
                                     width: '100%',
@@ -5837,7 +5837,7 @@ ${tableName} Organizers`
                                   }}
                                 />
                                 <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                                  Default: <code>🎄 Thank You from Santa &amp; {'{tableName}'}!</code>
+                                  Default: <code>Thank You from Santa &amp; {'{tableName}'}</code>
                                 </div>
                               </div>
 
@@ -5890,37 +5890,56 @@ ${tableName} Organizers`
                         {/* Visual Email Mockup Preview */}
                         <div>
                           <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
-                            Live Render Preview:
+                            Live Render Preview (Turnkey Theme):
                           </div>
                           <div style={{
-                            background: '#ffffff',
-                            color: '#1f2937',
-                            borderRadius: '14px',
+                            background: '#1D1D1A',
+                            color: '#E5E7EB',
+                            borderRadius: '16px',
                             overflow: 'hidden',
-                            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-                            border: '1px solid #e5e7eb',
+                            boxShadow: '0 12px 36px rgba(0,0,0,0.6)',
+                            border: '1px solid rgba(255, 255, 255, 0.15)',
                             maxWidth: '460px',
-                            margin: '0 auto'
+                            margin: '0 auto',
+                            fontFamily: "'Open Sans', sans-serif"
                           }}>
                             {/* Email Header Banner */}
                             <div style={{
-                              background: 'linear-gradient(135deg, #d31c1c 0%, #991b1b 100%)',
+                              background: `linear-gradient(135deg, ${formData.primary_color || '#d31c1c'} 0%, #1a1a17 100%)`,
                               padding: '24px 20px',
                               textAlign: 'center',
-                              color: '#fff'
+                              color: '#fff',
+                              borderBottom: '1px solid rgba(255, 255, 255, 0.12)'
                             }}>
-                              <div style={{ fontSize: '32px', marginBottom: '6px' }}>🎅</div>
-                              <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: 800, color: '#fff' }}>
+                              <div style={{ marginBottom: '10px' }}>
+                                <img
+                                  src={formData.logo_url || '/icons/RTBI_Santa.png'}
+                                  alt={formData.sleigh_display_name || 'Santa Sleigh'}
+                                  style={{ maxHeight: '46px', maxWidth: '140px', objectFit: 'contain', display: 'inline-block' }}
+                                />
+                              </div>
+                              <h3 style={{ margin: '0 0 6px 0', fontSize: '18px', fontWeight: 800, color: '#fff', fontFamily: 'Eurostile, Montserrat, sans-serif', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
                                 {previewTab === 'approaching' ? 'Santa is on his way!' : 'Thank You for Coming Out!'}
                               </h3>
-                              <p style={{ margin: 0, fontSize: '13px', color: '#fef3c7', fontWeight: 600 }}>
-                                {previewTab === 'approaching' ? `ETA: 2 minutes • Within ${formData.notify_radius_meters || 250}m of your pin!` : 'Santa has just visited your street!'}
-                              </p>
+                              <div style={{
+                                display: 'inline-block',
+                                backgroundColor: 'rgba(0, 0, 0, 0.45)',
+                                border: '1px solid rgba(251, 175, 51, 0.5)',
+                                borderRadius: '9999px',
+                                padding: '4px 14px',
+                                color: '#FBAF33',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px'
+                              }}>
+                                {previewTab === 'approaching' ? `ETA: 2 minutes • Within ${formData.notify_radius_meters || 250}m of your pin` : 'Santa has just visited your street'}
+                              </div>
                             </div>
 
                             {/* Email Body */}
-                            <div style={{ padding: '20px' }}>
-                              <div style={{ fontSize: '14px', lineHeight: 1.6, color: '#374151', marginBottom: '16px' }}>
+                            <div style={{ padding: '20px', background: '#1D1D1A' }}>
+                              <div style={{ fontSize: '14px', lineHeight: 1.6, color: '#E5E7EB', marginBottom: '16px' }}>
                                 {previewTab === 'approaching' ? (
                                   formData.notify_approaching_msg ? (
                                     formData.notify_approaching_msg
@@ -5932,9 +5951,9 @@ ${tableName} Organizers`
                                   ) : (
                                     <>
                                       <p style={{ margin: '0 0 10px 0' }}>
-                                        Listen out for the festive music and sleigh bells! Santa and his volunteer elves from <strong>{formData.sleigh_display_name || 'Beverley Round Table'}</strong> are heading towards your street right now.
+                                        Listen out for the festive music and sleigh bells! Santa and his volunteer elves from <strong style={{ color: '#fff' }}>{formData.sleigh_display_name || 'Beverley Round Table'}</strong> are heading towards your street right now.
                                       </p>
-                                      <p style={{ margin: '0 0 10px 0' }}>
+                                      <p style={{ margin: '0 0 10px 0', color: '#D1D5DB' }}>
                                         Come outside and give Santa a big wave as he drives by! You can follow the sleigh live in real-time on our official tracker map:
                                       </p>
                                     </>
@@ -5950,7 +5969,7 @@ ${tableName} Organizers`
                                       <p style={{ margin: '0 0 10px 0' }}>
                                         Santa and his volunteer elves have just passed your area. We hope you and your family enjoyed the festive sights and sounds of the sleigh tonight!
                                       </p>
-                                      <p style={{ margin: '0 0 10px 0' }}>
+                                      <p style={{ margin: '0 0 10px 0', color: '#D1D5DB' }}>
                                         Every single penny raised tonight is donated directly back into our local community, supporting youth groups, foodbanks, and local families in need.
                                       </p>
                                     </>
@@ -5959,36 +5978,41 @@ ${tableName} Organizers`
                               </div>
 
                               {/* Action Button */}
-                              <div style={{ textAlign: 'center', margin: '14px 0' }}>
+                              <div style={{ textAlign: 'center', margin: '18px 0 14px' }}>
                                 <div style={{
                                   display: 'inline-block',
-                                  backgroundColor: '#d31c1c',
+                                  backgroundColor: formData.primary_color || '#d31c1c',
                                   color: '#ffffff',
-                                  fontWeight: 700,
-                                  fontSize: '14px',
-                                  padding: '10px 22px',
-                                  borderRadius: '9999px',
-                                  boxShadow: '0 3px 10px rgba(211, 28, 28, 0.35)'
+                                  fontWeight: 800,
+                                  fontSize: '13px',
+                                  fontFamily: 'Eurostile, Montserrat, sans-serif',
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.8px',
+                                  padding: '12px 24px',
+                                  borderRadius: '8px',
+                                  boxShadow: '0 4px 14px rgba(0,0,0,0.5)'
                                 }}>
-                                  {previewTab === 'approaching' ? 'Open Live Santa Tracker' : 'Donate to Support Our Community'}
+                                  {previewTab === 'approaching' ? 'TRACK SANTA LIVE' : 'DONATE TO SUPPORT OUR COMMUNITY'}
                                 </div>
                               </div>
 
                               {/* Secondary CTA */}
-                              <div style={{ textAlign: 'center', marginTop: '14px', paddingTop: '10px', borderTop: '1px solid #e5e7eb', fontSize: '12px' }}>
+                              <div style={{ textAlign: 'center', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.12)', fontSize: '12px' }}>
                                 {previewTab === 'approaching' ? (
-                                  <span style={{ color: '#d31c1c', fontWeight: 600 }}>Want to help local families? Make a fast donation online &rarr;</span>
+                                  <span style={{ color: '#FBAF33', fontWeight: 700 }}>Want to help local families? Make a fast donation online &rarr;</span>
                                 ) : (
-                                  <span style={{ color: '#4b5563', textDecoration: 'underline' }}>View Santa&apos;s Upcoming Routes &amp; Schedule</span>
+                                  <span style={{ color: '#FBAF33', fontWeight: 700 }}>View Santa&apos;s Upcoming Routes &amp; Schedule &rarr;</span>
                                 )}
                               </div>
                             </div>
 
                             {/* Email Footer */}
-                            <div style={{ background: '#f9fafb', padding: '12px 16px', borderTop: '1px solid #e5e7eb', textAlign: 'center', fontSize: '11px', color: '#6b7280' }}>
-                              <div style={{ fontWeight: 700, color: '#374151' }}>{formData.sleigh_display_name || 'Beverley Round Table'}</div>
-                              {formData.charity_number && <div>Registered Charity No. {formData.charity_number}</div>}
-                              <div style={{ marginTop: '4px', fontSize: '10px', color: '#9ca3af' }}>Sent directly via Table Google Workspace Gmail</div>
+                            <div style={{ background: '#141412', padding: '14px 16px', borderTop: '1px solid rgba(255, 255, 255, 0.1)', textAlign: 'center', fontSize: '11px', color: '#9CA3AF' }}>
+                              <div style={{ fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{formData.sleigh_display_name || 'Beverley Round Table Santa Sleigh'}</div>
+                              <div style={{ marginTop: '2px' }}>Proudly operated by {currentTableSlug.toUpperCase()} Round Table &bull; Round Table Great Britain &amp; Ireland</div>
+                              {formData.charity_number && <div style={{ marginTop: '2px' }}>Registered Charity No. {formData.charity_number}</div>}
+                              <div style={{ marginTop: '6px', color: '#FBAF33', fontSize: '10px' }}>https://{currentTableSlug}.roundtablesantasleigh.co.uk</div>
+                              <div style={{ marginTop: '6px', fontSize: '10px', color: 'rgba(255, 255, 255, 0.45)' }}>You received this automated notification because you dropped a pin on Santa's live tracking map.</div>
                             </div>
                           </div>
                         </div>
