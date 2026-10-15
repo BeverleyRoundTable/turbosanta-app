@@ -26,3 +26,4 @@ dist-ssr
 # Private worker backend (kept locally on machine for reference, excluded from public GitHub)
 worker/
 .private/
+.agents/
