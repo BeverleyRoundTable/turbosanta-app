@@ -277,8 +277,8 @@ export default {
       await env.DB.prepare("ALTER TABLE tables ADD COLUMN public_slot_1 TEXT").run().catch(() => {});
       await env.DB.prepare("ALTER TABLE tables ADD COLUMN public_slot_2 TEXT").run().catch(() => {});
       await env.DB.prepare("ALTER TABLE tables ADD COLUMN gemini_model TEXT DEFAULT 'auto'").run().catch(() => {});
-      await env.DB.prepare("ALTER TABLE tables ADD COLUMN santa_voice_provider TEXT DEFAULT 'gemini'").run().catch(() => {});
-      await env.DB.prepare("ALTER TABLE tables ADD COLUMN elevenlabs_agent_id TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN logo_url TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN sleigh_icon_live TEXT").run().catch(() => {});
 
       // Live Proximity Alerts (Notify Me Engine) Schema Migrations
       await env.DB.prepare(`
@@ -435,10 +435,6 @@ export default {
         headline_sponsor_tagline: table.headline_sponsor_tagline || null,
         partners: table.partners_json ? JSON.parse(table.partners_json) : [],
         gemini_model: table.gemini_model || "auto",
-        gemini_api_key: isAdmin ? (table.gemini_api_key || "") : (table.gemini_api_key ? "••••••••" : ""),
-        santa_voice_provider: (slug === 'beverley') ? (table.santa_voice_provider || 'elevenlabs') : undefined,
-        elevenlabs_agent_id: (slug === 'beverley') ? (table.elevenlabs_agent_id || env.ELEVENLABS_AGENT_ID || 'agent_4401kxaqcqygfb4940wnc4a9haeh') : '',
-        enable_santa_chat: (slug === 'beverley') && Boolean(table.public_slot_1 === 'santa_chat' || table.public_slot_2 === 'santa_chat'),
         enable_colouring: Boolean(table.public_slot_1 === 'colouring' || table.public_slot_2 === 'colouring'),
         public_slot_1: (table.public_slot_1 !== undefined && table.public_slot_1 !== null)
           ? ((String(table.public_slot_1).trim() === 'santa_chat' && slug !== 'beverley') ? null : (String(table.public_slot_1).trim() === '' || String(table.public_slot_1).trim() === 'none' ? null : String(table.public_slot_1).trim()))
@@ -852,189 +848,6 @@ export default {
       }
     }
 
-    // ==============================================================
-    // 🎅 3B. SANTA ELEVENLABS AGENT LOOKUP (GET /api/santa-agent)
-    // Beverley exclusive secret lookup (env.ELEVENLABS_AGENT_ID)
-    // ==============================================================
-    if (path === "/api/santa-agent" && request.method === "GET") {
-      const reqSlug = (url.searchParams.get("table") || slug || "beverley").toLowerCase().trim();
-      if (reqSlug !== "beverley") {
-        return jsonResponse({ ok: false, error: "Santa Chat is exclusive to Beverley." }, 403);
-      }
-      const agentId = (table && table.elevenlabs_agent_id) || env.ELEVENLABS_AGENT_ID || "agent_4401kxaqcqygfb4940wnc4a9haeh";
-      return jsonResponse({
-        ok: true,
-        agent_id: agentId,
-        table: "beverley"
-      });
-    }
-
-    // ==============================================================
-    // 🎅 3C. SANTA AI VOICE CONVERSATION (POST /api/santa-voice)
-    // ==============================================================
-    if (path === "/api/santa-voice" && request.method === "POST") {
-      let body = {};
-      try { body = await request.json(); } catch(e) { body = {}; }
-
-      const userMessage = (body.message || "").trim();
-      if (!userMessage) {
-        return jsonResponse({ error: "Missing message parameter" }, 400);
-      }
-
-      const conversationHistory = Array.isArray(body.history) ? body.history : [];
-      const targetTableId = table?.id || slug;
-      const townName = (table?.sleigh_display_name || table?.name || slug).replace(/Round Table.*$/i, '').trim() || slug;
-
-      // 1. Gather local route context
-      const todayIso = new Date().toISOString().slice(0, 10);
-      let todayRoute = null;
-      let nextRoute = null;
-      let routeStreets = [];
-
-      try {
-        const routes = await env.DB.prepare("SELECT * FROM routes WHERE table_id = ? ORDER BY date ASC").bind(targetTableId).all();
-        if (routes?.results) {
-          todayRoute = routes.results.find(r => r.date === todayIso);
-          nextRoute = routes.results.filter(r => r.date && r.date > todayIso)[0];
-          if (todayRoute) {
-            const streetsRes = await env.DB.prepare("SELECT street_name FROM route_streets WHERE route_id = ? ORDER BY sequence_order ASC").bind(todayRoute.id).all();
-            routeStreets = (streetsRes?.results || []).map(s => s.street_name);
-          }
-        }
-      } catch(e) {}
-
-      // Sleigh live status
-      let sleighStatusText = "Resting peacefully in the Lapland workshop getting polished for flight";
-      try {
-        const latestGps = await env.DB.prepare("SELECT lat, lng, speed, road_name, timestamp FROM telemetry WHERE table_id = ? ORDER BY timestamp DESC LIMIT 1").bind(targetTableId).first();
-        if (latestGps?.timestamp) {
-          const normStr = String(latestGps.timestamp).trim().replace(' ', 'T');
-          const gpsTime = new Date(normStr.endsWith('Z') ? normStr : normStr + 'Z').getTime();
-          const isFresh = !isNaN(gpsTime) && (Date.now() - gpsTime) <= 5 * 60 * 1000;
-          if (isFresh) {
-            sleighStatusText = `Currently OUT LIVE ON ROUTE in ${townName}! Sleigh is moving along ${latestGps.road_name || 'the local streets'} at ${Math.round(latestGps.speed || 0)} mph! Listen for the sleigh bells!`;
-          }
-        }
-      } catch(e) {}
-
-      const routeContext = todayRoute
-        ? `TONIGHT'S ROUTE: Sleigh IS VISITING tonight on the "${todayRoute.name || 'Community Route'}" starting around ${todayRoute.start_time || '18:00'}. Active streets tonight: ${routeStreets.slice(0, 15).join(', ') || 'various local streets'}.`
-        : `TONIGHT'S ROUTE: The sleigh is not on the streets tonight. ${nextRoute ? `Next upcoming visit is on ${nextRoute.date} for the "${nextRoute.name || 'sleigh'}" route.` : 'All scheduled routes for this year can be checked on our live map.'}`;
-
-      // 2. Build Safeguarded Santa Spoken System Prompt
-      const systemPrompt = `You are Santa, speaking live from the Lapland Workshop and the Round Table Santa Sleigh to children and families in ${townName}.
-Your words will be spoken aloud to children using browser text-to-speech audio, so you MUST follow these voice rules:
-- Keep your answers short: 1 to 3 friendly, cheerful sentences maximum (around 30-50 words total).
-- Speak with warmth, wonder, and a jolly British festive tone ("Ho ho ho!").
-- Do NOT use asterisks, markdown bolding, emojis, or bullet points in your reply, because your text will be read aloud by an audio synthesizer. Speak clean, natural spoken sentences only.
-
-CRITICAL CHILD SAFEGUARDS (MUST BE STRICTLY FOLLOWED AT ALL TIMES):
-1. PRESERVE THE MAGIC: Never break character. Never mention you are an AI, a computer program, a language model, or created by Google or any tech company. You are the real Santa.
-2. GIFTS & EXPECTATIONS: NEVER promise specific expensive presents, video game consoles (PlayStation, Xbox, Nintendo Switch), smartphones, iPads, quad bikes, or live pets (puppies, kittens). If a child asks for a specific toy or console, say: "Ho ho ho! The elves in my workshop are working very hard making wonderful surprises! Remember, the very best present of all is kindness and spending joyful time with your family."
-3. CHILD PRIVACY & COPPA: Never ask for or store a child's surname, full address, phone number, school, or passwords. If a child mentions an address, acknowledge it warmly without repeating private details.
-4. COMFORT & REASSURANCE: If a child expresses sadness, missing someone, or distress, be deeply comforting and loving. Tell them Santa sends them the biggest Christmas hug, and encourage them to share a warm cuddle with their grown-up.
-5. BEDTIME & CHRISTMAS EVE RULES: Remind them to be good, listen to their grown-ups, and make sure they are fast asleep on Christmas Eve so the reindeer can land safely! Don't forget a carrot for Rudolph and a mince pie!
-6. LOCAL SLEIGH KNOWLEDGE:
-- Location/Town: ${townName} (organized by ${table?.charity_name || 'Round Table'}).
-- Tonight: ${routeContext}
-- Sleigh Current Status: ${sleighStatusText}
-
-CONVERSATION CONTEXT:
-${conversationHistory.slice(-4).map(h => `${h.role === 'user' ? 'Child' : 'Santa'}: ${h.text}`).join('\n')}
-
-CHILD SAID: "${userMessage}"
-SANTA'S SPOKEN RESPONSE:`;
-
-      // 3. Connect to Google Gemini Flash
-      let nationalTable = null;
-      if (slug !== 'beverley') {
-        try {
-          nationalTable = await env.DB.prepare("SELECT gemini_model, gemini_api_key FROM tables WHERE slug = 'beverley'").first();
-        } catch(e) {}
-      }
-
-      const geminiApiKey = table?.gemini_api_key || nationalTable?.gemini_api_key || env.GEMINI_API_KEY;
-      const rawModel = body.model || table?.gemini_model || nationalTable?.gemini_model || env.GEMINI_MODEL || "auto";
-      const primaryModel = resolveGeminiModel(rawModel);
-
-      if (geminiApiKey) {
-        try {
-          let geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${primaryModel}:generateContent?key=${geminiApiKey}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{
-                role: "user",
-                parts: [{ text: systemPrompt }]
-              }],
-              generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 150
-              }
-            })
-          });
-
-          // Cascade fallbacks if needed
-          if (!geminiRes.ok) {
-            const fallbacks = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-1.5-flash"].filter(m => m !== primaryModel);
-            for (const fb of fallbacks) {
-              console.warn(`Santa Voice: Model ${primaryModel} failed (${geminiRes.status}). Retrying with ${fb}...`);
-              geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${fb}:generateContent?key=${geminiApiKey}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  contents: [{ role: "user", parts: [{ text: systemPrompt }] }],
-                  generationConfig: { temperature: 0.7, maxOutputTokens: 150 }
-                })
-              });
-              if (geminiRes.ok) break;
-            }
-          }
-
-          if (geminiRes.ok) {
-            const geminiData = await geminiRes.json();
-            let replyText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (replyText) {
-              // Clean any accidental markdown or quotes
-              replyText = replyText.replace(/[*#_~`"]/g, '').trim();
-              return jsonResponse({
-                ok: true,
-                reply: replyText,
-                model: primaryModel,
-                grounded: true
-              });
-            }
-          }
-        } catch(geminiErr) {
-          console.warn("Gemini Santa Voice API call failed:", geminiErr);
-        }
-      }
-
-      // 4. Built-in Infallible Fallback Festive Generator
-      const lower = userMessage.toLowerCase();
-      let fallbackReply = `Ho ho ho! Merry Christmas to you in ${townName}! The elves and reindeer send you their warmest wishes from Lapland!`;
-
-      if (lower.includes("reindeer") || lower.includes("rudolph")) {
-        fallbackReply = `Ho ho ho! Rudolph is doing splendidly! He is resting his glowing red nose and munching on delicious crunchy carrots with Dasher and Dancer!`;
-      } else if (lower.includes("elf") || lower.includes("elves") || lower.includes("workshop")) {
-        fallbackReply = `The elves are busier than ever in the toy workshop, painting wooden toys and wrapping presents with shiny red ribbons!`;
-      } else if (lower.includes("where are you") || lower.includes("where is santa") || lower.includes("location")) {
-        fallbackReply = `Ho ho ho! ${sleighStatusText}`;
-      } else if (lower.includes("street") || lower.includes("tonight") || lower.includes("when are you coming") || lower.includes("visit")) {
-        fallbackReply = todayRoute
-          ? `Ho ho ho! Yes indeed, we are out in ${townName} tonight on the ${todayRoute.name || 'sleigh'} route! Listen closely for the sleigh bells around ${todayRoute.start_time || 'six o clock'}!`
-          : `Ho ho ho! The sleigh is resting today, but you can check our live route timetable on the map above to see our next magical visit!`;
-      } else if (lower.includes("present") || lower.includes("gift") || lower.includes("want") || lower.includes("toy")) {
-        fallbackReply = `Ho ho ho! My elves are working very hard on lots of wonderful surprises! Remember that the greatest present of all is kindness, love, and being helpful to your family!`;
-      }
-
-      return jsonResponse({
-        ok: true,
-        reply: fallbackReply,
-        model: "built-in-santa-synth",
-        grounded: false
-      });
-    }
 
     // ==============================================================
     // 📍 4. DRIVER GPS BEACON INGEST (PUT /api/telemetry)
@@ -1144,193 +957,113 @@ SANTA'S SPOKEN RESPONSE:`;
       const authHeader = request.headers.get("Authorization") || "";
       const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
       const secret = body.secret || url.searchParams.get("secret") || bearerToken;
+      const targetSlug = (body.tableSlug || body.table || url.searchParams.get("table") || slug || "beverley").toLowerCase().trim();
 
-      if (!isAuthorized(secret)) {
+      if (!isAuthorized(secret, targetSlug)) {
         return jsonResponse({ error: "Unauthorized: Admin credentials required to update settings" }, 401);
       }
 
-      let {
-        sleigh_display_name,
-        fundraising_goal,
-        expenses,
-        expenses_json,
-        donate_url,
-        logo_url,
-        sleigh_icon_live,
-        website_url,
-        facebook_url,
-        instagram_url,
-        tiktok_url,
-        primary_color,
-        charity_name,
-        charity_number,
-        enable_gift_aid,
-        headline_sponsor_name,
-        headline_sponsor_logo,
-        headline_sponsor_url,
-        headline_sponsor_tagline,
-        gemini_model,
-        gemini_api_key,
-        santa_voice_provider,
-        elevenlabs_agent_id,
-        santa_voice_pitch,
-        santa_voice_rate,
-        enable_santa_chat,
-        enable_colouring,
-        public_slot_1,
-        public_slot_2,
-        notify_email_enabled,
-        notify_radius_meters,
-        pass_buffer_meters,
-        gmail_client_id,
-        gmail_client_secret,
-        background_mode,
-        background_video_url,
-        background_url,
-        notify_approaching_subject,
-        notify_approaching_msg,
-        notify_passed_subject,
-        notify_passed_msg
-      } = body;
-
-      // Isolate Santa Chat strictly to Beverley (prevent any other table from enabling or saving it)
-      if (slug !== 'beverley') {
-        if (public_slot_1 === 'santa_chat') public_slot_1 = '';
-        if (public_slot_2 === 'santa_chat') public_slot_2 = '';
-        enable_santa_chat = 0;
-        elevenlabs_agent_id = null;
+      // Ensure target table exists or is resolved
+      let targetTable = await env.DB.prepare("SELECT * FROM tables WHERE slug = ? OR id = ?").bind(targetSlug, targetSlug).first().catch(() => null);
+      if (!targetTable) {
+        const defaultName = `${targetSlug.charAt(0).toUpperCase() + targetSlug.slice(1)} Round Table Santa Sleigh`;
+        await env.DB.prepare(`
+          INSERT OR IGNORE INTO tables (id, slug, name, sleigh_display_name, admin_email, primary_color, accent_color)
+          VALUES (?, ?, ?, ?, ?, '#FBAF33', '#D31C1C')
+        `).bind(targetSlug, targetSlug, defaultName, defaultName, `${targetSlug}@roundtable.org.uk`).run().catch(() => {});
+        targetTable = await env.DB.prepare("SELECT * FROM tables WHERE slug = ? OR id = ?").bind(targetSlug, targetSlug).first().catch(() => null);
       }
+      const tableId = targetTable ? targetTable.id : targetSlug;
 
-      // Ensure columns exist in tables schema
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN logo_url TEXT").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN sleigh_icon_live TEXT").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN website_url TEXT").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN facebook_url TEXT").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN instagram_url TEXT").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN tiktok_url TEXT").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN charity_name TEXT").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN charity_number TEXT").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN enable_gift_aid BOOLEAN DEFAULT 0").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN expenses REAL DEFAULT 0").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN expenses_json TEXT").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN headline_sponsor_name TEXT").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN headline_sponsor_logo TEXT").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN headline_sponsor_url TEXT").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN headline_sponsor_tagline TEXT").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN gemini_model TEXT DEFAULT 'auto'").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN gemini_api_key TEXT").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN santa_voice_provider TEXT DEFAULT 'gemini'").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN elevenlabs_agent_id TEXT").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN santa_voice_pitch REAL DEFAULT 0.74").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN santa_voice_rate REAL DEFAULT 0.85").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN total_views INTEGER DEFAULT 0").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN enable_santa_chat BOOLEAN DEFAULT 0").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN enable_colouring BOOLEAN DEFAULT 0").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN public_slot_1 TEXT").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN public_slot_2 TEXT").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_email_enabled BOOLEAN DEFAULT 1").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_radius_meters INTEGER DEFAULT 250").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN pass_buffer_meters INTEGER DEFAULT 150").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN gmail_client_id TEXT").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN gmail_client_secret TEXT").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN background_mode TEXT DEFAULT 'image'").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN background_video_url TEXT").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN background_url TEXT").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_approaching_subject TEXT").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_approaching_msg TEXT").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_passed_subject TEXT").run(); } catch(e) {}
-      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_passed_msg TEXT").run(); } catch(e) {}
+      // Ensure all dynamic columns exist in D1 schema
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN logo_url TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN sleigh_icon_live TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN website_url TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN facebook_url TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN instagram_url TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN tiktok_url TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN charity_name TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN charity_number TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN enable_gift_aid BOOLEAN DEFAULT 0").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN expenses REAL DEFAULT 0").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN expenses_json TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN headline_sponsor_name TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN headline_sponsor_logo TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN headline_sponsor_url TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN headline_sponsor_tagline TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN gemini_model TEXT DEFAULT 'auto'").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN enable_colouring BOOLEAN DEFAULT 0").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN public_slot_1 TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN public_slot_2 TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_email_enabled BOOLEAN DEFAULT 1").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_radius_meters INTEGER DEFAULT 250").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN pass_buffer_meters INTEGER DEFAULT 150").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN gmail_client_id TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN gmail_client_secret TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN background_mode TEXT DEFAULT 'image'").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN background_video_url TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN background_url TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_approaching_subject TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_approaching_msg TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_passed_subject TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_passed_msg TEXT").run().catch(() => {});
+
+      // Build safe update dictionary
+      const fields = [];
+      const values = [];
+
+      const setIfProvided = (key, dbCol = key, transform = (v) => v) => {
+        if (body[key] !== undefined) {
+          fields.push(`${dbCol} = ?`);
+          const val = body[key];
+          values.push((val === "" || val === null) ? null : transform(val));
+        }
+      };
+
+      setIfProvided("sleigh_display_name");
+      setIfProvided("fundraising_goal", "fundraising_goal", v => parseFloat(v) || 0);
+      setIfProvided("expenses", "expenses", v => parseFloat(v) || 0);
+      setIfProvided("expenses_json", "expenses_json", v => typeof v === 'string' ? v : JSON.stringify(v));
+      setIfProvided("donate_url");
+      setIfProvided("logo_url");
+      setIfProvided("sleigh_icon_live");
+      setIfProvided("website_url");
+      setIfProvided("facebook_url");
+      setIfProvided("instagram_url");
+      setIfProvided("tiktok_url");
+      setIfProvided("primary_color");
+      setIfProvided("charity_name");
+      setIfProvided("charity_number");
+      setIfProvided("enable_gift_aid", "enable_gift_aid", v => v ? 1 : 0);
+      setIfProvided("headline_sponsor_name");
+      setIfProvided("headline_sponsor_logo");
+      setIfProvided("headline_sponsor_url");
+      setIfProvided("headline_sponsor_tagline");
+      setIfProvided("gemini_model");
+      setIfProvided("enable_colouring", "enable_colouring", v => v ? 1 : 0);
+      setIfProvided("public_slot_1");
+      setIfProvided("public_slot_2");
+      setIfProvided("notify_email_enabled", "notify_email_enabled", v => v ? 1 : 0);
+      setIfProvided("notify_radius_meters", "notify_radius_meters", v => parseInt(v, 10) || 250);
+      setIfProvided("pass_buffer_meters", "pass_buffer_meters", v => parseInt(v, 10) || 150);
+      setIfProvided("gmail_client_id");
+      setIfProvided("gmail_client_secret");
+      setIfProvided("background_mode");
+      setIfProvided("background_video_url");
+      setIfProvided("background_url");
+      setIfProvided("notify_approaching_subject");
+      setIfProvided("notify_approaching_msg");
+      setIfProvided("notify_passed_subject");
+      setIfProvided("notify_passed_msg");
 
       try {
-        await env.DB.prepare(`
-          UPDATE tables SET
-            sleigh_display_name = COALESCE(?, sleigh_display_name),
-            fundraising_goal = COALESCE(?, fundraising_goal),
-            expenses = COALESCE(?, expenses),
-            expenses_json = COALESCE(?, expenses_json),
-            donate_url = COALESCE(?, donate_url),
-            logo_url = COALESCE(?, logo_url),
-            sleigh_icon_live = COALESCE(?, sleigh_icon_live),
-            website_url = COALESCE(?, website_url),
-            facebook_url = COALESCE(?, facebook_url),
-            instagram_url = COALESCE(?, instagram_url),
-            tiktok_url = COALESCE(?, tiktok_url),
-            primary_color = COALESCE(?, primary_color),
-            charity_name = COALESCE(?, charity_name),
-            charity_number = COALESCE(?, charity_number),
-            enable_gift_aid = COALESCE(?, enable_gift_aid),
-            headline_sponsor_name = COALESCE(?, headline_sponsor_name),
-            headline_sponsor_logo = COALESCE(?, headline_sponsor_logo),
-            headline_sponsor_url = COALESCE(?, headline_sponsor_url),
-            headline_sponsor_tagline = COALESCE(?, headline_sponsor_tagline),
-            gemini_model = COALESCE(?, gemini_model),
-            gemini_api_key = COALESCE(?, gemini_api_key),
-            santa_voice_provider = COALESCE(?, santa_voice_provider),
-            elevenlabs_agent_id = COALESCE(?, elevenlabs_agent_id),
-            santa_voice_pitch = COALESCE(?, santa_voice_pitch),
-            santa_voice_rate = COALESCE(?, santa_voice_rate),
-            enable_santa_chat = COALESCE(?, enable_santa_chat),
-            enable_colouring = COALESCE(?, enable_colouring),
-            public_slot_1 = COALESCE(?, public_slot_1),
-            public_slot_2 = COALESCE(?, public_slot_2),
-            notify_email_enabled = COALESCE(?, notify_email_enabled),
-            notify_radius_meters = COALESCE(?, notify_radius_meters),
-            pass_buffer_meters = COALESCE(?, pass_buffer_meters),
-            gmail_client_id = COALESCE(?, gmail_client_id),
-            gmail_client_secret = COALESCE(?, gmail_client_secret),
-            background_mode = COALESCE(?, background_mode),
-            background_video_url = COALESCE(?, background_video_url),
-            background_url = COALESCE(?, background_url),
-            notify_approaching_subject = COALESCE(?, notify_approaching_subject),
-            notify_approaching_msg = COALESCE(?, notify_approaching_msg),
-            notify_passed_subject = COALESCE(?, notify_passed_subject),
-            notify_passed_msg = COALESCE(?, notify_passed_msg)
-          WHERE id = ?
-        `).bind(
-          sleigh_display_name !== undefined ? sleigh_display_name : null,
-          fundraising_goal !== undefined ? fundraising_goal : null,
-          expenses !== undefined ? parseFloat(expenses) : null,
-          expenses_json !== undefined ? (typeof expenses_json === 'string' ? expenses_json : JSON.stringify(expenses_json)) : null,
-          donate_url !== undefined ? donate_url : null,
-          logo_url !== undefined ? logo_url : null,
-          sleigh_icon_live !== undefined ? sleigh_icon_live : null,
-          website_url !== undefined ? website_url : null,
-          facebook_url !== undefined ? facebook_url : null,
-          instagram_url !== undefined ? instagram_url : null,
-          tiktok_url !== undefined ? tiktok_url : null,
-          primary_color !== undefined ? primary_color : null,
-          charity_name !== undefined ? charity_name : null,
-          charity_number !== undefined ? charity_number : null,
-          enable_gift_aid !== undefined ? (enable_gift_aid ? 1 : 0) : null,
-          headline_sponsor_name !== undefined ? headline_sponsor_name : null,
-          headline_sponsor_logo !== undefined ? headline_sponsor_logo : null,
-          headline_sponsor_url !== undefined ? headline_sponsor_url : null,
-          headline_sponsor_tagline !== undefined ? headline_sponsor_tagline : null,
-          gemini_model !== undefined ? gemini_model : null,
-          gemini_api_key !== undefined ? gemini_api_key : null,
-          santa_voice_provider !== undefined ? santa_voice_provider : null,
-          elevenlabs_agent_id !== undefined ? elevenlabs_agent_id : null,
-          santa_voice_pitch !== undefined ? parseFloat(santa_voice_pitch) : null,
-          santa_voice_rate !== undefined ? parseFloat(santa_voice_rate) : null,
-          enable_santa_chat !== undefined ? (enable_santa_chat ? 1 : 0) : ((public_slot_1 === 'santa_chat' || public_slot_2 === 'santa_chat') ? 1 : 0),
-          enable_colouring !== undefined ? (enable_colouring ? 1 : 0) : ((public_slot_1 === 'colouring' || public_slot_2 === 'colouring') ? 1 : 0),
-          public_slot_1 !== undefined ? (public_slot_1 || '') : null,
-          public_slot_2 !== undefined ? (public_slot_2 || '') : null,
-          notify_email_enabled !== undefined ? (notify_email_enabled ? 1 : 0) : null,
-          notify_radius_meters !== undefined ? parseInt(notify_radius_meters, 10) : null,
-          pass_buffer_meters !== undefined ? parseInt(pass_buffer_meters, 10) : null,
-          gmail_client_id !== undefined ? gmail_client_id : null,
-          gmail_client_secret !== undefined ? gmail_client_secret : null,
-          background_mode !== undefined ? background_mode : null,
-          background_video_url !== undefined ? background_video_url : null,
-          background_url !== undefined ? background_url : null,
-          notify_approaching_subject !== undefined ? notify_approaching_subject : null,
-          notify_approaching_msg !== undefined ? notify_approaching_msg : null,
-          notify_passed_subject !== undefined ? notify_passed_subject : null,
-          notify_passed_msg !== undefined ? notify_passed_msg : null,
-          table.id
-        ).run();
-
+        if (fields.length > 0) {
+          values.push(tableId, targetSlug);
+          await env.DB.prepare(`
+            UPDATE tables SET ${fields.join(", ")}
+            WHERE id = ? OR slug = ?
+          `).bind(...values).run();
+        }
         return jsonResponse({ ok: true, message: "Settings saved successfully" });
       } catch (err) {
         return jsonResponse({ ok: false, error: err.message }, 500);
