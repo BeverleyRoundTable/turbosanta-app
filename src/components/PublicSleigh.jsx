@@ -1326,14 +1326,29 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
 
         {/* 5. Community Partners (Only if explicitly configured for this table) */}
         {(() => {
-          const partners = (table.partners && Array.isArray(table.partners) && table.partners.length > 0)
-            ? table.partners
-            : [];
+          const partners = (heroPartners && heroPartners.length > 0)
+            ? heroPartners
+            : ((table.partners && Array.isArray(table.partners) && table.partners.length > 0) ? table.partners : []);
 
           if (!partners || partners.length === 0) return null;
 
           return (
             <section id="partners" style={{ padding: '60px 20px', maxWidth: '1000px', margin: '0 auto', textAlign: 'center' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '11px',
+                fontWeight: 800,
+                letterSpacing: '1.8px',
+                textTransform: 'uppercase',
+                color: 'var(--primary)',
+                marginBottom: '10px'
+              }}>
+                <span style={{ display: 'inline-block', width: '20px', height: '1px', background: 'linear-gradient(90deg, transparent, var(--primary))' }} />
+                LOCAL SUPPORT
+                <span style={{ display: 'inline-block', width: '20px', height: '1px', background: 'linear-gradient(90deg, var(--primary), transparent)' }} />
+              </div>
               <h2 className="brand-font" style={{ fontSize: '38px', margin: '0 0 10px 0', color: '#FFFFFF' }}>
                 COMMUNITY <span style={{ color: 'var(--primary)' }}>PARTNERS</span>
               </h2>
@@ -1342,32 +1357,74 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
               </p>
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-                gap: '16px',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                gap: '18px',
                 textAlign: 'left'
               }}>
-                {partners.map((p, idx) => (
-                  <div key={idx} style={{ background: '#000000', border: '1px solid var(--border)', borderRadius: '14px', padding: '22px' }}>
-                    <div
-                      className="brand-font"
-                      style={{ color: 'var(--primary)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 800, marginBottom: '6px' }}>
-                      {p.role || 'Partner'}
+                {partners.map((p, idx) => {
+                  const pLogo = p.logo || p.logo_url || '';
+                  const pName = p.name || '';
+                  const pRole = p.role || p.tagline || 'Partner';
+                  const pUrl = p.url || p.link || p.website || p.website_url || '';
+
+                  return (
+                    <div key={idx} style={{ background: '#000000', border: '1px solid var(--border)', borderRadius: '14px', padding: '22px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                        {pLogo && (
+                          <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: '#ffffff',
+                            borderRadius: '10px',
+                            padding: '6px 12px',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                            flexShrink: 0
+                          }}>
+                            {pUrl ? (
+                              <a href={pUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textDecoration: 'none' }}>
+                                <img
+                                  src={pLogo}
+                                  alt={pName ? `${pName} logo` : 'Partner logo'}
+                                  style={{ height: '52px', maxWidth: '160px', objectFit: 'contain', display: 'block' }}
+                                  loading="lazy"
+                                />
+                              </a>
+                            ) : (
+                              <img
+                                src={pLogo}
+                                alt={pName ? `${pName} logo` : 'Partner logo'}
+                                style={{ height: '52px', maxWidth: '160px', objectFit: 'contain', display: 'block' }}
+                                loading="lazy"
+                              />
+                            )}
+                          </div>
+                        )}
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div
+                            className="brand-font"
+                            style={{ color: 'var(--primary)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 800, marginBottom: '4px' }}>
+                            {pRole}
+                          </div>
+                          <h3 className="brand-font" style={{ fontSize: '20px', color: '#FFFFFF', margin: 0 }}>
+                            {pName}
+                          </h3>
+                        </div>
+                      </div>
+
+                      {p.description && (
+                        <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '12px' }}>
+                          {p.description}
+                        </p>
+                      )}
+                      {pUrl && (
+                        <a href={pUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', color: 'var(--primary)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', textDecoration: 'none', marginTop: '4px' }}>
+                          Visit {pName} &rarr;
+                        </a>
+                      )}
                     </div>
-                    <h3 className="brand-font" style={{ fontSize: '20px', color: '#FFFFFF', marginBottom: '8px' }}>
-                      {p.name}
-                    </h3>
-                    {p.description && (
-                      <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '12px' }}>
-                        {p.description}
-                      </p>
-                    )}
-                    {p.url && (
-                      <a href={p.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', textDecoration: 'none' }}>
-                        Visit {p.name} &rarr;
-                      </a>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
           );

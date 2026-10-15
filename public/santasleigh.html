@@ -3326,14 +3326,44 @@
                     partCont.replaceChildren();
                     partners.forEach(p => {
                         const card = el('div', 'partner-card', '');
-                        
-                        const role = el('div', '', p.role || 'Partner');
-                        role.style.cssText = 'color: var(--primary); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 800; margin-bottom: 6px;';
-                        card.appendChild(role);
+                        const pLogo = safeUrl(p.logo || p.logo_url || '');
+                        const pName = p.name || '';
+                        const pRole = p.role || p.tagline || 'Partner';
+                        const pUrl = safeUrl(p.url || p.link || p.website || p.website_url || '');
 
-                        const title = el('h3', 'brand-font', p.name);
-                        title.style.cssText = 'font-size: 20px; color: #FFFFFF; margin-bottom: 8px;';
-                        card.appendChild(title);
+                        const header = el('div', '', '');
+                        header.style.cssText = 'display: flex; align-items: center; gap: 16px; margin-bottom: 12px; flex-wrap: wrap;';
+
+                        if (pLogo) {
+                            const logoBox = document.createElement(pUrl ? 'a' : 'div');
+                            if (pUrl) {
+                                logoBox.href = pUrl;
+                                logoBox.target = '_blank';
+                                logoBox.rel = 'noopener noreferrer';
+                            }
+                            logoBox.style.cssText = 'display: inline-flex; align-items: center; justify-content: center; background: #ffffff; border-radius: 10px; padding: 6px 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); flex-shrink: 0; text-decoration: none;';
+                            const img = document.createElement('img');
+                            img.src = pLogo;
+                            img.alt = pName ? `${pName} logo` : 'Partner logo';
+                            img.style.cssText = 'height: 52px; max-width: 160px; object-fit: contain; display: block;';
+                            img.loading = 'lazy';
+                            logoBox.appendChild(img);
+                            header.appendChild(logoBox);
+                        }
+
+                        const meta = el('div', '', '');
+                        meta.style.cssText = 'min-width: 0; flex: 1;';
+
+                        const role = el('div', '', pRole);
+                        role.style.cssText = 'color: var(--primary); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 800; margin-bottom: 4px;';
+                        meta.appendChild(role);
+
+                        const title = el('h3', 'brand-font', pName);
+                        title.style.cssText = 'font-size: 20px; color: #FFFFFF; margin: 0;';
+                        meta.appendChild(title);
+
+                        header.appendChild(meta);
+                        card.appendChild(header);
 
                         if (p.description) {
                             const desc = el('p', '', p.description);
@@ -3341,12 +3371,12 @@
                             card.appendChild(desc);
                         }
 
-                        if (p.url) {
-                            const a = el('a', '', `Visit ${p.name} →`);
-                            a.href = p.url;
+                        if (pUrl) {
+                            const a = el('a', '', `Visit ${pName} →`);
+                            a.href = pUrl;
                             a.target = '_blank';
                             a.rel = 'noopener noreferrer';
-                            a.style.cssText = 'color: var(--primary); font-size: 12px; font-weight: 700; text-transform: uppercase; text-decoration: none;';
+                            a.style.cssText = 'display: inline-block; color: var(--primary); font-size: 12px; font-weight: 700; text-transform: uppercase; text-decoration: none; margin-top: 4px;';
                             card.appendChild(a);
                         }
                         partCont.appendChild(card);
