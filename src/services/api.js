@@ -689,19 +689,41 @@ export async function clearSubscribers(tableSlug = "beverley", explicitSecret = 
 export async function sendVolunteerBroadcastEmail(tableSlug = "beverley", { routeName, subject, message, testOnly, testEmail }, explicitSecret = null) {
   try {
     const slug = (tableSlug || "beverley").toLowerCase().trim();
-    const token = explicitSecret || getAdminAuthToken(slug);
-    const res = await fetch(`${API_BASE}/api/volunteers/email?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(token)}`, {
+    const session = getCurrentSession();
+    let token = explicitSecret || session?.token || session?.googleCredential;
+    if (!token || (!token.startsWith("ts2_") && !token.includes("beverley247") && !token.includes("."))) {
+      token = getAdminAuthToken(slug);
+    }
+
+    const bodyPayload = {
+      routeName,
+      subject,
+      message,
+      testOnly: !!testOnly,
+      testEmail,
+      tableSlug: slug,
+      table: slug,
+      secret: token
+    };
+
+    let res = await fetch(`${API_BASE}/api/volunteers/email?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(token)}`, {
       method: "POST",
       headers: getAuthHeaders(token, slug),
-      body: JSON.stringify({
-        routeName,
-        subject,
-        message,
-        testOnly: !!testOnly,
-        testEmail
-      })
+      body: JSON.stringify(bodyPayload)
     });
-    const data = await res.json();
+
+    if (res.status === 401) {
+      console.warn("Retrying sendVolunteerBroadcastEmail with fresh table admin token...");
+      const healToken = getAdminAuthToken(slug);
+      bodyPayload.secret = healToken;
+      res = await fetch(`${API_BASE}/api/volunteers/email?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(healToken)}`, {
+        method: "POST",
+        headers: getAuthHeaders(healToken, slug),
+        body: JSON.stringify(bodyPayload)
+      });
+    }
+
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
     return data;
   } catch (err) {
