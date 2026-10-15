@@ -3,6 +3,7 @@ import { Share2, MapPin, ExternalLink, Star, ChevronDown } from 'lucide-react';
 import { API_BASE } from '../services/api';
 import { extractRouteSponsors } from '../utils/sponsors';
 import RouteStreetsPreview from './RouteStreetsPreview';
+import SnowEffect from './SnowEffect';
 
 const DEFAULT_LOGO = '/icons/RTBI_Santa.png';
 const DEFAULT_BG = '/icons/site_background.png';
@@ -528,6 +529,9 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
           pointerEvents: 'none'
         }} />
       </div>
+
+      {/* Pleasant Festive Ambient Snowfall Overlay */}
+      <SnowEffect zIndex={3} opacity={0.65} />
 
       <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
         {/* Live Announcement Bar */}
