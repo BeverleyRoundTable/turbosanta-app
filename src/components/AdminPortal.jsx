@@ -656,6 +656,7 @@ ${tableName} Organizers`
     instagram_url: tableData?.table?.instagram_url || '',
     tiktok_url: tableData?.table?.tiktok_url || '',
     primary_color: tableData?.table?.primary_color || '#FBAF33',
+    accent_color: tableData?.table?.accent_color || '#D31C1C',
     enable_gift_aid: tableData?.table?.enable_gift_aid || false,
     charity_name: tableData?.table?.charity_name || '',
     charity_number: tableData?.table?.charity_number || '',
@@ -709,6 +710,7 @@ ${tableName} Organizers`
         instagram_url: tableData.table.instagram_url !== undefined ? tableData.table.instagram_url : prev.instagram_url,
         tiktok_url: tableData.table.tiktok_url !== undefined ? tableData.table.tiktok_url : prev.tiktok_url,
         primary_color: tableData.table.primary_color || prev.primary_color,
+        accent_color: tableData.table.accent_color || prev.accent_color,
         enable_gift_aid: Boolean(tableData.table.enable_gift_aid),
         charity_name: tableData.table.charity_name || prev.charity_name,
         charity_number: tableData.table.charity_number || prev.charity_number,
@@ -4558,7 +4560,7 @@ ${tableName} Organizers`
                   <button
                     type="button"
                     onClick={() => {
-                      setFormData(prev => ({ ...prev, primary_color: '#FBAF33' }));
+                      setFormData(prev => ({ ...prev, primary_color: '#FBAF33', accent_color: '#D31C1C' }));
                       document.documentElement.style.setProperty('--primary', '#FBAF33');
                     }}
                     style={{
@@ -4581,7 +4583,7 @@ ${tableName} Organizers`
                   <button
                     type="button"
                     onClick={() => {
-                      setFormData(prev => ({ ...prev, primary_color: '#D31C1C' }));
+                      setFormData(prev => ({ ...prev, primary_color: '#D31C1C', accent_color: '#FBAF33' }));
                       document.documentElement.style.setProperty('--primary', '#D31C1C');
                     }}
                     style={{
@@ -6261,6 +6263,7 @@ ${tableName} Organizers`
                       instagram_url: formData.instagram_url || null,
                       tiktok_url: formData.tiktok_url || null,
                       primary_color: formData.primary_color,
+                      accent_color: formData.accent_color || (formData.primary_color === '#D31C1C' ? '#FBAF33' : '#D31C1C'),
                       enable_gift_aid: formData.enable_gift_aid,
                       charity_name: formData.charity_name,
                       charity_number: formData.charity_number,

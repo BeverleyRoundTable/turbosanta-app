@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { UploadCloud, Image as ImageIcon, X, Check } from 'lucide-react';
 import { uploadAssetToR2 } from '../services/api';
 
@@ -6,6 +6,10 @@ export default function DropzoneUpload({ label, currentImage, onImageSelected, h
   const [isDragging, setIsDragging] = useState(false);
   const [preview, setPreview] = useState(currentImage || '');
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    setPreview(currentImage || '');
+  }, [currentImage]);
 
   const processFile = (file) => {
     if (!file) return;
