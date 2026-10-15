@@ -679,15 +679,21 @@ ${tableName} Organizers`
     notify_radius_meters: tableData?.table?.notify_radius_meters !== undefined ? Number(tableData.table.notify_radius_meters) : 250,
     pass_buffer_meters: tableData?.table?.pass_buffer_meters !== undefined ? Number(tableData.table.pass_buffer_meters) : 150,
     gmail_client_id: tableData?.table?.gmail_client_id || '',
-    gmail_client_secret: tableData?.table?.gmail_client_secret || ''
+    gmail_client_secret: tableData?.table?.gmail_client_secret || '',
+    notify_approaching_subject: tableData?.table?.notify_approaching_subject || '',
+    notify_approaching_msg: tableData?.table?.notify_approaching_msg || '',
+    notify_passed_subject: tableData?.table?.notify_passed_subject || '',
+    notify_passed_msg: tableData?.table?.notify_passed_msg || ''
   });
 
   // Gmail Workspace Connection & Proximity Engine States
   const [isConnectingGmail, setIsConnectingGmail] = useState(false);
   const [gmailStatusMsg, setGmailStatusMsg] = useState('');
-  const [isTestingGmail, setIsTestingGmail] = useState(false);
+  const [testingType, setTestingType] = useState(null); // 'approaching' | 'passed' | null
   const [testEmailAddress, setTestEmailAddress] = useState('');
   const [showAdvancedGmail, setShowAdvancedGmail] = useState(false);
+  const [showEmailCustomizer, setShowEmailCustomizer] = useState(false);
+  const [previewTab, setPreviewTab] = useState('approaching');
 
   // Automatically synchronize formData with live tableData when loaded
   React.useEffect(() => {
@@ -726,7 +732,11 @@ ${tableName} Organizers`
         notify_radius_meters: tableData.table.notify_radius_meters !== undefined ? Number(tableData.table.notify_radius_meters) : prev.notify_radius_meters,
         pass_buffer_meters: tableData.table.pass_buffer_meters !== undefined ? Number(tableData.table.pass_buffer_meters) : prev.pass_buffer_meters,
         gmail_client_id: tableData.table.gmail_client_id !== undefined ? tableData.table.gmail_client_id : prev.gmail_client_id,
-        gmail_client_secret: tableData.table.gmail_client_secret !== undefined ? tableData.table.gmail_client_secret : prev.gmail_client_secret
+        gmail_client_secret: tableData.table.gmail_client_secret !== undefined ? tableData.table.gmail_client_secret : prev.gmail_client_secret,
+        notify_approaching_subject: tableData.table.notify_approaching_subject !== undefined ? tableData.table.notify_approaching_subject : prev.notify_approaching_subject,
+        notify_approaching_msg: tableData.table.notify_approaching_msg !== undefined ? tableData.table.notify_approaching_msg : prev.notify_approaching_msg,
+        notify_passed_subject: tableData.table.notify_passed_subject !== undefined ? tableData.table.notify_passed_subject : prev.notify_passed_subject,
+        notify_passed_msg: tableData.table.notify_passed_msg !== undefined ? tableData.table.notify_passed_msg : prev.notify_passed_msg
       }));
     }
   }, [tableData]);
@@ -886,14 +896,15 @@ ${tableName} Organizers`
     }
   };
 
-  const handleSendTestAlert = async () => {
-    setIsTestingGmail(true);
+  const handleSendTestAlert = async (testType = 'approaching') => {
+    setTestingType(testType);
     const dest = testEmailAddress.trim() || formData.gmail_connected_email;
-    setGmailStatusMsg(`Sending test alert email to ${dest}...`);
+    const alertLabel = testType === 'approaching' ? 'Alert 1 (Approaching / ETA)' : 'Alert 2 (Passed / Thank You)';
+    setGmailStatusMsg(`Sending test ${alertLabel} to ${dest}...`);
     try {
-      const res = await testTableGmailAlert(currentTableSlug, dest);
+      const res = await testTableGmailAlert(currentTableSlug, dest, testType);
       if (res && res.ok) {
-        setGmailStatusMsg(`✅ Test alert successfully sent to ${dest}! Please check your inbox.`);
+        setGmailStatusMsg(`✅ Test ${alertLabel} successfully sent to ${dest}! Please check your inbox.`);
         confetti({ particleCount: 30, spread: 50 });
       } else {
         setGmailStatusMsg(`❌ Test failed: ${res?.error || 'Unknown error'}`);
@@ -901,7 +912,7 @@ ${tableName} Organizers`
     } catch (err) {
       setGmailStatusMsg(`❌ Error: ${err.message}`);
     } finally {
-      setIsTestingGmail(false);
+      setTestingType(null);
       setTimeout(() => setGmailStatusMsg(''), 8000);
     }
   };
@@ -5297,44 +5308,74 @@ ${tableName} Organizers`
                       </div>
 
                       {/* Test Email Dispatcher */}
-                      <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                        <input
-                          type="email"
-                          placeholder={formData.gmail_connected_email || "test@roundtable.org.uk"}
-                          value={testEmailAddress}
-                          onChange={(e) => setTestEmailAddress(e.target.value)}
-                          style={{
-                            flex: 1,
-                            minWidth: '200px',
-                            background: '#0d0d0b',
-                            border: '1px solid var(--border)',
-                            borderRadius: '6px',
-                            padding: '8px 12px',
-                            color: '#fff',
-                            fontSize: '13px'
-                          }}
-                        />
-                        <button
-                          type="button"
-                          disabled={isTestingGmail}
-                          onClick={handleSendTestAlert}
-                          style={{
-                            background: 'rgba(251, 175, 51, 0.15)',
-                            border: '1px solid var(--primary)',
-                            color: 'var(--primary)',
-                            borderRadius: '6px',
-                            padding: '8px 14px',
-                            fontSize: '12px',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px'
-                          }}
-                        >
-                          <Send size={13} />
-                          <span>{isTestingGmail ? 'Sending Test...' : 'Send Test Alert Email'}</span>
-                        </button>
+                      <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#fff', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Send size={13} color="var(--primary)" />
+                          <span>Send Test Alerts (Test Both Emails Without Dropping Pins or Driving):</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                          <input
+                            type="email"
+                            placeholder={formData.gmail_connected_email || "test@roundtable.org.uk"}
+                            value={testEmailAddress}
+                            onChange={(e) => setTestEmailAddress(e.target.value)}
+                            style={{
+                              flex: 1,
+                              minWidth: '200px',
+                              background: '#0d0d0b',
+                              border: '1px solid var(--border)',
+                              borderRadius: '6px',
+                              padding: '8px 12px',
+                              color: '#fff',
+                              fontSize: '13px'
+                            }}
+                          />
+                          <button
+                            type="button"
+                            disabled={testingType !== null}
+                            onClick={() => handleSendTestAlert('approaching')}
+                            style={{
+                              background: 'rgba(251, 175, 51, 0.15)',
+                              border: '1px solid var(--primary)',
+                              color: 'var(--primary)',
+                              borderRadius: '6px',
+                              padding: '8px 12px',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                          >
+                            <Send size={12} />
+                            <span>{testingType === 'approaching' ? 'Sending Test 1...' : '🎅 Send Test 1 (Approaching / ETA)'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            disabled={testingType !== null}
+                            onClick={() => handleSendTestAlert('passed')}
+                            style={{
+                              background: 'rgba(34, 197, 94, 0.15)',
+                              border: '1px solid #22c55e',
+                              color: '#22c55e',
+                              borderRadius: '6px',
+                              padding: '8px 12px',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                          >
+                            <Send size={12} />
+                            <span>{testingType === 'passed' ? 'Sending Test 2...' : '🎄 Send Test 2 (Passed / Donate)'}</span>
+                          </button>
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                          💡 Enter an email address or leave blank to test directly into your connected Google Workspace inbox.
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -5383,6 +5424,337 @@ ${tableName} Organizers`
                       border: gmailStatusMsg.includes('❌') ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(34, 197, 94, 0.3)'
                     }}>
                       {gmailStatusMsg}
+                    </div>
+                  )}
+                </div>
+
+                {/* EMAIL TEMPLATE CUSTOMIZER & LIVE PREVIEWS */}
+                <div style={{
+                  background: '#161614',
+                  border: '1px solid var(--border)',
+                  borderRadius: '10px',
+                  padding: '16px',
+                  marginBottom: '16px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Eye size={16} color="var(--primary)" />
+                      <strong style={{ fontSize: '14px', color: '#fff' }}>
+                        Email Appearance &amp; Template Customizer
+                      </strong>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowEmailCustomizer(!showEmailCustomizer)}
+                      style={{
+                        background: 'rgba(251, 175, 51, 0.1)',
+                        border: '1px solid rgba(251, 175, 51, 0.3)',
+                        color: 'var(--primary)',
+                        padding: '6px 14px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {showEmailCustomizer ? 'Hide Template Editor ▲' : 'View Previews & Customize Wording ▼'}
+                    </button>
+                  </div>
+
+                  {showEmailCustomizer && (
+                    <div style={{ marginTop: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '16px' }}>
+                      {/* Tabs to switch between Email 1 and Email 2 */}
+                      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewTab('approaching')}
+                          style={{
+                            flex: 1,
+                            minWidth: '220px',
+                            padding: '10px 14px',
+                            borderRadius: '8px',
+                            background: previewTab === 'approaching' ? 'rgba(251, 175, 51, 0.15)' : '#0d0d0b',
+                            border: previewTab === 'approaching' ? '2px solid var(--primary)' : '1px solid var(--border)',
+                            color: previewTab === 'approaching' ? 'var(--primary)' : 'var(--text-muted)',
+                            fontWeight: 700,
+                            fontSize: '13px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          🎅 Email 1: Approaching Alert (ETA ~250m)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewTab('passed')}
+                          style={{
+                            flex: 1,
+                            minWidth: '220px',
+                            padding: '10px 14px',
+                            borderRadius: '8px',
+                            background: previewTab === 'passed' ? 'rgba(34, 197, 94, 0.15)' : '#0d0d0b',
+                            border: previewTab === 'passed' ? '2px solid #22c55e' : '1px solid var(--border)',
+                            color: previewTab === 'passed' ? '#22c55e' : 'var(--text-muted)',
+                            fontWeight: 700,
+                            fontSize: '13px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          🎄 Email 2: Thank You &amp; Donation Follow-Up
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+                        {/* Editor Controls */}
+                        <div>
+                          {previewTab === 'approaching' ? (
+                            <div>
+                              <div style={{ marginBottom: '14px' }}>
+                                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
+                                  Email Subject Line:
+                                </label>
+                                <input
+                                  type="text"
+                                  value={formData.notify_approaching_subject || ''}
+                                  placeholder="🎅 Ho Ho Ho! Santa is approaching your street!"
+                                  onChange={(e) => setFormData(prev => ({ ...prev, notify_approaching_subject: e.target.value }))}
+                                  style={{
+                                    width: '100%',
+                                    background: '#0d0d0b',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: '6px',
+                                    padding: '8px 12px',
+                                    color: '#fff',
+                                    fontSize: '13px',
+                                    boxSizing: 'border-box'
+                                  }}
+                                />
+                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                  Default: <code>🎅 Ho Ho Ho! Santa is approaching your street!</code>
+                                </div>
+                              </div>
+
+                              <div style={{ marginBottom: '14px' }}>
+                                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
+                                  Email Body Message:
+                                </label>
+                                <textarea
+                                  rows={6}
+                                  value={formData.notify_approaching_msg || ''}
+                                  placeholder={`Listen out for the festive music and sleigh bells! Santa and his volunteer elves from {tableName} are heading towards your street right now.\n\nCome outside and give Santa a big wave as he drives by! You can follow the sleigh live in real-time on our official tracker map:`}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, notify_approaching_msg: e.target.value }))}
+                                  style={{
+                                    width: '100%',
+                                    background: '#0d0d0b',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: '6px',
+                                    padding: '8px 12px',
+                                    color: '#fff',
+                                    fontSize: '13px',
+                                    boxSizing: 'border-box',
+                                    lineHeight: 1.5,
+                                    resize: 'vertical'
+                                  }}
+                                />
+                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                  Supports placeholders: <code>{'{tableName}'}</code>, <code>{'{eta}'}</code>, <code>{'{distance}'}</code>.
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => setFormData(prev => ({ ...prev, notify_approaching_subject: '', notify_approaching_msg: '' }))}
+                                style={{
+                                  background: 'rgba(255, 255, 255, 0.05)',
+                                  border: '1px solid var(--border)',
+                                  color: 'var(--text-muted)',
+                                  padding: '6px 12px',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                Restore Default Festive Copy
+                              </button>
+                            </div>
+                          ) : (
+                            <div>
+                              <div style={{ marginBottom: '14px' }}>
+                                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
+                                  Email Subject Line:
+                                </label>
+                                <input
+                                  type="text"
+                                  value={formData.notify_passed_subject || ''}
+                                  placeholder={`🎄 Thank You from Santa & ${formData.sleigh_display_name || 'Round Table'}!`}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, notify_passed_subject: e.target.value }))}
+                                  style={{
+                                    width: '100%',
+                                    background: '#0d0d0b',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: '6px',
+                                    padding: '8px 12px',
+                                    color: '#fff',
+                                    fontSize: '13px',
+                                    boxSizing: 'border-box'
+                                  }}
+                                />
+                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                  Default: <code>🎄 Thank You from Santa &amp; {'{tableName}'}!</code>
+                                </div>
+                              </div>
+
+                              <div style={{ marginBottom: '14px' }}>
+                                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
+                                  Email Body Message:
+                                </label>
+                                <textarea
+                                  rows={6}
+                                  value={formData.notify_passed_msg || ''}
+                                  placeholder={`Santa and his volunteer elves have just passed your area. We hope you and your family enjoyed the festive sights and sounds of the sleigh tonight!\n\nEvery single penny raised tonight is donated directly back into our local community, supporting youth groups, foodbanks, and local families in need.`}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, notify_passed_msg: e.target.value }))}
+                                  style={{
+                                    width: '100%',
+                                    background: '#0d0d0b',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: '6px',
+                                    padding: '8px 12px',
+                                    color: '#fff',
+                                    fontSize: '13px',
+                                    boxSizing: 'border-box',
+                                    lineHeight: 1.5,
+                                    resize: 'vertical'
+                                  }}
+                                />
+                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                  Supports placeholder: <code>{'{tableName}'}</code>.
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => setFormData(prev => ({ ...prev, notify_passed_subject: '', notify_passed_msg: '' }))}
+                                style={{
+                                  background: 'rgba(255, 255, 255, 0.05)',
+                                  border: '1px solid var(--border)',
+                                  color: 'var(--text-muted)',
+                                  padding: '6px 12px',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                Restore Default Festive Copy
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Visual Email Mockup Preview */}
+                        <div>
+                          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+                            Live Render Preview:
+                          </div>
+                          <div style={{
+                            background: '#ffffff',
+                            color: '#1f2937',
+                            borderRadius: '14px',
+                            overflow: 'hidden',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                            border: '1px solid #e5e7eb',
+                            maxWidth: '460px',
+                            margin: '0 auto'
+                          }}>
+                            {/* Email Header Banner */}
+                            <div style={{
+                              background: 'linear-gradient(135deg, #d31c1c 0%, #991b1b 100%)',
+                              padding: '24px 20px',
+                              textAlign: 'center',
+                              color: '#fff'
+                            }}>
+                              <div style={{ fontSize: '32px', marginBottom: '6px' }}>🎅</div>
+                              <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: 800, color: '#fff' }}>
+                                {previewTab === 'approaching' ? 'Santa is on his way!' : 'Thank You for Coming Out!'}
+                              </h3>
+                              <p style={{ margin: 0, fontSize: '13px', color: '#fef3c7', fontWeight: 600 }}>
+                                {previewTab === 'approaching' ? `ETA: 2 minutes • Within ${formData.notify_radius_meters || 250}m of your pin!` : 'Santa has just visited your street!'}
+                              </p>
+                            </div>
+
+                            {/* Email Body */}
+                            <div style={{ padding: '20px' }}>
+                              <div style={{ fontSize: '14px', lineHeight: 1.6, color: '#374151', marginBottom: '16px' }}>
+                                {previewTab === 'approaching' ? (
+                                  formData.notify_approaching_msg ? (
+                                    formData.notify_approaching_msg
+                                      .replace(/\{tableName\}/g, formData.sleigh_display_name || 'Beverley Round Table')
+                                      .replace(/\{eta\}/g, '2 minutes')
+                                      .replace(/\{distance\}/g, `${formData.notify_radius_meters || 250}m`)
+                                      .split('\n\n')
+                                      .map((p, idx) => <p key={idx} style={{ margin: '0 0 10px 0' }}>{p}</p>)
+                                  ) : (
+                                    <>
+                                      <p style={{ margin: '0 0 10px 0' }}>
+                                        Listen out for the festive music and sleigh bells! Santa and his volunteer elves from <strong>{formData.sleigh_display_name || 'Beverley Round Table'}</strong> are heading towards your street right now.
+                                      </p>
+                                      <p style={{ margin: '0 0 10px 0' }}>
+                                        Come outside and give Santa a big wave as he drives by! You can follow the sleigh live in real-time on our official tracker map:
+                                      </p>
+                                    </>
+                                  )
+                                ) : (
+                                  formData.notify_passed_msg ? (
+                                    formData.notify_passed_msg
+                                      .replace(/\{tableName\}/g, formData.sleigh_display_name || 'Beverley Round Table')
+                                      .split('\n\n')
+                                      .map((p, idx) => <p key={idx} style={{ margin: '0 0 10px 0' }}>{p}</p>)
+                                  ) : (
+                                    <>
+                                      <p style={{ margin: '0 0 10px 0' }}>
+                                        Santa and his volunteer elves have just passed your area. We hope you and your family enjoyed the festive sights and sounds of the sleigh tonight!
+                                      </p>
+                                      <p style={{ margin: '0 0 10px 0' }}>
+                                        Every single penny raised tonight is donated directly back into our local community, supporting youth groups, foodbanks, and local families in need.
+                                      </p>
+                                    </>
+                                  )
+                                )}
+                              </div>
+
+                              {/* Action Button */}
+                              <div style={{ textAlign: 'center', margin: '14px 0' }}>
+                                <div style={{
+                                  display: 'inline-block',
+                                  backgroundColor: '#d31c1c',
+                                  color: '#ffffff',
+                                  fontWeight: 700,
+                                  fontSize: '14px',
+                                  padding: '10px 22px',
+                                  borderRadius: '9999px',
+                                  boxShadow: '0 3px 10px rgba(211, 28, 28, 0.35)'
+                                }}>
+                                  {previewTab === 'approaching' ? 'Open Live Santa Tracker' : 'Donate to Support Our Community'}
+                                </div>
+                              </div>
+
+                              {/* Secondary CTA */}
+                              <div style={{ textAlign: 'center', marginTop: '14px', paddingTop: '10px', borderTop: '1px solid #e5e7eb', fontSize: '12px' }}>
+                                {previewTab === 'approaching' ? (
+                                  <span style={{ color: '#d31c1c', fontWeight: 600 }}>Want to help local families? Make a fast donation online &rarr;</span>
+                                ) : (
+                                  <span style={{ color: '#4b5563', textDecoration: 'underline' }}>View Santa&apos;s Upcoming Routes &amp; Schedule</span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Email Footer */}
+                            <div style={{ background: '#f9fafb', padding: '12px 16px', borderTop: '1px solid #e5e7eb', textAlign: 'center', fontSize: '11px', color: '#6b7280' }}>
+                              <div style={{ fontWeight: 700, color: '#374151' }}>{formData.sleigh_display_name || 'Beverley Round Table'}</div>
+                              {formData.charity_number && <div>Registered Charity No. {formData.charity_number}</div>}
+                              <div style={{ marginTop: '4px', fontSize: '10px', color: '#9ca3af' }}>Sent directly via Table Google Workspace Gmail</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -5891,7 +6263,11 @@ ${tableName} Organizers`
                       notify_radius_meters: Number(formData.notify_radius_meters || 250),
                       pass_buffer_meters: Number(formData.pass_buffer_meters || 150),
                       gmail_client_id: formData.gmail_client_id || null,
-                      gmail_client_secret: formData.gmail_client_secret || null
+                      gmail_client_secret: formData.gmail_client_secret || null,
+                      notify_approaching_subject: formData.notify_approaching_subject || null,
+                      notify_approaching_msg: formData.notify_approaching_msg || null,
+                      notify_passed_subject: formData.notify_passed_subject || null,
+                      notify_passed_msg: formData.notify_passed_msg || null
                     };
 
                     try {

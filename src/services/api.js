@@ -582,7 +582,7 @@ export async function disconnectTableGmail(tableSlug = "beverley", explicitSecre
   }
 }
 
-export async function testTableGmailAlert(tableSlug = "beverley", testEmail = "", explicitSecret = null) {
+export async function testTableGmailAlert(tableSlug = "beverley", testEmail = "", testType = "approaching", explicitSecret = null) {
   try {
     const slug = (tableSlug || "beverley").toLowerCase().trim();
     const token = explicitSecret || getAdminAuthToken(slug);
@@ -592,6 +592,7 @@ export async function testTableGmailAlert(tableSlug = "beverley", testEmail = ""
       body: JSON.stringify({
         tableSlug: slug,
         test_email: testEmail,
+        test_type: testType,
         secret: token
       })
     });

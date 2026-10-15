@@ -305,6 +305,13 @@ export default {
       await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_email_enabled BOOLEAN DEFAULT 1").run().catch(() => {});
       await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_radius_meters INTEGER DEFAULT 250").run().catch(() => {});
       await env.DB.prepare("ALTER TABLE tables ADD COLUMN pass_buffer_meters INTEGER DEFAULT 150").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN background_mode TEXT DEFAULT 'image'").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN background_video_url TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN background_url TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_approaching_subject TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_approaching_msg TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_passed_subject TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_passed_msg TEXT").run().catch(() => {});
 
       // Legacy/Tracker parameter subscription handling (?function=subscribe)
       if (url.searchParams.get("function") === "subscribe") {
@@ -448,7 +455,16 @@ export default {
         pass_buffer_meters: table.pass_buffer_meters !== undefined ? Number(table.pass_buffer_meters) : 150,
         gmail_client_id: isAdmin ? (table.gmail_client_id || '') : undefined,
         gmail_client_secret: isAdmin ? (table.gmail_client_secret ? '••••••••' : '') : undefined,
-        subscribers_stats: isAdmin ? subStats : undefined
+        subscribers_stats: isAdmin ? subStats : undefined,
+        // Ambient Background & Video Loop Configuration
+        background_mode: table.background_mode || 'image',
+        background_video_url: table.background_video_url || null,
+        background_url: table.background_url || null,
+        // Custom Email Template Overrides
+        notify_approaching_subject: table.notify_approaching_subject || null,
+        notify_approaching_msg: table.notify_approaching_msg || null,
+        notify_passed_subject: table.notify_passed_subject || null,
+        notify_passed_msg: table.notify_passed_msg || null
       };
 
       // Check if telemetry is fresh (< 5 minutes old = 300,000ms)
@@ -1167,7 +1183,14 @@ SANTA'S SPOKEN RESPONSE:`;
         notify_radius_meters,
         pass_buffer_meters,
         gmail_client_id,
-        gmail_client_secret
+        gmail_client_secret,
+        background_mode,
+        background_video_url,
+        background_url,
+        notify_approaching_subject,
+        notify_approaching_msg,
+        notify_passed_subject,
+        notify_passed_msg
       } = body;
 
       // Isolate Santa Chat strictly to Beverley (prevent any other table from enabling or saving it)
@@ -1210,6 +1233,13 @@ SANTA'S SPOKEN RESPONSE:`;
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN pass_buffer_meters INTEGER DEFAULT 150").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN gmail_client_id TEXT").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN gmail_client_secret TEXT").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN background_mode TEXT DEFAULT 'image'").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN background_video_url TEXT").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN background_url TEXT").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_approaching_subject TEXT").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_approaching_msg TEXT").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_passed_subject TEXT").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_passed_msg TEXT").run(); } catch(e) {}
 
       try {
         await env.DB.prepare(`
@@ -1247,7 +1277,14 @@ SANTA'S SPOKEN RESPONSE:`;
             notify_radius_meters = COALESCE(?, notify_radius_meters),
             pass_buffer_meters = COALESCE(?, pass_buffer_meters),
             gmail_client_id = COALESCE(?, gmail_client_id),
-            gmail_client_secret = COALESCE(?, gmail_client_secret)
+            gmail_client_secret = COALESCE(?, gmail_client_secret),
+            background_mode = COALESCE(?, background_mode),
+            background_video_url = COALESCE(?, background_video_url),
+            background_url = COALESCE(?, background_url),
+            notify_approaching_subject = COALESCE(?, notify_approaching_subject),
+            notify_approaching_msg = COALESCE(?, notify_approaching_msg),
+            notify_passed_subject = COALESCE(?, notify_passed_subject),
+            notify_passed_msg = COALESCE(?, notify_passed_msg)
           WHERE id = ?
         `).bind(
           sleigh_display_name !== undefined ? sleigh_display_name : null,
@@ -1284,6 +1321,13 @@ SANTA'S SPOKEN RESPONSE:`;
           pass_buffer_meters !== undefined ? parseInt(pass_buffer_meters, 10) : null,
           gmail_client_id !== undefined ? gmail_client_id : null,
           gmail_client_secret !== undefined ? gmail_client_secret : null,
+          background_mode !== undefined ? background_mode : null,
+          background_video_url !== undefined ? background_video_url : null,
+          background_url !== undefined ? background_url : null,
+          notify_approaching_subject !== undefined ? notify_approaching_subject : null,
+          notify_approaching_msg !== undefined ? notify_approaching_msg : null,
+          notify_passed_subject !== undefined ? notify_passed_subject : null,
+          notify_passed_msg !== undefined ? notify_passed_msg : null,
           table.id
         ).run();
 
@@ -2122,19 +2166,28 @@ SANTA'S SPOKEN RESPONSE:`;
         return jsonResponse({ error: "No destination email address provided for test" }, 400);
       }
 
+      const testType = String(body.test_type || "approaching").toLowerCase().trim();
+
       try {
         await sendGmailProximityAlert({
           env,
           table,
           to: testEmail,
-          type: "test",
+          type: testType,
           etaText: "2 minutes",
           distanceMeters: 180
         });
 
+        const labelMap = {
+          approaching: "Approaching Alert (Santa is on his way!)",
+          passed: "Passed Alert (Thank You & Donation)",
+          test: "Connection Verification Test"
+        };
+        const prettyType = labelMap[testType] || testType;
+
         return jsonResponse({
           ok: true,
-          message: `Test email successfully sent to ${testEmail} from ${table.gmail_connected_email}!`
+          message: `Test email [${prettyType}] successfully sent to ${testEmail} from ${table.gmail_connected_email}!`
         });
       } catch (err) {
         return jsonResponse({ error: `Test email failed: ${err.message}` }, 500);
@@ -3218,17 +3271,29 @@ async function sendGmailProximityAlert({ env, table, to, type, etaText, distance
   let secondaryCta = "";
 
   if (type === "approaching") {
-    subject = `🎅 Ho Ho Ho! Santa is approaching your street!`;
+    subject = (table.notify_approaching_subject || `🎅 Ho Ho Ho! Santa is approaching your street!`).replace(/\{tableName\}/g, tableName);
     headline = `Santa is on his way!`;
     subheadline = etaText ? `ETA: ${etaText}` : `Within ${distanceMeters || 250} metres of your pin!`;
-    messageContent = `
-      <p style="font-size: 16px; line-height: 1.6; color: #374151; margin: 0 0 16px 0;">
-        Listen out for the festive music and sleigh bells! Santa and his volunteer elves from <strong>${tableName}</strong> are heading towards your street right now.
-      </p>
-      <p style="font-size: 15px; line-height: 1.5; color: #4b5563; margin: 0 0 20px 0;">
-        Come outside and give Santa a big wave as he drives by! You can follow the sleigh live in real-time on our official tracker map:
-      </p>
-    `;
+    
+    if (table.notify_approaching_msg && table.notify_approaching_msg.trim()) {
+      const formattedCustomMsg = table.notify_approaching_msg
+        .replace(/\{tableName\}/g, tableName)
+        .replace(/\{eta\}/g, etaText || 'a few minutes')
+        .replace(/\{distance\}/g, `${distanceMeters || 250}m`)
+        .split('\n\n')
+        .map(p => `<p style="font-size: 16px; line-height: 1.6; color: #374151; margin: 0 0 16px 0;">${p.replace(/\n/g, '<br>')}</p>`)
+        .join('');
+      messageContent = formattedCustomMsg;
+    } else {
+      messageContent = `
+        <p style="font-size: 16px; line-height: 1.6; color: #374151; margin: 0 0 16px 0;">
+          Listen out for the festive music and sleigh bells! Santa and his volunteer elves from <strong>${tableName}</strong> are heading towards your street right now.
+        </p>
+        <p style="font-size: 15px; line-height: 1.5; color: #4b5563; margin: 0 0 20px 0;">
+          Come outside and give Santa a big wave as he drives by! You can follow the sleigh live in real-time on our official tracker map:
+        </p>
+      `;
+    }
     if (donateUrl) {
       secondaryCta = `
         <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center;">
@@ -3238,17 +3303,27 @@ async function sendGmailProximityAlert({ env, table, to, type, etaText, distance
       `;
     }
   } else if (type === "passed") {
-    subject = `🎄 Thank You from Santa & ${tableName}!`;
+    subject = (table.notify_passed_subject || `🎄 Thank You from Santa & ${tableName}!`).replace(/\{tableName\}/g, tableName);
     headline = `Thank You for Coming Out!`;
     subheadline = `Santa has just visited your street!`;
-    messageContent = `
-      <p style="font-size: 16px; line-height: 1.6; color: #374151; margin: 0 0 16px 0;">
-        Santa and his volunteer elves have just passed your area. We hope you and your family enjoyed the festive sights and sounds of the sleigh tonight!
-      </p>
-      <p style="font-size: 15px; line-height: 1.5; color: #4b5563; margin: 0 0 20px 0;">
-        Every single penny raised tonight is donated directly back into our local community, supporting youth groups, foodbanks, and local families in need.
-      </p>
-    `;
+
+    if (table.notify_passed_msg && table.notify_passed_msg.trim()) {
+      const formattedCustomMsg = table.notify_passed_msg
+        .replace(/\{tableName\}/g, tableName)
+        .split('\n\n')
+        .map(p => `<p style="font-size: 16px; line-height: 1.6; color: #374151; margin: 0 0 16px 0;">${p.replace(/\n/g, '<br>')}</p>`)
+        .join('');
+      messageContent = formattedCustomMsg;
+    } else {
+      messageContent = `
+        <p style="font-size: 16px; line-height: 1.6; color: #374151; margin: 0 0 16px 0;">
+          Santa and his volunteer elves have just passed your area. We hope you and your family enjoyed the festive sights and sounds of the sleigh tonight!
+        </p>
+        <p style="font-size: 15px; line-height: 1.5; color: #4b5563; margin: 0 0 20px 0;">
+          Every single penny raised tonight is donated directly back into our local community, supporting youth groups, foodbanks, and local families in need.
+        </p>
+      `;
+    }
     if (donateUrl) {
       ctaText = "Donate to Support Our Community";
       ctaUrl = donateUrl;

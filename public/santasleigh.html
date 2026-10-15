@@ -1715,11 +1715,7 @@
 
             const apiMode = String(settings.background_mode || settings.bg_mode || '').trim().toLowerCase();
             const localMode = String(storedBgMode || '').trim().toLowerCase();
-
-            // Prefer an explicit video mode over a default 'image' fallback
-            const bgMode = (apiMode && apiMode !== 'image')
-                ? apiMode
-                : (localMode || apiMode || 'image');
+            const bgMode = apiMode || localMode || 'image';
 
             const customVideo = String(
                 settings.background_video_url ||
@@ -1754,11 +1750,14 @@
                     if (videoWrap) videoWrap.style.display = 'block';
                     videoEl.style.display = 'block';
 
-                    const desiredSrc = isCustomVideo ? customVideo : '/media/santa.mp4';
+                    const defaultVideoUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.origin.includes('pages.dev'))
+                        ? '/media/santa.mp4'
+                        : 'https://turbosanta-app.pages.dev/media/santa.mp4';
+                    const desiredSrc = isCustomVideo ? customVideo : defaultVideoUrl;
                     const currentAttrSrc = videoEl.getAttribute('src') || '';
 
                     // Only reassign .src if it actually changed so in-flight playback is never aborted
-                    if (currentAttrSrc !== desiredSrc && !(desiredSrc === '/media/santa.mp4' && currentAttrSrc.endsWith('/media/santa.mp4'))) {
+                    if (currentAttrSrc !== desiredSrc && !(desiredSrc.endsWith('/media/santa.mp4') && currentAttrSrc.endsWith('/media/santa.mp4'))) {
                         videoEl.setAttribute('src', desiredSrc);
                         videoEl.src = desiredSrc;
                         videoEl.load();
@@ -3090,14 +3089,7 @@
             const tbl = data.table || {};
             const stg = data.settings || {};
 
-            // Prefer non-default background_mode from either table or settings object
-            const modeCandidates = [
-                tbl.background_mode,
-                tbl.bg_mode,
-                stg.background_mode,
-                stg.bg_mode
-            ].map(v => String(v || '').trim()).filter(Boolean);
-            const resolvedBgMode = modeCandidates.find(m => m.toLowerCase() !== 'image') || modeCandidates[0] || '';
+            const resolvedBgMode = String(tbl.background_mode || tbl.bg_mode || stg.background_mode || stg.bg_mode || '').trim();
 
             const resolvedBgVideo = (
                 tbl.background_video_url ||
