@@ -816,7 +816,7 @@ ${tableName} Organizers`
 
   // Instant Save Ambient Background Mode & Video
   const handleSaveBackgroundSettings = async () => {
-    const tableSlug = session?.tableId || session?.tableSlug || tableData?.table?.slug || currentTableSlug || 'beverley';
+    const tableSlug = currentTableSlug || session?.tableId || session?.tableSlug || tableData?.table?.slug || 'beverley';
     setIsSavingBg(true);
     setBgSaveToast('Saving ambient background...');
 
@@ -886,7 +886,7 @@ ${tableName} Organizers`
       expenses_json: jsonStr
     }));
 
-    const tableSlug = session?.tableId || session?.tableSlug || tableData?.table?.slug || 'beverley';
+    const tableSlug = currentTableSlug || session?.tableId || session?.tableSlug || tableData?.table?.slug || 'beverley';
     const payload = {
       ...formData,
       expenses: total,
@@ -1372,8 +1372,9 @@ ${tableName} Organizers`
     }
 
     try {
-      const secret = session?.googleCredential || session?.token || '';
-      const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/announcement?table=${encodeURIComponent(session?.tableId || 'beverley')}`, {
+      const targetSlug = currentTableSlug || session?.tableId || 'beverley';
+      const secret = session?.googleCredential || session?.token || getAdminAuthToken(targetSlug);
+      const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/announcement?table=${encodeURIComponent(targetSlug)}&secret=${encodeURIComponent(secret)}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -4711,7 +4712,10 @@ ${tableName} Organizers`
                     step="0.01"
                     min="0"
                     value={formData.expenses === 0 ? '' : formData.expenses}
-                    onChange={(e) => setFormData({ ...formData, expenses: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0 })}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData(prev => ({ ...prev, expenses: val === '' ? 0 : parseFloat(val) || 0 }));
+                    }}
                     placeholder="0.00"
                     style={{
                       width: '100%',
@@ -4736,8 +4740,11 @@ ${tableName} Organizers`
                   </label>
                   <input
                     type="url"
-                    value={formData.donate_url}
-                    onChange={(e) => setFormData({ ...formData, donate_url: e.target.value })}
+                    value={formData.donate_url || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData(prev => ({ ...prev, donate_url: val }));
+                    }}
                     style={{
                       width: '100%',
                       maxWidth: '100%',
@@ -7063,7 +7070,7 @@ ${tableName} Organizers`
                         table: { ...prev.table, enable_gift_aid: nextVal }
                       }));
                     }
-                    const tableSlug = session?.tableSlug || session?.tableId || 'beverley';
+                    const tableSlug = currentTableSlug || session?.tableSlug || session?.tableId || 'beverley';
                     setSaveStatus('Updating Gift Aid status in database...');
                     const res = await saveTableSettings(tableSlug, {
                       enable_gift_aid: nextVal,
@@ -7100,8 +7107,11 @@ ${tableName} Organizers`
                     </label>
                     <input
                       type="text"
-                      value={formData.charity_name}
-                      onChange={(e) => setFormData({ ...formData, charity_name: e.target.value })}
+                      value={formData.charity_name || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData(prev => ({ ...prev, charity_name: val }));
+                      }}
                       placeholder="e.g. Beverley Round Table Community Fund"
                       style={{
                         width: '100%',
@@ -7122,8 +7132,11 @@ ${tableName} Organizers`
                     </label>
                     <input
                       type="text"
-                      value={formData.charity_number}
-                      onChange={(e) => setFormData({ ...formData, charity_number: e.target.value })}
+                      value={formData.charity_number || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData(prev => ({ ...prev, charity_number: val }));
+                      }}
                       placeholder="e.g. 1198234 or XA12345"
                       style={{
                         width: '100%',
