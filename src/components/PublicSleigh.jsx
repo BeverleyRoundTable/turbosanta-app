@@ -1546,7 +1546,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                   const joinChar = targetSrc.includes('?') ? '&' : '?';
                   targetSrc += `${joinChar}embed=1&primary=${encodeURIComponent(primaryColor)}&accent=${encodeURIComponent(table.accent_color || '#FBAF33')}`;
                   if (isSlotSanta) {
-                    targetSrc += `&provider=${encodeURIComponent(table.santa_voice_provider || 'gemini')}`;
+                    targetSrc += `&provider=gemini`;
                   }
                   return (
                     <iframe
