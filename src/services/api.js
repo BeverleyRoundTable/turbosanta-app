@@ -232,11 +232,23 @@ export async function lookupStreet(streetName, tableSlug = "beverley") {
 
 export async function uploadAssetToR2(file, tableSlug = "beverley") {
   try {
+    let contentType = file.type;
+    const name = (file.name || "").toLowerCase();
+    if (!contentType || contentType === "application/octet-stream") {
+      if (name.endsWith(".mp4")) contentType = "video/mp4";
+      else if (name.endsWith(".webm")) contentType = "video/webm";
+      else if (name.endsWith(".png")) contentType = "image/png";
+      else if (name.endsWith(".svg")) contentType = "image/svg+xml";
+      else if (name.endsWith(".jpg") || name.endsWith(".jpeg")) contentType = "image/jpeg";
+      else if (name.endsWith(".webp")) contentType = "image/webp";
+      else contentType = "image/png";
+    }
+
     const res = await fetch(`${API_BASE}/api/upload?table=${encodeURIComponent(tableSlug)}`, {
       method: "POST",
       body: file,
       headers: {
-        "Content-Type": file.type || "image/png"
+        "Content-Type": contentType
       }
     });
     if (res.ok) {

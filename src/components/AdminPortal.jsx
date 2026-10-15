@@ -4637,6 +4637,7 @@ ${tableName} Organizers`
               <DropzoneUpload
                 label="Custom Table Logo (.png)"
                 currentImage={formData.logo_url}
+                tableSlug={currentTableSlug}
                 onImageSelected={(dataUrl) => setFormData(prev => ({ ...prev, logo_url: dataUrl }))}
                 helperText="Drag and drop your official Table or Sleigh logo (No GitHub upload required!)."
               />
@@ -4645,6 +4646,7 @@ ${tableName} Organizers`
               <DropzoneUpload
                 label="Custom Tracker Map Pin / Sleigh Marker (.png)"
                 currentImage={formData.sleigh_icon_live}
+                tableSlug={currentTableSlug}
                 onImageSelected={(dataUrl) => setFormData(prev => ({ ...prev, sleigh_icon_live: dataUrl }))}
                 helperText="Upload your custom Santa Sleigh or Table marker icon to appear live on the tracker map (defaults to official sleigh if empty)."
               />
@@ -4742,19 +4744,35 @@ ${tableName} Organizers`
                         checked={formData.background_mode === 'custom_video'}
                         onChange={() => setFormData(prev => ({ ...prev, background_mode: 'custom_video' }))}
                       />
-                      <span style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>📹 Custom Video URL</span>
+                      <span style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>📹 Custom Video (.mp4)</span>
                     </div>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      Play a custom video loop via direct URL (.mp4).
+                      Upload your own .mp4 video loop or enter a direct URL.
                     </span>
                   </label>
                 </div>
 
-                {/* Custom Video URL Input */}
+                {/* Custom Video Upload & URL Input */}
                 {formData.background_mode === 'custom_video' && (
-                  <div style={{ marginBottom: '14px', background: '#161614', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                  <div style={{ marginBottom: '14px', background: '#161614', padding: '16px', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                    <DropzoneUpload
+                      label="Upload Custom Ambient Video (.mp4 / .webm)"
+                      currentImage={formData.background_video_url}
+                      acceptType="video"
+                      tableSlug={currentTableSlug}
+                      onImageSelected={(url) => setFormData(prev => ({ ...prev, background_video_url: url }))}
+                      helperText="Upload your custom Santa Sleigh or town video loop (MP4 or WebM up to 50MB). Automatically hosted on Cloudflare R2 edge CDN."
+                      placeholder="Upload .mp4 video"
+                    />
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '14px 0 10px' }}>
+                      <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>OR ENTER DIRECT URL</span>
+                      <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+                    </div>
+
                     <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                      Custom Video URL (.mp4):
+                      Direct Video URL (.mp4):
                     </label>
                     <input
                       type="url"
@@ -4945,6 +4963,7 @@ ${tableName} Organizers`
                 <DropzoneUpload
                   label="Upload Custom Background Image (.jpg / .png)"
                   currentImage={formData.background_url}
+                  tableSlug={currentTableSlug}
                   onImageSelected={(dataUrl) => setFormData(prev => ({ ...prev, background_url: dataUrl }))}
                   helperText="Leave empty to use the default background image."
                 />
@@ -5071,6 +5090,7 @@ ${tableName} Organizers`
                 <DropzoneUpload
                   label="Headline Sponsor Logo (.png)"
                   currentImage={formData.headline_sponsor_logo}
+                  tableSlug={currentTableSlug}
                   onImageSelected={(url) => setFormData(prev => ({ ...prev, headline_sponsor_logo: url }))}
                   helperText="Upload transparent sponsor logo for the live tracker header badge."
                 />
