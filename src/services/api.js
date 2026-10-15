@@ -536,4 +536,104 @@ export async function deleteCashDonation(tableSlug = "beverley", donationId = ""
   }
 }
 
+// ==============================================================
+// 📬 GOOGLE WORKSPACE GMAIL & PROXIMITY ALERTS (METHOD 1 OAUTH)
+// ==============================================================
+
+export async function connectTableGmail(tableSlug = "beverley", code = "", clientSecret = "", clientId = "", explicitSecret = null) {
+  try {
+    const slug = (tableSlug || "beverley").toLowerCase().trim();
+    const token = explicitSecret || getAdminAuthToken(slug);
+    const res = await fetch(`${API_BASE}/api/auth/google-gmail-connect?table=${encodeURIComponent(slug)}`, {
+      method: "POST",
+      headers: getAuthHeaders(token, slug),
+      body: JSON.stringify({
+        code,
+        client_secret: clientSecret,
+        client_id: clientId,
+        tableSlug: slug,
+        secret: token
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  } catch (err) {
+    console.error("Connect Gmail error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
+export async function disconnectTableGmail(tableSlug = "beverley", explicitSecret = null) {
+  try {
+    const slug = (tableSlug || "beverley").toLowerCase().trim();
+    const token = explicitSecret || getAdminAuthToken(slug);
+    const res = await fetch(`${API_BASE}/api/auth/google-gmail-disconnect?table=${encodeURIComponent(slug)}`, {
+      method: "POST",
+      headers: getAuthHeaders(token, slug),
+      body: JSON.stringify({ tableSlug: slug, secret: token })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  } catch (err) {
+    console.error("Disconnect Gmail error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
+export async function testTableGmailAlert(tableSlug = "beverley", testEmail = "", explicitSecret = null) {
+  try {
+    const slug = (tableSlug || "beverley").toLowerCase().trim();
+    const token = explicitSecret || getAdminAuthToken(slug);
+    const res = await fetch(`${API_BASE}/api/auth/google-gmail-test?table=${encodeURIComponent(slug)}`, {
+      method: "POST",
+      headers: getAuthHeaders(token, slug),
+      body: JSON.stringify({
+        tableSlug: slug,
+        test_email: testEmail,
+        secret: token
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  } catch (err) {
+    console.error("Test Gmail alert error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
+export async function fetchSubscribers(tableSlug = "beverley", explicitSecret = null) {
+  try {
+    const slug = (tableSlug || "beverley").toLowerCase().trim();
+    const token = explicitSecret || getAdminAuthToken(slug);
+    const res = await fetch(`${API_BASE}/api/subscribers?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(token)}`, {
+      headers: getAuthHeaders(token, slug)
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error("Fetch subscribers error:", err);
+    return { ok: false, subscribers: [] };
+  }
+}
+
+export async function clearSubscribers(tableSlug = "beverley", explicitSecret = null) {
+  try {
+    const slug = (tableSlug || "beverley").toLowerCase().trim();
+    const token = explicitSecret || getAdminAuthToken(slug);
+    const res = await fetch(`${API_BASE}/api/subscribers?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(token)}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(token, slug)
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error("Clear subscribers error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
+
 

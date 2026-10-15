@@ -3679,7 +3679,10 @@
               showToast("Error: No location selected.");
               return;
             }
-            fetch(Utils.appendQuery(AppState.vars.apiUrl, `function=subscribe&lat=${AppState.vars.pendingSubscription.lat}&lng=${AppState.vars.pendingSubscription.lng}&email=${encodeURIComponent(email)}`))
+            const subscribeUrl = AppState.vars.tableSlug
+              ? `${WORKER_URL}/api/subscribe?table=${encodeURIComponent(AppState.vars.tableSlug)}&lat=${AppState.vars.pendingSubscription.lat}&lng=${AppState.vars.pendingSubscription.lng}&email=${encodeURIComponent(email)}&route_id=${encodeURIComponent(AppState.vars.todayRoute?.routeId || '')}`
+              : Utils.appendQuery(AppState.vars.apiUrl, `function=subscribe&lat=${AppState.vars.pendingSubscription.lat}&lng=${AppState.vars.pendingSubscription.lng}&email=${encodeURIComponent(email)}`);
+            fetch(subscribeUrl)
               .then(r => r.json())
               .then(d => {
                 if (d.ok) {

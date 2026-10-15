@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { logoutAdmin, isNationalAdmin, getAdminAuthToken } from '../services/auth';
-import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, saveRoute, deleteRoute } from '../services/api';
+import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, saveRoute, deleteRoute, connectTableGmail, disconnectTableGmail, testTableGmailAlert, fetchSubscribers, clearSubscribers } from '../services/api';
 import { extractRouteSponsors } from '../utils/sponsors';
 import DropzoneUpload from './DropzoneUpload';
 import RouteEditorModal from './RouteEditorModal';
@@ -23,6 +23,8 @@ import KnowledgeBase from './KnowledgeBase';
 import CashBucketModal from './CashBucketModal';
 import PrintRouteSheetModal from './PrintRouteSheetModal';
 import PrintLanyardsModal from './PrintLanyardsModal';
+
+const OFFICIAL_GOOGLE_CLIENT_ID = "174929950272-ehpf04nea7ev4j8gfosq5acg6dvfmc95.apps.googleusercontent.com";
 
 export const PUBLIC_SLOT_OPTIONS = [
   { id: '', label: 'None (Disabled)', desc: 'Slot is empty. No extra feature rendered on your public site.' },
@@ -670,8 +672,22 @@ ${tableName} Organizers`
     expenses_json: tableData?.table?.expenses_json || tableData?.expenses_json || null,
     background_mode: tableData?.table?.background_mode || (typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${currentTableSlug}_bg_mode`) : null) || 'image',
     background_video_url: tableData?.table?.background_video_url || (typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${currentTableSlug}_bg_video`) : null) || '',
-    background_url: tableData?.table?.background_url || ''
+    background_url: tableData?.table?.background_url || '',
+    // Live Proximity Alerts (Notify Me Engine)
+    gmail_connected_email: tableData?.table?.gmail_connected_email || null,
+    notify_email_enabled: tableData?.table?.notify_email_enabled !== undefined ? Boolean(tableData.table.notify_email_enabled) : true,
+    notify_radius_meters: tableData?.table?.notify_radius_meters !== undefined ? Number(tableData.table.notify_radius_meters) : 250,
+    pass_buffer_meters: tableData?.table?.pass_buffer_meters !== undefined ? Number(tableData.table.pass_buffer_meters) : 150,
+    gmail_client_id: tableData?.table?.gmail_client_id || '',
+    gmail_client_secret: tableData?.table?.gmail_client_secret || ''
   });
+
+  // Gmail Workspace Connection & Proximity Engine States
+  const [isConnectingGmail, setIsConnectingGmail] = useState(false);
+  const [gmailStatusMsg, setGmailStatusMsg] = useState('');
+  const [isTestingGmail, setIsTestingGmail] = useState(false);
+  const [testEmailAddress, setTestEmailAddress] = useState('');
+  const [showAdvancedGmail, setShowAdvancedGmail] = useState(false);
 
   // Automatically synchronize formData with live tableData when loaded
   React.useEffect(() => {
@@ -704,7 +720,13 @@ ${tableName} Organizers`
         expenses_json: tableData.table.expenses_json !== undefined ? tableData.table.expenses_json : (tableData.expenses_json !== undefined ? tableData.expenses_json : prev.expenses_json),
         background_mode: tableData.table.background_mode !== undefined ? tableData.table.background_mode : (prev.background_mode || 'image'),
         background_video_url: tableData.table.background_video_url !== undefined ? tableData.table.background_video_url : prev.background_video_url,
-        background_url: tableData.table.background_url !== undefined ? tableData.table.background_url : prev.background_url
+        background_url: tableData.table.background_url !== undefined ? tableData.table.background_url : prev.background_url,
+        gmail_connected_email: tableData.table.gmail_connected_email !== undefined ? tableData.table.gmail_connected_email : prev.gmail_connected_email,
+        notify_email_enabled: tableData.table.notify_email_enabled !== undefined ? Boolean(tableData.table.notify_email_enabled) : prev.notify_email_enabled,
+        notify_radius_meters: tableData.table.notify_radius_meters !== undefined ? Number(tableData.table.notify_radius_meters) : prev.notify_radius_meters,
+        pass_buffer_meters: tableData.table.pass_buffer_meters !== undefined ? Number(tableData.table.pass_buffer_meters) : prev.pass_buffer_meters,
+        gmail_client_id: tableData.table.gmail_client_id !== undefined ? tableData.table.gmail_client_id : prev.gmail_client_id,
+        gmail_client_secret: tableData.table.gmail_client_secret !== undefined ? tableData.table.gmail_client_secret : prev.gmail_client_secret
       }));
     }
   }, [tableData]);
@@ -758,6 +780,153 @@ ${tableName} Organizers`
     }
     setTimeout(() => setSaveStatus(''), 4000);
     setIsExpensesModalOpen(false);
+  };
+
+  // Live Proximity Alerts & Google Workspace Gmail Handlers
+  const handleConnectTableGmail = () => {
+    if (typeof window === 'undefined' || !window.google?.accounts?.oauth2) {
+      alert("Google Identity Services is still loading. Please check your internet connection or reload the page.");
+      return;
+    }
+
+    const clientId = formData.gmail_client_id || import.meta.env.VITE_GOOGLE_CLIENT_ID || OFFICIAL_GOOGLE_CLIENT_ID;
+    const clientSecret = formData.gmail_client_secret || "";
+
+    setIsConnectingGmail(true);
+    setGmailStatusMsg("Opening Google Workspace authorization popup...");
+
+    try {
+      const client = window.google.accounts.oauth2.initCodeClient({
+        client_id: clientId,
+        scope: 'https://www.googleapis.com/auth/gmail.send email profile openid',
+        ux_mode: 'popup',
+        prompt: 'consent',
+        callback: async (response) => {
+          if (response.error) {
+            setIsConnectingGmail(false);
+            setGmailStatusMsg(`Google sign-in error: ${response.error}`);
+            return;
+          }
+
+          if (response.code) {
+            setGmailStatusMsg("Exchanging token and connecting to Table D1 database...");
+            try {
+              const res = await connectTableGmail(currentTableSlug, response.code, clientSecret, clientId);
+              if (res && res.ok) {
+                setFormData(prev => ({
+                  ...prev,
+                  gmail_connected_email: res.connected_email,
+                  notify_email_enabled: true
+                }));
+                if (onUpdateTableData) {
+                  onUpdateTableData(prev => ({
+                    ...prev,
+                    table: {
+                      ...prev.table,
+                      gmail_connected: true,
+                      gmail_connected_email: res.connected_email,
+                      notify_email_enabled: true
+                    }
+                  }));
+                }
+                setGmailStatusMsg(`✅ Successfully connected to ${res.connected_email}!`);
+                confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
+              } else {
+                setGmailStatusMsg(`❌ Connection failed: ${res?.error || 'Unknown error'}`);
+              }
+            } catch (err) {
+              setGmailStatusMsg(`❌ Error: ${err.message}`);
+            } finally {
+              setIsConnectingGmail(false);
+              setTimeout(() => setGmailStatusMsg(''), 8000);
+            }
+          }
+        }
+      });
+
+      client.requestCode();
+    } catch (err) {
+      setIsConnectingGmail(false);
+      setGmailStatusMsg(`Failed to launch Google auth: ${err.message}`);
+    }
+  };
+
+  const handleDisconnectGmail = async () => {
+    if (!confirm("Are you sure you want to disconnect Google Workspace Gmail? Automatic proximity alert emails will be paused until reconnected.")) {
+      return;
+    }
+    setGmailStatusMsg("Disconnecting...");
+    try {
+      const res = await disconnectTableGmail(currentTableSlug);
+      if (res && res.ok) {
+        setFormData(prev => ({
+          ...prev,
+          gmail_connected_email: null,
+          notify_email_enabled: false
+        }));
+        if (onUpdateTableData) {
+          onUpdateTableData(prev => ({
+            ...prev,
+            table: {
+              ...prev.table,
+              gmail_connected: false,
+              gmail_connected_email: null,
+              notify_email_enabled: false
+            }
+          }));
+        }
+        setGmailStatusMsg("Disconnected successfully.");
+      } else {
+        setGmailStatusMsg(`Failed to disconnect: ${res?.error}`);
+      }
+    } catch (e) {
+      setGmailStatusMsg(`Error: ${e.message}`);
+    } finally {
+      setTimeout(() => setGmailStatusMsg(''), 5000);
+    }
+  };
+
+  const handleSendTestAlert = async () => {
+    setIsTestingGmail(true);
+    const dest = testEmailAddress.trim() || formData.gmail_connected_email;
+    setGmailStatusMsg(`Sending test alert email to ${dest}...`);
+    try {
+      const res = await testTableGmailAlert(currentTableSlug, dest);
+      if (res && res.ok) {
+        setGmailStatusMsg(`✅ Test alert successfully sent to ${dest}! Please check your inbox.`);
+        confetti({ particleCount: 30, spread: 50 });
+      } else {
+        setGmailStatusMsg(`❌ Test failed: ${res?.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      setGmailStatusMsg(`❌ Error: ${err.message}`);
+    } finally {
+      setIsTestingGmail(false);
+      setTimeout(() => setGmailStatusMsg(''), 8000);
+    }
+  };
+
+  const handleClearSubscribers = async () => {
+    if (!confirm("Clear all pin drop email subscribers for this Table? This will reset the subscriber queue.")) {
+      return;
+    }
+    try {
+      const res = await clearSubscribers(currentTableSlug);
+      if (res && res.ok) {
+        setSaveStatus("Subscribers cleared successfully.");
+        if (onUpdateTableData) {
+          onUpdateTableData(prev => ({
+            ...prev,
+            table: {
+              ...prev.table,
+              subscribers_stats: { total: 0, notified: 0, passed: 0 }
+            }
+          }));
+        }
+      }
+    } catch (err) {
+      alert(`Failed to clear subscribers: ${err.message}`);
+    }
   };
 
   // Season Wrap & Year-on-Year Analytics State
@@ -5019,6 +5188,355 @@ ${tableName} Organizers`
                 </div>
               </div>
 
+              {/* LIVE PROXIMITY ALERTS (NOTIFY ME EMAIL ENGINE) */}
+              <div style={{
+                background: '#0d0d0b',
+                border: formData.gmail_connected_email ? '1px solid #22c55e' : '1px solid rgba(251, 175, 51, 0.35)',
+                borderRadius: '12px',
+                padding: 'clamp(14px, 3vw, 22px)',
+                maxWidth: '100%',
+                boxSizing: 'border-box'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Mail size={18} color="var(--primary)" />
+                    <strong style={{ fontSize: '16px', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Live Proximity Alerts (Notify Me Email Engine)
+                    </strong>
+                  </div>
+                  {formData.gmail_connected_email ? (
+                    <span style={{
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      padding: '3px 8px',
+                      borderRadius: '4px',
+                      background: 'rgba(34, 197, 94, 0.15)',
+                      color: '#22c55e',
+                      border: '1px solid rgba(34, 197, 94, 0.3)'
+                    }}>
+                      🟢 Live Active &bull; Native Gmail
+                    </span>
+                  ) : (
+                    <span style={{
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      padding: '3px 8px',
+                      borderRadius: '4px',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      color: 'var(--text-muted)',
+                      border: '1px solid var(--border)'
+                    }}>
+                      ⚪ Gmail Not Linked
+                    </span>
+                  )}
+                </div>
+
+                <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '0 0 16px 0', lineHeight: 1.5 }}>
+                  When families drop a pin on your public tracker map, TurboSanta calculates the distance to the sleigh on every live GPS broadcast fix. Connect your Table&apos;s official Google Workspace account to automatically send two real-time emails directly from your Table&apos;s Gmail address (free up to 1,500/day):
+                </p>
+
+                {/* Benefits / Two-Stage Alert Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '10px', marginBottom: '16px' }}>
+                  <div style={{ background: '#161614', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--primary)', marginBottom: '4px' }}>
+                      🎅 1. Approaching Alert
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                      Dispatched when Santa reaches your notification radius (default 250m) with live ETA so families can rush outside to the pavement.
+                    </div>
+                  </div>
+                  <div style={{ background: '#161614', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#22c55e', marginBottom: '4px' }}>
+                      🎄 2. Thank-You &amp; Donation Follow-Up
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                      Dispatched once Santa has safely driven past their pin, thanking the family and offering your direct link to donate and Gift Aid.
+                    </div>
+                  </div>
+                </div>
+
+                {/* Connection Box */}
+                <div style={{
+                  background: formData.gmail_connected_email ? 'rgba(34, 197, 94, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+                  border: formData.gmail_connected_email ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid var(--border)',
+                  borderRadius: '10px',
+                  padding: '16px',
+                  marginBottom: '16px'
+                }}>
+                  {formData.gmail_connected_email ? (
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '10px' }}>
+                        <div>
+                          <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <CheckCircle2 size={16} color="#22c55e" />
+                            <span>Connected Account: <code style={{ color: '#22c55e', background: 'rgba(34, 197, 94, 0.15)', padding: '2px 6px', borderRadius: '4px' }}>{formData.gmail_connected_email}</code></span>
+                          </div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                            All proximity emails send natively from this address. Replies will land directly in your Table&apos;s Gmail inbox.
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                          <button
+                            type="button"
+                            onClick={handleDisconnectGmail}
+                            style={{
+                              background: 'transparent',
+                              border: '1px solid rgba(239, 68, 68, 0.5)',
+                              color: '#ef4444',
+                              borderRadius: '6px',
+                              padding: '6px 12px',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Disconnect
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Test Email Dispatcher */}
+                      <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                        <input
+                          type="email"
+                          placeholder={formData.gmail_connected_email || "test@roundtable.org.uk"}
+                          value={testEmailAddress}
+                          onChange={(e) => setTestEmailAddress(e.target.value)}
+                          style={{
+                            flex: 1,
+                            minWidth: '200px',
+                            background: '#0d0d0b',
+                            border: '1px solid var(--border)',
+                            borderRadius: '6px',
+                            padding: '8px 12px',
+                            color: '#fff',
+                            fontSize: '13px'
+                          }}
+                        />
+                        <button
+                          type="button"
+                          disabled={isTestingGmail}
+                          onClick={handleSendTestAlert}
+                          style={{
+                            background: 'rgba(251, 175, 51, 0.15)',
+                            border: '1px solid var(--primary)',
+                            color: 'var(--primary)',
+                            borderRadius: '6px',
+                            padding: '8px 14px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}
+                        >
+                          <Send size={13} />
+                          <span>{isTestingGmail ? 'Sending Test...' : 'Send Test Alert Email'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ fontSize: '13px', color: '#fff', marginBottom: '12px', lineHeight: 1.4 }}>
+                        Click below to sign in with your Table&apos;s official <strong style={{ color: 'var(--primary)' }}>@roundtable.org.uk</strong> Google Workspace account. This grants Cloudflare permission to send proximity emails from your Table&apos;s address.
+                      </div>
+                      <button
+                        type="button"
+                        disabled={isConnectingGmail}
+                        onClick={handleConnectTableGmail}
+                        style={{
+                          background: '#fff',
+                          color: '#1f2937',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '10px 18px',
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                        }}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24">
+                          <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/>
+                          <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24Z"/>
+                          <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15Z"/>
+                          <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"/>
+                        </svg>
+                        <span>{isConnectingGmail ? 'Connecting to Google...' : `Connect Table Gmail (${currentTableSlug}@roundtable.org.uk)`}</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {gmailStatusMsg && (
+                    <div style={{
+                      marginTop: '12px',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      background: gmailStatusMsg.includes('❌') ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)',
+                      color: gmailStatusMsg.includes('❌') ? '#fca5a5' : '#86efac',
+                      border: gmailStatusMsg.includes('❌') ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(34, 197, 94, 0.3)'
+                    }}>
+                      {gmailStatusMsg}
+                    </div>
+                  )}
+                </div>
+
+                {/* Proximity Tuning & Sliders */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '16px' }}>
+                  <div style={{ background: '#161614', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <label style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                        Alert Trigger Radius
+                      </label>
+                      <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--primary)' }}>
+                        {formData.notify_radius_meters || 250} metres
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="100"
+                      max="1000"
+                      step="25"
+                      value={formData.notify_radius_meters || 250}
+                      onChange={(e) => setFormData(prev => ({ ...prev, notify_radius_meters: Number(e.target.value) }))}
+                      style={{ width: '100%', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                    />
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      Approx. 2-3 minutes ahead of sleigh
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#161614', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <label style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                        Thank-You Follow-Up Buffer
+                      </label>
+                      <span style={{ fontSize: '12px', fontWeight: 800, color: '#22c55e' }}>
+                        {formData.pass_buffer_meters || 150} metres
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="50"
+                      max="500"
+                      step="25"
+                      value={formData.pass_buffer_meters || 150}
+                      onChange={(e) => setFormData(prev => ({ ...prev, pass_buffer_meters: Number(e.target.value) }))}
+                      style={{ width: '100%', accentColor: '#22c55e', cursor: 'pointer' }}
+                    />
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      Distance past pin before thank you sends
+                    </div>
+                  </div>
+                </div>
+
+                {/* Audience Stats & Reset Controls */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '12px',
+                  padding: '12px 14px',
+                  background: '#161614',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)'
+                }}>
+                  <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>Subscribed Pins</span>
+                      <strong style={{ fontSize: '15px', color: '#fff' }}>{tableData?.table?.subscribers_stats?.total || 0}</strong>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>Approaching Sent</span>
+                      <strong style={{ fontSize: '15px', color: 'var(--primary)' }}>{tableData?.table?.subscribers_stats?.notified || 0}</strong>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>Thank-You Sent</span>
+                      <strong style={{ fontSize: '15px', color: '#22c55e' }}>{tableData?.table?.subscribers_stats?.passed || 0}</strong>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={handleClearSubscribers}
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid var(--border)',
+                        color: 'var(--text-muted)',
+                        borderRadius: '6px',
+                        padding: '6px 10px',
+                        fontSize: '11px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Clear Pin Subscriptions
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowAdvancedGmail(!showAdvancedGmail)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--primary)',
+                        fontSize: '11px',
+                        textDecoration: 'underline',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {showAdvancedGmail ? 'Hide Advanced Settings' : 'Advanced OAuth Settings'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Collapsible Advanced OAuth Credentials Input */}
+                {showAdvancedGmail && (
+                  <div style={{
+                    marginTop: '12px',
+                    padding: '12px',
+                    background: '#111',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)'
+                  }}>
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--primary)', marginBottom: '4px' }}>
+                      Custom Google Cloud OAuth Credentials (Optional)
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '10px' }}>
+                      By default, TurboSanta uses the national Round Table Google Client ID. If your Table has its own Google Cloud project with OAuth consent screen, you can provide your credentials below:
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '3px' }}>Client ID</label>
+                        <input
+                          type="text"
+                          placeholder={OFFICIAL_GOOGLE_CLIENT_ID}
+                          value={formData.gmail_client_id || ''}
+                          onChange={(e) => setFormData(prev => ({ ...prev, gmail_client_id: e.target.value }))}
+                          style={{ width: '100%', boxSizing: 'border-box', background: '#000', border: '1px solid var(--border)', borderRadius: '4px', padding: '6px 8px', color: '#fff', fontSize: '12px' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '3px' }}>Client Secret</label>
+                        <input
+                          type="password"
+                          placeholder="••••••••"
+                          value={formData.gmail_client_secret || ''}
+                          onChange={(e) => setFormData(prev => ({ ...prev, gmail_client_secret: e.target.value }))}
+                          style={{ width: '100%', boxSizing: 'border-box', background: '#000', border: '1px solid var(--border)', borderRadius: '4px', padding: '6px 8px', color: '#fff', fontSize: '12px' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* AI Intelligence & Gemini Fleet Advisor Settings */}
               {isMasterAdmin ? (
                 <div style={{
@@ -5368,7 +5886,12 @@ ${tableName} Organizers`
                       approved_national_emails: approvedEmails,
                       background_mode: formData.background_mode || 'image',
                       background_video_url: formData.background_video_url || null,
-                      background_url: formData.background_url || null
+                      background_url: formData.background_url || null,
+                      notify_email_enabled: formData.notify_email_enabled ? 1 : 0,
+                      notify_radius_meters: Number(formData.notify_radius_meters || 250),
+                      pass_buffer_meters: Number(formData.pass_buffer_meters || 150),
+                      gmail_client_id: formData.gmail_client_id || null,
+                      gmail_client_secret: formData.gmail_client_secret || null
                     };
 
                     try {
@@ -5387,7 +5910,11 @@ ${tableName} Organizers`
                         expenses_json: formData.expenses_json || null,
                         table: {
                           ...prev.table,
-                          ...payload
+                          ...payload,
+                          notify_email_enabled: formData.notify_email_enabled,
+                          notify_radius_meters: formData.notify_radius_meters,
+                          pass_buffer_meters: formData.pass_buffer_meters,
+                          gmail_connected_email: formData.gmail_connected_email
                         }
                       }));
                     }

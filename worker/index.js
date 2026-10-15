@@ -1,5 +1,5 @@
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const host = url.hostname;
     const path = url.pathname;
@@ -253,7 +253,7 @@ export default {
     }
 
     // If table still doesn't exist in D1 (and not creating one via migrate or init), return 404
-    if (!table && path !== "/api/migrate" && path !== "/api/table/init" && path !== "/api/table/provision" && path !== "/api/track-view") {
+    if (!table && path !== "/api/migrate" && path !== "/api/table/init" && path !== "/api/table/provision" && path !== "/api/track-view" && path !== "/api/subscribe") {
       return jsonResponse({ error: `Table '${slug}' not found in database.` }, 404);
     }
 
@@ -261,7 +261,7 @@ export default {
     // 🌐 1. MASTER TRACKER PAYLOAD (GET /api/payload)
     // ==============================================================
     if (path === "/api/payload" && request.method === "GET") {
-      // Auto-migrate created_at and donations table if needed
+      // Auto-migrate created_at, donations, subscribers and settings columns if needed
       await env.DB.prepare(`
         CREATE TABLE IF NOT EXISTS donations (
           id TEXT PRIMARY KEY,
@@ -279,6 +279,57 @@ export default {
       await env.DB.prepare("ALTER TABLE tables ADD COLUMN gemini_model TEXT DEFAULT 'auto'").run().catch(() => {});
       await env.DB.prepare("ALTER TABLE tables ADD COLUMN santa_voice_provider TEXT DEFAULT 'gemini'").run().catch(() => {});
       await env.DB.prepare("ALTER TABLE tables ADD COLUMN elevenlabs_agent_id TEXT").run().catch(() => {});
+
+      // Live Proximity Alerts (Notify Me Engine) Schema Migrations
+      await env.DB.prepare(`
+        CREATE TABLE IF NOT EXISTS subscribers (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          table_id TEXT NOT NULL,
+          route_id TEXT,
+          lat REAL NOT NULL,
+          lng REAL NOT NULL,
+          email TEXT NOT NULL,
+          notified BOOLEAN DEFAULT 0,
+          notified_at DATETIME,
+          passed BOOLEAN DEFAULT 0,
+          passed_at DATETIME,
+          last_distance REAL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `).run().catch(() => {});
+      await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_subscribers_table_active ON subscribers (table_id, notified, passed)").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN gmail_refresh_token TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN gmail_connected_email TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN gmail_client_id TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN gmail_client_secret TEXT").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_email_enabled BOOLEAN DEFAULT 1").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_radius_meters INTEGER DEFAULT 250").run().catch(() => {});
+      await env.DB.prepare("ALTER TABLE tables ADD COLUMN pass_buffer_meters INTEGER DEFAULT 150").run().catch(() => {});
+
+      // Legacy/Tracker parameter subscription handling (?function=subscribe)
+      if (url.searchParams.get("function") === "subscribe") {
+        const lat = parseFloat(url.searchParams.get("lat"));
+        const lng = parseFloat(url.searchParams.get("lng"));
+        const email = String(url.searchParams.get("email") || "").trim().toLowerCase();
+        const route_id = url.searchParams.get("route_id") || null;
+
+        if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+          return jsonResponse({ ok: false, error: "Invalid coordinates" }, 400);
+        }
+        if (!email || !email.includes("@") || !email.includes(".")) {
+          return jsonResponse({ ok: false, error: "Invalid email address" }, 400);
+        }
+
+        try {
+          await env.DB.prepare(`
+            INSERT INTO subscribers (table_id, route_id, lat, lng, email)
+            VALUES (?, ?, ?, ?, ?)
+          `).bind(table.id, route_id, lat, lng, email).run();
+          return jsonResponse({ ok: true, message: "Subscribed successfully" });
+        } catch (err) {
+          return jsonResponse({ ok: false, error: err.message }, 500);
+        }
+      }
 
       await env.DB.prepare(`
         CREATE TABLE IF NOT EXISTS season_history (
@@ -327,6 +378,27 @@ export default {
       const reqSecret = url.searchParams.get("secret") || reqBearer;
       const isAdmin = isAuthorized(reqSecret);
 
+      let subStats = { total: 0, notified: 0, passed: 0 };
+      if (isAdmin) {
+        try {
+          const statsRow = await env.DB.prepare(`
+            SELECT 
+              COUNT(*) as total,
+              SUM(CASE WHEN notified = 1 THEN 1 ELSE 0 END) as notified,
+              SUM(CASE WHEN passed = 1 THEN 1 ELSE 0 END) as passed
+            FROM subscribers
+            WHERE table_id = ?
+          `).bind(table.id).first();
+          if (statsRow) {
+            subStats = {
+              total: Number(statsRow.total || 0),
+              notified: Number(statsRow.notified || 0),
+              passed: Number(statsRow.passed || 0)
+            };
+          }
+        } catch(e) {}
+      }
+
       const tableConfig = {
         id: table.id,
         name: table.name,
@@ -367,7 +439,16 @@ export default {
         public_slot_2: (table.public_slot_2 !== undefined && table.public_slot_2 !== null)
           ? ((String(table.public_slot_2).trim() === 'santa_chat' && slug !== 'beverley') ? null : (String(table.public_slot_2).trim() === '' || String(table.public_slot_2).trim() === 'none' ? null : String(table.public_slot_2).trim()))
           : null,
-        donation_breakdown: (breakdown && breakdown.results) || []
+        donation_breakdown: (breakdown && breakdown.results) || [],
+        // Live Proximity Alerts & Gmail Workspace Configuration
+        gmail_connected: Boolean(table.gmail_refresh_token),
+        gmail_connected_email: table.gmail_connected_email || null,
+        notify_email_enabled: table.notify_email_enabled !== undefined ? Boolean(table.notify_email_enabled) : true,
+        notify_radius_meters: table.notify_radius_meters !== undefined ? Number(table.notify_radius_meters) : 250,
+        pass_buffer_meters: table.pass_buffer_meters !== undefined ? Number(table.pass_buffer_meters) : 150,
+        gmail_client_id: isAdmin ? (table.gmail_client_id || '') : undefined,
+        gmail_client_secret: isAdmin ? (table.gmail_client_secret ? '••••••••' : '') : undefined,
+        subscribers_stats: isAdmin ? subStats : undefined
       };
 
       // Check if telemetry is fresh (< 5 minutes old = 300,000ms)
@@ -988,6 +1069,27 @@ SANTA'S SPOKEN RESPONSE:`;
           WHERE timestamp < datetime('now', '-48 hours')
         `).run().catch(() => {});
 
+        // 🎅 Real-time proximity email notifications for families (Zero driver latency)
+        if (ctx && typeof ctx.waitUntil === 'function') {
+          ctx.waitUntil(processSubscriberProximity({
+            env,
+            table,
+            lat: parseFloat(lat),
+            lng: parseFloat(lng),
+            speed: parseFloat(speed) || 0,
+            route_id: route_id || null
+          }));
+        } else {
+          processSubscriberProximity({
+            env,
+            table,
+            lat: parseFloat(lat),
+            lng: parseFloat(lng),
+            speed: parseFloat(speed) || 0,
+            route_id: route_id || null
+          }).catch(e => console.error("Proximity processor background error:", e));
+        }
+
         return jsonResponse({ ok: true, status: "Broadcasted", road_name });
       } catch (err) {
         return jsonResponse({ ok: false, error: err.message }, 500);
@@ -1060,7 +1162,12 @@ SANTA'S SPOKEN RESPONSE:`;
         enable_santa_chat,
         enable_colouring,
         public_slot_1,
-        public_slot_2
+        public_slot_2,
+        notify_email_enabled,
+        notify_radius_meters,
+        pass_buffer_meters,
+        gmail_client_id,
+        gmail_client_secret
       } = body;
 
       // Isolate Santa Chat strictly to Beverley (prevent any other table from enabling or saving it)
@@ -1098,6 +1205,11 @@ SANTA'S SPOKEN RESPONSE:`;
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN enable_colouring BOOLEAN DEFAULT 0").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN public_slot_1 TEXT").run(); } catch(e) {}
       try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN public_slot_2 TEXT").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_email_enabled BOOLEAN DEFAULT 1").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN notify_radius_meters INTEGER DEFAULT 250").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN pass_buffer_meters INTEGER DEFAULT 150").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN gmail_client_id TEXT").run(); } catch(e) {}
+      try { await env.DB.prepare("ALTER TABLE tables ADD COLUMN gmail_client_secret TEXT").run(); } catch(e) {}
 
       try {
         await env.DB.prepare(`
@@ -1130,7 +1242,12 @@ SANTA'S SPOKEN RESPONSE:`;
             enable_santa_chat = COALESCE(?, enable_santa_chat),
             enable_colouring = COALESCE(?, enable_colouring),
             public_slot_1 = COALESCE(?, public_slot_1),
-            public_slot_2 = COALESCE(?, public_slot_2)
+            public_slot_2 = COALESCE(?, public_slot_2),
+            notify_email_enabled = COALESCE(?, notify_email_enabled),
+            notify_radius_meters = COALESCE(?, notify_radius_meters),
+            pass_buffer_meters = COALESCE(?, pass_buffer_meters),
+            gmail_client_id = COALESCE(?, gmail_client_id),
+            gmail_client_secret = COALESCE(?, gmail_client_secret)
           WHERE id = ?
         `).bind(
           sleigh_display_name !== undefined ? sleigh_display_name : null,
@@ -1162,6 +1279,11 @@ SANTA'S SPOKEN RESPONSE:`;
           enable_colouring !== undefined ? (enable_colouring ? 1 : 0) : ((public_slot_1 === 'colouring' || public_slot_2 === 'colouring') ? 1 : 0),
           public_slot_1 !== undefined ? (public_slot_1 || '') : null,
           public_slot_2 !== undefined ? (public_slot_2 || '') : null,
+          notify_email_enabled !== undefined ? (notify_email_enabled ? 1 : 0) : null,
+          notify_radius_meters !== undefined ? parseInt(notify_radius_meters, 10) : null,
+          pass_buffer_meters !== undefined ? parseInt(pass_buffer_meters, 10) : null,
+          gmail_client_id !== undefined ? gmail_client_id : null,
+          gmail_client_secret !== undefined ? gmail_client_secret : null,
           table.id
         ).run();
 
@@ -1844,6 +1966,270 @@ SANTA'S SPOKEN RESPONSE:`;
       }
 
       return jsonResponse({ ok: false, error: "Invalid or expired verification code." }, 401);
+    }
+
+    // ==============================================================
+    // 🔗 9C. GOOGLE WORKSPACE GMAIL CONNECT (POST /api/auth/google-gmail-connect)
+    // ==============================================================
+    if (path === "/api/auth/google-gmail-connect" && request.method === "POST") {
+      let body = {};
+      try { body = await request.json(); } catch(e) { body = {}; }
+
+      const authHeader = request.headers.get("Authorization") || "";
+      const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+      const secret = body.secret || url.searchParams.get("secret") || bearerToken;
+      const targetSlug = (body.tableSlug || body.table || slug || "beverley").toLowerCase().trim();
+
+      if (!isAuthorized(secret, targetSlug)) {
+        return jsonResponse({ error: "Unauthorized: Admin credentials required to connect Table Gmail" }, 401);
+      }
+
+      const { code } = body;
+      if (!code) {
+        return jsonResponse({ error: "Missing authorization code" }, 400);
+      }
+
+      const clientId = body.client_id || table?.gmail_client_id || env.GOOGLE_CLIENT_ID || OFFICIAL_GOOGLE_CLIENT_ID;
+      const clientSecret = body.client_secret || table?.gmail_client_secret || env.GOOGLE_CLIENT_SECRET;
+
+      if (!clientSecret) {
+        return jsonResponse({
+          error: "Google OAuth Client Secret required. Please enter it in Table Settings or configure GOOGLE_CLIENT_SECRET on Cloudflare."
+        }, 400);
+      }
+
+      try {
+        const tokenParams = new URLSearchParams();
+        tokenParams.append("code", code);
+        tokenParams.append("client_id", clientId);
+        tokenParams.append("client_secret", clientSecret);
+        tokenParams.append("redirect_uri", "postmessage");
+        tokenParams.append("grant_type", "authorization_code");
+
+        const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: tokenParams.toString()
+        });
+
+        const tokenData = await tokenRes.json();
+        if (!tokenRes.ok || tokenData.error) {
+          return jsonResponse({
+            error: tokenData.error_description || tokenData.error || "Failed to exchange authorization code with Google"
+          }, 400);
+        }
+
+        const accessToken = tokenData.access_token;
+        const refreshToken = tokenData.refresh_token;
+
+        const userRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+          headers: { "Authorization": `Bearer ${accessToken}` }
+        });
+
+        if (!userRes.ok) {
+          return jsonResponse({ error: "Failed to retrieve user profile from Google" }, 400);
+        }
+
+        const userInfo = await userRes.json();
+        const connectedEmail = (userInfo.email || "").toLowerCase().trim();
+
+        if (!connectedEmail) {
+          return jsonResponse({ error: "No email address found in Google account profile" }, 400);
+        }
+
+        // Multi-tenant isolation: Ensure email belongs to this table
+        if (!isEmailAuthorizedForTable(connectedEmail, targetSlug)) {
+          return jsonResponse({
+            error: `Email ${connectedEmail} is not authorized for Table '${targetSlug}'. Please sign in with an official @roundtable.org.uk account for ${targetSlug}.`
+          }, 403);
+        }
+
+        await env.DB.prepare(`
+          UPDATE tables SET
+            gmail_refresh_token = COALESCE(?, gmail_refresh_token),
+            gmail_connected_email = ?,
+            notify_email_enabled = 1,
+            gmail_client_id = COALESCE(?, gmail_client_id),
+            gmail_client_secret = COALESCE(?, gmail_client_secret)
+          WHERE id = ?
+        `).bind(
+          refreshToken || null,
+          connectedEmail,
+          body.client_id || null,
+          body.client_secret || null,
+          table.id
+        ).run();
+
+        return jsonResponse({
+          ok: true,
+          connected_email: connectedEmail,
+          message: `Successfully connected ${connectedEmail} for ${targetSlug} proximity alerts!`
+        });
+      } catch (err) {
+        return jsonResponse({ error: `Connection failed: ${err.message}` }, 500);
+      }
+    }
+
+    // ==============================================================
+    // 🔌 9D. GOOGLE WORKSPACE GMAIL DISCONNECT (POST /api/auth/google-gmail-disconnect)
+    // ==============================================================
+    if (path === "/api/auth/google-gmail-disconnect" && request.method === "POST") {
+      let body = {};
+      try { body = await request.json(); } catch(e) { body = {}; }
+
+      const authHeader = request.headers.get("Authorization") || "";
+      const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+      const secret = body.secret || url.searchParams.get("secret") || bearerToken;
+      const targetSlug = (body.tableSlug || body.table || slug || "beverley").toLowerCase().trim();
+
+      if (!isAuthorized(secret, targetSlug)) {
+        return jsonResponse({ error: "Unauthorized" }, 401);
+      }
+
+      await env.DB.prepare(`
+        UPDATE tables SET
+          gmail_refresh_token = NULL,
+          gmail_connected_email = NULL,
+          notify_email_enabled = 0
+        WHERE id = ?
+      `).bind(table.id).run();
+
+      return jsonResponse({ ok: true, message: "Google Workspace Gmail disconnected successfully." });
+    }
+
+    // ==============================================================
+    // 🧪 9E. GOOGLE WORKSPACE GMAIL TEST ALERT (POST /api/auth/google-gmail-test)
+    // ==============================================================
+    if (path === "/api/auth/google-gmail-test" && request.method === "POST") {
+      let body = {};
+      try { body = await request.json(); } catch(e) { body = {}; }
+
+      const authHeader = request.headers.get("Authorization") || "";
+      const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+      const secret = body.secret || url.searchParams.get("secret") || bearerToken;
+      const targetSlug = (body.tableSlug || body.table || slug || "beverley").toLowerCase().trim();
+
+      if (!isAuthorized(secret, targetSlug)) {
+        return jsonResponse({ error: "Unauthorized" }, 401);
+      }
+
+      if (!table.gmail_refresh_token) {
+        return jsonResponse({ error: "Google Workspace Gmail is not connected for this Table yet." }, 400);
+      }
+
+      const testEmail = body.test_email || table.gmail_connected_email || table.admin_email;
+      if (!testEmail) {
+        return jsonResponse({ error: "No destination email address provided for test" }, 400);
+      }
+
+      try {
+        await sendGmailProximityAlert({
+          env,
+          table,
+          to: testEmail,
+          type: "test",
+          etaText: "2 minutes",
+          distanceMeters: 180
+        });
+
+        return jsonResponse({
+          ok: true,
+          message: `Test email successfully sent to ${testEmail} from ${table.gmail_connected_email}!`
+        });
+      } catch (err) {
+        return jsonResponse({ error: `Test email failed: ${err.message}` }, 500);
+      }
+    }
+
+    // ==============================================================
+    // 📍 9F. PROXIMITY SUBSCRIBERS INGEST (GET & POST /api/subscribe)
+    // ==============================================================
+    if (path === "/api/subscribe") {
+      let body = {};
+      if (request.method === "POST") {
+        try { body = await request.json(); } catch(e) { body = {}; }
+      }
+      const targetSlug = (body.table || url.searchParams.get("table") || slug || "beverley").toLowerCase().trim();
+      const lat = parseFloat(body.lat || url.searchParams.get("lat"));
+      const lng = parseFloat(body.lng || url.searchParams.get("lng"));
+      const email = String(body.email || url.searchParams.get("email") || "").trim().toLowerCase();
+      const route_id = body.route_id || url.searchParams.get("route_id") || null;
+
+      if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+        return jsonResponse({ ok: false, error: "Invalid coordinates" }, 400);
+      }
+      if (!email || !email.includes("@") || !email.includes(".")) {
+        return jsonResponse({ ok: false, error: "Invalid email address" }, 400);
+      }
+
+      try {
+        await env.DB.prepare(`
+          CREATE TABLE IF NOT EXISTS subscribers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            table_id TEXT NOT NULL,
+            route_id TEXT,
+            lat REAL NOT NULL,
+            lng REAL NOT NULL,
+            email TEXT NOT NULL,
+            notified BOOLEAN DEFAULT 0,
+            notified_at DATETIME,
+            passed BOOLEAN DEFAULT 0,
+            passed_at DATETIME,
+            last_distance REAL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        `).run().catch(() => {});
+
+        const targetTable = table || await env.DB.prepare("SELECT id FROM tables WHERE slug = ?").bind(targetSlug).first();
+        const tableId = targetTable ? targetTable.id : targetSlug;
+
+        await env.DB.prepare(`
+          INSERT INTO subscribers (table_id, route_id, lat, lng, email)
+          VALUES (?, ?, ?, ?, ?)
+        `).bind(tableId, route_id, lat, lng, email).run();
+
+        return jsonResponse({ ok: true, message: "Subscribed successfully" });
+      } catch (err) {
+        return jsonResponse({ ok: false, error: err.message }, 500);
+      }
+    }
+
+    // ==============================================================
+    // 📋 9G. SUBSCRIBERS MANAGEMENT (GET & DELETE /api/subscribers)
+    // ==============================================================
+    if (path === "/api/subscribers") {
+      const authHeader = request.headers.get("Authorization") || "";
+      const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+      const secret = url.searchParams.get("secret") || bearerToken;
+
+      if (!isAuthorized(secret)) {
+        return jsonResponse({ error: "Unauthorized: Admin credentials required to manage subscribers" }, 401);
+      }
+
+      if (request.method === "GET") {
+        try {
+          const subs = await env.DB.prepare(`
+            SELECT id, email, lat, lng, notified, notified_at, passed, passed_at, created_at
+            FROM subscribers
+            WHERE table_id = ?
+            ORDER BY created_at DESC
+            LIMIT 200
+          `).bind(table.id).all();
+          return jsonResponse({ ok: true, subscribers: subs.results || [] });
+        } catch(e) {
+          return jsonResponse({ ok: true, subscribers: [] });
+        }
+      }
+
+      if (request.method === "DELETE") {
+        const subId = url.searchParams.get("id");
+        if (subId) {
+          await env.DB.prepare("DELETE FROM subscribers WHERE id = ? AND table_id = ?").bind(subId, table.id).run();
+        } else {
+          await env.DB.prepare("DELETE FROM subscribers WHERE table_id = ?").bind(table.id).run();
+        }
+        return jsonResponse({ ok: true, message: "Subscribers cleared successfully" });
+      }
     }
 
     // ==============================================================
@@ -2747,3 +3133,307 @@ function resolveGeminiModel(input) {
 
   return `gemini-${clean.replace(/\s+/g, '-')}`;
 }
+
+const OFFICIAL_GOOGLE_CLIENT_ID = "174929950272-ehpf04nea7ev4j8gfosq5acg6dvfmc95.apps.googleusercontent.com";
+
+function buildRfc2822Base64({ fromName, fromEmail, to, subject, htmlBody }) {
+  const utf8Subject = `=?utf-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`;
+  const utf8FromName = `=?utf-8?B?${btoa(unescape(encodeURIComponent(fromName)))}?=`;
+
+  const rawEmail = [
+    `From: ${utf8FromName} <${fromEmail}>`,
+    `To: <${to}>`,
+    `Subject: ${utf8Subject}`,
+    `MIME-Version: 1.0`,
+    `Content-Type: text/html; charset="UTF-8"`,
+    `Content-Transfer-Encoding: base64`,
+    ``,
+    btoa(unescape(encodeURIComponent(htmlBody)))
+  ].join("\r\n");
+
+  return btoa(rawEmail)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371000; // meters
+  const toRad = (x) => (x * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+async function getGoogleAccessToken(env, table) {
+  const refreshToken = table.gmail_refresh_token;
+  if (!refreshToken) throw new Error("No Gmail refresh token found for this Table");
+
+  const clientId = table.gmail_client_id || env.GOOGLE_CLIENT_ID || OFFICIAL_GOOGLE_CLIENT_ID;
+  const clientSecret = table.gmail_client_secret || env.GOOGLE_CLIENT_SECRET;
+  if (!clientSecret) {
+    throw new Error("Missing Google OAuth Client Secret. Please configure it in Table Settings or set GOOGLE_CLIENT_SECRET on Cloudflare.");
+  }
+
+  const params = new URLSearchParams();
+  params.append("client_id", clientId);
+  params.append("client_secret", clientSecret);
+  params.append("refresh_token", refreshToken);
+  params.append("grant_type", "refresh_token");
+
+  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: params.toString()
+  });
+
+  if (!tokenRes.ok) {
+    const errData = await tokenRes.json().catch(() => ({}));
+    throw new Error(errData.error_description || errData.error || `Google token refresh failed: HTTP ${tokenRes.status}`);
+  }
+
+  const tokenData = await tokenRes.json();
+  return tokenData.access_token;
+}
+
+async function sendGmailProximityAlert({ env, table, to, type, etaText, distanceMeters }) {
+  const accessToken = await getGoogleAccessToken(env, table);
+
+  const tableName = table.sleigh_display_name || table.name || "Round Table Santa Sleigh";
+  const fromEmail = table.gmail_connected_email || table.admin_email || "santa@roundtable.org.uk";
+  const donateUrl = table.donate_url || "";
+  const trackerUrl = `https://turbosanta-app.pages.dev/tracker.html?table=${encodeURIComponent(table.slug || 'beverley')}`;
+
+  let subject = "";
+  let headline = "";
+  let subheadline = "";
+  let messageContent = "";
+  let ctaText = "Open Live Santa Tracker";
+  let ctaUrl = trackerUrl;
+  let secondaryCta = "";
+
+  if (type === "approaching") {
+    subject = `🎅 Ho Ho Ho! Santa is approaching your street!`;
+    headline = `Santa is on his way!`;
+    subheadline = etaText ? `ETA: ${etaText}` : `Within ${distanceMeters || 250} metres of your pin!`;
+    messageContent = `
+      <p style="font-size: 16px; line-height: 1.6; color: #374151; margin: 0 0 16px 0;">
+        Listen out for the festive music and sleigh bells! Santa and his volunteer elves from <strong>${tableName}</strong> are heading towards your street right now.
+      </p>
+      <p style="font-size: 15px; line-height: 1.5; color: #4b5563; margin: 0 0 20px 0;">
+        Come outside and give Santa a big wave as he drives by! You can follow the sleigh live in real-time on our official tracker map:
+      </p>
+    `;
+    if (donateUrl) {
+      secondaryCta = `
+        <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center;">
+          <p style="font-size: 14px; color: #6b7280; margin: 0 0 10px 0;">Want to help local families and charities this Christmas?</p>
+          <a href="${donateUrl}" style="color: #d31c1c; font-weight: bold; text-decoration: underline; font-size: 15px;">Make a fast, secure donation online &rarr;</a>
+        </div>
+      `;
+    }
+  } else if (type === "passed") {
+    subject = `🎄 Thank You from Santa & ${tableName}!`;
+    headline = `Thank You for Coming Out!`;
+    subheadline = `Santa has just visited your street!`;
+    messageContent = `
+      <p style="font-size: 16px; line-height: 1.6; color: #374151; margin: 0 0 16px 0;">
+        Santa and his volunteer elves have just passed your area. We hope you and your family enjoyed the festive sights and sounds of the sleigh tonight!
+      </p>
+      <p style="font-size: 15px; line-height: 1.5; color: #4b5563; margin: 0 0 20px 0;">
+        Every single penny raised tonight is donated directly back into our local community, supporting youth groups, foodbanks, and local families in need.
+      </p>
+    `;
+    if (donateUrl) {
+      ctaText = "Donate to Support Our Community";
+      ctaUrl = donateUrl;
+      secondaryCta = `
+        <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center;">
+          <a href="${trackerUrl}" style="color: #4b5563; font-size: 14px; text-decoration: underline;">View Santa's Upcoming Routes & Schedule</a>
+        </div>
+      `;
+    }
+  } else if (type === "test") {
+    subject = `🎅 TurboSanta Proximity Alert Test — ${tableName}`;
+    headline = `Test Alert: Connection Verified!`;
+    subheadline = `Google Workspace Gmail API is active`;
+    messageContent = `
+      <p style="font-size: 16px; line-height: 1.6; color: #374151; margin: 0 0 16px 0;">
+        Success! Your Table's Google Workspace Gmail integration is configured and active.
+      </p>
+      <p style="font-size: 15px; line-height: 1.5; color: #4b5563; margin: 0 0 20px 0;">
+        When families drop a pin on your live tracker at <strong>turbosanta-app.pages.dev</strong>, TurboSanta will automatically send proximity alerts directly from <strong>${fromEmail}</strong>.
+      </p>
+    `;
+  }
+
+  const htmlBody = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${subject}</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 24px 12px;">
+      <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+        <tr>
+          <td style="background: linear-gradient(135deg, #d31c1c 0%, #991b1b 100%); padding: 36px 24px 28px 24px; text-align: center;">
+            <div style="font-size: 42px; margin-bottom: 8px;">🎅</div>
+            <h1 style="color: #ffffff; font-size: 24px; font-weight: 800; margin: 0 0 6px 0; letter-spacing: -0.5px;">${headline}</h1>
+            <p style="color: #fef3c7; font-size: 15px; font-weight: 600; margin: 0;">${subheadline}</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 32px 28px;">
+            ${messageContent}
+            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top: 10px;">
+              <tr>
+                <td align="center">
+                  <a href="${ctaUrl}" target="_blank" style="display: inline-block; background-color: #d31c1c; color: #ffffff; font-weight: 700; font-size: 16px; text-decoration: none; padding: 14px 28px; border-radius: 9999px; box-shadow: 0 4px 12px rgba(211, 28, 28, 0.35);">
+                    ${ctaText}
+                  </a>
+                </td>
+              </tr>
+            </table>
+            ${secondaryCta}
+          </td>
+        </tr>
+        <tr>
+          <td style="background-color: #f9fafb; padding: 24px; border-top: 1px solid #e5e7eb; text-align: center;">
+            <p style="font-size: 13px; font-weight: 600; color: #374151; margin: 0 0 4px 0;">${tableName}</p>
+            ${table.charity_number ? `<p style="font-size: 12px; color: #6b7280; margin: 0 0 6px 0;">Registered Charity No. ${table.charity_number}</p>` : ''}
+            <p style="font-size: 11px; color: #9ca3af; margin: 8px 0 0 0;">
+              You received this automated notification because you dropped a pin on Santa's live tracking map.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+
+  const rawMessage = buildRfc2822Base64({
+    fromName: tableName,
+    fromEmail,
+    to,
+    subject,
+    htmlBody
+  });
+
+  const sendRes = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${accessToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ raw: rawMessage })
+  });
+
+  if (!sendRes.ok) {
+    const errData = await sendRes.json().catch(() => ({}));
+    throw new Error(errData.error?.message || `Gmail send failed: HTTP ${sendRes.status}`);
+  }
+
+  return await sendRes.json();
+}
+
+async function processSubscriberProximity({ env, table, lat, lng, speed, route_id }) {
+  if (!table) return;
+  if (table.notify_email_enabled === 0 || table.notify_email_enabled === false) return;
+  if (!table.gmail_refresh_token) return;
+
+  const radius = Number(table.notify_radius_meters || 250);
+  const buffer = Number(table.pass_buffer_meters || 150);
+
+  try {
+    const activeSubs = await env.DB.prepare(`
+      SELECT id, email, lat, lng, notified, notified_at, passed, last_distance
+      FROM subscribers
+      WHERE table_id = ? AND (notified = 0 OR (notified = 1 AND passed = 0))
+    `).bind(table.id).all();
+
+    if (!activeSubs || !activeSubs.results || activeSubs.results.length === 0) {
+      return;
+    }
+
+    const now = Date.now();
+
+    for (const sub of activeSubs.results) {
+      const dist = calculateHaversineDistance(lat, lng, sub.lat, sub.lng);
+
+      // 1. Approaching alert
+      if (!sub.notified && dist <= radius) {
+        let etaText = "a few minutes away";
+        if (speed > 2) {
+          const speedMps = (speed * 1000) / 3600;
+          const sec = Math.round(dist / speedMps);
+          const min = Math.max(1, Math.round(sec / 60));
+          etaText = `approx. ${min} minute${min === 1 ? '' : 's'} away`;
+        } else {
+          etaText = `approx. ${Math.round(dist)} metres away`;
+        }
+
+        try {
+          await sendGmailProximityAlert({
+            env,
+            table,
+            to: sub.email,
+            type: "approaching",
+            etaText,
+            distanceMeters: Math.round(dist)
+          });
+
+          await env.DB.prepare(`
+            UPDATE subscribers
+            SET notified = 1, notified_at = CURRENT_TIMESTAMP, last_distance = ?
+            WHERE id = ?
+          `).bind(dist, sub.id).run();
+        } catch (emailErr) {
+          console.error(`Failed to send approaching email to ${sub.email}:`, emailErr);
+        }
+      }
+      // 2. Passed alert (thank you & donation)
+      else if (sub.notified && !sub.passed) {
+        let notifiedTs = 0;
+        if (sub.notified_at) {
+          const normStr = String(sub.notified_at).trim().replace(' ', 'T');
+          notifiedTs = new Date(normStr.endsWith('Z') ? normStr : normStr + 'Z').getTime();
+        }
+        const minutesSinceNotified = (now - notifiedTs) / (60 * 1000);
+
+        if (dist > (radius + buffer) && minutesSinceNotified >= 1.5) {
+          try {
+            await sendGmailProximityAlert({
+              env,
+              table,
+              to: sub.email,
+              type: "passed",
+              distanceMeters: Math.round(dist)
+            });
+
+            await env.DB.prepare(`
+              UPDATE subscribers
+              SET passed = 1, passed_at = CURRENT_TIMESTAMP, last_distance = ?
+              WHERE id = ?
+            `).bind(dist, sub.id).run();
+          } catch (emailErr) {
+            console.error(`Failed to send passed email to ${sub.email}:`, emailErr);
+          }
+        } else {
+          await env.DB.prepare(`
+            UPDATE subscribers SET last_distance = ? WHERE id = ?
+          `).bind(dist, sub.id).run();
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Proximity processing error:", err);
+  }
+}
+
