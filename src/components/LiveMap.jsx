@@ -76,13 +76,14 @@ export default function LiveMap({ tableData }) {
       .addTo(map);
 
     // 🎅 SANTA SLEIGH LIVE POSITION MARKER
+    const sleighMarkerUrl = tableData?.table?.sleigh_icon_live || '/icons/brt_sleigh_icon.png';
     const santaIcon = L.divIcon({
       className: 'custom-santa-marker',
       html: `
         <div style="position: relative; width: 54px; height: 54px; display: flex; align-items: center; justify-content: center;">
           <div style="position: absolute; width: 100%; height: 100%; border-radius: 50%; background: rgba(251, 175, 51, 0.45); animation: pulse-ring 2s infinite ease-out;"></div>
           <div style="width: 44px; height: 44px; border-radius: 50%; background: #1D1D1A; border: 2px solid #FBAF33; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.6); z-index: 2;">
-            <img src="/icons/brt_sleigh_icon.png" style="width: 32px; height: 32px; object-fit: contain;" alt="Sleigh" onerror="this.onerror=null; this.src='/icons/RTBI_Santa.png';" />
+            <img src="${sleighMarkerUrl}" style="width: 32px; height: 32px; object-fit: contain;" alt="Sleigh" onerror="this.onerror=null; this.src='/icons/RTBI_Santa.png';" />
           </div>
         </div>
       `,
