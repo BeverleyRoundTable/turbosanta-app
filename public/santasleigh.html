@@ -17,7 +17,7 @@
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Santa Sleigh Live Tracker">
-    <meta property="twitter:description" content="Follow Santa live on his journey, check when he is visiting your street, and help us raise vital funds for the local community this Christmas!">
+    <meta name="twitter:description" content="Follow Santa live on his journey, check when he is visiting your street, and help us raise vital funds for the local community this Christmas!">
     <meta name="twitter:image" content="https://turbosanta-app.pages.dev/icons/site_background.png">
 
     <!-- PWA & Mobile App Tags -->
@@ -97,14 +97,14 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* --- AMBIENT BACKGROUND & SNOW --- */
+        /* --- AMBIENT BACKGROUND --- */
         #site-bg {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background-color: var(--bg-dark);
             background-size: cover;
             background-position: center;
-            z-index: -2;
+            z-index: -1;
             overflow: hidden;
         }
 
@@ -113,31 +113,6 @@
             inset: 0;
             background-image: var(--bg-overlay);
             pointer-events: none;
-        }
-
-        /* Ambient color glow at top of page */
-        #site-bg::after {
-            content: '';
-            position: absolute;
-            top: -15%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90vw;
-            max-width: 1100px;
-            height: 550px;
-            background: radial-gradient(ellipse at center, rgba(var(--primary-rgb), 0.16) 0%, transparent 70%);
-            pointer-events: none;
-            z-index: 1;
-        }
-
-        #snow-canvas {
-            position: fixed;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: -1;
-            opacity: 0.55;
         }
 
         h1, h2, h3, .brand-font {
@@ -261,6 +236,7 @@
             overflow: hidden;
             padding: 85px 20px 90px;
             text-align: center;
+            background: radial-gradient(circle at center, rgba(0,0,0,0.35) 0%, transparent 70%);
             border-bottom: 1px solid rgba(255, 255, 255, 0.06);
         }
         .hero-video-wrap {
@@ -282,15 +258,13 @@
             height: auto;
             transform: translate(-50%, -50%);
             object-fit: cover;
-            opacity: 0.55;
+            opacity: 0.68;
             pointer-events: none;
         }
         .hero-video-overlay {
             position: absolute;
             inset: 0;
-            background:
-                radial-gradient(circle at 50% 30%, rgba(var(--primary-rgb), 0.18) 0%, transparent 60%),
-                linear-gradient(180deg, rgba(17, 18, 21, 0.35) 0%, rgba(17, 18, 21, 0.72) 70%, var(--bg-dark) 100%);
+            background: linear-gradient(180deg, rgba(17, 18, 21, 0.3) 0%, rgba(17, 18, 21, 0.62) 68%, var(--bg-dark) 100%);
             z-index: 1;
             pointer-events: none;
         }
@@ -1167,7 +1141,6 @@
 
         @media (prefers-reduced-motion: reduce) {
             html { scroll-behavior: auto; }
-            #snow-canvas { display: none !important; }
             *, *::before, *::after {
                 transition-duration: 0.01ms !important;
                 animation-duration: 0.01ms !important;
@@ -1184,7 +1157,6 @@
     <div id="site-bg">
         <div id="site-bg-overlay"></div>
     </div>
-    <canvas id="snow-canvas" aria-hidden="true"></canvas>
 
     <!-- Loading Overlay -->
     <div id="loader" class="loader-overlay" role="status" aria-live="polite" style="display: none;">
@@ -1265,7 +1237,7 @@
     <!-- Hero Section -->
     <header class="hero">
         <div id="hero-video-wrap" class="hero-video-wrap">
-            <video id="hero-bg-video" autoplay loop muted playsinline webkit-playsinline disablePictureInPicture poster="/icons/site_background.png">
+            <video id="hero-bg-video" src="/media/santa.mp4" autoplay loop muted playsinline webkit-playsinline disablePictureInPicture>
                 <source src="/media/santa.mp4" type="video/mp4">
                 <source src="/media/santa.webm" type="video/webm">
             </video>
@@ -1283,7 +1255,6 @@
                 <a href="#routes" class="btn btn-secondary"><i class="fa-solid fa-route"></i> Check My Street</a>
                 <button id="share-btn" type="button" aria-label="Share this page" class="btn btn-ghost"><i class="fa-solid fa-share-nodes"></i></button>
             </div>
-            <!-- Optional Headline Sponsor Slot -->
             <div id="headline-sponsor-slot"></div>
         </div>
     </header>
@@ -1523,52 +1494,6 @@
         $('current-year-text').textContent = currentYear;
         $('year').textContent = currentYear;
 
-        // --- Lightweight Ambient Snowfall ---
-        (function initSnowfall() {
-            const canvas = $('snow-canvas');
-            if (!canvas || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
-            const ctx = canvas.getContext('2d');
-            let width = 0, height = 0, flakes = [];
-
-            function resize() {
-                width = canvas.width = window.innerWidth;
-                height = canvas.height = window.innerHeight;
-            }
-            window.addEventListener('resize', resize, { passive: true });
-            resize();
-
-            const count = Math.min(45, Math.floor(width / 28));
-            for (let i = 0; i < count; i++) {
-                flakes.push({
-                    x: Math.random() * width,
-                    y: Math.random() * height,
-                    r: Math.random() * 2.2 + 0.8,
-                    s: Math.random() * 0.6 + 0.25,
-                    d: Math.random() * Math.PI * 2
-                });
-            }
-
-            function draw() {
-                if (document.visibilityState === 'visible') {
-                    ctx.clearRect(0, 0, width, height);
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
-                    ctx.beginPath();
-                    for (let i = 0; i < flakes.length; i++) {
-                        const f = flakes[i];
-                        ctx.moveTo(f.x, f.y);
-                        ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
-                        f.y += f.s;
-                        f.d += 0.01;
-                        f.x += Math.sin(f.d) * 0.35;
-                        if (f.y > height + 5) { f.y = -5; f.x = Math.random() * width; }
-                    }
-                    ctx.fill();
-                }
-                requestAnimationFrame(draw);
-            }
-            requestAnimationFrame(draw);
-        })();
-
         function safeUrl(u) {
             if (!u) return '';
             try {
@@ -1783,23 +1708,62 @@
             const bgOverlay = $('site-bg-overlay');
             const bg = safeUrl(settings.background_url) || '/icons/site_background.png';
 
+            // Resolve ambient video settings from Cloudflare API or local table storage
             const slug = window.__sleighTableSlug || 'beverley';
             const storedBgMode = localStorage.getItem(`turbosanta_${slug}_bg_mode`);
             const storedVideoUrl = localStorage.getItem(`turbosanta_${slug}_bg_video`);
-            const bgMode = settings.background_mode || storedBgMode || 'image';
-            const customVideo = settings.background_video_url || storedVideoUrl || '';
-            const isVideo = (bgMode === 'video' || bgMode === 'custom_video');
+
+            const apiMode = String(settings.background_mode || settings.bg_mode || '').trim().toLowerCase();
+            const localMode = String(storedBgMode || '').trim().toLowerCase();
+
+            // Prefer an explicit video mode over a default 'image' fallback
+            const bgMode = (apiMode && apiMode !== 'image')
+                ? apiMode
+                : (localMode || apiMode || 'image');
+
+            const customVideo = String(
+                settings.background_video_url ||
+                settings.bg_video_url ||
+                settings.bg_video ||
+                settings.video_url ||
+                storedVideoUrl ||
+                ''
+            ).trim();
+
+            const isCustomVideo = (bgMode === 'custom_video' || bgMode === 'custom-video' || bgMode === 'custom') && !!customVideo;
+            const isDefaultVideo = bgMode === 'video' || bgMode === 'default_video' || bgMode === 'default-video' || ((bgMode === 'custom_video' || bgMode === 'custom') && !customVideo);
+            const isVideo = isCustomVideo || isDefaultVideo;
             const heroEl = document.querySelector('.hero');
 
             if (videoEl) {
+                // Automatic CDN fallback if relative /media/santa.mp4 is unavailable in current preview environment
+                if (!videoEl._errorFallbackBound) {
+                    videoEl._errorFallbackBound = true;
+                    videoEl.addEventListener('error', function () {
+                        const cdnFallback = 'https://turbosanta-app.pages.dev/media/santa.mp4';
+                        if (videoEl.src && !videoEl.src.includes('turbosanta-app.pages.dev') && videoEl.src.endsWith('/media/santa.mp4')) {
+                            videoEl.src = cdnFallback;
+                            videoEl.load();
+                            videoEl.play().catch(function () {});
+                        }
+                    }, true);
+                }
+
                 if (isVideo) {
                     if (heroEl) heroEl.style.backgroundColor = 'var(--bg-dark)';
                     if (videoWrap) videoWrap.style.display = 'block';
                     videoEl.style.display = 'block';
-                    const videoSrc = (bgMode === 'custom_video' && customVideo) ? customVideo : '/media/santa.mp4';
-                    if (!videoEl.currentSrc || !videoEl.currentSrc.includes(videoSrc)) {
-                        videoEl.src = videoSrc;
+
+                    const desiredSrc = isCustomVideo ? customVideo : '/media/santa.mp4';
+                    const currentAttrSrc = videoEl.getAttribute('src') || '';
+
+                    // Only reassign .src if it actually changed so in-flight playback is never aborted
+                    if (currentAttrSrc !== desiredSrc && !(desiredSrc === '/media/santa.mp4' && currentAttrSrc.endsWith('/media/santa.mp4'))) {
+                        videoEl.setAttribute('src', desiredSrc);
+                        videoEl.src = desiredSrc;
+                        videoEl.load();
                     }
+
                     videoEl.defaultMuted = true;
                     videoEl.muted = true;
                     const playPromise = videoEl.play();
@@ -1901,7 +1865,6 @@
                 if (appleIconLink) appleIconLink.href = logo;
             }
 
-            // Render Headline Sponsor if configured
             const hsSlot = $('headline-sponsor-slot');
             if (hsSlot) {
                 hsSlot.replaceChildren();
@@ -2371,7 +2334,6 @@
             }
 
             const todayItem = allRoutes.find(item => item.day.getTime() === today.getTime());
-            // Sort upcoming routes first (ascending), then past routes (ascending)
             const otherRoutes = allRoutes
                 .filter(item => item !== todayItem)
                 .sort((a, b) => {
@@ -2379,7 +2341,6 @@
                     return a.day - b.day;
                 });
 
-            // Show filter bar only if there are both upcoming and past routes
             const hasPast = otherRoutes.some(r => r.isPast);
             const hasUpcoming = otherRoutes.some(r => !r.isPast);
             const filterBar = $('routes-filter-bar');
@@ -3126,27 +3087,53 @@
         }
 
         function adaptWorkerPayload(data, updateLabel) {
+            const tbl = data.table || {};
+            const stg = data.settings || {};
+
+            // Prefer non-default background_mode from either table or settings object
+            const modeCandidates = [
+                tbl.background_mode,
+                tbl.bg_mode,
+                stg.background_mode,
+                stg.bg_mode
+            ].map(v => String(v || '').trim()).filter(Boolean);
+            const resolvedBgMode = modeCandidates.find(m => m.toLowerCase() !== 'image') || modeCandidates[0] || '';
+
+            const resolvedBgVideo = (
+                tbl.background_video_url ||
+                tbl.bg_video_url ||
+                tbl.bg_video ||
+                tbl.video_url ||
+                stg.background_video_url ||
+                stg.bg_video_url ||
+                stg.bg_video ||
+                stg.video_url ||
+                ''
+            );
+
             return {
                 settings: {
-                    ...(data.table || {}),
-                    ...(data.settings || {}),
-                    sleigh_display_name: data.table?.sleigh_display_name || (data.table?.name ? `${data.table.name} Santa Sleigh` : 'Santa Sleigh'),
-                    table_name: data.table?.name || 'Round Table',
-                    primary_color: data.table?.primary_color || '#FBAF33',
-                    accent_color: data.table?.accent_color || '#FFFFFF',
-                    donate_url: data.table?.donate_url || '',
-                    live_announcement: data.table?.live_announcement || '',
-                    logo_overlay_url: data.table?.logo_url || '',
-                    background_url: data.table?.background_url || '',
-                    table_website_url: data.table?.website_url || data.table?.table_website_url || 'https://www.roundtable.co.uk',
-                    table_facebook_url: data.table?.facebook_url || data.table?.table_facebook_url || '',
-                    table_instagram_url: data.table?.instagram_url || data.table?.table_instagram_url || '',
-                    table_tiktok_url: data.table?.tiktok_url || data.table?.table_tiktok_url || '',
-                    table_youtube_url: data.table?.youtube_url || data.table?.table_youtube_url || ''
+                    ...stg,
+                    ...tbl,
+                    sleigh_display_name: tbl.sleigh_display_name || (tbl.name ? `${tbl.name} Santa Sleigh` : (stg.sleigh_display_name || 'Santa Sleigh')),
+                    table_name: tbl.name || stg.table_name || 'Round Table',
+                    primary_color: tbl.primary_color || stg.primary_color || '#FBAF33',
+                    accent_color: tbl.accent_color || stg.accent_color || '#FFFFFF',
+                    donate_url: tbl.donate_url || stg.donate_url || '',
+                    live_announcement: tbl.live_announcement || stg.live_announcement || '',
+                    logo_overlay_url: tbl.logo_url || tbl.logo_overlay_url || stg.logo_overlay_url || '',
+                    background_url: tbl.background_url || stg.background_url || '',
+                    background_mode: resolvedBgMode,
+                    background_video_url: resolvedBgVideo,
+                    table_website_url: tbl.website_url || tbl.table_website_url || stg.table_website_url || 'https://www.roundtable.co.uk',
+                    table_facebook_url: tbl.facebook_url || tbl.table_facebook_url || stg.table_facebook_url || '',
+                    table_instagram_url: tbl.instagram_url || tbl.table_instagram_url || stg.table_instagram_url || '',
+                    table_tiktok_url: tbl.tiktok_url || tbl.table_tiktok_url || stg.table_tiktok_url || '',
+                    table_youtube_url: tbl.youtube_url || tbl.table_youtube_url || stg.table_youtube_url || ''
                 },
                 donations: {
-                    total: data.table?.total_raised || 0,
-                    target: data.table?.fundraising_goal || 0,
+                    total: tbl.total_raised ?? data.donations?.total ?? 0,
+                    target: tbl.fundraising_goal ?? data.donations?.target ?? 0,
                     currency: '£',
                     lastUpdatePretty: updateLabel || 'Live'
                 },
@@ -3167,13 +3154,13 @@
                         sponsorDescription: rSponsors[0]?.description || r.sponsor_description || r.sponsorDescription || ''
                     };
                 }),
-                sponsors: data.sponsors || data.table?.partners || [],
+                sponsors: data.sponsors || tbl.partners || [],
                 partners: data.partners || [],
-                headlineSponsor: data.table?.headline_sponsor_name ? {
-                    name: data.table.headline_sponsor_name,
-                    logo: data.table.headline_sponsor_logo,
-                    url: data.table.headline_sponsor_url,
-                    tagline: data.table.headline_sponsor_tagline
+                headlineSponsor: tbl.headline_sponsor_name ? {
+                    name: tbl.headline_sponsor_name,
+                    logo: tbl.headline_sponsor_logo,
+                    url: tbl.headline_sponsor_url,
+                    tagline: tbl.headline_sponsor_tagline
                 } : null
             };
         }
