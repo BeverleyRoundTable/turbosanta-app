@@ -118,13 +118,14 @@ export function getTableFallback(tableSlug = "beverley") {
 
   const properName = slug.charAt(0).toUpperCase() + slug.slice(1);
   return {
+    isFallback: true,
     table: {
-      id: isBeverley ? "beverley_247" : slug,
+      id: isBeverley ? "beverley" : slug,
       name: `${properName} Round Table`,
       slug: slug,
       sleigh_display_name: `${properName} Round Table Santa Sleigh`,
-      primary_color: isBeverley ? "#FBAF33" : "#D31C1C",
-      accent_color: "#FFFFFF",
+      primary_color: "#D31C1C",
+      accent_color: "#FBAF33",
       donate_url: isBeverley ? "https://www.zeffy.com/en-GB/donation-form/beverley-round-table-for-our-community" : "",
       charity_name: `Local ${properName} Charities & Good Causes`,
       fundraising_goal: 8000,
@@ -132,6 +133,13 @@ export function getTableFallback(tableSlug = "beverley") {
       live_announcement: null,
       tracking_active: true,
       enable_gift_aid: true,
+      logo_url: isBeverley ? "https://turbosanta-api.beverley247.workers.dev/cdn/beverley/1792057900198_nv4wns.png" : null,
+      sleigh_icon_live: isBeverley ? "https://turbosanta-api.beverley247.workers.dev/cdn/beverley/1792057902166_qcmvv.png" : null,
+      website_url: isBeverley ? "https://beverleyroundtable.co.uk" : null,
+      facebook_url: isBeverley ? "https://www.facebook.com/beverleyroundtable" : null,
+      instagram_url: isBeverley ? "https://www.instagram.com/beverleyroundtable/" : null,
+      tiktok_url: isBeverley ? "https://www.tiktok.com/@beverleyroundtable?lang=en-GB" : null,
+      background_mode: "video",
       headline_sponsor_name: null,
       headline_sponsor_logo: null,
       headline_sponsor_url: null,
@@ -141,7 +149,7 @@ export function getTableFallback(tableSlug = "beverley") {
     routes: [
       {
         id: `${slug}_route_1`,
-        table_id: isBeverley ? "beverley_247" : slug,
+        table_id: isBeverley ? "beverley" : slug,
         name: isBeverley ? "East Route" : "Main Route",
         date: todayStr,
         start_time: "18:00",
@@ -174,7 +182,7 @@ export async function fetchTablePayload(tableSlug = "beverley") {
     try {
       token = getAdminAuthToken(slug);
     } catch (e) {}
-    const headers = { "Cache-Control": "no-cache, no-store" };
+    const headers = {};
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
@@ -196,8 +204,7 @@ export async function fetchTablePayload(tableSlug = "beverley") {
 export async function fetchLiveGps(tableSlug = "beverley") {
   try {
     const res = await fetch(`${API_BASE}/api/live-gps?table=${encodeURIComponent(tableSlug)}&_t=${Date.now()}`, {
-      cache: "no-store",
-      headers: { "Cache-Control": "no-cache, no-store" }
+      cache: "no-store"
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
