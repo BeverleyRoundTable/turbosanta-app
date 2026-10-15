@@ -242,6 +242,7 @@ export async function uploadAssetToR2(file, tableSlug = "beverley") {
       else if (name.endsWith(".svg")) contentType = "image/svg+xml";
       else if (name.endsWith(".jpg") || name.endsWith(".jpeg")) contentType = "image/jpeg";
       else if (name.endsWith(".webp")) contentType = "image/webp";
+      else if (name.endsWith(".gpx") || name.endsWith(".xml")) contentType = "application/gpx+xml";
       else contentType = "image/png";
     }
 

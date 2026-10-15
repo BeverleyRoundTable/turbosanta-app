@@ -1544,7 +1544,11 @@
           if (!url) throw new Error("No GPX URL");
           const controller = new AbortController(); 
           const timeoutId = setTimeout(() => controller.abort(), 5000); 
-          const res = await fetch(url, { cache: "no-store", signal: controller.signal });
+          let fetchUrl = String(url || '').trim();
+          if (!fetchUrl.startsWith('data:') && !fetchUrl.startsWith('blob:') && !/^https?:\/\//i.test(fetchUrl)) {
+            fetchUrl = fetchUrl.startsWith('//') ? 'https:' + fetchUrl : 'https://' + fetchUrl.replace(/^\/+/, '');
+          }
+          const res = await fetch(fetchUrl, { cache: "no-store", signal: controller.signal });
           clearTimeout(timeoutId);
           if (!res.ok) throw new Error("GPX fetch failed"); 
           const text = await res.text();

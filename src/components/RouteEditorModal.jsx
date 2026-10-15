@@ -153,9 +153,8 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
         });
         const distanceMi = (distKm * 0.621371).toFixed(2);
 
-        // 5. Upload GPX to R2 or embed data URL
-        const blob = new Blob([text], { type: "application/gpx+xml" });
-        const r2Url = await uploadAssetToR2(blob);
+        // 5. Upload GPX to Cloudflare R2 (or fallback to data URI if offline/unconfigured)
+        const r2Url = await uploadAssetToR2(file, tableSlug);
         const finalGpxUrl = r2Url || `data:application/gpx+xml;base64,${btoa(unescape(encodeURIComponent(text)))}`;
 
         setFormData(prev => ({

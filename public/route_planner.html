@@ -1078,6 +1078,7 @@ if (legacyApi) {
 function normaliseUrl(url) {
   const u = String(url || '').trim();
   if (!u) return '';
+  if (u.startsWith('data:') || u.startsWith('blob:')) return u;
   if (/^https?:\/\//i.test(u)) return u;
   if (u.startsWith('//')) return 'https:' + u;
   return 'https://' + u.replace(/^\/+/, '');
