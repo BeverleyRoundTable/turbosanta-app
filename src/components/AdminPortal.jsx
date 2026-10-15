@@ -731,15 +731,22 @@ ${tableName} Organizers`
   const [bgSaveToast, setBgSaveToast] = useState('');
   const [hasUserChangedPartners, setHasUserChangedPartners] = useState(false);
   const lastLoadedSlugRef = React.useRef(null);
+  const hasLoadedFormDataRef = React.useRef(false);
 
   // Automatically synchronize formData with live tableData when loaded
   React.useEffect(() => {
-    if (lastLoadedSlugRef.current !== currentTableSlug) {
+    const isSlugChanged = lastLoadedSlugRef.current !== currentTableSlug;
+    if (isSlugChanged) {
       lastLoadedSlugRef.current = currentTableSlug;
+      hasLoadedFormDataRef.current = false;
       setHasUserChangedPartners(false);
       setHasUserChangedBgMode(false);
     }
-    if (tableData?.table) {
+
+    // Only populate formData on first load of this table, or when switching table slugs!
+    // Background polling of live stats must NEVER overwrite the user's active settings form!
+    if (tableData?.table && (!hasLoadedFormDataRef.current || isSlugChanged)) {
+      hasLoadedFormDataRef.current = true;
       setFormData(prev => ({
         ...prev,
         sleigh_display_name: tableData.table.sleigh_display_name || prev.sleigh_display_name,
@@ -758,46 +765,40 @@ ${tableName} Organizers`
         enable_gift_aid: tableData.table.enable_gift_aid !== undefined ? Boolean(tableData.table.enable_gift_aid) : prev.enable_gift_aid,
         charity_name: tableData.table.charity_name || prev.charity_name,
         charity_number: tableData.table.charity_number !== undefined ? (tableData.table.charity_number || '') : prev.charity_number,
-        headline_sponsor_name: hasUserChangedPartners ? prev.headline_sponsor_name : (tableData.table.headline_sponsor_name || prev.headline_sponsor_name || ''),
-        headline_sponsor_logo: hasUserChangedPartners ? prev.headline_sponsor_logo : (tableData.table.headline_sponsor_logo || prev.headline_sponsor_logo || ''),
-        headline_sponsor_url: hasUserChangedPartners ? prev.headline_sponsor_url : (tableData.table.headline_sponsor_url || prev.headline_sponsor_url || ''),
-        headline_sponsor_tagline: hasUserChangedPartners ? prev.headline_sponsor_tagline : (tableData.table.headline_sponsor_tagline || prev.headline_sponsor_tagline || ''),
-        partners: hasUserChangedPartners
-          ? prev.partners
-          : (() => {
-              if (tableData.table.partners_json) {
-                try {
-                  const p = typeof tableData.table.partners_json === 'string' ? JSON.parse(tableData.table.partners_json) : tableData.table.partners_json;
-                  if (Array.isArray(p) && p.length > 0) return p;
-                } catch (e) {}
-              }
-              if (Array.isArray(tableData.table.partners) && tableData.table.partners.length > 0) {
-                return tableData.table.partners;
-              }
-              if (tableData.table.headline_sponsor_name || tableData.table.headline_sponsor_logo) {
-                return [{
-                  name: tableData.table.headline_sponsor_name || '',
-                  role: tableData.table.headline_sponsor_tagline || 'Official Power Partner',
-                  url: tableData.table.headline_sponsor_url || '',
-                  logo: tableData.table.headline_sponsor_logo || ''
-                }];
-              }
-              return prev.partners || [];
-            })(),
+        headline_sponsor_name: tableData.table.headline_sponsor_name || prev.headline_sponsor_name || '',
+        headline_sponsor_logo: tableData.table.headline_sponsor_logo || prev.headline_sponsor_logo || '',
+        headline_sponsor_url: tableData.table.headline_sponsor_url || prev.headline_sponsor_url || '',
+        headline_sponsor_tagline: tableData.table.headline_sponsor_tagline || prev.headline_sponsor_tagline || '',
+        partners: (() => {
+          if (tableData.table.partners_json) {
+            try {
+              const p = typeof tableData.table.partners_json === 'string' ? JSON.parse(tableData.table.partners_json) : tableData.table.partners_json;
+              if (Array.isArray(p) && p.length > 0) return p;
+            } catch (e) {}
+          }
+          if (Array.isArray(tableData.table.partners) && tableData.table.partners.length > 0) {
+            return tableData.table.partners;
+          }
+          if (tableData.table.headline_sponsor_name || tableData.table.headline_sponsor_logo) {
+            return [{
+              name: tableData.table.headline_sponsor_name || '',
+              role: tableData.table.headline_sponsor_tagline || 'Official Power Partner',
+              url: tableData.table.headline_sponsor_url || '',
+              logo: tableData.table.headline_sponsor_logo || ''
+            }];
+          }
+          return prev.partners || [];
+        })(),
         gemini_model: tableData.table.gemini_model || prev.gemini_model || 'auto',
         enable_colouring: tableData.table.enable_colouring !== undefined ? Boolean(tableData.table.enable_colouring) : prev.enable_colouring,
         public_slot_1: tableData.table.public_slot_1 !== undefined ? (tableData.table.public_slot_1 || '') : prev.public_slot_1,
         public_slot_2: tableData.table.public_slot_2 !== undefined ? (tableData.table.public_slot_2 || '') : prev.public_slot_2,
         expenses: tableData.table.expenses !== undefined ? tableData.table.expenses : (tableData.expenses !== undefined ? tableData.expenses : prev.expenses),
         expenses_json: tableData.table.expenses_json !== undefined ? tableData.table.expenses_json : (tableData.expenses_json !== undefined ? tableData.expenses_json : prev.expenses_json),
-        background_mode: hasUserChangedBgMode
-          ? prev.background_mode
-          : ((tableData.table.background_mode !== undefined && tableData.table.background_mode !== null && tableData.table.background_mode !== '')
-              ? tableData.table.background_mode
-              : (prev.background_mode || (typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${currentTableSlug}_bg_mode`) : null) || 'image')),
-        background_video_url: hasUserChangedBgMode
-          ? prev.background_video_url
-          : (tableData.table.background_video_url || prev.background_video_url || (typeof window !== 'undefined' ? (localStorage.getItem(`turbosanta_${currentTableSlug}_bg_video_url`) || localStorage.getItem(`turbosanta_${currentTableSlug}_bg_video`)) : null) || ''),
+        background_mode: (tableData.table.background_mode !== undefined && tableData.table.background_mode !== null && tableData.table.background_mode !== '')
+          ? tableData.table.background_mode
+          : (prev.background_mode || (typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${currentTableSlug}_bg_mode`) : null) || 'image'),
+        background_video_url: tableData.table.background_video_url || prev.background_video_url || (typeof window !== 'undefined' ? (localStorage.getItem(`turbosanta_${currentTableSlug}_bg_video_url`) || localStorage.getItem(`turbosanta_${currentTableSlug}_bg_video`)) : null) || '',
         background_url: prev.background_url !== undefined ? prev.background_url : (tableData.table.background_url || ''),
         gmail_connected_email: tableData.table.gmail_connected_email || prev.gmail_connected_email,
         notify_email_enabled: tableData.table.notify_email_enabled !== undefined ? Boolean(tableData.table.notify_email_enabled) : prev.notify_email_enabled,
@@ -811,7 +812,7 @@ ${tableName} Organizers`
         notify_passed_msg: tableData.table.notify_passed_msg || prev.notify_passed_msg || ''
       }));
     }
-  }, [tableData, hasUserChangedBgMode, hasUserChangedPartners, currentTableSlug]);
+  }, [tableData, currentTableSlug]);
 
   // Instant Save Ambient Background Mode & Video
   const handleSaveBackgroundSettings = async () => {
@@ -4647,8 +4648,11 @@ ${tableName} Organizers`
                 </label>
                 <input
                   type="text"
-                  value={formData.sleigh_display_name}
-                  onChange={(e) => setFormData({ ...formData, sleigh_display_name: e.target.value })}
+                  value={formData.sleigh_display_name || ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setFormData(prev => ({ ...prev, sleigh_display_name: val }));
+                  }}
                   style={{
                     width: '100%',
                     maxWidth: '100%',
@@ -4670,8 +4674,11 @@ ${tableName} Organizers`
                   </label>
                   <input
                     type="number"
-                    value={formData.fundraising_goal}
-                    onChange={(e) => setFormData({ ...formData, fundraising_goal: Number(e.target.value) })}
+                    value={formData.fundraising_goal !== undefined && formData.fundraising_goal !== null ? formData.fundraising_goal : ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData(prev => ({ ...prev, fundraising_goal: val === '' ? '' : Number(val) }));
+                    }}
                     style={{
                       width: '100%',
                       maxWidth: '100%',
@@ -4831,7 +4838,23 @@ ${tableName} Organizers`
                 label="Custom Table Logo (.png)"
                 currentImage={formData.logo_url}
                 tableSlug={currentTableSlug}
-                onImageSelected={(dataUrl) => setFormData(prev => ({ ...prev, logo_url: dataUrl }))}
+                onImageSelected={async (dataUrl) => {
+                  setFormData(prev => ({ ...prev, logo_url: dataUrl }));
+                  if (onUpdateTableData) {
+                    onUpdateTableData(prev => ({
+                      ...prev,
+                      table: { ...prev.table, logo_url: dataUrl }
+                    }));
+                  }
+                  setSaveStatus('Saving table logo to database...');
+                  const res = await saveTableSettings(currentTableSlug, { logo_url: dataUrl || null });
+                  if (res && res.ok) {
+                    setSaveStatus('✨ Custom table logo saved live to database!');
+                  } else {
+                    setSaveStatus('Table logo selected. Click Save Settings below to confirm.');
+                  }
+                  setTimeout(() => setSaveStatus(''), 4000);
+                }}
                 helperText="Drag and drop your official Table or Sleigh logo (No GitHub upload required!)."
               />
 
@@ -4840,7 +4863,23 @@ ${tableName} Organizers`
                 label="Custom Tracker Map Pin / Sleigh Marker (.png)"
                 currentImage={formData.sleigh_icon_live}
                 tableSlug={currentTableSlug}
-                onImageSelected={(dataUrl) => setFormData(prev => ({ ...prev, sleigh_icon_live: dataUrl }))}
+                onImageSelected={async (dataUrl) => {
+                  setFormData(prev => ({ ...prev, sleigh_icon_live: dataUrl }));
+                  if (onUpdateTableData) {
+                    onUpdateTableData(prev => ({
+                      ...prev,
+                      table: { ...prev.table, sleigh_icon_live: dataUrl }
+                    }));
+                  }
+                  setSaveStatus('Saving tracker pin to database...');
+                  const res = await saveTableSettings(currentTableSlug, { sleigh_icon_live: dataUrl || null });
+                  if (res && res.ok) {
+                    setSaveStatus('✨ Custom tracker pin logo saved live to database!');
+                  } else {
+                    setSaveStatus('Tracker pin selected. Click Save Settings below to confirm.');
+                  }
+                  setTimeout(() => setSaveStatus(''), 4000);
+                }}
                 helperText="Upload your custom Santa Sleigh or Table marker icon to appear live on the tracker map (defaults to official sleigh if empty)."
               />
 
@@ -6773,106 +6812,114 @@ ${tableName} Organizers`
               )}
 
               <div>
-                <button
-                  onClick={async () => {
-                    const tableSlug = session?.tableId || session?.tableSlug || tableData?.table?.slug || 'beverley';
-                    localStorage.setItem('custom_national_admin_emails', JSON.stringify(approvedEmails));
-                    const chosenGeminiModel = formData.gemini_model && formData.gemini_model.trim() ? formData.gemini_model.trim() : 'auto';
-                    localStorage.setItem('turbosanta_global_gemini_model', chosenGeminiModel);
-                    const validPartners = (formData.partners || []).filter(p => p && (p.name || p.logo || p.url));
-                    const partnersJson = validPartners.length > 0 ? JSON.stringify(validPartners) : null;
-                    const leadPartner = validPartners[0] || {};
-                    const payload = {
-                      sleigh_display_name: formData.sleigh_display_name,
-                      fundraising_goal: formData.fundraising_goal,
-                      expenses: Number(formData.expenses !== undefined ? formData.expenses : (tableData?.table?.expenses || 0)),
-                      expenses_json: formData.expenses_json || null,
-                      donate_url: formData.donate_url,
-                      logo_url: formData.logo_url,
-                      sleigh_icon_live: formData.sleigh_icon_live || null,
-                      website_url: formData.website_url || null,
-                      facebook_url: formData.facebook_url || null,
-                      instagram_url: formData.instagram_url || null,
-                      tiktok_url: formData.tiktok_url || null,
-                      primary_color: formData.primary_color,
-                      accent_color: formData.accent_color || (formData.primary_color === '#D31C1C' ? '#FBAF33' : '#D31C1C'),
-                      enable_gift_aid: formData.enable_gift_aid,
-                      charity_name: formData.charity_name,
-                      charity_number: formData.charity_number,
-                      partners_json: partnersJson,
-                      headline_sponsor_name: leadPartner.name || formData.headline_sponsor_name || null,
-                      headline_sponsor_logo: leadPartner.logo || formData.headline_sponsor_logo || null,
-                      headline_sponsor_url: leadPartner.url || formData.headline_sponsor_url || null,
-                      headline_sponsor_tagline: leadPartner.role || formData.headline_sponsor_tagline || null,
-                      gemini_model: chosenGeminiModel,
-                      public_slot_1: formData.public_slot_1 || '',
-                      public_slot_2: formData.public_slot_2 || '',
-                      enable_santa_chat: (formData.public_slot_1 === 'santa_chat' || formData.public_slot_2 === 'santa_chat') ? 1 : 0,
-                      enable_colouring: (formData.public_slot_1 === 'colouring' || formData.public_slot_2 === 'colouring') ? 1 : 0,
-                      approved_national_emails: approvedEmails,
-                      background_mode: formData.background_mode || 'image',
-                      background_video_url: formData.background_video_url || null,
-                      background_url: formData.background_url || null,
-                      notify_email_enabled: formData.notify_email_enabled ? 1 : 0,
-                      notify_radius_meters: Number(formData.notify_radius_meters || 250),
-                      pass_buffer_meters: Number(formData.pass_buffer_meters || 150),
-                      gmail_client_id: (formData.gmail_client_id && formData.gmail_client_id.trim()) ? formData.gmail_client_id.trim() : null,
-                      gmail_client_secret: (formData.gmail_client_secret && !formData.gmail_client_secret.includes('•') && formData.gmail_client_secret.trim()) ? formData.gmail_client_secret.trim() : undefined,
-                      notify_approaching_subject: formData.notify_approaching_subject || null,
-                      notify_approaching_msg: formData.notify_approaching_msg || null,
-                      notify_passed_subject: formData.notify_passed_subject || null,
-                      notify_passed_msg: formData.notify_passed_msg || null
-                    };
-
-                    try {
-                      localStorage.setItem(`turbosanta_${tableSlug}_bg_mode`, formData.background_mode || 'image');
-                      if (formData.background_video_url) {
-                        localStorage.setItem(`turbosanta_${tableSlug}_bg_video`, formData.background_video_url);
-                        localStorage.setItem(`turbosanta_${tableSlug}_bg_video_url`, formData.background_video_url);
-                      } else {
-                        localStorage.removeItem(`turbosanta_${tableSlug}_bg_video`);
-                        localStorage.removeItem(`turbosanta_${tableSlug}_bg_video_url`);
-                      }
-                    } catch (e) {}
-
-                    if (onUpdateTableData) {
-                      onUpdateTableData(prev => ({
-                        ...prev,
-                        expenses: Number(formData.expenses || 0),
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={async () => {
+                      const tableSlug = currentTableSlug || session?.tableId || session?.tableSlug || tableData?.table?.slug || 'beverley';
+                      localStorage.setItem('custom_national_admin_emails', JSON.stringify(approvedEmails));
+                      const chosenGeminiModel = formData.gemini_model && formData.gemini_model.trim() ? formData.gemini_model.trim() : 'auto';
+                      localStorage.setItem('turbosanta_global_gemini_model', chosenGeminiModel);
+                      const validPartners = (formData.partners || []).filter(p => p && (p.name || p.logo || p.url));
+                      const partnersJson = validPartners.length > 0 ? JSON.stringify(validPartners) : null;
+                      const leadPartner = validPartners[0] || {};
+                      const parsedGoal = (formData.fundraising_goal === '' || formData.fundraising_goal === undefined || formData.fundraising_goal === null) ? 0 : Number(formData.fundraising_goal);
+                      const payload = {
+                        sleigh_display_name: formData.sleigh_display_name,
+                        fundraising_goal: parsedGoal,
+                        expenses: Number(formData.expenses !== undefined ? formData.expenses : (tableData?.table?.expenses || 0)),
                         expenses_json: formData.expenses_json || null,
-                        partners: validPartners,
-                        table: {
-                          ...prev.table,
-                          ...payload,
-                          partners: validPartners,
-                          partners_json: partnersJson,
-                          notify_email_enabled: formData.notify_email_enabled,
-                          notify_radius_meters: formData.notify_radius_meters,
-                          pass_buffer_meters: formData.pass_buffer_meters,
-                          gmail_connected_email: formData.gmail_connected_email
-                        }
-                      }));
-                    }
+                        donate_url: formData.donate_url,
+                        logo_url: formData.logo_url,
+                        sleigh_icon_live: formData.sleigh_icon_live || null,
+                        website_url: formData.website_url || null,
+                        facebook_url: formData.facebook_url || null,
+                        instagram_url: formData.instagram_url || null,
+                        tiktok_url: formData.tiktok_url || null,
+                        primary_color: formData.primary_color,
+                        accent_color: formData.accent_color || (formData.primary_color === '#D31C1C' ? '#FBAF33' : '#D31C1C'),
+                        enable_gift_aid: formData.enable_gift_aid,
+                        charity_name: formData.charity_name,
+                        charity_number: formData.charity_number,
+                        partners_json: partnersJson,
+                        headline_sponsor_name: leadPartner.name || formData.headline_sponsor_name || null,
+                        headline_sponsor_logo: leadPartner.logo || formData.headline_sponsor_logo || null,
+                        headline_sponsor_url: leadPartner.url || formData.headline_sponsor_url || null,
+                        headline_sponsor_tagline: leadPartner.role || formData.headline_sponsor_tagline || null,
+                        gemini_model: chosenGeminiModel,
+                        public_slot_1: formData.public_slot_1 || '',
+                        public_slot_2: formData.public_slot_2 || '',
+                        enable_santa_chat: (formData.public_slot_1 === 'santa_chat' || formData.public_slot_2 === 'santa_chat') ? 1 : 0,
+                        enable_colouring: (formData.public_slot_1 === 'colouring' || formData.public_slot_2 === 'colouring') ? 1 : 0,
+                        approved_national_emails: approvedEmails,
+                        background_mode: formData.background_mode || 'image',
+                        background_video_url: formData.background_video_url || null,
+                        background_url: formData.background_url || null,
+                        notify_email_enabled: formData.notify_email_enabled ? 1 : 0,
+                        notify_radius_meters: Number(formData.notify_radius_meters || 250),
+                        pass_buffer_meters: Number(formData.pass_buffer_meters || 150),
+                        gmail_client_id: (formData.gmail_client_id && formData.gmail_client_id.trim()) ? formData.gmail_client_id.trim() : null,
+                        gmail_client_secret: (formData.gmail_client_secret && !formData.gmail_client_secret.includes('•') && formData.gmail_client_secret.trim()) ? formData.gmail_client_secret.trim() : undefined,
+                        notify_approaching_subject: formData.notify_approaching_subject || null,
+                        notify_approaching_msg: formData.notify_approaching_msg || null,
+                        notify_passed_subject: formData.notify_passed_subject || null,
+                        notify_passed_msg: formData.notify_passed_msg || null
+                      };
 
-                    setSaveStatus('Saving to database...');
-                    const res = await saveTableSettings(tableSlug, payload);
-                    if (res && res.ok) {
-                      setSaveStatus('Settings successfully saved to database!');
-                      setHasUserChangedBgMode(false);
-                      setHasUserChangedPartners(false);
-                    } else {
-                      const errMsg = res?.error || 'Database save failed';
-                      setSaveStatus(`Error saving: ${errMsg}`);
-                      alert(`Failed to save table settings to database:\n${errMsg}\n\nPlease check your admin connection or retry.`);
-                    }
-                    setTimeout(() => setSaveStatus(''), 4000);
-                  }}
-                  className="btn-primary"
-                  style={{ width: '100%', maxWidth: '250px' }}
-                >
-                  <Save size={18} />
-                  <span>Save Settings</span>
-                </button>
+                      try {
+                        localStorage.setItem(`turbosanta_${tableSlug}_bg_mode`, formData.background_mode || 'image');
+                        if (formData.background_video_url) {
+                          localStorage.setItem(`turbosanta_${tableSlug}_bg_video`, formData.background_video_url);
+                          localStorage.setItem(`turbosanta_${tableSlug}_bg_video_url`, formData.background_video_url);
+                        } else {
+                          localStorage.removeItem(`turbosanta_${tableSlug}_bg_video`);
+                          localStorage.removeItem(`turbosanta_${tableSlug}_bg_video_url`);
+                        }
+                      } catch (e) {}
+
+                      if (onUpdateTableData) {
+                        onUpdateTableData(prev => ({
+                          ...prev,
+                          expenses: Number(formData.expenses || 0),
+                          expenses_json: formData.expenses_json || null,
+                          partners: validPartners,
+                          table: {
+                            ...prev.table,
+                            ...payload,
+                            partners: validPartners,
+                            partners_json: partnersJson,
+                            notify_email_enabled: formData.notify_email_enabled,
+                            notify_radius_meters: formData.notify_radius_meters,
+                            pass_buffer_meters: formData.pass_buffer_meters,
+                            gmail_connected_email: formData.gmail_connected_email
+                          }
+                        }));
+                      }
+
+                      setSaveStatus('Saving to database...');
+                      const res = await saveTableSettings(tableSlug, payload);
+                      if (res && res.ok) {
+                        setSaveStatus('Settings successfully saved to database!');
+                        setHasUserChangedBgMode(false);
+                        setHasUserChangedPartners(false);
+                      } else {
+                        const errMsg = res?.error || 'Database save failed';
+                        setSaveStatus(`Error saving: ${errMsg}`);
+                        alert(`Failed to save table settings to database:\n${errMsg}\n\nPlease check your admin connection or retry.`);
+                      }
+                      setTimeout(() => setSaveStatus(''), 4000);
+                    }}
+                    className="btn-primary"
+                    style={{ width: '100%', maxWidth: '250px' }}
+                  >
+                    <Save size={18} />
+                    <span>Save Settings</span>
+                  </button>
+                  {saveStatus && (
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: saveStatus.includes('Error') ? '#ef4444' : '#22c55e' }}>
+                      {saveStatus}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* SUPPORTER PLEA: TUK TUK BUILD & SERVER HOSTING UPKEEP */}
