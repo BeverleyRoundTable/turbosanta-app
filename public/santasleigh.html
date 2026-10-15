@@ -1557,8 +1557,10 @@
 
         function safeUrl(u) {
             if (!u) return '';
+            const s = String(u).trim();
+            if (s.startsWith('data:image/') || s.startsWith('blob:')) return s;
             try {
-                const x = new URL(String(u).trim(), location.href);
+                const x = new URL(s, location.href);
                 return (x.protocol === 'https:' || x.protocol === 'http:') ? x.href : '';
             } catch (e) { return ''; }
         }
@@ -1785,9 +1787,17 @@
                 ''
             ).trim();
 
-            const bgMode = (apiMode && apiMode !== 'image')
+            // Database background_mode is the source of truth for the turnkey site
+            const bgMode = (apiMode !== '')
                 ? apiMode
-                : (localMode || (customVideo ? 'custom_video' : (apiMode || 'image')));
+                : (localMode || 'image');
+
+            // Sync client localStorage so stale overrides are cleared
+            try {
+                if (apiMode !== '') {
+                    localStorage.setItem(`turbosanta_${slug}_bg_mode`, bgMode);
+                }
+            } catch (e) {}
 
             const isCustomVideo = (bgMode === 'custom_video' || bgMode === 'custom-video' || bgMode === 'custom') && !!customVideo;
             const isDefaultVideo = bgMode === 'video' || bgMode === 'default_video' || bgMode === 'default-video' || ((bgMode === 'custom_video' || bgMode === 'custom') && !customVideo);
