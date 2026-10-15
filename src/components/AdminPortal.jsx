@@ -23,6 +23,7 @@ import KnowledgeBase from './KnowledgeBase';
 import CashBucketModal from './CashBucketModal';
 import PrintRouteSheetModal from './PrintRouteSheetModal';
 import PrintLanyardsModal from './PrintLanyardsModal';
+import VolunteerEmailModal from './VolunteerEmailModal';
 
 const OFFICIAL_GOOGLE_CLIENT_ID = "174929950272-ehpf04nea7ev4j8gfosq5acg6dvfmc95.apps.googleusercontent.com";
 
@@ -172,6 +173,13 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   const [volunteerSearch, setVolunteerSearch] = useState('');
   const [volunteerRouteFilter, setVolunteerRouteFilter] = useState('all');
   const [volunteerCopiedType, setVolunteerCopiedType] = useState(null); // 'emails' | 'phones'
+  const [isVolunteerEmailModalOpen, setIsVolunteerEmailModalOpen] = useState(false);
+  const [emailModalInitialRoute, setEmailModalInitialRoute] = useState('all');
+
+  const handleOpenVolunteerEmailModal = (routeName = 'all') => {
+    setEmailModalInitialRoute(routeName || volunteerRouteFilter || 'all');
+    setIsVolunteerEmailModalOpen(true);
+  };
 
   const fetchVolunteersList = async () => {
     const slug = currentTableSlug;
@@ -4076,7 +4084,7 @@ ${tableName} Organizers`
                       {/* Email All (Free Bcc) */}
                       <button
                         type="button"
-                        onClick={() => handleEmailAllVolunteers(filteredVolunteers, volunteerRouteFilter)}
+                        onClick={() => handleOpenVolunteerEmailModal(volunteerRouteFilter)}
                         disabled={filteredVolunteers.length === 0}
                         className="btn-primary"
                         style={{
@@ -4089,10 +4097,10 @@ ${tableName} Organizers`
                           color: '#000',
                           fontWeight: 700
                         }}
-                        title="Open mail client with all volunteer emails in Bcc (protects privacy)"
+                        title="Compose and broadcast email to route volunteers via official Google Workspace Gmail BCC"
                       >
                         <Mail size={14} />
-                        <span>Email {filteredVolunteers.length > 0 ? `(${filteredVolunteers.length})` : ''} via Free Bcc</span>
+                        <span>Email Volunteers {filteredVolunteers.length > 0 ? `(${filteredVolunteers.filter(v => getVolEmail(v).includes('@')).length})` : ''} via BCC</span>
                       </button>
 
                       {/* Copy Emails */}
@@ -7885,6 +7893,21 @@ ${tableName} Organizers`
         tableSlug={currentTableSlug}
         donateUrl={formData.donate_url}
         logoUrl={formData.logo_url}
+      />
+
+      {/* Volunteer Crew Email Composer Modal */}
+      <VolunteerEmailModal
+        isOpen={isVolunteerEmailModalOpen}
+        onClose={() => setIsVolunteerEmailModalOpen(false)}
+        volunteers={volunteers}
+        routes={tableData?.routes || []}
+        table={tableData?.table || formData}
+        currentTableSlug={currentTableSlug}
+        initialRouteName={emailModalInitialRoute}
+        onSuccess={() => {
+          setSaveStatus('📧 Broadcast successfully dispatched to volunteers via Google Workspace Gmail BCC!');
+          setTimeout(() => setSaveStatus(''), 5000);
+        }}
       />
     </div>
   );

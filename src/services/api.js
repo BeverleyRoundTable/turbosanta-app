@@ -672,5 +672,29 @@ export async function clearSubscribers(tableSlug = "beverley", explicitSecret = 
   }
 }
 
-
-
+// ==============================================================
+// 📧 VOLUNTEER EMAIL BROADCAST (VIA CONNECTED GMAIL OAUTH)
+// ==============================================================
+export async function sendVolunteerBroadcastEmail(tableSlug = "beverley", { routeName, subject, message, testOnly, testEmail }, explicitSecret = null) {
+  try {
+    const slug = (tableSlug || "beverley").toLowerCase().trim();
+    const token = explicitSecret || getAdminAuthToken(slug);
+    const res = await fetch(`${API_BASE}/api/volunteers/email?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(token)}`, {
+      method: "POST",
+      headers: getAuthHeaders(token, slug),
+      body: JSON.stringify({
+        routeName,
+        subject,
+        message,
+        testOnly: !!testOnly,
+        testEmail
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  } catch (err) {
+    console.error("sendVolunteerBroadcastEmail error:", err);
+    return { ok: false, error: err.message };
+  }
+}
