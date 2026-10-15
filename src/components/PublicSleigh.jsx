@@ -267,7 +267,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
   const storedVideoUrl = typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${activeTableSlug}_bg_video_url`) : null;
   const bgMode = table.background_mode || storedBgMode || 'image';
   const customVideoUrl = table.background_video_url || storedVideoUrl || '';
-  const isVideoEnabled = (bgMode === 'video' || bgMode === 'custom_video') && !prefersReducedMotion;
+  const isVideoEnabled = (bgMode === 'video' || bgMode === 'custom_video');
   const videoMp4 = (bgMode === 'custom_video' && customVideoUrl) ? customVideoUrl : DEFAULT_VIDEO_MP4;
   const videoWebm = (bgMode === 'custom_video' && table.background_video_webm) ? table.background_video_webm : (bgMode === 'custom_video' ? '' : DEFAULT_VIDEO_WEBM);
 
@@ -587,7 +587,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
           }}
         >
           {/* Ambient Video Background Layer in Hero Banner Only */}
-          {isVideoEnabled && !prefersReducedMotion && (
+          {isVideoEnabled && (
             <div style={{
               position: 'absolute',
               inset: 0,

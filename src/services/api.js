@@ -169,9 +169,19 @@ export function getTableFallback(tableSlug = "beverley") {
 
 export async function fetchTablePayload(tableSlug = "beverley") {
   try {
-    const res = await fetch(`${API_BASE}/api/payload?table=${encodeURIComponent(tableSlug)}&_t=${Date.now()}`, {
+    const slug = (tableSlug || "beverley").toLowerCase().trim();
+    let token = "";
+    try {
+      token = getAdminAuthToken(slug);
+    } catch (e) {}
+    const headers = { "Cache-Control": "no-cache, no-store" };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    const secretQuery = token ? `&secret=${encodeURIComponent(token)}` : "";
+    const res = await fetch(`${API_BASE}/api/payload?table=${encodeURIComponent(slug)}${secretQuery}&_t=${Date.now()}`, {
       cache: "no-store",
-      headers: { "Cache-Control": "no-cache, no-store" }
+      headers
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
@@ -544,16 +554,21 @@ export async function connectTableGmail(tableSlug = "beverley", code = "", clien
   try {
     const slug = (tableSlug || "beverley").toLowerCase().trim();
     const token = explicitSecret || getAdminAuthToken(slug);
+    const bodyPayload = {
+      code,
+      tableSlug: slug,
+      secret: token
+    };
+    if (clientSecret && !clientSecret.includes('•') && clientSecret.trim()) {
+      bodyPayload.client_secret = clientSecret.trim();
+    }
+    if (clientId && clientId.trim()) {
+      bodyPayload.client_id = clientId.trim();
+    }
     const res = await fetch(`${API_BASE}/api/auth/google-gmail-connect?table=${encodeURIComponent(slug)}`, {
       method: "POST",
       headers: getAuthHeaders(token, slug),
-      body: JSON.stringify({
-        code,
-        client_secret: clientSecret,
-        client_id: clientId,
-        tableSlug: slug,
-        secret: token
-      })
+      body: JSON.stringify(bodyPayload)
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);

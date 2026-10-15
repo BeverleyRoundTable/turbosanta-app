@@ -799,8 +799,8 @@ ${tableName} Organizers`
       return;
     }
 
-    const clientId = formData.gmail_client_id || import.meta.env.VITE_GOOGLE_CLIENT_ID || OFFICIAL_GOOGLE_CLIENT_ID;
-    const clientSecret = formData.gmail_client_secret || "";
+    const clientId = (formData.gmail_client_id && formData.gmail_client_id.trim()) || import.meta.env.VITE_GOOGLE_CLIENT_ID || OFFICIAL_GOOGLE_CLIENT_ID;
+    const clientSecret = (formData.gmail_client_secret && !formData.gmail_client_secret.includes('•') && formData.gmail_client_secret.trim()) ? formData.gmail_client_secret.trim() : "";
 
     setIsConnectingGmail(true);
     setGmailStatusMsg("Opening Google Workspace authorization popup...");
@@ -4776,8 +4776,88 @@ ${tableName} Organizers`
                   </div>
                 )}
 
-                {/* Default Image Status & Revert Helper */}
-                {!formData.background_url ? (
+                {/* Background Mode Status & Revert Helper */}
+                {formData.background_mode === 'video' ? (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    padding: '12px 16px',
+                    background: '#161614',
+                    border: '1px solid rgba(251, 175, 51, 0.4)',
+                    borderRadius: '8px',
+                    marginBottom: '14px',
+                    flexWrap: 'wrap'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{
+                        width: '60px',
+                        height: '40px',
+                        background: '#000',
+                        borderRadius: '4px',
+                        border: '1px solid var(--border)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '20px'
+                      }}>
+                        🎬
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>
+                          Default Festive Video Loop Active
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                          Playing official Santa Sleigh video loop in the public hero banner.
+                        </div>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '12px', color: '#86efac', fontWeight: 600 }}>
+                      ✓ Video Active
+                    </span>
+                  </div>
+                ) : formData.background_mode === 'custom_video' ? (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    padding: '12px 16px',
+                    background: '#161614',
+                    border: '1px solid rgba(251, 175, 51, 0.4)',
+                    borderRadius: '8px',
+                    marginBottom: '14px',
+                    flexWrap: 'wrap'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{
+                        width: '60px',
+                        height: '40px',
+                        background: '#000',
+                        borderRadius: '4px',
+                        border: '1px solid var(--border)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '20px'
+                      }}>
+                        📹
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>
+                          Custom Video Loop Active
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                          {formData.background_video_url || 'Enter custom .mp4 URL above.'}
+                        </div>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '12px', color: '#86efac', fontWeight: 600 }}>
+                      ✓ Custom Video Active
+                    </span>
+                  </div>
+                ) : !formData.background_url ? (
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -6283,8 +6363,8 @@ ${tableName} Organizers`
                       notify_email_enabled: formData.notify_email_enabled ? 1 : 0,
                       notify_radius_meters: Number(formData.notify_radius_meters || 250),
                       pass_buffer_meters: Number(formData.pass_buffer_meters || 150),
-                      gmail_client_id: formData.gmail_client_id || null,
-                      gmail_client_secret: formData.gmail_client_secret || null,
+                      gmail_client_id: (formData.gmail_client_id && formData.gmail_client_id.trim()) ? formData.gmail_client_id.trim() : null,
+                      gmail_client_secret: (formData.gmail_client_secret && !formData.gmail_client_secret.includes('•') && formData.gmail_client_secret.trim()) ? formData.gmail_client_secret.trim() : undefined,
                       notify_approaching_subject: formData.notify_approaching_subject || null,
                       notify_approaching_msg: formData.notify_approaching_msg || null,
                       notify_passed_subject: formData.notify_passed_subject || null,
