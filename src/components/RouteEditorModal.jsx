@@ -68,9 +68,19 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
   );
   const [isParsingGpx, setIsParsingGpx] = useState(false);
   const [isGpxDragging, setIsGpxDragging] = useState(false);
+  const lastOpenedRouteKeyRef = useRef(null);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      lastOpenedRouteKeyRef.current = null;
+      return;
+    }
+    const routeKey = route?.id ? `${route.id}_${route.isCopy ? 'copy' : 'edit'}` : 'new_route';
+    if (lastOpenedRouteKeyRef.current === routeKey) {
+      return; // RouteEditorModal is already open and initialized for this route session. Shield user edits from background prop churn!
+    }
+    lastOpenedRouteKeyRef.current = routeKey;
+
     const meta = extractRouteMeta(route);
     setSponsors(extractRouteSponsors(route));
     setFormData({

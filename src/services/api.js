@@ -462,25 +462,29 @@ export async function testSantaVoice(message = "When are you visiting our town?"
 export async function saveRoute(tableSlug = "beverley", route = {}, streets = [], explicitSecret = null) {
   try {
     const slug = (tableSlug || "beverley").toLowerCase().trim();
-    let token = explicitSecret;
-    if (!token || (!token.startsWith("ts2_") && !token.includes("beverley247"))) {
+    const session = getCurrentSession();
+    let token = explicitSecret || session?.token || session?.googleCredential;
+    if (!token || (!token.startsWith("ts2_") && !token.includes("beverley247") && !token.includes("."))) {
       token = getAdminAuthToken(slug);
     }
+
+    const bodyPayload = { route, streets, tableSlug: slug, table: slug, secret: token };
 
     let res = await fetch(`${API_BASE}/api/routes?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(token)}`, {
       method: "POST",
       headers: getAuthHeaders(token, slug),
-      body: JSON.stringify({ route, streets, secret: token })
+      body: JSON.stringify(bodyPayload)
     });
 
     // If 401 unauthorized, automatically self-heal and retry using fresh table admin token
     if (res.status === 401) {
       console.warn("Retrying saveRoute with fresh table admin token...");
       const healToken = getAdminAuthToken(slug);
+      bodyPayload.secret = healToken;
       res = await fetch(`${API_BASE}/api/routes?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(healToken)}`, {
         method: "POST",
         headers: getAuthHeaders(healToken, slug),
-        body: JSON.stringify({ route, streets, secret: healToken })
+        body: JSON.stringify(bodyPayload)
       });
     }
 
@@ -498,8 +502,9 @@ export async function saveRoute(tableSlug = "beverley", route = {}, streets = []
 export async function deleteRoute(tableSlug = "beverley", routeId = "", explicitSecret = null) {
   try {
     const slug = (tableSlug || "beverley").toLowerCase().trim();
-    let token = explicitSecret;
-    if (!token || (!token.startsWith("ts2_") && !token.includes("beverley247"))) {
+    const session = getCurrentSession();
+    let token = explicitSecret || session?.token || session?.googleCredential;
+    if (!token || (!token.startsWith("ts2_") && !token.includes("beverley247") && !token.includes("."))) {
       token = getAdminAuthToken(slug);
     }
 

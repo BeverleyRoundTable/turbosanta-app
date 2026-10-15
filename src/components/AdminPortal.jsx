@@ -1423,7 +1423,7 @@ ${tableName} Organizers`
     }
 
     // 2. Persist to Cloudflare D1
-    const authSecret = getAdminAuthToken(currentTableSlug);
+    const authSecret = session?.token || session?.googleCredential || getAdminAuthToken(currentTableSlug);
     const res = await saveRoute(currentTableSlug, savedRoute, streetsArray, authSecret);
     if (res.ok) {
       setSaveStatus(`✓ Route "${savedRoute.name}" saved to D1 database!`);
@@ -1490,7 +1490,7 @@ ${tableName} Organizers`
       }));
     }
 
-    const authSecret = getAdminAuthToken(currentTableSlug);
+    const authSecret = session?.token || session?.googleCredential || getAdminAuthToken(currentTableSlug);
     const res = await deleteRoute(currentTableSlug, routeId, authSecret);
     if (res.ok) {
       setSaveStatus('✓ Route deleted from D1 database.');
