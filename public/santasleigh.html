@@ -477,11 +477,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #ffffff;
+            background: transparent;
             border-radius: 10px;
             overflow: hidden;
             flex-shrink: 0;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            box-shadow: none;
         }
         .partner-logo-box img {
             display: block;
@@ -3341,7 +3341,7 @@
                                 logoBox.target = '_blank';
                                 logoBox.rel = 'noopener noreferrer';
                             }
-                            logoBox.style.cssText = 'display: inline-flex; align-items: center; justify-content: center; background: #ffffff; border-radius: 10px; padding: 6px 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); flex-shrink: 0; text-decoration: none;';
+                            logoBox.style.cssText = 'display: inline-flex; align-items: center; justify-content: center; background: transparent; border-radius: 10px; padding: 4px 6px; box-shadow: none; flex-shrink: 0; text-decoration: none;';
                             const img = document.createElement('img');
                             img.src = pLogo;
                             img.alt = pName ? `${pName} logo` : 'Partner logo';

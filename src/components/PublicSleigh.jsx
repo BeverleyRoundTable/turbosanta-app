@@ -819,12 +819,12 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          background: '#ffffff',
+                          background: 'transparent',
                           borderRadius: isMulti ? '8px' : '10px',
                           overflow: 'hidden',
                           flexShrink: 0,
                           padding: isSingle ? '8px 14px' : (isMulti ? '4px 8px' : '6px 12px'),
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                          boxShadow: 'none'
                         }}>
                           <img
                             src={pLogo}
@@ -1375,10 +1375,10 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            background: '#ffffff',
+                            background: 'transparent',
                             borderRadius: '10px',
-                            padding: '6px 12px',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                            padding: '4px 6px',
+                            boxShadow: 'none',
                             flexShrink: 0
                           }}>
                             {pUrl ? (
