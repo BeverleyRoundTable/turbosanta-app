@@ -842,7 +842,10 @@ ${tableName} Organizers`
                 setGmailStatusMsg(`✅ Successfully connected to ${res.connected_email}!`);
                 confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
               } else {
-                setGmailStatusMsg(`❌ Connection failed: ${res?.error || 'Unknown error'}`);
+                const errMsg = res?.error === 'Endpoint not found'
+                  ? 'Cloudflare Worker update required: Please paste worker/index.js into your Cloudflare Dashboard (turbosanta-api > Quick Edit > Deploy) to activate the Gmail connect endpoint.'
+                  : (res?.error || 'Unknown error');
+                setGmailStatusMsg(`❌ Connection failed: ${errMsg}`);
               }
             } catch (err) {
               setGmailStatusMsg(`❌ Error: ${err.message}`);
