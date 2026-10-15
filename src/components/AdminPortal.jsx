@@ -721,9 +721,16 @@ ${tableName} Organizers`
   const [hasUserChangedBgMode, setHasUserChangedBgMode] = useState(false);
   const [isSavingBg, setIsSavingBg] = useState(false);
   const [bgSaveToast, setBgSaveToast] = useState('');
+  const [hasUserChangedPartners, setHasUserChangedPartners] = useState(false);
+  const lastLoadedSlugRef = React.useRef(null);
 
   // Automatically synchronize formData with live tableData when loaded
   React.useEffect(() => {
+    if (lastLoadedSlugRef.current !== currentTableSlug) {
+      lastLoadedSlugRef.current = currentTableSlug;
+      setHasUserChangedPartners(false);
+      setHasUserChangedBgMode(false);
+    }
     if (tableData?.table) {
       setFormData(prev => ({
         ...prev,
@@ -743,30 +750,32 @@ ${tableName} Organizers`
         enable_gift_aid: tableData.table.enable_gift_aid !== undefined ? Boolean(tableData.table.enable_gift_aid) : prev.enable_gift_aid,
         charity_name: tableData.table.charity_name || prev.charity_name,
         charity_number: tableData.table.charity_number !== undefined ? (tableData.table.charity_number || '') : prev.charity_number,
-        headline_sponsor_name: tableData.table.headline_sponsor_name || prev.headline_sponsor_name || '',
-        headline_sponsor_logo: tableData.table.headline_sponsor_logo || prev.headline_sponsor_logo || '',
-        headline_sponsor_url: tableData.table.headline_sponsor_url || prev.headline_sponsor_url || '',
-        headline_sponsor_tagline: tableData.table.headline_sponsor_tagline || prev.headline_sponsor_tagline || '',
-        partners: (() => {
-          if (tableData.table.partners_json) {
-            try {
-              const p = typeof tableData.table.partners_json === 'string' ? JSON.parse(tableData.table.partners_json) : tableData.table.partners_json;
-              if (Array.isArray(p) && p.length > 0) return p;
-            } catch (e) {}
-          }
-          if (Array.isArray(tableData.table.partners) && tableData.table.partners.length > 0) {
-            return tableData.table.partners;
-          }
-          if (tableData.table.headline_sponsor_name || tableData.table.headline_sponsor_logo) {
-            return [{
-              name: tableData.table.headline_sponsor_name || '',
-              role: tableData.table.headline_sponsor_tagline || 'Official Power Partner',
-              url: tableData.table.headline_sponsor_url || '',
-              logo: tableData.table.headline_sponsor_logo || ''
-            }];
-          }
-          return prev.partners || [];
-        })(),
+        headline_sponsor_name: hasUserChangedPartners ? prev.headline_sponsor_name : (tableData.table.headline_sponsor_name || prev.headline_sponsor_name || ''),
+        headline_sponsor_logo: hasUserChangedPartners ? prev.headline_sponsor_logo : (tableData.table.headline_sponsor_logo || prev.headline_sponsor_logo || ''),
+        headline_sponsor_url: hasUserChangedPartners ? prev.headline_sponsor_url : (tableData.table.headline_sponsor_url || prev.headline_sponsor_url || ''),
+        headline_sponsor_tagline: hasUserChangedPartners ? prev.headline_sponsor_tagline : (tableData.table.headline_sponsor_tagline || prev.headline_sponsor_tagline || ''),
+        partners: hasUserChangedPartners
+          ? prev.partners
+          : (() => {
+              if (tableData.table.partners_json) {
+                try {
+                  const p = typeof tableData.table.partners_json === 'string' ? JSON.parse(tableData.table.partners_json) : tableData.table.partners_json;
+                  if (Array.isArray(p) && p.length > 0) return p;
+                } catch (e) {}
+              }
+              if (Array.isArray(tableData.table.partners) && tableData.table.partners.length > 0) {
+                return tableData.table.partners;
+              }
+              if (tableData.table.headline_sponsor_name || tableData.table.headline_sponsor_logo) {
+                return [{
+                  name: tableData.table.headline_sponsor_name || '',
+                  role: tableData.table.headline_sponsor_tagline || 'Official Power Partner',
+                  url: tableData.table.headline_sponsor_url || '',
+                  logo: tableData.table.headline_sponsor_logo || ''
+                }];
+              }
+              return prev.partners || [];
+            })(),
         gemini_model: tableData.table.gemini_model || prev.gemini_model || 'auto',
         enable_colouring: tableData.table.enable_colouring !== undefined ? Boolean(tableData.table.enable_colouring) : prev.enable_colouring,
         public_slot_1: tableData.table.public_slot_1 !== undefined ? (tableData.table.public_slot_1 || '') : prev.public_slot_1,
@@ -794,7 +803,7 @@ ${tableName} Organizers`
         notify_passed_msg: tableData.table.notify_passed_msg || prev.notify_passed_msg || ''
       }));
     }
-  }, [tableData, hasUserChangedBgMode]);
+  }, [tableData, hasUserChangedBgMode, hasUserChangedPartners, currentTableSlug]);
 
   // Instant Save Ambient Background Mode & Video
   const handleSaveBackgroundSettings = async () => {
@@ -906,19 +915,39 @@ ${tableName} Organizers`
 
   // Official Partners & Sponsors (Partnered With) Handlers
   const handleAddPartner = () => {
+    setHasUserChangedPartners(true);
     setFormData(prev => {
+      let currentPartners = prev.partners;
+      if (!currentPartners || currentPartners.length === 0) {
+        if (prev.headline_sponsor_name || prev.headline_sponsor_logo) {
+          currentPartners = [{
+            name: prev.headline_sponsor_name || '',
+            role: prev.headline_sponsor_tagline || 'Official Power Partner',
+            url: prev.headline_sponsor_url || '',
+            logo: prev.headline_sponsor_logo || ''
+          }];
+        } else {
+          currentPartners = [];
+        }
+      }
       const nextPartners = [
-        ...(prev.partners || []),
-        { name: '', role: (prev.partners || []).length === 0 ? 'Official Power Partner' : 'Official Partner', url: '', logo: '' }
+        ...currentPartners,
+        { name: '', role: currentPartners.length === 0 ? 'Official Power Partner' : 'Official Partner', url: '', logo: '' }
       ];
+      const lead = nextPartners[0] || {};
       return {
         ...prev,
-        partners: nextPartners
+        partners: nextPartners,
+        headline_sponsor_name: lead.name || prev.headline_sponsor_name || '',
+        headline_sponsor_tagline: lead.role || prev.headline_sponsor_tagline || '',
+        headline_sponsor_url: lead.url || prev.headline_sponsor_url || '',
+        headline_sponsor_logo: lead.logo || prev.headline_sponsor_logo || ''
       };
     });
   };
 
   const handleUpdatePartner = (index, field, value) => {
+    setHasUserChangedPartners(true);
     setFormData(prev => {
       const nextPartners = [...(prev.partners || [])];
       nextPartners[index] = { ...nextPartners[index], [field]: value };
@@ -935,6 +964,7 @@ ${tableName} Organizers`
   };
 
   const handleRemovePartner = (index) => {
+    setHasUserChangedPartners(true);
     setFormData(prev => {
       const nextPartners = (prev.partners || []).filter((_, i) => i !== index);
       const lead = nextPartners[0] || {};
@@ -6802,9 +6832,12 @@ ${tableName} Organizers`
                         ...prev,
                         expenses: Number(formData.expenses || 0),
                         expenses_json: formData.expenses_json || null,
+                        partners: validPartners,
                         table: {
                           ...prev.table,
                           ...payload,
+                          partners: validPartners,
+                          partners_json: partnersJson,
                           notify_email_enabled: formData.notify_email_enabled,
                           notify_radius_meters: formData.notify_radius_meters,
                           pass_buffer_meters: formData.pass_buffer_meters,
@@ -6818,6 +6851,7 @@ ${tableName} Organizers`
                     if (res && res.ok) {
                       setSaveStatus('Settings successfully saved to database!');
                       setHasUserChangedBgMode(false);
+                      setHasUserChangedPartners(false);
                     } else {
                       const errMsg = res?.error || 'Database save failed';
                       setSaveStatus(`Error saving: ${errMsg}`);
