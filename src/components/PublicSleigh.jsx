@@ -9,7 +9,7 @@ const DEFAULT_LOGO = '/icons/RTBI_Santa.png';
 const DEFAULT_BG = '/icons/site_background.png';
 const DEFAULT_VIDEO_MP4 = '/media/santa.mp4';
 const DEFAULT_VIDEO_WEBM = '/media/santa.webm';
-const BG_OVERLAY = 'linear-gradient(180deg, rgba(29, 29, 26, 0.85) 0%, rgba(0, 0, 0, 0.95) 100%)';
+const BG_OVERLAY = 'linear-gradient(180deg, rgba(29, 29, 26, 0.55) 0%, rgba(0, 0, 0, 0.8) 100%)';
 
 function parseColor(v) {
   if (typeof v !== 'string') return null;
@@ -286,7 +286,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
   const operatorTableName = getOperatorTableName(table, activeTableSlug);
   const siteName = table.sleigh_display_name || `${operatorTableName} Santa Sleigh`;
   const logoUrl = table.logo_url || DEFAULT_LOGO;
-  const bgImage = table.background_url || DEFAULT_BG;
+  const bgImage = (table.background_url && table.background_url.trim()) ? table.background_url.trim() : DEFAULT_BG;
 
   // Ambient Video Settings (Default festive Santa video or custom upload)
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
@@ -302,9 +302,9 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
   const storedBgMode = typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${activeTableSlug}_bg_mode`) : null;
   const storedVideoUrl = typeof window !== 'undefined' ? (localStorage.getItem(`turbosanta_${activeTableSlug}_bg_video_url`) || localStorage.getItem(`turbosanta_${activeTableSlug}_bg_video`)) : null;
   const customVideoUrl = table.background_video_url || storedVideoUrl || '';
-  const bgMode = (table.background_mode && table.background_mode !== 'image')
+  const bgMode = (table.background_mode !== undefined && table.background_mode !== null && table.background_mode !== '')
     ? table.background_mode
-    : (storedBgMode || (customVideoUrl ? 'custom_video' : (table.background_mode || 'image')));
+    : (storedBgMode || 'image');
   const isVideoEnabled = (bgMode === 'video' || bgMode === 'custom_video');
   const videoMp4 = (bgMode === 'custom_video' && customVideoUrl) ? customVideoUrl : DEFAULT_VIDEO_MP4;
   const videoWebm = (bgMode === 'custom_video' && table.background_video_webm) ? table.background_video_webm : (bgMode === 'custom_video' ? '' : DEFAULT_VIDEO_WEBM);

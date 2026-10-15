@@ -670,9 +670,9 @@ ${tableName} Organizers`
     public_slot_2: tableData?.table?.public_slot_2 || (tableData?.table?.enable_colouring ? 'colouring' : '') || '',
     expenses: tableData?.table?.expenses !== undefined ? tableData?.table?.expenses : (tableData?.expenses !== undefined ? tableData?.expenses : 0),
     expenses_json: tableData?.table?.expenses_json || tableData?.expenses_json || null,
-    background_mode: (tableData?.table?.background_mode && tableData?.table?.background_mode !== 'image')
+    background_mode: (tableData?.table?.background_mode !== undefined && tableData?.table?.background_mode !== null && tableData?.table?.background_mode !== '')
       ? tableData.table.background_mode
-      : ((typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${currentTableSlug}_bg_mode`) : null) || (tableData?.table?.background_video_url ? 'custom_video' : (tableData?.table?.background_mode || 'image'))),
+      : ((typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${currentTableSlug}_bg_mode`) : null) || 'image'),
     background_video_url: tableData?.table?.background_video_url || (typeof window !== 'undefined' ? (localStorage.getItem(`turbosanta_${currentTableSlug}_bg_video_url`) || localStorage.getItem(`turbosanta_${currentTableSlug}_bg_video`)) : null) || '',
     background_url: tableData?.table?.background_url || '',
     // Live Proximity Alerts (Notify Me Engine)
@@ -735,13 +735,9 @@ ${tableName} Organizers`
         expenses_json: tableData.table.expenses_json !== undefined ? tableData.table.expenses_json : (tableData.expenses_json !== undefined ? tableData.expenses_json : prev.expenses_json),
         background_mode: hasUserChangedBgMode
           ? prev.background_mode
-          : ((tableData.table.background_mode && tableData.table.background_mode !== 'image')
+          : ((tableData.table.background_mode !== undefined && tableData.table.background_mode !== null && tableData.table.background_mode !== '')
               ? tableData.table.background_mode
-              : (prev.background_mode && prev.background_mode !== 'image'
-                  ? prev.background_mode
-                  : (tableData.table.background_video_url
-                      ? 'custom_video'
-                      : (typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${currentTableSlug}_bg_mode`) : null) || tableData.table.background_mode || 'image'))),
+              : (prev.background_mode || (typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${currentTableSlug}_bg_mode`) : null) || 'image')),
         background_video_url: hasUserChangedBgMode
           ? prev.background_video_url
           : (tableData.table.background_video_url || prev.background_video_url || (typeof window !== 'undefined' ? (localStorage.getItem(`turbosanta_${currentTableSlug}_bg_video_url`) || localStorage.getItem(`turbosanta_${currentTableSlug}_bg_video`)) : null) || ''),
@@ -766,22 +762,23 @@ ${tableName} Organizers`
     setIsSavingBg(true);
     setBgSaveToast('Saving ambient background...');
 
+    const chosenMode = formData.background_mode || 'image';
     const payload = {
       ...formData,
-      background_mode: formData.background_mode || 'image',
+      background_mode: chosenMode,
       background_video_url: formData.background_video_url || null,
       background_url: formData.background_url || null
     };
 
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem(`turbosanta_${tableSlug}_bg_mode`, formData.background_mode || 'image');
+        localStorage.setItem(`turbosanta_${tableSlug}_bg_mode`, chosenMode);
+        localStorage.setItem(`turbosanta_${currentTableSlug}_bg_mode`, chosenMode);
         if (formData.background_video_url) {
           localStorage.setItem(`turbosanta_${tableSlug}_bg_video`, formData.background_video_url);
           localStorage.setItem(`turbosanta_${tableSlug}_bg_video_url`, formData.background_video_url);
-        } else {
-          localStorage.removeItem(`turbosanta_${tableSlug}_bg_video`);
-          localStorage.removeItem(`turbosanta_${tableSlug}_bg_video_url`);
+          localStorage.setItem(`turbosanta_${currentTableSlug}_bg_video`, formData.background_video_url);
+          localStorage.setItem(`turbosanta_${currentTableSlug}_bg_video_url`, formData.background_video_url);
         }
       } catch (e) {}
     }
@@ -791,7 +788,7 @@ ${tableName} Organizers`
         ...prev,
         table: {
           ...prev?.table,
-          background_mode: formData.background_mode || 'image',
+          background_mode: chosenMode,
           background_video_url: formData.background_video_url || null,
           background_url: formData.background_url || null
         }
@@ -4764,7 +4761,11 @@ ${tableName} Organizers`
                         onChange={() => {
                           setFormData(prev => ({ ...prev, background_mode: 'image' }));
                           setHasUserChangedBgMode(true);
-                          if (typeof window !== 'undefined') localStorage.setItem(`turbosanta_${currentTableSlug}_bg_mode`, 'image');
+                          if (typeof window !== 'undefined') {
+                            localStorage.setItem(`turbosanta_${currentTableSlug}_bg_mode`, 'image');
+                            const slug = session?.tableId || session?.tableSlug || tableData?.table?.slug || currentTableSlug || 'beverley';
+                            localStorage.setItem(`turbosanta_${slug}_bg_mode`, 'image');
+                          }
                         }}
                       />
                       <span style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>🖼️ Static Image (Default)</span>
@@ -4795,7 +4796,11 @@ ${tableName} Organizers`
                         onChange={() => {
                           setFormData(prev => ({ ...prev, background_mode: 'video' }));
                           setHasUserChangedBgMode(true);
-                          if (typeof window !== 'undefined') localStorage.setItem(`turbosanta_${currentTableSlug}_bg_mode`, 'video');
+                          if (typeof window !== 'undefined') {
+                            localStorage.setItem(`turbosanta_${currentTableSlug}_bg_mode`, 'video');
+                            const slug = session?.tableId || session?.tableSlug || tableData?.table?.slug || currentTableSlug || 'beverley';
+                            localStorage.setItem(`turbosanta_${slug}_bg_mode`, 'video');
+                          }
                         }}
                       />
                       <span style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>🎅 Default Video</span>
@@ -4826,7 +4831,11 @@ ${tableName} Organizers`
                         onChange={() => {
                           setFormData(prev => ({ ...prev, background_mode: 'custom_video' }));
                           setHasUserChangedBgMode(true);
-                          if (typeof window !== 'undefined') localStorage.setItem(`turbosanta_${currentTableSlug}_bg_mode`, 'custom_video');
+                          if (typeof window !== 'undefined') {
+                            localStorage.setItem(`turbosanta_${currentTableSlug}_bg_mode`, 'custom_video');
+                            const slug = session?.tableId || session?.tableSlug || tableData?.table?.slug || currentTableSlug || 'beverley';
+                            localStorage.setItem(`turbosanta_${slug}_bg_mode`, 'custom_video');
+                          }
                         }}
                       />
                       <span style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>📹 Custom Video (.mp4)</span>
@@ -5041,7 +5050,10 @@ ${tableName} Organizers`
                     </div>
                     <button
                       type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, background_url: '', background_mode: 'image' }))}
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, background_url: '', background_mode: 'image' }));
+                        setHasUserChangedBgMode(true);
+                      }}
                       style={{
                         background: 'rgba(251, 175, 51, 0.1)',
                         border: '1px solid var(--primary)',
@@ -5067,8 +5079,13 @@ ${tableName} Organizers`
                   currentImage={formData.background_url}
                   tableSlug={currentTableSlug}
                   onImageSelected={(dataUrl) => {
-                    setFormData(prev => ({ ...prev, background_url: dataUrl }));
+                    setFormData(prev => ({ ...prev, background_url: dataUrl, background_mode: 'image' }));
                     setHasUserChangedBgMode(true);
+                    if (typeof window !== 'undefined') {
+                      localStorage.setItem(`turbosanta_${currentTableSlug}_bg_mode`, 'image');
+                      const slug = session?.tableId || session?.tableSlug || tableData?.table?.slug || currentTableSlug || 'beverley';
+                      localStorage.setItem(`turbosanta_${slug}_bg_mode`, 'image');
+                    }
                   }}
                   helperText="Leave empty to use the default background image."
                 />
