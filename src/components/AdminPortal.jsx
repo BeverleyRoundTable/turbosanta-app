@@ -5923,7 +5923,7 @@ ${tableName} Organizers`
                       1. Open <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Google Cloud Console &gt; Credentials</a>.<br/>
                       2. Under <strong>OAuth 2.0 Client IDs</strong>, click your <strong>Web application</strong> client.<br/>
                       3. Copy the <strong>Client ID</strong> and <strong>Client Secret</strong> (usually starts with <code>GOCSPX-</code>) and paste them above.<br/>
-                      4. Under <strong>Authorized JavaScript origins</strong>, ensure <code>https://turbosanta-app.pages.dev</code> and your domain are listed.<br/>
+                      4. Under <strong>Authorized JavaScript origins</strong>, add <code>https://roundtablesantasleigh.co.uk</code>, <code>https://www.roundtablesantasleigh.co.uk</code>, and <code>https://turbosanta-app.pages.dev</code> (Google forbids wildcards <code>*</code>, but because the admin portal always runs on the main domain, town subdomains are not needed).<br/>
                       <em>Note: Individual table users do not need to generate tokens manually; clicking <strong>Connect Table Gmail</strong> generates and links the refresh token automatically.</em>
                     </div>
                   </div>
