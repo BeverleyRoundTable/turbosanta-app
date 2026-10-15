@@ -2628,11 +2628,43 @@
             });
         }
 
+        function getOperatorTableName(settings, slug) {
+            const activeSlug = (slug || (settings && settings.slug) || window.__sleighTableSlug || '').trim();
+            const townFromSlug = activeSlug
+                ? activeSlug
+                    .split(/[-_]+/)
+                    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+                    .join(' ')
+                : '';
+
+            let raw = ((settings && (settings.table_name || settings.name)) || '').trim();
+            if (raw) {
+                let cleaned = raw
+                    .replace(/\s*[-–—:]\s*santa(?:['\u2019]s)?\s*sleigh.*$/i, '')
+                    .replace(/\s+santa(?:['\u2019]s)?\s*sleigh.*$/i, '')
+                    .replace(/\s+santa(?:['\u2019]s)?.*$/i, '')
+                    .replace(/\s+sleigh.*$/i, '')
+                    .trim();
+
+                if (cleaned) {
+                    if (!/\bround\s+table\b/i.test(cleaned)) {
+                        cleaned = cleaned + ' Round Table';
+                    }
+                    return cleaned;
+                }
+            }
+
+            if (townFromSlug) {
+                return townFromSlug + ' Round Table';
+            }
+
+            return 'Round Table';
+        }
+
         function renderAbout(settings) {
-            const siteName = String(settings.sleigh_display_name || 'Santa Sleigh');
-            const explicit = settings.table_name ? String(settings.table_name).trim() : '';
-            const derived = deriveTableName(siteName);
-            $('about-table-name').textContent = explicit || (derived ? derived + ' Round Table' : siteName);
+            const operatorName = getOperatorTableName(settings, window.__sleighTableSlug);
+            const aboutEl = $('about-table-name');
+            if (aboutEl) aboutEl.textContent = operatorName;
         }
 
         function socialBtn(href, label, iconClass) {

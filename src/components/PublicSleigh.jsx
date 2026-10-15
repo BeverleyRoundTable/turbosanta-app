@@ -239,6 +239,40 @@ export const PUBLIC_FEATURE_CATALOG = {
   }
 };
 
+export function getOperatorTableName(table = {}, slug = '') {
+  const activeSlug = (slug || table.slug || '').trim();
+  const townFromSlug = activeSlug
+    ? activeSlug
+        .split(/[-_]+/)
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ')
+    : '';
+
+  let raw = (table.table_name || table.name || '').trim();
+
+  if (raw) {
+    let cleaned = raw
+      .replace(/\s*[-–—:]\s*santa(?:['\u2019]s)?\s*sleigh.*$/i, '')
+      .replace(/\s+santa(?:['\u2019]s)?\s*sleigh.*$/i, '')
+      .replace(/\s+santa(?:['\u2019]s)?.*$/i, '')
+      .replace(/\s+sleigh.*$/i, '')
+      .trim();
+
+    if (cleaned) {
+      if (!/\bround\s+table\b/i.test(cleaned)) {
+        cleaned = `${cleaned} Round Table`;
+      }
+      return cleaned;
+    }
+  }
+
+  if (townFromSlug) {
+    return `${townFromSlug} Round Table`;
+  }
+
+  return 'Round Table';
+}
+
 export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }) {
   const [addressFrameHeight, setAddressFrameHeight] = useState(500);
   const [showFab, setShowFab] = useState(false);
@@ -249,7 +283,8 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
   const primaryRgb = parseColor(primaryColor);
   const onPrimaryColor = readableTextOn(primaryRgb);
 
-  const siteName = table.sleigh_display_name || (table.name ? `${table.name} Santa Sleigh` : 'Santa Sleigh');
+  const operatorTableName = getOperatorTableName(table, activeTableSlug);
+  const siteName = table.sleigh_display_name || `${operatorTableName} Santa Sleigh`;
   const logoUrl = table.logo_url || DEFAULT_LOGO;
   const bgImage = table.background_url || DEFAULT_BG;
 
@@ -1442,7 +1477,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
             boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
           }}>
             <p style={{ fontSize: '18px', marginBottom: '20px' }}>
-              The Santa Sleigh is proudly operated by <strong style={{ color: 'var(--primary)' }}>{table.name || 'Round Table'}</strong>.
+              The Santa Sleigh is proudly operated by <strong style={{ color: 'var(--primary)' }}>{operatorTableName}</strong>.
             </p>
             <p style={{ marginBottom: '20px', color: 'var(--text-muted)', lineHeight: 1.7 }}>
               Round Table is an events-based club for young men aged 18-45 focused on delivering a programme of social and community events. Whether it be trying a new sport, going on an adventure, or raising money for our communities, we aim to have fun, make friends, and live life to the fullest.
