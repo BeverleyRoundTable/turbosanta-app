@@ -664,6 +664,26 @@ ${tableName} Organizers`
     headline_sponsor_logo: tableData?.table?.headline_sponsor_logo || '',
     headline_sponsor_url: tableData?.table?.headline_sponsor_url || '',
     headline_sponsor_tagline: tableData?.table?.headline_sponsor_tagline || '',
+    partners: (() => {
+      if (tableData?.table?.partners_json) {
+        try {
+          const p = typeof tableData.table.partners_json === 'string' ? JSON.parse(tableData.table.partners_json) : tableData.table.partners_json;
+          if (Array.isArray(p) && p.length > 0) return p;
+        } catch (e) {}
+      }
+      if (Array.isArray(tableData?.table?.partners) && tableData.table.partners.length > 0) {
+        return tableData.table.partners;
+      }
+      if (tableData?.table?.headline_sponsor_name || tableData?.table?.headline_sponsor_logo) {
+        return [{
+          name: tableData.table.headline_sponsor_name || '',
+          role: tableData.table.headline_sponsor_tagline || 'Official Power Partner',
+          url: tableData.table.headline_sponsor_url || '',
+          logo: tableData.table.headline_sponsor_logo || ''
+        }];
+      }
+      return [];
+    })(),
     gemini_model: tableData?.table?.gemini_model || localStorage.getItem('turbosanta_global_gemini_model') || 'auto',
     enable_colouring: Boolean(tableData?.table?.enable_colouring),
     public_slot_1: tableData?.table?.public_slot_1 || '',
@@ -727,6 +747,26 @@ ${tableName} Organizers`
         headline_sponsor_logo: tableData.table.headline_sponsor_logo || prev.headline_sponsor_logo || '',
         headline_sponsor_url: tableData.table.headline_sponsor_url || prev.headline_sponsor_url || '',
         headline_sponsor_tagline: tableData.table.headline_sponsor_tagline || prev.headline_sponsor_tagline || '',
+        partners: (() => {
+          if (tableData.table.partners_json) {
+            try {
+              const p = typeof tableData.table.partners_json === 'string' ? JSON.parse(tableData.table.partners_json) : tableData.table.partners_json;
+              if (Array.isArray(p) && p.length > 0) return p;
+            } catch (e) {}
+          }
+          if (Array.isArray(tableData.table.partners) && tableData.table.partners.length > 0) {
+            return tableData.table.partners;
+          }
+          if (tableData.table.headline_sponsor_name || tableData.table.headline_sponsor_logo) {
+            return [{
+              name: tableData.table.headline_sponsor_name || '',
+              role: tableData.table.headline_sponsor_tagline || 'Official Power Partner',
+              url: tableData.table.headline_sponsor_url || '',
+              logo: tableData.table.headline_sponsor_logo || ''
+            }];
+          }
+          return prev.partners || [];
+        })(),
         gemini_model: tableData.table.gemini_model || prev.gemini_model || 'auto',
         enable_colouring: tableData.table.enable_colouring !== undefined ? Boolean(tableData.table.enable_colouring) : prev.enable_colouring,
         public_slot_1: tableData.table.public_slot_1 !== undefined ? (tableData.table.public_slot_1 || '') : prev.public_slot_1,
@@ -862,6 +902,51 @@ ${tableName} Organizers`
     }
     setTimeout(() => setSaveStatus(''), 4000);
     setIsExpensesModalOpen(false);
+  };
+
+  // Official Partners & Sponsors (Partnered With) Handlers
+  const handleAddPartner = () => {
+    setFormData(prev => {
+      const nextPartners = [
+        ...(prev.partners || []),
+        { name: '', role: (prev.partners || []).length === 0 ? 'Official Power Partner' : 'Official Partner', url: '', logo: '' }
+      ];
+      return {
+        ...prev,
+        partners: nextPartners
+      };
+    });
+  };
+
+  const handleUpdatePartner = (index, field, value) => {
+    setFormData(prev => {
+      const nextPartners = [...(prev.partners || [])];
+      nextPartners[index] = { ...nextPartners[index], [field]: value };
+      const lead = nextPartners[0] || {};
+      return {
+        ...prev,
+        partners: nextPartners,
+        headline_sponsor_name: lead.name || '',
+        headline_sponsor_tagline: lead.role || '',
+        headline_sponsor_url: lead.url || '',
+        headline_sponsor_logo: lead.logo || ''
+      };
+    });
+  };
+
+  const handleRemovePartner = (index) => {
+    setFormData(prev => {
+      const nextPartners = (prev.partners || []).filter((_, i) => i !== index);
+      const lead = nextPartners[0] || {};
+      return {
+        ...prev,
+        partners: nextPartners,
+        headline_sponsor_name: lead.name || '',
+        headline_sponsor_tagline: lead.role || '',
+        headline_sponsor_url: lead.url || '',
+        headline_sponsor_logo: lead.logo || ''
+      };
+    });
   };
 
   // Live Proximity Alerts & Google Workspace Gmail Handlers
@@ -5184,7 +5269,7 @@ ${tableName} Organizers`
                 </div>
               </div>
 
-              {/* HEADLINE / POWER SPONSOR SECTION (OPTIONAL) */}
+              {/* OFFICIAL PARTNERS & SPONSORS (PARTNERED WITH) */}
               <div style={{
                 background: '#0d0d0b',
                 border: '1px solid rgba(251, 175, 51, 0.25)',
@@ -5195,55 +5280,185 @@ ${tableName} Organizers`
                 boxSizing: 'border-box',
                 overflow: 'hidden'
               }}>
-                <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--primary)', fontFamily: 'Eurostile, sans-serif', textTransform: 'uppercase', marginBottom: '6px' }}>
-                  Headline Sponsor & Power Partner (Optional)
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--primary)', fontFamily: 'Eurostile, sans-serif', textTransform: 'uppercase' }}>
+                    Official Partners & Sponsors (Partnered With)
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddPartner}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: 'rgba(251, 175, 51, 0.15)',
+                      color: 'var(--primary)',
+                      border: '1px solid var(--primary)',
+                      borderRadius: '6px',
+                      padding: '5px 12px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'background 0.2s'
+                    }}
+                  >
+                    <Plus size={14} /> Add Partner / Sponsor
+                  </button>
                 </div>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-                  If your Table has an official headline sponsor (e.g. Zendure for Beverley, local dealership, etc.), enter their details below. Leave empty if your Table does not have a headline sponsor, and this section will remain completely hidden on your tracker.
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px', lineHeight: 1.5 }}>
+                  Showcase your official partners, headline sponsors, or power partners (e.g. Zendure for Beverley, local dealerships, etc.) prominently beneath the live tracker action buttons. You can add multiple partners — when adding 5 or more, their badges automatically scale down neatly to fit side-by-side across both mobile and desktop. Leave empty to hide this section.
                 </p>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '14px', marginBottom: '14px', maxWidth: '100%' }}>
-                  <div style={{ minWidth: 0 }}>
-                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Sponsor Name</label>
-                    <input
-                      type="text"
-                      value={formData.headline_sponsor_name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, headline_sponsor_name: e.target.value }))}
-                      placeholder="e.g. Zendure or Local Motors"
-                      style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
-                    />
+                {(!formData.partners || formData.partners.length === 0) ? (
+                  <div style={{
+                    padding: '24px 16px',
+                    textAlign: 'center',
+                    background: '#161614',
+                    border: '1px dashed rgba(255, 255, 255, 0.15)',
+                    borderRadius: '8px',
+                    color: 'var(--text-muted)',
+                    fontSize: '13px'
+                  }}>
+                    <p style={{ margin: '0 0 12px 0' }}>No partners or sponsors currently configured. The "Partnered With" section will remain completely hidden on your turnkey site.</p>
+                    <button
+                      type="button"
+                      onClick={handleAddPartner}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: 'var(--primary)',
+                        color: 'var(--on-primary, #000)',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '8px 16px',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Plus size={15} /> Add First Partner / Sponsor
+                    </button>
                   </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {formData.partners.map((partner, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          background: '#161614',
+                          border: '1px solid rgba(251, 175, 51, 0.25)',
+                          borderRadius: '10px',
+                          padding: '16px',
+                          position: 'relative'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{
+                              background: 'rgba(251, 175, 51, 0.15)',
+                              color: 'var(--primary)',
+                              fontSize: '11px',
+                              fontWeight: 800,
+                              textTransform: 'uppercase',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              letterSpacing: '0.5px'
+                            }}>
+                              Partner #{idx + 1} {idx === 0 ? '· Lead Sponsor' : ''}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemovePartner(idx)}
+                            aria-label={`Remove partner ${idx + 1}`}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              background: 'transparent',
+                              border: '1px solid rgba(239, 68, 68, 0.4)',
+                              color: '#ef4444',
+                              borderRadius: '6px',
+                              padding: '4px 8px',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              transition: 'background 0.2s'
+                            }}
+                          >
+                            <Trash2 size={13} /> Remove
+                          </button>
+                        </div>
 
-                  <div style={{ minWidth: 0 }}>
-                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Tagline / Role</label>
-                    <input
-                      type="text"
-                      value={formData.headline_sponsor_tagline}
-                      onChange={(e) => setFormData(prev => ({ ...prev, headline_sponsor_tagline: e.target.value }))}
-                      placeholder="e.g. Official Power Partner"
-                      style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
-                    />
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '12px', marginBottom: '14px' }}>
+                          <div style={{ minWidth: 0 }}>
+                            <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Partner / Sponsor Name</label>
+                            <input
+                              type="text"
+                              value={partner.name || ''}
+                              onChange={(e) => handleUpdatePartner(idx, 'name', e.target.value)}
+                              placeholder="e.g. Zendure or Local Motors"
+                              style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
+                            />
+                          </div>
+
+                          <div style={{ minWidth: 0 }}>
+                            <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Role / Tagline</label>
+                            <input
+                              type="text"
+                              value={partner.role || ''}
+                              onChange={(e) => handleUpdatePartner(idx, 'role', e.target.value)}
+                              placeholder="e.g. Official Power Partner"
+                              style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
+                            />
+                          </div>
+
+                          <div style={{ minWidth: 0 }}>
+                            <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Website URL</label>
+                            <input
+                              type="url"
+                              value={partner.url || ''}
+                              onChange={(e) => handleUpdatePartner(idx, 'url', e.target.value)}
+                              placeholder="https://sponsor.co.uk"
+                              style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
+                            />
+                          </div>
+                        </div>
+
+                        <DropzoneUpload
+                          label={`Partner #${idx + 1} Logo (.png, .svg)`}
+                          currentImage={partner.logo}
+                          tableSlug={currentTableSlug}
+                          onImageSelected={(url) => handleUpdatePartner(idx, 'logo', url)}
+                          helperText="Upload transparent sponsor logo for the turnkey website hero badge."
+                        />
+                      </div>
+                    ))}
+
+                    <div style={{ marginTop: '4px' }}>
+                      <button
+                        type="button"
+                        onClick={handleAddPartner}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          background: 'rgba(251, 175, 51, 0.1)',
+                          color: 'var(--primary)',
+                          border: '1px dashed var(--primary)',
+                          borderRadius: '8px',
+                          padding: '9px 16px',
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <Plus size={15} /> Add Another Partner / Sponsor
+                      </button>
+                    </div>
                   </div>
-
-                  <div style={{ minWidth: 0 }}>
-                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Website URL</label>
-                    <input
-                      type="url"
-                      value={formData.headline_sponsor_url}
-                      onChange={(e) => setFormData(prev => ({ ...prev, headline_sponsor_url: e.target.value }))}
-                      placeholder="https://sponsor.co.uk"
-                      style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
-                    />
-                  </div>
-                </div>
-
-                <DropzoneUpload
-                  label="Headline Sponsor Logo (.png)"
-                  currentImage={formData.headline_sponsor_logo}
-                  tableSlug={currentTableSlug}
-                  onImageSelected={(url) => setFormData(prev => ({ ...prev, headline_sponsor_logo: url }))}
-                  helperText="Upload transparent sponsor logo for the live tracker header badge."
-                />
+                )}
               </div>
 
               {/* PUBLIC SITE MODULAR FEATURE SLOTS & AI VOICE (MAX 2 SLOTS) */}
@@ -6526,6 +6741,9 @@ ${tableName} Organizers`
                     localStorage.setItem('custom_national_admin_emails', JSON.stringify(approvedEmails));
                     const chosenGeminiModel = formData.gemini_model && formData.gemini_model.trim() ? formData.gemini_model.trim() : 'auto';
                     localStorage.setItem('turbosanta_global_gemini_model', chosenGeminiModel);
+                    const validPartners = (formData.partners || []).filter(p => p && (p.name || p.logo || p.url));
+                    const partnersJson = validPartners.length > 0 ? JSON.stringify(validPartners) : null;
+                    const leadPartner = validPartners[0] || {};
                     const payload = {
                       sleigh_display_name: formData.sleigh_display_name,
                       fundraising_goal: formData.fundraising_goal,
@@ -6543,10 +6761,11 @@ ${tableName} Organizers`
                       enable_gift_aid: formData.enable_gift_aid,
                       charity_name: formData.charity_name,
                       charity_number: formData.charity_number,
-                      headline_sponsor_name: formData.headline_sponsor_name || null,
-                      headline_sponsor_logo: formData.headline_sponsor_logo || null,
-                      headline_sponsor_url: formData.headline_sponsor_url || null,
-                      headline_sponsor_tagline: formData.headline_sponsor_tagline || null,
+                      partners_json: partnersJson,
+                      headline_sponsor_name: leadPartner.name || formData.headline_sponsor_name || null,
+                      headline_sponsor_logo: leadPartner.logo || formData.headline_sponsor_logo || null,
+                      headline_sponsor_url: leadPartner.url || formData.headline_sponsor_url || null,
+                      headline_sponsor_tagline: leadPartner.role || formData.headline_sponsor_tagline || null,
                       gemini_model: chosenGeminiModel,
                       public_slot_1: formData.public_slot_1 || '',
                       public_slot_2: formData.public_slot_2 || '',

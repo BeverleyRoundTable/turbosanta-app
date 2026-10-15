@@ -527,8 +527,31 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
   const rawSlot1 = resolveSlot(table.public_slot_1);
   const rawSlot2 = resolveSlot(table.public_slot_2);
   const slot1Meta = rawSlot1 && PUBLIC_FEATURE_CATALOG[rawSlot1] ? PUBLIC_FEATURE_CATALOG[rawSlot1] : null;
-  const slot2Meta = (rawSlot2 && rawSlot2 !== rawSlot1 && PUBLIC_FEATURE_CATALOG[rawSlot2]) ? PUBLIC_FEATURE_CATALOG[rawSlot2] : null;
   const activeSlots = [slot1Meta, slot2Meta].filter(Boolean);
+
+  const heroPartners = useMemo(() => {
+    if (Array.isArray(tableData?.partners) && tableData.partners.length > 0) {
+      return tableData.partners;
+    }
+    if (table?.partners_json) {
+      try {
+        const parsed = typeof table.partners_json === 'string' ? JSON.parse(table.partners_json) : table.partners_json;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    if (Array.isArray(table?.partners) && table.partners.length > 0) {
+      return table.partners;
+    }
+    if (table?.headline_sponsor_name || table?.headline_sponsor_logo) {
+      return [{
+        name: table.headline_sponsor_name || '',
+        role: table.headline_sponsor_tagline || 'Official Power Partner',
+        logo: table.headline_sponsor_logo || '',
+        url: table.headline_sponsor_url || ''
+      }];
+    }
+    return [];
+  }, [tableData, table]);
 
   return (
     <div style={{
@@ -727,6 +750,128 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
               <span>Share</span>
             </button>
           </div>
+
+          {heroPartners && heroPartners.length > 0 && (
+            <div style={{ marginTop: '36px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '11px',
+                fontWeight: 800,
+                letterSpacing: '1.8px',
+                textTransform: 'uppercase',
+                color: 'var(--primary)',
+                marginBottom: '14px',
+                textShadow: '0 2px 8px rgba(0,0,0,0.8)'
+              }}>
+                <span style={{ display: 'inline-block', width: '24px', height: '1px', background: 'linear-gradient(90deg, transparent, var(--primary))' }} />
+                PARTNERED WITH
+                <span style={{ display: 'inline-block', width: '24px', height: '1px', background: 'linear-gradient(90deg, var(--primary), transparent)' }} />
+              </div>
+
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'stretch',
+                justifyContent: 'center',
+                gap: heroPartners.length >= 5 ? '10px' : '16px',
+                maxWidth: '960px',
+                margin: '0 auto'
+              }}>
+                {heroPartners.map((p, pIdx) => {
+                  const pName = p.name || '';
+                  const pRole = p.role || p.tagline || 'Official Partner';
+                  const pLogo = p.logo || p.logo_url || '';
+                  const pUrl = p.url || p.link || p.website || p.website_url || '';
+                  const isSingle = heroPartners.length === 1;
+                  const isMulti = heroPartners.length >= 5;
+
+                  const BadgeWrapper = pUrl ? 'a' : 'div';
+                  const wrapperProps = pUrl ? {
+                    href: pUrl,
+                    target: '_blank',
+                    rel: 'noopener noreferrer sponsored'
+                  } : {};
+
+                  return (
+                    <BadgeWrapper
+                      key={pIdx}
+                      {...wrapperProps}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: isSingle ? '16px' : (isMulti ? '10px' : '14px'),
+                        padding: isSingle ? '12px 24px' : (isMulti ? '8px 14px' : '10px 18px'),
+                        background: 'rgba(18, 20, 24, 0.82)',
+                        backdropFilter: 'blur(16px)',
+                        WebkitBackdropFilter: 'blur(16px)',
+                        border: '1px solid rgba(251, 175, 51, 0.35)',
+                        borderRadius: '14px',
+                        textDecoration: 'none',
+                        color: '#FFFFFF',
+                        boxShadow: '0 10px 28px rgba(0,0,0,0.45)',
+                        transition: 'transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease'
+                      }}
+                    >
+                      {pLogo && (
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: '#ffffff',
+                          borderRadius: isMulti ? '8px' : '10px',
+                          overflow: 'hidden',
+                          flexShrink: 0,
+                          padding: isSingle ? '8px 14px' : (isMulti ? '4px 8px' : '6px 12px'),
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                        }}>
+                          <img
+                            src={pLogo}
+                            alt={pName ? `${pName} logo` : 'Partner logo'}
+                            style={{
+                              display: 'block',
+                              objectFit: 'contain',
+                              height: isSingle ? '75px' : (isMulti ? '44px' : '60px'),
+                              maxWidth: isSingle ? '240px' : (isMulti ? '120px' : '175px')
+                            }}
+                            loading="lazy"
+                          />
+                        </div>
+                      )}
+                      <div style={{ textAlign: 'left', lineHeight: 1.25, minWidth: 0 }}>
+                        {pRole && (
+                          <div style={{
+                            fontSize: isSingle ? '11px' : (isMulti ? '9px' : '10px'),
+                            textTransform: 'uppercase',
+                            letterSpacing: '1px',
+                            color: 'var(--primary)',
+                            fontWeight: 800,
+                            marginBottom: '3px'
+                          }}>
+                            {pRole}
+                          </div>
+                        )}
+                        {pName && (
+                          <div style={{
+                            fontSize: isSingle ? '17px' : (isMulti ? '13px' : '15px'),
+                            fontWeight: 700,
+                            color: '#FFFFFF',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            maxWidth: isSingle ? '280px' : (isMulti ? '160px' : '220px')
+                          }}>
+                            {pName}
+                          </div>
+                        )}
+                      </div>
+                    </BadgeWrapper>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </header>
 

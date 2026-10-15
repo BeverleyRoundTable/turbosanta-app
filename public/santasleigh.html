@@ -412,50 +412,186 @@
             flex-wrap: wrap;
         }
 
-        /* Headline Sponsor Hero Badge */
-        .headline-sponsor-pill {
-            margin: 32px auto 0;
+        /* Partnered With & Headline Sponsors Hero Section */
+        #headline-sponsor-slot {
+            margin-top: 36px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .partners-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1.8px;
+            text-transform: uppercase;
+            color: var(--primary);
+            margin-bottom: 14px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+        }
+        .partners-eyebrow::before,
+        .partners-eyebrow::after {
+            content: "";
+            display: inline-block;
+            width: 24px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--primary));
+        }
+        .partners-eyebrow::after {
+            background: linear-gradient(90deg, var(--primary), transparent);
+        }
+        .hero-partners-grid {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: stretch;
+            justify-content: center;
+            gap: 16px;
+            max-width: 960px;
+            margin: 0 auto;
+        }
+        .partner-hero-badge {
             display: inline-flex;
             align-items: center;
             gap: 14px;
-            padding: 10px 20px;
-            background: rgba(20, 22, 26, 0.78);
-            backdrop-filter: blur(14px);
+            padding: 10px 18px;
+            background: rgba(18, 20, 24, 0.82);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(var(--primary-rgb), 0.35);
-            border-radius: 16px;
+            border-radius: 14px;
             text-decoration: none;
             color: var(--text-main);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-            transition: transform 0.2s ease, border-color 0.2s ease;
+            box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+            transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
         }
-        .headline-sponsor-pill:hover {
-            transform: translateY(-2px);
+        .partner-hero-badge:hover {
+            transform: translateY(-3px);
             border-color: var(--primary);
+            box-shadow: 0 14px 32px rgba(0,0,0,0.6), 0 0 16px rgba(var(--primary-rgb), 0.25);
         }
-        .headline-sponsor-pill img {
-            height: 38px;
-            width: auto;
-            max-width: 110px;
+        .partner-logo-box {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border-radius: 10px;
+            overflow: hidden;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .partner-logo-box img {
+            display: block;
             object-fit: contain;
-            background: #fff;
-            padding: 4px 8px;
-            border-radius: 8px;
         }
-        .headline-sponsor-meta {
+        .partner-hero-meta {
             text-align: left;
             line-height: 1.25;
+            min-width: 0;
         }
-        .headline-sponsor-label {
+        .partner-hero-role {
             font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 1px;
             color: var(--primary);
             font-weight: 800;
+            margin-bottom: 3px;
         }
-        .headline-sponsor-name {
-            font-size: 14px;
+        .partner-hero-name {
+            font-size: 15px;
             font-weight: 700;
             color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 220px;
+        }
+
+        /* 1 Partner: Taller, prominent hero feature filling the vertical space */
+        .hero-partners-grid.count-1 .partner-hero-badge {
+            padding: 12px 24px;
+            gap: 16px;
+        }
+        .hero-partners-grid.count-1 .partner-logo-box {
+            padding: 8px 14px;
+        }
+        .hero-partners-grid.count-1 .partner-logo-box img {
+            height: 75px;
+            max-width: 240px;
+        }
+        .hero-partners-grid.count-1 .partner-hero-name {
+            font-size: 17px;
+            max-width: 280px;
+        }
+        .hero-partners-grid.count-1 .partner-hero-role {
+            font-size: 11px;
+        }
+
+        /* 2 to 4 Partners: Balanced medium height */
+        .hero-partners-grid.count-2 .partner-logo-box,
+        .hero-partners-grid.count-3 .partner-logo-box,
+        .hero-partners-grid.count-4 .partner-logo-box {
+            padding: 6px 12px;
+        }
+        .hero-partners-grid.count-2 .partner-logo-box img,
+        .hero-partners-grid.count-3 .partner-logo-box img,
+        .hero-partners-grid.count-4 .partner-logo-box img {
+            height: 60px;
+            max-width: 175px;
+        }
+
+        /* 5 or more Partners: Scaled down in width & height to fit cleanly on desktop & mobile */
+        .hero-partners-grid.count-multi {
+            gap: 10px;
+        }
+        .hero-partners-grid.count-multi .partner-hero-badge {
+            padding: 8px 14px;
+            gap: 10px;
+        }
+        .hero-partners-grid.count-multi .partner-logo-box {
+            padding: 4px 8px;
+            border-radius: 8px;
+        }
+        .hero-partners-grid.count-multi .partner-logo-box img {
+            height: 44px;
+            max-width: 120px;
+        }
+        .hero-partners-grid.count-multi .partner-hero-name {
+            font-size: 13px;
+            max-width: 160px;
+        }
+        .hero-partners-grid.count-multi .partner-hero-role {
+            font-size: 9px;
+        }
+
+        @media (max-width: 640px) {
+            #headline-sponsor-slot {
+                margin-top: 24px;
+            }
+            .hero-partners-grid {
+                gap: 10px;
+            }
+            .hero-partners-grid.count-1 .partner-logo-box img {
+                height: 56px;
+                max-width: 190px;
+            }
+            .hero-partners-grid.count-2 .partner-logo-box img,
+            .hero-partners-grid.count-3 .partner-logo-box img,
+            .hero-partners-grid.count-4 .partner-logo-box img {
+                height: 46px;
+                max-width: 135px;
+            }
+            .hero-partners-grid.count-multi .partner-logo-box img {
+                height: 36px;
+                max-width: 95px;
+            }
+            .hero-partners-grid.count-multi .partner-hero-name {
+                max-width: 120px;
+                font-size: 12px;
+            }
         }
 
         /* --- LAYOUT SECTIONS --- */
@@ -1899,7 +2035,7 @@
             }
         }
 
-        function renderBranding(settings, headlineSponsor) {
+        function renderBranding(settings, headlineSponsor, partners) {
             const siteName = String(settings.sleigh_display_name || 'Santa Sleigh');
             document.title = siteName;
             $('footer-name').textContent = siteName;
@@ -1940,28 +2076,69 @@
             const hsSlot = $('headline-sponsor-slot');
             if (hsSlot) {
                 hsSlot.replaceChildren();
-                const hsName = (headlineSponsor && headlineSponsor.name) || settings.headline_sponsor_name;
-                const hsLogo = safeUrl((headlineSponsor && headlineSponsor.logo) || settings.headline_sponsor_logo);
-                const hsUrl = safeUrl((headlineSponsor && headlineSponsor.url) || settings.headline_sponsor_url);
-                if (hsName || hsLogo) {
-                    const wrap = document.createElement(hsUrl ? 'a' : 'div');
-                    wrap.className = 'headline-sponsor-pill';
-                    if (hsUrl) {
-                        wrap.href = hsUrl;
-                        wrap.target = '_blank';
-                        wrap.rel = 'noopener noreferrer sponsored';
+
+                let list = Array.isArray(partners) && partners.length > 0 ? [...partners] : [];
+                if (list.length === 0 && (headlineSponsor || settings.headline_sponsor_name || settings.headline_sponsor_logo)) {
+                    const hsName = (headlineSponsor && headlineSponsor.name) || settings.headline_sponsor_name || '';
+                    const hsLogo = (headlineSponsor && headlineSponsor.logo) || settings.headline_sponsor_logo || '';
+                    const hsUrl = (headlineSponsor && headlineSponsor.url) || settings.headline_sponsor_url || '';
+                    const hsRole = (headlineSponsor && headlineSponsor.tagline) || settings.headline_sponsor_tagline || 'Official Power Partner';
+                    if (hsName || hsLogo) {
+                        list.push({ name: hsName, logo: hsLogo, url: hsUrl, role: hsRole });
                     }
-                    if (hsLogo) {
-                        const img = document.createElement('img');
-                        img.src = hsLogo;
-                        img.alt = hsName || 'Headline Sponsor';
-                        wrap.appendChild(img);
-                    }
-                    const meta = el('div', 'headline-sponsor-meta');
-                    meta.appendChild(el('div', 'headline-sponsor-label', 'Headline Sleigh Sponsor'));
-                    if (hsName) meta.appendChild(el('div', 'headline-sponsor-name', String(hsName)));
-                    wrap.appendChild(meta);
-                    hsSlot.appendChild(wrap);
+                }
+
+                // Filter valid partner entries
+                list = list.filter(p => p && (p.name || p.logo || p.logo_url));
+
+                if (list.length > 0) {
+                    const eyebrow = el('div', 'partners-eyebrow', 'Partnered With');
+                    hsSlot.appendChild(eyebrow);
+
+                    const grid = el('div', 'hero-partners-grid');
+                    const count = list.length;
+                    if (count === 1) grid.classList.add('count-1');
+                    else if (count === 2) grid.classList.add('count-2');
+                    else if (count === 3) grid.classList.add('count-3');
+                    else if (count === 4) grid.classList.add('count-4');
+                    else grid.classList.add('count-multi');
+
+                    list.forEach(p => {
+                        const pName = p.name || '';
+                        const pRole = p.role || p.tagline || 'Official Partner';
+                        const pLogo = safeUrl(p.logo || p.logo_url || '');
+                        const pUrl = safeUrl(p.url || p.link || p.website || p.website_url || '');
+
+                        const badge = document.createElement(pUrl ? 'a' : 'div');
+                        badge.className = 'partner-hero-badge';
+                        if (pUrl) {
+                            badge.href = pUrl;
+                            badge.target = '_blank';
+                            badge.rel = 'noopener noreferrer sponsored';
+                        }
+
+                        if (pLogo) {
+                            const logoBox = el('div', 'partner-logo-box');
+                            const img = document.createElement('img');
+                            img.src = pLogo;
+                            img.alt = pName ? `${pName} logo` : 'Partner logo';
+                            img.loading = 'lazy';
+                            logoBox.appendChild(img);
+                            badge.appendChild(logoBox);
+                        }
+
+                        const meta = el('div', 'partner-hero-meta');
+                        if (pRole) {
+                            meta.appendChild(el('div', 'partner-hero-role', pRole));
+                        }
+                        if (pName) {
+                            meta.appendChild(el('div', 'partner-hero-name', pName));
+                        }
+                        badge.appendChild(meta);
+                        grid.appendChild(badge);
+                    });
+
+                    hsSlot.appendChild(grid);
                 }
             }
 
@@ -3125,9 +3302,10 @@
             const routes = asArray(data && data.routes);
             const sponsors = asArray(data && data.sponsors);
             const headlineSponsor = data && data.headlineSponsor;
+            const partners = asArray(data && data.partners);
 
             safely('theme', () => renderTheme(settings));
-            safely('branding', () => renderBranding(settings, headlineSponsor));
+            safely('branding', () => renderBranding(settings, headlineSponsor, partners));
             safely('announcement', () => renderAnnouncement(settings));
             safely('frames', () => renderFrames(api));
             safely('donations', () => renderDonations(donations, settings));
@@ -3252,7 +3430,25 @@
                     };
                 }),
                 sponsors: data.sponsors || tbl.partners || [],
-                partners: data.partners || [],
+                partners: (() => {
+                    if (Array.isArray(data.partners) && data.partners.length > 0) return data.partners;
+                    if (tbl.partners_json) {
+                        try {
+                            const p = typeof tbl.partners_json === 'string' ? JSON.parse(tbl.partners_json) : tbl.partners_json;
+                            if (Array.isArray(p) && p.length > 0) return p;
+                        } catch (e) {}
+                    }
+                    if (Array.isArray(tbl.partners) && tbl.partners.length > 0) return tbl.partners;
+                    if (tbl.headline_sponsor_name || tbl.headline_sponsor_logo) {
+                        return [{
+                            name: tbl.headline_sponsor_name || '',
+                            role: tbl.headline_sponsor_tagline || 'Official Power Partner',
+                            logo: tbl.headline_sponsor_logo || '',
+                            url: tbl.headline_sponsor_url || ''
+                        }];
+                    }
+                    return [];
+                })(),
                 headlineSponsor: tbl.headline_sponsor_name ? {
                     name: tbl.headline_sponsor_name,
                     logo: tbl.headline_sponsor_logo,
