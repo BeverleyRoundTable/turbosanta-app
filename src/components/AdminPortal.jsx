@@ -5908,6 +5908,24 @@ ${tableName} Organizers`
                         />
                       </div>
                     </div>
+
+                    <div style={{
+                      marginTop: '10px',
+                      padding: '8px 10px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px dashed rgba(255, 255, 255, 0.15)',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
+                      lineHeight: '1.5'
+                    }}>
+                      <strong style={{ color: '#fff', display: 'block', marginBottom: '4px' }}>📋 Quick Guide: Where to find your credentials</strong>
+                      1. Open <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Google Cloud Console &gt; Credentials</a>.<br/>
+                      2. Under <strong>OAuth 2.0 Client IDs</strong>, click your <strong>Web application</strong> client.<br/>
+                      3. Copy the <strong>Client ID</strong> and <strong>Client Secret</strong> (usually starts with <code>GOCSPX-</code>) and paste them above.<br/>
+                      4. Under <strong>Authorized JavaScript origins</strong>, ensure <code>https://turbosanta-app.pages.dev</code> and your domain are listed.<br/>
+                      <em>Note: Individual table users do not need to generate tokens manually; clicking <strong>Connect Table Gmail</strong> generates and links the refresh token automatically.</em>
+                    </div>
                   </div>
                 )}
               </div>
