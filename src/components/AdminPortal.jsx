@@ -670,8 +670,10 @@ ${tableName} Organizers`
     public_slot_2: tableData?.table?.public_slot_2 || (tableData?.table?.enable_colouring ? 'colouring' : '') || '',
     expenses: tableData?.table?.expenses !== undefined ? tableData?.table?.expenses : (tableData?.expenses !== undefined ? tableData?.expenses : 0),
     expenses_json: tableData?.table?.expenses_json || tableData?.expenses_json || null,
-    background_mode: tableData?.table?.background_mode || (typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${currentTableSlug}_bg_mode`) : null) || 'image',
-    background_video_url: tableData?.table?.background_video_url || (typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${currentTableSlug}_bg_video`) : null) || '',
+    background_mode: (tableData?.table?.background_mode && tableData?.table?.background_mode !== 'image')
+      ? tableData.table.background_mode
+      : ((typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${currentTableSlug}_bg_mode`) : null) || (tableData?.table?.background_video_url ? 'custom_video' : (tableData?.table?.background_mode || 'image'))),
+    background_video_url: tableData?.table?.background_video_url || (typeof window !== 'undefined' ? (localStorage.getItem(`turbosanta_${currentTableSlug}_bg_video_url`) || localStorage.getItem(`turbosanta_${currentTableSlug}_bg_video`)) : null) || '',
     background_url: tableData?.table?.background_url || '',
     // Live Proximity Alerts (Notify Me Engine)
     gmail_connected_email: tableData?.table?.gmail_connected_email || null,
@@ -694,6 +696,11 @@ ${tableName} Organizers`
   const [showAdvancedGmail, setShowAdvancedGmail] = useState(false);
   const [showEmailCustomizer, setShowEmailCustomizer] = useState(false);
   const [previewTab, setPreviewTab] = useState('approaching');
+
+  // Ambient Background Mode State & Quick Save
+  const [hasUserChangedBgMode, setHasUserChangedBgMode] = useState(false);
+  const [isSavingBg, setIsSavingBg] = useState(false);
+  const [bgSaveToast, setBgSaveToast] = useState('');
 
   // Automatically synchronize formData with live tableData when loaded
   React.useEffect(() => {
@@ -726,9 +733,19 @@ ${tableName} Organizers`
         public_slot_2: tableData.table.public_slot_2 !== undefined ? (tableData.table.public_slot_2 || '') : prev.public_slot_2,
         expenses: tableData.table.expenses !== undefined ? tableData.table.expenses : (tableData.expenses !== undefined ? tableData.expenses : prev.expenses),
         expenses_json: tableData.table.expenses_json !== undefined ? tableData.table.expenses_json : (tableData.expenses_json !== undefined ? tableData.expenses_json : prev.expenses_json),
-        background_mode: tableData.table.background_mode || prev.background_mode || 'image',
-        background_video_url: tableData.table.background_video_url || prev.background_video_url || '',
-        background_url: tableData.table.background_url || prev.background_url || '',
+        background_mode: hasUserChangedBgMode
+          ? prev.background_mode
+          : ((tableData.table.background_mode && tableData.table.background_mode !== 'image')
+              ? tableData.table.background_mode
+              : (prev.background_mode && prev.background_mode !== 'image'
+                  ? prev.background_mode
+                  : (tableData.table.background_video_url
+                      ? 'custom_video'
+                      : (typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${currentTableSlug}_bg_mode`) : null) || tableData.table.background_mode || 'image'))),
+        background_video_url: hasUserChangedBgMode
+          ? prev.background_video_url
+          : (tableData.table.background_video_url || prev.background_video_url || (typeof window !== 'undefined' ? (localStorage.getItem(`turbosanta_${currentTableSlug}_bg_video_url`) || localStorage.getItem(`turbosanta_${currentTableSlug}_bg_video`)) : null) || ''),
+        background_url: prev.background_url !== undefined ? prev.background_url : (tableData.table.background_url || ''),
         gmail_connected_email: tableData.table.gmail_connected_email || prev.gmail_connected_email,
         notify_email_enabled: tableData.table.notify_email_enabled !== undefined ? Boolean(tableData.table.notify_email_enabled) : prev.notify_email_enabled,
         notify_radius_meters: tableData.table.notify_radius_meters !== undefined ? Number(tableData.table.notify_radius_meters) : prev.notify_radius_meters,
@@ -741,7 +758,63 @@ ${tableName} Organizers`
         notify_passed_msg: tableData.table.notify_passed_msg || prev.notify_passed_msg || ''
       }));
     }
-  }, [tableData]);
+  }, [tableData, hasUserChangedBgMode]);
+
+  // Instant Save Ambient Background Mode & Video
+  const handleSaveBackgroundSettings = async () => {
+    const tableSlug = session?.tableId || session?.tableSlug || tableData?.table?.slug || currentTableSlug || 'beverley';
+    setIsSavingBg(true);
+    setBgSaveToast('Saving ambient background...');
+
+    const payload = {
+      ...formData,
+      background_mode: formData.background_mode || 'image',
+      background_video_url: formData.background_video_url || null,
+      background_url: formData.background_url || null
+    };
+
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(`turbosanta_${tableSlug}_bg_mode`, formData.background_mode || 'image');
+        if (formData.background_video_url) {
+          localStorage.setItem(`turbosanta_${tableSlug}_bg_video`, formData.background_video_url);
+          localStorage.setItem(`turbosanta_${tableSlug}_bg_video_url`, formData.background_video_url);
+        } else {
+          localStorage.removeItem(`turbosanta_${tableSlug}_bg_video`);
+          localStorage.removeItem(`turbosanta_${tableSlug}_bg_video_url`);
+        }
+      } catch (e) {}
+    }
+
+    if (onUpdateTableData) {
+      onUpdateTableData(prev => ({
+        ...prev,
+        table: {
+          ...prev?.table,
+          background_mode: formData.background_mode || 'image',
+          background_video_url: formData.background_video_url || null,
+          background_url: formData.background_url || null
+        }
+      }));
+    }
+
+    try {
+      const res = await saveTableSettings(tableSlug, payload);
+      if (res && res.ok) {
+        setBgSaveToast('✅ Ambient background saved to database!');
+        confetti({ particleCount: 35, spread: 60, origin: { y: 0.7 } });
+        setHasUserChangedBgMode(false);
+      } else {
+        const errMsg = res?.error || 'Database save failed';
+        setBgSaveToast(`⚠️ Saved locally (${errMsg})`);
+      }
+    } catch (err) {
+      setBgSaveToast('✅ Saved locally!');
+    } finally {
+      setIsSavingBg(false);
+      setTimeout(() => setBgSaveToast(''), 4500);
+    }
+  };
 
   // Operating Expenses & Receipts Modal State
   const [isExpensesModalOpen, setIsExpensesModalOpen] = useState(false);
@@ -4688,7 +4761,11 @@ ${tableName} Organizers`
                         type="radio"
                         name="bg_mode"
                         checked={formData.background_mode === 'image' || !formData.background_mode}
-                        onChange={() => setFormData(prev => ({ ...prev, background_mode: 'image' }))}
+                        onChange={() => {
+                          setFormData(prev => ({ ...prev, background_mode: 'image' }));
+                          setHasUserChangedBgMode(true);
+                          if (typeof window !== 'undefined') localStorage.setItem(`turbosanta_${currentTableSlug}_bg_mode`, 'image');
+                        }}
                       />
                       <span style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>🖼️ Static Image (Default)</span>
                     </div>
@@ -4715,7 +4792,11 @@ ${tableName} Organizers`
                         type="radio"
                         name="bg_mode"
                         checked={formData.background_mode === 'video'}
-                        onChange={() => setFormData(prev => ({ ...prev, background_mode: 'video' }))}
+                        onChange={() => {
+                          setFormData(prev => ({ ...prev, background_mode: 'video' }));
+                          setHasUserChangedBgMode(true);
+                          if (typeof window !== 'undefined') localStorage.setItem(`turbosanta_${currentTableSlug}_bg_mode`, 'video');
+                        }}
                       />
                       <span style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>🎅 Default Video</span>
                     </div>
@@ -4742,7 +4823,11 @@ ${tableName} Organizers`
                         type="radio"
                         name="bg_mode"
                         checked={formData.background_mode === 'custom_video'}
-                        onChange={() => setFormData(prev => ({ ...prev, background_mode: 'custom_video' }))}
+                        onChange={() => {
+                          setFormData(prev => ({ ...prev, background_mode: 'custom_video' }));
+                          setHasUserChangedBgMode(true);
+                          if (typeof window !== 'undefined') localStorage.setItem(`turbosanta_${currentTableSlug}_bg_mode`, 'custom_video');
+                        }}
                       />
                       <span style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>📹 Custom Video (.mp4)</span>
                     </div>
@@ -4760,7 +4845,15 @@ ${tableName} Organizers`
                       currentImage={formData.background_video_url}
                       acceptType="video"
                       tableSlug={currentTableSlug}
-                      onImageSelected={(url) => setFormData(prev => ({ ...prev, background_video_url: url }))}
+                      onImageSelected={(url) => {
+                        setFormData(prev => ({ ...prev, background_video_url: url, background_mode: 'custom_video' }));
+                        setHasUserChangedBgMode(true);
+                        if (typeof window !== 'undefined') {
+                          localStorage.setItem(`turbosanta_${currentTableSlug}_bg_mode`, 'custom_video');
+                          localStorage.setItem(`turbosanta_${currentTableSlug}_bg_video`, url);
+                          localStorage.setItem(`turbosanta_${currentTableSlug}_bg_video_url`, url);
+                        }
+                      }}
                       helperText="Upload your custom Santa Sleigh or town video loop (MP4 or WebM up to 50MB). Automatically hosted on Cloudflare R2 edge CDN."
                       placeholder="Upload .mp4 video"
                     />
@@ -4778,7 +4871,16 @@ ${tableName} Organizers`
                       type="url"
                       placeholder="https://example.com/video-loop.mp4"
                       value={formData.background_video_url || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, background_video_url: e.target.value }))}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData(prev => ({ ...prev, background_video_url: val, background_mode: 'custom_video' }));
+                        setHasUserChangedBgMode(true);
+                        if (typeof window !== 'undefined') {
+                          localStorage.setItem(`turbosanta_${currentTableSlug}_bg_mode`, 'custom_video');
+                          localStorage.setItem(`turbosanta_${currentTableSlug}_bg_video`, val);
+                          localStorage.setItem(`turbosanta_${currentTableSlug}_bg_video_url`, val);
+                        }
+                      }}
                       style={{
                         width: '100%',
                         background: '#000',
@@ -4964,9 +5066,40 @@ ${tableName} Organizers`
                   label="Upload Custom Background Image (.jpg / .png)"
                   currentImage={formData.background_url}
                   tableSlug={currentTableSlug}
-                  onImageSelected={(dataUrl) => setFormData(prev => ({ ...prev, background_url: dataUrl }))}
+                  onImageSelected={(dataUrl) => {
+                    setFormData(prev => ({ ...prev, background_url: dataUrl }));
+                    setHasUserChangedBgMode(true);
+                  }}
                   helperText="Leave empty to use the default background image."
                 />
+
+                {/* Instant Save Ambient Background & Video Button */}
+                <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid rgba(255, 255, 255, 0.1)', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    disabled={isSavingBg}
+                    onClick={handleSaveBackgroundSettings}
+                    className="btn-primary"
+                    style={{
+                      padding: '10px 20px',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      cursor: isSavingBg ? 'not-allowed' : 'pointer',
+                      opacity: isSavingBg ? 0.75 : 1
+                    }}
+                  >
+                    <Save size={16} />
+                    <span>{isSavingBg ? 'Saving Background...' : '💾 Save Ambient Background & Video'}</span>
+                  </button>
+                  {bgSaveToast && (
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: bgSaveToast.includes('✅') ? '#86efac' : '#fef08a' }}>
+                      {bgSaveToast}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* OFFICIAL LINKS & SOCIAL CHANNELS */}
@@ -6397,8 +6530,10 @@ ${tableName} Organizers`
                       localStorage.setItem(`turbosanta_${tableSlug}_bg_mode`, formData.background_mode || 'image');
                       if (formData.background_video_url) {
                         localStorage.setItem(`turbosanta_${tableSlug}_bg_video`, formData.background_video_url);
+                        localStorage.setItem(`turbosanta_${tableSlug}_bg_video_url`, formData.background_video_url);
                       } else {
                         localStorage.removeItem(`turbosanta_${tableSlug}_bg_video`);
+                        localStorage.removeItem(`turbosanta_${tableSlug}_bg_video_url`);
                       }
                     } catch (e) {}
 
@@ -6422,6 +6557,7 @@ ${tableName} Organizers`
                     const res = await saveTableSettings(tableSlug, payload);
                     if (res && res.ok) {
                       setSaveStatus('Settings successfully saved to database!');
+                      setHasUserChangedBgMode(false);
                     } else {
                       const errMsg = res?.error || 'Database save failed';
                       setSaveStatus(`Error saving: ${errMsg}`);

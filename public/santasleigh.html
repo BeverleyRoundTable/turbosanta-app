@@ -1772,12 +1772,10 @@
             // Resolve ambient video settings from Cloudflare API or local table storage
             const slug = window.__sleighTableSlug || 'beverley';
             const storedBgMode = localStorage.getItem(`turbosanta_${slug}_bg_mode`);
-            const storedVideoUrl = localStorage.getItem(`turbosanta_${slug}_bg_video`);
+            const storedVideoUrl = localStorage.getItem(`turbosanta_${slug}_bg_video_url`) || localStorage.getItem(`turbosanta_${slug}_bg_video`);
 
             const apiMode = String(settings.background_mode || settings.bg_mode || '').trim().toLowerCase();
             const localMode = String(storedBgMode || '').trim().toLowerCase();
-            const bgMode = apiMode || localMode || 'image';
-
             const customVideo = String(
                 settings.background_video_url ||
                 settings.bg_video_url ||
@@ -1786,6 +1784,10 @@
                 storedVideoUrl ||
                 ''
             ).trim();
+
+            const bgMode = (apiMode && apiMode !== 'image')
+                ? apiMode
+                : (localMode || (customVideo ? 'custom_video' : (apiMode || 'image')));
 
             const isCustomVideo = (bgMode === 'custom_video' || bgMode === 'custom-video' || bgMode === 'custom') && !!customVideo;
             const isDefaultVideo = bgMode === 'video' || bgMode === 'default_video' || bgMode === 'default-video' || ((bgMode === 'custom_video' || bgMode === 'custom') && !customVideo);

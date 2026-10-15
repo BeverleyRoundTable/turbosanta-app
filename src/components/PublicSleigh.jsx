@@ -300,9 +300,11 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
   }, []);
 
   const storedBgMode = typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${activeTableSlug}_bg_mode`) : null;
-  const storedVideoUrl = typeof window !== 'undefined' ? localStorage.getItem(`turbosanta_${activeTableSlug}_bg_video_url`) : null;
-  const bgMode = table.background_mode || storedBgMode || 'image';
+  const storedVideoUrl = typeof window !== 'undefined' ? (localStorage.getItem(`turbosanta_${activeTableSlug}_bg_video_url`) || localStorage.getItem(`turbosanta_${activeTableSlug}_bg_video`)) : null;
   const customVideoUrl = table.background_video_url || storedVideoUrl || '';
+  const bgMode = (table.background_mode && table.background_mode !== 'image')
+    ? table.background_mode
+    : (storedBgMode || (customVideoUrl ? 'custom_video' : (table.background_mode || 'image')));
   const isVideoEnabled = (bgMode === 'video' || bgMode === 'custom_video');
   const videoMp4 = (bgMode === 'custom_video' && customVideoUrl) ? customVideoUrl : DEFAULT_VIDEO_MP4;
   const videoWebm = (bgMode === 'custom_video' && table.background_video_webm) ? table.background_video_webm : (bgMode === 'custom_video' ? '' : DEFAULT_VIDEO_WEBM);
@@ -354,6 +356,9 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
     const v = videoRef.current;
     v.defaultMuted = true;
     v.muted = true;
+    try {
+      v.load();
+    } catch (e) {}
     const playPromise = v.play();
     if (playPromise !== undefined) {
       playPromise.catch(() => {
@@ -637,6 +642,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
               pointerEvents: 'none'
             }}>
               <video
+                key={videoMp4}
                 ref={videoRef}
                 src={videoMp4}
                 autoPlay
