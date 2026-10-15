@@ -17,11 +17,11 @@
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Santa Sleigh Live Tracker">
-    <meta name="twitter:description" content="Follow Santa live on his journey, check when he is visiting your street, and help us raise vital funds for the local community this Christmas!">
+    <meta property="twitter:description" content="Follow Santa live on his journey, check when he is visiting your street, and help us raise vital funds for the local community this Christmas!">
     <meta name="twitter:image" content="https://turbosanta-app.pages.dev/icons/site_background.png">
 
     <!-- PWA & Mobile App Tags -->
-    <meta name="theme-color" content="#1D1D1A">
+    <meta name="theme-color" content="#121316">
     <link rel="icon" type="image/png" href="/icons/RTBI_Santa.png">
     <link rel="apple-touch-icon" href="/icons/RTBI_Santa.png">
     <link rel="manifest" href="/manifest.json">
@@ -35,7 +35,7 @@
     <!-- Open Sans is the official Round Table paragraph font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Font Awesome -->
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -66,14 +66,20 @@
         :root {
             --primary: #FBAF33;
             --accent: #FFFFFF;
-            --bg-dark: #1D1D1A;
-            --bg-card: #000000;
+            --bg-dark: #111215;
+            --bg-card: rgba(20, 22, 26, 0.76);
+            --bg-card-solid: #16181D;
+            --bg-elevated: rgba(255, 255, 255, 0.045);
             --text-main: #FFFFFF;
-            --text-muted: rgba(255, 255, 255, 0.7);
-            --border: rgba(255, 255, 255, 0.15);
+            --text-muted: rgba(255, 255, 255, 0.72);
+            --border: rgba(255, 255, 255, 0.12);
+            --border-highlight: rgba(255, 255, 255, 0.22);
             --on-primary: #000000;
             --primary-rgb: 251, 175, 51;
-            --bg-overlay: linear-gradient(180deg, rgba(29, 29, 26, 0.7) 0%, rgba(0, 0, 0, 0.94) 100%);
+            --bg-overlay: linear-gradient(180deg, rgba(17, 18, 21, 0.65) 0%, rgba(17, 18, 21, 0.88) 50%, rgba(12, 13, 16, 0.97) 100%);
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --shadow-card: 0 20px 40px -15px rgba(0, 0, 0, 0.7), 0 0 1px 1px rgba(255, 255, 255, 0.05) inset;
         }
 
         * {
@@ -88,29 +94,17 @@
             color: var(--text-main);
             line-height: 1.6;
             overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
         }
 
-        @media (max-width: 600px) {
-            .thermo-card {
-                padding: 25px 15px; 
-            }
-            .thermo-title {
-                font-size: 16px;
-                letter-spacing: 0px;
-            }
-            .thermo-stats {
-                font-size: 18px;
-                padding: 0 5px;
-            }
-        }
-        
+        /* --- AMBIENT BACKGROUND & SNOW --- */
         #site-bg {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background-color: var(--bg-dark);
             background-size: cover;
             background-position: center;
-            z-index: -1;
+            z-index: -2;
             overflow: hidden;
         }
 
@@ -121,40 +115,38 @@
             pointer-events: none;
         }
 
-        .fab-map {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: var(--primary);
-            color: var(--on-primary);
-            padding: 15px 20px;
-            border-radius: 50px;
-            font-family: 'Eurostile', 'Open Sans', sans-serif;
-            font-size: 16px;
-            text-transform: uppercase;
-            text-decoration: none;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            z-index: 999;
-            transition: opacity 0.3s ease, transform 0.3s ease;
-            opacity: 0;
+        /* Ambient color glow at top of page */
+        #site-bg::after {
+            content: '';
+            position: absolute;
+            top: -15%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90vw;
+            max-width: 1100px;
+            height: 550px;
+            background: radial-gradient(ellipse at center, rgba(var(--primary-rgb), 0.16) 0%, transparent 70%);
             pointer-events: none;
-            transform: translateY(20px);
+            z-index: 1;
         }
-        .fab-map.visible {
-            opacity: 1;
-            pointer-events: auto;
-            transform: translateY(0);
+
+        #snow-canvas {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.55;
         }
 
         h1, h2, h3, .brand-font {
             font-family: 'Eurostile', 'Open Sans', sans-serif;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.8px;
         }
 
+        /* --- LOADER --- */
         .loader-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -167,81 +159,109 @@
             transition: opacity 0.5s ease;
         }
         .spinner {
-            width: 50px; height: 50px;
+            width: 52px; height: 52px;
             border: 4px solid var(--border);
             border-top-color: var(--primary);
             border-radius: 50%;
-            animation: spin 1s linear infinite;
+            animation: spin 0.9s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
             margin-bottom: 20px;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        
-        nav {
-            background: var(--bg-card);
-            border-bottom: 1px solid var(--border);
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        .nav-brand {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            text-decoration: none;
-            color: var(--text-main);
-        }
-        .nav-logo {
-            height: 50px;
-            width: 50px;
-            object-fit: contain;
-            background: transparent;
-            padding: 0;
-        }
-        .nav-title {
-            font-size: 24px;
-            color: var(--text-main);
-            font-weight: 700;
-        }
-        .nav-links {
-            display: flex;
-            gap: 20px;
-        }
-        .nav-links a {
-            color: var(--text-main);
-            text-decoration: none;
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 14px;
-            transition: color 0.2s;
-        }
-        .nav-links a:hover {
-            color: var(--primary);
-        }
 
+        /* --- ANNOUNCEMENT BAR --- */
         #announcement-bar {
-            background: var(--primary);
+            background: linear-gradient(90deg, var(--primary) 0%, rgba(var(--primary-rgb), 0.88) 100%);
             color: var(--on-primary);
             padding: 10px 20px;
             text-align: center;
             font-weight: 700;
             display: none;
             font-size: 14px;
+            letter-spacing: 0.2px;
+            position: relative;
+            z-index: 101;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
         #announcement-bar.is-alert {
-            background: #d31c1c;
+            background: linear-gradient(90deg, #d31c1c 0%, #a81414 100%);
             color: #ffffff;
         }
 
+        /* --- GLASS NAVIGATION --- */
+        nav {
+            background: rgba(16, 18, 22, 0.82);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            transition: background 0.3s ease;
+        }
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            text-decoration: none;
+            color: var(--text-main);
+        }
+        .nav-logo {
+            height: 46px;
+            width: 46px;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+            transition: transform 0.25s ease;
+        }
+        .nav-brand:hover .nav-logo {
+            transform: scale(1.06) rotate(-3deg);
+        }
+        .nav-title {
+            font-size: 21px;
+            color: var(--text-main);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 13px;
+            letter-spacing: 0.4px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            transition: all 0.2s ease;
+        }
+        .nav-links a:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.07);
+        }
+        .nav-links a#nav-donate {
+            background: rgba(var(--primary-rgb), 0.16);
+            color: var(--primary);
+            border: 1px solid rgba(var(--primary-rgb), 0.4);
+        }
+        .nav-links a#nav-donate:hover {
+            background: var(--primary);
+            color: var(--on-primary);
+        }
+
+        /* --- HERO SECTION --- */
         .hero {
             position: relative;
             overflow: hidden;
-            padding: 70px 20px 80px;
+            padding: 85px 20px 90px;
             text-align: center;
-            background: radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, transparent 70%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
         }
         .hero-video-wrap {
             position: absolute;
@@ -262,54 +282,58 @@
             height: auto;
             transform: translate(-50%, -50%);
             object-fit: cover;
-            opacity: 0.65;
+            opacity: 0.55;
             pointer-events: none;
         }
         .hero-video-overlay {
             position: absolute;
             inset: 0;
-            background: linear-gradient(180deg, rgba(29, 29, 26, 0.35) 0%, rgba(29, 29, 26, 0.6) 65%, #1D1D1A 100%);
+            background:
+                radial-gradient(circle at 50% 30%, rgba(var(--primary-rgb), 0.18) 0%, transparent 60%),
+                linear-gradient(180deg, rgba(17, 18, 21, 0.35) 0%, rgba(17, 18, 21, 0.72) 70%, var(--bg-dark) 100%);
             z-index: 1;
             pointer-events: none;
         }
         .hero-content {
             position: relative;
             z-index: 2;
+            max-width: 820px;
+            margin: 0 auto;
         }
-        .hero h1 {
-            font-size: 56px;
-            margin-bottom: 15px;
-            color: var(--text-main);
-        }
-        .hero p {
-            font-size: 18px;
-            color: var(--text-muted);
-            max-width: 600px;
-            margin: 0 auto 30px;
-        }
+
+        /* Status Pill */
         .hero-status {
             display: inline-flex;
             align-items: center;
             gap: 10px;
             max-width: 100%;
-            margin: 0 0 20px;
-            padding: 8px 18px;
+            margin: 0 0 22px;
+            padding: 8px 20px;
             border-radius: 999px;
-            border: 1px solid rgba(var(--primary-rgb), 0.6);
-            background: rgba(var(--primary-rgb), 0.12);
+            border: 1px solid rgba(var(--primary-rgb), 0.5);
+            background: rgba(15, 16, 20, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             color: var(--text-main);
-            font-size: 15px;
-            font-weight: 600;
+            font-size: 14px;
+            font-weight: 700;
             line-height: 1.4;
             text-align: left;
             text-decoration: none;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35), 0 0 20px rgba(var(--primary-rgb), 0.15);
+            transition: all 0.25s ease;
         }
         .hero-status[hidden] { display: none; }
-        .hero-status:hover { background: rgba(var(--primary-rgb), 0.22); }
+        .hero-status:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary);
+            background: rgba(var(--primary-rgb), 0.18);
+        }
         .hero-status.is-live {
             background: var(--primary);
             border-color: var(--primary);
             color: var(--on-primary);
+            box-shadow: 0 0 30px rgba(var(--primary-rgb), 0.5);
         }
         .status-dot {
             width: 10px;
@@ -317,84 +341,220 @@
             flex-shrink: 0;
             border-radius: 50%;
             background: var(--primary);
+            box-shadow: 0 0 8px var(--primary);
         }
         .hero-status.is-live .status-dot {
             background: var(--on-primary);
-            animation: status-pulse 1.6s ease-in-out infinite;
+            box-shadow: none;
+            animation: status-pulse 1.4s ease-in-out infinite;
         }
         @keyframes status-pulse {
             0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.35; transform: scale(0.7); }
+            50% { opacity: 0.35; transform: scale(0.75); }
         }
 
+        .hero h1 {
+            font-size: clamp(36px, 7vw, 64px);
+            line-height: 1.08;
+            margin-bottom: 18px;
+            color: var(--text-main);
+            text-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            text-wrap: balance;
+        }
+        .hero p {
+            font-size: clamp(16px, 2.2vw, 19px);
+            color: var(--text-muted);
+            max-width: 620px;
+            margin: 0 auto 32px;
+            line-height: 1.6;
+        }
+
+        /* Buttons */
         .btn {
-            display: inline-block;
-            padding: 12px 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 14px 28px;
             background: var(--primary);
             color: var(--on-primary);
             font-family: 'Eurostile', 'Open Sans', sans-serif;
-            font-size: 20px;
+            font-size: 18px;
+            font-weight: 700;
             text-decoration: none;
-            border-radius: 8px;
-            transition: all 0.2s ease-in-out;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            border-radius: 12px;
+            transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 8px 25px -4px rgba(var(--primary-rgb), 0.45), 0 2px 6px rgba(0,0,0,0.3);
             text-transform: uppercase;
-            border: none;
+            border: 1px solid transparent;
             cursor: pointer;
+            letter-spacing: 0.6px;
         }
         .btn:hover {
             transform: translateY(-2px);
-            filter: brightness(1.1);
+            filter: brightness(1.08);
+            box-shadow: 0 12px 30px -4px rgba(var(--primary-rgb), 0.65);
+        }
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--border-highlight);
+            color: var(--text-main);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.14);
+            border-color: var(--primary);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
         }
         .btn-ghost {
-            background: transparent;
-            border: 2px solid var(--border);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
             color: var(--text-main);
+            box-shadow: none;
+            padding: 14px 18px;
+        }
+        .btn-ghost:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: var(--border-highlight);
+            box-shadow: none;
         }
         .hero-actions {
             display: flex;
             justify-content: center;
-            gap: 15px;
+            align-items: center;
+            gap: 12px;
             flex-wrap: wrap;
         }
-        
+
+        /* Headline Sponsor Hero Badge */
+        .headline-sponsor-pill {
+            margin: 32px auto 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 14px;
+            padding: 10px 20px;
+            background: rgba(20, 22, 26, 0.78);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(var(--primary-rgb), 0.35);
+            border-radius: 16px;
+            text-decoration: none;
+            color: var(--text-main);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+        .headline-sponsor-pill:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary);
+        }
+        .headline-sponsor-pill img {
+            height: 38px;
+            width: auto;
+            max-width: 110px;
+            object-fit: contain;
+            background: #fff;
+            padding: 4px 8px;
+            border-radius: 8px;
+        }
+        .headline-sponsor-meta {
+            text-align: left;
+            line-height: 1.25;
+        }
+        .headline-sponsor-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--primary);
+            font-weight: 800;
+        }
+        .headline-sponsor-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        /* --- LAYOUT SECTIONS --- */
         section {
-            padding: 60px 20px;
-            max-width: 1000px;
+            padding: 64px 20px;
+            max-width: 1080px;
             margin: 0 auto;
-            scroll-margin-top: 80px;
+            scroll-margin-top: 76px;
         }
         .section-header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 36px;
+        }
+        .section-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.4px;
+            color: var(--primary);
+            background: rgba(var(--primary-rgb), 0.1);
+            border: 1px solid rgba(var(--primary-rgb), 0.28);
+            padding: 4px 12px;
+            border-radius: 999px;
+            margin-bottom: 12px;
         }
         .section-header h2 {
-            font-size: clamp(26px, 6.5vw, 40px);
+            font-size: clamp(26px, 5.5vw, 40px);
             line-height: 1.15;
             color: var(--text-main);
             text-wrap: balance;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
         .section-header h2 .hl {
             color: var(--primary);
             transition: color 0.35s ease;
         }
         .section-header p {
-            color: var(--text-main);
+            color: var(--text-muted);
             font-size: 16px;
-            max-width: 650px;
+            max-width: 620px;
             margin: 0 auto;
-            opacity: 0.88;
-            line-height: 1.5;
+            line-height: 1.55;
         }
 
+        /* --- GLASS IFRAME CONTAINERS & CHROME BAR --- */
         .iframe-container {
             width: 100%;
             background: var(--bg-card);
-            border-radius: 16px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: var(--radius-lg);
             border: 1px solid var(--border);
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: var(--shadow-card);
+        }
+        .iframe-chrome {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 18px;
+            background: rgba(0, 0, 0, 0.45);
+            border-bottom: 1px solid var(--border);
+            gap: 12px;
+        }
+        .iframe-chrome-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+        }
+        .chrome-pulse {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22c55e;
+            box-shadow: 0 0 8px #22c55e;
         }
         .iframe-container iframe {
             width: 100%;
@@ -402,9 +562,12 @@
             display: block;
         }
         
-        #tracker { max-width: 1200px; }
+        #tracker { max-width: 1200px; padding-top: 40px; }
         #tracker .section-header { margin-bottom: 24px; }
-        #tracker .iframe-container { border-color: rgba(var(--primary-rgb), 0.45); }
+        #tracker .iframe-container {
+            border-color: rgba(var(--primary-rgb), 0.4);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 35px rgba(var(--primary-rgb), 0.12);
+        }
         #routes .iframe-container { margin-bottom: 40px; }
 
         #tracker-iframe {
@@ -418,93 +581,188 @@
             }
         }
 
-        .thermo-card {
-            background: var(--bg-card);
-            color: var(--text-main);
-            border-radius: 16px;
-            border: 1px solid var(--border);
-            padding: 40px 30px;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            max-width: 500px;
+        .tracker-fs {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-decoration: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            background: rgba(var(--primary-rgb), 0.12);
+            border: 1px solid rgba(var(--primary-rgb), 0.3);
+            transition: all 0.2s ease;
+        }
+        .tracker-fs:hover {
+            background: var(--primary);
+            color: var(--on-primary);
+        }
+        .tracker-fs[hidden] { display: none; }
+
+        /* --- DONATIONS & VOLUNTEER BENTO GRID --- */
+        .donate-bento {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+            max-width: 960px;
             margin: 0 auto;
         }
+        @media (min-width: 800px) {
+            .donate-bento:has(#volunteer-container[style*="block"]) {
+                grid-template-columns: 1.15fr 0.85fr;
+                align-items: stretch;
+            }
+        }
+
+        .thermo-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            color: var(--text-main);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            padding: 36px 32px;
+            text-align: center;
+            box-shadow: var(--shadow-card);
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .thermo-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+        }
         .thermo-title {
-            font-size: 24px;
-            margin-bottom: 20px;
+            font-size: 22px;
+            margin-bottom: 16px;
             color: var(--text-main);
         }
         .progress-bar-bg {
             width: 100%;
-            height: 24px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
+            height: 26px;
+            background: rgba(255, 255, 255, 0.07);
+            border-radius: 999px;
             border: 1px solid var(--border);
             overflow: hidden;
-            margin: 20px 0;
+            margin: 16px 0 20px;
+            padding: 3px;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.5);
         }
         .progress-bar-fill {
             height: 100%;
             width: 0%;
-            background: var(--primary);
-            border-radius: 12px;
-            transition: width 1.5s ease-out;
+            background: linear-gradient(90deg, var(--primary) 0%, #ffd27d 50%, var(--primary) 100%);
+            background-size: 200% 100%;
+            border-radius: 999px;
+            transition: width 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+            box-shadow: 0 0 15px rgba(var(--primary-rgb), 0.6);
+            position: relative;
+        }
+        .progress-bar-fill::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: linear-gradient(
+                -45deg,
+                rgba(255, 255, 255, 0.2) 25%,
+                transparent 25%,
+                transparent 50%,
+                rgba(255, 255, 255, 0.2) 50%,
+                rgba(255, 255, 255, 0.2) 75%,
+                transparent 75%,
+                transparent
+            );
+            background-size: 28px 28px;
+            animation: move-stripes 1.2s linear infinite;
+            border-radius: 999px;
+        }
+        @keyframes move-stripes {
+            0% { background-position: 0 0; }
+            100% { background-position: 28px 0; }
         }
         .thermo-stats {
             display: flex;
             align-items: baseline;
             justify-content: space-between;
-            margin-bottom: 25px;
-            font-size: 24px;
+            margin-bottom: 18px;
+            font-size: 22px;
         }
+        .stat-current {
+            font-size: 1.75em;
+            line-height: 1;
+            font-weight: 900;
+            color: var(--primary);
+            text-shadow: 0 0 25px rgba(var(--primary-rgb), 0.35);
+        }
+        .stat-target { color: var(--text-muted); font-size: 0.9em; }
+        .thermo-updated { margin-bottom: 24px; font-size: 13px; color: var(--text-muted); }
 
-        .stat-current { font-size: 1.5em; line-height: 1; font-weight: 900; color: var(--primary); }
-        .stat-target { color: var(--text-muted); }
-        .thermo-updated { margin-bottom: 20px; font-size: 14px; color: var(--text-muted); }
-
+        .volunteer-wrap { width: 100%; max-width: 600px; margin: 0 auto; display: flex; }
         .volunteer-banner {
-            background: linear-gradient(135deg, rgba(29,29,26,0.9) 0%, rgba(0,0,0,0.95) 100%);
-            border: 1px solid var(--primary);
-            border-radius: 16px;
-            padding: 30px 24px;
-            margin-top: 24px;
+            background: linear-gradient(145deg, rgba(var(--primary-rgb), 0.12) 0%, rgba(20, 22, 26, 0.85) 65%);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(var(--primary-rgb), 0.45);
+            border-radius: var(--radius-lg);
+            padding: 36px 28px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
-            gap: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-            box-sizing: border-box;
+            gap: 18px;
+            box-shadow: var(--shadow-card);
             width: 100%;
         }
-        .volunteer-text {
-            flex: 1;
+        .volunteer-icon {
+            width: 54px;
+            height: 54px;
+            border-radius: 16px;
+            background: rgba(var(--primary-rgb), 0.15);
+            border: 1px solid rgba(var(--primary-rgb), 0.35);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
         }
         .volunteer-text h3 {
-            color: var(--primary);
+            color: var(--text-main);
             font-size: 24px;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             line-height: 1.2;
         }
         .volunteer-text p {
-            font-size: 14px;
+            font-size: 15px;
             color: var(--text-muted);
             margin: 0;
-            line-height: 1.4;
+            line-height: 1.5;
         }
         .btn-outline {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 10px 20px;
-            background: transparent;
+            padding: 12px 24px;
+            background: rgba(var(--primary-rgb), 0.1);
             color: var(--primary);
-            border: 2px solid var(--primary);
+            border: 1.5px solid var(--primary);
             font-family: 'Eurostile', 'Open Sans', sans-serif;
-            font-size: 18px;
+            font-size: 16px;
+            font-weight: 700;
             text-decoration: none;
-            border-radius: 8px;
+            border-radius: 12px;
             transition: all 0.2s ease-in-out;
             text-transform: uppercase;
             white-space: nowrap;
@@ -512,42 +770,35 @@
         .btn-outline:hover {
             background: var(--primary);
             color: var(--on-primary);
-        }
-        
-        @media(max-width: 600px) {
-            .volunteer-banner {
-                flex-direction: column;
-                text-align: center;
-                padding: 20px;
-            }
-            .btn-outline {
-                width: 100%;
-            }
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(var(--primary-rgb), 0.35);
         }
 
         /* --- TONIGHT'S FEATURED ROUTE SPOTLIGHT --- */
         .today-spotlight-card {
-            background: var(--bg-card);
+            background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.14) 0%, rgba(20, 22, 26, 0.9) 55%);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border: 2px solid var(--primary);
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 35px;
-            box-shadow: 0 0 25px rgba(var(--primary-rgb), 0.2), 0 10px 30px rgba(0, 0, 0, 0.6);
+            border-radius: var(--radius-lg);
+            padding: 28px;
+            margin-bottom: 32px;
+            box-shadow: 0 0 35px rgba(var(--primary-rgb), 0.18), var(--shadow-card);
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 22px;
+            position: relative;
+            overflow: hidden;
         }
-
         @media (min-width: 768px) {
             .today-spotlight-card {
                 display: grid;
-                grid-template-columns: 1.1fr 1fr;
+                grid-template-columns: 1.15fr 0.85fr;
                 gap: 30px;
                 align-items: center;
-                padding: 28px 32px;
+                padding: 32px 36px;
             }
         }
-
         .today-badge {
             display: inline-flex;
             align-items: center;
@@ -557,75 +808,144 @@
             font-size: 12px;
             font-weight: 800;
             text-transform: uppercase;
-            padding: 4px 12px;
-            border-radius: 20px;
-            letter-spacing: 0.5px;
-            margin-bottom: 10px;
+            padding: 5px 14px;
+            border-radius: 999px;
+            letter-spacing: 0.6px;
+            margin-bottom: 12px;
             width: fit-content;
+            box-shadow: 0 4px 15px rgba(var(--primary-rgb), 0.4);
         }
-
         .today-sponsor-box {
-            background: rgba(var(--primary-rgb), 0.06);
-            border: 1px solid var(--primary);
-            border-radius: 12px;
-            padding: 18px;
-            box-shadow: 0 0 15px rgba(var(--primary-rgb), 0.15);
+            background: rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(var(--primary-rgb), 0.5);
+            border-radius: var(--radius-md);
+            padding: 20px;
         }
 
-        /* --- ROUTES GRID --- */
+        /* --- ROUTE FILTER TABS & SCHEDULE GRID --- */
+        .routes-filter-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 10px 0 24px;
+        }
+        .routes-tabs {
+            display: inline-flex;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            padding: 4px;
+            border-radius: 12px;
+            gap: 4px;
+        }
+        .route-tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-family: 'Open Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 7px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .route-tab-btn.active {
+            background: var(--primary);
+            color: var(--on-primary);
+        }
+
         .routes-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 20px;
-            margin-top: 40px;
         }
         .route-card {
             background: var(--bg-card);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--shadow-card);
             display: flex;
             flex-direction: column;
+            transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+        }
+        .route-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(var(--primary-rgb), 0.45);
+            box-shadow: 0 22px 40px -12px rgba(0, 0, 0, 0.8), 0 0 20px rgba(var(--primary-rgb), 0.1);
+        }
+        .route-card.is-past {
+            opacity: 0.62;
+            background: rgba(18, 19, 22, 0.55);
+        }
+        .route-card.is-past:hover {
+            opacity: 0.92;
         }
         .route-card h3 {
             color: var(--text-main);
-            font-size: 24px;
-            margin-bottom: 10px;
+            font-size: 22px;
+            margin-bottom: 8px;
+            line-height: 1.25;
             overflow-wrap: break-word;
-            word-wrap: break-word;
-            word-break: break-word;
-            hyphens: auto;
         }
         .route-date {
-            font-weight: 700;
+            font-weight: 800;
             color: var(--primary);
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             text-transform: uppercase;
-            font-size: 14px;
-        }
-        .route-streets {
-            font-size: 14px;
-            color: var(--text-muted);
+            font-size: 13px;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
         }
 
-        /* --- SPONSORS --- */
+        /* --- PARTNERS & SPONSORS --- */
+        .partners-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 18px;
+            text-align: left;
+        }
+        .partner-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(14px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+            box-shadow: var(--shadow-card);
+        }
+        .partner-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(var(--primary-rgb), 0.45);
+        }
         .sponsors-grid {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 30px;
+            gap: 20px;
         }
         .sponsor-card {
-            background: #fff;
-            border-radius: 12px;
-            padding: 15px;
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 16px 20px;
             width: 180px;
             height: 100px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+            box-shadow: 0 12px 25px rgba(0,0,0,0.45);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .sponsor-card:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 16px 32px rgba(0,0,0,0.6), 0 0 20px rgba(var(--primary-rgb), 0.25);
         }
         .sponsor-card img {
             max-width: 100%;
@@ -633,34 +953,105 @@
             object-fit: contain;
         }
 
+        /* --- FAQ ACCORDION --- */
+        .faq-accordion {
+            max-width: 820px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .faq-item {
+            background: var(--bg-card);
+            backdrop-filter: blur(14px);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            transition: border-color 0.2s ease;
+        }
+        .faq-item[open] {
+            border-color: rgba(var(--primary-rgb), 0.5);
+        }
+        .faq-header {
+            padding: 20px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.02);
+            transition: background 0.2s ease;
+            list-style: none;
+        }
+        .faq-header::-webkit-details-marker { display: none; }
+        .faq-header::marker { content: ''; }
+        .faq-header:hover {
+            background: rgba(var(--primary-rgb), 0.08);
+        }
+        .faq-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin: 0;
+            padding-right: 20px;
+            font-family: 'Open Sans', sans-serif;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+        .faq-icon {
+            color: var(--primary);
+            font-size: 18px;
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+        }
+        .faq-content {
+            padding: 18px 24px 22px;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 15px;
+            line-height: 1.65;
+        }
+        .faq-item[open] .faq-icon {
+            transform: rotate(180deg);
+        }
+
         /* --- ABOUT US --- */
         .about-card {
-            background: rgba(0, 0, 0, 0.7);
-            border-radius: 16px;
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            border-radius: var(--radius-lg);
             border: 1px solid var(--border);
-            padding: 40px 30px;
+            padding: 44px 36px;
             text-align: center;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-            max-width: 800px;
+            box-shadow: var(--shadow-card);
+            max-width: 820px;
             margin: 0 auto;
+        }
+        .about-lead { font-size: 19px; margin-bottom: 18px; }
+        .about-body { margin-bottom: 22px; color: var(--text-muted); max-width: 660px; margin-left: auto; margin-right: auto; }
+        .about-tagline {
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-main);
         }
         .social-links {
             display: flex;
             justify-content: center;
-            gap: 20px;
-            margin-top: 30px;
+            gap: 14px;
+            margin-top: 28px;
             flex-wrap: wrap;
         }
         .social-btn {
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: var(--bg-dark);
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.05);
             color: var(--text-main);
-            font-size: 24px;
+            font-size: 20px;
             text-decoration: none;
             transition: all 0.2s ease;
             border: 1px solid var(--border);
@@ -668,61 +1059,39 @@
         .social-btn:hover {
             background: var(--primary);
             color: var(--on-primary);
-            transform: translateY(-2px); 
+            border-color: var(--primary);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(var(--primary-rgb), 0.35);
         }
 
-        /* --- FAQ SECTION --- */
-        .faq-accordion {
-            max-width: 800px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        .faq-item {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-        .faq-header {
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            background: rgba(0,0,0,0.4);
-            transition: background 0.2s ease;
-            list-style: none;
-        }
-        .faq-header::-webkit-details-marker { display: none; }
-        .faq-header::marker { content: ''; }
-        .faq-header:hover {
-            background: rgba(var(--primary-rgb), 0.1);
-        }
-        .faq-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--text-main);
-            margin: 0;
-            padding-right: 20px;
-        }
-        .faq-icon {
-            color: var(--primary);
-            font-size: 20px;
-            transition: transform 0.3s ease;
-        }
-        .faq-content {
-            padding: 20px;
-            border-top: 1px solid var(--border);
-            background: var(--bg-card);
-            color: var(--text-muted);
+        /* --- FLOATING ACTION BUTTON --- */
+        .fab-map {
+            position: fixed;
+            bottom: 22px;
+            right: 22px;
+            background: var(--primary);
+            color: var(--on-primary);
+            padding: 14px 22px;
+            border-radius: 999px;
+            font-family: 'Eurostile', 'Open Sans', sans-serif;
             font-size: 15px;
-            line-height: 1.6;
+            font-weight: 700;
+            text-transform: uppercase;
+            text-decoration: none;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.6), 0 0 20px rgba(var(--primary-rgb), 0.4);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 999;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(20px);
         }
-        .faq-item[open] .faq-icon {
-            transform: rotate(180deg);
+        .fab-map.visible {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
         }
 
         /* --- FOOTER --- */
@@ -731,62 +1100,50 @@
             padding: 40px 20px;
             border-top: 1px solid var(--border);
             margin-top: 60px;
-            background: var(--bg-card);
+            background: rgba(10, 11, 14, 0.9);
             color: var(--text-muted);
             font-size: 14px;
         }
 
-        @media(max-width: 600px) {
+        /* --- RESPONSIVE ADJUSTMENTS --- */
+        @media (max-width: 650px) {
             nav {
                 flex-wrap: nowrap;
                 justify-content: flex-start;
-                gap: 12px;
-                padding: 8px 12px;
+                gap: 10px;
+                padding: 10px 14px;
             }
             .nav-brand { gap: 8px; flex-shrink: 0; }
             .nav-logo { height: 36px; width: 36px; }
-            .nav-title { font-size: 16px; }
-            /* Once the logo is showing, the hero carries the name: keep the bar to one slim row */
+            .nav-title { font-size: 15px; }
             .nav-logo:not([style*="display: none"]) + .nav-title { display: none; }
             .nav-links {
                 flex: 1;
                 min-width: 0;
-                gap: 18px;
+                gap: 6px;
                 overflow-x: auto;
                 white-space: nowrap;
                 justify-content: flex-start;
                 -ms-overflow-style: none;
                 scrollbar-width: none;
             }
-            .nav-links::-webkit-scrollbar {
-                display: none;
-            }
-            .nav-links a { font-size: 13px; padding: 10px 0; flex-shrink: 0; }
-            section { scroll-margin-top: 64px; }
-            .hero h1 { font-size: 40px; }
-            .hero-status { font-size: 14px; }
+            .nav-links::-webkit-scrollbar { display: none; }
+            .nav-links a { font-size: 12px; padding: 7px 11px; flex-shrink: 0; }
+            section { padding: 48px 16px; scroll-margin-top: 64px; }
+            .hero { padding: 60px 16px 65px; }
+            .thermo-card, .volunteer-banner, .about-card { padding: 26px 20px; }
+            .thermo-stats { font-size: 18px; }
+            .btn-outline { width: 100%; }
         }
-
-        .tracker-fs {
-            display: block;
-            text-align: center;
-            margin-top: 14px;
-            color: var(--primary);
-            font-weight: 600;
-            font-size: 14px;
-            text-decoration: none;
-        }
-        .tracker-fs:hover { text-decoration: underline; }
-        .tracker-fs[hidden] { display: none; }
 
         a:focus-visible,
         button:focus-visible,
         summary:focus-visible {
-            outline: 3px solid var(--text-main);
+            outline: 3px solid var(--primary);
             outline-offset: 3px;
         }
 
-        /* Page renders immediately; live-data pieces fade in once the payload lands */
+        /* Initial Pending State */
         body.is-pending {
             --primary: #FFFFFF;
             --on-primary: #000000;
@@ -803,29 +1160,14 @@
             opacity: 0;
         }
 
-        /* Utility classes (replace static inline styles) */
         .hl { color: var(--primary); transition: color 0.35s ease; }
-        .loader-error { color: #d31c1c; text-align: center; max-width: 80%; margin-top: 20px; }
-        .volunteer-wrap { max-width: 500px; margin: 0 auto; width: 100%; }
+        .loader-error { color: #ef4444; text-align: center; max-width: 80%; margin-top: 20px; }
         .btn-icon-end { margin-left: 5px; }
         .section-center { text-align: center; }
-        .partners-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 16px;
-            text-align: left;
-        }
-        .about-lead { font-size: 18px; margin-bottom: 20px; }
-        .about-body { margin-bottom: 20px; color: var(--text-muted); }
-        .about-tagline {
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-main);
-        }
 
         @media (prefers-reduced-motion: reduce) {
             html { scroll-behavior: auto; }
+            #snow-canvas { display: none !important; }
             *, *::before, *::after {
                 transition-duration: 0.01ms !important;
                 animation-duration: 0.01ms !important;
@@ -842,6 +1184,7 @@
     <div id="site-bg">
         <div id="site-bg-overlay"></div>
     </div>
+    <canvas id="snow-canvas" aria-hidden="true"></canvas>
 
     <!-- Loading Overlay -->
     <div id="loader" class="loader-overlay" role="status" aria-live="polite" style="display: none;">
@@ -929,58 +1272,76 @@
             <div class="hero-video-overlay"></div>
         </div>
         <div class="hero-content">
-            <h1><span id="hero-title">Santa Sleigh</span></h1>
             <a id="hero-status" class="hero-status" href="#routes" hidden>
                 <span class="status-dot" aria-hidden="true"></span>
                 <span id="hero-status-text"></span>
             </a>
+            <h1><span id="hero-title">Santa Sleigh</span></h1>
             <p>Follow Santa live on his journey, check when he is visiting your street, and help us raise vital funds for the local community this Christmas!</p>
             <div class="hero-actions">
-                <a href="#tracker" class="btn">Track Santa Live</a>
+                <a href="#tracker" class="btn"><i class="fa-solid fa-location-crosshairs"></i> Track Santa Live</a>
+                <a href="#routes" class="btn btn-secondary"><i class="fa-solid fa-route"></i> Check My Street</a>
                 <button id="share-btn" type="button" aria-label="Share this page" class="btn btn-ghost"><i class="fa-solid fa-share-nodes"></i></button>
             </div>
+            <!-- Optional Headline Sponsor Slot -->
+            <div id="headline-sponsor-slot"></div>
         </div>
     </header>
 
     <!-- Tracker Section -->
     <section id="tracker">
         <div class="section-header">
+            <div class="section-eyebrow"><i class="fa-solid fa-satellite-dish"></i> Real-Time GPS Telemetry</div>
             <h2>LIVE <span class="hl">TRACKER</span></h2>
             <p>Watch Santa's sleigh move in real-time as he visits the streets!</p>
         </div>
         <div class="iframe-container">
+            <div class="iframe-chrome">
+                <div class="iframe-chrome-left">
+                    <span class="chrome-pulse" aria-hidden="true"></span>
+                    <span>Sleigh Radar Feed</span>
+                </div>
+                <a id="tracker-fullscreen" class="tracker-fs" href="#" target="_blank" rel="noopener" hidden>
+                    <span>Full Screen</span> <i class="fa-solid fa-up-right-from-square"></i>
+                </a>
+            </div>
             <iframe id="tracker-iframe" height="600" title="Santa Tracker" allow="geolocation; screen-wake-lock" scrolling="no"></iframe>
         </div>
-        <a id="tracker-fullscreen" class="tracker-fs" href="#" target="_blank" rel="noopener" hidden>Open the tracker full-screen</a>
     </section>
 
     <!-- Donations Section -->
     <section id="donate">
         <div class="section-header">
+            <div class="section-eyebrow"><i class="fa-solid fa-heart"></i> Community Fundraiser</div>
             <h2>HELP US SPREAD <span class="hl">THE MAGIC</span></h2>
             <p>Every penny raised goes directly back into supporting our local community.</p>
         </div>
         
-        <div class="thermo-card">
-            <h3 class="thermo-title brand-font">FUNDRAISER <span class="hl">TARGET</span></h3>
-            <div class="progress-bar-bg">
-                <div class="progress-bar-fill" id="donation-fill"></div>
-            </div>
-            <div class="thermo-stats brand-font">
-                <span id="donation-current" class="stat-current">£0</span>
-                <span id="donation-target" class="stat-target">£0</span>
-            </div>
-            <p id="donation-updated-wrap" class="thermo-updated">Last updated: <span id="donation-updated">Recently</span></p>
-            <a href="#" id="donate-btn" class="btn" target="_blank" rel="noopener noreferrer" style="display: none;">Donate Now</a>
-        </div>
-
-        <div id="volunteer-container" class="volunteer-wrap" style="display: none;">
-            <div class="volunteer-banner">
-                <div class="volunteer-text">
-                    <h3 class="brand-font">Help Keep The Sleigh Moving!</h3>
-                    <p>We need drivers, navigators, and bucket collectors. Volunteer as an elf this year!</p>
+        <div class="donate-bento">
+            <div class="thermo-card">
+                <h3 class="thermo-title brand-font">FUNDRAISER <span class="hl">TARGET</span></h3>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="donation-fill"></div>
                 </div>
-                <a href="#" id="volunteer-btn" class="btn-outline" target="_blank" rel="noopener noreferrer">Volunteer Now <i class="fa-solid fa-arrow-right btn-icon-end"></i></a>
+                <div class="thermo-stats brand-font">
+                    <span id="donation-current" class="stat-current">£0</span>
+                    <span id="donation-target" class="stat-target">£0</span>
+                </div>
+                <p id="donation-updated-wrap" class="thermo-updated">Last updated: <span id="donation-updated">Recently</span></p>
+                <a href="#" id="donate-btn" class="btn" target="_blank" rel="noopener noreferrer" style="display: none;"><i class="fa-solid fa-hand-holding-heart"></i> Donate Now</a>
+            </div>
+
+            <div id="volunteer-container" class="volunteer-wrap" style="display: none;">
+                <div class="volunteer-banner">
+                    <div class="volunteer-icon" aria-hidden="true">
+                        <i class="fa-solid fa-sleigh"></i>
+                    </div>
+                    <div class="volunteer-text">
+                        <h3 class="brand-font">Help Keep The Sleigh Moving!</h3>
+                        <p>We need drivers, navigators, and bucket collectors. Volunteer as an elf this year!</p>
+                    </div>
+                    <a href="#" id="volunteer-btn" class="btn-outline" target="_blank" rel="noopener noreferrer">Volunteer Now <i class="fa-solid fa-arrow-right btn-icon-end"></i></a>
+                </div>
             </div>
         </div>
     </section>
@@ -988,6 +1349,7 @@
     <!-- Routes Section -->
     <section id="routes">
         <div class="section-header">
+            <div class="section-eyebrow"><i class="fa-solid fa-calendar-check"></i> Street Finder & Dates</div>
             <h2>ROUTE <span class="hl">SCHEDULE</span></h2>
             <p>Find out exactly when Santa is coming to your neighbourhood.</p>
         </div>
@@ -999,15 +1361,23 @@
         <!-- Dedicated Spotlight for Today's Route -->
         <div id="today-route-container"></div>
 
+        <!-- Filter Bar for Upcoming vs Completed Routes -->
+        <div id="routes-filter-bar" class="routes-filter-bar" style="display: none;">
+            <div class="routes-tabs" role="tablist" aria-label="Filter sleigh routes">
+                <button type="button" class="route-tab-btn active" data-filter="upcoming">Upcoming Routes</button>
+                <button type="button" class="route-tab-btn" data-filter="all">All Routes</button>
+            </div>
+        </div>
+
         <div class="routes-grid" id="routes-container">
             <!-- Populated by JS -->
         </div>
     </section>
 
-
-    <!-- COMMUNITY PARTNERS (Beverley Custom) -->
+    <!-- COMMUNITY PARTNERS -->
     <section id="partners" class="section-center" style="display: none;">
         <div class="section-header">
+            <div class="section-eyebrow"><i class="fa-solid fa-handshake-angle"></i> Local Support</div>
             <h2>COMMUNITY <span class="hl">PARTNERS</span></h2>
             <p>Thank you to the generous local organisations keeping the magic rolling.</p>
         </div>
@@ -1017,6 +1387,7 @@
     <!-- MEMORY BOOK SECTION -->
     <section id="memory-book">
         <div class="section-header">
+            <div class="section-eyebrow"><i class="fa-solid fa-camera-retro"></i> Community Gallery</div>
             <h2>DIGITAL <span class="hl">MEMORY BOOK</span></h2>
             <p id="memory-book-desc">Spotted Santa? Help us build our digital memory book and share your photos!</p>
         </div>
@@ -1025,12 +1396,13 @@
         </div>
     </section>
 
-    <!-- MODULAR PUBLIC FEATURE SLOTS (Configurable Max 2 Slots per Table: Underneath Memory Book & Above FAQ) -->
+    <!-- MODULAR PUBLIC FEATURE SLOTS -->
     <div id="modular-feature-slots"></div>
 
     <!-- Sponsors Section -->
     <section id="sponsors" style="display: none;">
         <div class="section-header">
+            <div class="section-eyebrow"><i class="fa-solid fa-award"></i> Sleigh Supporters</div>
             <h2>OUR GENEROUS <span class="hl">SPONSORS</span></h2>
             <p>Thank you to the local businesses keeping the sleigh on the road.</p>
         </div>
@@ -1042,6 +1414,7 @@
     <!-- FAQ & SAFETY SECTION -->
     <section id="faq">
         <div class="section-header">
+            <div class="section-eyebrow"><i class="fa-solid fa-shield-halved"></i> Good To Know</div>
             <h2>FAQ & <span class="hl">SAFETY RULES</span></h2>
             <p>Important information about the sleigh routes and how to enjoy the magic safely.</p>
         </div>
@@ -1112,6 +1485,7 @@
     <!-- ABOUT US SECTION -->
     <section id="about">
         <div class="section-header">
+            <div class="section-eyebrow"><i class="fa-solid fa-users"></i> Do More</div>
             <h2>WHO <span class="hl">WE ARE</span></h2>
         </div>
         <div class="about-card">
@@ -1148,6 +1522,52 @@
         const currentYear = new Date().getFullYear();
         $('current-year-text').textContent = currentYear;
         $('year').textContent = currentYear;
+
+        // --- Lightweight Ambient Snowfall ---
+        (function initSnowfall() {
+            const canvas = $('snow-canvas');
+            if (!canvas || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+            const ctx = canvas.getContext('2d');
+            let width = 0, height = 0, flakes = [];
+
+            function resize() {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize, { passive: true });
+            resize();
+
+            const count = Math.min(45, Math.floor(width / 28));
+            for (let i = 0; i < count; i++) {
+                flakes.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    r: Math.random() * 2.2 + 0.8,
+                    s: Math.random() * 0.6 + 0.25,
+                    d: Math.random() * Math.PI * 2
+                });
+            }
+
+            function draw() {
+                if (document.visibilityState === 'visible') {
+                    ctx.clearRect(0, 0, width, height);
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+                    ctx.beginPath();
+                    for (let i = 0; i < flakes.length; i++) {
+                        const f = flakes[i];
+                        ctx.moveTo(f.x, f.y);
+                        ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+                        f.y += f.s;
+                        f.d += 0.01;
+                        f.x += Math.sin(f.d) * 0.35;
+                        if (f.y > height + 5) { f.y = -5; f.x = Math.random() * width; }
+                    }
+                    ctx.fill();
+                }
+                requestAnimationFrame(draw);
+            }
+            requestAnimationFrame(draw);
+        })();
 
         function safeUrl(u) {
             if (!u) return '';
@@ -1301,7 +1721,7 @@
             }
             if (target === loaderError) {
                 loaderText.textContent = 'Setup Required';
-                loaderText.style.color = '#d31c1c';
+                loaderText.style.color = '#ef4444';
                 loaderError.style.display = 'block';
             } else {
                 target.classList.add('is-alert');
@@ -1363,7 +1783,6 @@
             const bgOverlay = $('site-bg-overlay');
             const bg = safeUrl(settings.background_url) || '/icons/site_background.png';
 
-            // Check ambient video settings (from API or local table storage)
             const slug = window.__sleighTableSlug || 'beverley';
             const storedBgMode = localStorage.getItem(`turbosanta_${slug}_bg_mode`);
             const storedVideoUrl = localStorage.getItem(`turbosanta_${slug}_bg_video`);
@@ -1386,7 +1805,6 @@
                     const playPromise = videoEl.play();
                     if (playPromise !== undefined) {
                         playPromise.catch(function () {
-                            // Autoplay restricted (e.g. iOS Low Power Mode) - start on first user interaction
                             const onTouch = function () {
                                 videoEl.defaultMuted = true;
                                 videoEl.muted = true;
@@ -1399,7 +1817,6 @@
                         });
                     }
 
-                    // IntersectionObserver to pause video when scrolled past hero
                     if (window.IntersectionObserver && !videoEl._observerAttached) {
                         videoEl._observerAttached = true;
                         if (heroEl) {
@@ -1417,18 +1834,14 @@
                     }
 
                     if (bgEl) bgEl.style.backgroundImage = 'none';
-                    if (bgOverlay) {
-                        bgOverlay.style.backgroundImage = BG_OVERLAY;
-                    }
+                    if (bgOverlay) bgOverlay.style.backgroundImage = BG_OVERLAY;
                 } else {
                     if (heroEl) heroEl.style.backgroundColor = 'transparent';
                     if (videoWrap) videoWrap.style.display = 'none';
                     videoEl.style.display = 'none';
                     videoEl.pause();
                     if (bgEl) bgEl.style.backgroundImage = BG_OVERLAY + ', url("' + bg.replace(/"/g, '%22') + '")';
-                    if (bgOverlay) {
-                        bgOverlay.style.backgroundImage = 'none';
-                    }
+                    if (bgOverlay) bgOverlay.style.backgroundImage = 'none';
                 }
             } else if (bgEl) {
                 if (heroEl) heroEl.style.backgroundColor = 'transparent';
@@ -1450,7 +1863,7 @@
             }
         }
 
-        function renderBranding(settings) {
+        function renderBranding(settings, headlineSponsor) {
             const siteName = String(settings.sleigh_display_name || 'Santa Sleigh');
             document.title = siteName;
             $('footer-name').textContent = siteName;
@@ -1481,12 +1894,40 @@
             navLogo.alt = siteName + ' logo';
             navLogo.style.display = 'block';
 
-
             if (logo) {
                 const iconLink = document.querySelector("link[rel='icon']");
                 const appleIconLink = document.querySelector("link[rel='apple-touch-icon']");
                 if (iconLink) iconLink.href = logo;
                 if (appleIconLink) appleIconLink.href = logo;
+            }
+
+            // Render Headline Sponsor if configured
+            const hsSlot = $('headline-sponsor-slot');
+            if (hsSlot) {
+                hsSlot.replaceChildren();
+                const hsName = (headlineSponsor && headlineSponsor.name) || settings.headline_sponsor_name;
+                const hsLogo = safeUrl((headlineSponsor && headlineSponsor.logo) || settings.headline_sponsor_logo);
+                const hsUrl = safeUrl((headlineSponsor && headlineSponsor.url) || settings.headline_sponsor_url);
+                if (hsName || hsLogo) {
+                    const wrap = document.createElement(hsUrl ? 'a' : 'div');
+                    wrap.className = 'headline-sponsor-pill';
+                    if (hsUrl) {
+                        wrap.href = hsUrl;
+                        wrap.target = '_blank';
+                        wrap.rel = 'noopener noreferrer sponsored';
+                    }
+                    if (hsLogo) {
+                        const img = document.createElement('img');
+                        img.src = hsLogo;
+                        img.alt = hsName || 'Headline Sponsor';
+                        wrap.appendChild(img);
+                    }
+                    const meta = el('div', 'headline-sponsor-meta');
+                    meta.appendChild(el('div', 'headline-sponsor-label', 'Headline Sleigh Sponsor'));
+                    if (hsName) meta.appendChild(el('div', 'headline-sponsor-name', String(hsName)));
+                    wrap.appendChild(meta);
+                    hsSlot.appendChild(wrap);
+                }
             }
 
             if (location.protocol === 'http:' || location.protocol === 'https:') {
@@ -1639,22 +2080,22 @@
             ].forEach(n => { if (n) n.style.display = hasTarget ? '' : 'none'; });
 
             if (hasTarget) {
-                $('donation-current').textContent = currency + current.toLocaleString();
-                $('donation-target').textContent = 'OF ' + currency + target.toLocaleString();
-                $('donation-updated').textContent = donations.lastUpdatePretty ? String(donations.lastUpdatePretty) : 'Today';
                 const pct = Math.max(0, Math.min((current / target) * 100, 100));
-                setTimeout(() => { $('donation-fill').style.width = pct + '%'; }, donationFillAnimated ? 0 : 500);
+                $('donation-current').textContent = currency + current.toLocaleString();
+                $('donation-target').textContent = `OF ${currency}${target.toLocaleString()} (${Math.round(pct)}%)`;
+                $('donation-updated').textContent = donations.lastUpdatePretty ? String(donations.lastUpdatePretty) : 'Today';
+                setTimeout(() => { $('donation-fill').style.width = pct + '%'; }, donationFillAnimated ? 0 : 400);
                 donationFillAnimated = true;
             }
 
             const donateBtn = $('donate-btn');
             if (donateUrl) {
                 donateBtn.href = donateUrl;
-                donateBtn.style.display = 'inline-block';
+                donateBtn.style.display = 'inline-flex';
             } else {
                 donateBtn.style.display = 'none';
             }
-            card.style.display = (hasTarget || donateUrl) ? '' : 'none';
+            card.style.display = (hasTarget || donateUrl) ? 'flex' : 'none';
             const faqOnline = $('faq-online-donate');
             if (faqOnline) faqOnline.hidden = !donateUrl;
 
@@ -1697,23 +2138,19 @@
                 const santaCount = streets.filter(isSantaStopSleigh).length;
 
                 modal.innerHTML = `
-                    <div id="sleigh-modal-backdrop" style="position: fixed; inset: 0; z-index: 99999; background: rgba(0, 0, 0, 0.82); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; padding: 16px;">
-                        <div style="width: 100%; max-width: 560px; max-height: 88vh; background: #141412; border: 1px solid rgba(var(--primary-rgb), 0.35); border-radius: 18px; box-shadow: 0 25px 60px rgba(0,0,0,0.9), 0 0 35px rgba(var(--primary-rgb), 0.15); display: flex; flex-direction: column; overflow: hidden;" onclick="event.stopPropagation()">
-                            <!-- Header -->
-                            <div style="padding: 20px 24px 16px 24px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); background: linear-gradient(180deg, rgba(var(--primary-rgb), 0.08) 0%, rgba(20, 20, 18, 0.4) 100%); position: relative;">
-                                <button type="button" id="sleigh-modal-close" style="position: absolute; top: 18px; right: 18px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 50%; width: 32px; height: 32px; color: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s ease;">
+                    <div id="sleigh-modal-backdrop" style="position: fixed; inset: 0; z-index: 99999; background: rgba(0, 0, 0, 0.82); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; padding: 16px;">
+                        <div style="width: 100%; max-width: 560px; max-height: 88vh; background: #15171c; border: 1px solid rgba(var(--primary-rgb), 0.4); border-radius: 20px; box-shadow: 0 25px 60px rgba(0,0,0,0.9), 0 0 35px rgba(var(--primary-rgb), 0.15); display: flex; flex-direction: column; overflow: hidden;" onclick="event.stopPropagation()">
+                            <div style="padding: 20px 24px 16px 24px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); background: linear-gradient(180deg, rgba(var(--primary-rgb), 0.1) 0%, rgba(20, 22, 26, 0.4) 100%); position: relative;">
+                                <button type="button" id="sleigh-modal-close" style="position: absolute; top: 18px; right: 18px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 50%; width: 32px; height: 32px; color: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer;">
                                     <i class="fa-solid fa-xmark" style="font-size: 15px;"></i>
                                 </button>
-
                                 <div class="brand-font" style="color: var(--primary); font-size: 12px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
                                     <span>${dateText || ''}</span>
                                     ${timeText ? `<span style="opacity: 0.6;">• ${timeText}</span>` : ''}
                                 </div>
-
                                 <h3 class="brand-font" style="font-size: 22px; color: #FFFFFF; margin: 0 0 6px 0; padding-right: 36px; line-height: 1.2;">
                                     ${routeName || 'Route Street List'}
                                 </h3>
-
                                 <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 6px;">
                                     <span style="font-size: 12px; font-weight: 600; color: #E5E7EB; background: rgba(255, 255, 255, 0.08); padding: 2px 8px; border-radius: 6px;">
                                         ${streets.length} total streets & roads
@@ -1726,8 +2163,7 @@
                                 </div>
                             </div>
 
-                            <!-- Search Input -->
-                            <div style="padding: 12px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); background-color: #191916;">
+                            <div style="padding: 12px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); background-color: #191b22;">
                                 <div style="position: relative; display: flex; align-items: center;">
                                     <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; color: var(--primary); font-size: 13px; pointer-events: none;"></i>
                                     <input type="text" id="sleigh-modal-search" value="${searchQuery}" placeholder="Search ${streets.length} streets on this route..." style="width: 100%; padding: 9px 36px; font-size: 14px; color: #FFFFFF; background-color: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 10px; outline: none;" />
@@ -1735,7 +2171,6 @@
                                 </div>
                             </div>
 
-                            <!-- Scrollable List -->
                             <div style="flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 8px;">
                                 ${filtered.length > 0 ? filtered.map(st => {
                                     const stop = isSantaStopSleigh(st);
@@ -1764,14 +2199,13 @@
                                 `}
                             </div>
 
-                            <!-- Footer -->
-                            <div style="padding: 14px 20px; border-top: 1px solid rgba(255, 255, 255, 0.08); background-color: #191916; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                            <div style="padding: 14px 20px; border-top: 1px solid rgba(255, 255, 255, 0.08); background-color: #191b22; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
                                 <span style="font-size: 12px; color: var(--text-muted);">Showing ${filtered.length} of ${streets.length}</span>
                                 <div style="display: flex; gap: 8px; align-items: center;">
                                     <button type="button" id="sleigh-modal-map" class="brand-font" style="padding: 7px 14px; font-size: 12px; font-weight: 700; color: #FFFFFF; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
                                         <i class="fa-solid fa-map-location-dot" style="font-size: 11px;"></i> View on Map
                                     </button>
-                                    <button type="button" id="sleigh-modal-done" class="brand-font" style="padding: 7px 16px; font-size: 12px; font-weight: 700; color: #000000; background: var(--primary); border: none; border-radius: 8px; cursor: pointer;">
+                                    <button type="button" id="sleigh-modal-done" class="brand-font" style="padding: 7px 16px; font-size: 12px; font-weight: 700; color: var(--on-primary); background: var(--primary); border: none; border-radius: 8px; cursor: pointer;">
                                         Done
                                     </button>
                                 </div>
@@ -1855,8 +2289,8 @@
                 const stop = isStop(st);
                 const chip = document.createElement('span');
                 chip.style.cssText = stop
-                    ? 'font-size: 11px; font-weight: 800; color: #FFFFFF; background: rgba(211, 28, 28, 0.85); border: 1px solid rgba(255, 120, 120, 0.6); padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 0 10px rgba(211, 28, 28, 0.4);'
-                    : 'font-size: 11px; font-weight: 500; color: #E0E0DC; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.08); padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;';
+                    ? 'font-size: 11px; font-weight: 800; color: #FFFFFF; background: rgba(211, 28, 28, 0.85); border: 1px solid rgba(255, 120, 120, 0.6); padding: 4px 9px; border-radius: 7px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 0 10px rgba(211, 28, 28, 0.4);'
+                    : 'font-size: 11px; font-weight: 600; color: #E5E7EB; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1); padding: 4px 9px; border-radius: 7px; display: inline-flex; align-items: center; gap: 4px;';
                 
                 chip.innerHTML = (stop ? '<i class="fa-solid fa-star" style="font-size: 10px;"></i> ' : '') + formatStop(st);
                 chipsContainer.appendChild(chip);
@@ -1864,7 +2298,7 @@
 
             if (remaining > 0) {
                 const moreTag = document.createElement('span');
-                moreTag.style.cssText = 'font-size: 11px; font-weight: 700; color: var(--primary); background: rgba(var(--primary-rgb), 0.1); border: 1px solid rgba(var(--primary-rgb), 0.25); padding: 3px 8px; border-radius: 6px; cursor: pointer;';
+                moreTag.style.cssText = 'font-size: 11px; font-weight: 700; color: var(--primary); background: rgba(var(--primary-rgb), 0.12); border: 1px solid rgba(var(--primary-rgb), 0.3); padding: 4px 9px; border-radius: 7px; cursor: pointer;';
                 moreTag.textContent = `+${remaining} more...`;
                 moreTag.onclick = (e) => {
                     e.stopPropagation();
@@ -1879,16 +2313,16 @@
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'brand-font';
-                btn.style.cssText = 'margin-top: 12px; width: 100%; padding: 8px 12px; font-size: 11px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; background: rgba(var(--primary-rgb), 0.08); color: var(--primary); border: 1px solid rgba(var(--primary-rgb), 0.3); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s ease;';
+                btn.style.cssText = 'margin-top: 14px; width: 100%; padding: 9px 12px; font-size: 11px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; background: rgba(var(--primary-rgb), 0.09); color: var(--primary); border: 1px solid rgba(var(--primary-rgb), 0.32); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s ease;';
                 btn.innerHTML = `<i class="fa-solid fa-map-pin" style="font-size: 11px;"></i> <span>View All ${streets.length} Streets & Stops</span> <i class="fa-solid fa-chevron-right" style="font-size: 10px; opacity: 0.7;"></i>`;
                 
                 btn.onmouseenter = () => {
-                    btn.style.background = 'rgba(var(--primary-rgb), 0.18)';
+                    btn.style.background = 'rgba(var(--primary-rgb), 0.2)';
                     btn.style.borderColor = 'var(--primary)';
                 };
                 btn.onmouseleave = () => {
-                    btn.style.background = 'rgba(var(--primary-rgb), 0.08)';
-                    btn.style.borderColor = 'rgba(var(--primary-rgb), 0.3)';
+                    btn.style.background = 'rgba(var(--primary-rgb), 0.09)';
+                    btn.style.borderColor = 'rgba(var(--primary-rgb), 0.32)';
                 };
                 btn.onclick = (e) => {
                     e.stopPropagation();
@@ -1900,7 +2334,9 @@
             return wrapper;
         }
 
-        // --- Routes Rendering ---
+        // --- Routes Rendering with Smart Upcoming Sorting & Filter ---
+        let currentRouteFilter = 'upcoming';
+
         function renderRoutes(routes, sponsors = []) {
             const container = $('routes-container');
             container.replaceChildren();
@@ -1923,10 +2359,9 @@
                     if (!d) return null;
                     const day = new Date(d);
                     day.setHours(0, 0, 0, 0);
-                    return { route, d, day };
+                    return { route, d, day, isPast: day < today };
                 })
-                .filter(Boolean)
-                .sort((a, b) => a.day - b.day);
+                .filter(Boolean);
 
             if (!allRoutes.length) {
                 const p = el('p', '', 'No routes scheduled yet. Check back soon!');
@@ -1936,22 +2371,43 @@
             }
 
             const todayItem = allRoutes.find(item => item.day.getTime() === today.getTime());
-            const otherRoutes = allRoutes.filter(item => item !== todayItem);
+            // Sort upcoming routes first (ascending), then past routes (ascending)
+            const otherRoutes = allRoutes
+                .filter(item => item !== todayItem)
+                .sort((a, b) => {
+                    if (a.isPast !== b.isPast) return a.isPast ? 1 : -1;
+                    return a.day - b.day;
+                });
 
-            // 1. Render Today's Route as the Hero Spotlight Banner
+            // Show filter bar only if there are both upcoming and past routes
+            const hasPast = otherRoutes.some(r => r.isPast);
+            const hasUpcoming = otherRoutes.some(r => !r.isPast);
+            const filterBar = $('routes-filter-bar');
+            if (filterBar) {
+                if (hasPast && hasUpcoming) {
+                    filterBar.style.display = 'flex';
+                    filterBar.querySelectorAll('.route-tab-btn').forEach(btn => {
+                        btn.classList.toggle('active', btn.dataset.filter === currentRouteFilter);
+                        btn.onclick = () => {
+                            currentRouteFilter = btn.dataset.filter;
+                            renderRoutes(routes, sponsors);
+                        };
+                    });
+                } else {
+                    filterBar.style.display = 'none';
+                }
+            }
+
             if (todayItem) {
                 renderTodaySpotlight(todayItem, sponsors, todayContainer);
             }
 
-            // 2. Render all other routes in the uniform schedule grid
-            otherRoutes.forEach(({ route, d, day }) => {
-                const isPast = day < today;
-                const card = el('div', 'route-card');
-                
-                if (isPast) {
-                    card.style.opacity = '0.5';
-                    card.style.border = '1px solid var(--bg-dark)';
-                }
+            const visibleRoutes = (hasPast && hasUpcoming && currentRouteFilter === 'upcoming')
+                ? otherRoutes.filter(r => !r.isPast)
+                : otherRoutes;
+
+            visibleRoutes.forEach(({ route, d, isPast }) => {
+                const card = el('div', isPast ? 'route-card is-past' : 'route-card');
 
                 const start = route['Start Time'] || '';
                 const end = route['End Time'] || '';
@@ -1960,12 +2416,12 @@
                 
                 const dateWrapper = el('div', 'route-date');
                 if (isPast) {
-                    const badge = el('span', '', '✓ COMPLETED | ');
-                    badge.style.color = 'var(--text-main)';
+                    const badge = el('span', '', '✓ COMPLETED');
+                    badge.style.cssText = 'color: #10b981; background: rgba(16, 185, 129, 0.14); padding: 2px 8px; border-radius: 6px; font-size: 11px;';
                     dateWrapper.appendChild(badge);
                 }
                 
-                dateWrapper.appendChild(document.createTextNode(time ? dateText + ' | ' + time : dateText));
+                dateWrapper.appendChild(document.createTextNode(time ? dateText + ' • ' + time : dateText));
                 card.appendChild(dateWrapper);
                 card.appendChild(el('h3', 'brand-font', String(route.routeName)));
 
@@ -1977,7 +2433,7 @@
                     sponsorBox.style.cssText = 'margin-top: auto; padding-top: 15px; border-top: 1px solid var(--border);';
                     
                     const sponsorLabel = el('div', '', 'SPONSORED BY:');
-                    sponsorLabel.style.cssText = 'font-size: 11px; color: var(--primary); text-transform: uppercase; font-weight: 700; margin-bottom: 10px; letter-spacing: 0.5px; opacity: 0.8;';
+                    sponsorLabel.style.cssText = 'font-size: 10px; color: var(--primary); text-transform: uppercase; font-weight: 800; margin-bottom: 8px; letter-spacing: 0.8px;';
                     sponsorBox.appendChild(sponsorLabel);
 
                     const contentFlex = el('div');
@@ -1987,7 +2443,7 @@
                         const img = document.createElement('img');
                         img.src = safeUrl(route.sponsorUrl);
                         img.alt = String(route.sponsorName);
-                        img.style.cssText = 'width: 50px; height: 50px; object-fit: contain; background: #fff; border-radius: 6px; padding: 4px; flex-shrink: 0;';
+                        img.style.cssText = 'width: 48px; height: 48px; object-fit: contain; background: #fff; border-radius: 8px; padding: 4px; flex-shrink: 0;';
                         contentFlex.appendChild(img);
                     }
 
@@ -2000,7 +2456,7 @@
                         a.target = '_blank';
                         a.rel = 'noopener noreferrer';
                         a.textContent = String(route.sponsorName);
-                        a.style.cssText = 'color: var(--text-main); font-weight: bold; text-decoration: none; font-size: 15px;';
+                        a.style.cssText = 'color: var(--text-main); font-weight: 700; text-decoration: none; font-size: 15px;';
                         a.onmouseover = () => a.style.textDecoration = 'underline';
                         a.onmouseout = () => a.style.textDecoration = 'none';
                         contentFlex.appendChild(a);
@@ -2018,7 +2474,6 @@
             });
         }
 
-        // --- Render Tonight's Hero Spotlight ---
         function renderTodaySpotlight({ route, d }, sponsors, parent) {
             const card = el('div', 'today-spotlight-card');
 
@@ -2033,7 +2488,7 @@
             badge.innerHTML = '<i class="fa-solid fa-star"></i> TONIGHT\'S ROUTE';
             routeInfo.appendChild(badge);
 
-            const dateEl = el('div', 'route-date', time ? dateText + ' | ' + time : dateText);
+            const dateEl = el('div', 'route-date', time ? dateText + ' • ' + time : dateText);
             dateEl.style.fontSize = '15px';
             routeInfo.appendChild(dateEl);
 
@@ -2120,7 +2575,6 @@
             parent.appendChild(card);
         }
 
-        // --- Sponsors (RESTORED) ---
         function renderSponsors(sponsors) {
             const section = $('sponsors');
             const container = $('sponsors-container');
@@ -2143,7 +2597,7 @@
                     a.href = link;
                     a.target = '_blank';
                     a.rel = 'noopener noreferrer sponsored';
-                    a.style.cssText = 'display:flex; width:100%; height:100%; justify-content:center;';
+                    a.style.cssText = 'display:flex; width:100%; height:100%; justify-content:center; align-items:center;';
                     a.appendChild(img);
                     wrap.appendChild(a);
                 } else {
@@ -2153,7 +2607,6 @@
             });
         }
 
-        // --- About + social ---
         function renderAbout(settings) {
             const siteName = String(settings.sleigh_display_name || 'Santa Sleigh');
             const explicit = settings.table_name ? String(settings.table_name).trim() : '';
@@ -2190,7 +2643,6 @@
             });
         }
 
-        // --- Hero status: live now / tonight / next route ---
         function parseClock(v) {
             const m = /^\s*(\d{1,2})[:.](\d{2})\s*([ap]m)?\s*$/i.exec(String(v == null ? '' : v));
             if (!m) return null;
@@ -2459,7 +2911,6 @@
             }
         };
 
-        // Listen to zero-scroll dynamic iframe height updates
         window.addEventListener('message', function (e) {
             if (e.data && (e.data.type === 'turbosanta-resize' || e.data.height || e.data.frameHeight || e.data.routesHeight || e.data.letterHeight || e.data.niceListHeight || e.data.santasBeenHeight || e.data.snowmanFrameHeight || e.data.addressLookupHeight)) {
                 var h = e.data.height || e.data.frameHeight || e.data.routesHeight || e.data.letterHeight || e.data.niceListHeight || e.data.santasBeenHeight || e.data.snowmanFrameHeight || e.data.addressLookupHeight;
@@ -2486,7 +2937,6 @@
             }
             container.replaceChildren();
 
-            // Clear previous dynamic modular nav links
             document.querySelectorAll('.nav-modular-slot').forEach(n => n.remove());
 
             const slug = (settings && (settings.slug || settings.id)) || window.__sleighTableSlug || 'beverley';
@@ -2508,7 +2958,6 @@
             if (!activeSlots.length) return;
             const primaryHex = (settings && settings.primary_color) || '#D31C1C';
             const accentHex = (settings && settings.accent_color) || '#FBAF33';
-            const voiceProvider = (settings && settings.santa_voice_provider) || 'gemini';
 
             const navLinks = document.querySelector('.nav-links');
             const navFaq = $('nav-faq');
@@ -2516,7 +2965,6 @@
             const navAnchorTarget = navFaq || navDonate;
 
             activeSlots.forEach(slot => {
-                // 1. Add Nav Link
                 if (navLinks) {
                     const navA = document.createElement('a');
                     navA.href = '#' + slot.anchorId;
@@ -2529,7 +2977,6 @@
                     }
                 }
 
-                // 2. Build Section
                 const sec = document.createElement('section');
                 sec.id = slot.anchorId;
                 if (slot.maxWidth) {
@@ -2541,7 +2988,7 @@
 
                 if (slot.badge) {
                     const badge = document.createElement('div');
-                    badge.style.cssText = 'display: inline-flex; align-items: center; gap: 6px; background: rgba(251, 175, 51, 0.12); border: 1px solid rgba(251, 175, 51, 0.3); border-radius: 9999px; padding: 4px 12px; font-size: 11px; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;';
+                    badge.className = 'section-eyebrow';
                     badge.textContent = slot.badge;
                     hdr.appendChild(badge);
                 }
@@ -2558,9 +3005,23 @@
 
                 sec.appendChild(hdr);
 
-                // Iframe Container
                 const ifrWrap = document.createElement('div');
                 ifrWrap.className = 'iframe-container';
+
+                if (slot.fullscreenSrc) {
+                    const chrome = el('div', 'iframe-chrome');
+                    const left = el('div', 'iframe-chrome-left');
+                    left.innerHTML = `<i class="fa-solid fa-sparkles" style="color: var(--primary);"></i> <span>${slot.badge || slot.navLabel}</span>`;
+                    const fsA = document.createElement('a');
+                    fsA.className = 'tracker-fs';
+                    fsA.href = slot.fullscreenSrc(slug);
+                    fsA.target = '_blank';
+                    fsA.rel = 'noopener';
+                    fsA.innerHTML = `<span>${slot.fullscreenLabel || 'Open Full-Screen'}</span> <i class="fa-solid fa-up-right-from-square"></i>`;
+                    chrome.appendChild(left);
+                    chrome.appendChild(fsA);
+                    ifrWrap.appendChild(chrome);
+                }
 
                 const ifr = document.createElement('iframe');
                 ifr.id = slot.anchorId + '-iframe';
@@ -2585,16 +3046,6 @@
                 ifrWrap.appendChild(ifr);
                 sec.appendChild(ifrWrap);
 
-                if (slot.fullscreenSrc) {
-                    const fsA = document.createElement('a');
-                    fsA.className = 'tracker-fs';
-                    fsA.href = slot.fullscreenSrc(slug);
-                    fsA.target = '_blank';
-                    fsA.rel = 'noopener';
-                    fsA.textContent = slot.fullscreenLabel || 'Open Full-Screen';
-                    sec.appendChild(fsA);
-                }
-
                 container.appendChild(sec);
             });
         }
@@ -2608,9 +3059,10 @@
             const donations = (data && data.donations) || {};
             const routes = asArray(data && data.routes);
             const sponsors = asArray(data && data.sponsors);
+            const headlineSponsor = data && data.headlineSponsor;
 
             safely('theme', () => renderTheme(settings));
-            safely('branding', () => renderBranding(settings));
+            safely('branding', () => renderBranding(settings, headlineSponsor));
             safely('announcement', () => renderAnnouncement(settings));
             safely('frames', () => renderFrames(api));
             safely('donations', () => renderDonations(donations, settings));
@@ -2621,7 +3073,6 @@
             safely('social', () => renderSocial(settings));
 
             safely('partners', () => {
-                const slug = window.__sleighTableSlug || 'beverley';
                 const partSec = $('partners');
                 const partCont = $('partners-container');
                 const partners = (data && data.partners && data.partners.length > 0)
@@ -2631,8 +3082,7 @@
                 if (partners && partners.length > 0 && partSec && partCont) {
                     partCont.replaceChildren();
                     partners.forEach(p => {
-                        const card = el('div', '', '');
-                        card.style.cssText = 'background: #000000; border: 1px solid var(--border); border-radius: 14px; padding: 22px;';
+                        const card = el('div', 'partner-card', '');
                         
                         const role = el('div', '', p.role || 'Partner');
                         role.style.cssText = 'color: var(--primary); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 800; margin-bottom: 6px;';
@@ -2675,6 +3125,59 @@
             return data;
         }
 
+        function adaptWorkerPayload(data, updateLabel) {
+            return {
+                settings: {
+                    ...(data.table || {}),
+                    ...(data.settings || {}),
+                    sleigh_display_name: data.table?.sleigh_display_name || (data.table?.name ? `${data.table.name} Santa Sleigh` : 'Santa Sleigh'),
+                    table_name: data.table?.name || 'Round Table',
+                    primary_color: data.table?.primary_color || '#FBAF33',
+                    accent_color: data.table?.accent_color || '#FFFFFF',
+                    donate_url: data.table?.donate_url || '',
+                    live_announcement: data.table?.live_announcement || '',
+                    logo_overlay_url: data.table?.logo_url || '',
+                    background_url: data.table?.background_url || '',
+                    table_website_url: data.table?.website_url || data.table?.table_website_url || 'https://www.roundtable.co.uk',
+                    table_facebook_url: data.table?.facebook_url || data.table?.table_facebook_url || '',
+                    table_instagram_url: data.table?.instagram_url || data.table?.table_instagram_url || '',
+                    table_tiktok_url: data.table?.tiktok_url || data.table?.table_tiktok_url || '',
+                    table_youtube_url: data.table?.youtube_url || data.table?.table_youtube_url || ''
+                },
+                donations: {
+                    total: data.table?.total_raised || 0,
+                    target: data.table?.fundraising_goal || 0,
+                    currency: '£',
+                    lastUpdatePretty: updateLabel || 'Live'
+                },
+                routes: (data.routes || []).map(r => {
+                    const rSponsors = extractRouteSponsors(r);
+                    return {
+                        ...r,
+                        routeName: r.name || r.routeName,
+                        date: r.date,
+                        'Start Time': r.start_time || '18:00',
+                        'End Time': r.end_time || '20:30',
+                        notes: r.notes || '',
+                        streets: r.streets || (data.streets?.filter(s => s.route_id === r.id).map(s => s.street_name).join(', ')) || '',
+                        sponsors: rSponsors,
+                        sponsorName: rSponsors.map(s => s.name).filter(Boolean).join(' • ') || (r.sponsor_name || r.sponsorName || ''),
+                        sponsorUrl: rSponsors[0]?.logo_url || r.sponsor_logo_url || r.sponsor_logo || r.sponsorUrl || '',
+                        sponsorLink: rSponsors[0]?.link || r.sponsor_link || r.sponsor_url || r.sponsorLink || '',
+                        sponsorDescription: rSponsors[0]?.description || r.sponsor_description || r.sponsorDescription || ''
+                    };
+                }),
+                sponsors: data.sponsors || data.table?.partners || [],
+                partners: data.partners || [],
+                headlineSponsor: data.table?.headline_sponsor_name ? {
+                    name: data.table.headline_sponsor_name,
+                    logo: data.table.headline_sponsor_logo,
+                    url: data.table.headline_sponsor_url,
+                    tagline: data.table.headline_sponsor_tagline
+                } : null
+            };
+        }
+
         function initializeSleighApp(retryCount = 0) {
             const apiUrl = window.__sleighApiUrl;
             const tableSlug = window.__sleighTableSlug || 'beverley';
@@ -2703,7 +3206,6 @@
                         fetch(CFG.proxyBase + '/log?error=' + encodeURIComponent(err && err.message) + '&api=' + encodeURIComponent(apiUrl)).catch(()=>{});
                     });
             } else {
-                // High-speed multi-tenant Cloudflare Worker + D1 Database
                 if (!window.__sleighDataPromise) {
                     window.__sleighDataPromise = fetch(`${CFG.workerApi}/api/payload?table=${encodeURIComponent(tableSlug)}`).then(r => r.json()).catch(() => null);
                 }
@@ -2737,49 +3239,7 @@
                                 throw e;
                             }
                         }
-                        const adapted = {
-                            settings: {
-                                ...(data.table || {}),
-                                ...(data.settings || {}),
-                                sleigh_display_name: data.table?.sleigh_display_name || (data.table?.name ? `${data.table.name} Santa Sleigh` : 'Santa Sleigh'),
-                                table_name: data.table?.name || 'Round Table',
-                                primary_color: data.table?.primary_color || '#FBAF33',
-                                accent_color: data.table?.accent_color || '#FFFFFF',
-                                donate_url: data.table?.donate_url || '',
-                                live_announcement: data.table?.live_announcement || '',
-                                logo_overlay_url: data.table?.logo_url || '',
-                                background_url: data.table?.background_url || '',
-                                table_website_url: data.table?.website_url || data.table?.table_website_url || 'https://www.roundtable.co.uk',
-                                table_facebook_url: data.table?.facebook_url || data.table?.table_facebook_url || '',
-                                table_instagram_url: data.table?.instagram_url || data.table?.table_instagram_url || '',
-                                table_tiktok_url: data.table?.tiktok_url || data.table?.table_tiktok_url || '',
-                                table_youtube_url: data.table?.youtube_url || data.table?.table_youtube_url || ''
-                            },
-                            donations: {
-                                total: data.table?.total_raised || 0,
-                                target: data.table?.fundraising_goal || 0,
-                                currency: '£',
-                                lastUpdatePretty: 'Live'
-                            },
-                            routes: (data.routes || []).map(r => {
-                                const rSponsors = extractRouteSponsors(r);
-                                return {
-                                    ...r,
-                                    routeName: r.name || r.routeName,
-                                    date: r.date,
-                                    'Start Time': r.start_time || '18:00',
-                                    'End Time': r.end_time || '20:30',
-                                    streets: r.streets || (data.streets?.filter(s => s.route_id === r.id).map(s => s.street_name).join(', ')) || '',
-                                    sponsors: rSponsors,
-                                    sponsorName: rSponsors.map(s => s.name).filter(Boolean).join(' • ') || (r.sponsor_name || r.sponsorName || ''),
-                                    sponsorUrl: rSponsors[0]?.logo_url || r.sponsor_logo_url || r.sponsor_logo || r.sponsorUrl || '',
-                                    sponsorLink: rSponsors[0]?.link || r.sponsor_link || r.sponsor_url || r.sponsorLink || '',
-                                    sponsorDescription: rSponsors[0]?.description || r.sponsor_description || r.sponsorDescription || ''
-                                };
-                            }),
-                            sponsors: data.sponsors || []
-                        };
-                        applySettings(adapted, '');
+                        applySettings(adaptWorkerPayload(data, 'Live'), '');
                         removeLoader();
                     })
                     .catch(err => {
@@ -2798,62 +3258,12 @@
                     .then(r => r.json())
                     .then(raw => {
                         const data = checkPayload(raw);
-                        const adapted = {
-                            settings: {
-                                ...(data.table || {}),
-                                ...(data.settings || {}),
-                                sleigh_display_name: data.table?.sleigh_display_name || (data.table?.name ? `${data.table.name} Santa Sleigh` : 'Santa Sleigh'),
-                                table_name: data.table?.name || 'Round Table',
-                                primary_color: data.table?.primary_color || '#FBAF33',
-                                accent_color: data.table?.accent_color || '#FFFFFF',
-                                donate_url: data.table?.donate_url || '',
-                                live_announcement: data.table?.live_announcement || '',
-                                logo_overlay_url: data.table?.logo_url || '',
-                                background_url: data.table?.background_url || '',
-                                table_website_url: data.table?.website_url || data.table?.table_website_url || 'https://www.roundtable.co.uk',
-                                table_facebook_url: data.table?.facebook_url || data.table?.table_facebook_url || '',
-                                table_instagram_url: data.table?.instagram_url || data.table?.table_instagram_url || '',
-                                table_tiktok_url: data.table?.tiktok_url || data.table?.table_tiktok_url || '',
-                                table_youtube_url: data.table?.youtube_url || data.table?.table_youtube_url || ''
-                            },
-                            donations: {
-                                total: data.table?.total_raised || 0,
-                                target: data.table?.fundraising_goal || 0,
-                                currency: '£',
-                                lastUpdatePretty: 'Just now'
-                            },
-                            routes: (data.routes || []).map(r => {
-                                const rSponsors = extractRouteSponsors(r);
-                                return {
-                                    ...r,
-                                    routeName: r.name || r.routeName,
-                                    date: r.date,
-                                    'Start Time': r.start_time || '18:00',
-                                    'End Time': r.end_time || '20:30',
-                                    notes: r.notes || '',
-                                    streets: r.streets || (data.streets?.filter(s => s.route_id === r.id).map(s => s.street_name).join(', ')) || '',
-                                    sponsors: rSponsors,
-                                    sponsorName: rSponsors.map(s => s.name).filter(Boolean).join(' • ') || (r.sponsor_name || ''),
-                                    sponsorUrl: rSponsors[0]?.logo_url || r.sponsor_logo_url || r.sponsor_logo || '',
-                                    sponsorLink: rSponsors[0]?.link || r.sponsor_link || '',
-                                    sponsorDescription: rSponsors[0]?.description || r.sponsor_description || ''
-                                };
-                            }),
-                            sponsors: data.sponsors || data.table?.partners || [],
-                            headlineSponsor: data.table?.headline_sponsor_name ? {
-                                name: data.table.headline_sponsor_name,
-                                logo: data.table.headline_sponsor_logo,
-                                url: data.table.headline_sponsor_url,
-                                tagline: data.table.headline_sponsor_tagline
-                            } : null
-                        };
-                        applySettings(adapted, null);
+                        applySettings(adaptWorkerPayload(data, 'Just now'), null);
                     });
             }
             return Promise.resolve();
         }
 
-        // Live Background Polling (Every 15s) keeping announcements, routes, and donations 100% synchronized
         setInterval(() => {
             if (document.visibilityState === 'visible' && navigator.onLine) {
                 refreshSleighData().catch(() => {});
