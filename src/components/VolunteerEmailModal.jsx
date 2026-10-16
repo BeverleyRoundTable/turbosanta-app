@@ -58,8 +58,8 @@ export default function VolunteerEmailModal({
     const activeRouteObj = routes.find(r => r.name === routeName || r.id === routeName);
     const startTm = activeRouteObj?.start_time || '18:00';
     const routeDisplay = routeName && routeName !== 'all' ? routeName : 'Upcoming Sleigh Route';
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://roundtablesantasleigh.co.uk';
-    const trackerLink = `${origin}/?table=${encodeURIComponent(currentTableSlug)}`;
+    const cleanSlug = String(currentTableSlug || table.slug || 'beverley').trim().toLowerCase();
+    const trackerLink = `https://${cleanSlug}.roundtablesantasleigh.co.uk/tracker`;
 
     if (type === 'weather') {
       return {
