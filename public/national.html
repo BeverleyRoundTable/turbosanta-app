@@ -515,8 +515,8 @@
       flex-direction: column;
       align-items: center;
       cursor: pointer;
-      transform-origin: center bottom;
-      transition: transform 0.18s ease-out;
+      transform-origin: center 7px;
+      transition: transform 0.15s ease-out;
     }
 
     .town-marker-wrapper:hover {
@@ -525,30 +525,43 @@
     }
 
     .town-pin-badge {
-      width: 32px;
-      height: 32px;
+      width: 14px;
+      height: 14px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #242420 0%, #121210 100%);
+      background: #1A1A17;
       border: 2px solid var(--gold);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), 0 0 10px rgba(251, 175, 51, 0.35);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), 0 0 6px rgba(251, 175, 51, 0.4);
       position: relative;
+    }
+
+    .town-pin-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--gold);
+      display: block;
     }
 
     .town-pin-badge.is-live {
       border-color: #2ecc71;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), 0 0 14px rgba(46, 204, 113, 0.6);
+      background: #0f2416;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), 0 0 10px rgba(46, 204, 113, 0.7);
+    }
+
+    .town-pin-badge.is-live .town-pin-dot {
+      background: #2ecc71;
     }
 
     .town-pin-badge.is-live::after {
       content: '';
       position: absolute;
-      top: -4px;
-      left: -4px;
-      right: -4px;
-      bottom: -4px;
+      top: -3px;
+      left: -3px;
+      right: -3px;
+      bottom: -3px;
       border-radius: 50%;
       border: 2px solid #2ecc71;
       animation: pinPing 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
@@ -556,29 +569,25 @@
 
     @keyframes pinPing {
       0% { transform: scale(1); opacity: 0.9; }
-      100% { transform: scale(1.6); opacity: 0; }
-    }
-
-    .town-pin-icon {
-      font-size: 15px;
-      line-height: 1;
+      100% { transform: scale(1.7); opacity: 0; }
     }
 
     .town-pin-label {
       margin-top: 3px;
-      padding: 2px 7px;
+      padding: 1px 6px;
       background: rgba(18, 18, 16, 0.92);
       backdrop-filter: blur(4px);
       border: 1px solid rgba(251, 175, 51, 0.35);
-      border-radius: 9999px;
+      border-radius: 4px;
       color: #fff;
       font-family: 'Eurostile', sans-serif;
       font-size: 10px;
       font-weight: 700;
-      letter-spacing: 0.6px;
+      letter-spacing: 0.5px;
       text-transform: uppercase;
       white-space: nowrap;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+      line-height: 1.3;
     }
 
     .town-marker-wrapper.is-live .town-pin-label {
@@ -2196,14 +2205,14 @@ async function renderRoutesOnMap() {
       if (routesToRender.length > 0) {
         pill.innerHTML = `<span class="filter-dot pulse"></span> <b>${routesToRender.length}</b> Route${routesToRender.length === 1 ? '' : 's'} Live Tonight`;
       } else {
-        pill.innerHTML = `<span>🎅</span> No routes running tonight • Showing Table Locations`;
+        pill.innerHTML = `<span class="filter-dot" style="background:var(--gold);"></span> No routes running tonight • Showing Table Locations`;
       }
     }
   } else {
     routesToRender = allNationalRoutes;
     if (pill) {
       const tableCount = new Set(allNationalRoutes.map(r => r.tableSlug)).size;
-      pill.innerHTML = `<span>🗺️</span> <b>${allNationalRoutes.length}</b> Routes Across <b>${tableCount}</b> Round Tables`;
+      pill.innerHTML = `<span class="filter-dot" style="background:var(--gold);"></span> <b>${allNationalRoutes.length}</b> Routes Across <b>${tableCount}</b> Round Tables`;
     }
   }
 
@@ -2391,7 +2400,7 @@ async function renderMap(data) {
     const pinHtml = `
       <div class="town-marker-wrapper ${isLive ? 'is-live' : ''}" id="town-pin-${table.slug}">
         <div class="town-pin-badge ${isLive ? 'is-live' : ''}">
-          <span class="town-pin-icon">🎅</span>
+          <span class="town-pin-dot"></span>
         </div>
         <div class="town-pin-label">${escHtml(cleanTown)}</div>
       </div>
@@ -2400,9 +2409,9 @@ async function renderMap(data) {
     const townIcon = L.divIcon({
       className: 'custom-town-pin-container',
       html: pinHtml,
-      iconSize: [80, 56],
-      iconAnchor: [40, 28],
-      popupAnchor: [0, -22]
+      iconSize: [80, 36],
+      iconAnchor: [40, 7],
+      popupAnchor: [0, -12]
     });
 
     if (!townMarkers[table.id]) {
