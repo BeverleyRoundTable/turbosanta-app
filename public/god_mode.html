@@ -436,6 +436,10 @@ async function requestWakeLock() {
   
 function getApiUrl(params = '') {
   const secret = sessionStorage.getItem('sleighSecret') || '';
+  if (!API) {
+    const base = `${WORKER_API}/api?table=${encodeURIComponent(TABLE_SLUG)}`;
+    return `${base}&secret=${encodeURIComponent(secret)}${params ? '&' + params : ''}`;
+  }
   const base = API.includes('?') ? API : API + '?';
   const separator = base.endsWith('?') ? '' : '&';
   return `${base}${separator}secret=${encodeURIComponent(secret)}${params ? '&' + params : ''}`;
@@ -955,15 +959,27 @@ async function sendCrewAlert() {
   btn.style.background = "var(--surface-3)";
   btn.style.color = "var(--text-dim)";
   try {
-    const response = await fetch(API, {
-      method: "POST",
-      body: JSON.stringify({ action: "updateCrewAlert", message: msg, secret })
-    });
+    let response;
+    if (API) {
+      response = await fetch(API, {
+        method: "POST",
+        body: JSON.stringify({ action: "updateCrewAlert", message: msg, secret })
+      });
+    } else {
+      response = await fetch(`${WORKER_API}/api/announcement?table=${encodeURIComponent(TABLE_SLUG)}`, {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${secret}`
+        },
+        body: JSON.stringify({ action: "updateCrewAlert", message: msg, secret, crew_alert: msg })
+      });
+    }
     const result = await response.json();
     if (result.ok) {
       STATE.settings.crew_alert = msg;
     } else {
-      alert("Action Blocked: " + result.error);
+      alert("Action Blocked: " + (result.error || "Failed"));
     }
     updateCrewAlertButtonState();
   } catch(e) {
@@ -1032,14 +1048,26 @@ async function clearCrewAlert() {
   btn.style.color = "var(--text-dim)";
   
   try {
-    const response = await fetch(API, { 
-      method: "POST", 
-      body: JSON.stringify({ 
-        action: "updateCrewAlert", 
-        message: " ", // 🎅 MAGIC TRICK: Single space forces Google to overwrite the cell
-        secret: secret 
-      }) 
-    });
+    let response;
+    if (API) {
+      response = await fetch(API, { 
+        method: "POST", 
+        body: JSON.stringify({ 
+          action: "updateCrewAlert", 
+          message: " ", // 🎅 MAGIC TRICK: Single space forces Google to overwrite the cell
+          secret: secret 
+        }) 
+      });
+    } else {
+      response = await fetch(`${WORKER_API}/api/announcement?table=${encodeURIComponent(TABLE_SLUG)}`, {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${secret}`
+        },
+        body: JSON.stringify({ action: "updateCrewAlert", message: "", secret: secret, crew_alert: "" })
+      });
+    }
     
     const result = await response.json();
     
@@ -1047,7 +1075,7 @@ async function clearCrewAlert() {
       STATE.settings.crew_alert = '';
       document.getElementById('crewAlertInput').value = '';
     } else {
-      alert("Action Blocked: " + result.error);
+      alert("Action Blocked: " + (result.error || "Failed"));
     }
     
     updateCrewAlertButtonState();
@@ -1693,7 +1721,16 @@ async function toggleHeatmap() {
   } else {
     btn.innerText = "Loading Data...";
     try {
-      const res = await fetch(getApiUrl('function=getHeatmapData'));
+      const secret = sessionStorage.getItem('sleighSecret') || '';
+      let fetchUrl;
+      if (API) {
+        fetchUrl = getApiUrl('function=getHeatmapData');
+      } else {
+        fetchUrl = `${WORKER_API}/api/heatmap?table=${encodeURIComponent(TABLE_SLUG)}&secret=${encodeURIComponent(secret)}`;
+      }
+      const res = await fetch(fetchUrl, {
+        headers: { 'Authorization': `Bearer ${secret}` }
+      });
       allHeatData = await res.json();
       
       if (allHeatData.error) throw new Error(allHeatData.error);
@@ -1720,7 +1757,7 @@ async function toggleHeatmap() {
       });
 
       const allYears = [...(allHeatData.subscribers||[]).map(d=>d.year), ...(allHeatData.suggestions||[]).map(d=>d.year)];
-      const uniqueYears = [...new Set(allYears)].filter(y => y !== "Unknown").sort().reverse();
+      const uniqueYears = [...new Set(allYears)].filter(y => y && y !== "Unknown").sort().reverse();
       const yearSelect = document.getElementById('heatYear');
       yearSelect.innerHTML = '<option value="All">All Time</option>';
       uniqueYears.forEach(y => {
@@ -1748,7 +1785,19 @@ function drawHeatmap() {
   const filtered = activeDataset.filter(d => year === "All" || d.year === year);
   const leafletFormat = filtered.map(d => [d.lat, d.lng, 1]);
 
-  if (leafletFormat.length === 0) return; 
+  const mapLabel = document.getElementById('mapLabel');
+  if (leafletFormat.length === 0) {
+    if (mapLabel) {
+      const typeLabel = type === 'subscribers' ? 'Doorstep Alert Pins' : 'Route Suggestions';
+      mapLabel.textContent = `Planning Map — 0 ${typeLabel} recorded in ${year}`;
+    }
+    return;
+  }
+
+  if (mapLabel) {
+    const typeLabel = type === 'subscribers' ? 'Doorstep Alert Pins' : 'Route Suggestions';
+    mapLabel.textContent = `Planning Map — ${leafletFormat.length} ${typeLabel}`;
+  }
 
   heatLayer = L.heatLayer(leafletFormat, {
     radius: 25, blur: 15, maxZoom: 15,
@@ -1795,11 +1844,15 @@ setInterval(fetchPendingMessages, 10000);
 async function fetchPendingMessages() {
   const secret = sessionStorage.getItem('sleighSecret') || '';
   try {
-    const res = await fetch(`${API}${API.includes('?')?'&':'?'}function=getPendingMessages&secret=${encodeURIComponent(secret)}`);
+    const fetchUrl = API
+      ? `${API}${API.includes('?')?'&':'?'}function=getPendingMessages&secret=${encodeURIComponent(secret)}`
+      : `${WORKER_API}/api/messages/pending?table=${encodeURIComponent(TABLE_SLUG)}&secret=${encodeURIComponent(secret)}`;
+    const res = await fetch(fetchUrl);
     const msgs = await res.json();
     const container = document.getElementById('pendingMessagesQueue');
+    if (!container) return;
     
-    if(msgs.length === 0) {
+    if(!Array.isArray(msgs) || msgs.length === 0) {
        container.innerHTML = '<div class="no-route">No pending messages</div>';
        updatePendingCount(0);
        return;
@@ -1823,7 +1876,6 @@ async function fetchPendingMessages() {
     container.innerHTML = html;
     updatePendingCount(msgs.length);
   } catch(e){}
-  
 }
 
   setInterval(fetchIntakeMemories, 15000); // Poll every 15 seconds
@@ -1831,10 +1883,16 @@ async function fetchPendingMessages() {
 async function fetchIntakeMemories() {
   const secret = sessionStorage.getItem('sleighSecret') || '';
   try {
-    const res = await fetch(`${API}${API.includes('?')?'&':'?'}function=getIntakeMemories&secret=${encodeURIComponent(secret)}`);
-    const files = await res.json();
+    const fetchUrl = API
+      ? `${API}${API.includes('?')?'&':'?'}function=getIntakeMemories&secret=${encodeURIComponent(secret)}`
+      : `${WORKER_API}/api/memory-book?table=${encodeURIComponent(TABLE_SLUG)}&admin=1&secret=${encodeURIComponent(secret)}`;
+    const res = await fetch(fetchUrl);
+    const data = await res.json();
     const container = document.getElementById('memoryIntakeQueue');
     const badge = document.getElementById('intakeCount');
+    if (!container) return;
+
+    const files = Array.isArray(data) ? data : (data.items || []);
     
     if (badge) badge.textContent = `${files.length} pending`;
     
@@ -1845,10 +1903,8 @@ async function fetchIntakeMemories() {
     
     let html = '';
     files.forEach(f => {
-       // Embed-friendly thumbnail for the God Mode UI
-       const thumbUrl = `https://drive.google.com/thumbnail?id=${f.id}&sz=w400`;
-       // Full resolution link for the new tab
-       const fullUrl = `https://drive.google.com/uc?export=view&id=${f.id}`;
+       const thumbUrl = f.media_url || f.url || (f.id ? `https://drive.google.com/thumbnail?id=${f.id}&sz=w400` : '');
+       const fullUrl = f.media_url || f.url || (f.id ? `https://drive.google.com/uc?export=view&id=${f.id}` : '#');
        
        html += `
          <div class="intake-card" id="intake-${f.id}">
@@ -1872,17 +1928,30 @@ async function moderateMemory(fileId, action) {
   if (card) card.style.opacity = '0.3';
 
   try {
-    const res = await fetch(API, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'moderateMemory', fileId: fileId, modAction: action, secret: secret })
-    });
-    const result = await res.json();
+    let result;
+    if (API) {
+      const res = await fetch(API, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'moderateMemory', fileId: fileId, modAction: action, secret: secret })
+      });
+      result = await res.json();
+    } else {
+      const res = await fetch(`${WORKER_API}/api/memory-book/moderate?table=${encodeURIComponent(TABLE_SLUG)}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${secret}`
+        },
+        body: JSON.stringify({ id: fileId, status: action === 'approve' ? 'approved' : 'rejected', secret: secret })
+      });
+      result = await res.json();
+    }
     
     if (result.ok) {
       if (card) card.remove();
-      // Optional: Decrement badge count instantly
+      fetchIntakeMemories();
     } else {
-      alert("Failed to moderate photo: " + result.error);
+      alert("Failed to moderate photo: " + (result.error || "Failed"));
       if (card) card.style.opacity = '1';
     }
   } catch(e) {
@@ -1909,10 +1978,21 @@ async function handleUserMsg(encodedMsg, action) {
   fetchPendingMessages(); 
   
   try {
-    await fetch(API, {
-      method: 'POST',
-      body: JSON.stringify({ action: action, message: msg, secret: secret })
-    });
+    if (API) {
+      await fetch(API, {
+        method: 'POST',
+        body: JSON.stringify({ action: action, message: msg, secret: secret })
+      });
+    } else {
+      await fetch(`${WORKER_API}/api/announcement?table=${encodeURIComponent(TABLE_SLUG)}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${secret}`
+        },
+        body: JSON.stringify({ action: action, message: msg, secret: secret, user_announcement: action === 'approveUserMessage' ? msg : '' })
+      });
+    }
     // Force immediate tracker setting refresh
     fetchApiData(); 
   } catch(e) {
@@ -2118,7 +2198,16 @@ async function submitIncident() {
   };
 
   try {
-    const res = await fetch(API, { method: 'POST', body: JSON.stringify(payload) });
+    const secret = payload.secret;
+    const postUrl = API ? API : `${WORKER_API}/api/incidents?table=${encodeURIComponent(TABLE_SLUG)}`;
+    const res = await fetch(postUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${secret}`
+      },
+      body: JSON.stringify(payload)
+    });
     const result = await res.json();
     
     if (result.ok) {
@@ -2145,7 +2234,13 @@ async function submitIncident() {
 
 async function fetchIncidentHistory() {
   try {
-    const res = await fetch(getApiUrl('function=getIncidentLogs'));
+    const secret = sessionStorage.getItem('sleighSecret') || '';
+    const getUrl = API
+      ? getApiUrl('function=getIncidentLogs')
+      : `${WORKER_API}/api/incidents?table=${encodeURIComponent(TABLE_SLUG)}&secret=${encodeURIComponent(secret)}`;
+    const res = await fetch(getUrl, {
+      headers: { 'Authorization': `Bearer ${secret}` }
+    });
     const logs = await res.json();
     
     const container = document.getElementById('incidentHistory');
@@ -2187,7 +2282,13 @@ setInterval(fetchIncidentHistory, 30000);
 
 async function fetchGiftAidData() {
   try {
-    const res = await fetch(getApiUrl('function=getGiftAidSummary'));
+    const secret = sessionStorage.getItem('sleighSecret') || '';
+    const fetchUrl = API
+      ? getApiUrl('function=getGiftAidSummary')
+      : `${WORKER_API}/api/gift-aid/summary?table=${encodeURIComponent(TABLE_SLUG)}&secret=${encodeURIComponent(secret)}`;
+    const res = await fetch(fetchUrl, {
+      headers: { 'Authorization': `Bearer ${secret}` }
+    });
     const data = await res.json();
     if (data.error) return;
 
@@ -2197,12 +2298,12 @@ async function fetchGiftAidData() {
     const container = document.getElementById('giftAidEntries');
 
     if (badge) badge.textContent = data.declarations + ' declaration' + (data.declarations !== 1 ? 's' : '');
-    if (totalEl) totalEl.textContent = '£' + data.totalDonations.toFixed(2);
-    if (boostEl) boostEl.textContent = '+ £' + data.totalGiftAid.toFixed(2);
+    if (totalEl) totalEl.textContent = '£' + (data.totalDonations || 0).toFixed(2);
+    if (boostEl) boostEl.textContent = '+ £' + (data.totalGiftAid || 0).toFixed(2);
 
     if (!container) return;
 
-    if (data.entries.length === 0) {
+    if (!data.entries || data.entries.length === 0) {
       container.innerHTML = '<div class="no-route">No Gift Aid declarations yet</div>';
       return;
     }
@@ -2228,8 +2329,8 @@ async function fetchGiftAidData() {
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div>
-            <span style="font-family:'Open Sans',monospace;font-size:13px;color:var(--gold);font-weight:700;">£${e.amount.toFixed(2)}</span>
-            <span style="font-family:'Open Sans',monospace;font-size:11px;color:var(--green);margin-left:8px;">+£${e.giftAid.toFixed(2)}</span>
+            <span style="font-family:'Open Sans',monospace;font-size:13px;color:var(--gold);font-weight:700;">£${(e.amount || 0).toFixed(2)}</span>
+            <span style="font-family:'Open Sans',monospace;font-size:11px;color:var(--green);margin-left:8px;">+£${(e.giftAid || 0).toFixed(2)}</span>
             ${e.route ? `<span style="font-family:'Open Sans',monospace;font-size:10px;color:var(--text-muted);margin-left:8px;">📍 ${e.route}</span>` : ''}
           </div>
           <span style="font-size:11px;color:${statusColor};font-weight:700;">${statusIcon} ${e.status}</span>
@@ -2248,11 +2349,17 @@ async function bulkClaimGiftAid() {
   btn.disabled = true;
 
   try {
-    const res = await fetch(API, {
+    const secret = sessionStorage.getItem('sleighSecret') || '';
+    const postUrl = API ? API : `${WORKER_API}/api/gift-aid/status?table=${encodeURIComponent(TABLE_SLUG)}`;
+    const res = await fetch(postUrl, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${secret}`
+      },
       body: JSON.stringify({
         action: 'updateGiftAidStatus',
-        secret: sessionStorage.getItem('sleighSecret') || '',
+        secret: secret,
         mode: 'bulkAll',
         status: 'Claimed'
       })
@@ -2273,14 +2380,23 @@ async function bulkClaimGiftAid() {
   }
 }
 
-  async function downloadHmrcExport() {
+async function downloadHmrcExport() {
   const btn = document.getElementById('gaExportBtn');
   const filter = document.getElementById('gaExportFilter').value;
   btn.textContent = 'Generating...';
   btn.disabled = true;
   btn.style.opacity = '0.6';
   try {
-    const res = await fetch(getApiUrl(`function=getGiftAidExport&status=${encodeURIComponent(filter)}`));
+    const secret = sessionStorage.getItem('sleighSecret') || '';
+    const fetchUrl = API
+      ? getApiUrl(`function=getGiftAidExport&status=${encodeURIComponent(filter)}`)
+      : `${WORKER_API}/api/gift-aid/export?table=${encodeURIComponent(TABLE_SLUG)}&status=${encodeURIComponent(filter)}&secret=${encodeURIComponent(secret)}`;
+    const res = await fetch(fetchUrl, {
+      headers: {
+        'Authorization': `Bearer ${secret}`,
+        'Accept': 'application/json'
+      }
+    });
     const data = await res.json();
     if (data.error) { alert('Export failed: ' + data.error); return; }
     if (!data.ok || data.count === 0) { alert('No ' + filter + ' Gift Aid declarations to export.'); return; }
