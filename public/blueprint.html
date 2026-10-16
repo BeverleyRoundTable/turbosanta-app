@@ -228,7 +228,9 @@
       sessionStorage.setItem("SANTA_API", API_URL);
     }
 
-    const tableSlug = params.get("table") || "beverley";
+    const _subMatch = location.hostname.match(/^([a-z0-9-]+)\.roundtablesantasleigh\.co\.uk$/i);
+    const subdomainSlug = (_subMatch && !['www', 'api', 'admin'].includes(_subMatch[1].toLowerCase())) ? _subMatch[1].toLowerCase() : '';
+    const tableSlug = params.get("table") || subdomainSlug || "beverley";
     const WORKER_URL = "https://santaproxy.beverley247.workers.dev/";
     const DATA_URL = API_URL
       ? `${WORKER_URL}?ttl=30&target=${encodeURIComponent(API_URL)}`

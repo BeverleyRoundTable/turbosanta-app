@@ -142,7 +142,15 @@
 
 const urlParams = new URLSearchParams(location.search);
 const API = urlParams.get('api') || '';
-const tableParam = urlParams.get('table') || (urlParams.has('api') ? '' : 'beverley');
+const subdomainSlug = (() => {
+  const h = (location.hostname || '').toLowerCase();
+  if (h.endsWith('.roundtablesantasleigh.co.uk')) {
+    const s = h.replace('.roundtablesantasleigh.co.uk', '').split('.')[0].replace(/(tracker|crew|addresses|godmode)$/, '');
+    if (s && s !== 'www' && s !== 'santa' && s !== 'demo' && s !== 'admin' && s !== 'turbosanta') return s;
+  }
+  return '';
+})();
+const tableParam = urlParams.get('table') || subdomainSlug || (urlParams.has('api') ? '' : 'beverley');
 
 const CFG = { RETRY_MS: 5000, MAX_AGE_MS: 90*60*1000, DB: "TurboBeacon", STORE: "q", VER: 1, LOG_CAP: 300 };
 

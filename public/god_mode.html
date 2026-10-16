@@ -389,9 +389,17 @@ const WORKER_URL = WORKER_API;
 
 const params = new URLSearchParams(location.search);
 const API = params.get('api') || '';
+const subdomainSlug = (() => {
+  const h = (location.hostname || '').toLowerCase();
+  if (h.endsWith('.roundtablesantasleigh.co.uk')) {
+    const s = h.replace('.roundtablesantasleigh.co.uk', '').split('.')[0].replace(/(tracker|crew|addresses|godmode)$/, '');
+    if (s && s !== 'www' && s !== 'santa' && s !== 'demo' && s !== 'admin' && s !== 'turbosanta') return s;
+  }
+  return '';
+})();
 let _initSess = null;
 try { _initSess = JSON.parse(localStorage.getItem('turbosanta_admin_session') || '{}'); } catch(e) {}
-const TABLE_SLUG = params.get('table') || _initSess?.tableSlug || _initSess?.tableId || (params.has('api') ? '' : 'beverley');
+const TABLE_SLUG = params.get('table') || subdomainSlug || _initSess?.tableSlug || _initSess?.tableId || (params.has('api') ? '' : 'beverley');
 
 const STATE = {
   tableSlug: TABLE_SLUG,

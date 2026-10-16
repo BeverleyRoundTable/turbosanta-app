@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -366,7 +366,11 @@
 <div class="preview-area" id="previewArea"></div>
 
 <script>
-const API = new URLSearchParams(location.search).get('api') || '';
+const _params = new URLSearchParams(location.search);
+const _subMatch = location.hostname.match(/^([a-z0-9-]+)\.roundtablesantasleigh\.co\.uk$/i);
+const _subSlug = (_subMatch && !['www', 'api', 'admin'].includes(_subMatch[1].toLowerCase())) ? _subMatch[1].toLowerCase() : '';
+const tableSlug = (_params.get('table') || _subSlug || 'beverley').toLowerCase();
+const API = _params.get('api') || `https://api.roundtablesantasleigh.co.uk/${encodeURIComponent(tableSlug)}/api`;
 let CFG = { logo:'', sleighName:'Santa Sleigh', routes:[], donations:{} };
 
 async function init() {

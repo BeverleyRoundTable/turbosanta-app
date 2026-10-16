@@ -1860,7 +1860,9 @@ ${tableName} Organizers`
           </button>
 
           <a
-            href={`/god_mode.html?table=${session.tableId || 'beverley'}`}
+            href={typeof window !== 'undefined' && window.location.hostname.includes('roundtablesantasleigh.co.uk')
+              ? `https://${encodeURIComponent((session.tableSlug || session.tableId || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/god_mode.html`
+              : `/god_mode.html?table=${encodeURIComponent(session.tableSlug || session.tableId || 'beverley')}`}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-secondary"
@@ -1872,7 +1874,9 @@ ${tableName} Organizers`
           </a>
 
           <a
-            href={`/guide.html?table=${session.tableId || 'beverley'}`}
+            href={typeof window !== 'undefined' && window.location.hostname.includes('roundtablesantasleigh.co.uk')
+              ? `https://${encodeURIComponent((session.tableSlug || session.tableId || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/guide.html`
+              : `/guide.html?table=${encodeURIComponent(session.tableSlug || session.tableId || 'beverley')}`}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-secondary"
@@ -4343,7 +4347,7 @@ ${tableName} Organizers`
               </div>
 
               <a
-                href={`/embed.html?table=${session.tableId || 'beverley'}`}
+                href={`https://${encodeURIComponent((session.tableSlug || session.tableId || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/embed.html`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-secondary"
@@ -4355,43 +4359,54 @@ ${tableName} Organizers`
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {[
-                {
-                  key: 'addr',
-                  badge: '01',
-                  title: 'STREET ADDRESS & SPATIAL LOOKUP',
-                  desc: 'Interactive OpenStreetMap with "Use My Location", street autocomplete, doorstep email alerts, and 150m radius calculation.',
-                  url: `https://roundtablesantasleigh.co.uk/address.html?table=${session.tableId || 'beverley'}`
-                },
-                {
-                  key: 'track',
-                  badge: '02',
-                  title: 'LIVE SLEIGH TRACKER MAP',
-                  desc: 'Full mission map with real-time GPS telemetry, dual-layer route polylines, live ETA status bar, and Santa marker.',
-                  url: `https://roundtablesantasleigh.co.uk/tracker.html?table=${session.tableId || 'beverley'}`
-                },
-                {
-                  key: 'giftaid',
-                  badge: '03',
-                  title: 'GIFT AID & DONATION DECLARATION',
-                  desc: 'Direct HMRC-compliant Gift Aid declaration form and fundraising portal for your Table.',
-                  url: `https://roundtablesantasleigh.co.uk/gift_aid.html?table=${session.tableId || 'beverley'}`
-                },
-                {
-                  key: 'crew',
-                  badge: '04',
-                  title: 'VOLUNTEER CREW HUB',
-                  desc: 'Direct volunteer helper registration and route sign-up sheet connected to your Table database.',
-                  url: `https://roundtablesantasleigh.co.uk/crew.html?table=${session.tableId || 'beverley'}`
-                },
-                {
-                  key: 'memory',
-                  badge: '05',
-                  title: 'DIGITAL MEMORY BOOK',
-                  desc: 'Community photo gallery and Polaroid wall where families can view and share sleigh night memories.',
-                  url: `https://roundtablesantasleigh.co.uk/memory_book.html?table=${session.tableId || 'beverley'}`
-                }
-              ].map((item) => (
+              {(() => {
+                const townSlug = encodeURIComponent((session.tableSlug || session.tableId || 'beverley').toLowerCase());
+                const townOrigin = `https://${townSlug}.roundtablesantasleigh.co.uk`;
+                return [
+                  {
+                    key: 'addr',
+                    badge: '01',
+                    title: 'STREET ADDRESS & SPATIAL LOOKUP',
+                    desc: 'Interactive OpenStreetMap with "Use My Location", street autocomplete, doorstep email alerts, and proximity radius calculation.',
+                    url: `${townOrigin}/address`
+                  },
+                  {
+                    key: 'track',
+                    badge: '02',
+                    title: 'LIVE SLEIGH TRACKER MAP',
+                    desc: 'Full mission map with real-time GPS telemetry, dual-layer route polylines, live ETA status bar, and Santa marker.',
+                    url: `${townOrigin}/tracker`
+                  },
+                  {
+                    key: 'giftaid',
+                    badge: '03',
+                    title: 'GIFT AID & DONATION DECLARATION',
+                    desc: 'Direct HMRC-compliant +25% Gift Aid declaration form and fundraising portal for your Table.',
+                    url: `${townOrigin}/giftaid`
+                  },
+                  {
+                    key: 'crew',
+                    badge: '04',
+                    title: 'VOLUNTEER CREW HUB',
+                    desc: 'Direct volunteer helper registration and route sign-up sheet connected to your Table database.',
+                    url: `${townOrigin}/crew`
+                  },
+                  {
+                    key: 'print',
+                    badge: '05',
+                    title: 'PRINT STUDIO (POSTERS, 4-UP BUCKET STICKERS & 6-UP LANYARDS)',
+                    desc: 'Print-ready A4 street posters, 4-Up waterproof bucket labels, and 6-Up walking elf lanyard cards with selectable QR targets.',
+                    url: `${townOrigin}/qr_poster.html`
+                  },
+                  {
+                    key: 'memory',
+                    badge: '06',
+                    title: 'DIGITAL MEMORY BOOK',
+                    desc: 'Community photo gallery and Polaroid wall where families can view and share sleigh night memories.',
+                    url: `${townOrigin}/memory_book.html`
+                  }
+                ];
+              })().map((item) => (
                 <div
                   key={item.key}
                   style={{

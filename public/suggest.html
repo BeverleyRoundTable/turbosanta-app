@@ -173,7 +173,9 @@
 
   <script>
     const params = new URLSearchParams(location.search);
-    const tableSlug = (params.get("table") || "beverley").toLowerCase();
+    const _subMatch = location.hostname.match(/^([a-z0-9-]+)\.roundtablesantasleigh\.co\.uk$/i);
+    const subdomainSlug = (_subMatch && !['www', 'api', 'admin'].includes(_subMatch[1].toLowerCase())) ? _subMatch[1].toLowerCase() : '';
+    const tableSlug = (params.get("table") || subdomainSlug || "beverley").toLowerCase();
     const apiUrl = params.get("api");
     let map, activePin = null;
 

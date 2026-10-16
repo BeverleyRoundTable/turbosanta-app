@@ -15,8 +15,19 @@ function formatTownName(str) {
 // Strictly Curated 14 Public Interactive Features
 // ==============================================================================
 
+function detectSubdomainSlug() {
+  const host = (window.location.hostname || "").toLowerCase();
+  if (host.endsWith(".roundtablesantasleigh.co.uk")) {
+    const sub = host.replace(".roundtablesantasleigh.co.uk", "").split(".")[0].replace(/(tracker|crew|addresses|godmode)$/, "");
+    if (sub && sub !== "www" && sub !== "santa" && sub !== "demo" && sub !== "admin" && sub !== "turbosanta") {
+      return sub;
+    }
+  }
+  return "";
+}
+
 const params = new URLSearchParams(window.location.search);
-let currentTable = params.get("table") || (params.get("api") ? "" : "beverley");
+let currentTable = params.get("table") || detectSubdomainSlug() || (params.get("api") ? "" : "beverley");
 let currentApi = params.get("api") || "";
 let currentColor = params.get("color") || "";
 
@@ -82,44 +93,55 @@ function updateColorTheme(newColor) {
 window.updateColorTheme = updateColorTheme;
 
 function buildUrl(filename, extraParams = "") {
-  const query = getTargetQuery();
-  const sep = filename && filename.includes("?") ? "&" : "?";
-  const extra = extraParams ? `&${extraParams}` : "";
-  const path = filename ? `/${filename}` : "";
-  return `${BASE_URL}${path}${sep}${query}${extra}`;
+  const path = filename ? `/${filename.replace(/^\/+/, "")}` : "";
+  if (currentApi) {
+    const query = getTargetQuery();
+    const sep = filename && filename.includes("?") ? "&" : "?";
+    const extra = extraParams ? `&${extraParams}` : "";
+    return `${BASE_URL}${path}${sep}${query}${extra}`;
+  }
+  const slug = encodeURIComponent((currentTable || "beverley").toLowerCase().trim());
+  const townOrigin = `https://${slug}.roundtablesantasleigh.co.uk`;
+  const qp = [];
+  if (currentColor) qp.push(`color=${encodeURIComponent(currentColor.replace('#', ''))}`);
+  if (extraParams) qp.push(extraParams);
+  const qs = qp.length ? (path.includes("?") ? `&${qp.join("&")}` : `?${qp.join("&")}`) : "";
+  return `${townOrigin}${path}${qs}`;
 }
 
 function updateDisplay() {
   if (currentColor) {
     applyEmbedTheme(currentColor);
   }
+  const slug = (currentTable || "beverley").toLowerCase().trim();
+  const townOrigin = `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk`;
   const display = document.getElementById("apiDisplay");
   if (display) {
     if (currentApi) {
       display.textContent = `LEGACY API: ${currentApi.toUpperCase()}`;
     } else {
-      display.textContent = formatTownName(currentTable || "beverley").toUpperCase();
+      display.textContent = formatTownName(slug).toUpperCase();
     }
   }
 
   const slugInput = document.getElementById("tableSlugInput");
   if (slugInput && !currentApi) {
-    slugInput.value = formatTownName(currentTable || "beverley");
+    slugInput.value = formatTownName(slug);
   }
 
   const guideLink = document.getElementById("guideLinkHeader");
   if (guideLink) {
-    guideLink.href = `/guide.html?table=${encodeURIComponent(currentTable || "beverley")}`;
+    guideLink.href = `${townOrigin}/guide.html`;
   }
 
   const hubLink = document.getElementById("hubLinkHeader");
   if (hubLink) {
-    hubLink.href = `/hub.html?table=${encodeURIComponent(currentTable || "beverley")}`;
+    hubLink.href = `${townOrigin}/hub.html`;
   }
 
   const adminLink = document.getElementById("adminLinkHeader");
   if (adminLink) {
-    adminLink.href = `/?table=${encodeURIComponent(currentTable || "beverley")}`;
+    adminLink.href = `${townOrigin}/?admin=1`;
   }
 
   generateAllEmbeds();

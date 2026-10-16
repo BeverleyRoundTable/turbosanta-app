@@ -64,9 +64,35 @@ export default function App() {
   const isLandingRequested = urlParams.get('view') === 'landing' || urlParams.get('landing') === '1';
   const [landingRequested, setLandingRequested] = useState(isLandingRequested);
 
-  const pathname = window.location.pathname.toLowerCase();
-  if (pathname === '/gift-aid' || pathname === '/gift-aid/' || pathname === '/sleigh/gift_aid' || pathname === '/sleigh/gift_aid/') {
-    window.location.replace(`/gift_aid.html${window.location.search}`);
+  const pathname = window.location.pathname.toLowerCase().replace(/\/+$/, '');
+  const cleanRouteMap = {
+    '/tracker': '/tracker.html',
+    '/address': '/address.html',
+    '/addresses': '/address.html',
+    '/crew': '/crew.html',
+    '/giftaid': '/gift_aid.html',
+    '/gift-aid': '/gift_aid.html',
+    '/gift_aid': '/gift_aid.html',
+    '/sleigh/gift_aid': '/gift_aid.html',
+    '/route_planner': '/route_planner.html',
+    '/route-planner': '/route_planner.html',
+    '/qr_poster': '/qr_poster.html',
+    '/qr-poster': '/qr_poster.html',
+    '/beacon': '/beacon.html',
+    '/god_mode': '/god_mode.html',
+    '/god-mode': '/god_mode.html',
+    '/memory_book': '/memory_book.html',
+    '/memory-book': '/memory_book.html',
+    '/migrate': '/migrate.html',
+    '/season_wrap': '/season_wrap.html',
+    '/partner_report': '/partner_report.html',
+    '/volunteer_cert': '/volunteer_cert.html',
+    '/guide': '/guide.html',
+    '/hub': '/hub.html',
+    '/embed': '/embed.html'
+  };
+  if (cleanRouteMap[pathname]) {
+    window.location.replace(`${cleanRouteMap[pathname]}${window.location.search}`);
     return null;
   }
 

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -894,7 +894,9 @@ const STATE = {
 function getTableOrApi() {
   const params = new URLSearchParams(location.search);
   const api = params.get('api') || '';
-  const table = params.get('table') || (!api ? 'beverley' : '');
+  const _subMatch = location.hostname.match(/^([a-z0-9-]+)\.roundtablesantasleigh\.co\.uk$/i);
+  const subdomainSlug = (_subMatch && !['www', 'api', 'admin'].includes(_subMatch[1].toLowerCase())) ? _subMatch[1].toLowerCase() : '';
+  const table = params.get('table') || subdomainSlug || (!api ? 'beverley' : '');
   return { api, table };
 }
 

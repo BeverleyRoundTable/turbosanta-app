@@ -326,7 +326,15 @@
 <script>
 (function() {
   const params = new URLSearchParams(window.location.search);
-  const tableSlug = params.get('table') || '';
+  const subdomainSlug = (() => {
+    const h = (window.location.hostname || '').toLowerCase();
+    if (h.endsWith('.roundtablesantasleigh.co.uk')) {
+      const s = h.replace('.roundtablesantasleigh.co.uk', '').split('.')[0].replace(/(tracker|crew|addresses|godmode)$/, '');
+      if (s && s !== 'www' && s !== 'santa' && s !== 'demo' && s !== 'admin' && s !== 'turbosanta') return s;
+    }
+    return '';
+  })();
+  const tableSlug = params.get('table') || subdomainSlug || 'beverley';
   const isCheckoutFlow = params.get('checkout') === '1';
   const API = params.get('api') || (tableSlug ? `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableSlug)}` : '');
 

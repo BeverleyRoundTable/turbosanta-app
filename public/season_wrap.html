@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -627,7 +627,15 @@
 <script>
 function getTableSlug() {
   const p = new URLSearchParams(location.search);
-  return p.get('table') || 'beverley';
+  const subdomainSlug = (() => {
+    const h = (location.hostname || '').toLowerCase();
+    if (h.endsWith('.roundtablesantasleigh.co.uk')) {
+      const s = h.replace('.roundtablesantasleigh.co.uk', '').split('.')[0].replace(/(tracker|crew|addresses|godmode)$/, '');
+      if (s && s !== 'www' && s !== 'santa' && s !== 'demo' && s !== 'admin' && s !== 'turbosanta') return s;
+    }
+    return '';
+  })();
+  return p.get('table') || subdomainSlug || 'beverley';
 }
 
 function getApiUrl() {

@@ -1059,7 +1059,15 @@ function copyCSV() {
 // EXISTING ROUTES (API INTEGRATION)
 // ═══════════════════════════════════════
 const params = new URLSearchParams(location.search);
-const tableParam = params.get("table") || window.__sleighTableSlug || localStorage.getItem("turbosanta_last_table") || "beverley";
+const subdomainSlug = (() => {
+  const h = (location.hostname || '').toLowerCase();
+  if (h.endsWith('.roundtablesantasleigh.co.uk')) {
+    const s = h.replace('.roundtablesantasleigh.co.uk', '').split('.')[0].replace(/(tracker|crew|addresses|godmode)$/, '');
+    if (s && s !== 'www' && s !== 'santa' && s !== 'demo' && s !== 'admin' && s !== 'turbosanta') return s;
+  }
+  return '';
+})();
+const tableParam = params.get("table") || subdomainSlug || window.__sleighTableSlug || localStorage.getItem("turbosanta_last_table") || "beverley";
 if (tableParam) {
   localStorage.setItem("turbosanta_last_table", tableParam);
 }

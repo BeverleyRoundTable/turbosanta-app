@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -228,16 +228,25 @@
   </div>
 
   <script>
-    const API_URL = "/api"; // Replace with your actual Google Apps Script Web App URL
-    
     const urlParams = new URLSearchParams(window.location.search);
+    const _subMatch = window.location.hostname.match(/^([a-z0-9-]+)\.roundtablesantasleigh\.co\.uk$/i);
+    const _subSlug = (_subMatch && !['www', 'api', 'admin'].includes(_subMatch[1].toLowerCase())) ? _subMatch[1].toLowerCase() : '';
+    const tableSlug = (urlParams.get('table') || _subSlug || 'beverley').toLowerCase();
+    const API_URL = urlParams.get('api') || `https://api.roundtablesantasleigh.co.uk/${encodeURIComponent(tableSlug)}/api`;
     const sponsor = urlParams.get('sponsor') || 'Global Partner';
+    const prettyTable = tableSlug.charAt(0).toUpperCase() + tableSlug.slice(1) + ' Round Table';
 
-    document.getElementById('sponsorName').innerText = `${sponsor} x Beverley Round Table`;
+    document.getElementById('sponsorName').innerText = `${sponsor} x ${prettyTable}`;
 
-    fetch(`${API_URL}?sponsor=${encodeURIComponent(sponsor)}`)
+    fetch(`${API_URL}${API_URL.includes('?') ? '&' : '?'}sponsor=${encodeURIComponent(sponsor)}`)
       .then(res => res.json())
       .then(data => {
+        if (data.settings && data.settings.sleigh_display_name) {
+          document.getElementById('sponsorName').innerText = `${sponsor} x ${data.settings.sleigh_display_name}`;
+        }
+        if (data.settings && data.settings.logo_overlay_url) {
+          document.getElementById('headerLogo').src = data.settings.logo_overlay_url;
+        }
         
        // Clicks Population
         document.getElementById('valClicks').innerText = (data.sponsorClicks || 0).toLocaleString();

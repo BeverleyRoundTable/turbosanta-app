@@ -616,7 +616,15 @@
         gallery.appendChild(loader);
 
         const params = new URLSearchParams(window.location.search);
-        const tableSlug = (params.get("table") || "beverley").toLowerCase();
+        const subdomainSlug = (() => {
+          const h = (window.location.hostname || '').toLowerCase();
+          if (h.endsWith('.roundtablesantasleigh.co.uk')) {
+            const s = h.replace('.roundtablesantasleigh.co.uk', '').split('.')[0].replace(/(tracker|crew|addresses|godmode)$/, '');
+            if (s && s !== 'www' && s !== 'santa' && s !== 'demo' && s !== 'admin' && s !== 'turbosanta') return s;
+          }
+          return '';
+        })();
+        const tableSlug = (params.get("table") || subdomainSlug || "beverley").toLowerCase();
         const numYear = parseInt(year) || new Date().getFullYear();
 
         // Clear any old unscreened local test memories
@@ -757,7 +765,15 @@
             }).catch(() => {});
         } else {
           const params = new URLSearchParams(window.location.search);
-          const tableSlug = params.get("table") || "beverley";
+          const subdomainSlug = (() => {
+            const h = (window.location.hostname || '').toLowerCase();
+            if (h.endsWith('.roundtablesantasleigh.co.uk')) {
+              const s = h.replace('.roundtablesantasleigh.co.uk', '').split('.')[0].replace(/(tracker|crew|addresses|godmode)$/, '');
+              if (s && s !== 'www' && s !== 'santa' && s !== 'demo' && s !== 'admin' && s !== 'turbosanta') return s;
+            }
+            return '';
+          })();
+          const tableSlug = params.get("table") || subdomainSlug || "beverley";
           fetch(`https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableSlug)}`)
             .then(r => r.ok ? r.json() : null)
             .then(data => {
@@ -915,7 +931,15 @@
           : "Sending…";
 
         const params = new URLSearchParams(window.location.search);
-        const tableSlug = (params.get("table") || "beverley").toLowerCase();
+        const subdomainSlug = (() => {
+          const h = (window.location.hostname || '').toLowerCase();
+          if (h.endsWith('.roundtablesantasleigh.co.uk')) {
+            const s = h.replace('.roundtablesantasleigh.co.uk', '').split('.')[0].replace(/(tracker|crew|addresses|godmode)$/, '');
+            if (s && s !== 'www' && s !== 'santa' && s !== 'demo' && s !== 'admin' && s !== 'turbosanta') return s;
+          }
+          return '';
+        })();
+        const tableSlug = (params.get("table") || subdomainSlug || "beverley").toLowerCase();
         const numYear = parseInt(yearSelect.value) || new Date().getFullYear();
 
         // Dispatch upload to backend moderation queue

@@ -409,7 +409,9 @@
 
   <script>
     const params = new URLSearchParams(window.location.search);
-    const tableSlug = (params.get("table") || "beverley").toLowerCase().trim();
+    const _subMatch = window.location.hostname.match(/^([a-z0-9-]+)\.roundtablesantasleigh\.co\.uk$/i);
+    const subdomainSlug = (_subMatch && !['www', 'api', 'admin'].includes(_subMatch[1].toLowerCase())) ? _subMatch[1].toLowerCase() : '';
+    const tableSlug = (params.get("table") || subdomainSlug || "beverley").toLowerCase().trim();
     const apiUrl = params.get("api") || "";
 
     const video = document.getElementById("cameraVideo");
