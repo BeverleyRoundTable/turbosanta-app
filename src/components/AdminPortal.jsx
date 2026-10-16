@@ -725,7 +725,10 @@ ${tableName} Organizers`
     notify_approaching_subject: tableData?.table?.notify_approaching_subject || '',
     notify_approaching_msg: tableData?.table?.notify_approaching_msg || '',
     notify_passed_subject: tableData?.table?.notify_passed_subject || '',
-    notify_passed_msg: tableData?.table?.notify_passed_msg || ''
+    notify_passed_msg: tableData?.table?.notify_passed_msg || '',
+    justgiving_url: tableData?.table?.justgiving_url || '',
+    tickettailor_event_id: tableData?.table?.tickettailor_event_id || '',
+    tickettailor_api_key: ''
   });
 
   // Gmail Workspace Connection & Proximity Engine States
@@ -821,7 +824,9 @@ ${tableName} Organizers`
         notify_approaching_subject: tableData.table.notify_approaching_subject || prev.notify_approaching_subject || '',
         notify_approaching_msg: tableData.table.notify_approaching_msg || prev.notify_approaching_msg || '',
         notify_passed_subject: tableData.table.notify_passed_subject || prev.notify_passed_subject || '',
-        notify_passed_msg: tableData.table.notify_passed_msg || prev.notify_passed_msg || ''
+        notify_passed_msg: tableData.table.notify_passed_msg || prev.notify_passed_msg || '',
+        justgiving_url: tableData.table.justgiving_url || prev.justgiving_url || '',
+        tickettailor_event_id: tableData.table.tickettailor_event_id || prev.tickettailor_event_id || ''
       }));
     }
   }, [tableData, currentTableSlug]);
@@ -1250,10 +1255,18 @@ ${tableName} Organizers`
     {
       id: 'justgiving',
       name: 'JustGiving',
-      tag: 'UK Charity Platform',
+      tag: 'Auto-Sync + Webhooks',
       badgeColor: '#ec4899',
-      description: 'Stream donations from your JustGiving campaign page directly to the live sleigh tracker.',
-      guide: 'In your JustGiving Developer Portal, configure Event Webhooks for your charity campaign.'
+      description: 'Sync your JustGiving campaign page total automatically or stream real-time donations.',
+      guide: 'Paste your JustGiving Campaign URL in the Auto-Sync box above for automatic polling, or configure Event Webhooks in JustGiving.'
+    },
+    {
+      id: 'tickettailor',
+      name: 'Ticket Tailor',
+      tag: 'API + Webhook Sync',
+      badgeColor: '#10b981',
+      description: 'Sync completed Ticket Tailor orders & sleigh bookings via API key or real-time order webhooks.',
+      guide: 'Paste your Ticket Tailor API key (sk_...) in the Auto-Sync box above, or add this Webhook URL in Ticket Tailor > Settings > Webhooks for order.created / order.completed.'
     },
     {
       id: 'paypal',
@@ -1272,6 +1285,234 @@ ${tableName} Organizers`
       guide: 'Send an HTTP POST request with JSON {"amount": 10.00, "donorName": "Jane"} to this URL.'
     }
   ];
+
+  // External Fundraising Auto-Sync (JustGiving + Ticket Tailor) & Grants State
+  const [isSyncingExternal, setIsSyncingExternal] = useState(false);
+  const [externalSyncStatus, setExternalSyncStatus] = useState('');
+  const [grantApplications, setGrantApplications] = useState([]);
+  const [isLoadingGrants, setIsLoadingGrants] = useState(false);
+  const [newCauseName, setNewCauseName] = useState('');
+  const [newCauseAmount, setNewCauseAmount] = useState('');
+  const [newCauseSummary, setNewCauseSummary] = useState('');
+  const [sendingDepartureRouteId, setSendingDepartureRouteId] = useState(null);
+  const [postponingRouteId, setPostponingRouteId] = useState(null);
+
+  const fetchGrantApplications = React.useCallback(async () => {
+    const slug = currentTableSlug || session?.tableSlug || tableData?.table?.slug || 'beverley';
+    const secret = session?.googleCredential || session?.token || getAdminAuthToken(slug);
+    setIsLoadingGrants(true);
+    try {
+      const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/grants?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(secret)}`, {
+        headers: { 'Authorization': `Bearer ${secret}` }
+      });
+      const data = await res.json();
+      if (Array.isArray(data.grants)) {
+        setGrantApplications(data.grants);
+      }
+    } catch (e) {
+      console.warn('Failed to fetch grant applications:', e);
+    } finally {
+      setIsLoadingGrants(false);
+    }
+  }, [currentTableSlug, session, tableData?.table?.slug]);
+
+  React.useEffect(() => {
+    if (activeTab === 'webhooks' || activeTab === 'giftaid') {
+      fetchGrantApplications();
+    }
+  }, [activeTab, fetchGrantApplications]);
+
+  const handleSyncExternalFundraising = async () => {
+    const slug = currentTableSlug || session?.tableSlug || tableData?.table?.slug || 'beverley';
+    const secret = session?.googleCredential || session?.token || getAdminAuthToken(slug);
+    setIsSyncingExternal(true);
+    setExternalSyncStatus('Saving campaign credentials & syncing live totals from JustGiving / Ticket Tailor...');
+    try {
+      await saveTableSettings(slug, {
+        justgiving_url: formData.justgiving_url || null,
+        tickettailor_event_id: formData.tickettailor_event_id || null,
+        tickettailor_api_key: formData.tickettailor_api_key && formData.tickettailor_api_key.trim() ? formData.tickettailor_api_key.trim() : undefined
+      });
+      const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/fundraising/sync?table=${encodeURIComponent(slug)}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${secret}`
+        }
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Sync failed');
+      if (onUpdateTableData) {
+        onUpdateTableData(prev => ({
+          ...prev,
+          table: {
+            ...prev?.table,
+            justgiving_url: formData.justgiving_url || null,
+            tickettailor_event_id: formData.tickettailor_event_id || null,
+            tickettailor_configured: Boolean(formData.tickettailor_api_key || prev?.table?.tickettailor_configured),
+            total_raised: data.total_raised ?? prev?.table?.total_raised,
+            external_raised_total: data.external_total ?? prev?.table?.external_raised_total,
+            external_synced_at: data.synced_at
+          }
+        }));
+      }
+      const parts = [];
+      if (data.jg_amount !== null && data.jg_amount !== undefined) parts.push(`JustGiving: £${Number(data.jg_amount).toFixed(2)}`);
+      if (data.tt_amount !== null && data.tt_amount !== undefined) parts.push(`Ticket Tailor: £${Number(data.tt_amount).toFixed(2)} (${data.tt_orders || 0} orders)`);
+      if (data.errors && data.errors.length) parts.push(`Warnings: ${data.errors.join('; ')}`);
+      setExternalSyncStatus(`✅ Synced! ${parts.length ? parts.join(' • ') + ' — ' : ''}Grand Total Raised: £${Number(data.total_raised || 0).toFixed(2)}`);
+      confetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
+    } catch (e) {
+      setExternalSyncStatus(`❌ Sync error: ${e.message}`);
+    } finally {
+      setIsSyncingExternal(false);
+    }
+  };
+
+  const handleAddBeneficiaryCause = async () => {
+    if (!newCauseName.trim()) return alert('Please enter the local cause or charity name.');
+    const slug = currentTableSlug || session?.tableSlug || tableData?.table?.slug || 'beverley';
+    const secret = session?.googleCredential || session?.token || getAdminAuthToken(slug);
+    try {
+      const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/grants?table=${encodeURIComponent(slug)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          org_name: newCauseName.trim(),
+          contact_name: session?.tableName || 'Round Table Committee',
+          contact_email: session?.email || 'committee@roundtable.org.uk',
+          amount_requested: parseFloat(newCauseAmount) || 0,
+          cause_summary: newCauseSummary.trim() || 'Supported by Round Table Santa Sleigh'
+        })
+      });
+      const created = await res.json();
+      if (created.id) {
+        await fetch(`https://turbosanta-api.beverley247.workers.dev/api/grants?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(secret)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${secret}` },
+          body: JSON.stringify({
+            id: created.id,
+            status: 'approved',
+            amount_awarded: parseFloat(newCauseAmount) || 0
+          })
+        });
+      }
+      setNewCauseName('');
+      setNewCauseAmount('');
+      setNewCauseSummary('');
+      fetchGrantApplications();
+      setSaveStatus('✅ Added & featured local cause on public sleigh page!');
+      setTimeout(() => setSaveStatus(''), 3500);
+    } catch (e) {
+      alert('Failed to add local cause: ' + e.message);
+    }
+  };
+
+  const handleUpdateGrantStatus = async (grantId, status, amountAwarded) => {
+    const slug = currentTableSlug || session?.tableSlug || tableData?.table?.slug || 'beverley';
+    const secret = session?.googleCredential || session?.token || getAdminAuthToken(slug);
+    try {
+      await fetch(`https://turbosanta-api.beverley247.workers.dev/api/grants?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(secret)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${secret}` },
+        body: JSON.stringify({ id: grantId, status, amount_awarded: amountAwarded })
+      });
+      fetchGrantApplications();
+      setSaveStatus(`Grant status updated to ${status}!`);
+      setTimeout(() => setSaveStatus(''), 3000);
+    } catch (e) {
+      alert('Failed to update grant: ' + e.message);
+    }
+  };
+
+  const handleDeleteGrant = async (grantId) => {
+    if (!confirm('Remove this grant application / beneficiary record?')) return;
+    const slug = currentTableSlug || session?.tableSlug || tableData?.table?.slug || 'beverley';
+    const secret = session?.googleCredential || session?.token || getAdminAuthToken(slug);
+    try {
+      await fetch(`https://turbosanta-api.beverley247.workers.dev/api/grants?table=${encodeURIComponent(slug)}&id=${encodeURIComponent(grantId)}&secret=${encodeURIComponent(secret)}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${secret}` }
+      });
+      setGrantApplications(prev => prev.filter(g => g.id !== grantId));
+    } catch (e) {
+      alert('Failed to delete grant: ' + e.message);
+    }
+  };
+
+  const handleSendDepartureAlerts = async (route) => {
+    if (!confirm(`🔔 Send "Tonight's the Night!" departure emails to all families pinned along "${route.name}"?`)) return;
+    const slug = currentTableSlug || session?.tableSlug || tableData?.table?.slug || 'beverley';
+    const secret = session?.googleCredential || session?.token || getAdminAuthToken(slug);
+    setSendingDepartureRouteId(route.id);
+    try {
+      const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/routes/notify-departure?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(secret)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${secret}` },
+        body: JSON.stringify({ route_id: route.id })
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Failed to send departure alerts');
+      alert(`✅ Sent ${data.sent || 0} "Tonight's the Night!" emails for ${route.name} (${data.matched || 0} subscribers matched on route).`);
+    } catch (e) {
+      alert(`❌ Could not send departure emails: ${e.message}`);
+    } finally {
+      setSendingDepartureRouteId(null);
+    }
+  };
+
+  const handlePostponeRoute = async (route) => {
+    const newDate = window.prompt(
+      `🌧️ Rain Check / Postpone "${route.name}"\n\nEnter a new rescheduled date (YYYY-MM-DD) or leave blank if TBC:`,
+      route.date || ''
+    );
+    if (newDate === null) return;
+    const note = window.prompt(
+      `Enter a short weather update message for the public banner & subscriber emails:`,
+      `Due to heavy weather, ${route.name} has been postponed${newDate && newDate !== route.date ? ` to ${newDate}` : ' — new date TBC shortly'}. Stay warm and dry!`
+    );
+    if (note === null) return;
+
+    const slug = currentTableSlug || session?.tableSlug || tableData?.table?.slug || 'beverley';
+    const secret = session?.googleCredential || session?.token || getAdminAuthToken(slug);
+    setPostponingRouteId(route.id);
+    try {
+      const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/routes/postpone?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(secret)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${secret}` },
+        body: JSON.stringify({
+          route_id: route.id,
+          new_date: newDate && newDate.trim() !== route.date ? newDate.trim() : null,
+          postponed_note: note.trim(),
+          status_override: 'Postponed',
+          notify_subscribers: true
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Failed to postpone route');
+      if (onUpdateTableData) {
+        onUpdateTableData(prev => ({
+          ...prev,
+          routes: (prev.routes || []).map(r => r.id === route.id ? {
+            ...r,
+            date: (newDate && newDate.trim()) ? newDate.trim() : r.date,
+            status_override: 'Postponed',
+            postponed_note: note.trim()
+          } : r),
+          table: {
+            ...prev.table,
+            live_announcement: data.announcement || prev?.table?.live_announcement
+          }
+        }));
+      }
+      setAnnouncementText(data.announcement || '');
+      alert(`🌧️ Route updated! Live weather banner published and ${data.emails_sent || 0} pinned families emailed.`);
+    } catch (e) {
+      alert(`❌ Failed to postpone route: ${e.message}`);
+    } finally {
+      setPostponingRouteId(null);
+    }
+  };
 
   const generateWebhookSecret = () => {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -2297,14 +2538,14 @@ ${tableName} Organizers`
                                 }}
                               >
                                 <div style={{ flex: 1, minWidth: '240px' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
                                     <strong style={{ fontSize: '20px', color: '#fff' }}>
                                       {r.name}
                                     </strong>
                                     <span style={{
-                                      background: 'rgba(251, 175, 51, 0.15)',
-                                      color: 'var(--primary)',
-                                      border: '1px solid var(--border-gold)',
+                                      background: r.status_override === 'Postponed' ? 'rgba(239, 68, 68, 0.18)' : 'rgba(251, 175, 51, 0.15)',
+                                      color: r.status_override === 'Postponed' ? '#fca5a5' : 'var(--primary)',
+                                      border: r.status_override === 'Postponed' ? '1px solid #ef4444' : '1px solid var(--border-gold)',
                                       fontSize: '10px',
                                       fontWeight: 800,
                                       padding: '2px 8px',
@@ -2312,12 +2553,17 @@ ${tableName} Organizers`
                                       textTransform: 'uppercase',
                                       letterSpacing: '0.5px'
                                     }}>
-                                      Upcoming
+                                      {r.status_override === 'Postponed' ? '🌧️ Postponed / Rescheduled' : 'Upcoming'}
                                     </span>
                                   </div>
                                   <div style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: 600, marginBottom: '8px' }}>
                                     📅 {formatRouteDateWithWeekday(r.date)} • ⏰ {r.start_time || '18:00'} - {r.end_time || '20:30'}
                                   </div>
+                                  {r.postponed_note && (
+                                    <div style={{ fontSize: '12px', color: '#fca5a5', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '6px', padding: '6px 10px', marginBottom: '8px' }}>
+                                      🌧️ <strong>Weather Update:</strong> {r.postponed_note}
+                                    </div>
+                                  )}
                                   <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                                     <strong>Streets:</strong> {routeStreets.map(s => s.street_name).join(', ') || 'None specified'}
                                   </div>
@@ -2335,6 +2581,47 @@ ${tableName} Organizers`
                                 </div>
 
                                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                  <button
+                                    type="button"
+                                    disabled={sendingDepartureRouteId === r.id}
+                                    onClick={() => handleSendDepartureAlerts(r)}
+                                    className="btn-secondary"
+                                    style={{
+                                      padding: '8px 12px',
+                                      fontSize: '12px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      background: 'rgba(251, 175, 51, 0.12)',
+                                      borderColor: 'var(--primary)',
+                                      color: 'var(--primary)'
+                                    }}
+                                    title="Send 'Tonight's the Night!' departure email to all families pinned along this route"
+                                  >
+                                    <Mail size={14} />
+                                    <span>{sendingDepartureRouteId === r.id ? 'Sending...' : "🔔 Tonight's Email"}</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    disabled={postponingRouteId === r.id}
+                                    onClick={() => handlePostponeRoute(r)}
+                                    className="btn-secondary"
+                                    style={{
+                                      padding: '8px 12px',
+                                      fontSize: '12px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      background: 'rgba(56, 189, 248, 0.1)',
+                                      borderColor: '#38bdf8',
+                                      color: '#7dd3fc'
+                                    }}
+                                    title="Postpone or reschedule route due to weather, update public banner & email pinned families"
+                                  >
+                                    <span>{postponingRouteId === r.id ? 'Updating...' : '🌧️ Rain Check'}</span>
+                                  </button>
+
                                   <button
                                     type="button"
                                     onClick={() => handleCopyWhatsAppBriefing(r)}
@@ -3119,6 +3406,325 @@ ${tableName} Organizers`
               );
             })()}
 
+            {/* ⚡ JUSTGIVING & TICKET TAILOR LIVE CAMPAIGN AUTO-SYNC + BUCKET STICKER PRINT STUDIO */}
+            <div style={{
+              background: '#0d0d0b',
+              border: '1px solid rgba(251, 175, 51, 0.35)',
+              borderRadius: '14px',
+              padding: '24px',
+              marginBottom: '20px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                    <Zap size={18} color="var(--primary)" />
+                    <strong style={{ fontSize: '17px', color: '#fff' }}>
+                      JustGiving &amp; Ticket Tailor Live Auto-Sync
+                    </strong>
+                    <span style={{
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      background: 'rgba(16, 185, 129, 0.15)',
+                      color: '#6ee7b7',
+                      border: '1px solid #10b981',
+                      textTransform: 'uppercase'
+                    }}>
+                      Auto-Polls Every 10 Mins + Instant Sync
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0, maxWidth: '720px', lineHeight: 1.5 }}>
+                    Using <strong>JustGiving</strong> for donations or <strong>Ticket Tailor</strong> for sleigh tickets &amp; donations? Connect either (or both!) below and TurboSanta will automatically sync your live campaign totals into the public fundraising thermometer alongside your physical cash bucket counts.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <a
+                    href={`/qr_poster.html?table=${encodeURIComponent(currentTableSlug || session?.tableSlug || 'beverley')}&mode=buckets&qr=donate_giftaid`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-secondary"
+                    style={{ padding: '8px 12px', fontSize: '12px', textDecoration: 'none', borderColor: 'var(--primary)', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <Printer size={14} />
+                    <span>🪣 Print 4-Up Bucket Stickers</span>
+                  </a>
+                  <a
+                    href={`/qr_poster.html?table=${encodeURIComponent(currentTableSlug || session?.tableSlug || 'beverley')}&mode=lanyards&qr=donate_giftaid`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-secondary"
+                    style={{ padding: '8px 12px', fontSize: '12px', textDecoration: 'none', borderColor: '#22c55e', color: '#86efac', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <Printer size={14} />
+                    <span>🪪 Print 6-Up Elf Lanyards</span>
+                  </a>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginBottom: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
+                    JustGiving Campaign / Fundraising Page URL
+                  </label>
+                  <input
+                    type="url"
+                    value={formData.justgiving_url || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, justgiving_url: e.target.value }))}
+                    placeholder="https://www.justgiving.com/page/your-santa-sleigh"
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      background: '#151513',
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      padding: '10px 12px',
+                      color: '#fff',
+                      fontSize: '13px'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
+                    Ticket Tailor API Key {tableData?.table?.tickettailor_configured ? <span style={{ color: '#22c55e' }}>(✓ Connected)</span> : '(Optional)'}
+                  </label>
+                  <input
+                    type="password"
+                    value={formData.tickettailor_api_key || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, tickettailor_api_key: e.target.value }))}
+                    placeholder={tableData?.table?.tickettailor_configured ? '•••••••• (Saved — enter new sk_ key to replace)' : 'sk_... (from Ticket Tailor > Settings > API)'}
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      background: '#151513',
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      padding: '10px 12px',
+                      color: '#fff',
+                      fontSize: '13px',
+                      fontFamily: 'monospace'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
+                    Ticket Tailor Event ID (Optional Filter)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.tickettailor_event_id || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, tickettailor_event_id: e.target.value }))}
+                    placeholder="e.g. ev_123456 (leave blank for all completed orders)"
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      background: '#151513',
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      padding: '10px 12px',
+                      color: '#fff',
+                      fontSize: '13px',
+                      fontFamily: 'monospace'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                <button
+                  type="button"
+                  disabled={isSyncingExternal}
+                  onClick={handleSyncExternalFundraising}
+                  className="btn-primary"
+                  style={{ padding: '10px 20px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                >
+                  <RefreshCw size={15} />
+                  <span>{isSyncingExternal ? 'Syncing Live Totals...' : '🔄 Save & Sync JustGiving / Ticket Tailor Now'}</span>
+                </button>
+
+                {tableData?.table?.external_synced_at && (
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    Last synced: <strong>{new Date(tableData.table.external_synced_at).toLocaleTimeString('en-GB')}</strong> (External synced total: <strong style={{ color: '#22c55e' }}>£{Number(tableData?.table?.external_raised_total || 0).toFixed(2)}</strong>)
+                  </span>
+                )}
+              </div>
+
+              {externalSyncStatus && (
+                <div style={{
+                  marginTop: '12px',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  background: externalSyncStatus.startsWith('❌') ? 'rgba(239, 68, 68, 0.12)' : 'rgba(34, 197, 94, 0.12)',
+                  border: externalSyncStatus.startsWith('❌') ? '1px solid #ef4444' : '1px solid #22c55e',
+                  color: externalSyncStatus.startsWith('❌') ? '#fca5a5' : '#86efac',
+                  fontSize: '13px',
+                  fontWeight: 600
+                }}>
+                  {externalSyncStatus}
+                </div>
+              )}
+            </div>
+
+            {/* 💛 WHERE YOUR DONATIONS GO & LOCAL CAUSE GRANT NOMINATIONS */}
+            <div style={{
+              background: '#0d0d0b',
+              border: '1px solid var(--border)',
+              borderRadius: '14px',
+              padding: '24px',
+              marginBottom: '20px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+                <div>
+                  <strong style={{ fontSize: '17px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Heart size={18} color="var(--primary)" />
+                    <span>"Where Your Donations Go" &amp; Local Cause Grant Applications</span>
+                  </strong>
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 0 0', lineHeight: 1.5 }}>
+                    Feature local charities, schools, and community groups supported by your Santa Sleigh on your public website, and review incoming grant applications submitted by residents.
+                  </p>
+                </div>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--primary)' }}>
+                  {grantApplications.filter(g => g.status === 'approved').length} Featured on Public Site • {grantApplications.filter(g => g.status === 'pending').length} Pending Review
+                </span>
+              </div>
+
+              {/* Quick-Add Featured Local Cause */}
+              <div style={{
+                background: '#151513',
+                border: '1px solid var(--border)',
+                borderRadius: '10px',
+                padding: '16px',
+                marginBottom: '16px'
+              }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#fff', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                  ➕ Add a Supported Local Cause / Charity Beneficiary
+                </div>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    value={newCauseName}
+                    onChange={(e) => setNewCauseName(e.target.value)}
+                    placeholder="Organisation / Charity Name (e.g. Beverley Foodbank)"
+                    style={{ flex: '1 1 200px', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '9px 12px', color: '#fff', fontSize: '13px' }}
+                  />
+                  <input
+                    type="number"
+                    value={newCauseAmount}
+                    onChange={(e) => setNewCauseAmount(e.target.value)}
+                    placeholder="Grant £ (Optional)"
+                    style={{ width: '140px', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '9px 12px', color: '#fff', fontSize: '13px' }}
+                  />
+                  <input
+                    type="text"
+                    value={newCauseSummary}
+                    onChange={(e) => setNewCauseSummary(e.target.value)}
+                    placeholder="Impact summary (e.g. Christmas hampers for 80 local families)"
+                    style={{ flex: '2 1 240px', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '9px 12px', color: '#fff', fontSize: '13px' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddBeneficiaryCause}
+                    className="btn-primary"
+                    style={{ padding: '9px 16px', fontSize: '13px', whiteSpace: 'nowrap' }}
+                  >
+                    <Plus size={15} />
+                    <span>Add &amp; Feature</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Grant Applications & Featured Causes List */}
+              {isLoadingGrants ? (
+                <div style={{ fontSize: '13px', color: 'var(--text-muted)', padding: '12px 0' }}>Loading local causes &amp; grant applications...</div>
+              ) : grantApplications.length === 0 ? (
+                <div style={{ fontSize: '13px', color: 'var(--text-muted)', padding: '12px 0' }}>
+                  No local causes or grant nominations added yet. Add a beneficiary above or let residents nominate local causes on your public sleigh site!
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {grantApplications.map(g => (
+                    <div
+                      key={g.id}
+                      style={{
+                        background: '#151513',
+                        border: g.status === 'approved' ? '1px solid rgba(34, 197, 94, 0.35)' : '1px solid var(--border)',
+                        borderRadius: '10px',
+                        padding: '14px 16px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: '12px'
+                      }}
+                    >
+                      <div style={{ flex: '1 1 260px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <strong style={{ fontSize: '15px', color: '#fff' }}>{g.org_name}</strong>
+                          <span style={{
+                            fontSize: '10px',
+                            fontWeight: 800,
+                            padding: '2px 8px',
+                            borderRadius: '99px',
+                            textTransform: 'uppercase',
+                            background: g.status === 'approved' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(251, 175, 51, 0.15)',
+                            color: g.status === 'approved' ? '#86efac' : 'var(--primary)',
+                            border: g.status === 'approved' ? '1px solid #22c55e' : '1px solid var(--primary)'
+                          }}>
+                            {g.status === 'approved' ? '✓ Featured on Public Site' : '⏳ Pending Nomination'}
+                          </span>
+                          {(g.amount_awarded > 0 || g.amount_requested > 0) && (
+                            <span style={{ fontSize: '12px', fontWeight: 700, color: '#22c55e' }}>
+                              £{Number(g.amount_awarded || g.amount_requested || 0).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                          {g.cause_summary}
+                        </div>
+                        {g.contact_email && (
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', opacity: 0.75 }}>
+                            Contact: {g.contact_name || 'N/A'} ({g.contact_email}{g.contact_phone ? ` • ${g.contact_phone}` : ''})
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {g.status !== 'approved' ? (
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateGrantStatus(g.id, 'approved', g.amount_requested || 0)}
+                            className="btn-primary"
+                            style={{ padding: '6px 12px', fontSize: '12px', background: '#22c55e', color: '#000' }}
+                          >
+                            ✓ Approve &amp; Feature
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateGrantStatus(g.id, 'pending', g.amount_awarded || 0)}
+                            className="btn-secondary"
+                            style={{ padding: '6px 12px', fontSize: '12px' }}
+                          >
+                            Unfeature
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteGrant(g.id)}
+                          className="btn-secondary"
+                          style={{ padding: '6px 10px', fontSize: '12px', borderColor: '#ef4444', color: '#fca5a5' }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Active Multi-Hook Architecture Explainer */}
             <div style={{
               background: '#0d0d0b',
@@ -3130,7 +3736,7 @@ ${tableName} Organizers`
                 💡 Running Multiple Hooks Concurrently
               </strong>
               <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.6 }}>
-                TurboSanta supports <strong>concurrent multi-provider webhooks</strong> for every Table. For instance, you can connect <strong>Zeffy</strong> for your online website donations while simultaneously connecting <strong>SumUp</strong> for your volunteers’ bucket card readers during evening street collections. Every successful payment from each source will automatically roll into your master live tracker total!
+                TurboSanta supports <strong>concurrent multi-provider webhooks &amp; auto-sync</strong> for every Table. For instance, you can connect <strong>JustGiving</strong> or <strong>Ticket Tailor</strong> alongside <strong>SumUp</strong> card readers and nightly physical cash buckets. Every payment automatically rolls into your live tracker total!
               </p>
             </div>
           </div>
@@ -6946,7 +7552,10 @@ ${tableName} Organizers`
                         notify_approaching_subject: formData.notify_approaching_subject || null,
                         notify_approaching_msg: formData.notify_approaching_msg || null,
                         notify_passed_subject: formData.notify_passed_subject || null,
-                        notify_passed_msg: formData.notify_passed_msg || null
+                        notify_passed_msg: formData.notify_passed_msg || null,
+                        justgiving_url: formData.justgiving_url || null,
+                        tickettailor_event_id: formData.tickettailor_event_id || null,
+                        tickettailor_api_key: (formData.tickettailor_api_key && formData.tickettailor_api_key.trim()) ? formData.tickettailor_api_key.trim() : undefined
                       };
 
                       try {

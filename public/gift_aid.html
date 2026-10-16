@@ -298,6 +298,9 @@
       </div>
 
       <button type="submit" class="btn-submit" id="submitBtn">Submit Declaration</button>
+      <div id="skipCheckoutWrap" style="display:none; text-align:center; margin-top:14px;">
+        <a id="skipCheckoutLink" href="#" target="_blank" rel="noopener noreferrer" style="color:var(--text-dim); font-size:13px; font-weight:600; text-decoration:underline;">Skip Gift Aid — Go Straight to Online Donation →</a>
+      </div>
     </form>
   </div>
 
@@ -312,6 +315,9 @@
     <p>Thank you! Your Gift Aid declaration has been recorded.</p>
     <p>This means an extra <strong>25%</strong> will be claimed from HMRC on your donation.</p>
     <div class="boost-echo" id="boostEcho"></div>
+    <div id="continueDonateWrap" style="display:none; margin-top:24px;">
+      <a id="continueDonateBtn" href="#" target="_blank" rel="noopener noreferrer" class="btn-submit" style="text-decoration:none;">💳 Continue to Online Donation →</a>
+    </div>
   </div>
 
   <div class="sleigh-label" id="sleighLabel"></div>
@@ -321,6 +327,7 @@
 (function() {
   const params = new URLSearchParams(window.location.search);
   const tableSlug = params.get('table') || '';
+  const isCheckoutFlow = params.get('checkout') === '1';
   const API = params.get('api') || (tableSlug ? `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableSlug)}` : '');
 
   const form     = document.getElementById('giftAidForm');
@@ -330,6 +337,7 @@
   const echoCh   = document.getElementById('charityEcho');
   const label    = document.getElementById('sleighLabel');
   const submitBtn = document.getElementById('submitBtn');
+  let tableDonateUrl = '';
 
   amountIn.addEventListener('input', () => {
     const v = parseFloat(amountIn.value);
@@ -385,6 +393,24 @@
     echoCh.textContent = charity;
     label.textContent = 'Powered by ' + name;
     document.title = 'Gift Aid — ' + name;
+
+    tableDonateUrl = settings.donate_url || settings.justgiving_url || '';
+    if (tableDonateUrl) {
+      const contWrap = document.getElementById('continueDonateWrap');
+      const contBtn = document.getElementById('continueDonateBtn');
+      if (contWrap && contBtn) {
+        contBtn.href = tableDonateUrl;
+        contWrap.style.display = 'block';
+      }
+      if (isCheckoutFlow) {
+        const skipWrap = document.getElementById('skipCheckoutWrap');
+        const skipLink = document.getElementById('skipCheckoutLink');
+        if (skipWrap && skipLink) {
+          skipLink.href = tableDonateUrl;
+          skipWrap.style.display = 'block';
+        }
+      }
+    }
 
     const routes = data.routes || [];
     if (routes.length) {

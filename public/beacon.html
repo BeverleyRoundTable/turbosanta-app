@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
-<title>>TurboSanta — Beacon</title>
+<title>TurboSanta — Beacon</title>
 <meta name="theme-color" content="#0a0a09">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -99,7 +99,23 @@
   .cb:active{transform:scale(.95)}
   .cb-go{background:var(--green);color:#000;box-shadow:0 4px 20px rgba(0,230,118,.25)}
   .cb-stop{background:var(--red);color:#fff;box-shadow:0 4px 20px rgba(255,23,68,.25)}
-  .cb-log{flex:.4;background:var(--card);color:var(--dim);border:1px solid var(--border)}
+  .cb-log{flex:.35;background:var(--card);color:var(--dim);border:1px solid var(--border);font-size:13px}
+  .cb-cash{flex:.42;background:var(--gold-dim);color:var(--gold);border:1px solid rgba(251,175,51,.3);font-size:13px}
+
+  /* ── Cash Modal ── */
+  .cash-modal{position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(6px);z-index:300;
+    display:none;align-items:center;justify-content:center;padding:20px}
+  .cash-modal.open{display:flex}
+  .cash-box{width:100%;max-width:400px;background:var(--raised);border:1px solid rgba(251,175,51,.3);
+    border-radius:18px;padding:22px;box-shadow:0 20px 50px rgba(0,0,0,.6)}
+  .cash-box h3{font-size:18px;font-weight:800;color:var(--gold);margin-bottom:6px}
+  .cash-box p{font-size:12px;color:var(--dim);line-height:1.5;margin-bottom:16px}
+  .cash-fld{margin-bottom:12px}
+  .cash-fld label{display:block;font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;
+    letter-spacing:1px;color:var(--dim);margin-bottom:5px}
+  .cash-fld input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;
+    padding:12px 14px;color:var(--text);font-size:15px;font-weight:700;font-family:var(--sans);outline:none}
+  .cash-fld input:focus{border-color:var(--gold)}
 
   /* ── Drawer ── */
   .dw{position:fixed;bottom:0;left:0;right:0;max-height:55vh;background:var(--raised);border-top:2px solid var(--gold);
@@ -275,6 +291,7 @@ async function boot() {
 // ═══════════════════════════════════════
 
 function buildUI() {
+  const todayLabel = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
   document.getElementById('app').innerHTML = `
     <div class="hdr">
       <div class="hdr-left"><div id="Hd" class="hdr-dot"></div><span class="hdr-lbl">Beacon</span></div>
@@ -295,7 +312,31 @@ function buildUI() {
     </div>
     <div class="ctrls">
       <button id="Cl" class="cb cb-log">LOG</button>
+      <button id="Cc" class="cb cb-cash">🪣 £ CASH</button>
       <button id="Cm" class="cb cb-go">▶︎ START</button>
+    </div>
+    <div id="CashM" class="cash-modal">
+      <div class="cash-box">
+        <h3>🪣 Log Tonight's Bucket Total</h3>
+        <p>Finished the route? Log tonight's cash & card reader bucket total to instantly update the public fundraising thermometer.</p>
+        <div class="cash-fld">
+          <label>Total Collected (£)</label>
+          <input type="number" step="0.01" min="0" id="CashAmt" placeholder="e.g. 385.50" inputmode="decimal">
+        </div>
+        <div class="cash-fld">
+          <label>Route / Collection Name</label>
+          <input type="text" id="CashRoute" value="Sleigh Route (${todayLabel})" placeholder="Route name">
+        </div>
+        <div class="cash-fld">
+          <label>Notes (Optional)</label>
+          <input type="text" id="CashNotes" placeholder="e.g. 4 buckets + SumUp card reader">
+        </div>
+        <div id="CashMsg" style="font-size:12px;font-weight:700;margin-bottom:10px;display:none;"></div>
+        <div style="display:flex;gap:10px;margin-top:14px;">
+          <button id="CashSkip" class="cb cb-log" style="flex:0.45;padding:13px 10px;">Skip</button>
+          <button id="CashSave" class="cb cb-go" style="flex:1;padding:13px 10px;font-size:14px;">💷 Add to Sleigh Total</button>
+        </div>
+      </div>
     </div>
     <div id="D" class="dw">
       <div id="Dh" class="dw-h"><div class="dw-bar"></div><span>Transmission Log</span></div>
@@ -305,10 +346,63 @@ function buildUI() {
 
   // Wire buttons
   _("Cm").onclick = toggleBeacon;
+  _("Cc").onclick = () => { _("CashMsg").style.display = "none"; _("CashM").classList.add("open"); };
+  _("CashSkip").onclick = () => _("CashM").classList.remove("open");
+  _("CashSave").onclick = submitCashLog;
 
   let logOpen = false;
   _("Cl").onclick = () => { logOpen = !logOpen; _("D").classList.toggle("open", logOpen); };
   _("Dh").onclick = () => { logOpen = false; _("D").classList.remove("open"); };
+}
+
+async function submitCashLog() {
+  const amt = parseFloat(_("CashAmt").value);
+  const routeName = _("CashRoute").value.trim() || "Sleigh Route Collection";
+  const notes = _("CashNotes").value.trim();
+  const msg = _("CashMsg");
+  const btn = _("CashSave");
+
+  if (!amt || amt <= 0) {
+    msg.style.display = "block";
+    msg.style.color = "var(--red)";
+    msg.textContent = "Please enter a valid £ amount.";
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Saving…";
+  try {
+    const bSecret = sessionStorage.getItem('beaconSecret') || '';
+    const cashUrl = `https://turbosanta-api.beverley247.workers.dev/api/donations/cash?table=${encodeURIComponent(tableParam || 'beverley')}`;
+    const res = await fetch(cashUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${bSecret}`
+      },
+      body: JSON.stringify({
+        amount: amt,
+        route_name: routeName,
+        notes: notes || "Logged via Driver Beacon"
+      })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || "Failed to log cash");
+    L(`💷 Logged £${amt.toFixed(2)} (${routeName}) — Sleigh total: £${Number(data.new_total || amt).toFixed(2)}`, "g");
+    msg.style.display = "block";
+    msg.style.color = "var(--green)";
+    msg.textContent = `✅ Added £${amt.toFixed(2)}! New total: £${Number(data.new_total || amt).toFixed(2)}`;
+    _("CashAmt").value = "";
+    setTimeout(() => { _("CashM").classList.remove("open"); }, 1400);
+  } catch (e) {
+    msg.style.display = "block";
+    msg.style.color = "var(--red)";
+    msg.textContent = "❌ " + e.message;
+    L("❌ Cash log error: " + e.message, "r");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "💷 Add to Sleigh Total";
+  }
 }
 
 function toggleBeacon() {
@@ -324,6 +418,11 @@ function toggleBeacon() {
     setMode("idle");
     if(wl) try{wl.release()}catch{}
     L("⏹ Beacon stopped","a");
+    // Prompt driver to optionally log tonight's bucket total if fixes were sent
+    if (X.sent > 0 && tableParam) {
+      _("CashMsg").style.display = "none";
+      _("CashM").classList.add("open");
+    }
   }
 }
 

@@ -1474,6 +1474,27 @@
                 </div>
             </div>
         </div>
+
+        <!-- Where Your Donations Go & Local Cause Grant Nominations -->
+        <div id="grants-showcase-card" style="max-width: 960px; margin: 24px auto 0; background: rgba(20, 22, 26, 0.78); backdrop-filter: blur(16px); border: 1px solid rgba(251, 175, 51, 0.25); border-radius: 20px; padding: 24px 28px; box-shadow: var(--shadow-card);">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px;">
+                <div style="flex: 1; min-width: 240px;">
+                    <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; color: var(--primary); margin-bottom: 4px;">
+                        💛 100% Stays Local
+                    </div>
+                    <h3 class="brand-font" style="font-size: 20px; color: #FFFFFF; margin: 0 0 6px 0;">
+                        WHERE YOUR <span class="hl">DONATIONS GO</span>
+                    </h3>
+                    <p style="font-size: 13px; color: var(--text-muted); margin: 0; line-height: 1.5;">
+                        Every penny collected by our volunteers goes directly back into supporting local charities, schools, grassroots clubs, and families in our community.
+                    </p>
+                </div>
+                <button type="button" id="open-grant-modal-btn" class="brand-font" style="padding: 11px 18px; background: rgba(251, 175, 51, 0.14); color: var(--primary); border: 1px solid rgba(251, 175, 51, 0.45); border-radius: 12px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; white-space: nowrap;">
+                    🤝 Nominate a Local Cause / Apply for a Grant
+                </button>
+            </div>
+            <div id="approved-grants-grid" style="display: none; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;"></div>
+        </div>
     </section>
 
     <!-- Routes Section -->
@@ -2291,12 +2312,169 @@
         }
 
         let donationFillAnimated = false;
-        function renderDonations(donations, settings) {
+        let autoDonateParamHandled = false;
+
+        function openGiftAidCheckoutModal(donateUrl, settings) {
+            const table = window.__sleighTableSlug || 'beverley';
+            const charityName = settings.charity_name || settings.sleigh_display_name || 'Round Table Trust Fund';
+            let modal = document.getElementById('sleigh-giftaid-modal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'sleigh-giftaid-modal';
+                document.body.appendChild(modal);
+            }
+            modal.innerHTML = `
+                <div id="ga-modal-backdrop" style="position: fixed; inset: 0; z-index: 99999; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; padding: 16px;">
+                    <div style="width: 100%; max-width: 480px; background: #15171c; border: 1px solid rgba(34, 197, 94, 0.45); border-radius: 20px; padding: 24px; box-shadow: 0 25px 60px rgba(0,0,0,0.9); color: #fff; position: relative;" onclick="event.stopPropagation()">
+                        <button type="button" id="ga-modal-close" style="position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.08); border: none; color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer;">✕</button>
+                        <div style="display: inline-block; background: rgba(34, 197, 94, 0.16); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.35); font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 999px; text-transform: uppercase; margin-bottom: 10px;">
+                            🎁 Free +25% HMRC Gift Aid Boost
+                        </div>
+                        <h3 class="brand-font" style="font-size: 22px; margin: 0 0 6px 0;">Boost Your Donation by <span style="color: #4ade80;">+25%</span>!</h3>
+                        <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 14px 0; line-height: 1.45;">
+                            If you are a UK taxpayer, <strong>${charityName}</strong> can reclaim an extra <strong>25p for every £1</strong> you donate from HMRC at zero extra cost to you.
+                        </p>
+                        <form id="ga-checkout-form" style="display: flex; flex-direction: column; gap: 10px;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                <input type="text" id="ga-first" required placeholder="First Name *" style="padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16); background: rgba(0,0,0,0.4); color: #fff; font-size: 13px;" />
+                                <input type="text" id="ga-last" required placeholder="Surname *" style="padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16); background: rgba(0,0,0,0.4); color: #fff; font-size: 13px;" />
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px;">
+                                <input type="text" id="ga-address" required placeholder="House No. & Street *" style="padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16); background: rgba(0,0,0,0.4); color: #fff; font-size: 13px;" />
+                                <input type="text" id="ga-postcode" required placeholder="Postcode *" style="padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16); background: rgba(0,0,0,0.4); color: #fff; font-size: 13px; text-transform: uppercase;" />
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 8px;">
+                                <input type="number" step="0.01" min="1" id="ga-amount" value="5" placeholder="Est. Donation (£)" style="padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16); background: rgba(0,0,0,0.4); color: #fff; font-size: 13px;" />
+                                <input type="email" id="ga-email" placeholder="Email (optional)" style="padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16); background: rgba(0,0,0,0.4); color: #fff; font-size: 13px;" />
+                            </div>
+                            <label style="display: flex; align-items: flex-start; gap: 8px; font-size: 11px; color: rgba(255,255,255,0.82); background: rgba(255,255,255,0.04); padding: 10px; border-radius: 10px; cursor: pointer;">
+                                <input type="checkbox" id="ga-taxpayer" checked required style="margin-top: 2px;" />
+                                <span>I am a UK taxpayer and want to Gift Aid my donation now and in the future to ${charityName}. I understand I must pay at least as much Income/Capital Gains Tax as Gift Aid claimed.</span>
+                            </label>
+                            <button type="submit" id="ga-submit-btn" class="brand-font" style="padding: 12px; border-radius: 12px; border: none; background: #16a34a; color: #fff; font-size: 14px; font-weight: 800; cursor: pointer; text-transform: uppercase;">
+                                ✨ Boost by +25% & Continue to Donate &rarr;
+                            </button>
+                            <button type="button" id="ga-skip-btn" style="background: none; border: none; color: rgba(255,255,255,0.65); font-size: 12px; font-weight: 700; text-decoration: underline; cursor: pointer; padding: 4px;">
+                                Skip Gift Aid — Go Straight to Online Donation &rarr;
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            const close = () => { modal.innerHTML = ''; };
+            document.getElementById('ga-modal-backdrop').onclick = close;
+            document.getElementById('ga-modal-close').onclick = close;
+            document.getElementById('ga-skip-btn').onclick = () => {
+                close();
+                window.open(donateUrl, '_blank', 'noopener,noreferrer');
+            };
+            document.getElementById('ga-checkout-form').onsubmit = async (ev) => {
+                ev.preventDefault();
+                const btn = document.getElementById('ga-submit-btn');
+                btn.disabled = true;
+                btn.textContent = 'Saving Gift Aid...';
+                try {
+                    await fetch(`${CFG.workerApi}/api/gift-aid`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            table_slug: table,
+                            first_name: document.getElementById('ga-first').value.trim(),
+                            last_name: document.getElementById('ga-last').value.trim(),
+                            address_line1: document.getElementById('ga-address').value.trim(),
+                            postcode: document.getElementById('ga-postcode').value.trim().toUpperCase(),
+                            email: document.getElementById('ga-email').value.trim(),
+                            donation_amount: parseFloat(document.getElementById('ga-amount').value) || 5,
+                            uk_taxpayer_confirmed: true
+                        })
+                    });
+                } catch (_) {}
+                close();
+                window.open(donateUrl, '_blank', 'noopener,noreferrer');
+            };
+        }
+
+        function openGrantNominationModal() {
+            const table = window.__sleighTableSlug || 'beverley';
+            let modal = document.getElementById('sleigh-grant-modal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'sleigh-grant-modal';
+                document.body.appendChild(modal);
+            }
+            modal.innerHTML = `
+                <div id="grant-modal-backdrop" style="position: fixed; inset: 0; z-index: 99999; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; padding: 16px;">
+                    <div style="width: 100%; max-width: 500px; background: #15171c; border: 1px solid rgba(251, 175, 51, 0.45); border-radius: 20px; padding: 24px; box-shadow: 0 25px 60px rgba(0,0,0,0.9); color: #fff; position: relative;" onclick="event.stopPropagation()">
+                        <button type="button" id="grant-modal-close" style="position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.08); border: none; color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer;">✕</button>
+                        <div style="font-size: 11px; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">
+                            💛 Community Funding Application
+                        </div>
+                        <h3 class="brand-font" style="font-size: 22px; margin: 0 0 6px 0;">Nominate a Local Cause</h3>
+                        <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 14px 0; line-height: 1.45;">
+                            Know a local school, sports club, charity, or community project that could benefit from a Santa Sleigh grant? Tell our Round Table below!
+                        </p>
+                        <form id="grant-nomination-form" style="display: flex; flex-direction: column; gap: 10px;">
+                            <input type="text" id="gr-org" required placeholder="Organisation / Cause / Project Name *" style="padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16); background: rgba(0,0,0,0.4); color: #fff; font-size: 13px;" />
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                <input type="text" id="gr-name" required placeholder="Your Name *" style="padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16); background: rgba(0,0,0,0.4); color: #fff; font-size: 13px;" />
+                                <input type="email" id="gr-email" required placeholder="Your Email *" style="padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16); background: rgba(0,0,0,0.4); color: #fff; font-size: 13px;" />
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                <input type="tel" id="gr-phone" placeholder="Phone Number (optional)" style="padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16); background: rgba(0,0,0,0.4); color: #fff; font-size: 13px;" />
+                                <input type="number" min="1" step="1" id="gr-amount" placeholder="Requested Amount (£)" style="padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16); background: rgba(0,0,0,0.4); color: #fff; font-size: 13px;" />
+                            </div>
+                            <textarea id="gr-summary" required rows="3" placeholder="How would a grant from our Santa Sleigh collection help the local community? *" style="padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16); background: rgba(0,0,0,0.4); color: #fff; font-size: 13px; resize: vertical;"></textarea>
+                            <button type="submit" id="gr-submit-btn" class="brand-font" style="padding: 12px; border-radius: 12px; border: none; background: var(--primary); color: var(--on-primary); font-size: 14px; font-weight: 800; cursor: pointer; text-transform: uppercase;">
+                                🤝 Submit Cause Nomination
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            const close = () => { modal.innerHTML = ''; };
+            document.getElementById('grant-modal-backdrop').onclick = close;
+            document.getElementById('grant-modal-close').onclick = close;
+            document.getElementById('grant-nomination-form').onsubmit = async (ev) => {
+                ev.preventDefault();
+                const btn = document.getElementById('gr-submit-btn');
+                btn.disabled = true;
+                btn.textContent = 'Submitting...';
+                try {
+                    const res = await fetch(`${CFG.workerApi}/api/grants`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            table_slug: table,
+                            organisation_name: document.getElementById('gr-org').value.trim(),
+                            contact_name: document.getElementById('gr-name').value.trim(),
+                            contact_email: document.getElementById('gr-email').value.trim(),
+                            contact_phone: document.getElementById('gr-phone').value.trim(),
+                            amount_requested: parseFloat(document.getElementById('gr-amount').value) || 0,
+                            cause_summary: document.getElementById('gr-summary').value.trim()
+                        })
+                    });
+                    if (res.ok) {
+                        btn.textContent = '✅ Nomination Received — Thank You!';
+                        btn.style.background = '#16a34a';
+                        btn.style.color = '#fff';
+                        setTimeout(close, 1600);
+                    } else {
+                        btn.disabled = false;
+                        btn.textContent = '🤝 Submit Cause Nomination';
+                    }
+                } catch (_) {
+                    btn.disabled = false;
+                    btn.textContent = '🤝 Submit Cause Nomination';
+                }
+            };
+        }
+
+        function renderDonations(donations, settings, approvedGrants) {
             const currency = donations.currency ? String(donations.currency) : '\u00A3';
             const target = parseFloat(donations.target) || 0;
             const current = parseFloat(donations.total) || 0;
             const hasTarget = target > 0;
-            const donateUrl = safeUrl(settings.donate_url);
+            const donateUrl = safeUrl(settings.donate_url || settings.justgiving_url);
             
             const api = window.__sleighApiUrl;
             const table = window.__sleighTableSlug || 'beverley';
@@ -2326,6 +2504,19 @@
             if (donateUrl) {
                 donateBtn.href = donateUrl;
                 donateBtn.style.display = 'inline-flex';
+                donateBtn.onclick = (e) => {
+                    if (settings.enable_gift_aid) {
+                        e.preventDefault();
+                        openGiftAidCheckoutModal(donateUrl, settings);
+                    }
+                };
+                if (!autoDonateParamHandled) {
+                    const params = new URLSearchParams(window.location.search);
+                    if (params.get('donate') === '1' && settings.enable_gift_aid) {
+                        autoDonateParamHandled = true;
+                        setTimeout(() => openGiftAidCheckoutModal(donateUrl, settings), 400);
+                    }
+                }
             } else {
                 donateBtn.style.display = 'none';
             }
@@ -2339,6 +2530,42 @@
                     gaWrap.style.display = 'block';
                 } else {
                     gaWrap.style.display = 'none';
+                }
+            }
+
+            const grantBtn = $('open-grant-modal-btn');
+            if (grantBtn) {
+                grantBtn.onclick = () => openGrantNominationModal();
+            }
+            const grantsGrid = $('approved-grants-grid');
+            if (grantsGrid) {
+                const list = Array.isArray(approvedGrants) ? approvedGrants : [];
+                if (list.length > 0) {
+                    grantsGrid.replaceChildren();
+                    list.forEach(g => {
+                        const item = el('div', '');
+                        item.style.cssText = 'background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px;';
+                        const titleRow = el('div', '');
+                        titleRow.style.cssText = 'display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px;';
+                        const org = el('strong', '', g.organisation_name || 'Local Cause');
+                        org.style.cssText = 'font-size: 13px; color: #fff;';
+                        titleRow.appendChild(org);
+                        if (Number(g.amount_requested) > 0) {
+                            const amt = el('span', '', `£${Number(g.amount_requested).toLocaleString()}`);
+                            amt.style.cssText = 'font-size: 11px; font-weight: 800; color: #4ade80; background: rgba(34,197,94,0.14); padding: 2px 7px; border-radius: 6px;';
+                            titleRow.appendChild(amt);
+                        }
+                        item.appendChild(titleRow);
+                        if (g.cause_summary) {
+                            const sum = el('div', '', g.cause_summary);
+                            sum.style.cssText = 'font-size: 12px; color: var(--text-muted); line-height: 1.4;';
+                            item.appendChild(sum);
+                        }
+                        grantsGrid.appendChild(item);
+                    });
+                    grantsGrid.style.display = 'grid';
+                } else {
+                    grantsGrid.style.display = 'none';
                 }
             }
 
@@ -2660,7 +2887,11 @@
                 const dateText = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
                 
                 const dateWrapper = el('div', 'route-date');
-                if (isPast) {
+                if (route.status_override === 'POSTPONED') {
+                    const badge = el('span', '', '🌧️ POSTPONED / RESCHEDULED');
+                    badge.style.cssText = 'color: #fcd34d; background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.4); padding: 2px 8px; border-radius: 6px; font-size: 11px; margin-right: 6px;';
+                    dateWrapper.appendChild(badge);
+                } else if (isPast) {
                     const badge = el('span', '', '✓ COMPLETED');
                     badge.style.cssText = 'color: #10b981; background: rgba(16, 185, 129, 0.14); padding: 2px 8px; border-radius: 6px; font-size: 11px;';
                     dateWrapper.appendChild(badge);
@@ -2669,6 +2900,12 @@
                 dateWrapper.appendChild(document.createTextNode(time ? dateText + ' • ' + time : dateText));
                 card.appendChild(dateWrapper);
                 card.appendChild(el('h3', 'brand-font', String(route.routeName)));
+
+                if (route.postponed_note) {
+                    const pNote = el('div', '', `🌧️ ${route.postponed_note}`);
+                    pNote.style.cssText = 'font-size: 12px; color: #fde68a; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); padding: 8px 10px; border-radius: 8px; margin: 6px 0 8px 0; font-weight: 600;';
+                    card.appendChild(pNote);
+                }
 
                 const streetsPreview = createRouteStreetsPreview(route.streets, route.routeName, dateText, time, 5);
                 card.appendChild(streetsPreview);
@@ -2730,7 +2967,13 @@
             const routeInfo = el('div');
             
             const badge = el('div', 'today-badge');
-            badge.innerHTML = '<i class="fa-solid fa-star"></i> TONIGHT\'S ROUTE';
+            if (route.status_override === 'POSTPONED') {
+                badge.style.background = '#d97706';
+                badge.style.color = '#ffffff';
+                badge.innerHTML = '🌧️ WEATHER UPDATE — POSTPONED';
+            } else {
+                badge.innerHTML = '<i class="fa-solid fa-star"></i> TONIGHT\'S ROUTE';
+            }
             routeInfo.appendChild(badge);
 
             const dateEl = el('div', 'route-date', time ? dateText + ' • ' + time : dateText);
@@ -2741,6 +2984,12 @@
             title.style.fontSize = '30px';
             title.style.margin = '4px 0 10px 0';
             routeInfo.appendChild(title);
+
+            if (route.postponed_note) {
+                const pNote = el('div', '', `🌧️ ${route.postponed_note}`);
+                pNote.style.cssText = 'font-size: 13px; color: #fde68a; background: rgba(245, 158, 11, 0.14); border: 1px solid rgba(245, 158, 11, 0.35); padding: 10px 14px; border-radius: 10px; margin-bottom: 12px; font-weight: 600;';
+                routeInfo.appendChild(pNote);
+            }
 
             const streetsPreview = createRouteStreetsPreview(route.streets, route.routeName, dateText, time, 6);
             routeInfo.appendChild(streetsPreview);
@@ -3355,12 +3604,13 @@
             const sponsors = asArray(data && data.sponsors);
             const headlineSponsor = data && data.headlineSponsor;
             const partners = asArray(data && data.partners);
+            const approvedGrants = asArray(data && data.approved_grants);
 
             safely('theme', () => renderTheme(settings));
             safely('branding', () => renderBranding(settings, headlineSponsor, partners));
             safely('announcement', () => renderAnnouncement(settings));
             safely('frames', () => renderFrames(api));
-            safely('donations', () => renderDonations(donations, settings));
+            safely('donations', () => renderDonations(donations, settings, approvedGrants));
             safely('routes', () => renderRoutes(routes, sponsors));
             safely('status', () => renderHeroStatus(routes));
             safely('sponsors', () => renderSponsors(sponsors));
@@ -3476,7 +3726,7 @@
                     table_name: tbl.name || stg.table_name || 'Round Table',
                     primary_color: tbl.primary_color || stg.primary_color || '#FBAF33',
                     accent_color: tbl.accent_color || stg.accent_color || '#FFFFFF',
-                    donate_url: tbl.donate_url || stg.donate_url || '',
+                    donate_url: tbl.donate_url || tbl.justgiving_url || stg.donate_url || '',
                     live_announcement: tbl.live_announcement || stg.live_announcement || '',
                     logo_overlay_url: tbl.logo_url || tbl.logo_overlay_url || stg.logo_overlay_url || '',
                     background_url: tbl.background_url || stg.background_url || '',
@@ -3494,6 +3744,7 @@
                     currency: '£',
                     lastUpdatePretty: updateLabel || 'Live'
                 },
+                approved_grants: data.approved_grants || [],
                 routes: (data.routes || []).map(r => {
                     const rSponsors = extractRouteSponsors(r);
                     return {

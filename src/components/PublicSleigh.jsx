@@ -276,9 +276,22 @@ export function getOperatorTableName(table = {}, slug = '') {
 export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }) {
   const [addressFrameHeight, setAddressFrameHeight] = useState(500);
   const [showFab, setShowFab] = useState(false);
+  const [showGiftAidCheckoutModal, setShowGiftAidCheckoutModal] = useState(false);
+  const [showGrantModal, setShowGrantModal] = useState(false);
+  const [grantForm, setGrantForm] = useState({
+    org_name: '',
+    contact_name: '',
+    contact_email: '',
+    contact_phone: '',
+    amount_requested: '',
+    cause_summary: ''
+  });
+  const [isSubmittingGrant, setIsSubmittingGrant] = useState(false);
+  const [grantStatusMsg, setGrantStatusMsg] = useState('');
   const currentYear = new Date().getFullYear();
 
   const table = tableData?.table || {};
+  const approvedGrants = Array.isArray(tableData?.approved_grants) ? tableData.approved_grants : [];
   const primaryColor = table.primary_color || '#FBAF33';
   const primaryRgb = parseColor(primaryColor);
   const onPrimaryColor = readableTextOn(primaryRgb);
@@ -287,6 +300,65 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
   const siteName = table.sleigh_display_name || `${operatorTableName} Santa Sleigh`;
   const logoUrl = table.logo_url || DEFAULT_LOGO;
   const bgImage = (table.background_url && table.background_url.trim()) ? table.background_url.trim() : DEFAULT_BG;
+  const effectiveDonateUrl = table.donate_url || table.justgiving_url || '';
+
+  // Open Gift Aid Pre-Checkout Modal or scroll to #donate when arriving via ?donate=1 QR code
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('donate') === '1') {
+      if (table.enable_gift_aid && effectiveDonateUrl) {
+        setShowGiftAidCheckoutModal(true);
+      } else {
+        const el = document.getElementById('donate');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }, [table.enable_gift_aid, effectiveDonateUrl]);
+
+  const handleDonateClick = (e) => {
+    if (table.enable_gift_aid && effectiveDonateUrl) {
+      e.preventDefault();
+      setShowGiftAidCheckoutModal(true);
+    }
+  };
+
+  const handleSubmitGrantNomination = async (e) => {
+    e.preventDefault();
+    if (!grantForm.org_name.trim() || !grantForm.contact_email.trim() || !grantForm.cause_summary.trim()) {
+      setGrantStatusMsg('❌ Please fill in the organisation name, contact email, and how the funds will help.');
+      return;
+    }
+    setIsSubmittingGrant(true);
+    setGrantStatusMsg('');
+    try {
+      const slug = (activeTableSlug || table.slug || 'beverley').toLowerCase().trim();
+      const res = await fetch(`${API_BASE}/api/grants?table=${encodeURIComponent(slug)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          org_name: grantForm.org_name.trim(),
+          contact_name: grantForm.contact_name.trim(),
+          contact_email: grantForm.contact_email.trim(),
+          contact_phone: grantForm.contact_phone.trim(),
+          amount_requested: parseFloat(grantForm.amount_requested) || 0,
+          cause_summary: grantForm.cause_summary.trim()
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Submission failed');
+      setGrantStatusMsg('✅ Thank you! Your local cause grant application has been sent to the Round Table committee.');
+      setGrantForm({ org_name: '', contact_name: '', contact_email: '', contact_phone: '', amount_requested: '', cause_summary: '' });
+      setTimeout(() => {
+        setShowGrantModal(false);
+        setGrantStatusMsg('');
+      }, 2200);
+    } catch (err) {
+      setGrantStatusMsg(`❌ Error: ${err.message}`);
+    } finally {
+      setIsSubmittingGrant(false);
+    }
+  };
 
   // Ambient Video Settings (Default festive Santa video or custom upload)
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
@@ -1063,11 +1135,12 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
               <span style={{ color: 'var(--text-muted)' }}>OF £{fundraisingGoal.toLocaleString()}</span>
             </div>
 
-            {table.donate_url && (
+            {effectiveDonateUrl && (
               <a
-                href={table.donate_url}
+                href={effectiveDonateUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={handleDonateClick}
                 className="brand-font"
                 style={{
                   display: 'inline-block',
@@ -1160,6 +1233,100 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
               Volunteer Now &rarr;
             </a>
           </div>
+
+          {/* Where Your Donations Go & Local Cause Grant Nominations */}
+          <div style={{
+            background: '#000000',
+            border: '1px solid var(--border)',
+            borderRadius: '16px',
+            padding: '28px 24px',
+            margin: '24px auto 0',
+            maxWidth: '520px',
+            textAlign: 'center',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.4)',
+            boxSizing: 'border-box',
+            width: '100%'
+          }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: 'rgba(251, 175, 51, 0.12)',
+              border: '1px solid rgba(251, 175, 51, 0.35)',
+              color: 'var(--primary)',
+              fontSize: '11px',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              letterSpacing: '1px',
+              padding: '4px 12px',
+              borderRadius: '99px',
+              marginBottom: '10px'
+            }}>
+              💛 100% Back Into Our Community
+            </div>
+            <h3 className="brand-font" style={{ color: '#FFFFFF', fontSize: '21px', marginBottom: '8px' }}>
+              Where Your <span style={{ color: 'var(--primary)' }}>Donations Go</span>
+            </h3>
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: '0 0 16px 0', lineHeight: 1.5 }}>
+              Every pound collected by {operatorTableName} funds local charities, schools, foodbanks, youth groups, and families in need right here in our town.
+            </p>
+
+            {approvedGrants.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '18px', textAlign: 'left' }}>
+                {approvedGrants.map((g, idx) => (
+                  <div
+                    key={g.id || idx}
+                    style={{
+                      background: 'rgba(255,255,255,0.04)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '10px',
+                      padding: '12px 14px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '10px',
+                      flexWrap: 'wrap'
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: '180px' }}>
+                      <strong style={{ color: '#FFFFFF', fontSize: '14px', display: 'block' }}>{g.org_name}</strong>
+                      {g.cause_summary && (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '12px', lineHeight: 1.4 }}>{g.cause_summary}</span>
+                      )}
+                    </div>
+                    {Number(g.amount_awarded) > 0 && (
+                      <span className="brand-font" style={{ color: '#86efac', fontSize: '15px', fontWeight: 800 }}>
+                        £{Number(g.amount_awarded).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => { setGrantStatusMsg(''); setShowGrantModal(true); }}
+              className="brand-font"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '11px 22px',
+                background: 'rgba(251, 175, 51, 0.14)',
+                color: 'var(--primary)',
+                border: '1px solid var(--primary)',
+                fontSize: '13px',
+                borderRadius: '8px',
+                textTransform: 'uppercase',
+                fontWeight: 700,
+                letterSpacing: '0.6px',
+                cursor: 'pointer'
+              }}
+            >
+              🤝 Nominate a Local Cause / Apply for a Grant &rarr;
+            </button>
+          </div>
         </section>
 
         {/* 3. Routes & Schedule Section (Embedding address.html & Tonight's Spotlight) */}
@@ -1204,7 +1371,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
           {todayItem && (
             <div style={{
               background: '#000000',
-              border: '2px solid var(--primary)',
+              border: todayItem.status_override === 'Postponed' ? '2px solid #ef4444' : '2px solid var(--primary)',
               borderRadius: '16px',
               padding: '26px 30px',
               marginBottom: '35px',
@@ -1221,8 +1388,8 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
-                    background: 'var(--primary)',
-                    color: 'var(--on-primary)',
+                    background: todayItem.status_override === 'Postponed' ? '#ef4444' : 'var(--primary)',
+                    color: todayItem.status_override === 'Postponed' ? '#FFFFFF' : 'var(--on-primary)',
                     fontSize: '12px',
                     fontWeight: 800,
                     textTransform: 'uppercase',
@@ -1231,7 +1398,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                     borderRadius: '20px',
                     marginBottom: '10px'
                   }}>
-                  <Star size={14} fill="currentColor" /> TONIGHT'S ROUTE
+                  <Star size={14} fill="currentColor" /> {todayItem.status_override === 'Postponed' ? '🌧️ WEATHER UPDATE — POSTPONED' : "TONIGHT'S ROUTE"}
                 </div>
 
                 <div
@@ -1244,6 +1411,12 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                 <h3 className="brand-font" style={{ fontSize: '32px', color: '#FFFFFF', margin: '4px 0 10px 0' }}>
                   {todayItem.routeName}
                 </h3>
+
+                {todayItem.postponed_note && (
+                  <div style={{ background: 'rgba(239, 68, 68, 0.14)', border: '1px solid #ef4444', color: '#fca5a5', borderRadius: '10px', padding: '10px 14px', fontSize: '13px', fontWeight: 600, marginBottom: '12px' }}>
+                    🌧️ {todayItem.postponed_note}
+                  </div>
+                )}
 
                 <RouteStreetsPreview
                   streets={todayItem.streets}
@@ -1339,7 +1512,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                   key={idx}
                   style={{
                     background: '#000000',
-                    border: '1px solid var(--border)',
+                    border: r.status_override === 'Postponed' ? '1px solid #ef4444' : '1px solid var(--border)',
                     borderRadius: '12px',
                     padding: '20px',
                     boxShadow: '0 10px 20px rgba(0,0,0,0.4)',
@@ -1351,7 +1524,8 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                   <div
                     className="brand-font"
                     style={{ fontWeight: 700, color: 'var(--primary)', marginBottom: '5px', textTransform: 'uppercase', fontSize: '13px', letterSpacing: '1px' }}>
-                    {isPast && <span style={{ color: '#FFFFFF' }}>✓ COMPLETED | </span>}
+                    {r.status_override === 'Postponed' && <span style={{ color: '#fca5a5' }}>🌧️ POSTPONED | </span>}
+                    {isPast && r.status_override !== 'Postponed' && <span style={{ color: '#FFFFFF' }}>✓ COMPLETED | </span>}
                     {r.d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
                     {r.start_time && ` | ${r.start_time} - ${r.end_time || '20:30'}`}
                   </div>
@@ -1359,6 +1533,12 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                   <h3 className="brand-font" style={{ color: '#FFFFFF', fontSize: '22px', marginBottom: '10px' }}>
                     {r.routeName}
                   </h3>
+
+                  {r.postponed_note && (
+                    <div style={{ background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.35)', color: '#fca5a5', borderRadius: '8px', padding: '8px 10px', fontSize: '12px', fontWeight: 600, marginBottom: '10px' }}>
+                      🌧️ {r.postponed_note}
+                    </div>
+                  )}
 
                   <RouteStreetsPreview
                     streets={r.streets}
@@ -1843,6 +2023,255 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
           >
             <MapPin size={18} /> Live Map
           </a>
+        )}
+
+        {/* Pre-Checkout +25% Gift Aid Boost Modal */}
+        {showGiftAidCheckoutModal && (
+          <div
+            onClick={() => setShowGiftAidCheckoutModal(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.85)',
+              backdropFilter: 'blur(8px)',
+              zIndex: 2000,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '16px',
+              overflowY: 'auto'
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: '#161614',
+                border: '1px solid var(--primary)',
+                borderRadius: '18px',
+                maxWidth: '580px',
+                width: '100%',
+                maxHeight: '92vh',
+                overflowY: 'auto',
+                padding: '20px',
+                position: 'relative',
+                boxShadow: '0 24px 60px rgba(0,0,0,0.85)'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', gap: '12px' }}>
+                <div className="brand-font" style={{ fontSize: '18px', color: 'var(--primary)', fontWeight: 800 }}>
+                  ✨ Boost Your Donation by +25% with Gift Aid?
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowGiftAidCheckoutModal(false)}
+                  style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '22px', cursor: 'pointer', lineHeight: 1 }}
+                >
+                  &times;
+                </button>
+              </div>
+
+              {effectiveDonateUrl && (
+                <div style={{ marginBottom: '14px', textAlign: 'center' }}>
+                  <a
+                    href={effectiveDonateUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setShowGiftAidCheckoutModal(false)}
+                    className="brand-font"
+                    style={{
+                      display: 'block',
+                      padding: '12px 18px',
+                      background: 'var(--primary)',
+                      color: 'var(--on-primary)',
+                      borderRadius: '10px',
+                      textDecoration: 'none',
+                      fontWeight: 800,
+                      fontSize: '15px',
+                      textTransform: 'uppercase'
+                    }}
+                  >
+                    💳 Skip Gift Aid — Go Straight to Online Donation &rarr;
+                  </a>
+                </div>
+              )}
+
+              <iframe
+                src={`/gift_aid.html?table=${encodeURIComponent(cleanSlug)}&checkout=1`}
+                title="Gift Aid Pre-Checkout Declaration"
+                style={{ width: '100%', height: '680px', border: 'none', borderRadius: '12px', background: 'transparent' }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Local Cause Grant Application / Nomination Modal */}
+        {showGrantModal && (
+          <div
+            onClick={() => setShowGrantModal(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.85)',
+              backdropFilter: 'blur(8px)',
+              zIndex: 2000,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '16px',
+              overflowY: 'auto'
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: '#161614',
+                border: '1px solid var(--primary)',
+                borderRadius: '18px',
+                maxWidth: '500px',
+                width: '100%',
+                padding: '28px 24px',
+                position: 'relative',
+                boxShadow: '0 24px 60px rgba(0,0,0,0.85)'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h3 className="brand-font" style={{ fontSize: '22px', color: 'var(--primary)', margin: 0 }}>
+                  💛 Nominate a Local Cause
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowGrantModal(false)}
+                  style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '24px', cursor: 'pointer', lineHeight: 1 }}
+                >
+                  &times;
+                </button>
+              </div>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '18px', lineHeight: 1.5 }}>
+                Know a local school, sports club, foodbank, charity, or community project that could benefit from a {operatorTableName} Santa Sleigh grant? Submit an application below!
+              </p>
+
+              <form onSubmit={handleSubmitGrantNomination} style={{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                    Organisation / Cause Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={grantForm.org_name}
+                    onChange={(e) => setGrantForm(prev => ({ ...prev, org_name: e.target.value }))}
+                    placeholder="e.g. St Nicholas Primary PTA / Local Youth Club"
+                    style={{ width: '100%', boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '11px 14px', color: '#fff', fontSize: '14px' }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                      Contact Name
+                    </label>
+                    <input
+                      type="text"
+                      value={grantForm.contact_name}
+                      onChange={(e) => setGrantForm(prev => ({ ...prev, contact_name: e.target.value }))}
+                      placeholder="Your name"
+                      style={{ width: '100%', boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '11px 14px', color: '#fff', fontSize: '14px' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                      Amount Requested (£)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={grantForm.amount_requested}
+                      onChange={(e) => setGrantForm(prev => ({ ...prev, amount_requested: e.target.value }))}
+                      placeholder="e.g. 250"
+                      style={{ width: '100%', boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '11px 14px', color: '#fff', fontSize: '14px' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                      Contact Email *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={grantForm.contact_email}
+                      onChange={(e) => setGrantForm(prev => ({ ...prev, contact_email: e.target.value }))}
+                      placeholder="you@example.com"
+                      style={{ width: '100%', boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '11px 14px', color: '#fff', fontSize: '14px' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                      Phone (Optional)
+                    </label>
+                    <input
+                      type="tel"
+                      value={grantForm.contact_phone}
+                      onChange={(e) => setGrantForm(prev => ({ ...prev, contact_phone: e.target.value }))}
+                      placeholder="07..."
+                      style={{ width: '100%', boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '11px 14px', color: '#fff', fontSize: '14px' }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                    How Will This Grant Help Our Community? *
+                  </label>
+                  <textarea
+                    rows={3}
+                    required
+                    value={grantForm.cause_summary}
+                    onChange={(e) => setGrantForm(prev => ({ ...prev, cause_summary: e.target.value }))}
+                    placeholder="Tell us briefly what the funds would be used for..."
+                    style={{ width: '100%', boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '11px 14px', color: '#fff', fontSize: '14px', fontFamily: 'inherit' }}
+                  />
+                </div>
+
+                {grantStatusMsg && (
+                  <div style={{
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    background: grantStatusMsg.startsWith('✅') ? 'rgba(34, 197, 94, 0.14)' : 'rgba(239, 68, 68, 0.14)',
+                    border: grantStatusMsg.startsWith('✅') ? '1px solid #22c55e' : '1px solid #ef4444',
+                    color: grantStatusMsg.startsWith('✅') ? '#86efac' : '#fca5a5',
+                    fontSize: '13px',
+                    fontWeight: 600
+                  }}>
+                    {grantStatusMsg}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isSubmittingGrant}
+                  className="brand-font"
+                  style={{
+                    marginTop: '6px',
+                    padding: '13px 20px',
+                    background: 'var(--primary)',
+                    color: 'var(--on-primary)',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontSize: '15px',
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {isSubmittingGrant ? 'Submitting Application...' : '💛 Submit Grant Nomination'}
+                </button>
+              </form>
+            </div>
+          </div>
         )}
 
         {/* Footer */}
