@@ -394,12 +394,95 @@
       background: rgba(255,255,255,0.05);
     }
 
+    #mapViewContainer {
+      width: 100%;
+      display: none;
+    }
+
+    .map-controls-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding: 10px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    .map-route-filters {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .map-filter-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-family: 'Eurostile', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text-dim);
+      transition: all 0.2s ease;
+    }
+
+    .map-filter-btn:hover {
+      color: #fff;
+      border-color: var(--gold);
+      background: rgba(251, 175, 51, 0.08);
+    }
+
+    .map-filter-btn.active {
+      background: var(--gold);
+      color: #000;
+      border-color: var(--gold);
+      box-shadow: 0 0 12px rgba(251, 175, 51, 0.35);
+    }
+
+    .filter-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #2ecc71;
+      display: inline-block;
+    }
+
+    .filter-dot.pulse {
+      box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7);
+      animation: dotPulse 1.8s infinite;
+    }
+
+    @keyframes dotPulse {
+      0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7); }
+      70% { box-shadow: 0 0 0 8px rgba(46, 204, 113, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
+    }
+
+    .map-status-pill {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
     #nationalMap {
       height: 600px;
       width: 100%;
       border-radius: 14px;
       border: 1px solid var(--border);
-      display: none; 
+      display: block; 
       z-index: 1;
     }
 
@@ -408,6 +491,7 @@
       color: var(--text);
       border: 1px solid var(--border-gold);
       border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
     }
 
     .leaflet-popup-tip { background: var(--surface-2); }
@@ -419,6 +503,135 @@
       font-weight: 700;
       font-size: 15px;
       margin-bottom: 4px;
+    }
+
+    .custom-town-pin-container {
+      background: transparent !important;
+      border: none !important;
+    }
+
+    .town-marker-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      transform-origin: center bottom;
+      transition: transform 0.18s ease-out;
+    }
+
+    .town-marker-wrapper:hover {
+      transform: scale(1.15);
+      z-index: 9999 !important;
+    }
+
+    .town-pin-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #242420 0%, #121210 100%);
+      border: 2px solid var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), 0 0 10px rgba(251, 175, 51, 0.35);
+      position: relative;
+    }
+
+    .town-pin-badge.is-live {
+      border-color: #2ecc71;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), 0 0 14px rgba(46, 204, 113, 0.6);
+    }
+
+    .town-pin-badge.is-live::after {
+      content: '';
+      position: absolute;
+      top: -4px;
+      left: -4px;
+      right: -4px;
+      bottom: -4px;
+      border-radius: 50%;
+      border: 2px solid #2ecc71;
+      animation: pinPing 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+
+    @keyframes pinPing {
+      0% { transform: scale(1); opacity: 0.9; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
+
+    .town-pin-icon {
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .town-pin-label {
+      margin-top: 3px;
+      padding: 2px 7px;
+      background: rgba(18, 18, 16, 0.92);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(251, 175, 51, 0.35);
+      border-radius: 9999px;
+      color: #fff;
+      font-family: 'Eurostile', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    }
+
+    .town-marker-wrapper.is-live .town-pin-label {
+      border-color: rgba(46, 204, 113, 0.5);
+      color: #2ecc71;
+    }
+
+    .map-popup-btn {
+      display: inline-block;
+      padding: 6px 12px;
+      background: var(--gold);
+      color: #000;
+      text-decoration: none;
+      font-family: 'Eurostile', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      font-weight: 700;
+      font-size: 10px;
+      border-radius: 6px;
+      transition: background 0.15s;
+    }
+
+    .map-popup-btn:hover {
+      background: #fca71e;
+      color: #000;
+    }
+
+    .map-popup-btn.secondary {
+      background: var(--surface-3);
+      color: #fff;
+      border: 1px solid var(--border);
+    }
+
+    .map-popup-btn.secondary:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    .popup-live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-family: 'Eurostile', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      color: #2ecc71;
+      background: rgba(46, 204, 113, 0.15);
+      border: 1px solid rgba(46, 204, 113, 0.35);
+      border-radius: 4px;
+      padding: 2px 7px;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     /* LEADERBOARD TABLE */
@@ -670,7 +883,11 @@
       .section-head h2 { font-size: clamp(20px, 5vw, 24px); }
       .view-toggle { width: 100%; justify-content: center; margin-top: 6px; box-sizing: border-box; }
       .view-btn { flex: 1; text-align: center; padding: 10px 12px; font-size: 12px; }
-      #nationalMap { height: 380px; width: 100%; max-width: 100%; box-sizing: border-box; }
+      .map-controls-bar { flex-direction: column; align-items: stretch; gap: 10px; }
+      .map-route-filters { width: 100%; display: flex; }
+      .map-filter-btn { flex: 1; justify-content: center; text-align: center; font-size: 10px; padding: 8px 6px; }
+      .map-status-pill { font-size: 10px; justify-content: center; text-align: center; }
+      #nationalMap { height: 400px; width: 100%; max-width: 100%; box-sizing: border-box; }
       .charts-grid { grid-template-columns: 1fr; width: 100%; box-sizing: border-box; }
       .chart-card { padding: 16px; width: 100%; box-sizing: border-box; }
       .lb-wrap { width: 100%; box-sizing: border-box; }
@@ -837,7 +1054,22 @@
           <div id="leaderboardBody"></div>
         </div>
 
-        <div id="nationalMap"></div>
+        <div id="mapViewContainer" style="display: none;">
+          <div class="map-controls-bar">
+            <div class="map-route-filters">
+              <button id="btnRoutesToday" class="map-filter-btn active" onclick="setMapRouteFilter('today')">
+                <span class="filter-dot pulse"></span> Tonight's Routes
+              </button>
+              <button id="btnRoutesAll" class="map-filter-btn" onclick="setMapRouteFilter('all')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; margin-right:4px;"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/></svg> All Season Routes
+              </button>
+            </div>
+            <div class="map-status-pill" id="mapStatusPill">
+              Loading routes across the UK…
+            </div>
+          </div>
+          <div id="nationalMap"></div>
+        </div>
 
         <div class="section-head">
           <h2>Breakdown</h2>
@@ -896,7 +1128,12 @@ let refreshTimer = null;
 let currentMode = "live";
 let natMap = null;
 let sleighMarkers = {};
-let gpxLayers = {};
+let townMarkers = {};
+let routeLayers = {};
+let allNationalRoutes = [];
+let mapRouteFilter = 'today'; // 'today' | 'all'
+let gpxCache = new Map();
+let isRoutesLoading = false;
 
 // Approved National Board Emails with Instant Auto-Login
 const DEFAULT_NATIONAL_EMAILS = [
@@ -1785,13 +2022,272 @@ function shortenName(input) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// MAP ENGINE (USING PROXY FIREBASE)
+// HYBRID MAP ENGINE (TOWN PINS, ROUTE TOGGLES & LIVE SLEIGHS)
 // ═══════════════════════════════════════════════════════════
+const TOWN_COORDINATES = {
+  'beverley': [53.8459, -0.4281],
+  'shirley': [52.4116, -1.8285],
+  'cheltenham': [51.8994, -2.0783],
+  'melton-mowbray': [52.7662, -0.8860],
+  'meltonmowbray': [52.7662, -0.8860],
+  'lichfield': [52.6835, -1.8262],
+  'newark': [53.0768, -0.8085],
+  'ringwood': [50.8466, -1.7915],
+  'abergavenny': [51.8228, -3.0180],
+  'carrick': [54.7158, -5.8080]
+};
+
+const ROUTE_PALETTE = ['#FBAF33', '#4a9eff', '#2ecc71', '#e74c3c', '#9b59b6', '#1abc9c', '#e67e22', '#3498db', '#fd79a8', '#00cec9'];
+
+function getTableColor(tableSlug, index = 0) {
+  const tableColors = {
+    'beverley': '#FBAF33',
+    'shirley': '#e74c3c',
+    'cheltenham': '#3498db',
+    'melton-mowbray': '#2ecc71',
+    'meltonmowbray': '#2ecc71',
+    'lichfield': '#9b59b6',
+    'newark': '#e67e22',
+    'ringwood': '#1abc9c',
+    'abergavenny': '#fd79a8',
+    'carrick': '#00cec9'
+  };
+  return tableColors[tableSlug] || ROUTE_PALETTE[index % ROUTE_PALETTE.length];
+}
+
+function formatRouteDate(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      const d = new Date(year, month, day);
+      return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+    }
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  } catch (e) {
+    return dateStr;
+  }
+}
+
+function parseGpxCoordinates(gpxText) {
+  try {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(gpxText, "text/xml");
+    const points = [];
+    
+    // 1. trkpt (standard track points)
+    const trkpts = xmlDoc.getElementsByTagName("trkpt");
+    if (trkpts && trkpts.length > 0) {
+      for (let i = 0; i < trkpts.length; i++) {
+        const lat = parseFloat(trkpts[i].getAttribute("lat"));
+        const lon = parseFloat(trkpts[i].getAttribute("lon"));
+        if (!isNaN(lat) && !isNaN(lon)) points.push([lat, lon]);
+      }
+    }
+    // 2. rtept (route points fallback)
+    if (points.length === 0) {
+      const rtepts = xmlDoc.getElementsByTagName("rtept");
+      for (let i = 0; i < rtepts.length; i++) {
+        const lat = parseFloat(rtepts[i].getAttribute("lat"));
+        const lon = parseFloat(rtepts[i].getAttribute("lon"));
+        if (!isNaN(lat) && !isNaN(lon)) points.push([lat, lon]);
+      }
+    }
+    // 3. wpt (waypoints fallback)
+    if (points.length === 0) {
+      const wpts = xmlDoc.getElementsByTagName("wpt");
+      for (let i = 0; i < wpts.length; i++) {
+        const lat = parseFloat(wpts[i].getAttribute("lat"));
+        const lon = parseFloat(wpts[i].getAttribute("lon"));
+        if (!isNaN(lat) && !isNaN(lon)) points.push([lat, lon]);
+      }
+    }
+    return points;
+  } catch(e) {
+    console.warn("GPX XML parse error:", e);
+    return [];
+  }
+}
+
+async function getRouteLatLngs(route) {
+  if (!route || !route.id) return [];
+  if (gpxCache.has(route.id)) {
+    return gpxCache.get(route.id);
+  }
+  const url = route.gpxUrl;
+  if (!url) return [];
+  
+  let gpxText = "";
+  try {
+    if (url.startsWith("data:application/gpx+xml;base64,")) {
+      const b64 = url.slice("data:application/gpx+xml;base64,".length);
+      gpxText = atob(b64);
+    } else if (url.startsWith("http")) {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      gpxText = await res.text();
+    } else {
+      return [];
+    }
+    const coords = parseGpxCoordinates(gpxText);
+    if (coords && coords.length > 0) {
+      gpxCache.set(route.id, coords);
+      return coords;
+    }
+  } catch(err) {
+    console.warn(`Failed to parse GPX for route ${route.id}:`, err);
+  }
+  return [];
+}
+
+async function loadNationalRoutes() {
+  if (allNationalRoutes.length > 0 || isRoutesLoading) return;
+  isRoutesLoading = true;
+  try {
+    const res = await fetch("https://turbosanta-api.beverley247.workers.dev/api/national/routes?filter=all");
+    if (res.ok) {
+      const data = await res.json();
+      allNationalRoutes = data.routes || [];
+      if (natMap) {
+        renderRoutesOnMap();
+      }
+    }
+  } catch(e) {
+    console.warn("Failed to fetch national routes:", e);
+  } finally {
+    isRoutesLoading = false;
+  }
+}
+
+function setMapRouteFilter(filter) {
+  mapRouteFilter = filter;
+  const btnToday = document.getElementById('btnRoutesToday');
+  const btnAll = document.getElementById('btnRoutesAll');
+  if (filter === 'today') {
+    btnToday?.classList.add('active');
+    btnAll?.classList.remove('active');
+  } else {
+    btnAll?.classList.add('active');
+    btnToday?.classList.remove('active');
+  }
+  renderRoutesOnMap();
+}
+
+async function renderRoutesOnMap() {
+  if (!natMap) return;
+
+  // Clear existing polyline layers
+  Object.values(routeLayers).forEach(layer => {
+    try { natMap.removeLayer(layer); } catch(e) {}
+  });
+  routeLayers = {};
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const pill = document.getElementById('mapStatusPill');
+
+  let routesToRender = [];
+  if (mapRouteFilter === 'today') {
+    routesToRender = allNationalRoutes.filter(r => r.date === todayStr || r.status === 'In Progress');
+    if (pill) {
+      if (routesToRender.length > 0) {
+        pill.innerHTML = `<span class="filter-dot pulse"></span> <b>${routesToRender.length}</b> Route${routesToRender.length === 1 ? '' : 's'} Live Tonight`;
+      } else {
+        pill.innerHTML = `<span>🎅</span> No routes running tonight • Showing Table Locations`;
+      }
+    }
+  } else {
+    routesToRender = allNationalRoutes;
+    if (pill) {
+      const tableCount = new Set(allNationalRoutes.map(r => r.tableSlug)).size;
+      pill.innerHTML = `<span>🗺️</span> <b>${allNationalRoutes.length}</b> Routes Across <b>${tableCount}</b> Round Tables`;
+    }
+  }
+
+  if (routesToRender.length === 0) return;
+
+  const bounds = L.latLngBounds();
+
+  await Promise.all(routesToRender.map(async (route, idx) => {
+    try {
+      const latLngs = await getRouteLatLngs(route);
+      if (!latLngs || latLngs.length === 0) return;
+
+      const routeColor = (route.primaryColor && route.primaryColor !== '#000000' && route.primaryColor !== '#ffffff')
+        ? route.primaryColor 
+        : getTableColor(route.tableSlug, idx);
+
+      const polyline = L.polyline(latLngs, {
+        color: routeColor,
+        weight: 4,
+        opacity: 0.85,
+        smoothFactor: 1
+      });
+
+      latLngs.forEach(pt => bounds.extend(pt));
+
+      const cleanTown = shortenName(route.tableName || route.tableSlug);
+      const dateFormatted = formatRouteDate(route.date);
+
+      const routePopup = `
+        <div class="map-popup-title">${escHtml(route.name)}</div>
+        <div style="font-size:12px; color:var(--gold); font-weight:700; margin-bottom:4px;">${escHtml(cleanTown)} Round Table</div>
+        <div style="font-size:12px; color:#ddd; margin:3px 0;">Date: <b>${dateFormatted}</b> ${route.startTime ? '• ' + escHtml(route.startTime) : ''}</div>
+        ${route.sponsorName ? `<div style="font-size:11px; color:#2ecc71; margin-top:3px;">Sponsored by: <b>${escHtml(route.sponsorName)}</b></div>` : ''}
+        <div style="margin-top:8px;">
+          <a href="https://${route.tableSlug}.roundtablesantasleigh.co.uk" target="_blank" class="map-popup-btn">
+            Track ${escHtml(cleanTown)} &rarr;
+          </a>
+        </div>
+      `;
+
+      polyline.bindPopup(routePopup);
+
+      polyline.on('mouseover', function() {
+        this.setStyle({ weight: 6, opacity: 1.0 });
+        this.bringToFront();
+      });
+      polyline.on('mouseout', function() {
+        this.setStyle({ weight: 4, opacity: 0.85 });
+      });
+
+      polyline.addTo(natMap);
+      routeLayers[route.id] = polyline;
+    } catch (err) {
+      console.warn("Failed to render polyline for route", route.id, err);
+    }
+  }));
+
+  if (mapRouteFilter === 'all' && bounds.isValid()) {
+    natMap.fitBounds(bounds.pad(0.08));
+  }
+}
+
+function initMap() {
+  if (natMap) return;
+  natMap = L.map('nationalMap', {
+    scrollWheelZoom: true
+  }).setView([53.8, -1.8], 6);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(natMap);
+
+  if (results && results.length) {
+    renderMap(results);
+  }
+  loadNationalRoutes();
+}
+
 function switchView(view) {
   const listBtn = document.getElementById('btnListView');
   const mapBtn = document.getElementById('btnMapView');
   const listContainer = document.getElementById('listViewContainer');
-  const mapContainer = document.getElementById('nationalMap');
+  const mapContainer = document.getElementById('mapViewContainer');
 
   if (view === 'map') {
     mapBtn.classList.add('active');
@@ -1800,16 +2296,24 @@ function switchView(view) {
     mapContainer.style.display = 'block';
     
     if (!natMap) {
-      natMap = L.map('nationalMap').setView([54.0, -2.5], 6);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap contributors'
-      }).addTo(natMap);
+      initMap();
     }
-    natMap.invalidateSize();
+    setTimeout(() => {
+      if (natMap) {
+        natMap.invalidateSize();
+        if (Object.keys(townMarkers).length > 0 && !natMap._hasFitted) {
+          const b = L.latLngBounds(Object.values(townMarkers).map(m => m.getLatLng()));
+          if (b.isValid()) {
+            natMap.fitBounds(b.pad(0.12));
+            natMap._hasFitted = true;
+          }
+        }
+      }
+    }, 100);
     
     if (currentMode === "live") {
       renderMap(results);
+      loadNationalRoutes();
     }
   } else {
     listBtn.classList.add('active');
@@ -1822,46 +2326,135 @@ function switchView(view) {
 async function renderMap(data) {
   if (!natMap || currentMode !== "live") return;
 
-  const activeTables = data.filter(d => d.ok);
+  const activeTables = (data || []).filter(d => d.ok);
+  const bounds = L.latLngBounds();
 
   for (const table of activeTables) {
-    if (table.lat && table.lng) {
-      const isFresh = table.gps_ts ? (Date.now() - new Date(table.gps_ts).getTime()) < (5 * 60 * 1000) : false;
-      
-      if (isFresh) {
-        const locationText = table.roadName ? `<div style="font-size:12px; color:#2ecc71; margin-top:4px;">Currently on: <b>${escHtml(table.roadName)}</b></div>` : '';
-        const routeInfo = table.todayRouteName ? `<div style="font-size:12px; color:#bbb; margin-top:2px;">Tonight: <b>${escHtml(table.todayRouteName)}</b></div>` : '';
-        const donateBtn = table.donateUrl ? `<a href="${escHtml(table.donateUrl)}" target="_blank" style="display:inline-block; margin-top:8px; padding:6px 14px; background:#FBAF33; color:#000; text-decoration:none; font-family:'Eurostile',sans-serif; text-transform:uppercase; letter-spacing:0.8px; font-weight:700; font-size:11px; border-radius:6px;">Donate Online</a>` : '';
+    const slug = (table.slug || '').toLowerCase().trim();
+    let coords = TOWN_COORDINATES[slug];
 
-        const popupContent = `
-          <div class="map-popup-title">${escHtml(shortenName(table))}</div>
-          ${routeInfo}
-          ${locationText}
-          <div style="font-family: 'DM Mono', monospace; font-size: 12px; margin-top:4px;">Raised: <b>£${Math.round(table.raised).toLocaleString('en-GB')}</b></div>
-          ${donateBtn}
-        `;
-
-        if (!sleighMarkers[table.id]) {
-          const icon = L.icon({ 
-            iconUrl: table.iconUrl || "https://turbosanta-app.pages.dev/icons/sleigh_icon.png", 
-            iconSize: [64, 64], 
-            iconAnchor: [32, 60],
-            popupAnchor: [0, -50]
-          });
-          
-          sleighMarkers[table.id] = L.marker([table.lat, table.lng], { icon }).addTo(natMap);
-          sleighMarkers[table.id].bindPopup(popupContent);
-        } else {
-          sleighMarkers[table.id].setLatLng([table.lat, table.lng]);
-          sleighMarkers[table.id].setPopupContent(popupContent);
-        }
-      } else {
-        if (sleighMarkers[table.id]) {
-          natMap.removeLayer(sleighMarkers[table.id]);
-          delete sleighMarkers[table.id];
-        }
+    if (!coords && table.lat && table.lng && table.lat < 60 && table.lat > 49) {
+      coords = [table.lat, table.lng];
+    }
+    if (!coords && allNationalRoutes && allNationalRoutes.length) {
+      const tableRoute = allNationalRoutes.find(r => r.tableSlug === slug && gpxCache.has(r.id));
+      if (tableRoute) {
+        const pts = gpxCache.get(tableRoute.id);
+        if (pts && pts.length > 0) coords = pts[0];
       }
     }
+
+    if (!coords) continue;
+    bounds.extend(coords);
+
+    const isLive = table.gps_ts ? (Date.now() - new Date(table.gps_ts).getTime()) < (5 * 60 * 1000) : false;
+    const cleanTown = shortenName(table);
+    const opName = escHtml(table.name || `${cleanTown} Round Table`);
+
+    let routeInfoHtml = '';
+    if (table.todayRouteName) {
+      if (table.isRouteToday) {
+        routeInfoHtml = `<div style="font-size:12px; color:var(--gold); margin:4px 0;">Tonight's Route: <b>${escHtml(table.todayRouteName)}</b>${table.todayStartTime ? ' (' + escHtml(table.todayStartTime) + ')' : ''}</div>`;
+      } else {
+        const dateFormatted = formatRouteDate(table.todayDate);
+        routeInfoHtml = `<div style="font-size:12px; color:#bbb; margin:4px 0;">Next Run: <b>${escHtml(table.todayRouteName)}</b>${dateFormatted ? ' (' + dateFormatted + ')' : ''}</div>`;
+      }
+    } else {
+      routeInfoHtml = `<div style="font-size:12px; color:var(--text-dim); margin:4px 0;">Routes: <b>${table.routes || 0} / ${table.routesPlanned || 0} completed</b></div>`;
+    }
+
+    const liveStatusHtml = isLive 
+      ? `<div class="popup-live-badge"><span class="filter-dot pulse"></span> LIVE ON TRACKER ${table.roadName ? '• ' + escHtml(table.roadName) : ''}</div>`
+      : '';
+
+    const donateBtn = table.donateUrl
+      ? `<a href="${escHtml(table.donateUrl)}" target="_blank" class="map-popup-btn secondary">Donate</a>`
+      : '';
+
+    const popupHtml = `
+      <div class="map-popup-title">${escHtml(cleanTown)}</div>
+      <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">${opName}</div>
+      ${liveStatusHtml}
+      ${routeInfoHtml}
+      <div style="font-family:'DM Mono',monospace; font-size:12px; margin:6px 0 10px 0; color:#ddd;">
+        Net Raised: <b style="color:var(--gold);">£${Math.round(table.netRaised || table.raised || 0).toLocaleString('en-GB')}</b>
+        &nbsp;•&nbsp; Views: <b>${(table.views || 0).toLocaleString('en-GB')}</b>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <a href="https://${table.slug}.roundtablesantasleigh.co.uk" target="_blank" class="map-popup-btn">
+          Open Sleigh Tracker &rarr;
+        </a>
+        ${donateBtn}
+      </div>
+    `;
+
+    const pinHtml = `
+      <div class="town-marker-wrapper ${isLive ? 'is-live' : ''}" id="town-pin-${table.slug}">
+        <div class="town-pin-badge ${isLive ? 'is-live' : ''}">
+          <span class="town-pin-icon">🎅</span>
+        </div>
+        <div class="town-pin-label">${escHtml(cleanTown)}</div>
+      </div>
+    `;
+
+    const townIcon = L.divIcon({
+      className: 'custom-town-pin-container',
+      html: pinHtml,
+      iconSize: [80, 56],
+      iconAnchor: [40, 28],
+      popupAnchor: [0, -22]
+    });
+
+    if (!townMarkers[table.id]) {
+      townMarkers[table.id] = L.marker(coords, { icon: townIcon, zIndexOffset: 500 }).addTo(natMap);
+      townMarkers[table.id].bindPopup(popupHtml);
+    } else {
+      townMarkers[table.id].setLatLng(coords);
+      townMarkers[table.id].setIcon(townIcon);
+      townMarkers[table.id].setPopupContent(popupHtml);
+    }
+
+    // 2. Real-time Sleigh Tracking Marker
+    if (isLive && table.lat && table.lng) {
+      bounds.extend([table.lat, table.lng]);
+      const sleighPopup = `
+        <div class="map-popup-title">${escHtml(cleanTown)} Sleigh</div>
+        <div class="popup-live-badge"><span class="filter-dot pulse"></span> BROADCASTING LIVE</div>
+        ${table.roadName ? `<div style="font-size:12px; color:#2ecc71; margin:4px 0;">On: <b>${escHtml(table.roadName)}</b> (${Math.round(table.speed || 0)} mph)</div>` : ''}
+        ${routeInfoHtml}
+        <div style="margin-top:8px;">
+          <a href="https://${table.slug}.roundtablesantasleigh.co.uk" target="_blank" class="map-popup-btn">
+            Follow Sleigh Live &rarr;
+          </a>
+        </div>
+      `;
+
+      const sleighIcon = L.icon({
+        iconUrl: table.iconUrl || "https://turbosanta-app.pages.dev/icons/sleigh_icon.png",
+        iconSize: [56, 56],
+        iconAnchor: [28, 52],
+        popupAnchor: [0, -45]
+      });
+
+      if (!sleighMarkers[table.id]) {
+        sleighMarkers[table.id] = L.marker([table.lat, table.lng], { icon: sleighIcon, zIndexOffset: 1000 }).addTo(natMap);
+        sleighMarkers[table.id].bindPopup(sleighPopup);
+      } else {
+        sleighMarkers[table.id].setLatLng([table.lat, table.lng]);
+        sleighMarkers[table.id].setPopupContent(sleighPopup);
+      }
+    } else {
+      if (sleighMarkers[table.id]) {
+        natMap.removeLayer(sleighMarkers[table.id]);
+        delete sleighMarkers[table.id];
+      }
+    }
+  }
+
+  // Auto-fit to active towns if first load
+  if (bounds.isValid() && (!natMap._hasUserPanned)) {
+    natMap.fitBounds(bounds.pad(0.12));
+    natMap._hasUserPanned = true;
   }
 }
 </script>
