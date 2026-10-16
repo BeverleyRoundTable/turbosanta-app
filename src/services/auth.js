@@ -210,8 +210,22 @@ export async function verifyMagicLink(email, enteredCode) {
 
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
   localStorage.removeItem(OTP_STORAGE_KEY);
+  syncAuthCookie(session.token);
 
   return session;
+}
+
+export function syncAuthCookie(token) {
+  try {
+    if (typeof window === 'undefined') return;
+    const isProd = window.location.hostname.includes('roundtablesantasleigh.co.uk');
+    const domain = isProd ? '; domain=.roundtablesantasleigh.co.uk' : '';
+    if (token) {
+      document.cookie = `turbosanta_auth_token=${encodeURIComponent(token)}; path=/${domain}; max-age=2592000; SameSite=Lax${isProd ? '; Secure' : ''}`;
+    } else {
+      document.cookie = `turbosanta_auth_token=; path=/${domain}; max-age=0; SameSite=Lax${isProd ? '; Secure' : ''}`;
+    }
+  } catch(e) {}
 }
 
 /**
@@ -279,6 +293,7 @@ export async function loginWithGoogleWorkspace(credential) {
   };
 
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  syncAuthCookie(session.token || session.googleCredential);
   return session;
 }
 
@@ -296,6 +311,7 @@ export function getCurrentSession() {
           parsed.token = `ts2_${btoa(`${email}_${Date.now()}`)}`;
           try { localStorage.setItem(SESSION_KEY, JSON.stringify(parsed)); } catch(e) {}
         }
+        syncAuthCookie(parsed.token || parsed.googleCredential);
         return parsed;
       }
     }
@@ -313,6 +329,7 @@ export function logout() {
     localStorage.removeItem("ts2_admin_session");
     sessionStorage.removeItem(SESSION_KEY);
     sessionStorage.removeItem("ts2_admin_session");
+    syncAuthCookie(null);
   } catch (e) {}
 }
 

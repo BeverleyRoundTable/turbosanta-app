@@ -478,9 +478,56 @@ if (!API && !TABLE_SLUG) {
 }
   
 async function init() {
-  let secret = sessionStorage.getItem('sleighSecret');
+  const urlToken = params.get('token') || params.get('secret') || params.get('auth');
+  const hashMatch = window.location.hash.match(/[#&](?:token|secret|auth)=([^&]+)/i);
+  const hashToken = hashMatch ? decodeURIComponent(hashMatch[1]) : '';
+  const cookieMatch = document.cookie.match(/(?:^|;\s*)turbosanta_auth_token=([^;]+)/);
+  const cookieToken = cookieMatch ? decodeURIComponent(cookieMatch[1]) : '';
+
   let adminSession = null;
   try { adminSession = JSON.parse(localStorage.getItem('turbosanta_admin_session') || '{}'); } catch(e) {}
+
+  let secret = urlToken || hashToken || cookieToken || sessionStorage.getItem('sleighSecret') || adminSession?.googleCredential || adminSession?.token;
+
+  if (secret) {
+    sessionStorage.setItem('sleighSecret', secret);
+
+    let email = adminSession?.email || '';
+    if (!email && secret.startsWith('ts2_')) {
+      try {
+        const raw = atob(secret.slice(4));
+        email = raw.split('_')[0] || '';
+      } catch(e) {}
+    } else if (!email && secret.includes('.')) {
+      try {
+        const parts = secret.split('.');
+        const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const p = JSON.parse(atob(b64));
+        if (p?.email) email = p.email;
+      } catch(e) {}
+    }
+
+    if (email && (!adminSession || !adminSession.email)) {
+      adminSession = {
+        email: email,
+        token: secret,
+        tableSlug: TABLE_SLUG,
+        role: email.startsWith('national') ? 'national_admin' : 'table_admin'
+      };
+      try { localStorage.setItem('turbosanta_admin_session', JSON.stringify(adminSession)); } catch(e) {}
+    }
+
+    if (urlToken || hashToken) {
+      try {
+        const cleanParams = new URLSearchParams(window.location.search);
+        cleanParams.delete('token');
+        cleanParams.delete('secret');
+        cleanParams.delete('auth');
+        const searchStr = cleanParams.toString() ? '?' + cleanParams.toString() : '';
+        window.history.replaceState({}, document.title, window.location.pathname + searchStr);
+      } catch(e) {}
+    }
+  }
 
   const sessionEmail = String(adminSession?.email || '').trim().toLowerCase();
   const isRoundTable = sessionEmail.endsWith('@roundtable.org.uk') || sessionEmail.endsWith('@roundtable.co.uk');
@@ -499,22 +546,16 @@ async function init() {
       'it@roundtable.org.uk'
     ].includes(sessionEmail)
   );
-  const isAuthenticatedAdmin = Boolean(adminSession && (isRoundTable || isApprovedNational));
 
-  // Send verified Google Workspace credential or session token to worker
-  if (adminSession && (adminSession.googleCredential || adminSession.token)) {
-    secret = adminSession.googleCredential || adminSession.token;
-    sessionStorage.setItem('sleighSecret', secret);
-  }
-  
   if (!secret) {
+    const adminLoginUrl = `https://roundtablesantasleigh.co.uk/?table=${encodeURIComponent(TABLE_SLUG || 'beverley')}&admin=1`;
     document.getElementById('app').innerHTML = `
       <div class="error-msg" style="text-align:center; padding:30px 20px;">
         <h2 style="color:#ffd700; margin-bottom:15px;">🔒 Admin Authorization Required</h2>
         <p style="font-size:16px; line-height:1.6; color:#ccc; margin-bottom:25px;">
           God Mode controls are restricted to authenticated <strong>@roundtable.org.uk</strong> administrators.
         </p>
-        <a href="/" style="display:inline-block; background:#ffd700; color:#000; font-weight:bold; padding:12px 24px; border-radius:8px; text-decoration:none; text-transform:uppercase; font-size:14px; letter-spacing:1px;">
+        <a href="${adminLoginUrl}" style="display:inline-block; background:#ffd700; color:#000; font-weight:bold; padding:12px 24px; border-radius:8px; text-decoration:none; text-transform:uppercase; font-size:14px; letter-spacing:1px;">
           Sign In via Admin Portal
         </a>
       </div>
@@ -535,13 +576,14 @@ async function init() {
   if (isValid) {
     sessionStorage.setItem('sleighSecret', secret);
   } else {
+    const adminLoginUrl = `https://roundtablesantasleigh.co.uk/?table=${encodeURIComponent(TABLE_SLUG || 'beverley')}&admin=1`;
     document.getElementById('app').innerHTML = `
       <div class="error-msg" style="text-align:center; padding:30px 20px;">
         <h2 style="color:#ff5252; margin-bottom:15px;">❌ Access Denied</h2>
         <p style="font-size:16px; line-height:1.6; color:#ccc; margin-bottom:25px;">
           Only verified @roundtable.org.uk Google Workspace accounts can access God Mode.
         </p>
-        <a href="/" style="display:inline-block; background:#ffd700; color:#000; font-weight:bold; padding:12px 24px; border-radius:8px; text-decoration:none; font-size:14px;">
+        <a href="${adminLoginUrl}" style="display:inline-block; background:#ffd700; color:#000; font-weight:bold; padding:12px 24px; border-radius:8px; text-decoration:none; font-size:14px;">
           Return to Admin Portal
         </a>
       </div>

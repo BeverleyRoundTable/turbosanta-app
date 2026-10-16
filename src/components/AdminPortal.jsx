@@ -1860,9 +1860,14 @@ ${tableName} Organizers`
           </button>
 
           <a
-            href={typeof window !== 'undefined' && window.location.hostname.includes('roundtablesantasleigh.co.uk')
-              ? `https://${encodeURIComponent((session.tableSlug || session.tableId || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/god_mode.html`
-              : `/god_mode.html?table=${encodeURIComponent(session.tableSlug || session.tableId || 'beverley')}`}
+            href={(() => {
+              const townSlug = encodeURIComponent((session.tableSlug || session.tableId || 'beverley').toLowerCase());
+              const token = session.token || session.googleCredential || getAdminAuthToken(session.tableSlug || session.tableId || 'beverley');
+              const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
+              return typeof window !== 'undefined' && window.location.hostname.includes('roundtablesantasleigh.co.uk')
+                ? `https://${townSlug}.roundtablesantasleigh.co.uk/god_mode.html?table=${townSlug}${tokenParam}`
+                : `/god_mode.html?table=${townSlug}${tokenParam}`;
+            })()}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-secondary"
