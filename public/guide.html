@@ -336,13 +336,18 @@
         <li><a href="#models"><i class="fa-solid fa-cubes"></i> 2 Deployment Models</a></li>
         <li><a href="#migration"><i class="fa-solid fa-file-excel"></i> 1.0 to 2.0 Fast Transfer</a></li>
         <li><a href="#turnkey"><i class="fa-solid fa-sleigh"></i> Turnkey Public Site</a></li>
-        <li><a href="#embeds"><i class="fa-solid fa-code"></i> Embed on Custom Sites</a></li>
-        <li><a href="#gpx"><i class="fa-solid fa-map-location-dot"></i> Route Planner & GPX</a></li>
+        <li><a href="#embeds"><i class="fa-solid fa-code"></i> Direct Links &amp; Widgets</a></li>
+        <li><a href="#gpx"><i class="fa-solid fa-map-location-dot"></i> Route Planner &amp; GPX</a></li>
+        <li><a href="#notifications"><i class="fa-solid fa-bell"></i> Doorstep &amp; Weather Emails</a></li>
         <li><a href="#volunteers"><i class="fa-solid fa-users"></i> Volunteer Tracking (SQL)</a></li>
-        <li><a href="#webhooks"><i class="fa-solid fa-credit-card"></i> Donation Webhooks</a></li>
-        <li><a href="#dataprotection"><i class="fa-solid fa-user-shield"></i> Data Protection & Privacy</a></li>
+        <li><a href="#webhooks"><i class="fa-solid fa-credit-card"></i> JustGiving, Ticket Tailor &amp; Webhooks</a></li>
+        <li><a href="#printkit"><i class="fa-solid fa-print"></i> Print Studio &amp; Bucket QR</a></li>
+        <li><a href="#giftaid-grants"><i class="fa-solid fa-hand-holding-dollar"></i> +25% Gift Aid &amp; Local Grants</a></li>
+        <li><a href="#drivercockpit"><i class="fa-solid fa-location-arrow"></i> Driver Cockpit &amp; Cash Log</a></li>
         <li><a href="#godmode"><i class="fa-solid fa-satellite-dish"></i> God Mode Admin</a></li>
-        <li><a href="#backend"><i class="fa-solid fa-database"></i> Cloudflare & API Reference</a></li>
+        <li><a href="#reports"><i class="fa-solid fa-chart-pie"></i> AGM, Sponsor &amp; Cert Tools</a></li>
+        <li><a href="#dataprotection"><i class="fa-solid fa-user-shield"></i> Data Protection &amp; Privacy</a></li>
+        <li><a href="#backend"><i class="fa-solid fa-database"></i> Cloudflare &amp; API Reference</a></li>
         <li><a href="#support"><i class="fa-solid fa-heart" style="color:var(--primary);"></i> Support the Project</a></li>
       </ul>
     </nav>
@@ -354,7 +359,7 @@
       <section id="intro" class="doc-section">
         <h2><i class="fa-solid fa-sparkles"></i> Welcome to TurboSanta</h2>
         <p>
-          TurboSanta is the UK & Ireland Round Table Santa Sleigh tracking, spatial address lookup, and fundraising platform.
+          TurboSanta is the UK &amp; Ireland Round Table Santa Sleigh tracking, spatial address lookup, and fundraising platform.
           It gives every Table an instant, lightning-fast, high-availability Santa Sleigh tracking experience powered by
           <strong>Cloudflare Pages</strong>, <strong>Workers</strong>, and a multi-tenant <strong>D1 SQL Database</strong>.
         </p>
@@ -363,13 +368,13 @@
           <div class="card highlight">
             <span class="badge gold">Universal Multi-Tenant</span>
             <h3>One Repo, Every Table</h3>
-            <p>Every Round Table uses the same unified high-speed system. Simply supply your table slug (e.g. <code>?table=beverley</code>, <code>?table=ellon</code>, <code>?table=doncaster</code>) and the platform automatically loads your branding, route nights, street timetable, and donations.</p>
+            <p>Every Round Table uses the same unified high-speed system. Simply supply your table slug (e.g. <code>?table=beverley</code>, <code>?table=ellon</code>, <code>?table=doncaster</code>) or use your dedicated subdomain (<code>https://[slug].roundtablesantasleigh.co.uk</code>) and the platform automatically loads your branding, route nights, street timetable, and donations.</p>
           </div>
 
           <div class="card highlight">
             <span class="badge green">D1 SQL Database</span>
             <h3>No More Slow Sheets</h3>
-            <p>Routes, live telemetry, volunteer rosters, and donations are stored directly in Cloudflare D1 with global edge caching. Real-time updates deliver in under 50 milliseconds with zero rate limiting.</p>
+            <p>Routes, live telemetry, doorstep email pins, volunteer rosters, Gift Aid declarations, and donations are stored directly in Cloudflare D1 with global edge caching. Real-time updates deliver in under 50 milliseconds with zero rate limiting.</p>
           </div>
         </div>
       </section>
@@ -386,16 +391,16 @@
             <span class="badge gold">Model A: Turnkey Sleigh Site</span>
             <h3>Ready-to-Use Public Portal</h3>
             <p>Ideal for Tables that want an instant, zero-maintenance, beautifully branded website out of the box with no coding required.</p>
-            <p>Visitors see the live map, street schedule, tonight's sponsor spotlight, photo memory book, and donate buttons for <strong class="active-table-name">Beverley</strong>.</p>
+            <p>Visitors see the live map, street schedule, tonight's sponsor spotlight, photo memory book, Gift Aid-boosted donate flow, local cause grant nominations, and up to 2 selectable interactive family modules for <strong class="active-table-name">Beverley</strong>.</p>
             <a id="linkTurnkeyModel" href="/?table=beverley" target="_blank" class="btn">View Turnkey Site <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
           </div>
 
           <div class="card">
-            <span class="badge green">Model B: Modular iFrame Embeds</span>
+            <span class="badge green">Model B: Direct Links &amp; Modular Widgets</span>
             <h3>For Your Own Custom Website</h3>
-            <p>Ideal for Tables (like <span class="active-table-name">Beverley</span>) who run their own tailored website (WordPress, Wix, Squarespace, or custom Tailwind HTML).</p>
-            <p>You can embed any individual module (Tracker, Address Lookup, Volunteer Hub, Talk to Santa AI, Workshop Blueprint, etc.) into your existing site.</p>
-            <a id="linkEmbedModel" href="/embed.html?table=beverley" target="_blank" class="btn btn-secondary">Open Embed Studio <i class="fa-solid fa-code"></i></a>
+            <p>Ideal for Tables (like <span class="active-table-name">Beverley</span>) who run their own tailored website (WordPress, Wix, Squarespace, or custom HTML).</p>
+            <p>Copy pure direct links for any individual module (Live Tracker, Spatial Address &amp; Doorstep Pin Lookup, Crew Hub, or any of the 14 interactive family features) to link or embed on your site.</p>
+            <a id="linkEmbedModel" href="/embed.html?table=beverley" target="_blank" class="btn btn-secondary">Open Direct Links Directory <i class="fa-solid fa-code"></i></a>
           </div>
         </div>
       </section>
@@ -403,7 +408,7 @@
       <!-- SECTION 2b: FAST TRANSFER FROM 1.0 -->
       <section id="migration" class="doc-section">
         <span class="badge green">One-Click Upgrade</span>
-        <h2><i class="fa-solid fa-file-excel" style="color:var(--green);"></i> 1.0 to 2.0 Fast Transfer (Google Sheets & Excel)</h2>
+        <h2><i class="fa-solid fa-file-excel" style="color:var(--green);"></i> 1.0 to 2.0 Fast Transfer (Google Sheets &amp; Excel)</h2>
         <p>
           Migrating a Round Table from TurboSanta 1.0 to 2.0 takes under 10 seconds.
           Tables do not need to re-type routes or recreate volunteer rosters.
@@ -422,19 +427,19 @@
         <h3>What Data Gets Transferred?</h3>
         <div class="grid-2" style="margin-top: 16px;">
           <div class="card">
-            <h4>🗺️ Routes & Streets</h4>
+            <h4>🗺️ Routes &amp; Streets</h4>
             <p>Every nightly route name, date, start time, end time, and GPX track link. The comma-separated street list is automatically split and sequenced into individual <code>route_streets</code> database records to power the Address Lookup tool.</p>
           </div>
           <div class="card">
-            <h4>👥 Volunteers & Roster</h4>
+            <h4>👥 Volunteers &amp; Roster</h4>
             <p>Full supporter contact list (Name, Preferred Route, Role, Mobile Phone, Email, Organization, Bucket Number) is imported directly into the SQL <code>volunteers</code> table.</p>
           </div>
           <div class="card">
-            <h4>🛷 Sleigh Branding & Links</h4>
-            <p>Sleigh display name, charity name, Zeffy/Stripe donation links, fundraising target (£), PA announcement presets, and volunteer roles.</p>
+            <h4>🛷 Sleigh Branding &amp; Links</h4>
+            <p>Sleigh display name, charity name, Zeffy/Stripe/JustGiving donation links, fundraising target (£), PA announcement presets, and volunteer roles.</p>
           </div>
           <div class="card">
-            <h4>🤝 Sponsors & Donations</h4>
+            <h4>🤝 Sponsors &amp; Donations</h4>
             <p>Corporate route sponsors, logos, pledged amounts, and historical bucket donation totals.</p>
           </div>
         </div>
@@ -462,14 +467,13 @@
 
         <h3 style="margin-top: 24px;">Included Functionalities:</h3>
         <ul style="margin: 12px 0 20px 24px; color: var(--text-muted); font-size: 14px; line-height: 2;">
-          <li><strong>Live GPS Santa Tracker</strong> — real-time position with "Resting in Lapland" resting mode and road snapping.</li>
-          <li><strong>Tonight's Route Spotlight</strong> — prominent featured banner with start/end times and tonight's corporate sponsor.</li>
-          <li><strong>Spatial Street & Address Lookup</strong> — interactive map search showing residents their night and arrival window.</li>
-          <li><strong>Full Routes Schedule Grid</strong> — complete timetable with past route completion checkmarks.</li>
-          <li><strong>Donation Thermometer</strong> — animated progress bar synced live to total raised.</li>
-          <li><strong>Volunteer Elf Banner</strong> — recruiting link pointing to the SQL-backed Crew Hub.</li>
-          <li><strong>Digital Memory Book</strong> — community photo gallery.</li>
-          <li><strong>FAQs & Safety Rules</strong> — accordion covering route guidance, cul-de-sacs, and donation safety.</li>
+          <li><strong>Live GPS Santa Tracker</strong> — real-time position with "Resting in Lapland" mode, road snapping, and live street ETA banner synced to the resident's dropped pin.</li>
+          <li><strong>Tonight's Route Spotlight &amp; Weather Badges</strong> — prominent featured banner with start/end times, multi-sponsor showcase, and automatic <code>🌧️ WEATHER UPDATE — POSTPONED</code> alerts if a route is rain-checked.</li>
+          <li><strong>Spatial Street &amp; Doorstep Pin Lookup</strong> — interactive map showing all season GPX routes in advance so residents can drop a house pin on any upcoming route and subscribe for automated doorstep emails.</li>
+          <li><strong>Donation Thermometer + Pre-Checkout +25% Gift Aid Boost</strong> — animated progress bar synced to JustGiving, Ticket Tailor, card readers, and cash buckets, with a 1-step Gift Aid declaration before forwarding to online checkout.</li>
+          <li><strong>"Where Your Donations Go" &amp; Local Cause Grant Nominations</strong> — public showcase of local causes supported by your Table plus an interactive grant nomination modal (<code>POST /api/grants</code>).</li>
+          <li><strong>2 Selectable Modular Family Slots</strong> — in <strong>Admin Portal &rarr; Settings &rarr; Public Site Feature Slots</strong>, pick any 2 of the 14 family modules (Bingo, Colouring Book, Countdown, Door Hanger, Elf Cam, Letter to Santa, Magic Mailbox, Nice List, Adopt a Reindeer, Santa Frame, Snowman Maker, Spot Santa) to appear directly on your turnkey homepage.</li>
+          <li><strong>Volunteer Elf Banner &amp; Digital Memory Book</strong> — recruiting link to the SQL Crew Hub plus moderated community photo wall.</li>
         </ul>
       </section>
 
@@ -477,7 +481,7 @@
       <section id="embeds" class="doc-section">
         <h2><i class="fa-solid fa-code"></i> Direct Links &amp; Modular Widgets</h2>
         <p>
-          If your Table already has its own website, you can link directly to or embed any of TurboSanta's modular components using their direct URLs.
+          If your Table already has its own website, you can link directly to or embed any of TurboSanta's modular components using their pure direct URLs.
         </p>
 
         <div class="grid-2">
@@ -493,8 +497,8 @@
 
           <!-- Widget 2 -->
           <div class="card">
-            <h3>🔍 Spatial Address Lookup</h3>
-            <p>Residents type their street name or drop a pin to find their exact night, route, and doorstep email alert.</p>
+            <h3>🔍 Spatial Address &amp; Doorstep Alert Lookup</h3>
+            <p>Displays all season GPX routes so residents can type their street or drop a pin on any route to register for automated proximity &amp; departure email alerts.</p>
             <div class="code-box">
               <button class="copy-btn" onclick="copyBox(this)">Copy Link</button>
               <code id="embedCodeAddress">https://roundtablesantasleigh.co.uk/address.html?table=beverley</code>
@@ -513,21 +517,21 @@
 
           <!-- Widget 4 -->
           <div class="card">
-            <h3>🧑‍🎄 Talk to Santa AI (Live Call) <span style="font-size:0.75rem; background:rgba(217,35,46,0.15); color:var(--red); padding:2px 8px; border-radius:12px; font-weight:600;">Beverley Custom</span></h3>
-            <p>Interactive ElevenLabs conversational voice call widget for kids <em>(custom integration developed for Beverley Round Table)</em>.</p>
+            <h3>🎁 HMRC Gift Aid +25% Declaration Portal</h3>
+            <p>Standalone 60-second UK taxpayer Gift Aid declaration form that boosts cash and online donations by 25% at zero cost to the donor.</p>
             <div class="code-box">
               <button class="copy-btn" onclick="copyBox(this)">Copy Link</button>
-              <code id="embedCodeSantaChat">https://roundtablesantasleigh.co.uk/santa_chat.html?table=beverley</code>
+              <code id="embedCodeGiftAid">https://roundtablesantasleigh.co.uk/gift_aid.html?table=beverley</code>
             </div>
           </div>
 
           <!-- Widget 5 -->
           <div class="card">
-            <h3>🚜 Workshop Sleigh Blueprint <span style="font-size:0.75rem; background:rgba(212,175,55,0.15); color:var(--gold); padding:2px 8px; border-radius:12px; font-weight:600;">Beverley Custom</span></h3>
-            <p>Interactive schematics of Beverley's custom tuk-tuk sleigh hardware with hotspots explaining audio, batteries, and lighting.</p>
+            <h3>🖨️ Print Studio (Posters, 4-Up Bucket Stickers &amp; 6-Up Lanyards)</h3>
+            <p>Generate A4 street posters, 4-Up weatherproof collector bucket labels, and 6-Up walking elf lanyard cards with custom QR destinations.</p>
             <div class="code-box">
               <button class="copy-btn" onclick="copyBox(this)">Copy Link</button>
-              <code id="embedCodeBlueprint">https://roundtablesantasleigh.co.uk/blueprint.html?table=beverley</code>
+              <code id="embedCodeQrPoster">https://roundtablesantasleigh.co.uk/qr_poster.html?table=beverley</code>
             </div>
           </div>
 
@@ -543,16 +547,16 @@
         </div>
 
         <p style="margin-top: 16px;">
-          To browse and copy all direct links, visit the <a id="linkEmbedStudio" href="/embed.html?table=beverley" target="_blank" style="color:var(--primary); font-weight:700;">Embed &amp; Direct Links Directory &rarr;</a>.
+          To browse and copy all <strong>14 interactive family links</strong> (Bingo, Colouring Studio, Countdown, Door Hanger, Elf Cam, Letter to Santa, Magic Mailbox, Nice List, Reindeer Adoption, Santa Frame, Santa Studio, Snowman Maker, Spot Santa), visit the <a id="linkEmbedStudio" href="/embed.html?table=beverley" target="_blank" style="color:var(--primary); font-weight:700;">Embed &amp; Direct Links Directory &rarr;</a>.
         </p>
       </section>
 
       <!-- SECTION 5: ROUTE PLANNER & GPX -->
       <section id="gpx" class="doc-section">
-        <h2><i class="fa-solid fa-map-location-dot"></i> Route Planner & GPX Direct Upload</h2>
+        <h2><i class="fa-solid fa-map-location-dot"></i> Route Planner &amp; GPX Direct Upload</h2>
         <p>
           TurboSanta features a complete route planning engine that accepts direct <code>.gpx</code> file uploads
-          while preserving dense road geometry and planned stops.
+          while preserving dense road geometry, planned Santa Stops, and multi-sponsor route cards.
         </p>
 
         <div class="grid-2">
@@ -561,8 +565,8 @@
             <p>In the Admin Portal (Route Management):</p>
             <ul style="font-size: 13px; color: var(--text-muted); margin-left: 20px; line-height: 1.8;">
               <li>Open <strong>Add New Route</strong> or <strong>Edit Route</strong>.</li>
-              <li>Tag the <strong>Route Name</strong> (e.g. <em>East Route</em>).</li>
-              <li>Drag & drop your <code>.gpx</code> file directly into the modal.</li>
+              <li>Tag the <strong>Route Name</strong> (e.g. <em>East Route</em>) and add one or more <strong>Route Sponsors</strong>.</li>
+              <li>Drag &amp; drop your <code>.gpx</code> file directly into the modal.</li>
               <li>Dense trackpoints (<code>&lt;trkpt&gt;</code>) and planned stops (<code>&lt;wpt&gt;</code>) are parsed automatically.</li>
             </ul>
           </div>
@@ -574,16 +578,62 @@
               <li>Click anywhere on roads to snap waypoints using OpenStreetMap.</li>
               <li>Mark specific points as <strong>Planned Stops</strong> (Grottos/Pubs).</li>
               <li>Click <strong>Detect Streets</strong> to auto-extract every visited street via reverse-geocoding.</li>
-              <li>Export high-density (5m/10m) GPX files.</li>
+              <li>Export high-density (5m/10m) GPX files or save directly to your Table's D1 database.</li>
             </ul>
             <a href="/route_planner.html?table=beverley" id="linkRoutePlanner" target="_blank" class="btn" style="margin-top: 10px;">Launch Route Planner <i class="fa-solid fa-route"></i></a>
           </div>
         </div>
       </section>
 
+      <!-- SECTION 5b: DOORSTEP PIN ALERTS, DEPARTURE EMAILS & RAIN CHECKS -->
+      <section id="notifications" class="doc-section">
+        <span class="badge gold">Automated Resident Comms</span>
+        <h2><i class="fa-solid fa-bell"></i> Doorstep Pin Alerts, "Tonight's the Night!" &amp; Weather Rain Checks</h2>
+        <p>
+          TurboSanta connects the <strong>Address &amp; Route Schedule map</strong> (<code>address.html</code>) directly with the <strong>Live Tracker</strong> (<code>tracker.html</code>) and automated Cloudflare Worker email alerts so families never miss the sleigh or wait out in pouring rain.
+        </p>
+
+        <div class="grid-2">
+          <div class="card highlight">
+            <h3>📍 1. Pre-Season Pin Drop &amp; Proximity Alert</h3>
+            <p>
+              All uploaded GPX routes are visible on <code>address.html</code> before route night. When a resident searches their postcode or taps their house on the map, they can subscribe for a free <strong>Doorstep Email Alert</strong>.
+            </p>
+            <ul style="font-size: 13px; color: var(--text-muted); margin-left: 20px; line-height: 1.8;">
+              <li>Their pin is saved in D1 (<code>subscribers</code>) and synced via <code>localStorage</code> + <code>postMessage</code> to the Live Tracker to display their personal street ETA countdown.</li>
+              <li>On route night, as soon as the live sleigh GPS enters your configured proximity radius (default 400m in <strong>Admin Portal &rarr; Settings</strong>), the worker automatically emails them that Santa is minutes away!</li>
+            </ul>
+          </div>
+
+          <div class="card highlight">
+            <h3>🔔 2. "Tonight's the Night!" Departure Email</h3>
+            <p>
+              Wakes up everyone subscribed on tonight's route when the sleigh leaves the depot so families can get coats and boots ready and open the live tracker.
+            </p>
+            <ul style="font-size: 13px; color: var(--text-muted); margin-left: 20px; line-height: 1.8;">
+              <li><strong>Automatic:</strong> Fires automatically the first time the driver starts broadcasting live GPS on tonight's route.</li>
+              <li><strong>Manual 1-Click:</strong> Can also be triggered anytime from <strong>Admin Portal &rarr; Routes &rarr; 🔔 Tonight's Email</strong> button on the route card.</li>
+              <li>Includes the route start/end window, their saved pin label, live tracker link (<code>https://[slug].roundtablesantasleigh.co.uk/tracker</code>), and online donate button.</li>
+            </ul>
+          </div>
+
+          <div class="card" style="grid-column: 1 / -1; border-left: 4px solid #f59e0b;">
+            <h3 style="color: #fcd34d;"><i class="fa-solid fa-cloud-showers-heavy"></i> 3. 1-Click Weather Postponement ("Rain Check") Broadcast</h3>
+            <p>
+              High winds or torrential rain forcing a postponement? In <strong>Admin Portal &rarr; Routes</strong>, click the amber <strong><code>🌧️ Rain Check</code></strong> button on any route card:
+            </p>
+            <ul style="font-size: 13px; color: var(--text-muted); margin-left: 20px; line-height: 1.8;">
+              <li>Enter a short weather explanation and an optional <strong>Rescheduled Date</strong>.</li>
+              <li>The route is immediately marked with a <code>🌧️ WEATHER UPDATE — POSTPONED</code> badge and note across your public website, and your live announcement banner is updated automatically.</li>
+              <li>Every subscriber pinned on that route is immediately emailed with the postponement notice and new date so no children are left waiting outside in bad weather.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
       <!-- SECTION 6: VOLUNTEER TRACKING -->
       <section id="volunteers" class="doc-section">
-        <h2><i class="fa-solid fa-users"></i> Volunteer Tracking & Crew Hub (crew.html)</h2>
+        <h2><i class="fa-solid fa-users"></i> Volunteer Tracking &amp; Crew Hub (crew.html)</h2>
         <p>
           Every volunteer application is saved directly into your Table's Cloudflare D1 SQL database.
           Crew leaders have a complete operational dashboard on the night.
@@ -596,84 +646,135 @@
           </div>
 
           <div class="card">
-            <h3>Route Night Check-In & Safety</h3>
+            <h3>Route Night Check-In &amp; Safety</h3>
             <p>Crew leaders log in with the table admin secret to:</p>
             <ul style="font-size: 13px; color: var(--text-muted); margin-left: 20px; line-height: 1.8;">
-              <li>Check in arriving volunteers.</li>
+              <li>Check in arriving volunteers and send 1-click crew briefing emails from the Admin Portal.</li>
               <li>Assign collection bucket numbers (e.g. Bucket #4).</li>
-              <li>Complete pre-departure vehicle & hitch safety checklists.</li>
+              <li>Complete pre-departure vehicle &amp; hitch safety checklists.</li>
               <li>Close route and log total cash collected.</li>
             </ul>
           </div>
         </div>
       </section>
 
-      <!-- SECTION 7: DONATION WEBHOOKS -->
+      <!-- SECTION 7: DONATION WEBHOOKS & AUTO-SYNC -->
       <section id="webhooks" class="doc-section">
-        <h2><i class="fa-solid fa-credit-card"></i> Multi-Gateway Donation Webhooks</h2>
+        <span class="badge green">Live Thermometer Sync</span>
+        <h2><i class="fa-solid fa-credit-card"></i> JustGiving, Ticket Tailor &amp; Multi-Gateway Webhooks</h2>
         <p>
-          TurboSanta supports real-time concurrent donation webhooks from 6 different payment providers. Each Table can configure individual webhook secrets, copy custom URLs, and test incoming donations with live confetti feedback.
+          TurboSanta combines online campaign totals, ticketed grotto/sleigh bookings, street contactless card taps, and physical cash bucket counts into one unified real-time fundraising thermometer.
+          Configure everything in <strong>Admin Portal &rarr; Fundraising &amp; Webhooks</strong>.
         </p>
 
-        <div class="grid-3" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 20px 0;">
+        <div class="grid-2" style="margin: 20px 0;">
+          <div class="card highlight">
+            <span class="badge gold">Zero-Setup Polling + Webhook</span>
+            <h3><i class="fa-solid fa-hand-holding-heart" style="color: #ad2875;"></i> JustGiving Live Auto-Sync</h3>
+            <p>Paste your public JustGiving Campaign or Fundraising Page URL in <strong>Admin Portal &rarr; Fundraising &rarr; JustGiving &amp; Ticket Tailor Live Auto-Sync</strong> and click <strong>Save &amp; Sync Now</strong>.</p>
+            <p style="margin-bottom:0;">The worker automatically reads your live JustGiving total and adds only the delta into your thermometer so it safely coexists with cash buckets and Ticket Tailor!</p>
+          </div>
+
+          <div class="card highlight">
+            <span class="badge green">REST API + Real-Time Webhook</span>
+            <h3><i class="fa-solid fa-ticket" style="color: #16a34a;"></i> Ticket Tailor Integration</h3>
+            <p>Works in two ways (individually or together):</p>
+            <ul style="font-size: 13px; color: var(--text-muted); margin-left: 20px; line-height: 1.7;">
+              <li><strong>API Auto-Sync:</strong> Enter your Ticket Tailor API Key (<code>sk_...</code>) and optional Event ID (<code>ev_...</code>) to pull completed order revenue automatically.</li>
+              <li><strong>Instant Webhook:</strong> Add <code>https://turbosanta-api.beverley247.workers.dev/api/webhooks/tickettailor?table=[slug]</code> in Ticket Tailor &rarr; Settings &rarr; Webhooks (<code>order.created</code> / <code>order.completed</code>).</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="grid-3" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 20px 0;">
           <div class="card">
             <h3><i class="fa-solid fa-heart" style="color: #2ecc71;"></i> Zeffy (100% Free)</h3>
             <p>Captures zero-fee online donations. Automatically converts pence to pounds and logs donor names into D1.</p>
           </div>
           <div class="card">
-            <h3><i class="fa-brands fa-stripe" style="color: #635bff;"></i> Stripe</h3>
-            <p>Listens for <code>checkout.session.completed</code> & <code>payment_intent.succeeded</code> events.</p>
+            <h3><i class="fa-brands fa-stripe" style="color: #635bff;"></i> Stripe &amp; Square</h3>
+            <p>Listens for Stripe <code>checkout.session.completed</code> and Square <code>payment.updated</code> contactless reader events.</p>
           </div>
           <div class="card">
             <h3><i class="fa-solid fa-wifi" style="color: #3b82f6;"></i> SumUp (Street Card Taps)</h3>
             <p>Connects mobile card readers used by street bucket collectors. Street contactless taps immediately feed the live thermometer!</p>
           </div>
           <div class="card">
-            <h3><i class="fa-solid fa-hand-holding-heart" style="color: #ad2875;"></i> JustGiving</h3>
-            <p>Ingests charity campaign donations and adds them into your campaign total.</p>
-          </div>
-          <div class="card">
             <h3><i class="fa-brands fa-paypal" style="color: #0079c1;"></i> PayPal</h3>
             <p>Captures completed PayPal payments via <code>PAYMENT.CAPTURE.COMPLETED</code> webhooks.</p>
+          </div>
+          <div class="card">
+            <h3><i class="fa-solid fa-coins" style="color: #fbbf24;"></i> Cash Bucket Tally</h3>
+            <p>Log physical coin/note counts via the Admin Portal's dual-counter Cash Bucket modal or directly from the Driver Beacon at the end of a route.</p>
           </div>
           <div class="card">
             <h3><i class="fa-solid fa-bolt" style="color: var(--primary);"></i> Custom / Zapier</h3>
             <p>Accepts standard JSON <code>{"amount": 10.00, "donorName": "Jane"}</code> from any third-party integration.</p>
           </div>
         </div>
+      </section>
 
-        <div class="callout" style="background: rgba(251, 175, 51, 0.08); border-left: 4px solid var(--primary); padding: 16px 20px; border-radius: 6px; margin-top: 16px;">
-          <strong>💡 Concurrent Multi-Hook Advantage:</strong> You can run online web links (Zeffy/Stripe) and volunteer mobile card readers (SumUp) at the exact same time. Both streams feed into the live thermometer simultaneously.
+      <!-- SECTION 7b: PRINT STUDIO & BUCKET QR KIT -->
+      <section id="printkit" class="doc-section">
+        <span class="badge gold">Ready-to-Print A4 Templates</span>
+        <h2><i class="fa-solid fa-print"></i> Print Studio: Street Posters, 4-Up Bucket Stickers &amp; 6-Up Elf Lanyards</h2>
+        <p>
+          Over 65% of suburban households no longer carry loose change. The built-in Print Studio (<code>/qr_poster.html?table=[slug]</code>, also accessible via quick-launch buttons in <strong>Admin Portal &rarr; Fundraising</strong>) generates branded A4 print sheets with automatic QR codes:
+        </p>
+
+        <div class="grid-3" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 20px 0;">
+          <div class="card">
+            <h3>📄 1-Up Full A4 Street Poster</h3>
+            <p>High-visibility A4 poster for lamppost sleeves, shop windows, schools, and community noticeboards.</p>
+          </div>
+          <div class="card highlight">
+            <h3>🪣 4-Up Collector Bucket Stickers</h3>
+            <p>Prints 4 weatherproof bucket labels per A4 sheet featuring bold <strong>"NO CASH? SCAN TO DONATE"</strong> messaging and a <strong>+25% Gift Aid</strong> badge. Ideal for sticky-back plastic or laminated bucket wraps.</p>
+          </div>
+          <div class="card highlight">
+            <h3>🪪 6-Up Walking Elf Lanyard Cards</h3>
+            <p>Prints 6 double-sided lanyard passes per A4 sheet with punch-slot guides so walking collectors can hold up a scannable QR code on the doorstep.</p>
+          </div>
+        </div>
+
+        <p style="font-size: 14px; color: var(--text-muted);">
+          <strong>Selectable QR Destination:</strong> Use the top toolbar in Print Studio to switch all QR codes on the sheet between <strong>1. Live Tracker &amp; Donate</strong>, <strong>2. Donate + 25% Gift Aid Boost Flow</strong> (<code>/?table=[slug]&amp;donate=1</code>), or <strong>3. Direct Online Donation URL</strong>.
+        </p>
+        <div style="margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
+          <a id="linkPrintStudio" href="/qr_poster.html?table=beverley" target="_blank" class="btn"><i class="fa-solid fa-print"></i> Open Print Studio (1-Up / 4-Up / 6-Up)</a>
         </div>
       </section>
 
-      <!-- SECTION 8: DATA PROTECTION & PRIVACY -->
-      <section id="dataprotection" class="doc-section">
-        <h2><i class="fa-solid fa-user-shield"></i> Data Protection & Privacy Architecture (GDPR)</h2>
+      <!-- SECTION 7c: GIFT AID & LOCAL CAUSE GRANTS -->
+      <section id="giftaid-grants" class="doc-section">
+        <span class="badge green">+25% HMRC Uplift &amp; Community Impact</span>
+        <h2><i class="fa-solid fa-hand-holding-dollar"></i> Pre-Checkout +25% Gift Aid &amp; Local Cause Grant Nominations</h2>
         <p>
-          TurboSanta implements strict architectural boundaries between publicly accessible spectator data and protected volunteer / financial data.
+          Maximise every pound raised and show residents where their donations stay locally:
         </p>
 
         <div class="grid-2">
-          <div class="card" style="border-left: 4px solid #2ecc71;">
-            <h3 style="color: #2ecc71;"><i class="fa-solid fa-globe"></i> Public Data (Spectators)</h3>
+          <div class="card highlight">
+            <h3>🎁 Pre-Checkout +25% HMRC Gift Aid Flow</h3>
+            <p>
+              When <strong>Enable Gift Aid</strong> is turned on in <strong>Admin Portal &rarr; Settings</strong>, clicking <strong>Donate Now</strong> on your public site (or scanning a bucket QR code with <code>?donate=1</code>) presents a fast 1-step UK taxpayer declaration modal before opening your JustGiving / Ticket Tailor / Zeffy checkout.
+            </p>
             <ul style="font-size: 13px; color: var(--text-muted); margin-left: 20px; line-height: 1.8;">
-              <li>Live Sleigh GPS coordinates, speed, and heading (<code>/api/live-gps</code>)</li>
-              <li>Route schedules, start times, and street listings (<code>/api/payload</code>)</li>
-              <li>Spatial address lookup & arrival estimations</li>
-              <li>Aggregated total raised (£) and fundraising target</li>
-              <li>Route sponsors, headline sponsors, and community partners</li>
-              <li>Volunteer sign-up form submission (users cannot see others' entries)</li>
+              <li>Saves HMRC-required fields (First Name, Surname, House No. &amp; Street, Postcode) into D1 (<code>gift_aid</code>).</li>
+              <li>Includes a 1-click <em>"Skip Gift Aid — Go Straight to Online Donation"</em> link so checkout is never blocked.</li>
+              <li>Export all declarations as an <strong>HMRC R68 CSV</strong> in 1 click from God Mode or Admin Portal.</li>
             </ul>
           </div>
 
-          <div class="card" style="border-left: 4px solid #e74c3c;">
-            <h3 style="color: #e74c3c;"><i class="fa-solid fa-lock"></i> Protected Data (Admin Only)</h3>
+          <div class="card highlight">
+            <h3>💛 "Where Your Donations Go" &amp; Grant Nominations</h3>
+            <p>
+              Demonstrates to residents that 100% of funds stay in the local community and collects year-round funding requests from local schools, clubs, and charities:
+            </p>
             <ul style="font-size: 13px; color: var(--text-muted); margin-left: 20px; line-height: 1.8;">
-              <li><strong>Volunteer Personal Info:</strong> Names, mobile numbers, emails, bucket IDs, and check-in status (requires Admin Secret; <code>401 Unauthorized</code> without auth).</li>
-              <li><strong>HMRC Gift Aid Declarations:</strong> Full taxpayer names, house numbers, and postcodes (accessible only via authenticated <code>/api/gift-aid/export</code>).</li>
-              <li><strong>Webhook Secrets & Passwords:</strong> Stored securely in Cloudflare D1.</li>
-              <li><strong>Driver Cockpit & 3D Sat-Nav:</strong> Live GPS beacon controls locked to authorized drivers (authenticated with official <code>@roundtable.org.uk</code> Google Workspace account). Provides both full <strong>3D Heading-Up Sat-Nav with turn-by-turn voice prompts</strong> and <strong>Battery-Saver Standby Beacon</strong>.</li>
+              <li>Public visitors click <strong>"🤝 Nominate a Local Cause / Apply for a Grant"</strong> under the donation thermometer to submit an application (<code>POST /api/grants</code>).</li>
+              <li>In <strong>Admin Portal &rarr; Fundraising &rarr; Local Cause Grant Applications</strong>, review submissions and click <strong><code>✅ Approve &amp; Feature Publicly</code></strong>.</li>
+              <li>Approved causes are automatically showcased on your public sleigh site!</li>
             </ul>
           </div>
         </div>
@@ -681,34 +782,34 @@
 
       <!-- SECTION: DRIVER COCKPIT -->
       <section id="drivercockpit" class="doc-section">
-        <h2><i class="fa-solid fa-location-arrow"></i> Sleigh Driver Cockpit & 3D Sat-Nav</h2>
+        <h2><i class="fa-solid fa-location-arrow"></i> Sleigh Driver Cockpit, 3D Sat-Nav &amp; End-of-Night Cash Logger</h2>
         <p>
           The Driver Cockpit provides sleigh navigators and drivers with two operational modes tailored for route night:
         </p>
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 20px 0;">
           <div class="card" style="border-left: 4px solid var(--primary);">
-            <h3 style="color: var(--primary);"><i class="fa-solid fa-map-location-dot"></i> 1. 3D Sat-Nav & Voice Navigation</h3>
+            <h3 style="color: var(--primary);"><i class="fa-solid fa-map-location-dot"></i> 1. 3D Sat-Nav &amp; Voice Navigation</h3>
             <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 12px;">
-              Accessible via Admin Portal &rarr; <em>Driver Cockpit Mode</em> or directly at <code>/tracker.html?table=[slug]&driver=1</code>.
+              Accessible via Admin Portal &rarr; <em>Driver Cockpit Mode</em> or directly at <code>/tracker.html?table=[slug]&amp;driver=1</code>.
             </p>
             <ul style="font-size: 13px; color: var(--text-muted); margin-left: 20px; line-height: 1.8;">
               <li><strong>Heading-Up 3D Map:</strong> 60&deg; pitched 3D map that smoothly rotates to face your direction of travel like Google Maps or Waze.</li>
               <li><strong>Turn-by-Turn Voice Directions:</strong> Speaks maneuvers aloud (e.g. <em>"In 100 meters, turn left onto Lairgate"</em>) using the Web Speech API.</li>
               <li><strong>Road Snapping:</strong> Snaps GPS to pre-planned GPX street lines with turn countdowns.</li>
-              <li><strong>Auto Telemetry & Offline Queue:</strong> Sends live GPS fixes every 4s to Cloudflare D1 with IndexedDB buffer if mobile signal drops.</li>
+              <li><strong>Auto Telemetry &amp; Offline Queue:</strong> Sends live GPS fixes every 4s to Cloudflare D1 with IndexedDB buffer if mobile signal drops.</li>
             </ul>
           </div>
 
           <div class="card" style="border-left: 4px solid #2ecc71;">
-            <h3 style="color: #2ecc71;"><i class="fa-solid fa-tower-broadcast"></i> 2. Battery-Saver Standby Beacon</h3>
+            <h3 style="color: #2ecc71;"><i class="fa-solid fa-tower-broadcast"></i> 2. Battery-Saver Beacon &amp; Cash Bucket Logger</h3>
             <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 12px;">
-              Designed for long nights or low phone battery. Also standalone at <code>/beacon.html?table=[slug]</code>.
+              Designed for long nights or low phone battery at <code>/beacon.html?table=[slug]</code>.
             </p>
             <ul style="font-size: 13px; color: var(--text-muted); margin-left: 20px; line-height: 1.8;">
-              <li><strong>Ultra-Low Power:</strong> Screen-off background transmission without rendering heavy 3D WebGL maps.</li>
-              <li><strong>WakeLock & Audio Keep-Alive:</strong> Prevents iOS and Android from killing the GPS process in background tabs.</li>
-              <li><strong>1-Tap Cab Announcements:</strong> Quick buttons to broadcast <em>"2-Min Photo Stop"</em> or <em>"Running 10 Mins Late"</em> to waiting families.</li>
+              <li><strong>Ultra-Low Power:</strong> Screen-off background transmission with WakeLock &amp; Audio Keep-Alive.</li>
+              <li><strong>Automatic "Tonight's the Night!" Trigger:</strong> Starting the beacon on tonight's route automatically emails subscribed families on that route.</li>
+              <li><strong>End-of-Night Cash Bucket Quick-Log:</strong> When stopping the beacon at the end of the route (or tapping <strong><code>🪣 £ CASH</code></strong> in the top bar), a 1-tap modal lets the driver log tonight's cash bucket count directly into the live thermometer (<code>POST /api/donations/cash</code>).</li>
             </ul>
           </div>
         </div>
@@ -729,31 +830,90 @@
         <a id="linkGodMode" href="/god_mode.html?table=beverley" target="_blank" class="btn">Open God Mode <i class="fa-solid fa-shield-halved"></i></a>
       </section>
 
+      <!-- SECTION 9b: AGM, SPONSOR & CERTIFICATE REPORTS -->
+      <section id="reports" class="doc-section">
+        <span class="badge gold">Post-Route &amp; End-of-Season Tools</span>
+        <h2><i class="fa-solid fa-chart-pie"></i> AGM Season Wrap, Sponsor Impact Reports &amp; Volunteer Certificates</h2>
+        <p>
+          Turn your sleigh data into print-ready PDFs and certificates to thank sponsors, celebrate volunteers, and present at your Table AGM:
+        </p>
+
+        <div class="grid-3" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 20px 0;">
+          <div class="card">
+            <h3>📊 Season Wrap &amp; AGM Report</h3>
+            <p>Generates an executive end-of-season summary of total funds raised, routes completed, streets visited, and community reach.</p>
+            <a id="linkSeasonWrap" href="/season_wrap.html?table=beverley" target="_blank" class="btn btn-secondary" style="margin-top:10px;">Open Season Wrap <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+          </div>
+          <div class="card">
+            <h3>🤝 Corporate Sponsor Impact Report</h3>
+            <p>Produces a personalised thank-you certificate and impact report for businesses that sponsored a route or your sleigh.</p>
+            <a id="linkPartnerReport" href="/partner_report.html?table=beverley" target="_blank" class="btn btn-secondary" style="margin-top:10px;">Open Sponsor Report <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+          </div>
+          <div class="card">
+            <h3>🏅 Volunteer Appreciation Certificates</h3>
+            <p>Create and print personalised Round Table thank-you certificates for your volunteer drivers, elves, and bucket collectors.</p>
+            <a id="linkVolunteerCert" href="/volunteer_cert.html?table=beverley" target="_blank" class="btn btn-secondary" style="margin-top:10px;">Open Certificate Studio <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 8: DATA PROTECTION & PRIVACY -->
+      <section id="dataprotection" class="doc-section">
+        <h2><i class="fa-solid fa-user-shield"></i> Data Protection &amp; Privacy Architecture (GDPR)</h2>
+        <p>
+          TurboSanta implements strict architectural boundaries between publicly accessible spectator data and protected volunteer / financial data.
+        </p>
+
+        <div class="grid-2">
+          <div class="card" style="border-left: 4px solid #2ecc71;">
+            <h3 style="color: #2ecc71;"><i class="fa-solid fa-globe"></i> Public Data (Spectators)</h3>
+            <ul style="font-size: 13px; color: var(--text-muted); margin-left: 20px; line-height: 1.8;">
+              <li>Live Sleigh GPS coordinates, speed, and heading (<code>/api/live-gps</code>)</li>
+              <li>Route schedules, start times, postponed notes, and street listings (<code>/api/payload</code>)</li>
+              <li>Spatial address lookup &amp; arrival estimations</li>
+              <li>Aggregated total raised (£), fundraising target, and approved community grants</li>
+              <li>Route sponsors, headline sponsors, and community partners</li>
+              <li>Volunteer sign-up &amp; grant nomination submissions (users cannot see others' entries)</li>
+            </ul>
+          </div>
+
+          <div class="card" style="border-left: 4px solid #e74c3c;">
+            <h3 style="color: #e74c3c;"><i class="fa-solid fa-lock"></i> Protected Data (Admin Only)</h3>
+            <ul style="font-size: 13px; color: var(--text-muted); margin-left: 20px; line-height: 1.8;">
+              <li><strong>Volunteer Personal Info:</strong> Names, mobile numbers, emails, bucket IDs, and check-in status (requires Admin Secret; <code>401 Unauthorized</code> without auth).</li>
+              <li><strong>HMRC Gift Aid Declarations:</strong> Full taxpayer names, house numbers, and postcodes (accessible only via authenticated <code>/api/gift-aid/export</code>).</li>
+              <li><strong>Webhook Secrets, Ticket Tailor Keys &amp; Passwords:</strong> Stored securely in Cloudflare D1 and masked in public payloads.</li>
+              <li><strong>Subscriber Doorstep Emails:</strong> Stored privately in D1 and used strictly for route departure, proximity, and weather postponement alerts.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
       <!-- SECTION 8: BACKEND & API -->
       <section id="backend" class="doc-section">
-        <h2><i class="fa-solid fa-database"></i> Backend Architecture & REST API</h2>
+        <h2><i class="fa-solid fa-database"></i> Backend Architecture &amp; REST API</h2>
         <p>
           TurboSanta runs on Cloudflare Workers + D1 Database. All endpoints support <code>?table=[slug]</code> multi-tenancy:
         </p>
 
         <div class="code-box">
           <code>GET  https://turbosanta-api.beverley247.workers.dev/api/payload?table=beverley</code><br>
-          <span style="color:var(--text-muted);">Returns: Table settings, scheduled routes, streets list, and latest sleigh GPS position.</span>
+          <span style="color:var(--text-muted);">Returns: Table settings, scheduled routes, streets list, approved community grants, and latest sleigh GPS position.</span>
         </div>
 
         <div class="code-box">
-          <code>GET  https://turbosanta-api.beverley247.workers.dev/api/live-gps?table=beverley</code><br>
-          <span style="color:var(--text-muted);">Returns: High-speed live coordinates (lat, lng, speed, road_name, timestamp).</span>
+          <code>POST https://turbosanta-api.beverley247.workers.dev/api/routes/notify-departure</code> &bull; <code>POST /api/routes/postpone</code><br>
+          <span style="color:var(--text-muted);">Sends "Tonight's the Night!" departure emails or Weather Rain Check postponement emails to route subscribers.</span>
         </div>
 
         <div class="code-box">
-          <code>PUT  https://turbosanta-api.beverley247.workers.dev/api/telemetry</code><br>
-          <span style="color:var(--text-muted);">Payload: { table_id, route_id, lat, lng, speed, road_name } — GPS beacon ingest.</span>
+          <code>POST https://turbosanta-api.beverley247.workers.dev/api/donations/sync-external</code> &bull; <code>POST /api/webhooks/tickettailor</code><br>
+          <span style="color:var(--text-muted);">Syncs live JustGiving campaign totals &amp; Ticket Tailor completed orders into the Table's fundraising thermometer.</span>
         </div>
 
         <div class="code-box">
-          <code>POST https://turbosanta-api.beverley247.workers.dev/api/volunteers?table=beverley</code><br>
-          <span style="color:var(--text-muted);">Payload: { routeName, name, role, phone, email, organisation } — Saves volunteer registration into SQL.</span>
+          <code>POST https://turbosanta-api.beverley247.workers.dev/api/donations/cash</code> &bull; <code>POST /api/gift-aid</code> &bull; <code>POST /api/grants</code><br>
+          <span style="color:var(--text-muted);">Logs end-of-night cash bucket totals, HMRC +25% Gift Aid declarations, and local cause grant applications.</span>
         </div>
       </section>
 
@@ -780,7 +940,7 @@
   </div>
 
   <footer style="text-align: center; padding: 40px 20px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 13px;">
-    &copy; 2026 TurboSanta Platform &middot; Beverley Round Table &middot; Built for Round Tables across the UK & Ireland
+    &copy; 2026 TurboSanta Platform &middot; Beverley Round Table &middot; Built for Round Tables across the UK &amp; Ireland
   </footer>
 
   <script>
@@ -826,9 +986,17 @@
       const linkEmbedStudio = document.getElementById('linkEmbedStudio');
       if (linkEmbedStudio) linkEmbedStudio.href = `/embed.html?table=${slug}`;
 
-      // Update God Mode Link
+      // Update God Mode, Print Studio & Report Links
       const linkGod = document.getElementById('linkGodMode');
       if (linkGod) linkGod.href = `/god_mode.html?table=${slug}`;
+      const linkPrintStudio = document.getElementById('linkPrintStudio');
+      if (linkPrintStudio) linkPrintStudio.href = `/qr_poster.html?table=${slug}`;
+      const linkSeasonWrap = document.getElementById('linkSeasonWrap');
+      if (linkSeasonWrap) linkSeasonWrap.href = `/season_wrap.html?table=${slug}`;
+      const linkPartnerReport = document.getElementById('linkPartnerReport');
+      if (linkPartnerReport) linkPartnerReport.href = `/partner_report.html?table=${slug}`;
+      const linkVolunteerCert = document.getElementById('linkVolunteerCert');
+      if (linkVolunteerCert) linkVolunteerCert.href = `/volunteer_cert.html?table=${slug}`;
 
       // Update Migration Link
       const linkMigrate = document.getElementById('guideMigrateLaunchBtn');
@@ -863,8 +1031,8 @@
         embedCodeTracker: `${origin}/tracker.html?table=${slug}`,
         embedCodeAddress: `${origin}/address.html?table=${slug}`,
         embedCodeCrew: `${origin}/crew.html?table=${slug}`,
-        embedCodeSantaChat: `${origin}/santa_chat.html?table=${slug}`,
-        embedCodeBlueprint: `${origin}/blueprint.html?table=${slug}`,
+        embedCodeGiftAid: `${origin}/gift_aid.html?table=${slug}`,
+        embedCodeQrPoster: `${origin}/qr_poster.html?table=${slug}`,
         embedCodeMemory: `${origin}/memory_book.html?table=${slug}`
       };
 

@@ -456,6 +456,23 @@
             </div>
           </div>
         </div>
+
+        <!-- HMRC Gift Aid +25% Declaration Portal -->
+        <div class="hub-card">
+          <div>
+            <span class="card-badge badge-green">Tax Boost &bull; +25% Free</span>
+            <h3><i class="fa-solid fa-hand-holding-dollar" style="color:var(--green);"></i> HMRC Gift Aid +25% Portal</h3>
+            <p>Standalone &amp; pre-checkout HMRC-compliant Gift Aid declaration form. Captures UK taxpayer name, house number, and postcode to boost bucket &amp; card donations by 25%.</p>
+          </div>
+          <div>
+            <div class="url-preview" id="giftAidUrl">https://roundtablesantasleigh.co.uk/gift_aid.html?table=beverley</div>
+            <div class="card-actions">
+              <a id="btnLaunchGiftAid" href="/gift_aid.html?table=beverley" target="_blank" class="btn btn-secondary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open</a>
+              <button class="btn btn-secondary" onclick="copyDynamicUrl('giftAidUrl')"><i class="fa-solid fa-copy"></i> Copy Link</button>
+              <button class="btn btn-secondary" onclick="openQrModal('giftAidUrl', 'Gift Aid +25% QR')"><i class="fa-solid fa-qrcode"></i></button>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -471,14 +488,46 @@
         <div class="hub-card">
           <div>
             <span class="card-badge badge-red"><i class="fa-solid fa-lock"></i> Driver Passcode</span>
-            <h3><i class="fa-solid fa-location-arrow"></i> Driver GPS Beacon & Nav</h3>
+            <h3><i class="fa-solid fa-location-arrow"></i> Driver 3D Sat-Nav &amp; GPS</h3>
             <p>For the mobile phone mounted on the sleigh towing vehicle. Maintains screen wake-lock, turn-by-turn 3D sat-nav, and broadcasts high-accuracy GPS coordinates every 2 seconds. <em>(Password protected)</em></p>
           </div>
           <div>
             <div class="url-preview" id="driverUrl">https://roundtablesantasleigh.co.uk/tracker.html?table=beverley&driver=1</div>
             <div class="card-actions">
-              <a id="btnLaunchDriver" href="/tracker.html?table=beverley&driver=1" target="_blank" class="btn btn-primary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Beacon</a>
+              <a id="btnLaunchDriver" href="/tracker.html?table=beverley&driver=1" target="_blank" class="btn btn-primary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open 3D Nav</a>
               <button class="btn btn-secondary" onclick="copyDynamicUrl('driverUrl')"><i class="fa-solid fa-copy"></i> Copy Link</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Battery-Saver Beacon & Cash Bucket Logger -->
+        <div class="hub-card">
+          <div>
+            <span class="card-badge badge-green"><i class="fa-solid fa-battery-full"></i> Ultra-Low Power + Cash Log</span>
+            <h3><i class="fa-solid fa-satellite-dish" style="color:var(--green);"></i> Battery-Saver Beacon &amp; Cash Logger</h3>
+            <p>Pure black OLED cockpit that uses 75% less battery than 3D maps. Automatically fires <strong>"Tonight's the Night!"</strong> departure emails on first GPS ping and includes the <strong>🪣 £ CASH</strong> end-of-night bucket tally logger.</p>
+          </div>
+          <div>
+            <div class="url-preview" id="beaconUrl">https://roundtablesantasleigh.co.uk/beacon.html?table=beverley</div>
+            <div class="card-actions">
+              <a id="btnLaunchBeacon" href="/beacon.html?table=beverley" target="_blank" class="btn btn-primary" style="background:var(--green); color:#000;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open OLED Beacon</a>
+              <button class="btn btn-secondary" onclick="copyDynamicUrl('beaconUrl')"><i class="fa-solid fa-copy"></i> Copy Link</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Print Studio: Posters, Bucket Stickers & Lanyards -->
+        <div class="hub-card">
+          <div>
+            <span class="card-badge badge-gold"><i class="fa-solid fa-print"></i> 1-Up &bull; 4-Up &bull; 6-Up Print Kit</span>
+            <h3><i class="fa-solid fa-qrcode" style="color:var(--primary);"></i> Print Studio: Stickers &amp; Lanyards</h3>
+            <p>Generate print-ready <strong>1-Up A4 Street Posters</strong>, <strong>4-Up Waterproof Bucket Stickers</strong>, and <strong>6-Up Walking Elf Lanyard Badges</strong> pointing to your +25% Gift Aid Donate flow or Live Tracker.</p>
+          </div>
+          <div>
+            <div class="url-preview" id="printStudioUrl">https://roundtablesantasleigh.co.uk/qr_poster.html?table=beverley</div>
+            <div class="card-actions">
+              <a id="btnLaunchPrintStudio" href="/qr_poster.html?table=beverley" target="_blank" class="btn btn-primary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Print Studio</a>
+              <button class="btn btn-secondary" onclick="copyDynamicUrl('printStudioUrl')"><i class="fa-solid fa-copy"></i> Copy Link</button>
             </div>
           </div>
         </div>
@@ -530,7 +579,7 @@
           <div>
             <span class="card-badge badge-gold"><i class="fa-solid fa-shield-halved"></i> Primary Management Cockpit</span>
             <h3><i class="fa-solid fa-sliders" style="color:var(--primary);"></i> Table Admin Portal</h3>
-            <p>Your table's full control center: edit routes, manage live GPS telemetry, fundraising goals, sponsors, volunteer crew alerts, and approve photo memories.</p>
+            <p>Your table's full control center: edit routes, 1-click Weather Postponement ("Rain Check" emails), JustGiving &amp; Ticket Tailor live auto-sync, Local Cause Grant applications, sponsors, and photo moderation.</p>
           </div>
           <div>
             <div class="url-preview" id="adminPortalUrl">https://roundtablesantasleigh.co.uk/?table=beverley&admin=1</div>
@@ -606,12 +655,60 @@
           </div>
         </div>
 
+        <!-- Season Wrap & AGM Report -->
+        <div class="hub-card">
+          <div>
+            <span class="card-badge badge-gold">AGM &amp; Press Ready</span>
+            <h3><i class="fa-solid fa-trophy" style="color:var(--primary);"></i> Season Wrap &amp; AGM Report</h3>
+            <p>Executive post-season summary showcasing total funds raised, Gift Aid unlocked, streets visited, volunteer hours, and community impact.</p>
+          </div>
+          <div>
+            <div class="url-preview" id="seasonWrapUrl">https://roundtablesantasleigh.co.uk/season_wrap.html?table=beverley</div>
+            <div class="card-actions">
+              <a id="btnLaunchSeasonWrap" href="/season_wrap.html?table=beverley" target="_blank" class="btn btn-secondary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Wrap</a>
+              <button class="btn btn-secondary" onclick="copyDynamicUrl('seasonWrapUrl')"><i class="fa-solid fa-copy"></i> Copy Link</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Corporate Sponsor Impact Report -->
+        <div class="hub-card">
+          <div>
+            <span class="card-badge badge-gold">Sponsor ROI</span>
+            <h3><i class="fa-solid fa-handshake" style="color:var(--primary);"></i> Sponsor Impact Report</h3>
+            <p>Printable corporate partner ROI certificate &amp; digital exposure report to send to businesses that sponsored your Santa Sleigh.</p>
+          </div>
+          <div>
+            <div class="url-preview" id="partnerReportUrl">https://roundtablesantasleigh.co.uk/partner_report.html?table=beverley</div>
+            <div class="card-actions">
+              <a id="btnLaunchPartnerReport" href="/partner_report.html?table=beverley" target="_blank" class="btn btn-secondary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Report</a>
+              <button class="btn btn-secondary" onclick="copyDynamicUrl('partnerReportUrl')"><i class="fa-solid fa-copy"></i> Copy Link</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Volunteer Appreciation Certificates -->
+        <div class="hub-card">
+          <div>
+            <span class="card-badge badge-gold">Crew Thank You</span>
+            <h3><i class="fa-solid fa-award" style="color:var(--primary);"></i> Volunteer Certificates</h3>
+            <p>Generate personalised A4 appreciation certificates for your drivers, Santa performers, marshals, and walking bucket collectors.</p>
+          </div>
+          <div>
+            <div class="url-preview" id="volunteerCertUrl">https://roundtablesantasleigh.co.uk/volunteer_cert.html?table=beverley</div>
+            <div class="card-actions">
+              <a id="btnLaunchVolunteerCert" href="/volunteer_cert.html?table=beverley" target="_blank" class="btn btn-secondary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Generator</a>
+              <button class="btn btn-secondary" onclick="copyDynamicUrl('volunteerCertUrl')"><i class="fa-solid fa-copy"></i> Copy Link</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Master Guide -->
         <div class="hub-card">
           <div>
-            <span class="card-badge badge-gold">Documentation</span>
+            <span class="card-badge badge-gold">Complete Documentation</span>
             <h3><i class="fa-solid fa-book-open"></i> Platform Master Guide</h3>
-            <p>Complete step-by-step documentation covering the 2 deployment models, route planning, D1 SQL schema, and operations.</p>
+            <p>Step-by-step documentation for every feature: Doorstep Alerts, "Tonight's the Night" &amp; Weather Rain Check emails, JustGiving + Ticket Tailor Sync, Print Studio, and Gift Aid.</p>
           </div>
           <div>
             <div class="url-preview" id="guideUrl">https://roundtablesantasleigh.co.uk/guide.html?table=beverley</div>
@@ -752,13 +849,19 @@
         santaChatUrl: `${origin}/santa_chat.html?table=${slug}`,
         memoryUrl: `${origin}/memory_book.html?table=${slug}`,
         colouringUrl: `${origin}/colouring_page.html?table=${slug}`,
+        giftAidUrl: `${origin}/gift_aid.html?table=${slug}`,
         driverUrl: `${origin}/tracker.html?table=${slug}&driver=1`,
+        beaconUrl: `${origin}/beacon.html?table=${slug}`,
+        printStudioUrl: `${origin}/qr_poster.html?table=${slug}`,
         crewAdminUrl: `${origin}/crew.html?table=${slug}`,
         blueprintUrl: `${origin}/blueprint.html?table=${slug}`,
         godModeUrl: `${origin}/god_mode.html?table=${slug}`,
         routePlannerUrl: `${origin}/route_planner.html?table=${slug}`,
         embedStudioUrl: `${origin}/embed.html?table=${slug}`,
         migrateUrl: `${origin}/migrate.html?table=${slug}`,
+        seasonWrapUrl: `${origin}/season_wrap.html?table=${slug}`,
+        partnerReportUrl: `${origin}/partner_report.html?table=${slug}`,
+        volunteerCertUrl: `${origin}/volunteer_cert.html?table=${slug}`,
         guideUrl: `${origin}/guide.html?table=${slug}`
       };
 
@@ -784,13 +887,19 @@
         btnLaunchSantaChat: links.santaChatUrl,
         btnLaunchMemory: links.memoryUrl,
         btnLaunchColouring: links.colouringUrl,
+        btnLaunchGiftAid: links.giftAidUrl,
         btnLaunchDriver: links.driverUrl,
+        btnLaunchBeacon: links.beaconUrl,
+        btnLaunchPrintStudio: links.printStudioUrl,
         btnLaunchCrewAdmin: links.crewAdminUrl,
         btnLaunchBlueprint: links.blueprintUrl,
         btnLaunchGodMode: links.godModeUrl,
         btnLaunchRoutePlanner: links.routePlannerUrl,
         btnLaunchEmbedStudio: links.embedStudioUrl,
         btnLaunchMigrate: links.migrateUrl,
+        btnLaunchSeasonWrap: links.seasonWrapUrl,
+        btnLaunchPartnerReport: links.partnerReportUrl,
+        btnLaunchVolunteerCert: links.volunteerCertUrl,
         btnLaunchGuide: links.guideUrl
       };
 

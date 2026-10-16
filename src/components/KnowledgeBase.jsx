@@ -29,10 +29,30 @@ export const NATIONAL_PLAYBOOK_TIPS = [
     category: "finance_donations",
     categoryLabel: "Donations & Zeffy",
     scope: "national",
-    lesson: "Laminate and hang high-contrast Zeffy QR code badges on volunteer lanyards with bold 'SCAN TO DONATE & ADD 25% GIFT AID' text. Over 65% of suburban families do not carry physical cash; having lanyards ready doubles nightly donations.",
+    lesson: "Use the built-in Print Studio (/qr_poster.html) to print 4-Up Waterproof Collector Bucket Stickers and 6-Up Walking Elf Lanyard Badges pointing to the '+25% Gift Aid Boost & Donate' flow (/?table=slug&donate=1). Over 65% of suburban families do not carry cash; scannable lanyards with instant Gift Aid capture double nightly revenue.",
     author_name: "Fleet Fundraising Lead",
     author_role: "Community Treasurer",
-    recommendedTip: "Doubles contactless giving"
+    recommendedTip: "Doubles contactless + Gift Aid"
+  },
+  {
+    id: "tpl_justgiving_tickettailor_sync",
+    category: "finance_donations",
+    categoryLabel: "Donations & Zeffy",
+    scope: "national",
+    lesson: "Connect your JustGiving Campaign Shortname and Ticket Tailor API Key (or Webhook URL) inside Settings → Financials, and have your driver tap '🪣 £ CASH' on the Battery-Saver Beacon (/beacon.html) at the end of each night. Your public thermometer will automatically combine online crowdfunding, grotto ticket sales, and street bucket cash in real time.",
+    author_name: "Digital Treasurer",
+    author_role: "Finance & Webhooks Lead",
+    recommendedTip: "Unified live thermometer"
+  },
+  {
+    id: "tpl_weather_rain_check",
+    category: "routes_planning",
+    categoryLabel: "Routes & Logistics",
+    scope: "national",
+    lesson: "If gale-force winds or heavy rain force a postponement, click the '🌧️ Weather Rain Check' button on the route in Admin Portal → Routes & Streets. It immediately marks the route as Postponed on the public website and emails every resident who dropped a Doorstep Pin on that route with your rescheduled date.",
+    author_name: "Operations Coordinator",
+    author_role: "Sleigh Safety Officer",
+    recommendedTip: "Zero angry Facebook messages"
   },
   {
     id: "tpl_routes_pacing",
@@ -79,7 +99,7 @@ export const NATIONAL_PLAYBOOK_TIPS = [
     category: "routes_planning",
     categoryLabel: "Routes & Logistics",
     scope: "national",
-    lesson: "Send your Live PA announcement message 15 minutes before the sleigh departs the staging area. This allows parents to put coats, boots, and hats on toddlers so they are out on their doorsteps right as the music approaches.",
+    lesson: "As soon as the driver locks GPS in the cab, TurboSanta automatically emails all pinned households on tonight's route ('Tonight's the Night!'). Follow up with a Live PA announcement 15 minutes before departure so families have coats and boots ready.",
     author_name: "Digital Santa Team",
     author_role: "Community Liaison",
     recommendedTip: "Curbside turnout"
