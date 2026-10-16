@@ -485,8 +485,63 @@
   let routesData = [];
   let map;
   let userPin = null;
+  let currentPinCoords = null;
+  let notifyRadiusMeters = 250;
+  let notifyEmailEnabled = true;
   let streetIndex = [];    // [{ street, route }] built from each route's comma-separated "streets" field
   let currentStreet = '';  // street the current results were looked up for ('' for pin / GPS lookups)
+
+  const D1_API_BASE = "https://turbosanta-api.beverley247.workers.dev";
+
+  function formatClock12(ms) {
+    const d = new Date(ms);
+    let h = d.getHours();
+    const m = d.getMinutes();
+    const ap = h >= 12 ? "pm" : "am";
+    h = h % 12 || 12;
+    return h + ":" + String(m).padStart(2, "0") + ap;
+  }
+
+  function parseRouteClock(hm) {
+    const m = String(hm || "").match(/^(\d{1,2}):(\d{2})/);
+    if (!m) return null;
+    const d = new Date();
+    d.setHours(parseInt(m[1], 10), parseInt(m[2], 10), 0, 0);
+    return d.getTime();
+  }
+
+  function computePinEtaText(route, userPoint) {
+    try {
+      if (!route || !route.geoJSON || !userPoint) return null;
+      const startStr = route['Start Time'] || route.start_time || '17:30';
+      const endStr = route['End Time'] || route.end_time || '19:30';
+      const startMs = parseRouteClock(startStr);
+      let endMs = parseRouteClock(endStr);
+      if (!startMs || !endMs) return null;
+      if (endMs <= startMs) endMs += 12 * 60 * 60 * 1000;
+
+      const snapped = turf.nearestPointOnLine(route.geoJSON, userPoint, { units: 'meters' });
+      const totalLen = turf.length(route.geoJSON, { units: 'meters' }) || 1;
+      const distAlong = snapped && snapped.properties && typeof snapped.properties.location === 'number'
+        ? snapped.properties.location
+        : 0;
+      const frac = Math.min(1, Math.max(0, distAlong / totalLen));
+      const dueMs = Math.round((startMs + frac * (endMs - startMs)) / 300000) * 300000;
+      return "~" + formatClock12(dueMs);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function broadcastPinToTracker(pinData) {
+    try {
+      localStorage.setItem("SANTA_NOTIFY_POINT", JSON.stringify(pinData));
+      sessionStorage.setItem("SANTA_NOTIFY_POINT", JSON.stringify(pinData));
+    } catch (e) {}
+    try {
+      parent.postMessage({ type: "turbosanta-pin-saved", pin: pinData }, "*");
+    } catch (e) {}
+  }
 
   // 🔗 Sheet cells sometimes hold "raw.githubusercontent.com/..." with no scheme.
   // fetch() treats that as a relative path on THIS site (404), so add https:// when missing.
@@ -652,6 +707,14 @@
         routesData = [];
       }
 
+      const settingsObj = (data && (data.table || data.settings)) || {};
+      if (settingsObj.notify_radius_meters) {
+        notifyRadiusMeters = Number(settingsObj.notify_radius_meters) || 250;
+      }
+      if (settingsObj.notify_email_enabled !== undefined) {
+        notifyEmailEnabled = Boolean(settingsObj.notify_email_enabled !== 0 && settingsObj.notify_email_enabled !== false);
+      }
+
       try { applyTheme(data && (data.settings || data.table)); } catch (e) { console.warn('Theme not applied:', e); }
 
       if(data && data.routes) {
@@ -780,29 +843,34 @@
     );
   });
 
-  function processCoordinates(lat, lng) {
+  function processCoordinates(lat, lng, options = {}) {
     currentStreet = '';
     streetInputEl.value = '';
     closeSuggest();
+    currentPinCoords = { lat, lng };
 
     if (userPin) map.removeLayer(userPin);
     userPin = L.marker([lat, lng], {icon: redIcon}).addTo(map);
-    map.setView([lat, lng], 16);
+    if (!options.skipZoom) {
+      map.setView([lat, lng], 16);
+    }
 
     const userLocation = turf.point([lng, lat]);
     const matchedRoutes = [];
+    const effectiveCatchment = Math.max(CATCHMENT_METERS, notifyRadiusMeters || 250);
 
     routesData.forEach(route => {
       if (route.geoJSON) {
         const distance = turf.pointToLineDistance(userLocation, route.geoJSON, { units: 'meters' });
 
-        if (distance <= CATCHMENT_METERS) {
+        if (distance <= effectiveCatchment) {
           const { isFutureOrToday, parsedTime } = routeTiming(route);
 
           if (isFutureOrToday) {
             matchedRoutes.push({
               ...route,
               distance: Math.round(distance),
+              estimatedPassTime: computePinEtaText(route, userLocation),
               parsedDate: parsedTime
             });
           }
@@ -813,6 +881,28 @@
     matchedRoutes.sort((a, b) => {
       if (a.parsedDate !== b.parsedDate) return a.parsedDate - b.parsedDate;
       return a.distance - b.distance; 
+    });
+
+    // Immediately sync the dropped pin with Live Tracker so ETA messaging works seamlessly
+    let savedEmail = "";
+    let wasSubscribed = false;
+    try {
+      savedEmail = localStorage.getItem("SANTA_NOTIFY_EMAIL") || "";
+      const prevPin = JSON.parse(localStorage.getItem("SANTA_NOTIFY_POINT") || "null");
+      if (prevPin && prevPin.subscribed && prevPin.email === savedEmail) {
+        wasSubscribed = true;
+      }
+    } catch (e) {}
+
+    broadcastPinToTracker({
+      lat,
+      lng,
+      email: savedEmail,
+      route_id: matchedRoutes[0] ? (matchedRoutes[0].id || matchedRoutes[0].routeId || matchedRoutes[0].routeName) : null,
+      table: tableSlug,
+      confirmed: true,
+      subscribed: wasSubscribed,
+      updated_at: Date.now()
     });
 
     renderResults(matchedRoutes);
@@ -829,6 +919,58 @@
           <br><small style="font-size: 13px; color: var(--text-dim); font-weight: 500;">Try dropping the pin slightly closer to the main road.</small>
         </div>`;
     } else {
+      // If user dropped a pin on the map, render the Doorstep Email Alert signup connected to D1 & Live Tracker
+      if (currentPinCoords) {
+        let savedEmail = "";
+        try { savedEmail = localStorage.getItem("SANTA_NOTIFY_EMAIL") || ""; } catch (e) {}
+        const routeNamesList = matches.map(r => r.routeName).join(" & ");
+
+        resultsDiv.innerHTML += `
+          <div id="doorstepAlertBox" style="background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.16) 0%, rgba(20, 20, 18, 0.96) 100%); border: 2px solid var(--primary); border-radius: 16px; padding: 20px; margin-bottom: 18px; box-shadow: 0 12px 30px rgba(0,0,0,0.45);">
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+              <div>
+                <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(34, 197, 94, 0.16); border: 1px solid rgba(34, 197, 94, 0.45); color: #86efac; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+                  <span>📍 Pin Linked to Live Tracker ETA</span>
+                </div>
+                <h4 style="margin: 0 0 6px; font-family: 'Eurostile', sans-serif; font-size: 20px; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">
+                  🔔 Get a Doorstep Email Alert
+                </h4>
+                <p style="margin: 0; font-size: 13px; color: var(--text-dim); line-height: 1.45;">
+                  Your house pin is saved! Enter your email below and we will automatically email you as soon as Santa comes within <strong style="color: #fff;">${notifyRadiusMeters}m</strong> of your pin on <strong style="color: var(--primary);">${esc(routeNamesList)}</strong> — plus the Live Tracker will show your real-time doorstep ETA.
+                </p>
+              </div>
+            </div>
+            <form id="doorstepAlertForm" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px;" onsubmit="return false;">
+              <input
+                type="email"
+                id="doorstepEmailInput"
+                value="${esc(savedEmail)}"
+                placeholder="Enter your email address for doorstep alerts..."
+                required
+                style="flex: 1 1 220px; min-height: 44px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); background: rgba(0,0,0,0.55); color: #fff; font-size: 14px; font-family: inherit; outline: none;"
+              />
+              <button
+                type="submit"
+                id="doorstepAlertSubmitBtn"
+                style="min-height: 44px; padding: 10px 20px; border-radius: 10px; border: none; background: var(--primary); color: var(--on-primary); font-family: 'Eurostile', sans-serif; font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; cursor: pointer; white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,0.35);"
+              >
+                🔔 Alert Me When Santa Is Near
+              </button>
+            </form>
+            <div id="doorstepAlertFeedback" style="display: none; margin-top: 12px; font-size: 13px; font-weight: 700; padding: 10px 14px; border-radius: 10px;"></div>
+          </div>
+        `;
+      } else {
+        resultsDiv.innerHTML += `
+          <div style="background: rgba(251, 175, 51, 0.1); border: 1px dashed rgba(251, 175, 51, 0.45); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+            <div style="font-size: 13px; color: var(--text); line-height: 1.45;">
+              <strong style="color: var(--primary);">🔔 Want a Doorstep Email Alert & Live Tracker ETA?</strong><br>
+              Tap your house directly on the map above (or click <em>Use My Current Location</em>) to drop your pin!
+            </div>
+          </div>
+        `;
+      }
+
       matches.forEach(route => {
         const formattedDate = fmtRouteDate(route);
 
@@ -840,10 +982,13 @@
           routeDateObj.getMonth() === now.getMonth() &&
           routeDateObj.getDate() === now.getDate()
         );
-        // Pin / GPS lookups know the distance; street lookups know the street name
+        // Pin / GPS lookups know the distance and estimated pass time; street lookups know the street name
         let locationLine = '';
         if (route.distance != null) {
           locationLine = `📍 This route passes roughly <span style="color: var(--text);">${route.distance} meters</span> from your pin.`;
+          if (route.estimatedPassTime) {
+            locationLine += `<br><span style="display:inline-block; margin-top:4px;">⏱️ Estimated time near your pin: <strong style="color: var(--primary);">${esc(route.estimatedPassTime)}</strong> (based on route schedule)</span>`;
+          }
         } else if (currentStreet) {
           locationLine = `📍 Santa visits <span style="color: var(--text);">${esc(currentStreet)}</span> on this route.`;
         }
@@ -928,6 +1073,83 @@
             </div>
           </div>
         `;
+      });
+    }
+
+    const alertForm = document.getElementById('doorstepAlertForm');
+    if (alertForm && currentPinCoords) {
+      alertForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const emailEl = document.getElementById('doorstepEmailInput');
+        const btnEl = document.getElementById('doorstepAlertSubmitBtn');
+        const feedbackEl = document.getElementById('doorstepAlertFeedback');
+        const email = (emailEl.value || '').trim().toLowerCase();
+        if (!email || !email.includes('@')) return;
+
+        btnEl.disabled = true;
+        btnEl.textContent = 'Saving Alert...';
+        feedbackEl.style.display = 'none';
+
+        const routeIds = matches.map(r => String(r.id || r.routeId || r.routeName || '').trim()).filter(Boolean);
+        const primaryRouteId = routeIds[0] || '';
+
+        try {
+          let resOk = false;
+          if (API_URL && API_URL.includes('script.google.com')) {
+            const legacyUrl = `${API_URL}${API_URL.includes('?') ? '&' : '?'}function=subscribe&lat=${currentPinCoords.lat}&lng=${currentPinCoords.lng}&email=${encodeURIComponent(email)}`;
+            const r = await fetch(legacyUrl);
+            const d = await r.json();
+            resOk = Boolean(d && d.ok);
+          } else {
+            const r = await fetch(`${D1_API_BASE}/api/subscribe`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                table: tableSlug,
+                lat: currentPinCoords.lat,
+                lng: currentPinCoords.lng,
+                email,
+                route_id: primaryRouteId,
+                route_ids: routeIds
+              })
+            });
+            const d = await r.json();
+            resOk = Boolean(d && d.ok);
+          }
+
+          if (resOk) {
+            try { localStorage.setItem('SANTA_NOTIFY_EMAIL', email); } catch (err) {}
+            broadcastPinToTracker({
+              lat: currentPinCoords.lat,
+              lng: currentPinCoords.lng,
+              email,
+              route_id: primaryRouteId,
+              route_ids: routeIds,
+              table: tableSlug,
+              confirmed: true,
+              subscribed: true,
+              updated_at: Date.now()
+            });
+
+            btnEl.textContent = '✅ Alert Saved!';
+            feedbackEl.style.display = 'block';
+            feedbackEl.style.background = 'rgba(34, 197, 94, 0.15)';
+            feedbackEl.style.border = '1px solid rgba(34, 197, 94, 0.45)';
+            feedbackEl.style.color = '#86efac';
+            feedbackEl.innerHTML = `✅ <strong>Doorstep Alert Active for ${esc(email)}!</strong> We'll automatically email you when Santa's sleigh comes within ${notifyRadiusMeters}m of your pin, and the Live Tracker above is now linked to your pin for real-time ETA updates.`;
+          } else {
+            throw new Error('Could not save subscription');
+          }
+        } catch (err) {
+          btnEl.disabled = false;
+          btnEl.textContent = '🔔 Alert Me When Santa Is Near';
+          feedbackEl.style.display = 'block';
+          feedbackEl.style.background = 'rgba(239, 68, 68, 0.15)';
+          feedbackEl.style.border = '1px solid rgba(239, 68, 68, 0.45)';
+          feedbackEl.style.color = '#fca5a5';
+          feedbackEl.textContent = 'Could not save your alert right now — please check your connection and try again.';
+        }
+        sendHeight();
       });
     }
 
@@ -1028,6 +1250,7 @@
   // Cards for a street / shared-link lookup (no pin, so no distance)
   function showRouteMatches(routes, street) {
     currentStreet = street || '';
+    currentPinCoords = null;
     if (userPin) { map.removeLayer(userPin); userPin = null; }
 
     const upcoming = routes
@@ -1050,11 +1273,37 @@
     focusRoute(upcoming[0].routeName);
   }
 
-  // Opens a shared link: ?route=NAME (optionally with &street=NAME), or ?street=NAME on its own
+  // Opens a shared link: ?route=NAME (optionally with &street=NAME), ?street=NAME, or restores saved pin
   function applyDeepLink() {
     const routeParam = params.get('route');
     const streetParam = params.get('street');
-    if (!routeParam && !streetParam) return;
+    const pinParam = params.get('pin');
+
+    if (pinParam) {
+      const parts = pinParam.split(',');
+      if (parts.length === 2) {
+        const pLat = parseFloat(parts[0]);
+        const pLng = parseFloat(parts[1]);
+        if (!isNaN(pLat) && !isNaN(pLng)) {
+          processCoordinates(pLat, pLng);
+          return;
+        }
+      }
+    }
+
+    if (!routeParam && !streetParam) {
+      // Restore previously saved house pin for this table if present
+      try {
+        const savedPinRaw = localStorage.getItem("SANTA_NOTIFY_POINT");
+        if (savedPinRaw) {
+          const savedPin = JSON.parse(savedPinRaw);
+          if (savedPin && typeof savedPin.lat === 'number' && typeof savedPin.lng === 'number' && (!savedPin.table || savedPin.table === tableSlug)) {
+            processCoordinates(savedPin.lat, savedPin.lng, { skipZoom: true });
+          }
+        }
+      } catch (e) {}
+      return;
+    }
 
     if (streetParam) streetInputEl.value = streetParam;
 

@@ -309,10 +309,27 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
   const videoMp4 = (bgMode === 'custom_video' && customVideoUrl) ? customVideoUrl : DEFAULT_VIDEO_MP4;
   const videoWebm = (bgMode === 'custom_video' && table.background_video_webm) ? table.background_video_webm : (bgMode === 'custom_video' ? '' : DEFAULT_VIDEO_WEBM);
 
-  // Listen to zero-scroll dynamic iframe height updates
+  // Listen to zero-scroll dynamic iframe height updates & cross-iframe pin sync
   useEffect(() => {
     const handleResizeMsg = (e) => {
-      if (e.data && (e.data.type === 'turbosanta-resize' || e.data.height || e.data.frameHeight || e.data.routesHeight || e.data.letterHeight || e.data.niceListHeight || e.data.santasBeenHeight || e.data.snowmanFrameHeight || e.data.addressLookupHeight)) {
+      if (!e.data) return;
+      if (e.data.type === 'turbosanta-pin-saved' && e.data.pin) {
+        const trackerIframe = document.getElementById('tracker-iframe');
+        if (trackerIframe && trackerIframe.contentWindow) {
+          try {
+            trackerIframe.contentWindow.postMessage(e.data, '*');
+          } catch (_) {}
+        }
+        return;
+      }
+      if (e.data.type === 'turbosanta-scroll-to-routes') {
+        const routesSection = document.getElementById('routes');
+        if (routesSection) {
+          routesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        return;
+      }
+      if (e.data.type === 'turbosanta-resize' || e.data.height || e.data.frameHeight || e.data.routesHeight || e.data.letterHeight || e.data.niceListHeight || e.data.santasBeenHeight || e.data.snowmanFrameHeight || e.data.addressLookupHeight) {
         const h = e.data.height || e.data.frameHeight || e.data.routesHeight || e.data.letterHeight || e.data.niceListHeight || e.data.santasBeenHeight || e.data.snowmanFrameHeight || e.data.addressLookupHeight;
         if (typeof h === 'number' && h > 60) {
           const iframes = document.querySelectorAll('iframe');

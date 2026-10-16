@@ -3189,7 +3189,24 @@
         };
 
         window.addEventListener('message', function (e) {
-            if (e.data && (e.data.type === 'turbosanta-resize' || e.data.height || e.data.frameHeight || e.data.routesHeight || e.data.letterHeight || e.data.niceListHeight || e.data.santasBeenHeight || e.data.snowmanFrameHeight || e.data.addressLookupHeight)) {
+            if (!e.data) return;
+            if (e.data.type === 'turbosanta-pin-saved' && e.data.pin) {
+                var trackerIframe = $('tracker-iframe');
+                if (trackerIframe && trackerIframe.contentWindow) {
+                    try {
+                        trackerIframe.contentWindow.postMessage(e.data, '*');
+                    } catch (_) {}
+                }
+                return;
+            }
+            if (e.data.type === 'turbosanta-scroll-to-routes') {
+                var routesSection = document.getElementById('routes');
+                if (routesSection) {
+                    routesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+                return;
+            }
+            if (e.data.type === 'turbosanta-resize' || e.data.height || e.data.frameHeight || e.data.routesHeight || e.data.letterHeight || e.data.niceListHeight || e.data.santasBeenHeight || e.data.snowmanFrameHeight || e.data.addressLookupHeight) {
                 var h = e.data.height || e.data.frameHeight || e.data.routesHeight || e.data.letterHeight || e.data.niceListHeight || e.data.santasBeenHeight || e.data.snowmanFrameHeight || e.data.addressLookupHeight;
                 if (typeof h === 'number' && h > 60) {
                     var iframes = document.querySelectorAll('iframe');
