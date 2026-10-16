@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <script src="/embed-theme.js"></script>
@@ -262,16 +262,12 @@
 </div>
 
 <script>
-  // Automatically grab the API URL from the browser's address bar
-  const API = new URLSearchParams(location.search).get('api') || '';
+  const params = new URLSearchParams(location.search);
+  const tableSlug = (params.get('table') || 'beverley').toLowerCase();
+  const API = params.get('api') || `https://turbosanta-api.beverley247.workers.dev/api/letter?table=${encodeURIComponent(tableSlug)}`;
 
   async function submitLetter(event) {
     event.preventDefault(); // Stop page from refreshing
-
-    if (!API) {
-      alert("Missing ?api= URL parameter! The letter doesn't know where to fly.");
-      return;
-    }
 
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
@@ -279,6 +275,7 @@
 
     const payload = {
       action: "sendLetterToSanta",
+      tableSlug,
       childName: document.getElementById('childName').value.trim(),
       parentEmail: document.getElementById('parentEmail').value.trim(),
       wishlist: document.getElementById('wishlist').value.trim()
@@ -287,6 +284,7 @@
     try {
       const response = await fetch(API, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
 
@@ -296,8 +294,9 @@
         // Hide the form, show the success message!
         document.getElementById('letterPanel').style.display = 'none';
         document.getElementById('successPanel').style.display = 'block';
+        sendHeight();
       } else {
-        alert("Oh no! The elves dropped the letter: " + result.error);
+        alert("Oh no! The elves dropped the letter: " + (result.error || "Unknown error"));
         btn.disabled = false;
         btn.innerHTML = "Try Again 🚀";
       }
@@ -310,15 +309,13 @@
 
   // Send height to parent window so the iframe can resize
   function sendHeight() {
-    // FIXED: Switched to documentElement.scrollHeight to safely include the new bottom padding
-    const height = document.documentElement.scrollHeight;
-    window.parent.postMessage({ letterHeight: height }, "*");
+    const height = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+    window.parent.postMessage({ letterHeight: height, type: 'turbosanta-resize', height: height + 16 }, "*");
   }
 
   // Send height on load and whenever the success message shows
   window.addEventListener("load", sendHeight);
-  
-  // Create an observer to watch for the success panel showing up
+  if (window.ResizeObserver) new ResizeObserver(sendHeight).observe(document.body);
   const observer = new MutationObserver(sendHeight);
   observer.observe(document.body, { attributes: true, childList: true, subtree: true });
 </script>

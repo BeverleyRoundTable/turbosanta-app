@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <script src="/embed-theme.js"></script>
@@ -321,7 +321,9 @@
 <div class="page-wrap" id="pageWrap"></div>
 
 <script>
-const API = new URLSearchParams(location.search).get('api') || '';
+const params = new URLSearchParams(location.search);
+const tableSlug = (params.get('table') || 'beverley').toLowerCase();
+const API = params.get('api') || `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableSlug)}`;
 let CFG = { logo:'', sleighName:'Santa Sleigh' };
 
 /* ══════════════════════════════════════════════════════════════
@@ -387,9 +389,9 @@ async function init() {
     try {
       const res = await fetch(API);
       const data = await res.json();
-      const s = data.settings || {};
-      CFG.logo = s.logo_overlay_url || '';
-      CFG.sleighName = s.sleigh_display_name || 'Santa Sleigh';
+      const s = data.settings || data.table || {};
+      CFG.logo = s.logo_overlay_url || s.logo_url || '';
+      CFG.sleighName = s.sleigh_display_name || s.name || 'Santa Sleigh';
     } catch(e) {}
   }
   document.getElementById('loader').classList.add('done');
@@ -442,6 +444,21 @@ function generate() {
 
 document.getElementById('childName').addEventListener('input', generate);
 init();
+
+(function() {
+  if (window.self === window.top) return;
+  let lastH = 0;
+  const sendHeight = () => {
+    const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+    if (h > 100 && Math.abs(h - lastH) > 4) {
+      lastH = h;
+      window.parent.postMessage({ type: 'turbosanta-resize', height: h + 16 }, '*');
+    }
+  };
+  window.addEventListener('load', sendHeight);
+  if (window.ResizeObserver) new ResizeObserver(sendHeight).observe(document.body);
+  setInterval(sendHeight, 1000);
+})();
 </script>
 </body>
 </html>

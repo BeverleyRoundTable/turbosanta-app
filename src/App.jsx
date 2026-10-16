@@ -1,11 +1,36 @@
-import React, { useEffect, useState } from 'react';
-import LandingPortal from './components/LandingPortal';
-import PublicSleigh from './components/PublicSleigh';
-import AdminLoginModal from './components/AdminLoginModal';
-import AdminPortal from './components/AdminPortal';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { fetchTablePayload, getTableFallback } from './services/api';
 import { getCurrentSession, logoutAdmin } from './services/auth';
 import { Shield } from 'lucide-react';
+
+const LandingPortal = lazy(() => import('./components/LandingPortal'));
+const PublicSleigh = lazy(() => import('./components/PublicSleigh'));
+const AdminLoginModal = lazy(() => import('./components/AdminLoginModal'));
+const AdminPortal = lazy(() => import('./components/AdminPortal'));
+
+const FullPageLoader = ({ label = 'Loading Sleigh Radar...' }) => (
+  <div style={{
+    minHeight: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1D1D1A'
+  }}>
+    <div style={{
+      width: '54px',
+      height: '54px',
+      border: '4px solid rgba(255,255,255,0.1)',
+      borderTopColor: 'var(--primary, #FBAF33)',
+      borderRadius: '50%',
+      animation: 'spin 1s linear infinite',
+      marginBottom: '20px'
+    }} />
+    <h2 className="brand-font" style={{ color: 'var(--primary, #FBAF33)', fontSize: '22px' }}>
+      {label}
+    </h2>
+  </div>
+);
 
 export default function App() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -124,165 +149,153 @@ export default function App() {
   const isLandingView = (landingRequested || !activeTableSlug) && viewMode !== 'admin';
   if (isLandingView) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <LandingPortal
-          session={adminSession}
-          onOpenLogin={(email) => {
-            if (email) setLoginInitialEmail(email);
-            setIsLoginModalOpen(true);
-          }}
-          onSelectTable={(slug) => {
-            setLandingRequested(false);
-            setActiveTableSlug(slug);
-            const url = new URL(window.location.href);
-            url.searchParams.delete('view');
-            url.searchParams.delete('landing');
-            url.searchParams.set('table', slug);
-            window.history.pushState(null, '', url.pathname + url.search);
-          }}
-        />
+      <Suspense fallback={<FullPageLoader label="Loading TurboSanta Portal..." />}>
+        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+          <LandingPortal
+            session={adminSession}
+            onOpenLogin={(email) => {
+              if (email) setLoginInitialEmail(email);
+              setIsLoginModalOpen(true);
+            }}
+            onSelectTable={(slug) => {
+              setLandingRequested(false);
+              setActiveTableSlug(slug);
+              const url = new URL(window.location.href);
+              url.searchParams.delete('view');
+              url.searchParams.delete('landing');
+              url.searchParams.set('table', slug);
+              window.history.pushState(null, '', url.pathname + url.search);
+            }}
+          />
 
-        {/* Admin Login Modal (Magic Link & Google Workspace) */}
-        <AdminLoginModal
-          isOpen={isLoginModalOpen}
-          initialEmail={loginInitialEmail}
-          onClose={() => setIsLoginModalOpen(false)}
-          onLoginSuccess={(session) => {
-            setAdminSession(session);
-            const slug = session.tableSlug || 'beverley';
-            setActiveTableSlug(slug);
-            setViewMode('admin');
-            setLandingRequested(false);
-            window.history.pushState(null, '', `/?table=${encodeURIComponent(slug)}&admin=1`);
-          }}
-        />
-      </div>
+          {/* Admin Login Modal (Magic Link & Google Workspace) */}
+          {isLoginModalOpen && (
+            <AdminLoginModal
+              isOpen={isLoginModalOpen}
+              initialEmail={loginInitialEmail}
+              onClose={() => setIsLoginModalOpen(false)}
+              onLoginSuccess={(session) => {
+                setAdminSession(session);
+                const slug = session.tableSlug || 'beverley';
+                setActiveTableSlug(slug);
+                setViewMode('admin');
+                setLandingRequested(false);
+                window.history.pushState(null, '', `/?table=${encodeURIComponent(slug)}&admin=1`);
+              }}
+            />
+          )}
+        </div>
+      </Suspense>
     );
   }
 
   if (loading) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#1D1D1A'
-      }}>
-        <div style={{
-          width: '54px',
-          height: '54px',
-          border: '4px solid rgba(255,255,255,0.1)',
-          borderTopColor: 'var(--primary, #FBAF33)',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite',
-          marginBottom: '20px'
-        }} />
-        <h2 className="brand-font" style={{ color: 'var(--primary, #FBAF33)', fontSize: '22px' }}>
-          Loading Sleigh Radar...
-        </h2>
-      </div>
-    );
+    return <FullPageLoader />;
   }
 
   // IF ADMIN VIEW IS ACTIVE AND LOGGED IN
   if (viewMode === 'admin' && adminSession) {
     return (
-      <AdminPortal
-        session={adminSession}
-        onLogout={handleLogout}
-        tableData={tableData}
-        onUpdateTableData={setTableData}
-      />
+      <Suspense fallback={<FullPageLoader label="Loading Mission Control..." />}>
+        <AdminPortal
+          session={adminSession}
+          onLogout={handleLogout}
+          tableData={tableData}
+          onUpdateTableData={setTableData}
+        />
+      </Suspense>
     );
   }
 
   // OPTIMAL PUBLIC SLEIGH TRACKER VIEW
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* If logged in as admin, show subtle top bar with button to switch to God Mode */}
-      {adminSession && (
-        <div style={{
-          background: '#000',
-          borderBottom: '1px solid var(--primary, #FBAF33)',
-          padding: '8px 20px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          fontSize: '12px',
-          position: 'sticky',
-          top: 0,
-          zIndex: 1000
-        }}>
-          <span style={{ color: '#86efac', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Shield size={14} />
-            <span>Signed in as <strong>{adminSession.email}</strong></span>
-          </span>
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <button
-              onClick={() => setViewMode('admin')}
-              className="brand-font"
-              style={{
-                background: 'var(--primary, #FBAF33)',
-                color: '#000',
-                border: 'none',
-                borderRadius: '4px',
-                padding: '6px 12px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                fontSize: '11px',
-                letterSpacing: '1px'
-              }}
-            >
-              Open God Mode Dashboard
-            </button>
-            <button
-              onClick={handleLogout}
-              style={{
-                background: 'rgba(239, 68, 68, 0.15)',
-                color: '#fca5a5',
-                border: '1px solid #7f1d1d',
-                borderRadius: '4px',
-                padding: '6px 12px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontSize: '11px'
-              }}
-            >
-              Sign Out
-            </button>
+    <Suspense fallback={<FullPageLoader />}>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        {/* If logged in as admin, show subtle top bar with button to switch to God Mode */}
+        {adminSession && (
+          <div style={{
+            background: '#000',
+            borderBottom: '1px solid var(--primary, #FBAF33)',
+            padding: '8px 20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontSize: '12px',
+            position: 'sticky',
+            top: 0,
+            zIndex: 1000
+          }}>
+            <span style={{ color: '#86efac', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Shield size={14} />
+              <span>Signed in as <strong>{adminSession.email}</strong></span>
+            </span>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <button
+                onClick={() => setViewMode('admin')}
+                className="brand-font"
+                style={{
+                  background: 'var(--primary, #FBAF33)',
+                  color: '#000',
+                  border: 'none',
+                  borderRadius: '4px',
+                  padding: '6px 12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  fontSize: '11px',
+                  letterSpacing: '1px'
+                }}
+              >
+                Open God Mode Dashboard
+              </button>
+              <button
+                onClick={handleLogout}
+                style={{
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  color: '#fca5a5',
+                  border: '1px solid #7f1d1d',
+                  borderRadius: '4px',
+                  padding: '6px 12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontSize: '11px'
+                }}
+              >
+                Sign Out
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* The Optimal Santa Sleigh Public Page */}
-      <PublicSleigh
-        tableData={tableData}
-        activeTableSlug={activeTableSlug}
-        onOpenLogin={() => {
-          if (adminSession) {
-            setViewMode('admin');
-          } else {
-            setIsLoginModalOpen(true);
-          }
-        }}
-      />
+        {/* The Optimal Santa Sleigh Public Page */}
+        <PublicSleigh
+          tableData={tableData}
+          activeTableSlug={activeTableSlug}
+          onOpenLogin={() => {
+            if (adminSession) {
+              setViewMode('admin');
+            } else {
+              setIsLoginModalOpen(true);
+            }
+          }}
+        />
 
-      {/* Admin Login Modal (Magic Link & Google Workspace) */}
-      <AdminLoginModal
-        isOpen={isLoginModalOpen}
-        initialEmail={loginInitialEmail}
-        onClose={() => setIsLoginModalOpen(false)}
-        onLoginSuccess={(session) => {
-          setAdminSession(session);
-          const slug = session.tableSlug || activeTableSlug || 'beverley';
-          setActiveTableSlug(slug);
-          setViewMode('admin');
-          setLandingRequested(false);
-          window.history.pushState(null, '', `/?table=${encodeURIComponent(slug)}&admin=1`);
-        }}
-      />
-    </div>
+        {/* Admin Login Modal (Magic Link & Google Workspace) */}
+        {isLoginModalOpen && (
+          <AdminLoginModal
+            isOpen={isLoginModalOpen}
+            initialEmail={loginInitialEmail}
+            onClose={() => setIsLoginModalOpen(false)}
+            onLoginSuccess={(session) => {
+              setAdminSession(session);
+              const slug = session.tableSlug || activeTableSlug || 'beverley';
+              setActiveTableSlug(slug);
+              setViewMode('admin');
+              setLandingRequested(false);
+              window.history.pushState(null, '', `/?table=${encodeURIComponent(slug)}&admin=1`);
+            }}
+          />
+        )}
+      </div>
+    </Suspense>
   );
 }

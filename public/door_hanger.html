@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <script src="/embed-theme.js"></script>
@@ -362,31 +362,38 @@
 <div class="preview-area" id="preview"></div>
 
 <script>
-const API = new URLSearchParams(location.search).get('api') || '';
+const params = new URLSearchParams(location.search);
+const tableSlug = (params.get('table') || 'beverley').toLowerCase();
+const API = params.get('api') || `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableSlug)}`;
 let CFG = { logo:'', sleighName:'', trackerUrl:'', routes:[] };
 
 async function init() {
-  if (!API) { alert('Missing ?api= parameter'); return; }
   try {
     const res = await fetch(API);
     const data = await res.json();
-    const s = data.settings || {};
-    CFG.logo = s.logo_overlay_url || '';
-    CFG.sleighName = s.sleigh_display_name || 'Santa Sleigh';
-    CFG.trackerUrl = s.tracker_url || '';
-    CFG.routes = (data.routes || []).filter(r => r.routeName && r.date);
+    const s = data.settings || data.table || {};
+    CFG.logo = s.logo_overlay_url || s.logo_url || '';
+    CFG.sleighName = s.sleigh_display_name || s.name || 'Santa Sleigh';
+    CFG.trackerUrl = s.tracker_url || `https://${tableSlug}.roundtablesantasleigh.co.uk/tracker`;
+    CFG.routes = (data.routes || []).map(r => ({
+      ...r,
+      routeName: r.routeName || r.name || '',
+      date: r.date || '',
+      "Start Time": r["Start Time"] || r.start_time || '',
+      "End Time": r["End Time"] || r.end_time || ''
+    })).filter(r => r.routeName && r.date);
     
     const sel = document.getElementById('routeSelect');
     sel.innerHTML = '<option value="">— No route shown —</option>';
 
     CFG.routes.forEach(r => {
-  const d = new Date(r.date + 'T00:00:00');
-  const startTime = r["Start Time"] || "";
-  const endTime = r["End Time"] || "";
-  const timeStr = startTime ? ` (${startTime}–${endTime})` : "";
-  const label = `${r.routeName} — ${d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}${timeStr}`;
-  sel.innerHTML += `<option value="${r.routeName}" data-date="${r.date}" data-start="${startTime}" data-end="${endTime}">${label}</option>`;
-});
+      const d = new Date(r.date + 'T00:00:00');
+      const startTime = r["Start Time"] || "";
+      const endTime = r["End Time"] || "";
+      const timeStr = startTime ? ` (${startTime}–${endTime})` : "";
+      const label = `${r.routeName} — ${d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}${timeStr}`;
+      sel.innerHTML += `<option value="${r.routeName}" data-date="${r.date}" data-start="${startTime}" data-end="${endTime}">${label}</option>`;
+    });
   } catch(e) { console.error('API load failed:', e); }
   
   document.getElementById('loader').classList.add('done');
@@ -472,7 +479,7 @@ function generate() {
   
   container.innerHTML = html;
   
-  const qrTarget = CFG.trackerUrl || ('https://roundtablesantasleigh.co.uk/tracker.html?table=' + encodeURIComponent(tableSlug));
+  const qrTarget = CFG.trackerUrl || `https://${tableSlug}.roundtablesantasleigh.co.uk/tracker`;
   
   for (let i = 0; i < count; i++) {
     const slot = document.getElementById('qrSlot_' + i);
@@ -494,6 +501,21 @@ function generate() {
 ['headline','routeSelect','hangerCount'].forEach(id => document.getElementById(id).addEventListener('change', generate));
 
 init();
+
+(function() {
+  if (window.self === window.top) return;
+  let lastH = 0;
+  const sendHeight = () => {
+    const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+    if (h > 100 && Math.abs(h - lastH) > 4) {
+      lastH = h;
+      window.parent.postMessage({ type: 'turbosanta-resize', height: h + 16 }, '*');
+    }
+  };
+  window.addEventListener('load', sendHeight);
+  if (window.ResizeObserver) new ResizeObserver(sendHeight).observe(document.body);
+  setInterval(sendHeight, 1000);
+})();
 </script>
 </body>
 </html>

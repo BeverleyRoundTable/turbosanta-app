@@ -953,6 +953,21 @@
         resetModal();
         loadGallery(numYear);
       });
+
+      (function() {
+        if (window.self === window.top) return;
+        let lastH = 0;
+        const sendHeight = () => {
+          const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+          if (h > 100 && Math.abs(h - lastH) > 4) {
+            lastH = h;
+            window.parent.postMessage({ type: 'turbosanta-resize', height: h + 16 }, '*');
+          }
+        };
+        window.addEventListener('load', sendHeight);
+        if (window.ResizeObserver) new ResizeObserver(sendHeight).observe(document.body);
+        setInterval(sendHeight, 1000);
+      })();
     });
   </script>
 </body>

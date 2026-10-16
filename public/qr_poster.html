@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -398,7 +398,9 @@
 </div>
 
 <script>
-const API = new URLSearchParams(location.search).get('api') || '';
+const params = new URLSearchParams(location.search);
+const tableSlug = (params.get('table') || 'beverley').toLowerCase();
+const API = params.get('api') || `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableSlug)}`;
 
 const STATE = {
   settings: {},
@@ -406,19 +408,25 @@ const STATE = {
   selectedRoute: 0
 };
 
-if (!API) {
-  document.getElementById('controlsInner').innerHTML = 
-    '<div style="text-align:center; font-family:\'DM Mono\',monospace; font-size:12px; color:var(--red); padding:40px; text-transform:uppercase; letter-spacing:1px;">Missing ?api= parameter</div>';
-} else {
-  init();
-}
+init();
 
 async function init() {
   try {
     const res = await fetch(API);
     const data = await res.json();
-    STATE.settings = data.settings || {};
-    STATE.routes = data.routes || [];
+    STATE.settings = data.settings || data.table || {};
+    const rawStreets = data.streets || [];
+    STATE.routes = (data.routes || []).map(r => {
+      const routeStreets = r.streets || rawStreets.filter(s => s.route_id === r.id).map(s => s.street_name).join(', ') || '';
+      return {
+        ...r,
+        routeName: r.routeName || r.name || 'Santa Route',
+        date: r.date || '',
+        streets: routeStreets,
+        "Start Time": r["Start Time"] || r.start_time || '',
+        "End Time": r["End Time"] || r.end_time || ''
+      };
+    });
 
     if (!STATE.routes.length) {
       document.getElementById('controlsInner').innerHTML = '<div style="text-align:center; font-family:\'DM Mono\',monospace; font-size:12px; color:var(--text-muted); padding:40px; text-transform:uppercase; letter-spacing:1px;">No routes found.</div>';
@@ -478,19 +486,21 @@ function generatePoster(idx) {
 
   const s = STATE.settings;
   const headline = document.getElementById('customHeadline')?.value || "SANTA'S COMING TO YOUR STREET!";
-  const trackerUrl = s.tracker_url || `https://track.sleigh.com/?api=${encodeURIComponent(API)}`;
+  const trackerUrl = s.tracker_url || `https://${tableSlug}.roundtablesantasleigh.co.uk/tracker`;
+  const logoUrl = s.logo_overlay_url || s.logo_url || '';
+  const sleighName = s.sleigh_display_name || s.name || 'Santa Sleigh';
 
   const streets = (route.streets || '').split(',').map(s => s.trim()).filter(Boolean);
   const streetsHtml = streets.join('<span class="separator">·</span>');
-const startTime = route["Start Time"] || "";
-const endTime = route["End Time"] || "";
-const timeHtml = startTime ? `<div class="day-name" style="margin-top:8px;">${startTime} – ${endTime}</div>` : "";
+  const startTime = route["Start Time"] || "";
+  const endTime = route["End Time"] || "";
+  const timeHtml = startTime ? `<div class="day-name" style="margin-top:8px;">${startTime} – ${endTime}</div>` : "";
   
   let h = `
     <div class="poster-accent-top"></div>
     <div class="poster-content">
-      ${s.logo_overlay_url ? `<img class="poster-logo" src="${s.logo_overlay_url}">` : ''}
-      <div class="poster-sleigh-name">${s.sleigh_display_name || 'Santa Sleigh'}</div>
+      ${logoUrl ? `<img class="poster-logo" src="${logoUrl}">` : ''}
+      <div class="poster-sleigh-name">${sleighName}</div>
       <div class="poster-headline">${headline}</div>
       <div class="poster-subline">${route.routeName || ''}</div>
       
@@ -510,8 +520,8 @@ const timeHtml = startTime ? `<div class="day-name" style="margin-top:8px;">${st
       </div>
     </div>
     <div class="poster-footer">
-      ${s.logo_overlay_url ? `<img src="${s.logo_overlay_url}">` : ''}
-      <span class="footer-text">${s.sleigh_display_name || 'Round Table'} · <span>TurboSanta</span></span>
+      ${logoUrl ? `<img src="${logoUrl}">` : ''}
+      <span class="footer-text">${sleighName} · <span>TurboSanta</span></span>
     </div>
   `;
 

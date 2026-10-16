@@ -527,7 +527,20 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
   const rawSlot1 = resolveSlot(table.public_slot_1);
   const rawSlot2 = resolveSlot(table.public_slot_2);
   const slot1Meta = rawSlot1 && PUBLIC_FEATURE_CATALOG[rawSlot1] ? PUBLIC_FEATURE_CATALOG[rawSlot1] : null;
+  const slot2Meta = rawSlot2 && rawSlot2 !== rawSlot1 && PUBLIC_FEATURE_CATALOG[rawSlot2] ? PUBLIC_FEATURE_CATALOG[rawSlot2] : null;
   const activeSlots = [slot1Meta, slot2Meta].filter(Boolean);
+
+  const cleanSlug = (activeTableSlug || table.slug || 'beverley').toLowerCase().trim();
+  const isPrettyHost = typeof window !== 'undefined' && window.location.hostname.toLowerCase().includes('roundtablesantasleigh.co.uk');
+  const trackerFullUrl = isPrettyHost
+    ? `https://${cleanSlug}.roundtablesantasleigh.co.uk/tracker`
+    : `/tracker.html?table=${encodeURIComponent(cleanSlug)}`;
+  const crewFullUrl = isPrettyHost
+    ? `https://${cleanSlug}.roundtablesantasleigh.co.uk/crew`
+    : `/crew.html?table=${encodeURIComponent(cleanSlug)}`;
+  const giftAidFullUrl = isPrettyHost
+    ? `https://${cleanSlug}.roundtablesantasleigh.co.uk/giftaid`
+    : `/gift_aid.html?table=${encodeURIComponent(cleanSlug)}`;
 
   const heroPartners = useMemo(() => {
     if (Array.isArray(tableData?.partners) && tableData.partners.length > 0) {
@@ -928,25 +941,61 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
             />
           </div>
 
-          <a
-            id="tracker-fullscreen"
-            href={`/tracker.html?table=${encodeURIComponent(activeTableSlug)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="brand-font"
-            style={{
-              display: 'block',
-              textAlign: 'center',
-              marginTop: '16px',
-              color: 'var(--primary)',
-              fontWeight: 700,
-              fontSize: '14px',
-              textDecoration: 'none',
-              letterSpacing: '1px'
-            }}
-          >
-            Open the tracker full-screen &rarr;
-          </a>
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '14px',
+            marginTop: '18px'
+          }}>
+            <a
+              id="tracker-fullscreen"
+              href={trackerFullUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="brand-font"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '9px 18px',
+                borderRadius: '999px',
+                background: 'rgba(251, 175, 51, 0.12)',
+                border: '1px solid rgba(251, 175, 51, 0.35)',
+                color: 'var(--primary)',
+                fontWeight: 700,
+                fontSize: '13px',
+                textDecoration: 'none',
+                letterSpacing: '0.8px',
+                textTransform: 'uppercase'
+              }}
+            >
+              Open Tracker Full-Screen &rarr;
+            </a>
+
+            <a
+              href="#routes"
+              className="brand-font"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '9px 18px',
+                borderRadius: '999px',
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid var(--border)',
+                color: '#FFFFFF',
+                fontWeight: 700,
+                fontSize: '13px',
+                textDecoration: 'none',
+                letterSpacing: '0.8px',
+                textTransform: 'uppercase'
+              }}
+            >
+              🔔 Get Doorstep Email Alert &rarr;
+            </a>
+          </div>
         </section>
 
         {/* 2. Donations & Volunteering Section */}
@@ -1019,6 +1068,27 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                 Donate Now
               </a>
             )}
+
+            {Boolean(table.enable_gift_aid) && (
+              <div style={{ marginTop: '18px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                <a
+                  href={giftAidFullUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    color: '#86efac',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    textDecoration: 'none'
+                  }}
+                >
+                  <span>✨ Donated at the sleigh? Boost it by 25% for free with Gift Aid &rarr;</span>
+                </a>
+              </div>
+            )}
           </div>
 
           {/* Volunteer Banner */}
@@ -1049,7 +1119,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
               </p>
             </div>
             <a
-              href={`/crew.html?table=${encodeURIComponent(activeTableSlug)}`}
+              href={crewFullUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="brand-font"
@@ -1475,6 +1545,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
               id="memory-book-iframe"
               src={`/memory_book.html?table=${encodeURIComponent(activeTableSlug)}`}
               height="960"
+              scrolling="no"
               title="Community Polaroids"
               loading="lazy"
               allow="camera; microphone; geolocation"

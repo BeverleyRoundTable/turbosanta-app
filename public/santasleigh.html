@@ -1420,9 +1420,14 @@
                     <span class="chrome-pulse" aria-hidden="true"></span>
                     <span>Sleigh Radar Feed</span>
                 </div>
-                <a id="tracker-fullscreen" class="tracker-fs" href="#" target="_blank" rel="noopener" hidden>
-                    <span>Full Screen</span> <i class="fa-solid fa-up-right-from-square"></i>
-                </a>
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <a href="#routes" class="tracker-fs" style="background: rgba(255,255,255,0.06); border-color: var(--border); color: var(--text-main);">
+                        <i class="fa-solid fa-bell" style="color: var(--primary);"></i> <span>Doorstep Alert</span>
+                    </a>
+                    <a id="tracker-fullscreen" class="tracker-fs" href="#" target="_blank" rel="noopener" hidden>
+                        <span>Full Screen</span> <i class="fa-solid fa-up-right-from-square"></i>
+                    </a>
+                </div>
             </div>
             <iframe id="tracker-iframe" height="600" title="Santa Tracker" allow="geolocation; screen-wake-lock" scrolling="no"></iframe>
         </div>
@@ -1448,6 +1453,12 @@
                 </div>
                 <p id="donation-updated-wrap" class="thermo-updated">Last updated: <span id="donation-updated">Recently</span></p>
                 <a href="#" id="donate-btn" class="btn" target="_blank" rel="noopener noreferrer" style="display: none;"><i class="fa-solid fa-hand-holding-heart"></i> Donate Now</a>
+                <div id="giftaid-boost-wrap" style="display: none; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border);">
+                    <a href="#" id="giftaid-boost-btn" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 6px; color: #86efac; font-size: 13px; font-weight: 700; text-decoration: none;">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span>Donated at the sleigh? Boost it by 25% for free with Gift Aid &rarr;</span>
+                    </a>
+                </div>
             </div>
 
             <div id="volunteer-container" class="volunteer-wrap" style="display: none;">
@@ -1511,7 +1522,7 @@
             <p id="memory-book-desc">Spotted Santa? Help us build our digital memory book and share your photos!</p>
         </div>
         <div class="iframe-container">
-            <iframe id="memory-book-iframe" height="900" title="Santa Memory Book" loading="lazy" allow="camera; microphone; geolocation"></iframe>
+            <iframe id="memory-book-iframe" height="900" scrolling="no" title="Santa Memory Book" loading="lazy" allow="camera; microphone; geolocation"></iframe>
         </div>
     </section>
 
@@ -2233,7 +2244,7 @@
             if (host.length <= suffix.length || host.slice(-suffix.length) !== suffix) return '';
             const sub = host.slice(0, -suffix.length);
             if (!/^[a-z0-9-]+$/.test(sub) || sub === 'www' || /tracker$/.test(sub)) return '';
-            return location.protocol + '//' + sub + 'tracker' + suffix;
+            return location.protocol + '//' + sub + suffix + '/tracker';
         }
 
         function prettyCrewUrl() {
@@ -2244,7 +2255,7 @@
             if (host.length <= suffix.length || host.slice(-suffix.length) !== suffix) return '';
             const sub = host.slice(0, -suffix.length);
             if (!/^[a-z0-9-]+$/.test(sub) || sub === 'www' || /tracker$/.test(sub) || /crew$/.test(sub)) return '';
-            return location.protocol + '//' + sub + 'crew' + suffix;
+            return location.protocol + '//' + sub + suffix + '/crew';
         }
 
         function prettyAddressesUrl() {
@@ -2255,7 +2266,18 @@
             if (host.length <= suffix.length || host.slice(-suffix.length) !== suffix) return '';
             const sub = host.slice(0, -suffix.length);
             if (!/^[a-z0-9-]+$/.test(sub) || sub === 'www' || /tracker$/.test(sub) || /crew$/.test(sub) || /addresses$/.test(sub)) return '';
-            return location.protocol + '//' + sub + 'addresses' + suffix;
+            return location.protocol + '//' + sub + suffix + '/address';
+        }
+
+        function prettyGiftAidUrl() {
+            const domain = String(CFG.prettyDomain || '').toLowerCase();
+            if (!domain) return '';
+            const host = location.hostname.toLowerCase();
+            const suffix = '.' + domain;
+            if (host.length <= suffix.length || host.slice(-suffix.length) !== suffix) return '';
+            const sub = host.slice(0, -suffix.length);
+            if (!/^[a-z0-9-]+$/.test(sub) || sub === 'www') return '';
+            return location.protocol + '//' + sub + suffix + '/giftaid';
         }
 
         function renderFrames(api) {
@@ -2307,6 +2329,19 @@
             } else {
                 donateBtn.style.display = 'none';
             }
+
+            const gaWrap = $('giftaid-boost-wrap');
+            const gaBtn = $('giftaid-boost-btn');
+            if (gaWrap && gaBtn) {
+                if (settings.enable_gift_aid) {
+                    const fallbackGaUrl = `${CFG.frameBase}/gift_aid.html?table=${encodeURIComponent(table)}`;
+                    gaBtn.href = prettyGiftAidUrl() || fallbackGaUrl;
+                    gaWrap.style.display = 'block';
+                } else {
+                    gaWrap.style.display = 'none';
+                }
+            }
+
             card.style.display = (hasTarget || donateUrl) ? 'flex' : 'none';
             const faqOnline = $('faq-online-donate');
             if (faqOnline) faqOnline.hidden = !donateUrl;

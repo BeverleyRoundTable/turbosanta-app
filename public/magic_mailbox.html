@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <script src="/embed-theme.js"></script>
@@ -370,8 +370,10 @@
 </div>
 
 <script>
-const API   = new URLSearchParams(location.search).get('api')   || '';
-const ROUTE = new URLSearchParams(location.search).get('route') || '';
+const params = new URLSearchParams(location.search);
+const tableSlug = (params.get('table') || 'beverley').toLowerCase();
+const API   = params.get('api')   || '';
+const ROUTE = params.get('route') || '';
 
 let mediaRecorder = null;
 let audioChunks   = [];
@@ -384,28 +386,28 @@ let mailboxCapacity = 999;
 let mailboxCount = 0;
 
 document.addEventListener("DOMContentLoaded", () => {
-  if (!API) {
-    document.getElementById('initArea').innerHTML =
-      '<div class="error-msg">Missing <strong>?api=</strong> parameter.</div>';
-    return;
-  }
   init();
 });
 
 async function init() {
   try {
-    const res = await fetch(`${API}?function=getRoutes`);
+    const fetchUrl = API ? `${API}?function=getRoutes` : `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableSlug)}`;
+    const res = await fetch(fetchUrl);
     const data = await res.json();
-    if (!data.settings) throw new Error("Couldn't reach Lapland.");
+    const settings = data.settings || data.table;
+    if (!settings) throw new Error("Couldn't reach Lapland.");
 
-    const enabled = String(data.settings.enable_magic_mailbox || '').toUpperCase() === 'TRUE';
+    const enabledVal = settings.enable_magic_mailbox;
+    const enabled = enabledVal === undefined || enabledVal === null || enabledVal === ''
+      ? true
+      : (String(enabledVal).toUpperCase() === 'TRUE' || enabledVal === 1 || enabledVal === true);
 
     // Set sleigh name in success message
     document.getElementById('sleighName').textContent =
-      data.settings.sleigh_display_name || 'Santa Sleigh';
+      settings.sleigh_display_name || settings.name || 'Santa Sleigh';
 
     // Wire up donate link on closed card if URL exists
-    const donateUrl = (data.settings.donate_url || '').trim();
+    const donateUrl = (settings.donate_url || '').trim();
     if (donateUrl) {
       const dBtn = document.getElementById('closedDonate');
       dBtn.href = donateUrl;
@@ -418,43 +420,46 @@ async function init() {
       return;
     }
 
-    // Route-window check — open only when a route is today or within 10 days
+    // Route-window check — open only when a route is today or within 10 days (or if no routes configured yet, allow testing)
     const now = new Date();
     const todayStr = now.toISOString().slice(0, 10);
-    const routeDates = (data.routes || []).map(r => new Date(r.date));
-    const hasRouteToday = (data.routes || []).some(r => r.date === todayStr);
+    const routesList = data.routes || [];
+    const routeDates = routesList.map(r => new Date(r.date));
+    const hasRouteToday = routesList.some(r => r.date === todayStr);
     const futureRoutes = routeDates.filter(d => d > now).sort((a, b) => a - b);
     const daysUntilNext = futureRoutes.length > 0
       ? (futureRoutes[0] - now) / (1000 * 60 * 60 * 24)
       : Infinity;
 
-    if (!hasRouteToday && daysUntilNext >= 10) {
+    if (routesList.length > 0 && !hasRouteToday && daysUntilNext >= 10 && String(settings.enable_magic_mailbox || '').toUpperCase() !== 'TRUE') {
       document.getElementById('initArea').classList.add('hidden');
       document.getElementById('closedStep').classList.remove('hidden');
       return;
     }
 
     // Capacity check (optional setting)
-    mailboxCapacity = parseInt(data.settings.magic_mailbox_capacity, 10) || 999;
+    mailboxCapacity = parseInt(settings.magic_mailbox_capacity, 10) || 999;
 
     // Quick capacity ping
-    try {
-      const cap = await fetch(`${API}?function=getMailboxCapacity`);
-      const capData = await cap.json();
-      mailboxCount = capData.todayCount || 0;
+    if (API) {
+      try {
+        const cap = await fetch(`${API}?function=getMailboxCapacity`);
+        const capData = await cap.json();
+        mailboxCount = capData.todayCount || 0;
 
-      if (mailboxCount >= mailboxCapacity) {
-        document.getElementById('initArea').classList.add('hidden');
-        document.getElementById('fullStep').classList.remove('hidden');
-        return;
-      }
-    } catch(e) { /* non-fatal */ }
+        if (mailboxCount >= mailboxCapacity) {
+          document.getElementById('initArea').classList.add('hidden');
+          document.getElementById('fullStep').classList.remove('hidden');
+          return;
+        }
+      } catch(e) { /* non-fatal */ }
+    }
 
     // Consent text from settings (per-table customisable)
     const defaultConsent =
-      `Recordings are sent to a Round Table volunteer who personally records a reply, just like a video message. Audio is stored securely on the Table's private Google Drive and deleted within 30 days. Your email is used solely to send the reply and is never shared.`;
+      `Recordings are sent to a Round Table volunteer who personally records a reply, just like a video message. Audio is stored securely and deleted within 30 days. Your email is used solely to send the reply and is never shared.`;
     document.getElementById('consentTextHolder').textContent =
-      data.settings.magic_mailbox_consent_text || defaultConsent;
+      settings.magic_mailbox_consent_text || defaultConsent;
 
     document.getElementById('initArea').classList.add('hidden');
     document.getElementById('recordStep').classList.remove('hidden');
@@ -629,6 +634,21 @@ function blobToBase64(blob) {
     r.readAsDataURL(blob);
   });
 }
+
+(function() {
+  if (window.self === window.top) return;
+  let lastH = 0;
+  const sendHeight = () => {
+    const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+    if (h > 100 && Math.abs(h - lastH) > 4) {
+      lastH = h;
+      window.parent.postMessage({ type: 'turbosanta-resize', height: h + 16 }, '*');
+    }
+  };
+  window.addEventListener('load', sendHeight);
+  if (window.ResizeObserver) new ResizeObserver(sendHeight).observe(document.body);
+  setInterval(sendHeight, 1000);
+})();
 </script>
 </body>
 </html>
