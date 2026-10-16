@@ -1413,7 +1413,7 @@ function renderHeroStats(data) {
 }
 
 function renderTicker(data) {
-  const announcements = data.filter(d => d.announcement).map(d => `<b>${escHtml(d.name)}:</b> ${escHtml(d.announcement)}`);
+  const announcements = data.filter(d => d.announcement).map(d => `<b>${escHtml(shortenName(d))}:</b> ${escHtml(d.announcement)}`);
   const wrap = document.getElementById('tickerWrap');
   const txt = document.getElementById('tickerText');
   if (announcements.length > 0 && currentMode === "live") {
@@ -1458,7 +1458,7 @@ function renderLeaderboard(data) {
     body.innerHTML += `
       <div class="lb-row">
         <div class="lb-rank">${i + 1}</div>
-        <div class="lb-name">${escHtml(d.name)} ${statusHtml} ${progressHtml}</div>
+        <div class="lb-name" title="${escHtml(d.name)}">${escHtml(shortenName(d))} ${statusHtml} ${progressHtml}</div>
         <div class="lb-val" style="color: #aaa;">£${Math.round(d.raised || 0).toLocaleString('en-GB')}</div>
         <div class="lb-val" style="color: var(--green);">+£${Math.round(d.giftAid || 0).toLocaleString('en-GB')}</div>
         <div class="lb-val" style="color: var(--red);">£${Math.round(d.expenses || 0).toLocaleString('en-GB')}</div>
@@ -1701,7 +1701,7 @@ function renderErrors(errors) {
     <div class="section-head" style="margin-top:32px;">
       <h2>Connection Issues</h2>
     </div>
-    ${errors.map(e => `<div class="error-card"><strong>${escHtml(e.name)}</strong> — ${escHtml(e.error)}</div>`).join('')}
+    ${errors.map(e => `<div class="error-card"><strong>${escHtml(shortenName(e))}</strong> — ${escHtml(e.error)}</div>`).join('')}
   `;
 }
 
@@ -1788,7 +1788,7 @@ async function renderMap(data) {
         const donateBtn = table.donateUrl ? `<a href="${escHtml(table.donateUrl)}" target="_blank" style="display:inline-block; margin-top:8px; padding:6px 14px; background:#FBAF33; color:#000; text-decoration:none; font-family:'Eurostile',sans-serif; text-transform:uppercase; letter-spacing:0.8px; font-weight:700; font-size:11px; border-radius:6px;">Donate Online</a>` : '';
 
         const popupContent = `
-          <div class="map-popup-title">${escHtml(table.name)}</div>
+          <div class="map-popup-title">${escHtml(shortenName(table))}</div>
           ${routeInfo}
           ${locationText}
           <div style="font-family: 'DM Mono', monospace; font-size: 12px; margin-top:4px;">Raised: <b>£${Math.round(table.raised).toLocaleString('en-GB')}</b></div>

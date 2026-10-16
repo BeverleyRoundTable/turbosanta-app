@@ -77,6 +77,16 @@ function formatRouteDateWithWeekday(dateStr) {
   return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+function formatTownNameFromSlug(slug) {
+  if (!slug) return 'Round Table';
+  const clean = String(slug).replace(/[-_]?(table|sleigh|\d+)$/gi, '');
+  return clean
+    .split(/[-_]+/)
+    .filter(Boolean)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ') || 'Round Table';
+}
+
 export default function AdminPortal({ session, onLogout, tableData, onUpdateTableData }) {
   const [activeTab, setActiveTab] = useState('announcements'); // Default to announcements
   const [announcementText, setAnnouncementText] = useState(tableData?.table?.live_announcement || '');
@@ -86,6 +96,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   const [detectStatus, setDetectStatus] = useState('');
 
   const currentTableSlug = session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley';
+  const cleanTown = formatTownNameFromSlug(currentTableSlug);
+  const standardSleighDisplayName = `${cleanTown} Round Table Santa Sleigh`;
   const isMasterAdmin = currentTableSlug === 'beverley' || session?.tableId === 'beverley' || isNationalAdmin(session?.email);
 
   // Live Auto-Refresh for Admin Mission Control (every 5 seconds)
@@ -654,7 +666,7 @@ ${tableName} Organizers`
 
   // Settings State
   const [formData, setFormData] = useState({
-    sleigh_display_name: tableData?.table?.sleigh_display_name || (session?.tableName ? `${session.tableName.replace(/\s*\(National Admin\)/, '')} Santa Sleigh` : 'Beverley Round Table Santa Sleigh'),
+    sleigh_display_name: standardSleighDisplayName,
     fundraising_goal: tableData?.table?.fundraising_goal || 8000,
     donate_url: tableData?.table?.donate_url || 'https://www.zeffy.com/en-GB/donation-form/beverley-round-table-for-our-community',
     logo_url: (tableData?.table?.logo_url && tableData.table.logo_url !== '/icons/RTBI_Santa.png') ? tableData.table.logo_url : '',
@@ -749,7 +761,7 @@ ${tableName} Organizers`
       hasLoadedFormDataRef.current = true;
       setFormData(prev => ({
         ...prev,
-        sleigh_display_name: tableData.table.sleigh_display_name || prev.sleigh_display_name,
+        sleigh_display_name: standardSleighDisplayName,
         fundraising_goal: tableData.table.fundraising_goal !== undefined && tableData.table.fundraising_goal !== null ? tableData.table.fundraising_goal : prev.fundraising_goal,
         donate_url: tableData.table.donate_url || prev.donate_url,
         logo_url: (tableData.table.logo_url && tableData.table.logo_url !== '/icons/RTBI_Santa.png')
@@ -4655,28 +4667,37 @@ ${tableName} Organizers`
 
             <div style={{ display: 'grid', gap: '20px', maxWidth: '100%' }}>
               <div style={{ minWidth: 0 }}>
-                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>
-                  Sleigh Display Name
-                </label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
+                  <label style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>Sleigh Display Name</span>
+                    <span style={{ fontSize: '11px', background: 'rgba(251, 175, 51, 0.15)', color: '#FBAF33', border: '1px solid rgba(251, 175, 51, 0.3)', borderRadius: '4px', padding: '1px 6px', fontWeight: 600 }}>
+                      🔒 Brand Standard Locked
+                    </span>
+                  </label>
+                </div>
                 <input
                   type="text"
-                  value={formData.sleigh_display_name || ''}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setFormData(prev => ({ ...prev, sleigh_display_name: val }));
-                  }}
+                  value={standardSleighDisplayName}
+                  readOnly
+                  disabled
                   style={{
                     width: '100%',
                     maxWidth: '100%',
                     boxSizing: 'border-box',
-                    background: '#0d0d0b',
-                    border: '1px solid var(--border)',
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
                     borderRadius: '8px',
                     padding: '10px 14px',
-                    color: '#fff',
-                    fontSize: '15px'
+                    color: 'rgba(255, 255, 255, 0.85)',
+                    fontSize: '15px',
+                    fontWeight: 600,
+                    cursor: 'not-allowed',
+                    userSelect: 'all'
                   }}
                 />
+                <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                  Protected by Round Table Brand Guidelines. All tables are automatically standardised as <strong>[Town] Round Table Santa Sleigh</strong> across the public tracker, apps, and national leaderboard.
+                </p>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '16px', maxWidth: '100%' }}>
@@ -6842,7 +6863,8 @@ ${tableName} Organizers`
                       const leadPartner = validPartners[0] || {};
                       const parsedGoal = (formData.fundraising_goal === '' || formData.fundraising_goal === undefined || formData.fundraising_goal === null) ? 0 : Number(formData.fundraising_goal);
                       const payload = {
-                        sleigh_display_name: formData.sleigh_display_name,
+                        sleigh_display_name: standardSleighDisplayName,
+                        name: standardSleighDisplayName,
                         fundraising_goal: parsedGoal,
                         expenses: Number(formData.expenses !== undefined ? formData.expenses : (tableData?.table?.expenses || 0)),
                         expenses_json: formData.expenses_json || null,
