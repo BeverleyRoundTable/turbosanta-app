@@ -195,12 +195,12 @@ export async function verifyMagicLink(email, enteredCode) {
   // Authentication succeeded! Create authenticated session
   const session = {
     email: cleanEmail,
-    tableId: details.slug,
-    tableSlug: details.slug,
-    town: details.town,
-    tableNumber: details.tableNumber,
+    tableId: isNational ? null : details.slug,
+    tableSlug: isNational ? null : details.slug,
+    town: isNational ? 'National' : details.town,
+    tableNumber: isNational ? '' : details.tableNumber,
     tableName: isNational 
-      ? `${details.tableName} (National Admin)` 
+      ? 'National Fleet Admin' 
       : details.tableName,
     role: isNational ? "national_admin" : "table_admin",
     isNationalAdmin: isNational,
@@ -261,14 +261,14 @@ export async function loginWithGoogleWorkspace(credential) {
   const isNational = isNationalAdmin(cleanEmail);
   const session = {
     email: cleanEmail,
-    displayName: payload.name || details.tableName,
+    displayName: payload.name || (isNational ? 'National Fleet Admin' : details.tableName),
     avatar: payload.picture || null,
-    tableId: details.slug,
-    tableSlug: details.slug,
-    town: details.town,
-    tableNumber: details.tableNumber,
+    tableId: isNational ? null : details.slug,
+    tableSlug: isNational ? null : details.slug,
+    town: isNational ? 'National' : details.town,
+    tableNumber: isNational ? '' : details.tableNumber,
     tableName: isNational 
-      ? `${details.tableName} (National Admin)` 
+      ? 'National Fleet Admin' 
       : details.tableName,
     role: isNational ? "national_admin" : "table_admin",
     isNationalAdmin: isNational,
