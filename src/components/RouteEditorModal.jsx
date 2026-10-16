@@ -13,12 +13,46 @@ function formatRouteDateWithWeekday(dateStr) {
   return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, onDeleteRoute, tableSlug = 'beverley' }) {
+function calculateMusterFromStart(startTimeStr, offsetMinutes = 15) {
+  if (!startTimeStr || !startTimeStr.includes(':')) return '17:45';
+  const parts = startTimeStr.split(':').map(Number);
+  if (isNaN(parts[0])) return '17:45';
+  let totalMins = (parts[0] || 18) * 60 + (parts[1] || 0) - offsetMinutes;
+  if (totalMins < 0) totalMins += 1440;
+  const h = String(Math.floor(totalMins / 60)).padStart(2, '0');
+  const m = String(totalMins % 60).padStart(2, '0');
+  return `${h}:${m}`;
+}
+
+function resolveInitialMusterTime(routeMusterTime, startTimeStr, tableDefaultTime) {
+  if (routeMusterTime && String(routeMusterTime).trim()) {
+    return String(routeMusterTime).trim();
+  }
+  if (tableDefaultTime && String(tableDefaultTime).trim()) {
+    return String(tableDefaultTime).trim();
+  }
+  return calculateMusterFromStart(startTimeStr || '18:00', 15);
+}
+
+function resolveInitialMeetingPoint(routeMeetingPoint, tableDefaultPoint) {
+  if (routeMeetingPoint && String(routeMeetingPoint).trim()) {
+    return String(routeMeetingPoint).trim();
+  }
+  if (tableDefaultPoint && String(tableDefaultPoint).trim()) {
+    return String(tableDefaultPoint).trim();
+  }
+  return '';
+}
+
+export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, onDeleteRoute, tableSlug = 'beverley', table = {} }) {
   if (!isOpen) return null;
 
   const isCopy = Boolean(route?.isCopy);
   const isEditing = Boolean(route?.id) && !isCopy;
   const gpxFileInputRef = useRef(null);
+
+  const defaultMusterPoint = table?.default_muster_point || '';
+  const defaultMusterTime = table?.default_muster_time || '';
 
   const getInitialSponsors = () => {
     return extractRouteSponsors(route);
@@ -43,14 +77,15 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
   const initialMeta = extractRouteMeta(route);
   const [sponsors, setSponsors] = useState(getInitialSponsors);
 
+  const initialStartTime = route?.start_time || '18:00';
   const [formData, setFormData] = useState({
     id: route?.id || `route_${Date.now()}`,
     name: route?.name || '',
     date: route?.date || new Date().toISOString().slice(0, 10),
-    start_time: route?.start_time || '18:00',
+    start_time: initialStartTime,
     end_time: route?.end_time || '20:30',
-    meeting_point: initialMeta.meeting_point,
-    muster_time: initialMeta.muster_time,
+    meeting_point: resolveInitialMeetingPoint(initialMeta.meeting_point, defaultMusterPoint),
+    muster_time: resolveInitialMusterTime(initialMeta.muster_time, initialStartTime, defaultMusterTime),
     gpx_url: route?.gpx_url || route?.gpxUrl || '',
     gpx_file_name: route?.gpx_file_name || (route?.gpx_url ? 'route.gpx' : ''),
     planned_stops: route?.planned_stops || [],
@@ -83,14 +118,15 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
 
     const meta = extractRouteMeta(route);
     setSponsors(extractRouteSponsors(route));
+    const rStart = route?.start_time || '18:00';
     setFormData({
       id: route?.id || `route_${Date.now()}`,
       name: route?.name || '',
       date: route?.date || new Date().toISOString().slice(0, 10),
-      start_time: route?.start_time || '18:00',
+      start_time: rStart,
       end_time: route?.end_time || '20:30',
-      meeting_point: meta.meeting_point,
-      muster_time: meta.muster_time,
+      meeting_point: resolveInitialMeetingPoint(meta.meeting_point, defaultMusterPoint),
+      muster_time: resolveInitialMusterTime(meta.muster_time, rStart, defaultMusterTime),
       gpx_url: route?.gpx_url || route?.gpxUrl || '',
       gpx_file_name: route?.gpx_file_name || (route?.gpx_url ? 'route.gpx' : ''),
       planned_stops: route?.planned_stops || [],
@@ -105,7 +141,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
         ? { pointsCount: 'Loaded', stopsCount: route?.planned_stops?.length || 0, distanceMi: '—' }
         : null
     );
-  }, [isOpen, route]);
+  }, [isOpen, route, defaultMusterPoint, defaultMusterTime]);
 
   const handleGpxFile = async (file) => {
     if (!file) return;
@@ -205,6 +241,18 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
 
   const handleUpdateSponsor = (index, field, value) => {
     setSponsors(prev => prev.map((s, i) => i === index ? { ...s, [field]: value } : s));
+  };
+
+  const handleStartTimeChange = (newStartTime) => {
+    setFormData(prev => {
+      const oldExpectedMuster = calculateMusterFromStart(prev.start_time, 15);
+      const isAutoLinked = !prev.muster_time || prev.muster_time === oldExpectedMuster;
+      return {
+        ...prev,
+        start_time: newStartTime,
+        muster_time: isAutoLinked ? calculateMusterFromStart(newStartTime, 15) : prev.muster_time
+      };
+    });
   };
 
   const handleSubmit = (e) => {
@@ -432,7 +480,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                 <input
                   type="time"
                   value={formData.start_time}
-                  onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                  onChange={(e) => handleStartTimeChange(e.target.value)}
                   style={{
                     width: '100%',
                     background: '#0d0d0b',
@@ -471,14 +519,35 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
             {/* Muster / Meeting Point & Volunteer Arrival Time */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
-                  Muster / Meeting Point
-                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '4px' }}>
+                  <label style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    Muster / Meeting Point
+                  </label>
+                  {defaultMusterPoint && formData.meeting_point !== defaultMusterPoint && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, meeting_point: defaultMusterPoint }))}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--primary)',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        padding: 0,
+                        textDecoration: 'underline'
+                      }}
+                      title={`Reset to table default: ${defaultMusterPoint}`}
+                    >
+                      📍 Use Table Default
+                    </button>
+                  )}
+                </div>
                 <input
                   type="text"
                   value={formData.meeting_point}
                   onChange={(e) => setFormData({ ...formData, meeting_point: e.target.value })}
-                  placeholder="e.g. Depot / Pavilion Car Park"
+                  placeholder={defaultMusterPoint ? `Table Default: ${defaultMusterPoint}` : "e.g. Depot / Pavilion Car Park"}
                   style={{
                     width: '100%',
                     background: '#0d0d0b',
@@ -490,12 +559,61 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                     boxSizing: 'border-box'
                   }}
                 />
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                  {defaultMusterPoint && formData.meeting_point === defaultMusterPoint ? (
+                    <span style={{ color: '#22c55e' }}>✓ Pulled from Table Settings default</span>
+                  ) : (
+                    'Assembly location for volunteer elves & bucket collectors.'
+                  )}
+                </span>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
-                  Muster / Arrival Time (Volunteers)
-                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '4px' }}>
+                  <label style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    Muster / Arrival Time (Volunteers)
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {defaultMusterTime && formData.muster_time !== defaultMusterTime && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, muster_time: defaultMusterTime }))}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--primary)',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          padding: 0,
+                          textDecoration: 'underline'
+                        }}
+                        title={`Reset to table default: ${defaultMusterTime}`}
+                      >
+                        🔄 Table Default ({defaultMusterTime})
+                      </button>
+                    )}
+                    {formData.muster_time !== calculateMusterFromStart(formData.start_time, 15) && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, muster_time: calculateMusterFromStart(formData.start_time, 15) }))}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#60a5fa',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          padding: 0,
+                          textDecoration: 'underline'
+                        }}
+                        title="Calculate 15 mins before start time"
+                      >
+                        ⚡ 15m Prior ({calculateMusterFromStart(formData.start_time, 15)})
+                      </button>
+                    )}
+                  </div>
+                </div>
                 <input
                   type="time"
                   value={formData.muster_time}
@@ -512,7 +630,13 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                   }}
                 />
                 <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
-                  Leave blank to auto-default to 15 mins before start time.
+                  {defaultMusterTime && formData.muster_time === defaultMusterTime ? (
+                    <span style={{ color: '#22c55e' }}>✓ Pulled from Table Settings default ({defaultMusterTime})</span>
+                  ) : formData.muster_time === calculateMusterFromStart(formData.start_time, 15) ? (
+                    <span style={{ color: '#60a5fa' }}>⚡ Auto: 15 minutes before departure ({formData.start_time})</span>
+                  ) : (
+                    'Custom arrival time for this route.'
+                  )}
                 </span>
               </div>
             </div>

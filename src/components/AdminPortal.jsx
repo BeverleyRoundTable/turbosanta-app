@@ -804,7 +804,9 @@ ${tableName} Organizers`
     tickettailor_event_id: tableData?.table?.tickettailor_event_id || '',
     tickettailor_api_key: '',
     auto_crew_briefing_enabled: tableData?.table?.auto_crew_briefing_enabled !== undefined ? Boolean(tableData.table.auto_crew_briefing_enabled) : true,
-    crew_briefing_hours_before: tableData?.table?.crew_briefing_hours_before !== undefined ? Number(tableData.table.crew_briefing_hours_before) : 2
+    crew_briefing_hours_before: tableData?.table?.crew_briefing_hours_before !== undefined ? Number(tableData.table.crew_briefing_hours_before) : 2,
+    default_muster_point: tableData?.table?.default_muster_point || '',
+    default_muster_time: tableData?.table?.default_muster_time || ''
   });
 
   // Gmail Workspace Connection & Proximity Engine States
@@ -904,7 +906,9 @@ ${tableName} Organizers`
         justgiving_url: tableData.table.justgiving_url || prev.justgiving_url || '',
         tickettailor_event_id: tableData.table.tickettailor_event_id || prev.tickettailor_event_id || '',
         auto_crew_briefing_enabled: tableData.table.auto_crew_briefing_enabled !== undefined ? Boolean(tableData.table.auto_crew_briefing_enabled) : prev.auto_crew_briefing_enabled,
-        crew_briefing_hours_before: tableData.table.crew_briefing_hours_before !== undefined ? Number(tableData.table.crew_briefing_hours_before) : prev.crew_briefing_hours_before
+        crew_briefing_hours_before: tableData.table.crew_briefing_hours_before !== undefined ? Number(tableData.table.crew_briefing_hours_before) : prev.crew_briefing_hours_before,
+        default_muster_point: tableData.table.default_muster_point !== undefined ? tableData.table.default_muster_point : (prev.default_muster_point || ''),
+        default_muster_time: tableData.table.default_muster_time !== undefined ? tableData.table.default_muster_time : (prev.default_muster_time || '')
       }));
     }
   }, [tableData, currentTableSlug]);
@@ -4610,8 +4614,8 @@ ${tableName} Organizers`
                 return `${String(mh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
               };
 
-              const resolvedMusterTime = activeBriefingRoute?.muster_time || calculateMusterTime(activeBriefingRoute?.start_time);
-              const resolvedMusterPoint = activeBriefingRoute?.muster_point || activeBriefingRoute?.meeting_point || 'Start of route corridor';
+              const resolvedMusterTime = activeBriefingRoute?.muster_time || formData.default_muster_time || calculateMusterTime(activeBriefingRoute?.start_time);
+              const resolvedMusterPoint = activeBriefingRoute?.muster_point || activeBriefingRoute?.meeting_point || formData.default_muster_point || 'Start of route corridor';
               const routeStreetsCount = (tableData?.streets || []).filter(s => s.route_id === activeBriefingRoute?.id).length;
               const routeVolunteersCount = volunteers.filter(v => {
                 const vr = (getVolRoute(v) || '').toLowerCase().trim();
@@ -7690,6 +7694,70 @@ ${tableName} Organizers`
                       Gives volunteers plenty of notice to put on warm gear and arrive at muster on time.
                     </div>
                   </div>
+
+                  {/* DEFAULT MUSTER POINT LOCATION */}
+                  <div style={{ background: '#161614', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px' }}>
+                    <label style={{ display: 'block', fontSize: '12px', color: '#fff', fontWeight: 600, marginBottom: '4px' }}>
+                      Default Muster / Assembly Point Location
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.default_muster_point || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, default_muster_point: e.target.value }))}
+                      placeholder="e.g. Pavilion Car Park / Scout Hut"
+                      style={{
+                        width: '100%',
+                        background: '#0d0d0b',
+                        border: '1px solid var(--border)',
+                        borderRadius: '6px',
+                        padding: '6px 10px',
+                        color: '#fff',
+                        fontSize: '13px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      Auto-populated when creating new routes and used as fallback for volunteer briefings.
+                    </div>
+                  </div>
+
+                  {/* DEFAULT MUSTER TIME */}
+                  <div style={{ background: '#161614', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <label style={{ fontSize: '12px', color: '#fff', fontWeight: 600 }}>
+                        Default Volunteer Arrival / Muster Time
+                      </label>
+                      {formData.default_muster_time && (
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, default_muster_time: '' }))}
+                          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '11px', cursor: 'pointer', padding: 0 }}
+                        >
+                          Clear (Auto 15m prior)
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      type="time"
+                      value={formData.default_muster_time || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, default_muster_time: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        background: '#0d0d0b',
+                        border: '1px solid var(--border)',
+                        borderRadius: '6px',
+                        padding: '6px 10px',
+                        color: '#fff',
+                        fontSize: '13px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      {formData.default_muster_time
+                        ? `Fixed muster time ${formData.default_muster_time} will be pulled when adding routes.`
+                        : 'Blank = automatically calculates 15 minutes before route departure.'}
+                    </div>
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -9102,6 +9170,7 @@ ${tableName} Organizers`
         onSaveRoute={handleSaveRoute}
         onDeleteRoute={handleDeleteRoute}
         tableSlug={currentTableSlug}
+        table={tableData?.table || formData}
       />
 
       {/* Operating Expenses & Receipts Modal */}
