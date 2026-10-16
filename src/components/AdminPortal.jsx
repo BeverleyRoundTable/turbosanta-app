@@ -3732,7 +3732,7 @@ ${tableName} Organizers`
                   Embed Code Generator
                 </h2>
                 <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0 }}>
-                  Embed interactive widgets directly onto your Table's existing WordPress, Wix, Squarespace, or custom website.
+                  Direct links for embedding or linking interactive widgets onto your Table's existing WordPress, Wix, Squarespace, or custom website.
                 </p>
               </div>
 
@@ -3748,70 +3748,115 @@ ${tableName} Organizers`
               </a>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* Widget 1: Spatial Address Lookup */}
-              <div style={{ background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <strong style={{ fontSize: '16px', color: '#fff' }}>1. Street Address & Spatial Lookup (Recommended)</strong>
-                  <button
-                    onClick={() => copyToClipboard('addr', `<iframe src="https://roundtablesantasleigh.co.uk/address.html?table=${session.tableId || 'beverley'}" width="100%" height="600" style="border:none;border-radius:16px;" allow="geolocation"></iframe>`)}
-                    className="btn-primary"
-                    style={{ padding: '6px 14px', fontSize: '12px' }}
-                  >
-                    {copiedKey === 'addr' ? <Check size={14} /> : <Copy size={14} />}
-                    <span>{copiedKey === 'addr' ? 'Copied!' : 'Copy Code'}</span>
-                  </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {[
+                {
+                  key: 'addr',
+                  badge: '01',
+                  title: 'STREET ADDRESS & SPATIAL LOOKUP',
+                  desc: 'Interactive OpenStreetMap with "Use My Location", street autocomplete, doorstep email alerts, and 150m radius calculation.',
+                  url: `https://roundtablesantasleigh.co.uk/address.html?table=${session.tableId || 'beverley'}`
+                },
+                {
+                  key: 'track',
+                  badge: '02',
+                  title: 'LIVE SLEIGH TRACKER MAP',
+                  desc: 'Full mission map with real-time GPS telemetry, dual-layer route polylines, live ETA status bar, and Santa marker.',
+                  url: `https://roundtablesantasleigh.co.uk/tracker.html?table=${session.tableId || 'beverley'}`
+                },
+                {
+                  key: 'giftaid',
+                  badge: '03',
+                  title: 'GIFT AID & DONATION DECLARATION',
+                  desc: 'Direct HMRC-compliant Gift Aid declaration form and fundraising portal for your Table.',
+                  url: `https://roundtablesantasleigh.co.uk/gift_aid.html?table=${session.tableId || 'beverley'}`
+                },
+                {
+                  key: 'crew',
+                  badge: '04',
+                  title: 'VOLUNTEER CREW HUB',
+                  desc: 'Direct volunteer helper registration and route sign-up sheet connected to your Table database.',
+                  url: `https://roundtablesantasleigh.co.uk/crew.html?table=${session.tableId || 'beverley'}`
+                },
+                {
+                  key: 'memory',
+                  badge: '05',
+                  title: 'DIGITAL MEMORY BOOK',
+                  desc: 'Community photo gallery and Polaroid wall where families can view and share sleigh night memories.',
+                  url: `https://roundtablesantasleigh.co.uk/memory_book.html?table=${session.tableId || 'beverley'}`
+                }
+              ].map((item) => (
+                <div
+                  key={item.key}
+                  style={{
+                    background: '#151513',
+                    border: '1px solid var(--border)',
+                    borderRadius: '12px',
+                    padding: '22px 24px',
+                    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.3)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                    <span style={{
+                      fontFamily: "'DM Mono', monospace",
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: 'var(--primary)',
+                      background: 'rgba(251, 175, 51, 0.12)',
+                      border: '1px solid rgba(251, 175, 51, 0.25)',
+                      padding: '2px 7px',
+                      borderRadius: '4px',
+                      letterSpacing: '0.5px'
+                    }}>
+                      {item.badge}
+                    </span>
+                    <strong className="brand-font" style={{ fontSize: '18px', color: '#fff', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                      {item.title}
+                    </strong>
+                  </div>
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 14px 0', lineHeight: 1.5 }}>
+                    {item.desc}
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <input
+                      type="text"
+                      readOnly
+                      value={item.url}
+                      onFocus={(e) => e.target.select()}
+                      style={{
+                        flex: '1 1 260px',
+                        background: '#0d0d0b',
+                        border: '1px solid var(--border)',
+                        borderRadius: '8px',
+                        color: 'var(--primary)',
+                        padding: '10px 14px',
+                        fontFamily: "'DM Mono', monospace",
+                        fontSize: '13px',
+                        outline: 'none'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(item.key, item.url)}
+                      className="btn-primary"
+                      style={{ padding: '10px 16px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      {copiedKey === item.key ? <Check size={14} /> : <Copy size={14} />}
+                      <span>{copiedKey === item.key ? 'COPIED!' : 'COPY LINK'}</span>
+                    </button>
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-secondary"
+                      style={{ padding: '9px 15px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none', color: '#fff' }}
+                    >
+                      <ExternalLink size={14} />
+                      <span>OPEN LINK</span>
+                    </a>
+                  </div>
                 </div>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '10px' }}>
-                  Interactive OpenStreetMap with "Use My Location", street autocomplete, and 150m radius calculation.
-                </p>
-                <pre style={{ background: '#151513', padding: '12px', borderRadius: '8px', fontSize: '12px', color: 'var(--primary)', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
-{`<iframe src="https://roundtablesantasleigh.co.uk/address.html?table=${session.tableId || 'beverley'}" width="100%" height="600" style="border:none;border-radius:16px;" allow="geolocation"></iframe>`}
-                </pre>
-              </div>
-
-              {/* Widget 2: Live Sleigh Tracker */}
-              <div style={{ background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <strong style={{ fontSize: '16px', color: '#fff' }}>2. Live Sleigh Tracker Map</strong>
-                  <button
-                    onClick={() => copyToClipboard('track', `<iframe src="https://roundtablesantasleigh.co.uk/tracker.html?table=${session.tableId || 'beverley'}" width="100%" height="650" style="border:none;border-radius:16px;" allow="geolocation"></iframe>`)}
-                    className="btn-primary"
-                    style={{ padding: '6px 14px', fontSize: '12px' }}
-                  >
-                    {copiedKey === 'track' ? <Check size={14} /> : <Copy size={14} />}
-                    <span>{copiedKey === 'track' ? 'Copied!' : 'Copy Code'}</span>
-                  </button>
-                </div>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '10px' }}>
-                  Full mission map with real-time GPS telemetry, dual-layer route polylines, and live Santa marker.
-                </p>
-                <pre style={{ background: '#151513', padding: '12px', borderRadius: '8px', fontSize: '12px', color: 'var(--primary)', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
-{`<iframe src="https://roundtablesantasleigh.co.uk/tracker.html?table=${session.tableId || 'beverley'}" width="100%" height="650" style="border:none;border-radius:16px;" allow="geolocation"></iframe>`}
-                </pre>
-              </div>
-
-              {/* Widget 3: Donation Thermometer */}
-              <div style={{ background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <strong style={{ fontSize: '16px', color: '#fff' }}>3. Live Donation Thermometer</strong>
-                  <button
-                    onClick={() => copyToClipboard('thermo', `<div data-santa-thermo="" data-table="${session.tableId || 'beverley'}"></div>\n<script src="https://roundtablesantasleigh.co.uk/donations_v2.js"></script>`)}
-                    className="btn-primary"
-                    style={{ padding: '6px 14px', fontSize: '12px' }}
-                  >
-                    {copiedKey === 'thermo' ? <Check size={14} /> : <Copy size={14} />}
-                    <span>{copiedKey === 'thermo' ? 'Copied!' : 'Copy Code'}</span>
-                  </button>
-                </div>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '10px' }}>
-                  1-line script or container to show real-time community fundraising target and Gift Aid callout.
-                </p>
-                <pre style={{ background: '#151513', padding: '12px', borderRadius: '8px', fontSize: '12px', color: 'var(--primary)', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
-{`<div data-santa-thermo="" data-table="${session.tableId || 'beverley'}"></div>\n<script src="https://roundtablesantasleigh.co.uk/donations_v2.js"></script>`}
-                </pre>
-              </div>
-
+              ))}
             </div>
           </div>
         )}
