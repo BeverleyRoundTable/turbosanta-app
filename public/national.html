@@ -432,7 +432,8 @@
 
     .lb-header {
       display: grid;
-      grid-template-columns: 40px 1.2fr 85px 85px 80px 85px 70px 80px 80px 75px;
+      grid-template-columns: 44px 1.2fr 85px 85px 80px 85px 70px 80px 80px 75px;
+      column-gap: 14px;
       padding: 14px 20px;
       background: var(--surface-2);
       border-bottom: 1px solid var(--border);
@@ -442,11 +443,13 @@
       letter-spacing: 1.5px;
       text-transform: uppercase;
       color: var(--text-muted);
+      align-items: center;
     }
 
     .lb-row {
       display: grid;
-      grid-template-columns: 40px 1.2fr 85px 85px 80px 85px 70px 80px 80px 75px;
+      grid-template-columns: 44px 1.2fr 85px 85px 80px 85px 70px 80px 80px 75px;
+      column-gap: 14px;
       padding: 14px 20px;
       align-items: center;
       border-bottom: 1px solid var(--border);
@@ -458,9 +461,15 @@
 
     .lb-rank {
       font-family: 'Eurostile', sans-serif;
-      font-size: 20px;
+      font-size: 19px;
       font-weight: 700;
       color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      min-width: 0;
+      line-height: 1;
+      letter-spacing: -0.5px;
     }
 
     .lb-row:nth-child(1) .lb-rank { color: var(--gold); }
@@ -468,6 +477,22 @@
     .lb-row:nth-child(3) .lb-rank { color: #cd7f32; }
 
     .lb-name {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-width: 0;
+      gap: 3px;
+    }
+
+    .lb-name-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      line-height: 1.2;
+    }
+
+    .lb-town-name {
       font-weight: 700;
       font-size: 14px;
       color: #fff;
@@ -649,7 +674,22 @@
       .charts-grid { grid-template-columns: 1fr; width: 100%; box-sizing: border-box; }
       .chart-card { padding: 16px; width: 100%; box-sizing: border-box; }
       .lb-wrap { width: 100%; box-sizing: border-box; }
-      .lb-header, .lb-row { grid-template-columns: 32px 1fr 85px; padding: 10px 12px; }
+      .lb-header, .lb-row { 
+        grid-template-columns: 38px 1fr 80px; 
+        column-gap: 12px; 
+        padding: 12px 14px; 
+      }
+      .lb-rank { 
+        font-size: 16px; 
+        line-height: 1; 
+      }
+      .lb-town-name {
+        font-size: 14px;
+      }
+      .table-status {
+        font-size: 9px;
+        padding: 2px 6px;
+      }
       
       .lb-header span:nth-child(3),
       .lb-header span:nth-child(4),
@@ -1458,7 +1498,13 @@ function renderLeaderboard(data) {
     body.innerHTML += `
       <div class="lb-row">
         <div class="lb-rank">${i + 1}</div>
-        <div class="lb-name" title="${escHtml(d.name)}">${escHtml(shortenName(d))} ${statusHtml} ${progressHtml}</div>
+        <div class="lb-name" title="${escHtml(d.name)}">
+          <div class="lb-name-row">
+            <span class="lb-town-name">${escHtml(shortenName(d))}</span>
+            ${statusHtml}
+          </div>
+          ${progressHtml}
+        </div>
         <div class="lb-val" style="color: #aaa;">£${Math.round(d.raised || 0).toLocaleString('en-GB')}</div>
         <div class="lb-val" style="color: var(--green);">+£${Math.round(d.giftAid || 0).toLocaleString('en-GB')}</div>
         <div class="lb-val" style="color: var(--red);">£${Math.round(d.expenses || 0).toLocaleString('en-GB')}</div>
