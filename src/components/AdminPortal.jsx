@@ -4696,7 +4696,7 @@ ${tableName} Organizers`
                   }}
                 />
                 <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                  Protected by Round Table Brand Guidelines. All tables are automatically standardised as <strong>[Town] Round Table Santa Sleigh</strong> across the public tracker, apps, and national leaderboard.
+                  Protected by Round Table Brand Guidelines. Automatically standardised as <strong>[Town] Round Table Santa Sleigh</strong> across your public tracker, maps, and community apps.
                 </p>
               </div>
 
@@ -6491,7 +6491,7 @@ ${tableName} Organizers`
                       Custom Google Cloud OAuth Credentials (Optional)
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '10px' }}>
-                      By default, TurboSanta uses the national Round Table Google Client ID. If your Table has its own Google Cloud project with OAuth consent screen, you can provide your credentials below:
+                      By default, TurboSanta uses the official Round Table Google Client ID. If your Table has its own Google Cloud project with OAuth consent screen, you can provide your credentials below:
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
                       <div>
@@ -6845,7 +6845,7 @@ ${tableName} Organizers`
                     </span>
                   </div>
                   <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0, lineHeight: 1.5 }}>
-                    Powered by the national RTBI fleet constant (<strong style={{ color: '#fff' }}>{tableData?.table?.gemini_model || 'Flash 3.6'}</strong>). AI summaries, debriefs, and knowledge insights are centrally managed by National Admin with zero subscription or API key fees for your table.
+                    AI summaries, route debriefs, and volunteer insights are fully managed with zero subscription or API key fees for your table.
                   </p>
                 </div>
               )}
