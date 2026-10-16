@@ -8,11 +8,11 @@ import {
   CreditCard, Key, Zap, RefreshCw, Send, Link2,
   BarChart3, TrendingUp, Award, Printer, PieChart, Receipt,
   Mail, HardDrive, AlertTriangle, Database, FileText, Coins, Share2, QrCode, ArrowUpDown, Volume2,
-  Phone, MessageCircle, UserCheck, Search
+  Phone, MessageCircle, UserCheck, Search, Clock, Bot, CheckCircle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { logoutAdmin, isNationalAdmin, getAdminAuthToken } from '../services/auth';
-import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, saveRoute, deleteRoute, connectTableGmail, disconnectTableGmail, testTableGmailAlert, fetchSubscribers, clearSubscribers } from '../services/api';
+import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, saveRoute, deleteRoute, connectTableGmail, disconnectTableGmail, testTableGmailAlert, fetchSubscribers, clearSubscribers, triggerAutomatedCrewBriefings, fetchAutomatedCrewBriefingStatus } from '../services/api';
 import { extractRouteSponsors } from '../utils/sponsors';
 import DropzoneUpload from './DropzoneUpload';
 import RouteEditorModal from './RouteEditorModal';
@@ -187,6 +187,80 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   const [volunteerCopiedType, setVolunteerCopiedType] = useState(null); // 'emails' | 'phones'
   const [isVolunteerEmailModalOpen, setIsVolunteerEmailModalOpen] = useState(false);
   const [emailModalInitialRoute, setEmailModalInitialRoute] = useState('all');
+
+  // Automated 2-Hour Crew Briefings State
+  const [isBriefingDispatching, setIsBriefingDispatching] = useState(false);
+  const [isTestingBriefing, setIsTestingBriefing] = useState(false);
+  const [briefingFeedback, setBriefingFeedback] = useState(null);
+
+  const handleTestBriefingEmail = async (targetRoute) => {
+    if (!targetRoute) return;
+    setIsTestingBriefing(true);
+    setBriefingFeedback(null);
+    try {
+      const recipient = formData.gmail_connected_email || formData.admin_email || session?.email || "admin";
+      const res = await triggerAutomatedCrewBriefings(currentTableSlug, {
+        routeId: targetRoute.id,
+        dryRun: false,
+        testEmail: recipient
+      });
+      if (res && res.ok && res.results && res.results.length > 0 && res.results[0].status === 'sent') {
+        confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+        setBriefingFeedback({
+          type: 'success',
+          message: `Test briefing successfully emailed to ${recipient} with full timetable, muster location, and scheduled street order!`
+        });
+      } else {
+        const errDesc = res?.error || res?.results?.[0]?.message || res?.results?.[0]?.error || 'Failed to dispatch test briefing.';
+        setBriefingFeedback({
+          type: 'error',
+          message: errDesc
+        });
+      }
+    } catch (err) {
+      setBriefingFeedback({ type: 'error', message: err.message });
+    } finally {
+      setIsTestingBriefing(false);
+    }
+  };
+
+  const handleManualDispatchBriefing = async (targetRoute) => {
+    if (!targetRoute) return;
+    if (!window.confirm(`Are you sure you want to broadcast the official 2-hour crew briefing email NOW to all registered volunteers for "${targetRoute.name}"?`)) {
+      return;
+    }
+    setIsBriefingDispatching(true);
+    setBriefingFeedback(null);
+    try {
+      const res = await triggerAutomatedCrewBriefings(currentTableSlug, {
+        routeId: targetRoute.id,
+        dryRun: false
+      });
+      if (res && res.ok && res.results && res.results.length > 0 && res.results[0].status === 'sent') {
+        confetti({ particleCount: 70, spread: 70, origin: { y: 0.6 } });
+        setBriefingFeedback({
+          type: 'success',
+          message: `Official briefing successfully emailed to ${res.results[0].recipient_count} volunteer(s) on BCC!`
+        });
+        if (typeof onUpdateTableData === 'function') {
+          onUpdateTableData(prev => ({
+            ...prev,
+            routes: (prev?.routes || []).map(r => r.id === targetRoute.id ? { ...r, briefing_sent_at: new Date().toISOString() } : r)
+          }));
+        }
+      } else {
+        const failureReason = res?.error || res?.results?.[0]?.message || res?.results?.[0]?.error || 'Failed to dispatch briefing.';
+        setBriefingFeedback({
+          type: 'error',
+          message: failureReason
+        });
+      }
+    } catch (err) {
+      setBriefingFeedback({ type: 'error', message: err.message });
+    } finally {
+      setIsBriefingDispatching(false);
+    }
+  };
 
   const handleOpenVolunteerEmailModal = (routeName = 'all') => {
     setEmailModalInitialRoute(routeName || volunteerRouteFilter || 'all');
@@ -728,7 +802,9 @@ ${tableName} Organizers`
     notify_passed_msg: tableData?.table?.notify_passed_msg || '',
     justgiving_url: tableData?.table?.justgiving_url || '',
     tickettailor_event_id: tableData?.table?.tickettailor_event_id || '',
-    tickettailor_api_key: ''
+    tickettailor_api_key: '',
+    auto_crew_briefing_enabled: tableData?.table?.auto_crew_briefing_enabled !== undefined ? Boolean(tableData.table.auto_crew_briefing_enabled) : true,
+    crew_briefing_hours_before: tableData?.table?.crew_briefing_hours_before !== undefined ? Number(tableData.table.crew_briefing_hours_before) : 2
   });
 
   // Gmail Workspace Connection & Proximity Engine States
@@ -826,7 +902,9 @@ ${tableName} Organizers`
         notify_passed_subject: tableData.table.notify_passed_subject || prev.notify_passed_subject || '',
         notify_passed_msg: tableData.table.notify_passed_msg || prev.notify_passed_msg || '',
         justgiving_url: tableData.table.justgiving_url || prev.justgiving_url || '',
-        tickettailor_event_id: tableData.table.tickettailor_event_id || prev.tickettailor_event_id || ''
+        tickettailor_event_id: tableData.table.tickettailor_event_id || prev.tickettailor_event_id || '',
+        auto_crew_briefing_enabled: tableData.table.auto_crew_briefing_enabled !== undefined ? Boolean(tableData.table.auto_crew_briefing_enabled) : prev.auto_crew_briefing_enabled,
+        crew_briefing_hours_before: tableData.table.crew_briefing_hours_before !== undefined ? Number(tableData.table.crew_briefing_hours_before) : prev.crew_briefing_hours_before
       }));
     }
   }, [tableData, currentTableSlug]);
@@ -4505,6 +4583,333 @@ ${tableName} Organizers`
               Broadcast urgent operational alerts directly to bucket-collecting elves, and moderate public spotting messages.
             </p>
 
+            {/* 🤖 AUTOMATED ROUTE CREW BRIEFINGS (2 HOURS AHEAD) */}
+            {(() => {
+              const todayDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(new Date());
+              const todayCrewRoute = (tableData?.routes || []).find(r => r.date === todayDateStr);
+              const nextCrewRoute = (tableData?.routes || []).find(r => r.date >= todayDateStr) || (tableData?.routes || [])[0];
+              const activeBriefingRoute = (tableData?.routes || []).find(r => r.id === (selectedCrewRouteId || todayCrewRoute?.id || nextCrewRoute?.id)) || todayCrewRoute || nextCrewRoute;
+
+              const calculateBriefingTime = (startTime, hoursBefore = (formData.crew_briefing_hours_before || 2)) => {
+                if (!startTime) return '16:00';
+                const parts = startTime.split(':').map(Number);
+                let total = (parts[0] || 18) * 60 + (parts[1] || 0) - (hoursBefore * 60);
+                if (total < 0) total += 24 * 60;
+                const bh = Math.floor(total / 60);
+                const bm = total % 60;
+                return `${String(bh).padStart(2, '0')}:${String(bm).padStart(2, '0')}`;
+              };
+
+              const calculateMusterTime = (startTime) => {
+                if (!startTime) return '17:45';
+                const parts = startTime.split(':').map(Number);
+                let total = (parts[0] || 18) * 60 + (parts[1] || 0) - 15;
+                if (total < 0) total += 24 * 60;
+                const mh = Math.floor(total / 60);
+                const mm = total % 60;
+                return `${String(mh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+              };
+
+              const resolvedMusterTime = activeBriefingRoute?.muster_time || calculateMusterTime(activeBriefingRoute?.start_time);
+              const resolvedMusterPoint = activeBriefingRoute?.muster_point || activeBriefingRoute?.meeting_point || 'Start of route corridor';
+              const routeStreetsCount = (tableData?.streets || []).filter(s => s.route_id === activeBriefingRoute?.id).length;
+              const routeVolunteersCount = volunteers.filter(v => {
+                const vr = (getVolRoute(v) || '').toLowerCase().trim();
+                const tr = (activeBriefingRoute?.name || '').toLowerCase().trim();
+                return vr === tr || vr === 'all' || vr.includes('general') || vr.includes('helper');
+              }).length;
+
+              const isAutoEnabled = formData.auto_crew_briefing_enabled !== false;
+              const hoursLead = formData.crew_briefing_hours_before || 2;
+              const scheduledDispatchTime = calculateBriefingTime(activeBriefingRoute?.start_time, hoursLead);
+
+              return (
+                <div style={{
+                  background: '#0d0d0b',
+                  border: '1px solid rgba(251, 175, 51, 0.4)',
+                  borderRadius: '14px',
+                  padding: 'clamp(16px, 3.5vw, 22px)',
+                  marginBottom: '26px',
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px'
+                }}>
+                  {/* Card Header & Status Badges */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+                    <div style={{ flex: '1 1 300px', minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '20px' }}>🤖</span>
+                        <h3 className="brand-font" style={{ fontSize: 'clamp(16px, 3.8vw, 19px)', color: '#fff', margin: 0, lineHeight: 1.25 }}>
+                          Automated Route Crew Briefings ({hoursLead} Hours Ahead)
+                        </h3>
+                      </div>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0, lineHeight: 1.45 }}>
+                        Every evening, exactly <strong style={{ color: '#FBAF33' }}>{hoursLead} hours before departure</strong>, TurboSanta automatically generates and emails a full operational run-sheet with muster point, street sequence, volunteer dress code, and live tracker link to your route crew on BCC.
+                      </p>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                      <span style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        background: 'rgba(34, 197, 94, 0.15)',
+                        color: '#86efac',
+                        border: '1px solid rgba(34, 197, 94, 0.35)',
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+                        Cron Active (15m)
+                      </span>
+
+                      <span style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        background: isAutoEnabled ? 'rgba(251, 175, 51, 0.15)' : 'rgba(255, 255, 255, 0.08)',
+                        color: isAutoEnabled ? '#FBAF33' : 'var(--text-muted)',
+                        border: isAutoEnabled ? '1px solid rgba(251, 175, 51, 0.4)' : '1px solid var(--border)',
+                        padding: '3px 8px',
+                        borderRadius: '6px'
+                      }}>
+                        {isAutoEnabled ? '⚡ Auto-Dispatch ON' : '⏸️ Paused'}
+                      </span>
+
+                      {formData.gmail_connected_email ? (
+                        <span style={{
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          background: 'rgba(59, 130, 246, 0.15)',
+                          color: '#93c5fd',
+                          border: '1px solid rgba(59, 130, 246, 0.35)',
+                          padding: '3px 8px',
+                          borderRadius: '6px'
+                        }}>
+                          📬 Gmail Connected
+                        </span>
+                      ) : (
+                        <span style={{
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          background: 'rgba(239, 68, 68, 0.15)',
+                          color: '#fca5a5',
+                          border: '1px solid rgba(239, 68, 68, 0.35)',
+                          padding: '3px 8px',
+                          borderRadius: '6px'
+                        }}>
+                          ⚠️ Connect Gmail in Settings
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Feedback Banner */}
+                  {briefingFeedback && (
+                    <div style={{
+                      background: briefingFeedback.type === 'success' ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                      border: briefingFeedback.type === 'success' ? '1px solid #22c55e' : '1px solid #ef4444',
+                      borderRadius: '8px',
+                      padding: '10px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '10px',
+                      color: '#fff',
+                      fontSize: '13px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>{briefingFeedback.type === 'success' ? '🎉' : '⚠️'}</span>
+                        <span>{briefingFeedback.message}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setBriefingFeedback(null)}
+                        style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Operational Briefing Status Box */}
+                  {activeBriefingRoute ? (
+                    <div style={{
+                      background: '#151513',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '10px',
+                      padding: '16px 18px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '14px'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <strong style={{ fontSize: '15px', color: '#fff' }}>
+                              {activeBriefingRoute.name}
+                            </strong>
+                            <span style={{ fontSize: '12px', color: 'var(--primary)', fontWeight: 600 }}>
+                              ({activeBriefingRoute.date || 'Scheduled'})
+                            </span>
+                            {activeBriefingRoute.date === todayDateStr && (
+                              <span style={{ fontSize: '10px', fontWeight: 800, background: '#D31C1C', color: '#fff', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>
+                                Tonight&apos;s Run
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
+                            <span>🕒 Rollout: <strong style={{ color: '#fff' }}>{activeBriefingRoute.start_time || '18:00'}</strong></span>
+                            <span>📍 Muster Time: <strong style={{ color: '#FBAF33' }}>{resolvedMusterTime}</strong></span>
+                            <span>📌 Location: <strong style={{ color: '#fff' }}>{resolvedMusterPoint}</strong></span>
+                            <span>🗺️ Streets: <strong style={{ color: '#fff' }}>{routeStreetsCount > 0 ? `${routeStreetsCount} streets` : 'Full corridor'}</strong></span>
+                            <span>👥 Crew: <strong style={{ color: '#fff' }}>{routeVolunteersCount > 0 ? `${routeVolunteersCount} registered elves` : `${volunteers.length} table volunteers`}</strong></span>
+                          </div>
+                        </div>
+
+                        {/* Dispatch Status Badge */}
+                        <div>
+                          {activeBriefingRoute.briefing_sent_at ? (
+                            <span style={{
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              background: 'rgba(34, 197, 94, 0.15)',
+                              color: '#86efac',
+                              border: '1px solid rgba(34, 197, 94, 0.4)',
+                              padding: '4px 10px',
+                              borderRadius: '6px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}>
+                              <CheckCircle2 size={14} color="#22c55e" />
+                              Briefing Dispatched
+                            </span>
+                          ) : (
+                            <span style={{
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              background: 'rgba(251, 175, 51, 0.15)',
+                              color: '#FBAF33',
+                              border: '1px solid rgba(251, 175, 51, 0.4)',
+                              padding: '4px 10px',
+                              borderRadius: '6px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}>
+                              <Clock size={14} />
+                              Auto-Dispatch: ~{scheduledDispatchTime}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action Buttons for this Route */}
+                      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', paddingTop: '10px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                        <button
+                          type="button"
+                          disabled={isTestingBriefing || isBriefingDispatching}
+                          onClick={() => handleTestBriefingEmail(activeBriefingRoute)}
+                          className="btn-secondary"
+                          style={{
+                            padding: '8px 14px',
+                            fontSize: '12px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            borderColor: 'rgba(251, 175, 51, 0.4)',
+                            color: '#FBAF33'
+                          }}
+                          title="Send an instant test preview of this briefing email to your admin address"
+                        >
+                          <Send size={13} className={isTestingBriefing ? 'animate-spin' : ''} />
+                          <span>{isTestingBriefing ? 'Sending Test...' : 'Send Test Briefing to My Email'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={isBriefingDispatching || isTestingBriefing}
+                          onClick={() => handleManualDispatchBriefing(activeBriefingRoute)}
+                          className="btn-primary"
+                          style={{
+                            padding: '8px 14px',
+                            fontSize: '12px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: '#D31C1C',
+                            color: '#fff',
+                            fontWeight: 700
+                          }}
+                          title="Broadcast the official 2-hour briefing email now to all registered route volunteers on BCC"
+                        >
+                          <Zap size={13} className={isBriefingDispatching ? 'animate-spin' : ''} />
+                          <span>{isBriefingDispatching ? 'Broadcasting...' : 'Dispatch Briefing Now (Force Send)'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ color: 'var(--text-muted)', fontSize: '13px', padding: '14px', background: '#151513', borderRadius: '8px' }}>
+                      No routes scheduled yet. Add a route under the Routes tab to activate automated crew briefing schedules.
+                    </div>
+                  )}
+
+                  {/* Settings & Lead Time Options */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '12px',
+                    paddingTop: '8px',
+                    borderTop: '1px solid rgba(255, 255, 255, 0.06)'
+                  }}>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#fff' }}>
+                      <input
+                        type="checkbox"
+                        checked={isAutoEnabled}
+                        onChange={(e) => {
+                          const val = e.target.checked;
+                          setFormData(prev => ({ ...prev, auto_crew_briefing_enabled: val }));
+                          saveTableSettings(currentTableSlug, { ...formData, auto_crew_briefing_enabled: val });
+                        }}
+                        style={{ width: '16px', height: '16px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                      />
+                      <span>Enable Automated 2-Hour Briefing Dispatch</span>
+                    </label>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Lead Time:</span>
+                      <select
+                        value={formData.crew_briefing_hours_before || 2}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setFormData(prev => ({ ...prev, crew_briefing_hours_before: val }));
+                          saveTableSettings(currentTableSlug, { ...formData, crew_briefing_hours_before: val });
+                        }}
+                        style={{
+                          background: '#151513',
+                          border: '1px solid var(--border)',
+                          borderRadius: '6px',
+                          padding: '4px 8px',
+                          color: '#fff',
+                          fontSize: '12px'
+                        }}
+                      >
+                        <option value="1">1 Hour Before</option>
+                        <option value="1.5">1.5 Hours Before</option>
+                        <option value="2">2 Hours Before (Recommended)</option>
+                        <option value="3">3 Hours Before</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* 1-Tap WhatsApp Crew Run Sheet & Clipboard Generator (Tool 2 & 3) */}
             <div style={{
               background: '#0d0d0b',
@@ -7206,6 +7611,97 @@ ${tableName} Organizers`
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* 🤖 AUTOMATED ROUTE CREW BRIEFINGS SETTINGS */}
+              <div style={{
+                background: '#0d0d0b',
+                border: '1px solid rgba(251, 175, 51, 0.35)',
+                borderRadius: '12px',
+                padding: 'clamp(14px, 3vw, 20px)',
+                maxWidth: '100%',
+                boxSizing: 'border-box'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Bot size={18} color="var(--primary)" />
+                    <strong style={{ fontSize: '16px', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Automated 2-Hour Route Crew Briefings
+                    </strong>
+                  </div>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    padding: '3px 8px',
+                    borderRadius: '4px',
+                    background: formData.auto_crew_briefing_enabled !== false ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                    color: formData.auto_crew_briefing_enabled !== false ? '#22c55e' : 'var(--text-muted)',
+                    border: formData.auto_crew_briefing_enabled !== false ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid var(--border)'
+                  }}>
+                    {formData.auto_crew_briefing_enabled !== false ? '🟢 Active &bull; Cron Every 15 Min' : '⚪ Paused'}
+                  </span>
+                </div>
+
+                <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '0 0 16px 0', lineHeight: 1.5 }}>
+                  Automatically email your volunteer elves and bucket collectors their operational run-sheet ahead of each evening&apos;s route. Dispatches from your connected Google Workspace Gmail with volunteers on BCC for privacy. Includes muster time, assembly location, full street list, safety bubble rules, and live GPS tracker link.
+                </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px', marginBottom: '16px' }}>
+                  <div style={{ background: '#161614', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#fff', fontWeight: 600 }}>
+                      <input
+                        type="checkbox"
+                        checked={formData.auto_crew_briefing_enabled !== false}
+                        onChange={(e) => setFormData(prev => ({ ...prev, auto_crew_briefing_enabled: e.target.checked }))}
+                        style={{ width: '16px', height: '16px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                      />
+                      <span>Enable Automated Crew Briefings</span>
+                    </label>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      Runs automatically via Cloudflare Cron every 15 minutes checking today&apos;s scheduled routes.
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#161614', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <label style={{ fontSize: '12px', color: '#fff', fontWeight: 600 }}>
+                        Briefing Dispatch Timing
+                      </label>
+                    </div>
+                    <select
+                      value={formData.crew_briefing_hours_before || 2}
+                      onChange={(e) => setFormData(prev => ({ ...prev, crew_briefing_hours_before: Number(e.target.value) }))}
+                      style={{
+                        width: '100%',
+                        background: '#0d0d0b',
+                        border: '1px solid var(--border)',
+                        borderRadius: '6px',
+                        padding: '6px 10px',
+                        color: '#fff',
+                        fontSize: '12px'
+                      }}
+                    >
+                      <option value="1">1 Hour Before Start Time</option>
+                      <option value="1.5">1.5 Hours Before Start Time</option>
+                      <option value="2">2 Hours Before Start Time (Standard)</option>
+                      <option value="3">3 Hours Before Start Time</option>
+                    </select>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      Gives volunteers plenty of notice to put on warm gear and arrive at muster on time.
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('crew')}
+                    className="btn-secondary"
+                    style={{ padding: '6px 12px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--primary)' }}
+                  >
+                    <span>Manage Crew &amp; Preview Briefings in Crew Tab &rarr;</span>
+                  </button>
+                </div>
               </div>
 
               {/* AI Intelligence & Gemini Fleet Advisor Settings */}

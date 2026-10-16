@@ -731,3 +731,72 @@ export async function sendVolunteerBroadcastEmail(tableSlug = "beverley", { rout
     return { ok: false, error: err.message };
   }
 }
+
+// ==============================================================
+// 🤖 AUTOMATED 2-HOUR CREW BRIEFINGS (STATUS & MANUAL TRIGGER)
+// ==============================================================
+export async function triggerAutomatedCrewBriefings(tableSlug = "beverley", { routeId, dryRun = false, testEmail = null } = {}, explicitSecret = null) {
+  try {
+    const slug = (tableSlug || "beverley").toLowerCase().trim();
+    const session = getCurrentSession();
+    let token = explicitSecret || session?.token || session?.googleCredential;
+    if (!token || (!token.startsWith("ts2_") && !token.includes("beverley247") && !token.includes("."))) {
+      token = getAdminAuthToken(slug);
+    }
+
+    const bodyPayload = {
+      route_id: routeId,
+      dry_run: !!dryRun,
+      test_email: testEmail,
+      tableSlug: slug,
+      table: slug,
+      secret: token
+    };
+
+    let res = await fetch(`${API_BASE}/api/volunteers/auto-briefing?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(token)}`, {
+      method: "POST",
+      headers: getAuthHeaders(token, slug),
+      body: JSON.stringify(bodyPayload)
+    });
+
+    if (res.status === 401) {
+      const healToken = getAdminAuthToken(slug);
+      bodyPayload.secret = healToken;
+      res = await fetch(`${API_BASE}/api/volunteers/auto-briefing?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(healToken)}`, {
+        method: "POST",
+        headers: getAuthHeaders(healToken, slug),
+        body: JSON.stringify(bodyPayload)
+      });
+    }
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  } catch (err) {
+    console.error("triggerAutomatedCrewBriefings error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
+export async function fetchAutomatedCrewBriefingStatus(tableSlug = "beverley", explicitSecret = null) {
+  try {
+    const slug = (tableSlug || "beverley").toLowerCase().trim();
+    const session = getCurrentSession();
+    let token = explicitSecret || session?.token || session?.googleCredential;
+    if (!token || (!token.startsWith("ts2_") && !token.includes("beverley247") && !token.includes("."))) {
+      token = getAdminAuthToken(slug);
+    }
+
+    const res = await fetch(`${API_BASE}/api/volunteers/auto-briefing?table=${encodeURIComponent(slug)}&dry_run=1&secret=${encodeURIComponent(token)}`, {
+      headers: getAuthHeaders(token, slug)
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  } catch (err) {
+    console.error("fetchAutomatedCrewBriefingStatus error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
