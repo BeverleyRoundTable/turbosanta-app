@@ -3956,31 +3956,42 @@ ${tableName} Organizers`
                   border: '1px solid rgba(251, 175, 51, 0.25)',
                   borderRadius: '12px',
                   padding: 'clamp(14px, 3vw, 22px)',
-                  marginBottom: '26px'
+                  marginBottom: '26px',
+                  boxSizing: 'border-box',
+                  maxWidth: '100%',
+                  overflow: 'hidden'
                 }}>
                   {/* Header */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '18px' }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <Users size={20} color="var(--primary)" />
-                        <h3 className="brand-font" style={{ fontSize: '18px', color: '#fff', margin: 0 }}>
-                          Live Volunteer Roster &amp; Communications
-                        </h3>
-                        <span style={{
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          background: 'rgba(251, 175, 51, 0.15)',
-                          color: 'var(--primary)',
-                          border: '1px solid rgba(251, 175, 51, 0.3)',
-                          padding: '2px 8px',
-                          borderRadius: '100px'
-                        }}>
-                          {filteredVolunteers.length} {filteredVolunteers.length === 1 ? 'Elf' : 'Elves'}
-                        </span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '14px', marginBottom: '18px', width: '100%', boxSizing: 'border-box' }}>
+                    <div style={{ flex: '1 1 280px', minWidth: 0, maxWidth: '100%' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '6px' }}>
+                        <Users size={20} color="var(--primary)" style={{ flexShrink: 0, marginTop: '2px' }} />
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px 10px', marginBottom: '4px' }}>
+                            <h3 className="brand-font" style={{ fontSize: 'clamp(16px, 3.8vw, 19px)', color: '#fff', margin: 0, lineHeight: 1.25 }}>
+                              Live Volunteer Roster &amp; Communications
+                            </h3>
+                            <span style={{
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              background: 'rgba(251, 175, 51, 0.15)',
+                              color: 'var(--primary)',
+                              border: '1px solid rgba(251, 175, 51, 0.35)',
+                              padding: '2px 9px',
+                              borderRadius: '100px',
+                              whiteSpace: 'nowrap',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              flexShrink: 0
+                            }}>
+                              {filteredVolunteers.length} {filteredVolunteers.length === 1 ? 'Elf' : 'Elves'}
+                            </span>
+                          </div>
+                          <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0, lineHeight: 1.45, wordBreak: 'break-word' }}>
+                            Volunteers who signed up via your public Crew Hub (<code style={{ color: 'var(--primary)', wordBreak: 'break-all' }}>/crew.html?table={currentTableSlug}</code>). Contact them instantly for free via Email Bcc, WhatsApp, or CSV export.
+                          </p>
+                        </div>
                       </div>
-                      <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>
-                        Volunteers who signed up via your public Crew Hub (<code style={{ color: 'var(--primary)' }}>/crew.html?table={currentTableSlug}</code>). Contact them instantly for free via Email Bcc, WhatsApp, or CSV export.
-                      </p>
                     </div>
 
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
