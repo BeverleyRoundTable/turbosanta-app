@@ -761,6 +761,10 @@
       // Ensure video is muted for inline autoplay compatibility & handle ready states
       if (santaHeadVideo) {
         santaHeadVideo.muted = true;
+        santaHeadVideo.defaultMuted = true;
+        santaHeadVideo.setAttribute("muted", "");
+        santaHeadVideo.setAttribute("playsinline", "");
+        santaHeadVideo.setAttribute("webkit-playsinline", "true");
         santaHeadVideo.addEventListener("loadedmetadata", function() {
           updateVideoDuration();
           avatarPod.classList.add("video-ready");
@@ -1018,8 +1022,35 @@
         // On every response, ensure the MP4 plays fully (at least one full video loop),
         // only looping in the off chance the response is slower than the full video loop.
         if (elapsedSinceStartMs < videoLoopDurationMs) {
-          const remainingMs = Math.max(0, videoLoopDurationMs - elapsedSinceStartMs);
-          await new Promise(r => setTimeout(r, remainingMs));
+          // If response finished before the 10-second loop finished, wait for the video to reach its completion
+          const videoDurationSec = (santaHeadVideo && santaHeadVideo.duration && !isNaN(santaHeadVideo.duration) && santaHeadVideo.duration > 0.5)
+            ? santaHeadVideo.duration
+            : (videoLoopDurationMs / 1000);
+
+          if (santaHeadVideo && !santaHeadVideo.paused && santaHeadVideo.currentTime < (videoDurationSec - 0.25)) {
+            await new Promise(resolve => {
+              let finished = false;
+              const cleanup = () => {
+                if (finished) return;
+                finished = true;
+                santaHeadVideo.removeEventListener("timeupdate", onTime);
+                resolve();
+              };
+              const onTime = () => {
+                if (santaHeadVideo.currentTime >= (videoDurationSec - 0.25)) {
+                  cleanup();
+                }
+              };
+              santaHeadVideo.addEventListener("timeupdate", onTime);
+              const remainingMs = Math.max(100, Math.round((videoDurationSec - santaHeadVideo.currentTime) * 1000));
+              setTimeout(cleanup, remainingMs + 150);
+            });
+          } else {
+            const remainingMs = Math.max(0, videoLoopDurationMs - elapsedSinceStartMs);
+            if (remainingMs > 0) {
+              await new Promise(r => setTimeout(r, remainingMs));
+            }
+          }
         } else {
           // If response was longer than 1 loop, video looped seamlessly; add a gentle breath pause
           await new Promise(r => setTimeout(r, 450));
