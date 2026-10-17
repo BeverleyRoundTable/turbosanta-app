@@ -88,12 +88,19 @@
             padding: 0;
         }
 
+        html {
+            overflow-x: hidden;
+            max-width: 100vw;
+        }
+
         body {
             font-family: 'Open Sans', sans-serif;
             background-color: var(--bg-dark);
             color: var(--text-main);
             line-height: 1.6;
             overflow-x: hidden;
+            max-width: 100vw;
+            width: 100%;
             -webkit-font-smoothing: antialiased;
         }
 
@@ -906,6 +913,82 @@
             box-shadow: 0 8px 20px rgba(var(--primary-rgb), 0.35);
         }
 
+        /* --- GRANTS SHOWCASE CARD --- */
+        .grants-showcase-card {
+            max-width: 960px;
+            margin: 24px auto 0;
+            background: rgba(20, 22, 26, 0.78);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(var(--primary-rgb), 0.35);
+            border-radius: var(--radius-lg);
+            padding: 24px 28px;
+            box-shadow: var(--shadow-card);
+            box-sizing: border-box;
+            width: 100%;
+            overflow: hidden;
+        }
+        .grants-showcase-header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .grants-showcase-copy {
+            flex: 1;
+            min-width: 240px;
+            max-width: 100%;
+        }
+        .grants-showcase-badge {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+        .grant-modal-btn {
+            padding: 12px 20px;
+            background: rgba(var(--primary-rgb), 0.14);
+            color: var(--primary);
+            border: 1px solid rgba(var(--primary-rgb), 0.45);
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            white-space: normal;
+            max-width: 100%;
+            box-sizing: border-box;
+            text-align: center;
+            line-height: 1.4;
+            transition: all 0.2s ease;
+        }
+        .grant-modal-btn:hover {
+            background: rgba(var(--primary-rgb), 0.25);
+            border-color: var(--primary);
+        }
+        @media (max-width: 640px) {
+            .grants-showcase-card {
+                padding: 18px 16px;
+                border-radius: var(--radius-md);
+                margin-top: 20px;
+            }
+            .grants-showcase-copy {
+                min-width: 100%;
+                text-align: center;
+            }
+            .grant-modal-btn {
+                width: 100%;
+                padding: 12px 14px;
+                font-size: 12px;
+            }
+        }
+
         /* --- TONIGHT'S FEATURED ROUTE SPOTLIGHT --- */
         .today-spotlight-card {
             background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.14) 0%, rgba(20, 22, 26, 0.9) 55%);
@@ -1501,10 +1584,10 @@
         </div>
 
         <!-- Where Your Donations Go & Local Cause Grant Nominations -->
-        <div id="grants-showcase-card" style="max-width: 960px; margin: 24px auto 0; background: rgba(20, 22, 26, 0.78); backdrop-filter: blur(16px); border: 1px solid rgba(251, 175, 51, 0.25); border-radius: 20px; padding: 24px 28px; box-shadow: var(--shadow-card);">
-            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px;">
-                <div style="flex: 1; min-width: 240px;">
-                    <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; color: var(--primary); margin-bottom: 4px;">
+        <div id="grants-showcase-card" class="grants-showcase-card">
+            <div class="grants-showcase-header">
+                <div class="grants-showcase-copy">
+                    <div class="grants-showcase-badge">
                         💛 100% Stays Local
                     </div>
                     <h3 class="brand-font" style="font-size: 20px; color: #FFFFFF; margin: 0 0 6px 0;">
@@ -1514,7 +1597,7 @@
                         Every penny collected by our volunteers goes directly back into supporting local charities, schools, grassroots clubs, and families in our community.
                     </p>
                 </div>
-                <button type="button" id="open-grant-modal-btn" class="brand-font" style="padding: 11px 18px; background: rgba(251, 175, 51, 0.14); color: var(--primary); border: 1px solid rgba(251, 175, 51, 0.45); border-radius: 12px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; white-space: nowrap;">
+                <button type="button" id="open-grant-modal-btn" class="brand-font grant-modal-btn">
                     🤝 Nominate a Local Cause / Apply for a Grant
                 </button>
             </div>
@@ -4033,6 +4116,8 @@
                     fab.classList.remove('visible');
                 }
             }, { passive: true });
+        }
+
         window.addEventListener('resize', fitHeroTitle);
         if (document.fonts && document.fonts.ready) {
             document.fonts.ready.then(fitHeroTitle).catch(() => {});
