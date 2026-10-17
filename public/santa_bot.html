@@ -8,10 +8,10 @@
   <meta name="theme-color" content="#0d0d0b">
   <link rel="icon" type="image/png" href="/icons/Beverley_Santa_Logo.png">
 
-  <!-- Google Fonts: Open Sans & DM Mono -->
+  <!-- Google Fonts: Open Sans Only -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=DM+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
 
   <style>
     /* ═══════════════════════════════════════════════════════════════
@@ -26,19 +26,29 @@
     }
 
     :root {
+      /* Turnkey Table Brand Colors (dynamically updated by applyThemeColors) */
       --primary: #FBAF33;
+      --primary-rgb: 251, 175, 51;
+      --on-primary: #000000;
+      --primary-glow: rgba(var(--primary-rgb), 0.35);
+      --primary-dim: rgba(var(--primary-rgb), 0.12);
+      --border-primary: rgba(var(--primary-rgb), 0.28);
+
       --accent: #D31C1C;
-      --gold: #FBAF33;
-      --gold-glow: rgba(251, 175, 51, 0.35);
-      --gold-dim: rgba(251, 175, 51, 0.12);
-      --red: #D31C1C;
+      --accent-rgb: 211, 28, 28;
+      --on-accent: #ffffff;
+      --accent-glow: rgba(var(--accent-rgb), 0.35);
+      --accent-dim: rgba(var(--accent-rgb), 0.12);
+      --border-accent: rgba(var(--accent-rgb), 0.28);
+
+      --gold: var(--primary);
+      --red: var(--accent);
       --green: #2ecc71;
       --dark: #0d0d0b;
       --surface: #151513;
       --surface-2: #1e1e1b;
       --surface-3: #252522;
       --border: rgba(255, 255, 255, 0.1);
-      --border-gold: rgba(251, 175, 51, 0.28);
       --text: #eaeae5;
       --text-dim: rgba(255, 255, 255, 0.65);
       --text-muted: rgba(255, 255, 255, 0.38);
@@ -76,14 +86,14 @@
     /* ── TALKING SANTA HEADER STAGE ── */
     .santa-stage {
       background: linear-gradient(180deg, #181816 0%, #121210 100%);
-      border: 1px solid var(--border-gold);
+      border: 1px solid var(--border-primary);
       border-radius: 20px;
       padding: 18px 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 24px rgba(251, 175, 51, 0.08);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 24px var(--primary-glow);
       position: relative;
       overflow: hidden;
     }
@@ -95,7 +105,7 @@
       left: -20%;
       width: 140%;
       height: 100%;
-      background: radial-gradient(ellipse at top, rgba(251, 175, 51, 0.12) 0%, transparent 70%);
+      background: radial-gradient(ellipse at top, var(--primary-dim) 0%, transparent 70%);
       pointer-events: none;
     }
 
@@ -199,7 +209,7 @@
 
     .avatar-pod.is-speaking .voice-waves {
       opacity: 1;
-      border-color: rgba(251, 175, 51, 0.4);
+      border-color: rgba(var(--primary-rgb), 0.4);
       animation: waveRing 1.4s infinite cubic-bezier(0, 0.2, 0.8, 1);
     }
 
@@ -220,12 +230,12 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      font-family: 'DM Mono', monospace;
-      font-size: 11px;
+      font-family: 'Eurostile', sans-serif;
+      font-size: 11.5px;
       font-weight: 700;
       color: var(--primary);
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.8px;
     }
 
     .stage-title {
@@ -259,8 +269,8 @@
     }
 
     .status-dot.speaking {
-      background: #FBAF33;
-      box-shadow: 0 0 10px #FBAF33;
+      background: var(--primary);
+      box-shadow: 0 0 10px var(--primary-glow);
       animation: pulseDot 0.8s infinite alternate;
     }
 
@@ -294,7 +304,7 @@
     .btn-icon-subtle:hover {
       background: rgba(255, 255, 255, 0.12);
       color: #fff;
-      border-color: var(--border-gold);
+      border-color: var(--border-primary);
     }
 
     /* ── CHAT LOG CONTAINER ── */
@@ -362,7 +372,7 @@
       min-width: 38px;
       border-radius: 50%;
       background: #111;
-      border: 1px solid var(--border-gold);
+      border: 1px solid var(--border-primary);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -383,6 +393,7 @@
     }
 
     .msg-sender {
+      font-family: 'Eurostile', sans-serif;
       font-size: 11px;
       font-weight: 700;
       color: var(--text-muted);
@@ -414,10 +425,10 @@
     }
 
     .msg-row.user .msg-bubble {
-      background: linear-gradient(135deg, var(--red) 0%, #a81212 100%);
-      color: #ffffff;
+      background: linear-gradient(135deg, var(--accent) 0%, rgba(var(--accent-rgb), 0.85) 100%);
+      color: var(--on-accent);
       border-top-right-radius: 4px;
-      box-shadow: 0 4px 14px rgba(211, 28, 28, 0.3);
+      box-shadow: 0 4px 14px var(--accent-glow);
     }
 
     .msg-time {
@@ -483,7 +494,7 @@
     }
 
     .chip-btn:hover {
-      background: rgba(251, 175, 51, 0.15);
+      background: var(--primary-dim);
       border-color: var(--primary);
       color: #fff;
       transform: translateY(-1px);
@@ -518,12 +529,12 @@
 
     .chat-input:focus {
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(251, 175, 51, 0.18);
+      box-shadow: 0 0 0 3px var(--primary-dim);
     }
 
     .send-btn {
       background: var(--primary);
-      color: #000;
+      color: var(--on-primary);
       border: none;
       border-radius: 12px;
       padding: 12px 20px;
@@ -543,7 +554,7 @@
     .send-btn:hover:not(:disabled) {
       filter: brightness(1.1);
       transform: translateY(-1px);
-      box-shadow: 0 4px 14px rgba(251, 175, 51, 0.4);
+      box-shadow: 0 4px 14px var(--primary-glow);
     }
 
     .send-btn:disabled {
@@ -763,6 +774,65 @@
         this.src = "/icons/RTBI_Santa.png";
       };
 
+      // ── Dynamic Turnkey Theme & Contrast Engine ──
+      function parseColor(s) {
+        if (!s) return null;
+        try {
+          const c = document.createElement("canvas");
+          c.width = 1; c.height = 1;
+          const ctx = c.getContext("2d");
+          ctx.fillStyle = s;
+          const out = ctx.fillStyle;
+          if (out.charAt(0) === "#") {
+            const h = out.slice(1);
+            if (h.length === 3) return [parseInt(h[0]+h[0], 16), parseInt(h[1]+h[1], 16), parseInt(h[2]+h[2], 16)];
+            if (h.length === 6) return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+          }
+          const rgb = /^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(out);
+          return rgb ? [+rgb[1], +rgb[2], +rgb[3]] : null;
+        } catch (e) { return null; }
+      }
+
+      function readableTextOn(rgb) {
+        if (!rgb) return "#000000";
+        const lin = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+        const L = 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]);
+        return ((L + 0.05) / 0.05) >= (1.05 / (L + 0.05)) ? "#000000" : "#ffffff";
+      }
+
+      function applyThemeColors(primaryHex, accentHex) {
+        const root = document.documentElement;
+        if (primaryHex) {
+          const pRgb = parseColor(primaryHex);
+          if (pRgb) {
+            root.style.setProperty("--primary", primaryHex);
+            root.style.setProperty("--primary-rgb", pRgb.join(", "));
+            root.style.setProperty("--on-primary", readableTextOn(pRgb));
+            root.style.setProperty("--primary-glow", `rgba(${pRgb.join(", ")}, 0.35)`);
+            root.style.setProperty("--primary-dim", `rgba(${pRgb.join(", ")}, 0.12)`);
+            root.style.setProperty("--border-primary", `rgba(${pRgb.join(", ")}, 0.28)`);
+          }
+        }
+        if (accentHex) {
+          const aRgb = parseColor(accentHex);
+          if (aRgb) {
+            root.style.setProperty("--accent", accentHex);
+            root.style.setProperty("--accent-rgb", aRgb.join(", "));
+            root.style.setProperty("--on-accent", readableTextOn(aRgb));
+            root.style.setProperty("--accent-glow", `rgba(${aRgb.join(", ")}, 0.35)`);
+            root.style.setProperty("--accent-dim", `rgba(${aRgb.join(", ")}, 0.12)`);
+            root.style.setProperty("--border-accent", `rgba(${aRgb.join(", ")}, 0.28)`);
+          }
+        }
+      }
+
+      // Check query params (?primary=...&accent=...) from parent iframe / embed
+      const urlPrimary = urlParams.get("primary");
+      const urlAccent = urlParams.get("accent");
+      if (urlPrimary || urlAccent) {
+        applyThemeColors(urlPrimary, urlAccent);
+      }
+
       // ── 1. Fetch Local Table Data for Town Personalisation ──
       async function loadTableInfo() {
         try {
@@ -770,6 +840,9 @@
           if (res.ok) {
             const data = await res.json();
             tableMetadata = data?.table || {};
+            if (tableMetadata.primary_color || tableMetadata.accent_color) {
+              applyThemeColors(tableMetadata.primary_color, tableMetadata.accent_color);
+            }
             if (tableMetadata.sleigh_display_name) {
               const townName = tableSlug.charAt(0).toUpperCase() + tableSlug.slice(1);
               statusText.textContent = `Broadcasting to ${townName}`;

@@ -109,7 +109,7 @@
           n.nodeValue = n.nodeValue.replace(emojiRegex, "").replace(/\s{2,}/g, " ");
         }
       } else if (n.nodeType === 1) {
-        if (n.closest && (n.closest(".preview-area") || n.closest(".cert-content") || n.closest("#renderArea"))) return;
+        if (n.closest && (n.closest(".preview-area") || n.closest(".cert-content") || n.closest("#renderArea") || n.closest(".chat-wrapper") || n.closest(".chip-btn"))) return;
         var children = n.childNodes;
         for (var i = 0; i < children.length; i++) {
           scrubNode(children[i]);
@@ -117,7 +117,7 @@
       }
     }
     targets.forEach(function (el) {
-      if (el.closest && (el.closest(".preview-area") || el.closest(".cert-content") || el.closest("#renderArea"))) return;
+      if (el.closest && (el.closest(".preview-area") || el.closest(".cert-content") || el.closest("#renderArea") || el.closest(".chat-wrapper") || el.closest(".chip-btn"))) return;
       scrubNode(el);
     });
   }
