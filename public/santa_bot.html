@@ -748,21 +748,38 @@
       let isBusy = false;
       let activeSpeakingTimer = null;
       let tableMetadata = null;
+      let speechStartTime = 0;
+      let videoLoopDurationMs = 10000; // Default 10s duration for santa_talking.mp4
+
+      // Detect and track exact MP4 duration
+      function updateVideoDuration() {
+        if (santaHeadVideo && santaHeadVideo.duration && !isNaN(santaHeadVideo.duration) && santaHeadVideo.duration > 0.5) {
+          videoLoopDurationMs = Math.round(santaHeadVideo.duration * 1000);
+        }
+      }
 
       // Ensure video is muted for inline autoplay compatibility & handle ready states
       if (santaHeadVideo) {
         santaHeadVideo.muted = true;
+        santaHeadVideo.addEventListener("loadedmetadata", function() {
+          updateVideoDuration();
+          avatarPod.classList.add("video-ready");
+        });
         santaHeadVideo.addEventListener("loadeddata", function() {
+          updateVideoDuration();
           avatarPod.classList.add("video-ready");
         });
         santaHeadVideo.addEventListener("canplay", function() {
+          updateVideoDuration();
           avatarPod.classList.add("video-ready");
         });
+        santaHeadVideo.addEventListener("durationchange", updateVideoDuration);
         santaHeadVideo.addEventListener("error", function() {
           avatarPod.classList.remove("video-ready");
         });
         // Check if already ready
         if (santaHeadVideo.readyState >= 2) {
+          updateVideoDuration();
           avatarPod.classList.add("video-ready");
         }
       }
@@ -854,15 +871,19 @@
       }
 
       // ── 2. Talking Santa Head Video / Animation Control ──
-      function startSantaTalking(estimatedDurationMs = 3000) {
+      function startSantaTalking() {
         if (activeSpeakingTimer) clearTimeout(activeSpeakingTimer);
+        activeSpeakingTimer = null;
+
+        // Record start timestamp to coordinate full MP4 playback
+        speechStartTime = Date.now();
 
         // Activate speaking aura & status indicators
         avatarPod.classList.add("is-speaking");
         statusDot.classList.add("speaking");
         statusText.textContent = "Santa is speaking...";
 
-        // Play MP4 video if available
+        // Play MP4 video from beginning if available
         if (santaHeadVideo) {
           try {
             santaHeadVideo.currentTime = 0;
@@ -879,21 +900,23 @@
             avatarPod.classList.remove("has-video-playing");
           }
         }
-
-        // Automatically stop talking when speech render finishes
-        activeSpeakingTimer = setTimeout(() => {
-          stopSantaTalking();
-        }, estimatedDurationMs);
       }
 
       function stopSantaTalking() {
         if (activeSpeakingTimer) clearTimeout(activeSpeakingTimer);
         activeSpeakingTimer = null;
+        speechStartTime = 0;
 
         avatarPod.classList.remove("is-speaking");
         avatarPod.classList.remove("has-video-playing");
         statusDot.classList.remove("speaking");
-        statusText.textContent = tableMetadata?.name ? `Online • ${tableMetadata.name}` : "Online from the North Pole";
+
+        if (tableMetadata?.sleigh_display_name || tableMetadata?.name) {
+          const townName = tableSlug.charAt(0).toUpperCase() + tableSlug.slice(1);
+          statusText.textContent = `Broadcasting to ${townName}`;
+        } else {
+          statusText.textContent = "Online from the North Pole";
+        }
 
         // Pause MP4 video and reset to resting start frame
         if (santaHeadVideo) {
@@ -958,23 +981,26 @@
         return bubble;
       }
 
-      // ── 4. Typewriter Rendering Synced with Santa Talking GIF ──
+      // ── 4. Typewriter Rendering Synced with Santa Talking Video ──
       async function renderSantaReplyWithAnimation(fullText) {
         const tempRow = document.getElementById("temp-typing-row");
         if (tempRow) tempRow.remove();
 
-        const words = fullText.split(" ");
+        const words = (fullText || "").trim().split(/\s+/).filter(Boolean);
         const wordsCount = words.length;
-
-        // Speed calculation: ~55ms per word + pleasant breathing buffer
-        const wordDelayMs = 55;
-        const totalSpeakingTimeMs = Math.max(2200, (wordsCount * wordDelayMs) + 600);
 
         // Create empty Santa bubble
         const bubble = appendMessage("santa", "");
 
-        // Start Talking Santa GIF animation!
-        startSantaTalking(totalSpeakingTimeMs);
+        // Start Talking Santa Video!
+        startSantaTalking();
+
+        // Calculate smooth word reveal pacing:
+        // Paces words across ~72% of the video loop duration (clamped between 65ms and 125ms)
+        const targetTypingWindowMs = videoLoopDurationMs * 0.72;
+        const wordDelayMs = wordsCount > 0 
+          ? Math.max(65, Math.min(125, Math.floor(targetTypingWindowMs / wordsCount)))
+          : 85;
 
         // Sequentially reveal words to simulate real-time speech
         let displayed = "";
@@ -985,8 +1011,20 @@
           await new Promise(r => setTimeout(r, wordDelayMs));
         }
 
-        // Keep talking GIF active for tiny pause after last word
-        await new Promise(r => setTimeout(r, 450));
+        // Measure time elapsed since Santa started speaking
+        const elapsedSinceStartMs = speechStartTime > 0 ? (Date.now() - speechStartTime) : 0;
+
+        // REQUIREMENT:
+        // On every response, ensure the MP4 plays fully (at least one full video loop),
+        // only looping in the off chance the response is slower than the full video loop.
+        if (elapsedSinceStartMs < videoLoopDurationMs) {
+          const remainingMs = Math.max(0, videoLoopDurationMs - elapsedSinceStartMs);
+          await new Promise(r => setTimeout(r, remainingMs));
+        } else {
+          // If response was longer than 1 loop, video looped seamlessly; add a gentle breath pause
+          await new Promise(r => setTimeout(r, 450));
+        }
+
         stopSantaTalking();
       }
 
@@ -1070,6 +1108,7 @@
       // Clear / Restart Conversation
       btnClearChat.addEventListener("click", function() {
         if (confirm("Would you like to start a fresh chat with Santa?")) {
+          stopSantaTalking();
           sendInitialWelcome();
         }
       });
