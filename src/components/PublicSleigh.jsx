@@ -185,7 +185,7 @@ export const PUBLIC_FEATURE_CATALOG = {
     id: 'santa_bot',
     anchorId: 'santa-bot',
     navLabel: 'Talk to Santa',
-    badge: 'North Pole Live AI Hotline',
+    badge: 'Lapland Live AI Hotline',
     title: 'TALK TO',
     titleHighlight: 'SANTA',
     description: "Children and families can message Santa directly in Lapland! Ask when he is visiting your street, how Rudolph is doing, or hear a jolly festive story.",

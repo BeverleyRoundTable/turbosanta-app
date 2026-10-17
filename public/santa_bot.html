@@ -636,7 +636,7 @@
           </h1>
           <div class="stage-status" id="stage-status">
             <span class="status-dot" id="status-dot"></span>
-            <span id="status-text">Online from the North Pole</span>
+            <span id="status-text">Online from Lapland</span>
           </div>
         </div>
       </div>
@@ -660,7 +660,7 @@
         <button type="button" class="chip-btn" data-query="Santa, what I would really like for Christmas is a magical surprise! Can I tell you my wish list? 🎁">
           🎁 What I'd like for Christmas
         </button>
-        <button type="button" class="chip-btn" data-query="How are Rudolph and all the reindeer doing at the North Pole? 🦌">
+        <button type="button" class="chip-btn" data-query="How are Rudolph and all the reindeer doing in Lapland? 🦌">
           🦌 Tell me about Rudolph & reindeer
         </button>
         <button type="button" class="chip-btn" data-query="What treats should we leave out for you and the reindeer? 🍪">
@@ -919,7 +919,7 @@
           const townName = tableSlug.charAt(0).toUpperCase() + tableSlug.slice(1);
           statusText.textContent = `Broadcasting to ${townName}`;
         } else {
-          statusText.textContent = "Online from the North Pole";
+          statusText.textContent = "Online from Lapland";
         }
 
         // Pause MP4 video and reset to resting start frame
@@ -1100,7 +1100,7 @@
 
         } catch (err) {
           console.error("Santa Chat error:", err);
-          const fallbackErrorMsg = "Ho-ho-ho! A snowy North Pole gust swept through my radio! Please ask me again in just a second! 🎅❄️";
+          const fallbackErrorMsg = "Ho-ho-ho! A snowy Lapland gust swept through my radio! Please ask me again in just a second! 🎅❄️";
           await renderSantaReplyWithAnimation(fallbackErrorMsg);
         } finally {
           isBusy = false;
@@ -1114,7 +1114,7 @@
         messagesContainer.innerHTML = "";
         conversationHistory = [];
         const townName = tableSlug.charAt(0).toUpperCase() + tableSlug.slice(1);
-        const welcomeText = `Ho-ho-ho! Merry Christmas to all the boys, girls, and families in ${townName}! 🎅✨ I am speaking to you live from my workshop at the North Pole via the Round Table Santa Sleigh radio! How can I help you today?`;
+        const welcomeText = `Ho-ho-ho! Merry Christmas to all the boys, girls, and families in ${townName}! 🎅✨ I am speaking to you live from my workshop in Lapland via the Round Table Santa Sleigh radio! How can I help you today?`;
         
         appendMessage("santa", welcomeText);
         conversationHistory.push({ role: "santa", text: welcomeText });
