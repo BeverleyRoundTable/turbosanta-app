@@ -3334,7 +3334,8 @@
                 fullscreenSrc: slug => `/magic_mailbox.html?table=${encodeURIComponent(slug)}`,
                 fullscreenLabel: 'Open Magic Mailbox Full-Screen',
                 height: 700,
-                maxWidth: 840
+                maxWidth: 840,
+                allowMicrophone: true
             },
             nice_list: {
                 id: 'nice_list',
@@ -3363,6 +3364,21 @@
                 fullscreenLabel: 'Adopt a Reindeer Full-Screen',
                 height: 740,
                 maxWidth: 900
+            },
+            santa_bot: {
+                id: 'santa_bot',
+                anchorId: 'santa-bot',
+                navLabel: 'Talk to Santa',
+                badge: 'Lapland Live AI Hotline',
+                title: 'TALK TO',
+                titleHighlight: 'SANTA',
+                description: "Children and families can message Santa directly in Lapland! Ask when he is visiting your street, how Rudolph is doing, or hear a jolly festive story.",
+                embedSrc: slug => `/santa_bot.html?table=${encodeURIComponent(slug)}`,
+                fullscreenSrc: slug => `/santa_bot.html?table=${encodeURIComponent(slug)}`,
+                fullscreenLabel: 'Open Santa AI Chat Full-Screen',
+                height: 720,
+                maxWidth: 820,
+                allowMicrophone: true
             },
             santa_chat: {
                 id: 'santa_chat',
@@ -3405,7 +3421,8 @@
                 fullscreenSrc: slug => `/santa_studio.html?table=${encodeURIComponent(slug)}`,
                 fullscreenLabel: 'Open Audio Studio Full-Screen',
                 height: 740,
-                maxWidth: 840
+                maxWidth: 840,
+                allowMicrophone: true
             },
             snowman: {
                 id: 'snowman',
@@ -3436,6 +3453,8 @@
                 maxWidth: 600
             }
         };
+
+        PUBLIC_FEATURE_CATALOG.santa_studio = PUBLIC_FEATURE_CATALOG.santa_bot;
 
         window.addEventListener('message', function (e) {
             if (!e.data) return;
@@ -3582,8 +3601,7 @@
                 ifr.style.display = 'block';
                 ifr.style.overflow = 'hidden';
 
-                let allowAttrs = ['camera', 'microphone', 'geolocation'];
-                if (slot.allowMicrophone) allowAttrs.push('autoplay');
+                let allowAttrs = ['camera', 'microphone', 'geolocation', 'autoplay'];
                 ifr.allow = allowAttrs.join('; ');
 
                 ifrWrap.appendChild(ifr);

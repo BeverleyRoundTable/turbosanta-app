@@ -6815,7 +6815,37 @@ ${tableName} Organizers`
 
                     <select
                       value={formData.public_slot_1 || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, public_slot_1: e.target.value }))}
+                      onChange={async (e) => {
+                        const val = e.target.value;
+                        const nextSlot2 = formData.public_slot_2 || '';
+                        setFormData(prev => ({ ...prev, public_slot_1: val }));
+                        if (onUpdateTableData) {
+                          onUpdateTableData(prev => ({
+                            ...prev,
+                            table: {
+                              ...prev.table,
+                              public_slot_1: val,
+                              enable_colouring: (val === 'colouring' || nextSlot2 === 'colouring') ? 1 : 0
+                            }
+                          }));
+                        }
+                        setSaveStatus('Saving modular slot 1 to database...');
+                        try {
+                          const res = await saveTableSettings(currentTableSlug, {
+                            public_slot_1: val,
+                            public_slot_2: nextSlot2,
+                            enable_colouring: (val === 'colouring' || nextSlot2 === 'colouring') ? 1 : 0
+                          });
+                          if (res && res.ok) {
+                            setSaveStatus('✓ Slot 1 saved to database!');
+                          } else {
+                            setSaveStatus('Slot updated locally. Click Save Settings below to confirm.');
+                          }
+                        } catch (_) {
+                          setSaveStatus('Slot updated locally.');
+                        }
+                        setTimeout(() => setSaveStatus(''), 3000);
+                      }}
                       style={{
                         width: '100%',
                         background: '#151513',
@@ -6883,7 +6913,37 @@ ${tableName} Organizers`
 
                     <select
                       value={formData.public_slot_2 || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, public_slot_2: e.target.value }))}
+                      onChange={async (e) => {
+                        const val = e.target.value;
+                        const nextSlot1 = formData.public_slot_1 || '';
+                        setFormData(prev => ({ ...prev, public_slot_2: val }));
+                        if (onUpdateTableData) {
+                          onUpdateTableData(prev => ({
+                            ...prev,
+                            table: {
+                              ...prev.table,
+                              public_slot_2: val,
+                              enable_colouring: (nextSlot1 === 'colouring' || val === 'colouring') ? 1 : 0
+                            }
+                          }));
+                        }
+                        setSaveStatus('Saving modular slot 2 to database...');
+                        try {
+                          const res = await saveTableSettings(currentTableSlug, {
+                            public_slot_1: nextSlot1,
+                            public_slot_2: val,
+                            enable_colouring: (nextSlot1 === 'colouring' || val === 'colouring') ? 1 : 0
+                          });
+                          if (res && res.ok) {
+                            setSaveStatus('✓ Slot 2 saved to database!');
+                          } else {
+                            setSaveStatus('Slot updated locally. Click Save Settings below to confirm.');
+                          }
+                        } catch (_) {
+                          setSaveStatus('Slot updated locally.');
+                        }
+                        setTimeout(() => setSaveStatus(''), 3000);
+                      }}
                       style={{
                         width: '100%',
                         background: '#151513',
@@ -6933,12 +6993,41 @@ ${tableName} Organizers`
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
+                      const nextSlot1 = formData.public_slot_2 || '';
+                      const nextSlot2 = formData.public_slot_1 || '';
                       setFormData(prev => ({
                         ...prev,
-                        public_slot_1: prev.public_slot_2 || '',
-                        public_slot_2: prev.public_slot_1 || ''
+                        public_slot_1: nextSlot1,
+                        public_slot_2: nextSlot2
                       }));
+                      if (onUpdateTableData) {
+                        onUpdateTableData(prev => ({
+                          ...prev,
+                          table: {
+                            ...prev.table,
+                            public_slot_1: nextSlot1,
+                            public_slot_2: nextSlot2,
+                            enable_colouring: (nextSlot1 === 'colouring' || nextSlot2 === 'colouring') ? 1 : 0
+                          }
+                        }));
+                      }
+                      setSaveStatus('Swapping modular slots in database...');
+                      try {
+                        const res = await saveTableSettings(currentTableSlug, {
+                          public_slot_1: nextSlot1,
+                          public_slot_2: nextSlot2,
+                          enable_colouring: (nextSlot1 === 'colouring' || nextSlot2 === 'colouring') ? 1 : 0
+                        });
+                        if (res && res.ok) {
+                          setSaveStatus('✓ Modular slot order saved to database!');
+                        } else {
+                          setSaveStatus('Slot order updated locally.');
+                        }
+                      } catch (_) {
+                        setSaveStatus('Slot order updated locally.');
+                      }
+                      setTimeout(() => setSaveStatus(''), 3000);
                     }}
                     style={{
                       display: 'inline-flex',

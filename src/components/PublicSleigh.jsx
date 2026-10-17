@@ -136,7 +136,8 @@ export const PUBLIC_FEATURE_CATALOG = {
     fullscreenSrc: (slug) => `/magic_mailbox.html?table=${encodeURIComponent(slug)}`,
     fullscreenLabel: 'Open Magic Mailbox Full-Screen',
     height: 700,
-    maxWidth: 840
+    maxWidth: 840,
+    allowMicrophone: true
   },
   nice_list: {
     id: 'nice_list',
@@ -193,7 +194,8 @@ export const PUBLIC_FEATURE_CATALOG = {
     fullscreenSrc: (slug) => `/santa_bot.html?table=${encodeURIComponent(slug)}`,
     fullscreenLabel: 'Open Santa AI Chat Full-Screen',
     height: 720,
-    maxWidth: 820
+    maxWidth: 820,
+    allowMicrophone: true
   },
   santa_frame: {
     id: 'santa_frame',
@@ -1824,7 +1826,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                       id={`feature-${slot.id}-embed`}
                       src={targetSrc}
                       scrolling="no"
-                      allow={slot.allowMicrophone ? "microphone" : undefined}
+                      allow="camera; microphone; geolocation; autoplay"
                       style={{ width: '100%', height: `${slot.height}px`, border: 'none', display: 'block', overflow: 'hidden' }}
                       title={`${slot.title} ${slot.titleHighlight}`}
                       loading="lazy"
