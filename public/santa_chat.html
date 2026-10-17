@@ -120,17 +120,36 @@
       justify-content: center;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
     }
 
     .avatar-pod img {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
-      object-fit: contain;
+      object-fit: cover;
       border-radius: 50%;
-      transition: transform 0.2s ease;
+      transition: opacity 0.25s ease, transform 0.2s ease;
+      z-index: 2;
     }
 
-    /* Animated Talking GIF Active State */
+    .avatar-pod video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 1;
+      transition: opacity 0.25s ease;
+    }
+
+    /* Animated Talking Active State */
     .avatar-pod.is-speaking {
       border-color: #2ecc71;
       box-shadow: 0 0 0 4px rgba(46, 204, 113, 0.25), 0 0 25px rgba(251, 175, 51, 0.45);
@@ -139,6 +158,16 @@
 
     .avatar-pod.is-speaking img {
       transform: scale(1.05);
+    }
+
+    /* When MP4 Video is Actively Playing */
+    .avatar-pod.has-video-playing video {
+      opacity: 1;
+      z-index: 3;
+    }
+
+    .avatar-pod.has-video-playing img {
+      opacity: 0;
     }
 
     @keyframes speakingPulse {
@@ -570,10 +599,14 @@
     <!-- 🎅 TALKING SANTA STAGE -->
     <header class="santa-stage" id="santa-stage">
       <div class="stage-left">
-        <!-- Santa Head Pod with Halo & Talking GIF Switcher -->
+        <!-- Santa Head Pod with Halo, Resting Face & Talking MP4 Video -->
         <div class="avatar-pod" id="santa-avatar-pod" title="Santa Claus Speaking Avatar">
           <div class="voice-waves"></div>
-          <img id="santa-head-img" src="https://roundtablesantasleigh.co.uk/icons/Beverley_Santa_Logo.png" alt="Santa Claus Head">
+          <img id="santa-head-img" src="/icons/Beverley_Santa_Logo.png" alt="Santa Claus Head">
+          <video id="santa-head-video" playsinline muted loop preload="auto">
+            <source src="/icons/santa_talking.mp4" type="video/mp4">
+            <source src="https://roundtablesantasleigh.co.uk/icons/santa_talking.mp4" type="video/mp4">
+          </video>
         </div>
 
         <div class="stage-meta">
@@ -606,19 +639,22 @@
 
       <!-- Quick Suggestion Pills -->
       <div class="suggestions-strip" id="suggestions-strip">
+        <button type="button" class="chip-btn" data-query="Santa, what I would really like for Christmas is a magical surprise! Can I tell you my wish list? 🎁">
+          🎁 What I'd like for Christmas
+        </button>
+        <button type="button" class="chip-btn" data-query="How are Rudolph and all the reindeer doing at the North Pole? 🦌">
+          🦌 Tell me about Rudolph & reindeer
+        </button>
+        <button type="button" class="chip-btn" data-query="What treats should we leave out for you and the reindeer? 🍪">
+          🍪 What treats do you like?
+        </button>
         <button type="button" class="chip-btn" data-query="When is Santa visiting my street? 🛷">
           🛷 When are you on my street?
         </button>
-        <button type="button" class="chip-btn" data-query="How are Rudolph and the reindeer doing? 🦌">
-          🦌 How is Rudolph?
-        </button>
-        <button type="button" class="chip-btn" data-query="What treats should we leave out for you and the reindeer? 🍪">
-          🍪 What treats should we leave out?
-        </button>
-        <button type="button" class="chip-btn" data-query="Tell me a funny festive joke! 🎅">
+        <button type="button" class="chip-btn" data-query="Can you tell me a funny Christmas cracker joke? 🎅">
           😄 Tell me a Christmas joke!
         </button>
-        <button type="button" class="chip-btn" data-query="How does the Santa Sleigh help our town? 💛">
+        <button type="button" class="chip-btn" data-query="How does the Round Table Santa Sleigh help our town? 💛">
           💛 How does the Sleigh help our town?
         </button>
       </div>
@@ -667,9 +703,9 @@
 
       // ============================================================
       // 🎅 TALKING SANTA HEAD CONFIGURATION
-      // Replace these URLs with your exact animated talking GIF and static PNG!
+      // Saved in GitHub repository as: public/icons/santa_talking.mp4
+      // Accessible on web at: /icons/santa_talking.mp4
       // ============================================================
-      const TALKING_SANTA_ANIMATION_URL = "https://roundtablesantasleigh.co.uk/icons/santa_talking_animated.gif"; // Animated talking Santa head
       const STATIC_SANTA_AVATAR_URL = "/icons/Beverley_Santa_Logo.png"; // Static resting Santa head
 
       // Detect Table Slug from query param (?table=beverley)
@@ -679,6 +715,7 @@
       // DOM Elements
       const avatarPod = document.getElementById("santa-avatar-pod");
       const santaHeadImg = document.getElementById("santa-head-img");
+      const santaHeadVideo = document.getElementById("santa-head-video");
       const statusDot = document.getElementById("status-dot");
       const statusText = document.getElementById("status-text");
       const messagesContainer = document.getElementById("messages-container");
@@ -693,6 +730,11 @@
       let isBusy = false;
       let activeSpeakingTimer = null;
       let tableMetadata = null;
+
+      // Ensure video is muted for inline autoplay compatibility
+      if (santaHeadVideo) {
+        santaHeadVideo.muted = true;
+      }
 
       // Ensure initial avatar is static
       santaHeadImg.src = STATIC_SANTA_AVATAR_URL;
@@ -718,23 +760,32 @@
         }
       }
 
-      // ── 2. Talking Santa Head Animation Control ──
+      // ── 2. Talking Santa Head Video / Animation Control ──
       function startSantaTalking(estimatedDurationMs = 3000) {
         if (activeSpeakingTimer) clearTimeout(activeSpeakingTimer);
 
-        // Switch head image to animated talking GIF & activate pulse halo
+        // Activate speaking aura & status indicators
         avatarPod.classList.add("is-speaking");
         statusDot.classList.add("speaking");
         statusText.textContent = "Santa is speaking...";
 
-        // Set GIF source (bust cache with timestamp if needed to restart GIF frame)
-        const cacheBuster = TALKING_SANTA_ANIMATION_URL.includes("?") ? "&" : "?";
-        santaHeadImg.src = `${TALKING_SANTA_ANIMATION_URL}${cacheBuster}t=${Date.now()}`;
-
-        // Fallback error handler: if the user's custom GIF fails to load, revert to static with pulse
-        santaHeadImg.onerror = function() {
-          this.src = STATIC_SANTA_AVATAR_URL;
-        };
+        // Play MP4 video if available
+        if (santaHeadVideo) {
+          try {
+            santaHeadVideo.currentTime = 0;
+            const playPromise = santaHeadVideo.play();
+            if (playPromise !== undefined) {
+              playPromise.then(() => {
+                avatarPod.classList.add("has-video-playing");
+              }).catch(err => {
+                console.log("Santa video playback notice:", err.message);
+                avatarPod.classList.remove("has-video-playing");
+              });
+            }
+          } catch (e) {
+            avatarPod.classList.remove("has-video-playing");
+          }
+        }
 
         // Automatically stop talking when speech render finishes
         activeSpeakingTimer = setTimeout(() => {
@@ -747,11 +798,17 @@
         activeSpeakingTimer = null;
 
         avatarPod.classList.remove("is-speaking");
+        avatarPod.classList.remove("has-video-playing");
         statusDot.classList.remove("speaking");
         statusText.textContent = tableMetadata?.name ? `Online • ${tableMetadata.name}` : "Online from the North Pole";
 
-        // Revert head image to static resting frame
-        santaHeadImg.src = STATIC_SANTA_AVATAR_URL;
+        // Pause MP4 video and reset to resting start frame
+        if (santaHeadVideo) {
+          try {
+            santaHeadVideo.pause();
+            santaHeadVideo.currentTime = 0;
+          } catch (e) {}
+        }
       }
 
       // ── 3. Render Message Bubbles ──
