@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="/embed-theme.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Talk to Santa — Lapland AI Sleigh Hotline</title>
+  <meta name="theme-color" content="#0d0d0b">
+  <link rel="icon" type="image/png" href="/icons/Beverley_Santa_Logo.png">
+
+  <!-- Google Fonts: Open Sans & DM Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=DM+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ═══════════════════════════════════════════════════════════════
+       OFFICIAL EUROSTILE & BRAND TYPOGRAPHY
+       ═══════════════════════════════════════════════════════════════ */
+    @font-face {
+      font-family: 'Eurostile';
+      src: url('/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root {
+      --primary: #FBAF33;
+      --accent: #D31C1C;
+      --gold: #FBAF33;
+      --gold-glow: rgba(251, 175, 51, 0.35);
+      --gold-dim: rgba(251, 175, 51, 0.12);
+      --red: #D31C1C;
+      --green: #2ecc71;
+      --dark: #0d0d0b;
+      --surface: #151513;
+      --surface-2: #1e1e1b;
+      --surface-3: #252522;
+      --border: rgba(255, 255, 255, 0.1);
+      --border-gold: rgba(251, 175, 51, 0.28);
+      --text: #eaeae5;
+      --text-dim: rgba(255, 255, 255, 0.65);
+      --text-muted: rgba(255, 255, 255, 0.38);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--dark);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 16px 12px 24px;
+    }
+
+    /* Container */
+    .chat-wrapper {
+      width: 100%;
+      max-width: 760px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* ── TALKING SANTA HEADER STAGE ── */
+    .santa-stage {
+      background: linear-gradient(180deg, #181816 0%, #121210 100%);
+      border: 1px solid var(--border-gold);
+      border-radius: 20px;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 24px rgba(251, 175, 51, 0.08);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .santa-stage::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -20%;
+      width: 140%;
+      height: 100%;
+      background: radial-gradient(ellipse at top, rgba(251, 175, 51, 0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .stage-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    /* Santa Head Frame */
+    .avatar-pod {
+      position: relative;
+      width: 72px;
+      height: 72px;
+      min-width: 72px;
+      border-radius: 50%;
+      background: #0d0d0b;
+      border: 2px solid var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+    }
+
+    .avatar-pod img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+      transition: opacity 0.25s ease, transform 0.2s ease;
+      z-index: 2;
+    }
+
+    .avatar-pod video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 1;
+      transition: opacity 0.25s ease;
+    }
+
+    /* Animated Talking Active State */
+    .avatar-pod.is-speaking {
+      border-color: #2ecc71;
+      box-shadow: 0 0 0 4px rgba(46, 204, 113, 0.25), 0 0 25px rgba(251, 175, 51, 0.45);
+      animation: speakingPulse 1.2s infinite alternate ease-in-out;
+    }
+
+    .avatar-pod.is-speaking img {
+      transform: scale(1.05);
+    }
+
+    /* When MP4 Video is Actively Playing */
+    .avatar-pod.has-video-playing video {
+      opacity: 1;
+      z-index: 3;
+    }
+
+    .avatar-pod.has-video-playing img {
+      opacity: 0;
+    }
+
+    @keyframes speakingPulse {
+      0% {
+        box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.3), 0 0 15px rgba(251, 175, 51, 0.3);
+      }
+      100% {
+        box-shadow: 0 0 0 6px rgba(46, 204, 113, 0.5), 0 0 32px rgba(251, 175, 51, 0.6);
+      }
+    }
+
+    /* Voice Wave Halo Indicator */
+    .voice-waves {
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .avatar-pod.is-speaking .voice-waves {
+      opacity: 1;
+      border-color: rgba(251, 175, 51, 0.4);
+      animation: waveRing 1.4s infinite cubic-bezier(0, 0.2, 0.8, 1);
+    }
+
+    @keyframes waveRing {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      100% { transform: scale(1.28); opacity: 0; }
+    }
+
+    /* Stage Titles & Status */
+    .stage-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .stage-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stage-title {
+      font-family: 'Eurostile', sans-serif;
+      font-size: clamp(20px, 4vw, 24px);
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.5px;
+      line-height: 1.1;
+      text-transform: uppercase;
+    }
+
+    .stage-title span {
+      color: var(--primary);
+    }
+
+    .stage-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #2ecc71;
+      box-shadow: 0 0 8px rgba(46, 204, 113, 0.8);
+    }
+
+    .status-dot.speaking {
+      background: #FBAF33;
+      box-shadow: 0 0 10px #FBAF33;
+      animation: pulseDot 0.8s infinite alternate;
+    }
+
+    @keyframes pulseDot {
+      0% { opacity: 0.4; transform: scale(0.85); }
+      100% { opacity: 1; transform: scale(1.2); }
+    }
+
+    /* Stage Controls (Reset & Fullscreen / Close) */
+    .stage-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-icon-subtle {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-icon-subtle:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      border-color: var(--border-gold);
+    }
+
+    /* ── CHAT LOG CONTAINER ── */
+    .chat-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      height: clamp(380px, 58vh, 520px);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+    }
+
+    .messages-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      scroll-behavior: smooth;
+    }
+
+    /* Scrollbar styling */
+    .messages-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .messages-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .messages-scroll::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+    .messages-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Message Rows */
+    .msg-row {
+      display: flex;
+      gap: 12px;
+      max-width: 86%;
+      animation: msgPop 0.25s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+    }
+
+    @keyframes msgPop {
+      0% { opacity: 0; transform: translateY(8px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg-row.santa {
+      align-self: flex-start;
+    }
+
+    .msg-row.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .msg-avatar {
+      width: 38px;
+      height: 38px;
+      min-width: 38px;
+      border-radius: 50%;
+      background: #111;
+      border: 1px solid var(--border-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .msg-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .msg-content {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .msg-sender {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      padding: 0 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .msg-row.santa .msg-sender {
+      color: var(--primary);
+    }
+
+    /* Bubbles */
+    .msg-bubble {
+      padding: 13px 16px;
+      border-radius: 16px;
+      font-size: 14.5px;
+      line-height: 1.55;
+      color: #fff;
+      word-break: break-word;
+      position: relative;
+    }
+
+    .msg-row.santa .msg-bubble {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-top-left-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .msg-row.user .msg-bubble {
+      background: linear-gradient(135deg, var(--red) 0%, #a81212 100%);
+      color: #ffffff;
+      border-top-right-radius: 4px;
+      box-shadow: 0 4px 14px rgba(211, 28, 28, 0.3);
+    }
+
+    .msg-time {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      align-self: flex-end;
+      margin-top: 2px;
+      padding: 0 4px;
+    }
+
+    /* Typing Dots Animation */
+    .typing-pod {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 10px;
+    }
+
+    .typing-pod span {
+      width: 7px;
+      height: 7px;
+      background: var(--primary);
+      border-radius: 50%;
+      animation: blinkDots 1.3s infinite ease-in-out;
+    }
+
+    .typing-pod span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-pod span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes blinkDots {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40% { transform: scale(1.15); opacity: 1; }
+    }
+
+    /* ── QUICK SUGGESTION PILLS ── */
+    .suggestions-strip {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 10px 14px;
+      background: rgba(0, 0, 0, 0.25);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      white-space: nowrap;
+      scrollbar-width: none;
+    }
+
+    .suggestions-strip::-webkit-scrollbar {
+      display: none;
+    }
+
+    .chip-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 7px 14px;
+      font-size: 12.5px;
+      color: var(--text-dim);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .chip-btn:hover {
+      background: rgba(251, 175, 51, 0.15);
+      border-color: var(--primary);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    /* ── INPUT FORM BAR ── */
+    .input-bar {
+      padding: 14px 16px;
+      background: #11110f;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .chat-input {
+      flex: 1;
+      background: #191916;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: #fff;
+      font-size: 15px;
+      font-family: 'Open Sans', sans-serif;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .chat-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .chat-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(251, 175, 51, 0.18);
+    }
+
+    .send-btn {
+      background: var(--primary);
+      color: #000;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-family: 'Eurostile', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .send-btn:hover:not(:disabled) {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(251, 175, 51, 0.4);
+    }
+
+    .send-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ── SAFEGUARDING & FAMILY PRIVACY FOOTER ── */
+    .safeguard-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+
+    .safeguard-strip a {
+      color: var(--primary);
+      text-decoration: underline;
+    }
+
+    .safeguard-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    @media (max-width: 580px) {
+      .santa-stage {
+        padding: 14px;
+      }
+      .avatar-pod {
+        width: 60px;
+        height: 60px;
+        min-width: 60px;
+      }
+      .msg-row {
+        max-width: 92%;
+      }
+      .send-btn span {
+        display: none;
+      }
+      .send-btn {
+        padding: 12px 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="chat-wrapper">
+
+    <!-- 🎅 TALKING SANTA STAGE -->
+    <header class="santa-stage" id="santa-stage">
+      <div class="stage-left">
+        <!-- Santa Head Pod with Halo, Resting Face & Talking MP4 Video -->
+        <div class="avatar-pod" id="santa-avatar-pod" title="Santa Claus Speaking Avatar">
+          <div class="voice-waves"></div>
+          <img id="santa-head-img" src="/icons/Beverley_Santa_Logo.png" alt="Santa Claus Head">
+          <video id="santa-head-video" playsinline muted loop preload="auto">
+            <source src="/icons/santa_talking.mp4" type="video/mp4">
+            <source src="https://roundtablesantasleigh.co.uk/icons/santa_talking.mp4" type="video/mp4">
+          </video>
+        </div>
+
+        <div class="stage-meta">
+          <div class="stage-badge">
+            <span>✨ Lapland Sleigh Hotline</span>
+          </div>
+          <h1 class="stage-title">
+            TALK TO <span>SANTA</span>
+          </h1>
+          <div class="stage-status" id="stage-status">
+            <span class="status-dot" id="status-dot"></span>
+            <span id="status-text">Online from the North Pole</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage-actions">
+        <button type="button" class="btn-icon-subtle" id="btn-clear-chat" title="Clear conversation history">
+          🔄 <span>Restart</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- 💬 INTERACTIVE CHAT BOX -->
+    <main class="chat-box" role="region" aria-label="Santa Chat Messages">
+      <!-- Conversation History -->
+      <div class="messages-scroll" id="messages-container" aria-live="polite">
+        <!-- Messages dynamically rendered here -->
+      </div>
+
+      <!-- Quick Suggestion Pills -->
+      <div class="suggestions-strip" id="suggestions-strip">
+        <button type="button" class="chip-btn" data-query="Santa, what I would really like for Christmas is a magical surprise! Can I tell you my wish list? 🎁">
+          🎁 What I'd like for Christmas
+        </button>
+        <button type="button" class="chip-btn" data-query="How are Rudolph and all the reindeer doing at the North Pole? 🦌">
+          🦌 Tell me about Rudolph & reindeer
+        </button>
+        <button type="button" class="chip-btn" data-query="What treats should we leave out for you and the reindeer? 🍪">
+          🍪 What treats do you like?
+        </button>
+        <button type="button" class="chip-btn" data-query="When is Santa visiting my street? 🛷">
+          🛷 When are you on my street?
+        </button>
+        <button type="button" class="chip-btn" data-query="Can you tell me a funny Christmas cracker joke? 🎅">
+          😄 Tell me a Christmas joke!
+        </button>
+        <button type="button" class="chip-btn" data-query="How does the Round Table Santa Sleigh help our town? 💛">
+          💛 How does the Sleigh help our town?
+        </button>
+      </div>
+
+      <!-- Input Form -->
+      <form class="input-bar" id="chat-form">
+        <input 
+          type="text" 
+          id="chat-input" 
+          class="chat-input" 
+          placeholder="Ask Santa a question or say hello..." 
+          autocomplete="off"
+          maxlength="280"
+          required
+        />
+        <button type="submit" id="send-btn" class="send-btn" aria-label="Send message to Santa">
+          <span>Send</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </form>
+    </main>
+
+    <!-- 🛡️ SAFEGUARDING & PRIVACY NOTICE -->
+    <footer class="safeguard-strip">
+      <div class="safeguard-badge">
+        <span>🛡️ Child Safe & Moderated</span>
+        <span>&bull;</span>
+        <span>Family Privacy Protected</span>
+      </div>
+      <div>
+        <span>Powered by <strong style="color:#fff;">Round Table Great Britain & Ireland</strong> &amp; Google Gemini</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       🎅 TALKING SANTA CHATBOT CLIENT SCRIPT
+       ═══════════════════════════════════════════════════════════════ -->
+  <script>
+    (function() {
+      "use strict";
+
+      // ============================================================
+      // 🎅 TALKING SANTA HEAD CONFIGURATION
+      // Saved in GitHub repository as: public/icons/santa_talking.mp4
+      // Accessible on web at: /icons/santa_talking.mp4
+      // ============================================================
+      const STATIC_SANTA_AVATAR_URL = "/icons/Beverley_Santa_Logo.png"; // Static resting Santa head
+
+      // Detect Table Slug from query param (?table=beverley)
+      const urlParams = new URLSearchParams(window.location.search);
+      const tableSlug = (urlParams.get("table") || "beverley").toLowerCase().trim();
+
+      // DOM Elements
+      const avatarPod = document.getElementById("santa-avatar-pod");
+      const santaHeadImg = document.getElementById("santa-head-img");
+      const santaHeadVideo = document.getElementById("santa-head-video");
+      const statusDot = document.getElementById("status-dot");
+      const statusText = document.getElementById("status-text");
+      const messagesContainer = document.getElementById("messages-container");
+      const chatForm = document.getElementById("chat-form");
+      const chatInput = document.getElementById("chat-input");
+      const sendBtn = document.getElementById("send-btn");
+      const btnClearChat = document.getElementById("btn-clear-chat");
+      const suggestionsStrip = document.getElementById("suggestions-strip");
+
+      // Chat State
+      let conversationHistory = [];
+      let isBusy = false;
+      let activeSpeakingTimer = null;
+      let tableMetadata = null;
+
+      // Ensure video is muted for inline autoplay compatibility
+      if (santaHeadVideo) {
+        santaHeadVideo.muted = true;
+      }
+
+      // Ensure initial avatar is static
+      santaHeadImg.src = STATIC_SANTA_AVATAR_URL;
+      santaHeadImg.onerror = function() {
+        // Fallback to RTBI Santa icon if custom URL fails
+        this.src = "/icons/RTBI_Santa.png";
+      };
+
+      // ── 1. Fetch Local Table Data for Town Personalisation ──
+      async function loadTableInfo() {
+        try {
+          const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableSlug)}`);
+          if (res.ok) {
+            const data = await res.json();
+            tableMetadata = data?.table || {};
+            if (tableMetadata.sleigh_display_name) {
+              const townName = tableSlug.charAt(0).toUpperCase() + tableSlug.slice(1);
+              statusText.textContent = `Broadcasting to ${townName}`;
+            }
+          }
+        } catch (e) {
+          console.warn("Could not prefetch table metadata:", e);
+        }
+      }
+
+      // ── 2. Talking Santa Head Video / Animation Control ──
+      function startSantaTalking(estimatedDurationMs = 3000) {
+        if (activeSpeakingTimer) clearTimeout(activeSpeakingTimer);
+
+        // Activate speaking aura & status indicators
+        avatarPod.classList.add("is-speaking");
+        statusDot.classList.add("speaking");
+        statusText.textContent = "Santa is speaking...";
+
+        // Play MP4 video if available
+        if (santaHeadVideo) {
+          try {
+            santaHeadVideo.currentTime = 0;
+            const playPromise = santaHeadVideo.play();
+            if (playPromise !== undefined) {
+              playPromise.then(() => {
+                avatarPod.classList.add("has-video-playing");
+              }).catch(err => {
+                console.log("Santa video playback notice:", err.message);
+                avatarPod.classList.remove("has-video-playing");
+              });
+            }
+          } catch (e) {
+            avatarPod.classList.remove("has-video-playing");
+          }
+        }
+
+        // Automatically stop talking when speech render finishes
+        activeSpeakingTimer = setTimeout(() => {
+          stopSantaTalking();
+        }, estimatedDurationMs);
+      }
+
+      function stopSantaTalking() {
+        if (activeSpeakingTimer) clearTimeout(activeSpeakingTimer);
+        activeSpeakingTimer = null;
+
+        avatarPod.classList.remove("is-speaking");
+        avatarPod.classList.remove("has-video-playing");
+        statusDot.classList.remove("speaking");
+        statusText.textContent = tableMetadata?.name ? `Online • ${tableMetadata.name}` : "Online from the North Pole";
+
+        // Pause MP4 video and reset to resting start frame
+        if (santaHeadVideo) {
+          try {
+            santaHeadVideo.pause();
+            santaHeadVideo.currentTime = 0;
+          } catch (e) {}
+        }
+      }
+
+      // ── 3. Render Message Bubbles ──
+      function formatTime() {
+        const d = new Date();
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+
+      function appendMessage(sender, text, isTemporary = false) {
+        const isSanta = sender === "santa";
+        const row = document.createElement("div");
+        row.className = `msg-row ${isSanta ? 'santa' : 'user'}`;
+        if (isTemporary) row.id = "temp-typing-row";
+
+        const avatar = document.createElement("div");
+        avatar.className = "msg-avatar";
+        avatar.innerHTML = isSanta 
+          ? `<img src="${STATIC_SANTA_AVATAR_URL}" alt="Santa">`
+          : `<span style="font-size:18px;">🧑‍🎄</span>`;
+
+        const content = document.createElement("div");
+        content.className = "msg-content";
+
+        const senderLabel = document.createElement("span");
+        senderLabel.className = "msg-sender";
+        senderLabel.textContent = isSanta ? "Santa Claus" : "You";
+
+        const bubble = document.createElement("div");
+        bubble.className = "msg-bubble";
+
+        if (isTemporary) {
+          bubble.innerHTML = `
+            <div class="typing-pod">
+              <span></span><span></span><span></span>
+            </div>
+          `;
+        } else {
+          bubble.textContent = text;
+        }
+
+        const time = document.createElement("span");
+        time.className = "msg-time";
+        time.textContent = formatTime();
+
+        content.appendChild(senderLabel);
+        content.appendChild(bubble);
+        content.appendChild(time);
+
+        row.appendChild(avatar);
+        row.appendChild(content);
+
+        messagesContainer.appendChild(row);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        return bubble;
+      }
+
+      // ── 4. Typewriter Rendering Synced with Santa Talking GIF ──
+      async function renderSantaReplyWithAnimation(fullText) {
+        const tempRow = document.getElementById("temp-typing-row");
+        if (tempRow) tempRow.remove();
+
+        const words = fullText.split(" ");
+        const wordsCount = words.length;
+
+        // Speed calculation: ~55ms per word + pleasant breathing buffer
+        const wordDelayMs = 55;
+        const totalSpeakingTimeMs = Math.max(2200, (wordsCount * wordDelayMs) + 600);
+
+        // Create empty Santa bubble
+        const bubble = appendMessage("santa", "");
+
+        // Start Talking Santa GIF animation!
+        startSantaTalking(totalSpeakingTimeMs);
+
+        // Sequentially reveal words to simulate real-time speech
+        let displayed = "";
+        for (let i = 0; i < words.length; i++) {
+          displayed += (i === 0 ? "" : " ") + words[i];
+          bubble.textContent = displayed;
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          await new Promise(r => setTimeout(r, wordDelayMs));
+        }
+
+        // Keep talking GIF active for tiny pause after last word
+        await new Promise(r => setTimeout(r, 450));
+        stopSantaTalking();
+      }
+
+      // ── 5. Send Message to Universal Backend API ──
+      async function handleSendMessage(userText) {
+        const cleanText = (userText || "").trim();
+        if (!cleanText || isBusy) return;
+
+        isBusy = true;
+        chatInput.value = "";
+        sendBtn.disabled = true;
+
+        // Append user bubble
+        appendMessage("user", cleanText);
+
+        // Record into history
+        conversationHistory.push({ role: "user", text: cleanText });
+
+        // Show typing indicator
+        appendMessage("santa", "", true);
+
+        try {
+          // Call Universal TurboSanta Worker AI Chatbot Endpoint
+          const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/chat/santa?table=${encodeURIComponent(tableSlug)}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              table: tableSlug,
+              message: cleanText,
+              history: conversationHistory.slice(-6)
+            })
+          });
+
+          const data = await res.json();
+          const santaReply = data?.reply || "Ho-ho-ho! Merry Christmas! The elves and I are so pleased to hear from you!";
+
+          // Add to conversation history
+          conversationHistory.push({ role: "santa", text: santaReply });
+
+          // Render reply with talking GIF animation
+          await renderSantaReplyWithAnimation(santaReply);
+
+        } catch (err) {
+          console.error("Santa Chat error:", err);
+          const fallbackErrorMsg = "Ho-ho-ho! A snowy North Pole gust swept through my radio! Please ask me again in just a second! 🎅❄️";
+          await renderSantaReplyWithAnimation(fallbackErrorMsg);
+        } finally {
+          isBusy = false;
+          sendBtn.disabled = false;
+          chatInput.focus();
+        }
+      }
+
+      // ── 6. Initial Welcome Message ──
+      function sendInitialWelcome() {
+        messagesContainer.innerHTML = "";
+        conversationHistory = [];
+        const townName = tableSlug.charAt(0).toUpperCase() + tableSlug.slice(1);
+        const welcomeText = `Ho-ho-ho! Merry Christmas to all the boys, girls, and families in ${townName}! 🎅✨ I am speaking to you live from my workshop at the North Pole via the Round Table Santa Sleigh radio! How can I help you today?`;
+        
+        appendMessage("santa", welcomeText);
+        conversationHistory.push({ role: "santa", text: welcomeText });
+      }
+
+      // ── 7. Event Listeners ──
+      chatForm.addEventListener("submit", function(e) {
+        e.preventDefault();
+        handleSendMessage(chatInput.value);
+      });
+
+      // Quick Suggestion Chips
+      suggestionsStrip.addEventListener("click", function(e) {
+        const btn = e.target.closest(".chip-btn");
+        if (!btn || isBusy) return;
+        const query = btn.getAttribute("data-query");
+        if (query) {
+          handleSendMessage(query);
+        }
+      });
+
+      // Clear / Restart Conversation
+      btnClearChat.addEventListener("click", function() {
+        if (confirm("Would you like to start a fresh chat with Santa?")) {
+          sendInitialWelcome();
+        }
+      });
+
+      // Initialize
+      loadTableInfo().then(() => {
+        sendInitialWelcome();
+      });
+
+    })();
+  </script>
+</body>
+</html>
