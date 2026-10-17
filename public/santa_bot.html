@@ -131,7 +131,7 @@
       height: 100%;
       object-fit: cover;
       border-radius: 50%;
-      transition: opacity 0.25s ease, transform 0.2s ease;
+      transition: opacity 0.3s ease, transform 0.2s ease;
       z-index: 2;
     }
 
@@ -146,7 +146,17 @@
       opacity: 0;
       pointer-events: none;
       z-index: 1;
-      transition: opacity 0.25s ease;
+      transition: opacity 0.3s ease;
+    }
+
+    /* When MP4 video has loaded its initial frame */
+    .avatar-pod.video-ready video {
+      opacity: 1;
+      z-index: 2;
+    }
+
+    .avatar-pod.video-ready img {
+      opacity: 0;
     }
 
     /* Animated Talking Active State */
@@ -156,18 +166,15 @@
       animation: speakingPulse 1.2s infinite alternate ease-in-out;
     }
 
-    .avatar-pod.is-speaking img {
-      transform: scale(1.05);
+    .avatar-pod.is-speaking img,
+    .avatar-pod.is-speaking video {
+      transform: scale(1.04);
     }
 
     /* When MP4 Video is Actively Playing */
     .avatar-pod.has-video-playing video {
       opacity: 1;
       z-index: 3;
-    }
-
-    .avatar-pod.has-video-playing img {
-      opacity: 0;
     }
 
     @keyframes speakingPulse {
@@ -603,7 +610,7 @@
         <div class="avatar-pod" id="santa-avatar-pod" title="Santa Claus Speaking Avatar">
           <div class="voice-waves"></div>
           <img id="santa-head-img" src="/icons/Beverley_Santa_Logo.png" alt="Santa Claus Head">
-          <video id="santa-head-video" playsinline muted loop preload="auto">
+          <video id="santa-head-video" playsinline webkit-playsinline="true" muted loop preload="auto">
             <source src="/icons/santa_talking.mp4" type="video/mp4">
             <source src="https://roundtablesantasleigh.co.uk/icons/santa_talking.mp4" type="video/mp4">
           </video>
@@ -731,9 +738,22 @@
       let activeSpeakingTimer = null;
       let tableMetadata = null;
 
-      // Ensure video is muted for inline autoplay compatibility
+      // Ensure video is muted for inline autoplay compatibility & handle ready states
       if (santaHeadVideo) {
         santaHeadVideo.muted = true;
+        santaHeadVideo.addEventListener("loadeddata", function() {
+          avatarPod.classList.add("video-ready");
+        });
+        santaHeadVideo.addEventListener("canplay", function() {
+          avatarPod.classList.add("video-ready");
+        });
+        santaHeadVideo.addEventListener("error", function() {
+          avatarPod.classList.remove("video-ready");
+        });
+        // Check if already ready
+        if (santaHeadVideo.readyState >= 2) {
+          avatarPod.classList.add("video-ready");
+        }
       }
 
       // Ensure initial avatar is static
