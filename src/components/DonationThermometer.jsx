@@ -6,10 +6,12 @@ export default function DonationThermometer({ tableData }) {
   const table = tableData?.table || {};
   const current = Number(table.total_raised || 19);
   const target = Number(table.fundraising_goal || 8000);
-  const donateUrl = table.donate_url || "https://www.zeffy.com/en-GB/donation-form/beverley-round-table-for-our-community";
+  const isBeverley = (table.slug || "").toLowerCase() === "beverley";
+  const donateUrl = table.donate_url || (isBeverley ? "https://www.zeffy.com/en-GB/donation-form/beverley-round-table-for-our-community" : "");
   const pct = Math.min(100, Math.max(0, (current / target) * 100));
 
   const handleDonateClick = () => {
+    if (!donateUrl) return;
     // Festive Confetti Burst
     try {
       confetti({
@@ -110,16 +112,18 @@ export default function DonationThermometer({ tableData }) {
           </div>
         )}
 
-        <div>
-          <button
-            onClick={handleDonateClick}
-            className="btn-primary"
-            style={{ width: '100%', maxWidth: '300px' }}
-          >
-            <Heart size={20} fill="currentColor" />
-            Donate Now
-          </button>
-        </div>
+        {donateUrl && (
+          <div>
+            <button
+              onClick={handleDonateClick}
+              className="btn-primary"
+              style={{ width: '100%', maxWidth: '300px' }}
+            >
+              <Heart size={20} fill="currentColor" />
+              Donate Now
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Volunteer Recruitment Banner */}

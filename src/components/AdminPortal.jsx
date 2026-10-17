@@ -742,7 +742,7 @@ ${tableName} Organizers`
   const [formData, setFormData] = useState({
     sleigh_display_name: standardSleighDisplayName,
     fundraising_goal: tableData?.table?.fundraising_goal || 8000,
-    donate_url: tableData?.table?.donate_url || 'https://www.zeffy.com/en-GB/donation-form/beverley-round-table-for-our-community',
+    donate_url: tableData?.table?.donate_url || (currentTableSlug === 'beverley' ? 'https://www.zeffy.com/en-GB/donation-form/beverley-round-table-for-our-community' : ''),
     logo_url: (tableData?.table?.logo_url && tableData.table.logo_url !== '/icons/RTBI_Santa.png') ? tableData.table.logo_url : '',
     sleigh_icon_live: tableData?.table?.sleigh_icon_live || '',
     website_url: tableData?.table?.website_url || '',
@@ -844,7 +844,9 @@ ${tableName} Organizers`
         ...prev,
         sleigh_display_name: standardSleighDisplayName,
         fundraising_goal: tableData.table.fundraising_goal !== undefined && tableData.table.fundraising_goal !== null ? tableData.table.fundraising_goal : prev.fundraising_goal,
-        donate_url: tableData.table.donate_url || prev.donate_url,
+        donate_url: (tableData.table.donate_url !== undefined && tableData.table.donate_url !== null)
+          ? tableData.table.donate_url
+          : (currentTableSlug === 'beverley' ? 'https://www.zeffy.com/en-GB/donation-form/beverley-round-table-for-our-community' : ''),
         logo_url: (tableData.table.logo_url && tableData.table.logo_url !== '/icons/RTBI_Santa.png')
           ? tableData.table.logo_url
           : (prev.logo_url && prev.logo_url !== '/icons/RTBI_Santa.png' ? prev.logo_url : (tableData.table.logo_url || '')),

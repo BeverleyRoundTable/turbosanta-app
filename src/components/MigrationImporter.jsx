@@ -103,7 +103,7 @@ export default function MigrationImporter({ tableSlug = 'beverley', onApplyMigra
             slug: tableSlug,
             name: parsedData.settings.sleigh_display_name || `${tableSlug.toUpperCase()} Round Table`,
             sleigh_display_name: parsedData.settings.sleigh_display_name || `${tableSlug.toUpperCase()} Santa Sleigh`,
-            donate_url: parsedData.settings.donate_url || 'https://www.zeffy.com',
+            donate_url: parsedData.settings.donate_url || '',
             charity_name: parsedData.settings.charity_name || 'Round Table Childrens Wish',
             fundraising_goal: parsedData.settings.fundraising_goal || 5000,
             total_raised: parsedData.donations.total_raised || 0,

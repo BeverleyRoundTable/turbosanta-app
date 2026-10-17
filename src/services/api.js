@@ -302,14 +302,19 @@ export async function sendElfChatMessage(message, tableData) {
   }
 
   if (lower.includes("how much") || lower.includes("raised") || lower.includes("total") || lower.includes("donate") || lower.includes("money")) {
-    const total = table.total_raised || 19;
-    const goal = table.fundraising_goal || 8000;
-    const url = table.donate_url || "https://www.zeffy.com/en-GB/donation-form/beverley-round-table-for-our-community";
-    return `❤️ So far we have raised **£${Number(total).toLocaleString()}** towards our **£${Number(goal).toLocaleString()}** target!\n\nEvery single penny directly funds local community causes and charities. You can donate online here: [Click to Donate via Zeffy](${url}).\n\n*Elf Tip:* If you are a UK taxpayer, please remember to tick **Gift Aid** — it adds 25% from HMRC at no extra cost to you! 🎁`;
+    const total = table.total_raised || 0;
+    const goal = table.fundraising_goal || 5000;
+    const isBeverley = (table.slug || "").toLowerCase() === "beverley";
+    const url = table.donate_url || (isBeverley ? "https://www.zeffy.com/en-GB/donation-form/beverley-round-table-for-our-community" : "");
+    const donateText = url
+      ? `\n\nYou can donate online here: [Click to Donate](${url}).`
+      : `\n\nYou can donate directly to our volunteer elves on the street via cash or card reader taps!`;
+    return `❤️ So far we have raised **£${Number(total).toLocaleString()}** towards our **£${Number(goal).toLocaleString()}** target!\n\nEvery single penny directly funds local community causes and charities.${donateText}\n\n*Elf Tip:* If you are a UK taxpayer, please remember to tick **Gift Aid** — it adds 25% from HMRC at no extra cost to you! 🎁`;
   }
 
   if (lower.includes("volunteer") || lower.includes("help") || lower.includes("join") || lower.includes("bucket")) {
-    return `🎄 We would LOVE to have your help! We're always looking for enthusiastic elves to be bucket collectors, safety walkers, navigators, and drivers. Tap the "Volunteer Now" banner or register on our [Crew Hub](/crew.html?table=beverley) to pick your route and join the sleigh crew! 🎅👋`;
+    const slug = (table.slug || "beverley").toLowerCase();
+    return `🎄 We would LOVE to have your help! We're always looking for enthusiastic elves to be bucket collectors, safety walkers, navigators, and drivers. Tap the "Volunteer Now" banner or register on our [Crew Hub](/crew.html?table=${encodeURIComponent(slug)}) to pick your route and join the sleigh crew! 🎅👋`;
   }
 
   if (lower.includes("round table")) {
