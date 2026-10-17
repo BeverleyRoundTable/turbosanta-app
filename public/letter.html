@@ -310,14 +310,23 @@
   }
 
   // Send height to parent window so the iframe can resize
+  let lastLetterH = 0;
   function sendHeight() {
-    const height = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
-    window.parent.postMessage({ letterHeight: height, type: 'turbosanta-resize', height: height + 16 }, "*");
+    if (window.self === window.top) return;
+    const container = document.querySelector('.container') || document.body;
+    const height = Math.min(Math.ceil(container.getBoundingClientRect().height + 36), 960);
+    if (height > 100 && Math.abs(height - lastLetterH) >= 16) {
+      lastLetterH = height;
+      window.parent.postMessage({ letterHeight: height, type: 'turbosanta-resize', height: height }, "*");
+    }
   }
 
   // Send height on load and whenever the success message shows
-  window.addEventListener("load", sendHeight);
-  if (window.ResizeObserver) new ResizeObserver(sendHeight).observe(document.body);
+  window.addEventListener("load", () => {
+    sendHeight();
+    setTimeout(sendHeight, 300);
+  });
+  if (window.ResizeObserver) new ResizeObserver(sendHeight).observe(document.querySelector('.container') || document.body);
   const observer = new MutationObserver(sendHeight);
   observer.observe(document.body, { attributes: true, childList: true, subtree: true });
 </script>

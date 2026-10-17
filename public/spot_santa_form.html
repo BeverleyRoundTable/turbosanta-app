@@ -497,15 +497,18 @@
     if (window.self === window.top) return;
     let lastH = 0;
     const sendHeight = () => {
-      const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
-      if (h > 100 && Math.abs(h - lastH) > 4) {
+      const card = document.querySelector('.card') || document.body;
+      const h = Math.min(Math.ceil(card.getBoundingClientRect().height + 36), 960);
+      if (h > 100 && Math.abs(h - lastH) >= 16) {
         lastH = h;
-        window.parent.postMessage({ type: 'turbosanta-resize', height: h + 16 }, '*');
+        window.parent.postMessage({ type: 'turbosanta-resize', height: h }, '*');
       }
     };
-    window.addEventListener('load', sendHeight);
-    if (window.ResizeObserver) new ResizeObserver(sendHeight).observe(document.body);
-    setInterval(sendHeight, 1000);
+    window.addEventListener('load', () => {
+      sendHeight();
+      setTimeout(sendHeight, 300);
+    });
+    if (window.ResizeObserver) new ResizeObserver(sendHeight).observe(document.querySelector('.card') || document.body);
   })();
 </script>
 </body>

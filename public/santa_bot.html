@@ -74,6 +74,19 @@
       padding: 16px 12px 24px;
     }
 
+    body.is-embedded, html.is-embedded body {
+      min-height: 0 !important;
+      height: auto !important;
+      background: transparent !important;
+      padding: 12px 10px 16px !important;
+      overflow-y: hidden !important;
+    }
+
+    body.is-embedded .chat-box {
+      height: 460px !important;
+      max-height: 480px !important;
+    }
+
     /* Container */
     .chat-wrapper {
       width: 100%;
@@ -718,6 +731,10 @@
   <script>
     (function() {
       "use strict";
+      if (window.self !== window.top || window.location.search.includes('embed=1')) {
+        document.body.classList.add('is-embedded');
+        document.documentElement.classList.add('is-embedded');
+      }
 
       // ============================================================
       // 🎅 TALKING SANTA HEAD CONFIGURATION

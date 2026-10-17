@@ -122,27 +122,62 @@
     });
   }
 
-  // 4. Dynamic Zero-Scroll Height Messenger
-  var lastSentHeight = 0;
-  function notifyParentHeight() {
-    if (!document.body) return;
-    var currentHeight = Math.max(
-      document.body.scrollHeight,
-      document.documentElement.scrollHeight,
-      document.body.offsetHeight,
-      document.documentElement.offsetHeight
-    );
+  // 4. Dynamic Zero-Scroll Content Height Messenger
+  if (window.parent && window.parent !== window) {
+    try {
+      var embedCss = document.createElement("style");
+      embedCss.id = "ts-embed-height-override";
+      embedCss.textContent = "html, body { min-height: 0 !important; height: auto !important; }";
+      (document.head || document.documentElement).appendChild(embedCss);
+    } catch (_) {}
+  }
 
-    // Only post if height changed significantly (>= 4px)
-    if (Math.abs(currentHeight - lastSentHeight) >= 4) {
+  var lastSentHeight = 0;
+  function getActualContentHeight() {
+    if (!document.body) return 0;
+    var container = document.querySelector(
+      '.chat-wrapper, .santa-checker, .cert-generator, .reindeer-station, ' +
+      '.frame-wrapper, .studio-wrapper, .snowman-wrapper, .spot-wrapper, ' +
+      '.countdown-container, .bingo-wrap, .door-hanger-wrap, .elf-cam-wrap, ' +
+      '.card, main, #app, .container'
+    );
+    if (container) {
+      var rect = container.getBoundingClientRect();
+      var style = window.getComputedStyle(container);
+      var mt = parseFloat(style.marginTop) || 0;
+      var mb = parseFloat(style.marginBottom) || 0;
+      var bs = window.getComputedStyle(document.body);
+      var pt = parseFloat(bs.paddingTop) || 0;
+      var pb = parseFloat(bs.paddingBottom) || 0;
+      return Math.ceil(rect.height + mt + mb + pt + pb + 12);
+    }
+    var children = document.body.children;
+    var maxBottom = 0;
+    for (var i = 0; i < children.length; i++) {
+      var el = children[i];
+      if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE' || el.tagName === 'NOSCRIPT') continue;
+      if (el.offsetParent === null && el.offsetWidth === 0 && el.offsetHeight === 0) continue;
+      var r = el.getBoundingClientRect();
+      if (r.bottom > maxBottom) maxBottom = r.bottom;
+    }
+    if (maxBottom > 50) return Math.ceil(maxBottom + 20);
+    return document.body.scrollHeight;
+  }
+
+  function notifyParentHeight() {
+    if (!document.body || window.parent === window) return;
+    var currentHeight = getActualContentHeight();
+    if (!currentHeight || currentHeight < 60) return;
+    currentHeight = Math.min(currentHeight, 960);
+
+    // Only post if height changed significantly (>= 16px) to break recursive loops
+    if (Math.abs(currentHeight - lastSentHeight) >= 16) {
       lastSentHeight = currentHeight;
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage({
-          type: "turbosanta-resize",
-          height: currentHeight,
-          path: window.location.pathname
-        }, "*");
-      }
+      window.parent.postMessage({
+        type: "turbosanta-resize",
+        height: currentHeight,
+        path: window.location.pathname
+      }, "*");
     }
   }
 
@@ -153,8 +188,6 @@
     setTimeout(notifyParentHeight, 250);
     setTimeout(notifyParentHeight, 800);
   });
-
-  window.addEventListener("resize", notifyParentHeight);
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () {

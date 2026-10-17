@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <script src="/embed-theme.js"></script>
@@ -346,24 +346,26 @@ function generatePDF(name){
 }
 
 /* ---------- AUTO-HEIGHT ---------- */
+let lastSentNiceHeight = 0;
 function sendHeight(){
-  // FIXED: Switched to documentElement.scrollHeight to safely include the 40px bottom margin
-  const height = document.documentElement.scrollHeight;
-  window.parent.postMessage({ niceListHeight: height }, "*");
+  if (window.self === window.top) return;
+  const card = document.querySelector('.santa-checker');
+  if (!card) return;
+  const rect = card.getBoundingClientRect();
+  const height = Math.min(Math.ceil(rect.height + 48), 900);
+  if (Math.abs(height - lastSentNiceHeight) >= 16) {
+    lastSentNiceHeight = height;
+    window.parent.postMessage({ niceListHeight: height, type: 'turbosanta-resize', height: height }, "*");
+  }
 }
 
-// Fire multiple times to catch font + layout settling
 window.addEventListener("load", () => {
   sendHeight();
-  setTimeout(() => sendHeight(), 100);
-  setTimeout(() => sendHeight(), 300);
-  setTimeout(() => sendHeight(), 600);
+  setTimeout(sendHeight, 250);
 });
 
-window.addEventListener("resize", () => sendHeight());
-
-const observer = new MutationObserver(() => sendHeight());
-observer.observe(document.body, { childList:true, subtree:true });
+const observer = new MutationObserver(sendHeight);
+observer.observe(document.body, { childList: true, subtree: true });
 </script>
 
 </body>

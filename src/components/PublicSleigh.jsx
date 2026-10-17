@@ -407,13 +407,18 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
         return;
       }
       if (e.data.type === 'turbosanta-resize' || e.data.height || e.data.frameHeight || e.data.routesHeight || e.data.letterHeight || e.data.niceListHeight || e.data.santasBeenHeight || e.data.snowmanFrameHeight || e.data.addressLookupHeight) {
-        const h = e.data.height || e.data.frameHeight || e.data.routesHeight || e.data.letterHeight || e.data.niceListHeight || e.data.santasBeenHeight || e.data.snowmanFrameHeight || e.data.addressLookupHeight;
-        if (typeof h === 'number' && h > 60) {
+        const rawH = e.data.height || e.data.frameHeight || e.data.routesHeight || e.data.letterHeight || e.data.niceListHeight || e.data.santasBeenHeight || e.data.snowmanFrameHeight || e.data.addressLookupHeight;
+        if (typeof rawH === 'number' && rawH > 60) {
+          const targetH = Math.min(Math.max(Math.round(rawH), 320), 960);
           const iframes = document.querySelectorAll('iframe');
           for (let i = 0; i < iframes.length; i++) {
             if (iframes[i].contentWindow === e.source) {
-              iframes[i].style.height = `${h + 8}px`;
-              iframes[i].setAttribute('height', `${h + 8}`);
+              const currentH = parseInt(iframes[i].style.height, 10) || iframes[i].offsetHeight || 0;
+              if (Math.abs(currentH - targetH) < 16) {
+                break;
+              }
+              iframes[i].style.height = `${targetH}px`;
+              iframes[i].setAttribute('height', `${targetH}`);
               break;
             }
           }
