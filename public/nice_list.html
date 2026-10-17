@@ -209,9 +209,26 @@
 <script>
   
 /* ---------- ASSETS ---------- */
+const CANDIDATE_BG_SOURCES = [
+  "/nice_list.png",
+  "./nice_list.png",
+  "/sleigh/nice_list.png",
+  "https://raw.githubusercontent.com/BeverleyRoundTable/turbosanta-app/main/public/nice_list.png",
+  "https://raw.githubusercontent.com/BeverleyRoundTable/BRT/main/sleigh/nice_list.png"
+];
+
 const bgImage = new Image();
 bgImage.crossOrigin = "anonymous";
-bgImage.src = "/nice_list.png";
+let currentSrcIdx = 0;
+
+bgImage.onerror = () => {
+  currentSrcIdx++;
+  if (currentSrcIdx < CANDIDATE_BG_SOURCES.length) {
+    console.warn("Retrying nice_list.png from fallback:", CANDIDATE_BG_SOURCES[currentSrcIdx]);
+    bgImage.src = CANDIDATE_BG_SOURCES[currentSrcIdx];
+  }
+};
+bgImage.src = CANDIDATE_BG_SOURCES[0];
 
 /* ---------- THEME & API SETUP ---------- */
 const params = new URLSearchParams(location.search);
@@ -307,14 +324,37 @@ function startCheck(){
   }, 2200);
 }
 
+async function ensureBgLoaded() {
+  if (bgImage.complete && bgImage.naturalWidth > 0) return true;
+  return new Promise(resolve => {
+    const onLoad = () => {
+      bgImage.removeEventListener('load', onLoad);
+      bgImage.removeEventListener('error', onError);
+      resolve(true);
+    };
+    const onError = () => {
+      bgImage.removeEventListener('load', onLoad);
+      bgImage.removeEventListener('error', onError);
+      resolve(false);
+    };
+    bgImage.addEventListener('load', onLoad);
+    bgImage.addEventListener('error', onError);
+    setTimeout(() => resolve(bgImage.complete && bgImage.naturalWidth > 0), 3000);
+  });
+}
+
 /* ---------- CERTIFICATE RENDER ---------- */
-function generatePDF(name){
+async function generatePDF(name){
   const canvas = document.getElementById("canvas");
   const ctx = canvas.getContext("2d");
   const link = document.getElementById("download");
 
+  await ensureBgLoaded();
+
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+  if (bgImage.complete && bgImage.naturalWidth > 0) {
+    ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+  }
 
   // We use Mountains of Christmas if it's loaded, otherwise fallback to Open Sans
   ctx.fillStyle = "#000";
