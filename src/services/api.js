@@ -800,3 +800,32 @@ export async function fetchAutomatedCrewBriefingStatus(tableSlug = "beverley", e
   }
 }
 
+// ==============================================================
+// 🎅 UNIVERSAL SANTA CLAUS AI CHATBOT
+// ==============================================================
+export async function sendSantaChatMessage(tableSlug = "beverley", message = "", history = []) {
+  try {
+    const slug = (tableSlug || "beverley").toLowerCase().trim();
+    const res = await fetch(`${API_BASE}/api/chat/santa?table=${encodeURIComponent(slug)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        table: slug,
+        message,
+        history
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  } catch (err) {
+    console.error("sendSantaChatMessage error:", err);
+    return {
+      ok: false,
+      error: err.message,
+      reply: "Ho-ho-ho! A sudden flurry of snowflakes gently blew across my sleigh radio! Please try asking me again in a moment! 🎅❄️"
+    };
+  }
+}
+
+

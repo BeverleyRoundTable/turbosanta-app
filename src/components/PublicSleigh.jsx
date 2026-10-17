@@ -170,16 +170,15 @@ export const PUBLIC_FEATURE_CATALOG = {
     id: 'santa_chat',
     anchorId: 'santa-chat',
     navLabel: 'Santa Chat',
-    badge: 'Live Audio Connection to Lapland',
-    title: 'TALK TO',
-    titleHighlight: 'SANTA',
-    description: "Children and families can speak directly with Santa in Lapland! Ask when he is visiting your street, how Rudolph is doing, or hear a jolly festive story.",
+    badge: 'North Pole Live AI Hotline',
+    title: 'MESSAGE',
+    titleHighlight: 'SANTA CLAUS',
+    description: "Children and families can message Santa directly in Lapland! Ask when he is visiting your street, how Rudolph is doing, or hear a jolly festive story.",
     embedSrc: (slug) => `/santa_chat.html?table=${encodeURIComponent(slug)}`,
     fullscreenSrc: (slug) => `/santa_chat.html?table=${encodeURIComponent(slug)}`,
-    fullscreenLabel: 'Open Voice Hotline Full-Screen',
-    height: 680,
-    maxWidth: 760,
-    allowMicrophone: true
+    fullscreenLabel: 'Open Santa Chat Full-Screen',
+    height: 720,
+    maxWidth: 820
   },
   santa_frame: {
     id: 'santa_frame',
@@ -193,20 +192,6 @@ export const PUBLIC_FEATURE_CATALOG = {
     fullscreenSrc: (slug) => `/santa_frame.html?table=${encodeURIComponent(slug)}`,
     fullscreenLabel: 'Open Photo Frame Full-Screen',
     height: 720,
-    maxWidth: 840
-  },
-  santa_studio: {
-    id: 'santa_studio',
-    anchorId: 'santa-studio',
-    navLabel: 'Santa Studio',
-    badge: 'Workshop Voice Booth',
-    title: 'SANTA',
-    titleHighlight: 'AUDIO STUDIO',
-    description: "Festive voice recording and reply booth for volunteers and families to exchange holiday cheer.",
-    embedSrc: (slug) => `/santa_studio.html?table=${encodeURIComponent(slug)}`,
-    fullscreenSrc: (slug) => `/santa_studio.html?table=${encodeURIComponent(slug)}`,
-    fullscreenLabel: 'Open Audio Studio Full-Screen',
-    height: 740,
     maxWidth: 840
   },
   snowman: {
