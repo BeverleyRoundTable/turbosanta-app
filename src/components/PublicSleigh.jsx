@@ -810,8 +810,42 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
           )}
 
           <div style={{ position: 'relative', zIndex: 2, maxWidth: '800px', margin: '0 auto' }}>
-            <h1 className="brand-font" style={{ fontSize: 'clamp(36px, 6vw, 56px)', marginBottom: '15px', color: '#FFFFFF', textShadow: '0 4px 10px rgba(0,0,0,0.8)' }}>
-              <span style={{ color: 'var(--primary)' }}>{siteName}</span>
+            <h1 className="brand-font" style={{
+              fontSize: 'clamp(22px, 5.8vw, 56px)',
+              lineHeight: 1.14,
+              marginBottom: '15px',
+              color: '#FFFFFF',
+              textShadow: '0 4px 10px rgba(0,0,0,0.8)',
+              overflowWrap: 'break-word',
+              wordBreak: 'normal',
+              textAlign: 'center',
+              maxWidth: '100%'
+            }}>
+              {(() => {
+                const match = siteName.match(/^(.*?)\s+(Round Table)\s*(.*?)$/i);
+                if (match) {
+                  const townPart = match[1].trim();
+                  const rtPart = match[2].trim();
+                  const suffix = match[3].trim() || 'Santa Sleigh';
+                  return (
+                    <>
+                      <span style={{ display: 'inline-block' }}>{townPart}</span>{' '}
+                      <span style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>{rtPart}</span>{' '}
+                      <span style={{ color: 'var(--primary)', display: 'inline-block', whiteSpace: 'nowrap' }}>{suffix}</span>
+                    </>
+                  );
+                }
+                const suffixMatch = siteName.match(/(.*?\bRound Table\b)\s*(.*)/i);
+                if (suffixMatch && suffixMatch[2]) {
+                  return (
+                    <>
+                      <span>{suffixMatch[1]} </span>
+                      <span style={{ color: 'var(--primary)', display: 'inline-block', whiteSpace: 'nowrap' }}>{suffixMatch[2]}</span>
+                    </>
+                  );
+                }
+                return <span style={{ color: 'var(--primary)' }}>{siteName}</span>;
+              })()}
             </h1>
             <p style={{ fontSize: '18px', color: 'var(--text-muted)', maxWidth: '640px', margin: '0 auto 30px', textShadow: '0 2px 5px rgba(0,0,0,0.8)' }}>
               Follow Santa live on his journey, check when he is visiting your street, and help us raise vital funds for the local community this Christmas!

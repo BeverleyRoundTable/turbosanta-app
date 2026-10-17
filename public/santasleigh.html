@@ -338,12 +338,24 @@
         }
 
         .hero h1 {
-            font-size: clamp(36px, 7vw, 64px);
-            line-height: 1.08;
-            margin-bottom: 18px;
+            font-size: clamp(24px, 5.8vw, 60px);
+            line-height: 1.12;
+            margin: 0 auto 18px;
             color: var(--text-main);
             text-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
             text-wrap: balance;
+            word-break: normal;
+            overflow-wrap: break-word;
+            text-align: center;
+            max-width: 100%;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .hero-title-town,
+        .hero-title-org {
+            display: inline-block;
+            max-width: 100%;
+            text-align: center;
         }
         .hero p {
             font-size: clamp(16px, 2.2vw, 19px);
@@ -1250,10 +1262,23 @@
             .nav-links::-webkit-scrollbar { display: none; }
             .nav-links a { font-size: 12px; padding: 7px 11px; flex-shrink: 0; }
             section { padding: 48px 16px; scroll-margin-top: 64px; }
-            .hero { padding: 60px 16px 65px; }
+            .hero { padding: 48px 14px 55px; }
+            .hero h1 {
+                font-size: clamp(20px, 6.2vw, 32px);
+                line-height: 1.15;
+                margin-bottom: 14px;
+            }
             .thermo-card, .volunteer-banner, .about-card { padding: 26px 20px; }
             .thermo-stats { font-size: 18px; }
             .btn-outline { width: 100%; }
+        }
+
+        @media (max-width: 380px) {
+            .hero { padding: 42px 10px 48px; }
+            .hero h1 {
+                font-size: clamp(18px, 5.8vw, 24px);
+                line-height: 1.18;
+            }
         }
 
         a:focus-visible,
@@ -2053,17 +2078,63 @@
             }
         }
 
+        function fitHeroTitle() {
+            const h1 = document.querySelector('.hero h1');
+            const heroTitle = $('hero-title');
+            if (!h1 || !heroTitle) return;
+
+            h1.style.fontSize = '';
+
+            const parent = h1.parentElement;
+            const availableWidth = (parent ? parent.clientWidth : h1.clientWidth) - 6;
+            if (availableWidth <= 0) return;
+
+            let currentSize = parseFloat(window.getComputedStyle(h1).fontSize);
+            const minSize = 16;
+
+            let iterations = 0;
+            while ((h1.scrollWidth > availableWidth || heroTitle.scrollWidth > availableWidth) && currentSize > minSize && iterations < 40) {
+                currentSize -= 0.5;
+                h1.style.fontSize = currentSize + 'px';
+                iterations++;
+            }
+        }
+
         function setTitleParts(node, whitePart, highlightPart) {
             node.replaceChildren();
             if (whitePart) {
-                node.appendChild(document.createTextNode(whitePart));
+                if (node.id === 'hero-title') {
+                    const rtMatch = whitePart.match(/^(.*?)\s+(Round Table)$/i);
+                    if (rtMatch) {
+                        const townSpan = el('span', 'hero-title-town', rtMatch[1]);
+                        townSpan.style.display = 'inline-block';
+                        node.appendChild(townSpan);
+                        node.appendChild(document.createTextNode(' '));
+
+                        const rtSpan = el('span', 'hero-title-org', rtMatch[2]);
+                        rtSpan.style.whiteSpace = 'nowrap';
+                        rtSpan.style.display = 'inline-block';
+                        node.appendChild(rtSpan);
+                    } else {
+                        node.appendChild(document.createTextNode(whitePart));
+                    }
+                } else {
+                    node.appendChild(document.createTextNode(whitePart));
+                }
             }
             if (highlightPart) {
                 if (whitePart) node.appendChild(document.createTextNode(' '));
                 const span = el('span', 'hl', highlightPart);
                 span.style.color = 'var(--primary)';
                 span.style.transition = 'color 0.35s ease';
+                if (node.id === 'hero-title') {
+                    span.style.whiteSpace = 'nowrap';
+                    span.style.display = 'inline-block';
+                }
                 node.appendChild(span);
+            }
+            if (node.id === 'hero-title') {
+                fitHeroTitle();
             }
         }
 
@@ -3962,6 +4033,9 @@
                     fab.classList.remove('visible');
                 }
             }, { passive: true });
+        window.addEventListener('resize', fitHeroTitle);
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(fitHeroTitle).catch(() => {});
         }
 
         initializeSleighApp();
