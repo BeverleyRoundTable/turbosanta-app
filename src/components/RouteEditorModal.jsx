@@ -143,6 +143,49 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
     );
   }, [isOpen, route, defaultMusterPoint, defaultMusterTime]);
 
+  // Real-time synchronization when GPX track is tacked from Route Planner
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleGpxAttached = (e) => {
+      const data = e.data;
+      if (!data || data.type !== 'TURBOSANTA_GPX_ATTACHED') return;
+      if (data.routeId && formData.id && data.routeId !== formData.id) return;
+
+      setFormData(prev => ({
+        ...prev,
+        gpx_url: data.gpxUrl || prev.gpx_url,
+        gpx_file_name: data.fileName || prev.gpx_file_name || 'route_planner.gpx',
+        planned_stops: data.stops || prev.planned_stops || [],
+        streetsText: data.detectedStreets && data.detectedStreets.length > 0
+          ? data.detectedStreets.join(', ')
+          : prev.streetsText
+      }));
+
+      if (data.pointsCount || data.distanceMi) {
+        setGpxStats({
+          fileName: data.fileName || 'route_planner.gpx',
+          pointsCount: data.pointsCount || 0,
+          stopsCount: (data.stops || []).length,
+          distanceMi: data.distanceMi || '—',
+          stops: data.stops || []
+        });
+      }
+    };
+
+    window.addEventListener('message', handleGpxAttached);
+    let bc = null;
+    try {
+      bc = new BroadcastChannel('turbosanta_routes');
+      bc.onmessage = handleGpxAttached;
+    } catch (err) {}
+
+    return () => {
+      window.removeEventListener('message', handleGpxAttached);
+      if (bc) bc.close();
+    };
+  }, [isOpen, formData.id]);
+
   const handleGpxFile = async (file) => {
     if (!file) return;
     if (!file.name.toLowerCase().endsWith('.gpx') && !file.type.includes('xml')) {
@@ -661,7 +704,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                   </span>
                 </div>
                 <a
-                  href={`/route_planner.html?table=${encodeURIComponent(tableSlug || 'beverley')}`}
+                  href={`/route_planner.html?table=${encodeURIComponent(tableSlug || 'beverley')}&routeId=${encodeURIComponent(formData.id || '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{

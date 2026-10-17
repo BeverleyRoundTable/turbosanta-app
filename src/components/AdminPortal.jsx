@@ -8,7 +8,7 @@ import {
   CreditCard, Key, Zap, RefreshCw, Send, Link2,
   BarChart3, TrendingUp, Award, Printer, PieChart, Receipt,
   Mail, HardDrive, AlertTriangle, Database, FileText, Coins, Share2, QrCode, ArrowUpDown, Volume2,
-  Phone, MessageCircle, UserCheck, Search, Clock, Bot, CheckCircle
+  Phone, MessageCircle, UserCheck, Search, Clock, Bot, CheckCircle, Navigation
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { logoutAdmin, isNationalAdmin, getAdminAuthToken } from '../services/auth';
@@ -1768,6 +1768,65 @@ ${tableName} Organizers`
     setTimeout(() => setSaveStatus(''), 3500);
   };
 
+  // Real-time synchronization when GPX route is tacked from Route Planner
+  useEffect(() => {
+    const handleGpxAttached = (e) => {
+      const data = e.data;
+      if (!data || data.type !== 'TURBOSANTA_GPX_ATTACHED') return;
+      if (data.tableSlug && currentTableSlug && data.tableSlug.toLowerCase() !== currentTableSlug.toLowerCase()) return;
+
+      if (onUpdateTableData && data.routeId) {
+        onUpdateTableData(prev => {
+          if (!prev) return prev;
+          const existingRoutes = prev.routes || [];
+          const index = existingRoutes.findIndex(r => r.id === data.routeId);
+          let newRoutes;
+          if (index >= 0) {
+            newRoutes = existingRoutes.map(r => r.id === data.routeId ? {
+              ...r,
+              gpx_url: data.gpxUrl || r.gpx_url,
+              gpx_file_name: data.fileName || r.gpx_file_name,
+              planned_stops: data.stops || r.planned_stops,
+              streets: data.streets || r.streets
+            } : r);
+          } else if (data.route) {
+            newRoutes = [...existingRoutes, data.route];
+          } else {
+            newRoutes = existingRoutes;
+          }
+
+          let newStreets = prev.streets || [];
+          if (data.streets && data.streets.length > 0) {
+            const otherStreets = newStreets.filter(s => s.route_id !== data.routeId);
+            newStreets = [...otherStreets, ...data.streets];
+          }
+
+          return {
+            ...prev,
+            routes: newRoutes,
+            streets: newStreets
+          };
+        });
+
+        const routeName = data.route?.name || 'Selected Route';
+        setSaveStatus(`✓ Route "${routeName}" updated with GPX track from Route Planner!`);
+        setTimeout(() => setSaveStatus(''), 4500);
+      }
+    };
+
+    window.addEventListener('message', handleGpxAttached);
+    let bc = null;
+    try {
+      bc = new BroadcastChannel('turbosanta_routes');
+      bc.onmessage = handleGpxAttached;
+    } catch (err) {}
+
+    return () => {
+      window.removeEventListener('message', handleGpxAttached);
+      if (bc) bc.close();
+    };
+  }, [currentTableSlug, onUpdateTableData]);
+
   // Route Duplication for Next Season (equivalent weekday calculation)
   const handleCopyRouteForNextYear = (sourceRoute) => {
     const routeStreets = (tableData?.streets || []).filter(s => s.route_id === sourceRoute.id);
@@ -2755,6 +2814,27 @@ ${tableName} Organizers`
                                     <span>A4 Route Sheet</span>
                                   </button>
 
+                                  <a
+                                    href={`/route_planner.html?table=${encodeURIComponent(currentTableSlug)}&routeId=${encodeURIComponent(r.id)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="btn-secondary"
+                                    style={{
+                                      padding: '8px 12px',
+                                      fontSize: '12px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      textDecoration: 'none',
+                                      borderColor: r.gpx_url ? '#2ecc71' : 'var(--primary)',
+                                      color: r.gpx_url ? '#2ecc71' : 'var(--primary)'
+                                    }}
+                                    title={r.gpx_url ? "Edit GPX Track in Route Planner" : "Plan & Attach GPX Route"}
+                                  >
+                                    <Navigation size={14} />
+                                    <span>{r.gpx_url ? 'Edit GPX' : 'Plan GPX'}</span>
+                                  </a>
+
                                   <button
                                     onClick={() => {
                                       setEditingRoute({ ...r, streets: routeStreets });
@@ -2941,6 +3021,27 @@ ${tableName} Organizers`
                                     <Printer size={14} />
                                     <span>A4 Route Sheet</span>
                                   </button>
+
+                                  <a
+                                    href={`/route_planner.html?table=${encodeURIComponent(currentTableSlug)}&routeId=${encodeURIComponent(r.id)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="btn-secondary"
+                                    style={{
+                                      padding: '8px 12px',
+                                      fontSize: '12px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      textDecoration: 'none',
+                                      borderColor: r.gpx_url ? '#2ecc71' : 'var(--primary)',
+                                      color: r.gpx_url ? '#2ecc71' : 'var(--primary)'
+                                    }}
+                                    title={r.gpx_url ? "Edit GPX Track in Route Planner" : "Plan & Attach GPX Route"}
+                                  >
+                                    <Navigation size={14} />
+                                    <span>{r.gpx_url ? 'Edit GPX' : 'Plan GPX'}</span>
+                                  </a>
 
                                   <button
                                     onClick={() => {
