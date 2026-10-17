@@ -568,9 +568,17 @@
         .join(' ');
     }
 
+    const SLUG_ALIASES = {
+      "meltonmowbray": "melton-mowbray",
+      "melton": "melton-mowbray",
+      "westonsupermare": "weston-super-mare",
+      "newcastleupontyne": "newcastle-upon-tyne"
+    };
+
     function getSlug() {
       const input = document.getElementById('tableSlug');
-      return (input && input.value.trim().toLowerCase().replace(/\s+/g, '-')) || 'beverley';
+      const raw = (input && input.value.trim().toLowerCase().replace(/\s+/g, '-')) || 'beverley';
+      return SLUG_ALIASES[raw] || raw;
     }
 
     function updateSlug() {

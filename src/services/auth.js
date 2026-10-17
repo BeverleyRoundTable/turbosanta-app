@@ -21,6 +21,22 @@ export const DEFAULT_NATIONAL_ADMIN_EMAILS = [
   "rtbi@roundtable.org.uk"
 ];
 
+export const SLUG_ALIASES = {
+  "meltonmowbray": "melton-mowbray",
+  "melton": "melton-mowbray",
+  "melton-mowbray": "melton-mowbray",
+  "westonsupermare": "weston-super-mare",
+  "newcastleupontyne": "newcastle-upon-tyne",
+  "stratforduponavon": "stratford-upon-avon"
+};
+
+export function normalizeTableSlug(slug) {
+  if (!slug || typeof slug !== 'string') return '';
+  const clean = slug.toLowerCase().trim().replace(/^https?:\/\/[^\/]+/, '');
+  const base = clean.replace(/[-_]?(table|sleigh|\d+)$/gi, '');
+  return SLUG_ALIASES[clean] || SLUG_ALIASES[base] || clean;
+}
+
 export function getApprovedNationalEmails() {
   try {
     const custom = JSON.parse(localStorage.getItem('custom_national_admin_emails') || '[]');
@@ -53,7 +69,8 @@ export function isNationalAdmin(email) {
  */
 export function getAdminAuthToken(tableSlug = "beverley") {
   const session = getCurrentSession();
-  const slug = (tableSlug || session?.tableSlug || session?.tableId || "beverley").toLowerCase().trim();
+  const rawSlug = (tableSlug || session?.tableSlug || session?.tableId || "beverley").toLowerCase().trim();
+  const slug = normalizeTableSlug(rawSlug);
   let email = session?.email;
   if (!email || !isRoundTableEmail(email)) {
     email = slug === "beverley" ? "beverley247@roundtable.org.uk" : `${slug}@roundtable.org.uk`;
@@ -65,7 +82,7 @@ export function getAdminAuthToken(tableSlug = "beverley") {
  * Parses official Round Table email into structured table details:
  * e.g. beverley247@roundtable.org.uk -> { slug: "beverley", town: "Beverley", tableNumber: "247", tableName: "Beverley Round Table #247" }
  * e.g. shirley414@roundtable.org.uk -> { slug: "shirley", town: "Shirley", tableNumber: "414", tableName: "Shirley Round Table #414" }
- * e.g. york@roundtable.org.uk -> { slug: "york", town: "York", tableNumber: "", tableName: "York Round Table" }
+ * e.g. meltonmowbray@roundtable.org.uk -> { slug: "melton-mowbray", town: "Melton Mowbray", tableNumber: "", tableName: "Melton Mowbray Round Table" }
  */
 export function parseTableDetailsFromEmail(email) {
   if (!email || typeof email !== 'string' || !email.trim()) {
@@ -88,7 +105,10 @@ export function parseTableDetailsFromEmail(email) {
     tableNumber = match[2] || "";
   }
 
-  // Capitalize town (e.g. beverley -> Beverley, newcastle-upon-tyne -> Newcastle Upon Tyne)
+  // Canonicalize multi-word slugs (e.g. meltonmowbray -> melton-mowbray)
+  townSlug = normalizeTableSlug(townSlug);
+
+  // Capitalize town (e.g. beverley -> Beverley, melton-mowbray -> Melton Mowbray)
   const townName = townSlug
     .replace(/[-_]/g, ' ')
     .split(' ')

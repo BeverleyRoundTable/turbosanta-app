@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import { normalizeTableSlug } from './auth';
 
 /**
  * Converts an Excel serial date number (e.g. 45995) or raw string into ISO YYYY-MM-DD
@@ -67,7 +68,8 @@ export function extractGoogleSheetId(url) {
 /**
  * Main parser function: takes an ArrayBuffer / Uint8Array and returns structured TurboSanta 2.0 data
  */
-export function parseTurboSantaWorkbook(arrayBuffer, tableSlug = 'beverley') {
+export function parseTurboSantaWorkbook(arrayBuffer, rawTableSlug = 'beverley') {
+  const tableSlug = normalizeTableSlug(rawTableSlug) || 'beverley';
   const wb = XLSX.read(arrayBuffer, { type: 'array' });
   const sheetNames = wb.SheetNames;
 
@@ -461,7 +463,8 @@ export function parseTurboSantaWorkbook(arrayBuffer, tableSlug = 'beverley') {
 /**
  * Generates ready-to-run Cloudflare D1 SQL statements from the parsed data
  */
-export function generateSqlMigration(data, tableSlug = 'beverley') {
+export function generateSqlMigration(data, rawTableSlug = 'beverley') {
+  const tableSlug = normalizeTableSlug(rawTableSlug) || 'beverley';
   const lines = [
     `-- ==============================================================================`,
     `-- TurboSanta 2.0 Auto-Generated D1 SQL Migration Script for '${tableSlug}'`,
