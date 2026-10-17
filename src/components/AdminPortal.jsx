@@ -39,7 +39,7 @@ export const PUBLIC_SLOT_OPTIONS = [
   { id: 'nice_list', label: 'Official Lapland Nice List Certificate', desc: 'Customizable certificate proving the child made Santa Good List this Christmas.', preview: (slug) => `/nice_list.html?table=${encodeURIComponent(slug)}` },
   { id: 'adopt_reindeer', label: 'Adopt an Official Sleigh Reindeer', desc: 'Adopt Rudolph, Dasher, Prancer, or Comet and print an adoption certificate.', preview: (slug) => `/adopt_reindeer.html?table=${encodeURIComponent(slug)}` },
   { id: 'santa_frame', label: 'Santa Visited Photo Frame Stamper', desc: 'Commemorative photo frame to stamp family pictures with date of Santa visit.', preview: (slug) => `/santa_frame.html?table=${encodeURIComponent(slug)}` },
-  { id: 'santa_bot', label: 'Santa Claus AI Chatbot (Interactive Lapland Hotline)', desc: 'Universal AI Santa chatbot for families to message Santa directly about routes, reindeer, bedtime, and North Pole magic.', preview: (slug) => `/santa_bot.html?table=${encodeURIComponent(slug)}` },
+  { id: 'santa_bot', label: 'Santa AI Chatbot (Interactive Talking Hotline)', desc: 'Universal AI Santa chatbot for families to message Santa directly about routes, reindeer, bedtime, and North Pole magic.', preview: (slug) => `/santa_bot.html?table=${encodeURIComponent(slug)}` },
   { id: 'snowman', label: 'Snowman Maker & Creator Studio', desc: 'Interactive snowman builder allowing kids to customise hats, scarves, and mittens.', preview: (slug) => `/snowman.html?table=${encodeURIComponent(slug)}` },
   { id: 'spot_santa', label: 'Spot Santa Sightings & Photo Pinning', desc: 'Community Santa sightings map allowing residents to upload photos with location.', preview: (slug) => `/spot_santa_form.html?table=${encodeURIComponent(slug)}` }
 ];

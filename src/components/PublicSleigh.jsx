@@ -184,10 +184,10 @@ export const PUBLIC_FEATURE_CATALOG = {
   santa_bot: {
     id: 'santa_bot',
     anchorId: 'santa-bot',
-    navLabel: 'Santa AI Chat',
+    navLabel: 'Talk to Santa',
     badge: 'North Pole Live AI Hotline',
-    title: 'MESSAGE',
-    titleHighlight: 'SANTA CLAUS',
+    title: 'TALK TO',
+    titleHighlight: 'SANTA',
     description: "Children and families can message Santa directly in Lapland! Ask when he is visiting your street, how Rudolph is doing, or hear a jolly festive story.",
     embedSrc: (slug) => `/santa_bot.html?table=${encodeURIComponent(slug)}`,
     fullscreenSrc: (slug) => `/santa_bot.html?table=${encodeURIComponent(slug)}`,
@@ -238,6 +238,9 @@ export const PUBLIC_FEATURE_CATALOG = {
     maxWidth: 600
   }
 };
+
+// Backwards compatibility alias for deprecated santa_studio
+PUBLIC_FEATURE_CATALOG.santa_studio = PUBLIC_FEATURE_CATALOG.santa_bot;
 
 export function getOperatorTableName(table = {}, slug = '') {
   const activeSlug = (slug || table.slug || '').trim();
