@@ -438,9 +438,13 @@ export async function askFleetAdvisor(tableSlug = "beverley", { question, catego
 export async function askAdminAssistant(tableSlug = "beverley", { message, history = [], model }) {
   try {
     const selectedModel = model || localStorage.getItem('turbosanta_global_gemini_model') || 'auto';
+    const authHeaders = getAuthHeaders(null, tableSlug);
     const res = await fetch(`${API_BASE}/api/admin/assistant?table=${encodeURIComponent(tableSlug)}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders
+      },
       body: JSON.stringify({
         table: tableSlug,
         message,
