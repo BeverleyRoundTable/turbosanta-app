@@ -255,8 +255,10 @@ export default function AdminAssistantModal({
   const routesCount = tableData?.routes?.length || 0;
   const streetsCount = tableData?.streets?.length || 0;
   const totalRaised = Number(tableData?.table?.total_raised || 0);
-  const slot1 = tableData?.table?.public_slot_1 || 'santa_bot';
-  const slot2 = tableData?.table?.public_slot_2 || 'nice_list';
+  const rawSlot1 = String(tableData?.table?.public_slot_1 || '').trim();
+  const slot1 = (rawSlot1 && rawSlot1.toLowerCase() !== 'none' && rawSlot1.toLowerCase() !== 'disabled') ? rawSlot1 : 'None (Disabled)';
+  const rawSlot2 = String(tableData?.table?.public_slot_2 || '').trim();
+  const slot2 = (rawSlot2 && rawSlot2.toLowerCase() !== 'none' && rawSlot2.toLowerCase() !== 'disabled') ? rawSlot2 : 'None (Disabled)';
 
   return (
     <>
@@ -504,8 +506,8 @@ export default function AdminAssistantModal({
                 }}>
                   <div><strong>Table ID:</strong> {targetSlug}</div>
                   <div><strong>Total Streets:</strong> {streetsCount}</div>
-                  <div><strong>Slot 1:</strong> <code>{slot1}</code></div>
-                  <div><strong>Slot 2:</strong> <code>{slot2}</code></div>
+                  <div><strong>Slot 1:</strong> <span style={{ color: slot1 === 'None (Disabled)' ? 'var(--text-muted)' : '#86efac', fontFamily: 'monospace' }}>{slot1}</span></div>
+                  <div><strong>Slot 2:</strong> <span style={{ color: slot2 === 'None (Disabled)' ? 'var(--text-muted)' : '#86efac', fontFamily: 'monospace' }}>{slot2}</span></div>
                   <div><strong>Goal:</strong> £{Number(tableData?.table?.fundraising_goal || 0).toLocaleString()}</div>
                   <div><strong>Gift Aid:</strong> {tableData?.table?.enable_gift_aid ? 'Active (+25%)' : 'Disabled'}</div>
                   <div style={{ gridColumn: 'span 2' }}>
