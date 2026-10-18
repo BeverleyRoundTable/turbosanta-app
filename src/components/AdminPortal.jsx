@@ -2054,10 +2054,10 @@ ${tableName} Organizers`
               gap: '6px',
               fontWeight: 700
             }}
-            title="Open TurboSanta Operations Co-Pilot (Grounded in your live Cloudflare D1 data)"
+            title="Ask TurboSanta (Grounded in your live Cloudflare D1 data)"
           >
             <Sparkles size={15} />
-            <span>AI Co-Pilot</span>
+            <span>Ask TurboSanta</span>
           </button>
 
           <a

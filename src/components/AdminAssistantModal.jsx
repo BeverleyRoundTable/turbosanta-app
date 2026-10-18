@@ -54,7 +54,7 @@ export default function AdminAssistantModal({
   const [messages, setMessages] = useState([
     {
       role: 'model',
-      text: `👋 Hello **${tableName}** team! I'm your **TurboSanta Operations Co-Pilot**.\n\nI have direct, real-time access to your table's **Cloudflare D1 database** and the full **TurboSanta System Guide**.\n\nAsk me anything about:\n- 🎛️ **Modular Public Slots** (AI Santa Chat, Naughty/Nice Certificate, Reindeer Adoption, etc.)\n- 🗺️ **Routes & GPX** (drawing routes, attaching GPX files directly to timetable)\n- 📍 **Driver Beacon & Sleigh Radar** (why the sleigh is "Resting in Lapland" vs "Live")\n- 💳 **Donations & Webhooks** (Zeffy, SumUp, JustGiving, Cash Buckets, Gift Aid)\n- 👥 **Crew & Volunteers** (dispatching route briefings via Gmail BCC)\n- 🎨 **Branding & Settings** (what every toggle in Table Settings changes)`,
+      text: `👋 Hello **${tableName}** team! I'm **TurboSanta**, your operations and settings assistant.\n\nI have direct, real-time access to your table's **Cloudflare D1 database** and the full **TurboSanta System Guide**.\n\nAsk me anything about:\n- 🎛️ **Modular Public Slots** (AI Santa Chat, Naughty/Nice Certificate, Reindeer Adoption, etc.)\n- 🗺️ **Routes & GPX** (drawing routes, attaching GPX files directly to timetable)\n- 📍 **Driver Beacon & Sleigh Radar** (why the sleigh is "Resting in Lapland" vs "Live")\n- 💳 **Donations & Webhooks** (Zeffy, SumUp, JustGiving, Cash Buckets, Gift Aid)\n- 👥 **Crew & Volunteers** (dispatching route briefings via Gmail BCC)\n- 🎨 **Branding & Settings** (what every toggle in Table Settings changes)`,
       timestamp: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -264,7 +264,7 @@ export default function AdminAssistantModal({
       {!activeOpen && (
         <button
           onClick={handleOpen}
-          aria-label="Ask TurboSanta Admin Co-Pilot"
+          aria-label="Ask TurboSanta"
           style={{
             position: 'fixed',
             bottom: '24px',
@@ -313,7 +313,7 @@ export default function AdminAssistantModal({
               boxShadow: '0 0 6px #22c55e'
             }} />
           </div>
-          <span>Ask Co-Pilot</span>
+          <span>Ask TurboSanta</span>
           <span style={{
             background: 'rgba(251, 175, 51, 0.15)',
             border: '1px solid rgba(251, 175, 51, 0.35)',
@@ -396,7 +396,7 @@ export default function AdminAssistantModal({
                       fontWeight: 800,
                       letterSpacing: '0.4px'
                     }}>
-                      TurboSanta Co-Pilot
+                      Ask TurboSanta
                     </h3>
                     <span style={{
                       background: 'rgba(34, 197, 94, 0.15)',
