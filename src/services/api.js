@@ -436,6 +436,9 @@ export async function askFleetAdvisor(tableSlug = "beverley", { question, catego
  * Uses Gemini with adaptive thinking, grounded in the table's live D1 database state & system guide.
  */
 export async function askAdminAssistant(tableSlug = "beverley", { message, history = [], model }) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 18000); // 18s client timeout
+
   try {
     const selectedModel = model || localStorage.getItem('turbosanta_global_gemini_model') || 'auto';
     const authHeaders = getAuthHeaders(null, tableSlug);
@@ -450,16 +453,24 @@ export async function askAdminAssistant(tableSlug = "beverley", { message, histo
         message,
         history,
         model: selectedModel
-      })
+      }),
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
+
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
       throw new Error(errData.error || `HTTP ${res.status}`);
     }
     return await res.json();
   } catch (err) {
+    clearTimeout(timeoutId);
     console.error("askAdminAssistant error:", err);
-    return { ok: false, error: err.message };
+    const isTimeout = err.name === 'AbortError' || (err.message && err.message.includes('abort'));
+    const friendly = isTimeout
+      ? 'The AI reasoning took slightly too long on your network. Tap to retry or ask another question.'
+      : err.message;
+    return { ok: false, error: friendly };
   }
 }
 
