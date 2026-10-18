@@ -9,21 +9,35 @@ import { askAdminAssistant } from '../services/api';
 
 export default function AdminAssistantModal({
   isOpen,
+  onOpen,
   onClose,
   tableData,
   session,
   currentTableSlug
 }) {
-  const [internalOpen, setInternalOpen] = useState(false);
-  const activeOpen = isOpen !== undefined ? isOpen : internalOpen;
+  const [internalOpen, setInternalOpen] = useState(Boolean(isOpen));
+
+  // Sync internal state whenever parent isOpen prop changes
+  useEffect(() => {
+    if (isOpen !== undefined) {
+      setInternalOpen(Boolean(isOpen));
+    }
+  }, [isOpen]);
+
+  const activeOpen = internalOpen;
 
   const handleClose = () => {
-    if (onClose) onClose();
     setInternalOpen(false);
+    if (onClose) onClose();
   };
 
-  const handleOpen = () => {
+  const handleOpen = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setInternalOpen(true);
+    if (onOpen) onOpen();
   };
 
   const targetSlug = (currentTableSlug || session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley').toLowerCase().trim();
@@ -270,7 +284,10 @@ export default function AdminAssistantModal({
             fontFamily: 'Eurostile, sans-serif',
             fontWeight: 800,
             fontSize: '13px',
-            letterSpacing: '0.4px'
+            letterSpacing: '0.4px',
+            touchAction: 'manipulation',
+            userSelect: 'none',
+            WebkitTapHighlightColor: 'transparent'
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'translateY(-3px) scale(1.03)';
@@ -296,7 +313,7 @@ export default function AdminAssistantModal({
               boxShadow: '0 0 6px #22c55e'
             }} />
           </div>
-          <span>✨ Ask Co-Pilot</span>
+          <span>Ask Co-Pilot</span>
           <span style={{
             background: 'rgba(251, 175, 51, 0.15)',
             border: '1px solid rgba(251, 175, 51, 0.35)',
@@ -317,11 +334,12 @@ export default function AdminAssistantModal({
           style={{
             position: 'fixed',
             inset: 0,
-            zIndex: 9999,
-            background: 'rgba(0, 0, 0, 0.65)',
+            zIndex: 99999,
+            background: 'rgba(0, 0, 0, 0.7)',
             backdropFilter: 'blur(5px)',
             display: 'flex',
             justifyContent: 'flex-end',
+            alignItems: 'stretch',
             animation: 'fadeIn 0.2s ease-out'
           }}
           onClick={(e) => {
@@ -333,12 +351,14 @@ export default function AdminAssistantModal({
               width: '100%',
               maxWidth: '520px',
               height: '100%',
+              maxHeight: '100dvh',
               background: '#151513',
               borderLeft: '1px solid rgba(251, 175, 51, 0.3)',
               display: 'flex',
               flexDirection: 'column',
               boxShadow: '-10px 0 40px rgba(0, 0, 0, 0.8)',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              boxSizing: 'border-box'
             }}
           >
             {/* Drawer Header */}

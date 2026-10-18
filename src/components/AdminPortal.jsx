@@ -9461,6 +9461,7 @@ ${tableName} Organizers`
       {/* TurboSanta Operations Co-Pilot AI Chatbot Modal */}
       <AdminAssistantModal
         isOpen={isAssistantModalOpen}
+        onOpen={() => setIsAssistantModalOpen(true)}
         onClose={() => setIsAssistantModalOpen(false)}
         tableData={tableData}
         session={session}
