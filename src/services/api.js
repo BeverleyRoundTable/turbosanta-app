@@ -431,6 +431,34 @@ export async function askFleetAdvisor(tableSlug = "beverley", { question, catego
   }
 }
 
+/**
+ * Ask the TurboSanta Admin Assistant Co-Pilot.
+ * Uses Gemini with adaptive thinking, grounded in the table's live D1 database state & system guide.
+ */
+export async function askAdminAssistant(tableSlug = "beverley", { message, history = [], model }) {
+  try {
+    const selectedModel = model || localStorage.getItem('turbosanta_global_gemini_model') || 'auto';
+    const res = await fetch(`${API_BASE}/api/admin/assistant?table=${encodeURIComponent(tableSlug)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        table: tableSlug,
+        message,
+        history,
+        model: selectedModel
+      })
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || `HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (err) {
+    console.error("askAdminAssistant error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
 export async function fetchLatestAiModels(tableSlug = "beverley") {
   try {
     const res = await fetch(`${API_BASE}/api/ai/models?table=${encodeURIComponent(tableSlug)}`);

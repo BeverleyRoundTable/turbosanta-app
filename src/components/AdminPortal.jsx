@@ -24,6 +24,7 @@ import CashBucketModal from './CashBucketModal';
 import PrintRouteSheetModal from './PrintRouteSheetModal';
 import PrintLanyardsModal from './PrintLanyardsModal';
 import VolunteerEmailModal from './VolunteerEmailModal';
+import AdminAssistantModal from './AdminAssistantModal';
 
 const OFFICIAL_GOOGLE_CLIENT_ID = "174929950272-ehpf04nea7ev4j8gfosq5acg6dvfmc95.apps.googleusercontent.com";
 
@@ -176,6 +177,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   const [isRouteSheetOpen, setIsRouteSheetOpen] = useState(false);
   const [sheetRoute, setSheetRoute] = useState(null);
   const [isLanyardsModalOpen, setIsLanyardsModalOpen] = useState(false);
+  const [isAssistantModalOpen, setIsAssistantModalOpen] = useState(false);
   const [copiedRouteId, setCopiedRouteId] = useState(null);
   const [selectedCrewRouteId, setSelectedCrewRouteId] = useState('');
 
@@ -2034,6 +2036,29 @@ ${tableName} Organizers`
             <BookOpen size={15} />
             <span>Guide & Docs</span>
           </a>
+
+          <button
+            type="button"
+            onClick={() => setIsAssistantModalOpen(true)}
+            className="btn-secondary"
+            style={{
+              padding: '8px 14px',
+              fontSize: '13px',
+              borderColor: 'rgba(251, 175, 51, 0.6)',
+              color: 'var(--primary)',
+              background: 'rgba(251, 175, 51, 0.08)',
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontWeight: 700
+            }}
+            title="Open TurboSanta Operations Co-Pilot (Grounded in your live Cloudflare D1 data)"
+          >
+            <Sparkles size={15} />
+            <span>AI Co-Pilot</span>
+          </button>
 
           <a
             href={typeof window !== 'undefined' && window.location.hostname.includes('roundtablesantasleigh.co.uk')
@@ -9431,6 +9456,15 @@ ${tableName} Organizers`
           setSaveStatus('📧 Broadcast successfully dispatched to volunteers via Google Workspace Gmail BCC!');
           setTimeout(() => setSaveStatus(''), 5000);
         }}
+      />
+
+      {/* TurboSanta Operations Co-Pilot AI Chatbot Modal */}
+      <AdminAssistantModal
+        isOpen={isAssistantModalOpen}
+        onClose={() => setIsAssistantModalOpen(false)}
+        tableData={tableData}
+        session={session}
+        currentTableSlug={currentTableSlug}
       />
     </div>
   );
