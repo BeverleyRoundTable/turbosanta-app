@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sleigh-shell-v8'; // Bumped to v8: tap-to-copy social handle
+const CACHE_NAME = 'sleigh-shell-v9'; // Bumped to v9: festive music player support
 const STATIC_ASSETS = [
     'https://turbosanta-app.pages.dev/icons/site_background.png',
     '/icons/RTBI_Santa.png',
