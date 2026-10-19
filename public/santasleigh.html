@@ -1309,6 +1309,111 @@
             transform: translateY(0);
         }
 
+        /* --- FESTIVE MUSIC FLOATING PLAYER --- */
+        .ts-festive-player {
+            position: fixed;
+            bottom: 22px;
+            left: 20px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+        }
+        .ts-music-card {
+            background: rgba(18, 18, 16, 0.95);
+            border: 1.5px solid rgba(251, 175, 51, 0.4);
+            border-radius: 16px;
+            padding: 9px 13px;
+            box-shadow: 0 10px 28px rgba(0,0,0,0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: calc(100vw - 40px);
+            color: #fff;
+        }
+        .ts-music-pill-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(18, 18, 16, 0.94);
+            color: #fff;
+            border: 1.5px solid var(--primary);
+            border-radius: 50px;
+            padding: 9px 15px;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.65);
+            backdrop-filter: blur(10px);
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .ts-music-ctrl-btn {
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.15s;
+        }
+        .ts-play-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: var(--on-primary);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        }
+        .ts-mute-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .ts-music-close-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: transparent;
+            color: var(--text-muted, rgba(255,255,255,0.7));
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .ts-eq-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+        .ts-eq-bar {
+            width: 3px;
+            background: var(--primary);
+            border-radius: 2px;
+            height: 4px;
+            display: inline-block;
+            transition: height 0.2s;
+        }
+        .ts-eq-container.playing .ts-eq-bar-1 { animation: ts-eq 0.75s ease-in-out infinite alternate; }
+        .ts-eq-container.playing .ts-eq-bar-2 { animation: ts-eq 1.1s ease-in-out 0.2s infinite alternate; }
+        .ts-eq-container.playing .ts-eq-bar-3 { animation: ts-eq 0.9s ease-in-out 0.4s infinite alternate; }
+
+        @keyframes ts-eq {
+            0% { height: 3px; }
+            100% { height: 16px; }
+        }
+
+        @media (max-width: 600px) {
+            .ts-festive-player {
+                bottom: 16px !important;
+                left: 12px !important;
+            }
+        }
+
         /* --- FOOTER --- */
         footer {
             text-align: center;
@@ -1760,7 +1865,42 @@
             
             <div class="social-links" id="social-links-container"></div>
         </div>
-    </section>
+    <!-- Floating Festive Background Music & Sleigh Jingles Player -->
+    <aside id="ts-festive-music-player" class="ts-festive-player" aria-label="Festive music player" style="display: none;">
+        <div id="ts-music-minimized" style="display: none;">
+            <button type="button" id="ts-music-expand-btn" class="ts-music-pill-btn" aria-label="Open festive music">
+                <i class="fa-solid fa-music" style="color: var(--primary);"></i>
+                <span id="ts-music-min-label">🔔 Festive Music</span>
+            </button>
+        </div>
+        <div id="ts-music-card" class="ts-music-card">
+            <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">
+                <div class="ts-eq-container" id="ts-eq-container">
+                    <span class="ts-eq-bar ts-eq-bar-1"></span>
+                    <span class="ts-eq-bar ts-eq-bar-2"></span>
+                    <span class="ts-eq-bar ts-eq-bar-3"></span>
+                </div>
+                <div style="min-width: 0; display: flex; flex-direction: column;">
+                    <span style="font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--primary); font-weight: 800; line-height: 1;">
+                        Sleigh Jingles 🔔
+                    </span>
+                    <span id="ts-music-title-text" style="font-size: 12px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; margin-top: 2px;">
+                    </span>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                <button type="button" id="ts-music-play-btn" class="ts-music-ctrl-btn ts-play-btn" aria-label="Play/Pause" title="Play / Pause">
+                    <i class="fa-solid fa-play" id="ts-music-play-icon"></i>
+                </button>
+                <button type="button" id="ts-music-mute-btn" class="ts-music-ctrl-btn ts-mute-btn" aria-label="Mute/Unmute" title="Mute / Unmute">
+                    <i class="fa-solid fa-volume-high" id="ts-music-mute-icon"></i>
+                </button>
+                <button type="button" id="ts-music-close-btn" class="ts-music-close-btn" aria-label="Minimize" title="Minimize player">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
 
     <a href="#tracker" id="fab-map" class="fab-map" aria-label="Jump to map">
         <i class="fa-solid fa-map-location-dot"></i> Live Map
@@ -3918,6 +4058,155 @@
             });
 
             safely('modular_slots', () => renderModularSlots(settings));
+            safely('music', () => renderMusicPlayer(settings));
+        }
+
+        let gSleighAudio = null;
+        let gAudioIsPlaying = false;
+        let gAudioIsMuted = false;
+
+        function renderMusicPlayer(settings) {
+            const musicMode = settings.music_mode || 'none';
+            const customUrl = (settings.music_custom_url || '').trim();
+            const title = (settings.music_title || '').trim();
+            const loop = settings.music_loop !== false && settings.music_loop !== 0;
+            const volume = (settings.music_volume !== undefined && settings.music_volume !== null) ? Number(settings.music_volume) : 0.5;
+            const autoplay = settings.music_autoplay !== false && settings.music_autoplay !== 0;
+
+            const isEnabled = (musicMode === 'default') || (musicMode === 'custom' && Boolean(customUrl));
+            const effectiveUrl = musicMode === 'default'
+                ? '/media/default_sleigh_bells.mp3'
+                : (musicMode === 'custom' ? customUrl : '');
+            const displayTitle = title || (musicMode === 'default' ? 'Festive Santa Sleigh Bells' : 'Festive Christmas Track');
+
+            const player = $('ts-festive-music-player');
+            if (!isEnabled || !effectiveUrl) {
+                if (player) player.style.display = 'none';
+                if (gSleighAudio) {
+                    gSleighAudio.pause();
+                    gSleighAudio.src = '';
+                }
+                return;
+            }
+
+            if (player) player.style.display = 'flex';
+
+            const titleEl = $('ts-music-title-text');
+            if (titleEl) {
+                titleEl.textContent = displayTitle;
+                titleEl.title = displayTitle;
+            }
+
+            const card = $('ts-music-card');
+            const minBox = $('ts-music-minimized');
+            const minLabel = $('ts-music-min-label');
+            const playBtn = $('ts-music-play-btn');
+            const playIcon = $('ts-music-play-icon');
+            const muteBtn = $('ts-music-mute-btn');
+            const muteIcon = $('ts-music-mute-icon');
+            const closeBtn = $('ts-music-close-btn');
+            const expandBtn = $('ts-music-expand-btn');
+            const eq = $('ts-eq-container');
+
+            if (closeBtn && card && minBox) {
+                closeBtn.onclick = () => {
+                    card.style.display = 'none';
+                    minBox.style.display = 'block';
+                };
+            }
+            if (expandBtn && card && minBox) {
+                expandBtn.onclick = () => {
+                    minBox.style.display = 'none';
+                    card.style.display = 'flex';
+                };
+            }
+
+            function updatePlayUi(playing) {
+                gAudioIsPlaying = playing;
+                if (playIcon) {
+                    playIcon.className = playing ? 'fa-solid fa-pause' : 'fa-solid fa-play';
+                }
+                if (eq) {
+                    if (playing) eq.classList.add('playing');
+                    else eq.classList.remove('playing');
+                }
+                if (minLabel) {
+                    minLabel.textContent = playing ? '🎵 Playing Bells' : '🔔 Festive Music';
+                }
+            }
+
+            function updateMuteUi(muted) {
+                gAudioIsMuted = muted;
+                if (muteIcon) {
+                    muteIcon.className = muted ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
+                    if (muteBtn) muteBtn.style.color = muted ? '#ef4444' : '#fff';
+                }
+            }
+
+            if (!gSleighAudio || gSleighAudio._url !== effectiveUrl) {
+                if (gSleighAudio) {
+                    gSleighAudio.pause();
+                    gSleighAudio.src = '';
+                }
+                gSleighAudio = new Audio(effectiveUrl);
+                gSleighAudio._url = effectiveUrl;
+                gSleighAudio.loop = loop;
+                gSleighAudio.volume = Math.min(Math.max(volume, 0), 1);
+
+                gSleighAudio.addEventListener('play', () => updatePlayUi(true));
+                gSleighAudio.addEventListener('pause', () => updatePlayUi(false));
+                gSleighAudio.addEventListener('ended', () => {
+                    if (!loop) updatePlayUi(false);
+                });
+
+                if (autoplay) {
+                    const playPromise = gSleighAudio.play();
+                    if (playPromise !== undefined) {
+                        playPromise.then(() => {
+                            updatePlayUi(true);
+                        }).catch(() => {
+                            const onFirstUserGesture = () => {
+                                if (gSleighAudio) {
+                                    gSleighAudio.play().then(() => updatePlayUi(true)).catch(() => {});
+                                }
+                                window.removeEventListener('pointerdown', onFirstUserGesture);
+                                window.removeEventListener('touchstart', onFirstUserGesture);
+                                window.removeEventListener('keydown', onFirstUserGesture);
+                                window.removeEventListener('click', onFirstUserGesture);
+                            };
+                            window.addEventListener('pointerdown', onFirstUserGesture, { once: true, passive: true });
+                            window.addEventListener('touchstart', onFirstUserGesture, { once: true, passive: true });
+                            window.addEventListener('keydown', onFirstUserGesture, { once: true, passive: true });
+                            window.addEventListener('click', onFirstUserGesture, { once: true, passive: true });
+                        });
+                    }
+                }
+            } else {
+                gSleighAudio.loop = loop;
+                if (!gAudioIsMuted) {
+                    gSleighAudio.volume = Math.min(Math.max(volume, 0), 1);
+                }
+            }
+
+            if (playBtn) {
+                playBtn.onclick = () => {
+                    if (!gSleighAudio) return;
+                    if (gAudioIsPlaying) {
+                        gSleighAudio.pause();
+                    } else {
+                        gSleighAudio.play().catch(console.error);
+                    }
+                };
+            }
+
+            if (muteBtn) {
+                muteBtn.onclick = () => {
+                    if (!gSleighAudio) return;
+                    const newMuted = !gAudioIsMuted;
+                    gSleighAudio.volume = newMuted ? 0 : Math.min(Math.max(volume, 0), 1);
+                    updateMuteUi(newMuted);
+                };
+            }
         }
 
         const SETUP_ERROR_HTML = "Could not load data from the provided API. Please check the URL and ensure your Google Script is deployed as a Web App accessible to 'Anyone'.";
@@ -3964,7 +4253,13 @@
                     table_facebook_url: tbl.facebook_url || tbl.table_facebook_url || stg.table_facebook_url || '',
                     table_instagram_url: tbl.instagram_url || tbl.table_instagram_url || stg.table_instagram_url || '',
                     table_tiktok_url: tbl.tiktok_url || tbl.table_tiktok_url || stg.table_tiktok_url || '',
-                    table_youtube_url: tbl.youtube_url || tbl.table_youtube_url || stg.table_youtube_url || ''
+                    table_youtube_url: tbl.youtube_url || tbl.table_youtube_url || stg.table_youtube_url || '',
+                    music_mode: tbl.music_mode || stg.music_mode || 'none',
+                    music_title: tbl.music_title || stg.music_title || '',
+                    music_custom_url: tbl.music_custom_url || stg.music_custom_url || '',
+                    music_loop: tbl.music_loop !== undefined ? tbl.music_loop : (stg.music_loop !== undefined ? stg.music_loop : true),
+                    music_volume: tbl.music_volume !== undefined ? tbl.music_volume : (stg.music_volume !== undefined ? stg.music_volume : 0.5),
+                    music_autoplay: tbl.music_autoplay !== undefined ? tbl.music_autoplay : (stg.music_autoplay !== undefined ? stg.music_autoplay : true)
                 },
                 donations: {
                     total: tbl.total_raised ?? data.donations?.total ?? 0,
@@ -4048,7 +4343,9 @@
                     });
             } else {
                 if (!window.__sleighDataPromise) {
-                    window.__sleighDataPromise = fetch(`${CFG.workerApi}/api/payload?table=${encodeURIComponent(tableSlug)}`).then(r => r.json()).catch(() => null);
+                    window.__sleighDataPromise = window.__sleighPrefetchedData 
+                        ? Promise.resolve(window.__sleighPrefetchedData)
+                        : fetch(`${CFG.workerApi}/api/payload?table=${encodeURIComponent(tableSlug)}&_t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json()).catch(() => null);
                 }
 
                 window.__sleighDataPromise
