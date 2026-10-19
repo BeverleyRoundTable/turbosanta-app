@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <script src="/embed-theme.js"></script>
@@ -232,21 +232,27 @@
 </div>
 
 <script>
-/* ---------- THEME & API SETUP ---------- */
+/* ---------- THEME & API SETUP (TurboSanta 2.0 D1) ---------- */
 const params = new URLSearchParams(location.search);
-let API_URL = params.get("api") || localStorage.getItem("SANTA_API") || sessionStorage.getItem("SANTA_API");
+const hostParts = location.hostname.split('.');
+const subSlug = (hostParts.length >= 3 && hostParts[0] !== 'www' && hostParts[0] !== 'admin' && !location.hostname.includes('pages.dev')) ? hostParts[0] : '';
+const tableSlug = params.get("table") || params.get("slug") || subSlug || "beverley";
 
-if (API_URL) {
-  localStorage.setItem("SANTA_API", API_URL); 
-  sessionStorage.setItem("SANTA_API", API_URL);
-  
-  const WORKER_URL = "https://santaproxy.beverley247.workers.dev/";
-  const DATA_URL = `${WORKER_URL}?ttl=30&target=${encodeURIComponent(API_URL)}`;
-  
-  fetch(DATA_URL)
+if (params.get("primary")) {
+  applyTheme({ primary_color: params.get("primary"), accent_color: params.get("accent") });
+} else {
+  const WORKER_URL = `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableSlug)}`;
+  fetch(WORKER_URL)
     .then(r => r.json())
     .then(data => {
-      if (data && data.settings) applyTheme(data.settings);
+      if (data) {
+        const tbl = data.table || {};
+        const set = data.settings || {};
+        applyTheme({
+          primary_color: tbl.primary_color || set.primary_color,
+          accent_color: tbl.accent_color || set.accent_color
+        });
+      }
     })
     .catch(e => console.warn("Failed to load theme for santa frame", e));
 }

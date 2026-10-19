@@ -482,14 +482,10 @@
 
     // --- HELPER: GET BASE URL ---
     function getApiUrl() {
-      // 1. Look for ?api= in the URL (for Cloudflare/external hosting)
+      // 1. Only use ?api= if explicitly passed in the URL
       const params = new URLSearchParams(window.location.search);
-      const apiParam = params.get("api") || localStorage.getItem("SANTA_API");
-      
-      if (apiParam) {
-        localStorage.setItem("SANTA_API", apiParam); // Cache it so it survives page reloads
-        return apiParam;
-      }
+      const apiParam = params.get("api");
+      if (apiParam) return apiParam;
       
       // 2. Only fallback to window.location if deployed directly via Google Apps Script
       if (window.location.hostname.includes("script.google.com")) {

@@ -416,24 +416,11 @@ async function init() {
       dBtn.classList.remove('hidden');
     }
 
-    if (!enabled) {
-      document.getElementById('initArea').classList.add('hidden');
-      document.getElementById('closedStep').classList.remove('hidden');
-      return;
+    if (window.applyTurboSantaTheme && (settings.primary_color || settings.accent_color)) {
+      window.applyTurboSantaTheme(settings.primary_color, settings.accent_color);
     }
 
-    // Route-window check — open only when a route is today or within 10 days (or if no routes configured yet, allow testing)
-    const now = new Date();
-    const todayStr = now.toISOString().slice(0, 10);
-    const routesList = data.routes || [];
-    const routeDates = routesList.map(r => new Date(r.date));
-    const hasRouteToday = routesList.some(r => r.date === todayStr);
-    const futureRoutes = routeDates.filter(d => d > now).sort((a, b) => a - b);
-    const daysUntilNext = futureRoutes.length > 0
-      ? (futureRoutes[0] - now) / (1000 * 60 * 60 * 24)
-      : Infinity;
-
-    if (routesList.length > 0 && !hasRouteToday && daysUntilNext >= 10 && String(settings.enable_magic_mailbox || '').toUpperCase() !== 'TRUE') {
+    if (!enabled) {
       document.getElementById('initArea').classList.add('hidden');
       document.getElementById('closedStep').classList.remove('hidden');
       return;
@@ -441,21 +428,6 @@ async function init() {
 
     // Capacity check (optional setting)
     mailboxCapacity = parseInt(settings.magic_mailbox_capacity, 10) || 999;
-
-    // Quick capacity ping
-    if (API) {
-      try {
-        const cap = await fetch(`${API}?function=getMailboxCapacity`);
-        const capData = await cap.json();
-        mailboxCount = capData.todayCount || 0;
-
-        if (mailboxCount >= mailboxCapacity) {
-          document.getElementById('initArea').classList.add('hidden');
-          document.getElementById('fullStep').classList.remove('hidden');
-          return;
-        }
-      } catch(e) { /* non-fatal */ }
-    }
 
     // Consent text from settings (per-table customisable)
     const defaultConsent =

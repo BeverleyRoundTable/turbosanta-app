@@ -300,10 +300,14 @@ const _subMatch = location.hostname.match(/^([a-z0-9-]+)\.roundtablesantasleigh\
 const subdomainSlug = (_subMatch && !['www', 'api', 'admin'].includes(_subMatch[1].toLowerCase())) ? _subMatch[1].toLowerCase() : '';
 const tableSlug = params.get('table') || subdomainSlug || (!API ? 'beverley' : '');
 const PRE_STREET = params.get('street') || '';
-const COLOR_PARAM = params.get('color') || '';
+const COLOR_PARAM = params.get('primary') || params.get('color') || '';
 
 function applyColorTheme(colorHex) {
   if (!colorHex) return;
+  if (window.applyTurboSantaTheme) {
+    window.applyTurboSantaTheme(colorHex, params.get('accent'));
+    return;
+  }
   const hex = colorHex.startsWith('#') ? colorHex : '#' + colorHex;
   document.documentElement.style.setProperty('--gold', hex);
   document.documentElement.style.setProperty('--primary', hex);
@@ -358,10 +362,12 @@ async function init() {
     const rawTracker = (data.settings?.tracker_url || '').trim();
     if (rawTracker) {
       trackerUrl = rawTracker.startsWith('http') ? rawTracker : `https://${rawTracker}`;
+    } else if (subdomainSlug) {
+      trackerUrl = `${location.origin}/tracker`;
     } else {
       trackerUrl = API
-        ? `${location.origin}/tracker.html?api=${encodeURIComponent(API)}`
-        : `${location.origin}/tracker.html?table=${encodeURIComponent(tableSlug)}`;
+        ? `${location.origin}/tracker?api=${encodeURIComponent(API)}`
+        : `https://${tableSlug}.roundtablesantasleigh.co.uk/tracker`;
     }
     const sleighName = data.settings?.sleigh_display_name || data.settings?.name || '';
     if (sleighName) {

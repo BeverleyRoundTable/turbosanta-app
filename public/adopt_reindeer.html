@@ -487,8 +487,8 @@ async function generate() {
   const personName = document.getElementById('personName').value.trim();
   if (!personName || !selectedReindeer) return;
 
-  const logo = settings.logo_overlay_url || '';
-  const sleighName = settings.sleigh_display_name || settings.sleigh_name || '';
+  const logo = settings.logo_overlay_url || settings.logo_url || '';
+  const sleighName = settings.sleigh_display_name || settings.sleigh_name || settings.name || '';
   const year = settings.wrap_year || new Date().getFullYear();
 
   const certHtml = `

@@ -371,25 +371,8 @@
 
   <script>
   const params = new URLSearchParams(location.search);
-  
-  let API_URL = params.get("api") || localStorage.getItem("SANTA_API") || sessionStorage.getItem("SANTA_API");
-  
-  if (params.has("api") && !params.has("proxy")) {
-    localStorage.removeItem("SANTA_PROXY");
-    sessionStorage.removeItem("SANTA_PROXY");
-  }
-
-  let PROXY_URL = params.get("proxy") || localStorage.getItem("SANTA_PROXY") || sessionStorage.getItem("SANTA_PROXY");
-
-  if (API_URL) {
-    localStorage.setItem("SANTA_API", API_URL); 
-    sessionStorage.setItem("SANTA_API", API_URL);
-  }
-  
-  if (PROXY_URL) {
-    localStorage.setItem("SANTA_PROXY", PROXY_URL); 
-    sessionStorage.setItem("SANTA_PROXY", PROXY_URL);
-  }
+  let API_URL = params.get("api") || "";
+  let PROXY_URL = params.get("proxy") || "";
 
   const subdomainSlug = (() => {
     const h = (location.hostname || '').toLowerCase();

@@ -1,6 +1,7 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="/embed-theme.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TurboSanta — My Snowman Generator</title>
@@ -258,6 +259,7 @@
   <div class="actions">
     <button id="generateBtn" disabled>Create Image</button>
     <button id="downloadBtn" style="display:none">⬇ Download image</button>
+    <button type="button" onclick="window.location.href='snowman.html' + window.location.search" style="background:transparent;border:1px solid var(--border);color:var(--text-dim);">← Back to Snowman Builder</button>
   </div>
 
   <canvas id="canvas" width="1000" height="1000"></canvas>
