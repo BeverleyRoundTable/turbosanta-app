@@ -714,10 +714,44 @@
       line-height: 1.2;
     }
 
+    .lb-town-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #fff;
+      text-decoration: none;
+      transition: color 0.15s ease;
+      cursor: pointer;
+    }
+
+    .lb-town-link:hover {
+      color: var(--gold);
+    }
+
+    .lb-town-link:hover .lb-town-name {
+      color: var(--gold);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      text-decoration-color: rgba(251, 175, 51, 0.6);
+    }
+
     .lb-town-name {
       font-weight: 700;
       font-size: 14px;
       color: #fff;
+      transition: color 0.15s ease;
+    }
+
+    .lb-link-icon {
+      opacity: 0.45;
+      color: var(--gold);
+      transition: opacity 0.15s ease, transform 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .lb-town-link:hover .lb-link-icon {
+      opacity: 1;
+      transform: translate(1px, -1px);
     }
 
     .progress-bar-bg {
@@ -1459,6 +1493,7 @@ function extractLiveTableData(table, apiData) {
 
   return {
     id: table.id,
+    slug: table.slug || table.id,
     name: displayName,
     api: String(table.api).trim(),
     raised: totalRaised,
@@ -1493,7 +1528,7 @@ function extractHistoricalTableData(table, historyArray, targetYear) {
   
   if (!seasonData) {
      return {
-        id: table.id, name: table.name, api: String(table.api).trim(),
+        id: table.id, slug: table.slug || table.id, name: table.name, api: String(table.api).trim(),
         raised: 0, target: 0, expenses: 0, netRaised: 0, views: 0, routes: 0, routesPlanned: 0, streets: 0, streetsScheduled: 0, messages: 0,
         ok: true
      };
@@ -1501,6 +1536,7 @@ function extractHistoricalTableData(table, historyArray, targetYear) {
   
   return {
      id: table.id,
+     slug: table.slug || table.id,
      name: table.name,
      api: String(table.api).trim(),
      raised: parseFloat(seasonData.raised) || 0,
@@ -1741,12 +1777,36 @@ function renderLeaderboard(data) {
       ? `<span style="color:${sDone > 0 ? 'var(--green)' : 'var(--text-muted)'}; font-weight:${sDone > 0 ? '700' : '400'};">${sDone}</span><span style="color:var(--text-dim); font-size:11px;"> / ${sPlan}</span>`
       : `${sDone.toLocaleString('en-GB')}`;
 
+    const rawSlug = (d.slug || d.tableSlug || d.id || '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+
+    const fallbackSlug = (shortenName(d) || '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+
+    const tableSlug = rawSlug || fallbackSlug;
+    const publicUrl = tableSlug ? `https://${tableSlug}.roundtablesantasleigh.co.uk` : '#';
+
     body.innerHTML += `
       <div class="lb-row">
         <div class="lb-rank">${i + 1}</div>
         <div class="lb-name" title="${escHtml(d.name)}">
           <div class="lb-name-row">
-            <span class="lb-town-name">${escHtml(shortenName(d))}</span>
+            <a href="${escHtml(publicUrl)}" target="_blank" rel="noopener noreferrer" class="lb-town-link" title="Visit ${escHtml(shortenName(d))} Public Sleigh Page (${tableSlug}.roundtablesantasleigh.co.uk)">
+              <span class="lb-town-name">${escHtml(shortenName(d))}</span>
+              <svg class="lb-link-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                <polyline points="15 3 21 3 21 9"></polyline>
+                <line x1="10" y1="14" x2="21" y2="3"></line>
+              </svg>
+            </a>
             ${statusHtml}
           </div>
           ${progressHtml}
