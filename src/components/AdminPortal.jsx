@@ -1420,7 +1420,7 @@ ${tableName} Organizers`
     }
     const trackUrl = formData.music_mode === 'custom' && formData.music_custom_url
       ? formData.music_custom_url
-      : 'https://turbosanta-app.pages.dev/media/default_sleigh_bells.mp3';
+      : 'https://turbosanta-app.pages.dev/media/round_table_christmas.mp3';
 
     try {
       if (adminAudioRef.current) {
@@ -7407,7 +7407,7 @@ ${tableName} Organizers`
                     color: formData.music_mode === 'custom' ? '#86efac' : (formData.music_mode === 'default' ? 'var(--primary)' : 'var(--text-muted)'),
                     border: formData.music_mode === 'custom' ? '1px solid #22c55e' : (formData.music_mode === 'default' ? '1px solid var(--primary)' : '1px solid var(--border)')
                   }}>
-                    {formData.music_mode === 'custom' ? 'Custom Song (R2 Cloudflare)' : (formData.music_mode === 'default' ? 'Default Holiday Sleigh Bells' : 'Disabled (No Music)')}
+                    {formData.music_mode === 'custom' ? 'Custom Song (R2 Cloudflare)' : (formData.music_mode === 'default' ? 'Default: Round Table Christmas' : 'Disabled (No Music)')}
                   </span>
                 </div>
 
@@ -7461,7 +7461,7 @@ ${tableName} Organizers`
                     <div style={{ fontWeight: 700, fontSize: '13px', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span>🎅 Default Song</span>
                     </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Festive holiday sleigh bells</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Round Table Christmas</div>
                   </button>
 
                   <button
