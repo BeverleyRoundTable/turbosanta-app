@@ -7385,8 +7385,7 @@ ${tableName} Organizers`
                     onClick={() => {
                       setFormData(prev => ({
                         ...prev,
-                        music_mode: 'default',
-                        music_title: 'Round Table Christmas'
+                        music_mode: 'default'
                       }));
                       stopAdminAudioPreview();
                     }}
@@ -8850,7 +8849,7 @@ ${tableName} Organizers`
                         enable_gift_aid: formData.enable_gift_aid,
                         enable_grant_nominations: formData.enable_grant_nominations !== false ? 1 : 0,
                         music_mode: formData.music_mode || 'none',
-                        music_title: formData.music_mode === 'default' ? 'Round Table Christmas' : (formData.music_title || ''),
+                        music_title: formData.music_title || '',
                         music_custom_url: formData.music_custom_url || null,
                         music_loop: formData.music_loop !== false ? 1 : 0,
                         music_volume: Number(formData.music_volume !== undefined ? formData.music_volume : 0.5),
