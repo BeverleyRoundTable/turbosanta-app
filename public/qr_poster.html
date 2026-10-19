@@ -619,6 +619,11 @@ async function init() {
     const res = await fetch(API);
     const data = await res.json();
     STATE.settings = data.settings || data.table || {};
+    STATE.isGiftAidEnabled = Boolean(
+      STATE.settings.enable_gift_aid !== undefined
+        ? STATE.settings.enable_gift_aid
+        : (data.table && data.table.enable_gift_aid)
+    );
     const rawStreets = data.streets || [];
     STATE.routes = (data.routes || []).map(r => {
       const routeStreets = r.streets || rawStreets.filter(s => s.route_id === r.id).map(s => s.street_name).join(', ') || '';
@@ -664,7 +669,7 @@ function getTargetQrUrl() {
   const trackerUrl = s.tracker_url || `https://${tableSlug}.roundtablesantasleigh.co.uk/tracker`;
   const sleighDonateUrl = `https://${tableSlug}.roundtablesantasleigh.co.uk/?donate=1`;
   const directDonateUrl = s.donate_url || s.justgiving_url || sleighDonateUrl;
-  if (STATE.qrTargetMode === 'donate_giftaid') return sleighDonateUrl;
+  if (STATE.qrTargetMode === 'donate_giftaid') return STATE.isGiftAidEnabled ? sleighDonateUrl : (directDonateUrl || sleighDonateUrl);
   if (STATE.qrTargetMode === 'direct_donate') return directDonateUrl;
   return trackerUrl;
 }
@@ -699,7 +704,7 @@ function renderControls() {
         <label>QR Code Destination</label>
         <select id="qrTargetSelect" onchange="STATE.qrTargetMode=this.value; generatePoster()">
           <option value="tracker" ${STATE.qrTargetMode === 'tracker' ? 'selected' : ''}>📍 Live Sleigh Map & Tracker</option>
-          <option value="donate_giftaid" ${STATE.qrTargetMode === 'donate_giftaid' ? 'selected' : ''}>💛 Online Donate + 25% Gift Aid Boost</option>
+          <option value="donate_giftaid" ${STATE.qrTargetMode === 'donate_giftaid' ? 'selected' : ''}>${STATE.isGiftAidEnabled ? '💛 Online Donate + 25% Gift Aid Boost' : '💛 Online Donate Page'}</option>
           <option value="direct_donate" ${STATE.qrTargetMode === 'direct_donate' ? 'selected' : ''}>💳 Direct Checkout (JustGiving / Ticket Tailor)</option>
         </select>
       </div>
@@ -743,6 +748,9 @@ function generatePoster(idx) {
   if (STATE.layoutMode === 'buckets') {
     const headline = document.getElementById('customHeadline')?.value || 'NO CASH? SCAN TO DONATE!';
     posterEl.className = 'sheet-grid-4';
+    const gaNotice = STATE.isGiftAidEnabled
+      ? '<div class="bucket-giftaid">✨ UK Taxpayer? Boost your donation by +25% with Gift Aid for FREE!</div>'
+      : '<div class="bucket-giftaid" style="background:#f0fdf4; border:1px solid #86efac; color:#166534;">✨ 100% of your donation directly supports local charities and community causes!</div>';
     let cardsHtml = '';
     for (let i = 0; i < 4; i++) {
       cardsHtml += `
@@ -762,7 +770,7 @@ function generatePoster(idx) {
             <span class="bucket-pill">💷 £10</span>
             <span class="bucket-pill">🍎 Apple / Google Pay</span>
           </div>
-          <div class="bucket-giftaid">✨ UK Taxpayer? Boost your donation by +25% with Gift Aid for FREE!</div>
+          ${gaNotice}
         </div>
       `;
     }
@@ -783,6 +791,9 @@ function generatePoster(idx) {
   if (STATE.layoutMode === 'lanyards') {
     const headline = document.getElementById('customHeadline')?.value || 'SCAN TO DONATE';
     posterEl.className = 'sheet-grid-6';
+    const gaBadge = STATE.isGiftAidEnabled
+      ? '<div style="font-size:11px;font-weight:800;color:#b45309;">+25% GIFT AID BOOST AVAILABLE</div>'
+      : '<div style="font-size:11px;font-weight:800;color:#15803d;">SUPPORTING LOCAL COMMUNITY CAUSES</div>';
     let cardsHtml = '';
     for (let i = 0; i < 6; i++) {
       cardsHtml += `
@@ -792,7 +803,7 @@ function generatePoster(idx) {
           ${logoUrl ? `<img src="${logoUrl}" style="width:44px;height:44px;object-fit:contain;">` : ''}
           <div class="lanyard-title">${headline}</div>
           <div class="lanyard-qr-box" id="qrLanyard_${i}"></div>
-          <div style="font-size:11px;font-weight:800;color:#b45309;">+25% GIFT AID BOOST AVAILABLE</div>
+          ${gaBadge}
           <div class="lanyard-footer">${sleighName}<br><span>100% TO LOCAL CHARITIES</span></div>
         </div>
       `;
@@ -825,7 +836,11 @@ function generatePoster(idx) {
   const endTime = route["End Time"] || "";
   const timeHtml = startTime ? `<div class="day-name" style="margin-top:8px;">${startTime} – ${endTime}</div>` : "";
   const scanTitle = STATE.qrTargetMode === 'tracker' ? 'SCAN TO TRACK SANTA LIVE' : 'SCAN TO DONATE TO SANTA';
-  const scanSub = STATE.qrTargetMode === 'tracker' ? 'Follow the sleigh on the map & get doorstep alerts' : 'Fast Apple Pay / Card Checkout + 25% Gift Aid Boost';
+  const scanSub = STATE.qrTargetMode === 'tracker'
+    ? 'Follow the sleigh on the map & get doorstep alerts'
+    : (STATE.isGiftAidEnabled
+        ? 'Fast Apple Pay / Card Checkout + 25% Gift Aid Boost'
+        : 'Fast Apple Pay / Card Checkout · 100% to Local Causes');
 
   let h = `
     <div class="poster-accent-top"></div>

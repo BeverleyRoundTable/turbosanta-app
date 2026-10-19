@@ -7,7 +7,8 @@ export default function PrintLanyardsModal({
   tableName = 'Round Table',
   tableSlug = 'beverley',
   donateUrl = '',
-  logoUrl = ''
+  logoUrl = '',
+  enableGiftAid = true
 }) {
   if (!isOpen) return null;
 
@@ -22,8 +23,115 @@ export default function PrintLanyardsModal({
   const qrCodeImgSrc = `https://api.qrserver.com/v1/create-qr-code/?size=350x350&margin=4&data=${encodeURIComponent(currentQrUrl)}`;
 
   const handlePrint = () => {
-    window.print();
+    const printArea = document.getElementById('printable-lanyards-area');
+    if (!printArea) {
+      window.print();
+      return;
+    }
+
+    const title = activeTab === 'lanyards' ? 'Volunteer Lanyard Badges (4-Up)' : 'Santa Sleigh Poster';
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>${(tableName || 'Round Table').toUpperCase()} - ${title}</title>
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 6mm 8mm;
+            }
+            * {
+              box-sizing: border-box;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            html, body {
+              margin: 0;
+              padding: 0;
+              background: #ffffff !important;
+              color: #111827 !important;
+              font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            }
+            .no-print {
+              display: none !important;
+            }
+            .print-wrapper {
+              width: 100%;
+              max-width: 194mm;
+              margin: 0 auto;
+              padding: 0;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="print-wrapper">
+            ${printArea.innerHTML}
+          </div>
+        </body>
+      </html>
+    `;
+
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || ('ontouchstart' in window && window.innerWidth <= 820);
+
+    if (isMobile) {
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+        setTimeout(() => {
+          try {
+            printWindow.focus();
+            printWindow.print();
+          } catch(e) {}
+        }, 500);
+        return;
+      }
+    }
+
+    let printIframe = document.getElementById('print-lanyards-iframe');
+    if (!printIframe) {
+      printIframe = document.createElement('iframe');
+      printIframe.id = 'print-lanyards-iframe';
+      printIframe.style.position = 'fixed';
+      printIframe.style.right = '0';
+      printIframe.style.bottom = '0';
+      printIframe.style.width = '0';
+      printIframe.style.height = '0';
+      printIframe.style.border = '0';
+      printIframe.style.visibility = 'hidden';
+      document.body.appendChild(printIframe);
+    }
+
+    const doc = printIframe.contentDocument || printIframe.contentWindow.document;
+    doc.open();
+    doc.write(htmlContent);
+    doc.close();
+
+    setTimeout(() => {
+      try {
+        printIframe.contentWindow.focus();
+        printIframe.contentWindow.print();
+      } catch (err) {
+        console.warn('Iframe print fallback to window.print():', err);
+        window.print();
+      }
+    }, 250);
   };
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        handlePrint();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, activeTab, qrTarget, enableGiftAid]);
 
   return (
     <div style={{
@@ -289,7 +397,11 @@ export default function PrintLanyardsModal({
                         <div style={{ fontSize: '9px', color: '#4b5563', lineHeight: 1.3 }}>
                           ✓ Apple Pay &middot; Google Pay &middot; Card<br />
                           ✓ 100% of proceeds stay local<br />
-                          ✓ Gift Aid +25% eligible
+                          {enableGiftAid ? (
+                            <span>✓ Gift Aid +25% eligible</span>
+                          ) : (
+                            <span>✓ Direct to local youth &amp; charities</span>
+                          )}
                         </div>
                       </div>
                     </div>

@@ -3769,7 +3769,7 @@ ${tableName} Organizers`
 
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <a
-                    href={`/qr_poster.html?table=${encodeURIComponent(currentTableSlug || session?.tableSlug || 'beverley')}&mode=buckets&qr=donate_giftaid`}
+                    href={`/qr_poster.html?table=${encodeURIComponent(currentTableSlug || session?.tableSlug || 'beverley')}&mode=buckets&qr=${formData.enable_gift_aid ? 'donate_giftaid' : 'direct_donate'}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn-secondary"
@@ -3779,7 +3779,7 @@ ${tableName} Organizers`
                     <span>🪣 Print 4-Up Bucket Stickers</span>
                   </a>
                   <a
-                    href={`/qr_poster.html?table=${encodeURIComponent(currentTableSlug || session?.tableSlug || 'beverley')}&mode=lanyards&qr=donate_giftaid`}
+                    href={`/qr_poster.html?table=${encodeURIComponent(currentTableSlug || session?.tableSlug || 'beverley')}&mode=lanyards&qr=${formData.enable_gift_aid ? 'donate_giftaid' : 'direct_donate'}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn-secondary"
@@ -9965,6 +9965,7 @@ ${tableName} Organizers`
         tableSlug={currentTableSlug}
         donateUrl={formData.donate_url}
         logoUrl={formData.logo_url}
+        enableGiftAid={Boolean(formData.enable_gift_aid)}
       />
 
       {/* Volunteer Crew Email Composer Modal */}
