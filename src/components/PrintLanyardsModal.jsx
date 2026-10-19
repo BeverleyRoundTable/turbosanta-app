@@ -304,7 +304,7 @@ export default function PrintLanyardsModal({
               🏪 A4 Shop Window Poster
             </button>
             <a
-              href={`/qr_poster.html?table=${encodeURIComponent(cleanSlug)}&mode=lanyards&qr=${enableGiftAid ? 'donate_giftaid' : 'direct_donate'}&secret=${encodeURIComponent(adminSecret || '')}`}
+              href={`https://${townDomain}/qr_poster?mode=lanyards&secret=${encodeURIComponent(adminSecret || '')}`}
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -343,8 +343,10 @@ export default function PrintLanyardsModal({
                 fontSize: '12px'
               }}
             >
-              <option value="donate">Donation Checkout Link (Zeffy/Stripe/SumUp)</option>
-              <option value="tracker">Live Public Sleigh Site ({townDomain})</option>
+              <option value="donate">
+                {enableGiftAid ? '💛 Direct Online Donation (+ 25% Gift Aid Boost)' : '💳 Direct Online Donation (Card / Apple Pay / Zeffy / JustGiving)'}
+              </option>
+              <option value="tracker">📍 Live Public Sleigh Site ({townDomain})</option>
             </select>
           </div>
         </div>

@@ -692,7 +692,7 @@ const subdomainSlug = (() => {
   }
   return '';
 })();
-const tableSlug = (params.get('table') || subdomainSlug || 'beverley').toLowerCase();
+const tableSlug = (subdomainSlug || params.get('table') || 'beverley').toLowerCase();
 const API = params.get('api') || `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableSlug)}`;
 
 const STATE = {
@@ -700,7 +700,7 @@ const STATE = {
   routes: [],
   selectedRoute: 0,
   layoutMode: params.get('mode') || 'poster', // 'poster' | 'buckets' | 'lanyards'
-  qrTargetMode: params.get('qr') || 'tracker', // 'tracker' | 'donate_giftaid' | 'direct_donate'
+  qrTargetMode: (params.get('mode') === 'poster' || params.get('qr') === 'tracker') ? 'tracker' : 'donate',
   lanyardSides: 'double', // 'double' | 'front' | 'rear'
   leadMarshal: '',
   towDriver: '',
@@ -721,8 +721,9 @@ async function init() {
       : (data.table && data.table.enable_gift_aid);
     STATE.isGiftAidEnabled = rawGa === true || rawGa === 1 || rawGa === '1' || rawGa === 'true';
 
-    if (!STATE.isGiftAidEnabled && STATE.qrTargetMode === 'donate_giftaid') {
-      STATE.qrTargetMode = 'direct_donate';
+    if (!STATE.routes.length && STATE.layoutMode === 'poster') {
+      STATE.layoutMode = 'buckets';
+      STATE.qrTargetMode = 'donate';
     }
 
     const rawStreets = data.streets || [];
@@ -817,20 +818,18 @@ function getDayName(dateStr) {
 
 function getTargetQrUrl() {
   const s = STATE.settings;
-  const trackerUrl = s.tracker_url || `https://${tableSlug}.roundtablesantasleigh.co.uk/tracker`;
-  const sleighDonateUrl = `https://${tableSlug}.roundtablesantasleigh.co.uk/?donate=1`;
-  const directDonateUrl = s.donate_url || s.justgiving_url || sleighDonateUrl;
-  if (STATE.qrTargetMode === 'donate_giftaid') return STATE.isGiftAidEnabled ? sleighDonateUrl : (directDonateUrl || sleighDonateUrl);
-  if (STATE.qrTargetMode === 'direct_donate') return directDonateUrl;
-  return trackerUrl;
+  const townPublicUrl = `https://${tableSlug}.roundtablesantasleigh.co.uk`;
+  const directDonateUrl = s.donate_url || s.justgiving_url || `${townPublicUrl}/?donate=1`;
+  if (STATE.qrTargetMode === 'donate') return directDonateUrl;
+  return townPublicUrl;
 }
 
 function onLayoutChange(mode) {
   STATE.layoutMode = mode;
   if (mode === 'buckets' || mode === 'lanyards') {
-    if (STATE.qrTargetMode === 'tracker') {
-      STATE.qrTargetMode = STATE.isGiftAidEnabled ? 'donate_giftaid' : 'direct_donate';
-    }
+    STATE.qrTargetMode = 'donate';
+  } else if (mode === 'poster') {
+    STATE.qrTargetMode = 'tracker';
   }
   if (mode === 'lanyards') {
     syncLanyardRouteData();
@@ -878,11 +877,12 @@ function renderControls() {
         <div class="control-group">
           <label>Front QR Destination</label>
           <select id="qrTargetSelect" onchange="STATE.qrTargetMode=this.value; generatePoster()">
-            ${STATE.isGiftAidEnabled ? `
-              <option value="donate_giftaid" ${STATE.qrTargetMode === 'donate_giftaid' ? 'selected' : ''}>💛 Online Donate + 25% Gift Aid Boost</option>
-            ` : ''}
-            <option value="direct_donate" ${STATE.qrTargetMode === 'direct_donate' ? 'selected' : ''}>💳 Direct Online Donation (Zeffy / Card / Apple Pay)</option>
-            <option value="tracker" ${STATE.qrTargetMode === 'tracker' ? 'selected' : ''}>📍 Live Sleigh Map & Tracker</option>
+            <option value="donate" ${STATE.qrTargetMode === 'donate' ? 'selected' : ''}>
+              ${STATE.isGiftAidEnabled ? '💛 Direct Online Donation (+ 25% Gift Aid Boost)' : '💳 Direct Online Donation (Card / Apple Pay / Zeffy / JustGiving)'}
+            </option>
+            <option value="tracker" ${STATE.qrTargetMode === 'tracker' ? 'selected' : ''}>
+              📍 Live Sleigh Map & Public Site (${tableSlug}.roundtablesantasleigh.co.uk)
+            </option>
           </select>
         </div>
       </div>
@@ -930,11 +930,12 @@ function renderControls() {
       <div class="control-group">
         <label>QR Code Destination</label>
         <select id="qrTargetSelect" onchange="STATE.qrTargetMode=this.value; generatePoster()">
-          <option value="tracker" ${STATE.qrTargetMode === 'tracker' ? 'selected' : ''}>📍 Live Sleigh Map & Tracker</option>
-          ${STATE.isGiftAidEnabled ? `
-            <option value="donate_giftaid" ${STATE.qrTargetMode === 'donate_giftaid' ? 'selected' : ''}>💛 Online Donate + 25% Gift Aid Boost</option>
-          ` : ''}
-          <option value="direct_donate" ${STATE.qrTargetMode === 'direct_donate' ? 'selected' : ''}>💳 Direct Online Donation (Zeffy / Card / Apple Pay)</option>
+          <option value="donate" ${STATE.qrTargetMode === 'donate' ? 'selected' : ''}>
+            ${STATE.isGiftAidEnabled ? '💛 Direct Online Donation (+ 25% Gift Aid Boost)' : '💳 Direct Online Donation (Card / Apple Pay / Zeffy / JustGiving)'}
+          </option>
+          <option value="tracker" ${STATE.qrTargetMode === 'tracker' ? 'selected' : ''}>
+            📍 Live Sleigh Map & Public Site (${tableSlug}.roundtablesantasleigh.co.uk)
+          </option>
         </select>
       </div>
     </div>

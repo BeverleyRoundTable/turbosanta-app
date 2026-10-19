@@ -3267,7 +3267,7 @@ ${tableName} Organizers`
                 </button>
 
                 <a
-                  href={`/qr_poster.html?table=${encodeURIComponent(currentTableSlug || session?.tableSlug || 'beverley')}&mode=lanyards&qr=${formData.enable_gift_aid ? 'donate_giftaid' : 'direct_donate'}&secret=${encodeURIComponent(session?.googleCredential || session?.token || getAdminAuthToken(currentTableSlug || 'beverley'))}`}
+                  href={`https://${encodeURIComponent((currentTableSlug || session?.tableSlug || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/qr_poster?mode=lanyards&secret=${encodeURIComponent(session?.googleCredential || session?.token || getAdminAuthToken(currentTableSlug || session?.tableSlug || 'beverley'))}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-secondary"
@@ -3289,7 +3289,7 @@ ${tableName} Organizers`
                 </a>
 
                 <a
-                  href={`/qr_poster.html?table=${encodeURIComponent(currentTableSlug || session?.tableSlug || 'beverley')}&mode=buckets&qr=${formData.enable_gift_aid ? 'donate_giftaid' : 'direct_donate'}&secret=${encodeURIComponent(session?.googleCredential || session?.token || getAdminAuthToken(currentTableSlug || 'beverley'))}`}
+                  href={`https://${encodeURIComponent((currentTableSlug || session?.tableSlug || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/qr_poster?mode=buckets&secret=${encodeURIComponent(session?.googleCredential || session?.token || getAdminAuthToken(currentTableSlug || session?.tableSlug || 'beverley'))}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-secondary"
@@ -3809,29 +3809,6 @@ ${tableName} Organizers`
                   <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0, maxWidth: '720px', lineHeight: 1.5 }}>
                     Using <strong>JustGiving</strong> for donations or <strong>Ticket Tailor</strong> for sleigh tickets &amp; donations? Connect either (or both!) below and TurboSanta will automatically sync your live campaign totals into the public fundraising thermometer alongside your physical cash bucket counts.
                   </p>
-                </div>
-
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  <a
-                    href={`/qr_poster.html?table=${encodeURIComponent(currentTableSlug || session?.tableSlug || 'beverley')}&mode=buckets&qr=${formData.enable_gift_aid ? 'donate_giftaid' : 'direct_donate'}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-secondary"
-                    style={{ padding: '8px 12px', fontSize: '12px', textDecoration: 'none', borderColor: 'var(--primary)', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    <Printer size={14} />
-                    <span>🪣 Print 4-Up Bucket Stickers</span>
-                  </a>
-                  <a
-                    href={`/qr_poster.html?table=${encodeURIComponent(currentTableSlug || session?.tableSlug || 'beverley')}&mode=lanyards&qr=${formData.enable_gift_aid ? 'donate_giftaid' : 'direct_donate'}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-secondary"
-                    style={{ padding: '8px 12px', fontSize: '12px', textDecoration: 'none', borderColor: '#22c55e', color: '#86efac', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    <Printer size={14} />
-                    <span>🪪 Print 6-Up Elf Lanyards</span>
-                  </a>
                 </div>
               </div>
 
