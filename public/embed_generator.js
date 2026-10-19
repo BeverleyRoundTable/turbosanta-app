@@ -93,20 +93,20 @@ function updateColorTheme(newColor) {
 window.updateColorTheme = updateColorTheme;
 
 function buildUrl(filename, extraParams = "") {
-  const path = filename ? `/${filename.replace(/^\/+/, "")}` : "";
+  const cleanPath = filename ? `/${filename.replace(/^\/+/, "").replace(/\.html$/i, "")}` : "";
   if (currentApi) {
     const query = getTargetQuery();
     const sep = filename && filename.includes("?") ? "&" : "?";
     const extra = extraParams ? `&${extraParams}` : "";
-    return `${BASE_URL}${path}${sep}${query}${extra}`;
+    return `${BASE_URL}${cleanPath}.html${sep}${query}${extra}`;
   }
   const slug = encodeURIComponent((currentTable || "beverley").toLowerCase().trim());
   const townOrigin = `https://${slug}.roundtablesantasleigh.co.uk`;
   const qp = [];
   if (currentColor) qp.push(`color=${encodeURIComponent(currentColor.replace('#', ''))}`);
   if (extraParams) qp.push(extraParams);
-  const qs = qp.length ? (path.includes("?") ? `&${qp.join("&")}` : `?${qp.join("&")}`) : "";
-  return `${townOrigin}${path}${qs}`;
+  const qs = qp.length ? (cleanPath.includes("?") ? `&${qp.join("&")}` : `?${qp.join("&")}`) : "";
+  return `${townOrigin}${cleanPath}${qs}`;
 }
 
 function updateDisplay() {
@@ -131,12 +131,12 @@ function updateDisplay() {
 
   const guideLink = document.getElementById("guideLinkHeader");
   if (guideLink) {
-    guideLink.href = `${townOrigin}/guide.html`;
+    guideLink.href = `${townOrigin}/guide`;
   }
 
   const hubLink = document.getElementById("hubLinkHeader");
   if (hubLink) {
-    hubLink.href = `${townOrigin}/hub.html`;
+    hubLink.href = `${townOrigin}/hub`;
   }
 
   const adminLink = document.getElementById("adminLinkHeader");
@@ -180,46 +180,46 @@ function setValue(id, val) {
 function generateAllEmbeds() {
   // Direct Links in alphabetical order (A to Z) for the 14 Curated Public Features
   // 01: Bingo
-  setLink("bingoLink", buildUrl("bingo.html"));
+  setLink("bingoLink", buildUrl("bingo"));
 
   // 02: Colouring
-  setLink("colouringpageLink", buildUrl("colouring_page.html"));
+  setLink("colouringpageLink", buildUrl("colouring_page"));
 
   // 03: Countdown
-  setLink("countdownLink", buildUrl("countdown.html"));
+  setLink("countdownLink", buildUrl("countdown"));
 
   // 04: Door Hanger
-  setLink("doorhangerLink", buildUrl("door_hanger.html"));
+  setLink("doorhangerLink", buildUrl("door_hanger"));
 
   // 05: Elf Cam (Lapland)
-  setLink("elfcamLink", buildUrl("elf_cam.html"));
+  setLink("elfcamLink", buildUrl("elf_cam"));
 
   // 06: Letter to Santa
-  setLink("letterLink", buildUrl("letter.html"));
+  setLink("letterLink", buildUrl("letter"));
 
   // 07: Magic Mailbox
-  setLink("magicmailboxLink", buildUrl("magic_mailbox.html"));
+  setLink("magicmailboxLink", buildUrl("magic_mailbox"));
 
   // 08: Nice List
-  setLink("niceListLink", buildUrl("nice_list.html"));
+  setLink("niceListLink", buildUrl("nice_list"));
 
   // 09: Reindeer Adoption
-  setLink("reindeerLink", buildUrl("adopt_reindeer.html"));
+  setLink("reindeerLink", buildUrl("adopt_reindeer"));
 
   // 10: Santa Chat Hotline
-  setLink("santachatLink", buildUrl("santa_chat.html"));
+  setLink("santachatLink", buildUrl("santa_chat"));
 
   // 11: Santa Frame
-  setLink("santasBeenLink", buildUrl("santa_frame.html"));
+  setLink("santasBeenLink", buildUrl("santa_frame"));
 
   // 12: Santa Studio
-  setLink("santastudioLink", buildUrl("santa_studio.html"));
+  setLink("santastudioLink", buildUrl("santa_studio"));
 
   // 13: Snowman Maker
-  setLink("snowmanLink", buildUrl("snowman.html"));
+  setLink("snowmanLink", buildUrl("snowman"));
 
   // 14: Spot Santa Sightings
-  setLink("spotsantaLink", buildUrl("spot_santa_form.html"));
+  setLink("spotsantaLink", buildUrl("spot_santa_form"));
 
   // Update card counter
   filterLinks(document.getElementById('filterInput')?.value || '');

@@ -2116,10 +2116,8 @@ ${tableName} Organizers`
             href={(() => {
               const townSlug = encodeURIComponent((session.tableSlug || session.tableId || 'beverley').toLowerCase());
               const token = session.token || session.googleCredential || getAdminAuthToken(session.tableSlug || session.tableId || 'beverley');
-              const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
-              return typeof window !== 'undefined' && window.location.hostname.includes('roundtablesantasleigh.co.uk')
-                ? `https://${townSlug}.roundtablesantasleigh.co.uk/god_mode.html?table=${townSlug}${tokenParam}`
-                : `/god_mode.html?table=${townSlug}${tokenParam}`;
+              const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';
+              return `https://${townSlug}.roundtablesantasleigh.co.uk/godmode${tokenParam}`;
             })()}
             target="_blank"
             rel="noopener noreferrer"
@@ -2132,9 +2130,7 @@ ${tableName} Organizers`
           </a>
 
           <a
-            href={typeof window !== 'undefined' && window.location.hostname.includes('roundtablesantasleigh.co.uk')
-              ? `https://${encodeURIComponent((session.tableSlug || session.tableId || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/guide.html`
-              : `/guide.html?table=${encodeURIComponent(session.tableSlug || session.tableId || 'beverley')}`}
+            href={`https://${encodeURIComponent((session.tableSlug || session.tableId || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/guide`}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-secondary"
@@ -2608,7 +2604,7 @@ ${tableName} Organizers`
 
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 <a
-                  href={`/route_planner.html?table=${encodeURIComponent(currentTableSlug)}`}
+                  href={`https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/planner`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-secondary"
@@ -2950,7 +2946,7 @@ ${tableName} Organizers`
                                   </button>
 
                                   <a
-                                    href={`/route_planner.html?table=${encodeURIComponent(currentTableSlug)}&routeId=${encodeURIComponent(r.id)}`}
+                                    href={`https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/planner?routeId=${encodeURIComponent(r.id)}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="btn-secondary"
@@ -3158,7 +3154,7 @@ ${tableName} Organizers`
                                   </button>
 
                                   <a
-                                    href={`/route_planner.html?table=${encodeURIComponent(currentTableSlug)}&routeId=${encodeURIComponent(r.id)}`}
+                                    href={`https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/planner?routeId=${encodeURIComponent(r.id)}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="btn-secondary"
@@ -4293,7 +4289,7 @@ ${tableName} Organizers`
 
                   {isMasterAdmin && (
                     <a
-                      href="/national.html"
+                      href="/national"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn-secondary"
@@ -4758,7 +4754,7 @@ ${tableName} Organizers`
               </div>
 
               <a
-                href={`https://${encodeURIComponent((session.tableSlug || session.tableId || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/embed.html`}
+                href={`https://${encodeURIComponent((session.tableSlug || session.tableId || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/embed`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-secondary"
