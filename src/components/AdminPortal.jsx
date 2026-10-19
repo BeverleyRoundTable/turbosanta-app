@@ -742,6 +742,8 @@ ${tableName} Organizers`
   // Settings State
   const [formData, setFormData] = useState({
     sleigh_display_name: standardSleighDisplayName,
+    admin_email: tableData?.table?.admin_email || session?.email || '',
+    table_number: tableData?.table?.table_number || session?.tableNumber || '',
     fundraising_goal: tableData?.table?.fundraising_goal || 8000,
     donate_url: tableData?.table?.donate_url || (currentTableSlug === 'beverley' ? 'https://www.zeffy.com/en-GB/donation-form/beverley-round-table-for-our-community' : ''),
     logo_url: (tableData?.table?.logo_url && tableData.table.logo_url !== '/icons/RTBI_Santa.png') ? tableData.table.logo_url : '',
@@ -851,6 +853,8 @@ ${tableName} Organizers`
       setFormData(prev => ({
         ...prev,
         sleigh_display_name: standardSleighDisplayName,
+        admin_email: tableData.table.admin_email || prev.admin_email || session?.email || '',
+        table_number: tableData.table.table_number || prev.table_number || session?.tableNumber || '',
         fundraising_goal: tableData.table.fundraising_goal !== undefined && tableData.table.fundraising_goal !== null ? tableData.table.fundraising_goal : prev.fundraising_goal,
         donate_url: (tableData.table.donate_url !== undefined && tableData.table.donate_url !== null)
           ? tableData.table.donate_url
@@ -6066,38 +6070,74 @@ ${tableName} Organizers`
             </p>
 
             <div style={{ display: 'grid', gap: '20px', maxWidth: '100%' }}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
-                  <label style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span>Sleigh Display Name</span>
-                    <span style={{ fontSize: '11px', background: 'rgba(251, 175, 51, 0.15)', color: '#FBAF33', border: '1px solid rgba(251, 175, 51, 0.3)', borderRadius: '4px', padding: '1px 6px', fontWeight: 600 }}>
-                      🔒 Brand Standard Locked
-                    </span>
-                  </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '16px', maxWidth: '100%' }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>Sleigh Display Name</span>
+                      <span style={{ fontSize: '11px', background: 'rgba(251, 175, 51, 0.15)', color: '#FBAF33', border: '1px solid rgba(251, 175, 51, 0.3)', borderRadius: '4px', padding: '1px 6px', fontWeight: 600 }}>
+                        🔒 Brand Standard Locked
+                      </span>
+                    </label>
+                  </div>
+                  <input
+                    type="text"
+                    value={standardSleighDisplayName}
+                    readOnly
+                    disabled
+                    style={{
+                      width: '100%',
+                      maxWidth: '100%',
+                      boxSizing: 'border-box',
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      borderRadius: '8px',
+                      padding: '10px 14px',
+                      color: 'rgba(255, 255, 255, 0.85)',
+                      fontSize: '15px',
+                      fontWeight: 600,
+                      cursor: 'not-allowed',
+                      userSelect: 'all'
+                    }}
+                  />
+                  <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                    Protected by Round Table Brand Guidelines. Automatically standardised as <strong>[Town] Round Table Santa Sleigh</strong>.
+                  </p>
                 </div>
-                <input
-                  type="text"
-                  value={standardSleighDisplayName}
-                  readOnly
-                  disabled
-                  style={{
-                    width: '100%',
-                    maxWidth: '100%',
-                    boxSizing: 'border-box',
-                    background: 'rgba(255, 255, 255, 0.04)',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
-                    borderRadius: '8px',
-                    padding: '10px 14px',
-                    color: 'rgba(255, 255, 255, 0.85)',
-                    fontSize: '15px',
-                    fontWeight: 600,
-                    cursor: 'not-allowed',
-                    userSelect: 'all'
-                  }}
-                />
-                <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                  Protected by Round Table Brand Guidelines. Automatically standardised as <strong>[Town] Round Table Santa Sleigh</strong> across your public tracker, maps, and community apps.
-                </p>
+
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>Registered Table Admin</span>
+                      <span style={{ fontSize: '11px', background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: '4px', padding: '1px 6px', fontWeight: 600 }}>
+                        ✓ Google Workspace Verified
+                      </span>
+                    </label>
+                  </div>
+                  <input
+                    type="text"
+                    value={tableData?.table?.admin_email || session?.email || `${currentTableSlug}@roundtable.org.uk`}
+                    readOnly
+                    disabled
+                    style={{
+                      width: '100%',
+                      maxWidth: '100%',
+                      boxSizing: 'border-box',
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      borderRadius: '8px',
+                      padding: '10px 14px',
+                      color: 'rgba(255, 255, 255, 0.85)',
+                      fontSize: '15px',
+                      fontWeight: 600,
+                      cursor: 'not-allowed',
+                      userSelect: 'all'
+                    }}
+                  />
+                  <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                    Bound to your official Google account in Cloudflare D1{tableData?.table?.table_number ? ` (Table #${tableData.table.table_number})` : ''}.
+                  </p>
+                </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '16px', maxWidth: '100%' }}>
@@ -8853,6 +8893,8 @@ ${tableName} Organizers`
                       const payload = {
                         sleigh_display_name: standardSleighDisplayName,
                         name: standardSleighDisplayName,
+                        admin_email: session?.email || formData.admin_email || undefined,
+                        table_number: session?.tableNumber || formData.table_number || (session?.email ? session.email.split('@')[0].match(/\d+/)?.[0] : undefined),
                         fundraising_goal: parsedGoal,
                         expenses: Number(formData.expenses !== undefined ? formData.expenses : (tableData?.table?.expenses || 0)),
                         expenses_json: formData.expenses_json || null,

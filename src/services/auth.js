@@ -212,14 +212,16 @@ export async function verifyMagicLink(email, enteredCode) {
     throw new Error("Invalid verification code. Please check your official Round Table inbox.");
   }
 
+  const isGenericNational = isNational && (!details || !details.slug || ['national', 'rtbi', 'admin', 'president', 'vicepresident', 'cs', 'it'].includes(details.slug));
+
   // Authentication succeeded! Create authenticated session
   const session = {
     email: cleanEmail,
-    tableId: isNational ? null : details.slug,
-    tableSlug: isNational ? null : details.slug,
-    town: isNational ? 'National' : details.town,
-    tableNumber: isNational ? '' : details.tableNumber,
-    tableName: isNational 
+    tableId: isGenericNational ? null : details.slug,
+    tableSlug: isGenericNational ? null : details.slug,
+    town: isGenericNational ? 'National' : details.town,
+    tableNumber: isGenericNational ? '' : details.tableNumber,
+    tableName: isGenericNational 
       ? 'National Fleet Admin' 
       : details.tableName,
     role: isNational ? "national_admin" : "table_admin",
@@ -293,15 +295,16 @@ export async function loginWithGoogleWorkspace(credential) {
 
   const details = parseTableDetailsFromEmail(cleanEmail);
   const isNational = isNationalAdmin(cleanEmail);
+  const isGenericNational = isNational && (!details || !details.slug || ['national', 'rtbi', 'admin', 'president', 'vicepresident', 'cs', 'it'].includes(details.slug));
   const session = {
     email: cleanEmail,
-    displayName: payload.name || (isNational ? 'National Fleet Admin' : details.tableName),
+    displayName: payload.name || (isGenericNational ? 'National Fleet Admin' : details.tableName),
     avatar: payload.picture || null,
-    tableId: isNational ? null : details.slug,
-    tableSlug: isNational ? null : details.slug,
-    town: isNational ? 'National' : details.town,
-    tableNumber: isNational ? '' : details.tableNumber,
-    tableName: isNational 
+    tableId: isGenericNational ? null : details.slug,
+    tableSlug: isGenericNational ? null : details.slug,
+    town: isGenericNational ? 'National' : details.town,
+    tableNumber: isGenericNational ? '' : details.tableNumber,
+    tableName: isGenericNational 
       ? 'National Fleet Admin' 
       : details.tableName,
     role: isNational ? "national_admin" : "table_admin",
@@ -326,6 +329,21 @@ export function getCurrentSession() {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed) {
+        if (parsed.email && isRoundTableEmail(parsed.email)) {
+          const details = parseTableDetailsFromEmail(parsed.email);
+          const isNational = isNationalAdmin(parsed.email);
+          const isGenericNational = isNational && (!details || !details.slug || ['national', 'rtbi', 'admin', 'president', 'vicepresident', 'cs', 'it'].includes(details.slug));
+          if (!isGenericNational && details?.slug) {
+            let changed = false;
+            if (!parsed.tableId) { parsed.tableId = details.slug; changed = true; }
+            if (!parsed.tableSlug) { parsed.tableSlug = details.slug; changed = true; }
+            if (!parsed.tableNumber && details.tableNumber) { parsed.tableNumber = details.tableNumber; changed = true; }
+            if (!parsed.tableName || parsed.tableName === 'National Fleet Admin') { parsed.tableName = details.tableName; changed = true; }
+            if (changed) {
+              try { localStorage.setItem(SESSION_KEY, JSON.stringify(parsed)); } catch(e) {}
+            }
+          }
+        }
         if (!parsed.token && !parsed.googleCredential) {
           const email = parsed.email || 'beverley247@roundtable.org.uk';
           parsed.token = `ts2_${btoa(`${email}_${Date.now()}`)}`;
