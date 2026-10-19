@@ -16,9 +16,12 @@ export default function PrintLanyardsModal({
   const [activeTab, setActiveTab] = useState('lanyards'); // 'lanyards' | 'poster'
   const [qrTarget, setQrTarget] = useState('donate'); // 'donate' | 'tracker'
 
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://roundtablesantasleigh.co.uk';
-  const trackerUrl = `${origin}/tracker.html?table=${tableSlug}`;
-  const effectiveDonateUrl = donateUrl || `${origin}/tracker.html?table=${tableSlug}`;
+  const cleanSlug = (tableSlug || 'beverley').toLowerCase().trim();
+  const townDomain = `${cleanSlug}.roundtablesantasleigh.co.uk`;
+  const townUrl = `https://${townDomain}`;
+
+  const trackerUrl = townUrl;
+  const effectiveDonateUrl = donateUrl || `${townUrl}/?donate=1`;
 
   const currentQrUrl = qrTarget === 'donate' ? effectiveDonateUrl : trackerUrl;
   const qrCodeImgSrc = `https://api.qrserver.com/v1/create-qr-code/?size=350x350&margin=4&data=${encodeURIComponent(currentQrUrl)}`;
@@ -301,7 +304,7 @@ export default function PrintLanyardsModal({
               🏪 A4 Shop Window Poster
             </button>
             <a
-              href={`/qr_poster.html?table=${encodeURIComponent(tableSlug)}&mode=lanyards&qr=${enableGiftAid ? 'donate_giftaid' : 'direct_donate'}&secret=${encodeURIComponent(adminSecret || '')}`}
+              href={`/qr_poster.html?table=${encodeURIComponent(cleanSlug)}&mode=lanyards&qr=${enableGiftAid ? 'donate_giftaid' : 'direct_donate'}&secret=${encodeURIComponent(adminSecret || '')}`}
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -341,7 +344,7 @@ export default function PrintLanyardsModal({
               }}
             >
               <option value="donate">Donation Checkout Link (Zeffy/Stripe/SumUp)</option>
-              <option value="tracker">Live Public Sleigh Tracker Page</option>
+              <option value="tracker">Live Public Sleigh Site ({townDomain})</option>
             </select>
           </div>
         </div>
@@ -463,7 +466,7 @@ export default function PrintLanyardsModal({
                       fontSize: '8.5px',
                       color: '#4b5563'
                     }}>
-                      <span>Live Tracker: <strong>roundtablesantasleigh.co.uk</strong></span>
+                      <span>Live Tracker: <strong>{townDomain}</strong></span>
                       <strong>#DoMore &middot; RTBI</strong>
                     </div>
                   </div>
@@ -544,7 +547,7 @@ export default function PrintLanyardsModal({
 
               {/* Manual URL link */}
               <div style={{ fontSize: '13px', color: '#4b5563', marginBottom: '20px' }}>
-                Direct web address: <strong style={{ color: '#111827', fontFamily: 'monospace' }}>roundtablesantasleigh.co.uk/tracker.html?table={tableSlug}</strong>
+                Direct web address: <strong style={{ color: '#111827', fontFamily: 'monospace' }}>{townDomain}</strong>
               </div>
 
               {/* Footer */}

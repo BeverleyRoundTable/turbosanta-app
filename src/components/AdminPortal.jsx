@@ -10006,11 +10006,11 @@ ${tableName} Organizers`
         isOpen={isLanyardsModalOpen}
         onClose={() => setIsLanyardsModalOpen(false)}
         tableName={tableData?.table?.name || session?.tableName || 'Round Table'}
-        tableSlug={currentTableSlug}
+        tableSlug={currentTableSlug || session?.tableSlug || 'beverley'}
         donateUrl={formData.donate_url}
         logoUrl={formData.logo_url}
         enableGiftAid={Boolean(formData.enable_gift_aid)}
-        adminSecret={session?.googleCredential || session?.token || getAdminAuthToken(currentTableSlug || 'beverley')}
+        adminSecret={session?.googleCredential || session?.token || getAdminAuthToken(currentTableSlug || session?.tableSlug || 'beverley')}
       />
 
       {/* Volunteer Crew Email Composer Modal */}
