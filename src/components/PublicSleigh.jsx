@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { Share2, MapPin, ExternalLink, Star, ChevronDown } from 'lucide-react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { Share2, MapPin, ExternalLink, Star, ChevronDown, Music, Volume2, VolumeX, Play, Pause, X } from 'lucide-react';
 import { API_BASE } from '../services/api';
 import { extractRouteSponsors } from '../utils/sponsors';
 import RouteStreetsPreview from './RouteStreetsPreview';
@@ -307,6 +307,118 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
   const logoUrl = table.logo_url || DEFAULT_LOGO;
   const bgImage = (table.background_url && table.background_url.trim()) ? table.background_url.trim() : DEFAULT_BG;
   const effectiveDonateUrl = table.donate_url || table.justgiving_url || '';
+
+  // Festive Background Music & Sleigh Jingles Player
+  const musicMode = table.music_mode || 'none';
+  const musicCustomUrl = (table.music_custom_url || '').trim();
+  const musicTitle = (table.music_title || '').trim();
+  const musicLoop = table.music_loop !== false;
+  const musicVolume = (table.music_volume !== undefined && table.music_volume !== null) ? Number(table.music_volume) : 0.5;
+  const musicAutoplay = table.music_autoplay !== false;
+
+  const isMusicEnabled = (musicMode === 'default') || (musicMode === 'custom' && Boolean(musicCustomUrl));
+  const effectiveMusicUrl = musicMode === 'default'
+    ? '/media/default_sleigh_bells.mp3'
+    : (musicMode === 'custom' ? musicCustomUrl : '');
+  const effectiveMusicTitle = musicTitle || (musicMode === 'default' ? 'Festive Santa Sleigh Bells' : 'Festive Christmas Track');
+
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isPlayerMinimized, setIsPlayerMinimized] = useState(false);
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    if (!isMusicEnabled || !effectiveMusicUrl) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
+      setIsPlaying(false);
+      return;
+    }
+
+    const audio = new Audio(effectiveMusicUrl);
+    audioRef.current = audio;
+    audio.loop = musicLoop;
+    audio.volume = isMuted ? 0 : Math.min(Math.max(musicVolume, 0), 1);
+
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+    const handleEnded = () => {
+      if (!musicLoop) setIsPlaying(false);
+    };
+
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('ended', handleEnded);
+
+    let cleanupGesture = null;
+
+    if (musicAutoplay) {
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsPlaying(true);
+          })
+          .catch(() => {
+            // Autoplay blocked by browser policy without prior user gesture.
+            // Play on visitor's first tap, touch, or click anywhere on the page.
+            const handleFirstGesture = () => {
+              if (audioRef.current) {
+                audioRef.current.play().then(() => {
+                  setIsPlaying(true);
+                }).catch(() => {});
+              }
+              cleanup();
+            };
+
+            const cleanup = () => {
+              window.removeEventListener('pointerdown', handleFirstGesture);
+              window.removeEventListener('touchstart', handleFirstGesture);
+              window.removeEventListener('keydown', handleFirstGesture);
+              window.removeEventListener('click', handleFirstGesture);
+            };
+
+            window.addEventListener('pointerdown', handleFirstGesture, { once: true, passive: true });
+            window.addEventListener('touchstart', handleFirstGesture, { once: true, passive: true });
+            window.addEventListener('keydown', handleFirstGesture, { once: true, passive: true });
+            window.addEventListener('click', handleFirstGesture, { once: true, passive: true });
+
+            cleanupGesture = cleanup;
+          });
+      }
+    }
+
+    return () => {
+      if (cleanupGesture) cleanupGesture();
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('ended', handleEnded);
+      audio.pause();
+      audio.src = '';
+    };
+  }, [isMusicEnabled, effectiveMusicUrl, musicLoop, musicAutoplay]);
+
+  // Keep volume & mute state in sync
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = isMuted ? 0 : Math.min(Math.max(musicVolume, 0), 1);
+    }
+  }, [isMuted, musicVolume]);
+
+  const togglePlayPause = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play().catch(console.error);
+    }
+  };
+
+  const toggleMute = () => {
+    setIsMuted(prev => !prev);
+  };
 
   // Open Gift Aid Pre-Checkout Modal or scroll to #donate when arriving via ?donate=1 QR code
   useEffect(() => {
@@ -2048,6 +2160,197 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
             </div>
           </div>
         </section>
+
+        {/* Floating Festive Background Music & Sleigh Bells Player */}
+        {isMusicEnabled && (
+          <aside
+            aria-label="Festive music player"
+            className="ts-festive-player"
+            style={{
+              position: 'fixed',
+              bottom: '24px',
+              left: '20px',
+              zIndex: 1000,
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            {isPlayerMinimized ? (
+              <button
+                type="button"
+                onClick={() => setIsPlayerMinimized(false)}
+                title={`Open Festive Music: ${effectiveMusicTitle}`}
+                aria-label={`Open Festive Music: ${effectiveMusicTitle}`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: 'rgba(18, 18, 16, 0.94)',
+                  color: '#fff',
+                  border: '1.5px solid var(--primary)',
+                  borderRadius: '50px',
+                  padding: '9px 15px',
+                  cursor: 'pointer',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.65)',
+                  backdropFilter: 'blur(10px)',
+                  fontSize: '12px',
+                  fontWeight: 700
+                }}
+              >
+                <Music size={15} color="var(--primary)" />
+                <span>{isPlaying ? '🎵 Playing Bells' : '🔔 Festive Music'}</span>
+              </button>
+            ) : (
+              <div
+                style={{
+                  background: 'rgba(18, 18, 16, 0.95)',
+                  border: '1.5px solid rgba(251, 175, 51, 0.4)',
+                  borderRadius: '16px',
+                  padding: '9px 13px',
+                  boxShadow: '0 10px 28px rgba(0,0,0,0.7)',
+                  backdropFilter: 'blur(12px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  maxWidth: 'calc(100vw - 40px)',
+                  color: '#fff'
+                }}
+              >
+                {/* Dancing Equalizer & Track Title */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-end',
+                      gap: '2px',
+                      height: '16px',
+                      flexShrink: 0
+                    }}
+                  >
+                    <span
+                      className={isPlaying ? 'ts-eq-bar-1' : ''}
+                      style={{
+                        width: '3px',
+                        background: 'var(--primary)',
+                        borderRadius: '2px',
+                        height: isPlaying ? '14px' : '4px',
+                        display: 'inline-block'
+                      }}
+                    />
+                    <span
+                      className={isPlaying ? 'ts-eq-bar-2' : ''}
+                      style={{
+                        width: '3px',
+                        background: 'var(--primary)',
+                        borderRadius: '2px',
+                        height: isPlaying ? '9px' : '4px',
+                        display: 'inline-block'
+                      }}
+                    />
+                    <span
+                      className={isPlaying ? 'ts-eq-bar-3' : ''}
+                      style={{
+                        width: '3px',
+                        background: 'var(--primary)',
+                        borderRadius: '2px',
+                        height: isPlaying ? '16px' : '4px',
+                        display: 'inline-block'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--primary)', fontWeight: 800, lineHeight: 1 }}>
+                      Sleigh Jingles 🔔
+                    </span>
+                    <span
+                      title={effectiveMusicTitle}
+                      style={{
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: '#fff',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        maxWidth: '160px',
+                        marginTop: '2px'
+                      }}
+                    >
+                      {effectiveMusicTitle}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Controls */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                  <button
+                    type="button"
+                    onClick={togglePlayPause}
+                    aria-label={isPlaying ? 'Pause music' : 'Play music'}
+                    title={isPlaying ? 'Pause' : 'Play'}
+                    style={{
+                      width: '30px',
+                      height: '30px',
+                      borderRadius: '50%',
+                      background: 'var(--primary)',
+                      color: 'var(--on-primary)',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.4)'
+                    }}
+                  >
+                    {isPlaying ? <Pause size={14} style={{ fill: 'currentColor' }} /> : <Play size={14} style={{ fill: 'currentColor', marginLeft: '2px' }} />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={toggleMute}
+                    aria-label={isMuted ? 'Unmute music' : 'Mute music'}
+                    title={isMuted ? 'Unmute' : 'Mute'}
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      background: 'rgba(255, 255, 255, 0.08)',
+                      color: isMuted ? '#ef4444' : '#fff',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    {isMuted ? <VolumeX size={13} /> : <Volume2 size={13} />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsPlayerMinimized(true)}
+                    aria-label="Minimize music player"
+                    title="Minimize player"
+                    style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      background: 'transparent',
+                      color: 'var(--text-muted)',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </aside>
+        )}
 
         {/* Floating Action Button (FAB) for Map */}
         {showFab && (

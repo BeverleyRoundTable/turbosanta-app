@@ -422,3 +422,21 @@ h1, h2, h3, h4, h5, h6, .brand-font, nav a, .nav-link, .header-caps {
   text-transform: uppercase;
 }
 
+/* Festive Background Audio Equalizer & Floating Player */
+@keyframes ts-eq {
+  0% { height: 3px; }
+  100% { height: 16px; }
+}
+
+.ts-eq-bar-1 { animation: ts-eq 0.75s ease-in-out infinite alternate; }
+.ts-eq-bar-2 { animation: ts-eq 1.1s ease-in-out 0.2s infinite alternate; }
+.ts-eq-bar-3 { animation: ts-eq 0.9s ease-in-out 0.4s infinite alternate; }
+
+@media (max-width: 600px) {
+  .ts-festive-player {
+    bottom: 16px !important;
+    left: 12px !important;
+  }
+}
+
+

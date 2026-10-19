@@ -243,6 +243,11 @@ export async function uploadAssetToR2(file, tableSlug = "beverley") {
       else if (name.endsWith(".jpg") || name.endsWith(".jpeg")) contentType = "image/jpeg";
       else if (name.endsWith(".webp")) contentType = "image/webp";
       else if (name.endsWith(".gpx") || name.endsWith(".xml")) contentType = "application/gpx+xml";
+      else if (name.endsWith(".mp3")) contentType = "audio/mpeg";
+      else if (name.endsWith(".wav")) contentType = "audio/wav";
+      else if (name.endsWith(".ogg")) contentType = "audio/ogg";
+      else if (name.endsWith(".m4a")) contentType = "audio/mp4";
+      else if (name.endsWith(".aac")) contentType = "audio/aac";
       else contentType = "image/png";
     }
 

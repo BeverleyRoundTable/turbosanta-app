@@ -7,12 +7,12 @@ import {
   Camera, Video, Image as ImageIcon, FolderDown, Eye, EyeOff, Sparkles, Filter,
   CreditCard, Key, Zap, RefreshCw, Send, Link2,
   BarChart3, TrendingUp, Award, Printer, PieChart, Receipt,
-  Mail, HardDrive, AlertTriangle, Database, FileText, Coins, Share2, QrCode, ArrowUpDown, Volume2,
+  Mail, HardDrive, AlertTriangle, Database, FileText, Coins, Share2, QrCode, ArrowUpDown, Volume2, VolumeX, Music, Play, Pause, UploadCloud,
   Phone, MessageCircle, UserCheck, Search, Clock, Bot, CheckCircle, Navigation
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { logoutAdmin, isNationalAdmin, getAdminAuthToken } from '../services/auth';
-import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, saveRoute, deleteRoute, connectTableGmail, disconnectTableGmail, testTableGmailAlert, fetchSubscribers, clearSubscribers, triggerAutomatedCrewBriefings, fetchAutomatedCrewBriefingStatus } from '../services/api';
+import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, saveRoute, deleteRoute, connectTableGmail, disconnectTableGmail, testTableGmailAlert, fetchSubscribers, clearSubscribers, triggerAutomatedCrewBriefings, fetchAutomatedCrewBriefingStatus, uploadAssetToR2 } from '../services/api';
 import { extractRouteSponsors } from '../utils/sponsors';
 import DropzoneUpload from './DropzoneUpload';
 import RouteEditorModal from './RouteEditorModal';
@@ -755,6 +755,12 @@ ${tableName} Organizers`
     accent_color: tableData?.table?.accent_color || '#FBAF33',
     enable_gift_aid: tableData?.table?.enable_gift_aid || false,
     enable_grant_nominations: tableData?.table?.enable_grant_nominations !== undefined ? Boolean(tableData.table.enable_grant_nominations) : true,
+    music_mode: tableData?.table?.music_mode || 'none',
+    music_title: tableData?.table?.music_title || '',
+    music_custom_url: tableData?.table?.music_custom_url || '',
+    music_loop: tableData?.table?.music_loop !== undefined ? Boolean(tableData.table.music_loop) : true,
+    music_volume: tableData?.table?.music_volume !== undefined ? Number(tableData.table.music_volume) : 0.5,
+    music_autoplay: tableData?.table?.music_autoplay !== undefined ? Boolean(tableData.table.music_autoplay) : true,
     charity_name: tableData?.table?.charity_name || '',
     charity_number: tableData?.table?.charity_number || '',
     headline_sponsor_name: tableData?.table?.headline_sponsor_name || '',
@@ -862,6 +868,12 @@ ${tableName} Organizers`
         accent_color: tableData.table.accent_color || prev.accent_color || '#FBAF33',
         enable_gift_aid: tableData.table.enable_gift_aid !== undefined ? Boolean(tableData.table.enable_gift_aid) : prev.enable_gift_aid,
         enable_grant_nominations: tableData.table.enable_grant_nominations !== undefined ? Boolean(tableData.table.enable_grant_nominations) : (prev.enable_grant_nominations !== undefined ? prev.enable_grant_nominations : true),
+        music_mode: tableData.table.music_mode !== undefined ? tableData.table.music_mode : (prev.music_mode || 'none'),
+        music_title: tableData.table.music_title !== undefined ? tableData.table.music_title : (prev.music_title || ''),
+        music_custom_url: tableData.table.music_custom_url !== undefined ? tableData.table.music_custom_url : (prev.music_custom_url || ''),
+        music_loop: tableData.table.music_loop !== undefined ? Boolean(tableData.table.music_loop) : (prev.music_loop !== undefined ? prev.music_loop : true),
+        music_volume: tableData.table.music_volume !== undefined ? Number(tableData.table.music_volume) : (prev.music_volume !== undefined ? prev.music_volume : 0.5),
+        music_autoplay: tableData.table.music_autoplay !== undefined ? Boolean(tableData.table.music_autoplay) : (prev.music_autoplay !== undefined ? prev.music_autoplay : true),
         charity_name: tableData.table.charity_name || prev.charity_name,
         charity_number: tableData.table.charity_number !== undefined ? (tableData.table.charity_number || '') : prev.charity_number,
         headline_sponsor_name: tableData.table.headline_sponsor_name || prev.headline_sponsor_name || '',
@@ -1384,6 +1396,95 @@ ${tableName} Organizers`
   const [newCauseSummary, setNewCauseSummary] = useState('');
   const [sendingDepartureRouteId, setSendingDepartureRouteId] = useState(null);
   const [postponingRouteId, setPostponingRouteId] = useState(null);
+
+  // Festive Background Music State & Handlers
+  const [isUploadingMusic, setIsUploadingMusic] = useState(false);
+  const [isAdminAudioPlaying, setIsAdminAudioPlaying] = useState(false);
+  const adminAudioRef = React.useRef(null);
+
+  const stopAdminAudioPreview = () => {
+    if (adminAudioRef.current) {
+      adminAudioRef.current.pause();
+      adminAudioRef.current = null;
+    }
+    setIsAdminAudioPlaying(false);
+  };
+
+  const toggleAdminAudioPreview = () => {
+    if (isAdminAudioPlaying) {
+      stopAdminAudioPreview();
+      return;
+    }
+    const trackUrl = formData.music_mode === 'custom' && formData.music_custom_url
+      ? formData.music_custom_url
+      : '/media/default_sleigh_bells.mp3';
+
+    try {
+      if (adminAudioRef.current) {
+        adminAudioRef.current.pause();
+      }
+      const audio = new Audio(trackUrl);
+      audio.volume = formData.music_volume !== undefined ? formData.music_volume : 0.5;
+      audio.loop = formData.music_loop !== false;
+      audio.onended = () => setIsAdminAudioPlaying(false);
+      audio.onerror = () => {
+        alert('Could not preview track audio. Please verify audio URL.');
+        setIsAdminAudioPlaying(false);
+      };
+      adminAudioRef.current = audio;
+      audio.play().then(() => {
+        setIsAdminAudioPlaying(true);
+      }).catch(err => {
+        alert('Playback notice: ' + err.message);
+        setIsAdminAudioPlaying(false);
+      });
+    } catch (e) {
+      alert('Error previewing audio: ' + e.message);
+    }
+  };
+
+  const handleMusicFileUpload = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const slug = currentTableSlug || session?.tableSlug || session?.tableId || 'beverley';
+    setIsUploadingMusic(true);
+    setSaveStatus('Uploading audio track to Cloudflare R2...');
+    try {
+      const url = await uploadAssetToR2(file, slug);
+      if (url) {
+        const cleanTitle = (file.name || '')
+          .replace(/\.[^/.]+$/, '')
+          .replace(/[_-]+/g, ' ')
+          .trim();
+        setFormData(prev => ({
+          ...prev,
+          music_mode: 'custom',
+          music_custom_url: url,
+          music_title: prev.music_title || cleanTitle
+        }));
+        if (onUpdateTableData) {
+          onUpdateTableData(prev => ({
+            ...prev,
+            table: {
+              ...prev.table,
+              music_mode: 'custom',
+              music_custom_url: url,
+              music_title: cleanTitle
+            }
+          }));
+        }
+        setSaveStatus('✅ Audio uploaded to Cloudflare R2! Click Save Settings below to confirm.');
+      } else {
+        alert('Upload failed: Cloudflare R2 did not return a valid URL.');
+      }
+    } catch (err) {
+      alert('Upload error: ' + err.message);
+    } finally {
+      setIsUploadingMusic(false);
+      e.target.value = '';
+      setTimeout(() => setSaveStatus(''), 4000);
+    }
+  };
 
   const fetchGrantApplications = React.useCallback(async () => {
     const slug = currentTableSlug || session?.tableSlug || tableData?.table?.slug || 'beverley';
@@ -7221,6 +7322,272 @@ ${tableName} Organizers`
                 </p>
               </div>
 
+              {/* FESTIVE BACKGROUND MUSIC & SLEIGH JINGLES */}
+              <div style={{
+                background: '#0d0d0b',
+                border: formData.music_mode && formData.music_mode !== 'none' ? '1px solid var(--primary)' : '1px solid var(--border)',
+                borderRadius: '12px',
+                padding: 'clamp(14px, 3vw, 22px)',
+                maxWidth: '100%',
+                boxSizing: 'border-box'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Music size={18} color="var(--primary)" />
+                    <strong style={{ fontSize: '16px', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Festive Background Music &amp; Sleigh Jingles
+                    </strong>
+                  </div>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    padding: '3px 10px',
+                    borderRadius: '20px',
+                    textTransform: 'uppercase',
+                    background: formData.music_mode === 'custom' ? 'rgba(34, 197, 94, 0.15)' : (formData.music_mode === 'default' ? 'rgba(251, 175, 51, 0.15)' : 'rgba(255,255,255,0.06)'),
+                    color: formData.music_mode === 'custom' ? '#86efac' : (formData.music_mode === 'default' ? 'var(--primary)' : 'var(--text-muted)'),
+                    border: formData.music_mode === 'custom' ? '1px solid #22c55e' : (formData.music_mode === 'default' ? '1px solid var(--primary)' : '1px solid var(--border)')
+                  }}>
+                    {formData.music_mode === 'custom' ? 'Custom Song (R2 Cloudflare)' : (formData.music_mode === 'default' ? 'Default Holiday Sleigh Bells' : 'Disabled (No Music)')}
+                  </span>
+                </div>
+
+                <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '0 0 16px 0', lineHeight: 1.5 }}>
+                  Add ambient holiday cheer to your public Santa Sleigh tracker! When enabled, a floating festive player appears on the public tracker map with Play/Pause and Mute controls.
+                </p>
+
+                {/* Mode Selector Segmented Buttons */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', marginBottom: '18px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, music_mode: 'none' }));
+                      stopAdminAudioPreview();
+                    }}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: '8px',
+                      border: formData.music_mode === 'none' ? '2px solid var(--primary)' : '1px solid var(--border)',
+                      background: formData.music_mode === 'none' ? 'rgba(251, 175, 51, 0.12)' : '#161614',
+                      color: '#fff',
+                      textAlign: 'left',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: '13px', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>🚫 No Song</span>
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Quiet page without music</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        music_mode: 'default',
+                        music_title: prev.music_title || 'Festive Santa Sleigh Bells'
+                      }));
+                      stopAdminAudioPreview();
+                    }}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: '8px',
+                      border: formData.music_mode === 'default' ? '2px solid var(--primary)' : '1px solid var(--border)',
+                      background: formData.music_mode === 'default' ? 'rgba(251, 175, 51, 0.12)' : '#161614',
+                      color: '#fff',
+                      textAlign: 'left',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: '13px', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>🎅 Default Song</span>
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Festive holiday sleigh bells</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, music_mode: 'custom' }));
+                      stopAdminAudioPreview();
+                    }}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: '8px',
+                      border: formData.music_mode === 'custom' ? '2px solid var(--primary)' : '1px solid var(--border)',
+                      background: formData.music_mode === 'custom' ? 'rgba(251, 175, 51, 0.12)' : '#161614',
+                      color: '#fff',
+                      textAlign: 'left',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: '13px', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>🎵 Custom MP3</span>
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Upload brass band / choir MP3</div>
+                  </button>
+                </div>
+
+                {formData.music_mode !== 'none' && (
+                  <div style={{ background: '#161614', border: '1px solid var(--border)', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    {/* If Custom MP3, show Uploader */}
+                    {formData.music_mode === 'custom' && (
+                      <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>
+                          Upload Custom Audio File (MP3, WAV, M4A, OGG):
+                        </label>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                          <label style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '9px 16px',
+                            background: 'rgba(251, 175, 51, 0.15)',
+                            border: '1px dashed var(--primary)',
+                            borderRadius: '8px',
+                            color: 'var(--primary)',
+                            fontSize: '13px',
+                            fontWeight: 700,
+                            cursor: isUploadingMusic ? 'wait' : 'pointer'
+                          }}>
+                            <UploadCloud size={16} />
+                            <span>{isUploadingMusic ? 'Uploading to Cloudflare R2...' : (formData.music_custom_url ? 'Replace Custom Audio File' : 'Select or Drop Audio MP3')}</span>
+                            <input
+                              type="file"
+                              accept="audio/*,.mp3,.wav,.ogg,.m4a"
+                              disabled={isUploadingMusic}
+                              style={{ display: 'none' }}
+                              onChange={handleMusicFileUpload}
+                            />
+                          </label>
+                          {formData.music_custom_url && (
+                            <span style={{ fontSize: '11px', color: '#86efac', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <Check size={14} /> Ready on Cloudflare CDN Edge
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>
+                          Stored in your high-speed Cloudflare R2 bucket with byte-range streaming for instantaneous, buffer-free playback on mobile.
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Track Title / Credit */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
+                        Player Display Title / Artist Credit:
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.music_title || ''}
+                        placeholder={formData.music_mode === 'default' ? 'Festive Santa Sleigh Bells' : 'e.g. Sleigh Ride (Beverley Town Brass Band)'}
+                        onChange={(e) => setFormData(prev => ({ ...prev, music_title: e.target.value }))}
+                        style={{
+                          width: '100%',
+                          background: '#0d0d0b',
+                          border: '1px solid var(--border)',
+                          borderRadius: '6px',
+                          padding: '8px 12px',
+                          color: '#fff',
+                          fontSize: '13px',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        Shown to families on the public floating player widget.
+                      </div>
+                    </div>
+
+                    {/* Audio Test Preview Player */}
+                    <div style={{
+                      background: '#0d0d0b',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '8px',
+                      padding: '12px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '10px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <button
+                          type="button"
+                          onClick={toggleAdminAudioPreview}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '6px 14px',
+                            borderRadius: '6px',
+                            background: isAdminAudioPlaying ? '#ef4444' : '#22c55e',
+                            color: '#000',
+                            fontWeight: 800,
+                            fontSize: '12px',
+                            border: 'none',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {isAdminAudioPlaying ? <Pause size={14} /> : <Play size={14} />}
+                          <span>{isAdminAudioPlaying ? 'Pause Test Audio' : 'Preview Track Sound'}</span>
+                        </button>
+                        <span style={{ fontSize: '12px', color: '#fff', fontWeight: 600 }}>
+                          {formData.music_title || (formData.music_mode === 'default' ? 'Festive Santa Sleigh Bells' : 'Custom Track')}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        🎧 Test listen before public display
+                      </span>
+                    </div>
+
+                    {/* Playback Settings (Loop, Autoplay, Volume) */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#fff' }}>
+                        <input
+                          type="checkbox"
+                          checked={formData.music_loop !== false}
+                          onChange={(e) => setFormData(prev => ({ ...prev, music_loop: e.target.checked }))}
+                          style={{ width: '16px', height: '16px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                        />
+                        <span>🔁 Loop continuously</span>
+                      </label>
+
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#fff' }}>
+                        <input
+                          type="checkbox"
+                          checked={formData.music_autoplay !== false}
+                          onChange={(e) => setFormData(prev => ({ ...prev, music_autoplay: e.target.checked }))}
+                          style={{ width: '16px', height: '16px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                        />
+                        <span>⚡ Auto-start on first visitor tap/click</span>
+                      </label>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <Volume2 size={16} color="var(--primary)" />
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Volume:</span>
+                        <input
+                          type="range"
+                          min="0.1"
+                          max="1.0"
+                          step="0.05"
+                          value={formData.music_volume !== undefined ? formData.music_volume : 0.5}
+                          onChange={(e) => {
+                            const v = parseFloat(e.target.value);
+                            setFormData(prev => ({ ...prev, music_volume: v }));
+                            if (adminAudioRef.current) adminAudioRef.current.volume = v;
+                          }}
+                          style={{ flex: 1, accentColor: 'var(--primary)', cursor: 'pointer' }}
+                        />
+                        <span style={{ fontSize: '12px', color: '#fff', fontFamily: 'monospace', width: '35px' }}>
+                          {Math.round((formData.music_volume !== undefined ? formData.music_volume : 0.5) * 100)}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* LIVE PROXIMITY ALERTS (NOTIFY ME EMAIL ENGINE) */}
               <div style={{
                 background: '#0d0d0b',
@@ -8470,6 +8837,12 @@ ${tableName} Organizers`
                         accent_color: formData.accent_color || (formData.primary_color === '#D31C1C' ? '#FBAF33' : '#D31C1C'),
                         enable_gift_aid: formData.enable_gift_aid,
                         enable_grant_nominations: formData.enable_grant_nominations !== false ? 1 : 0,
+                        music_mode: formData.music_mode || 'none',
+                        music_title: formData.music_title || '',
+                        music_custom_url: formData.music_custom_url || null,
+                        music_loop: formData.music_loop !== false ? 1 : 0,
+                        music_volume: Number(formData.music_volume !== undefined ? formData.music_volume : 0.5),
+                        music_autoplay: formData.music_autoplay !== false ? 1 : 0,
                         charity_name: formData.charity_name,
                         charity_number: formData.charity_number,
                         partners_json: partnersJson,
