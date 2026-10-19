@@ -297,6 +297,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
 
   const table = tableData?.table || {};
   const approvedGrants = Array.isArray(tableData?.approved_grants) ? tableData.approved_grants : [];
+  const enableGrantNominations = (table.enable_grant_nominations !== undefined && table.enable_grant_nominations !== null) ? Boolean(table.enable_grant_nominations) : true;
   const primaryColor = table.primary_color || '#FBAF33';
   const primaryRgb = parseColor(primaryColor);
   const onPrimaryColor = readableTextOn(primaryRgb);
@@ -330,6 +331,10 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
 
   const handleSubmitGrantNomination = async (e) => {
     e.preventDefault();
+    if (!enableGrantNominations) {
+      setGrantStatusMsg('❌ Local cause nominations and grant applications are currently closed.');
+      return;
+    }
     if (!grantForm.org_name.trim() || !grantForm.contact_email.trim() || !grantForm.cause_summary.trim()) {
       setGrantStatusMsg('❌ Please fill in the organisation name, contact email, and how the funds will help.');
       return;
@@ -1279,98 +1284,102 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
           </div>
 
           {/* Where Your Donations Go & Local Cause Grant Nominations */}
-          <div style={{
-            background: '#000000',
-            border: '1px solid var(--border)',
-            borderRadius: '16px',
-            padding: '28px 24px',
-            margin: '24px auto 0',
-            maxWidth: '520px',
-            textAlign: 'center',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.4)',
-            boxSizing: 'border-box',
-            width: '100%'
-          }}>
+          {(approvedGrants.length > 0 || enableGrantNominations) && (
             <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: 'rgba(251, 175, 51, 0.12)',
-              border: '1px solid rgba(251, 175, 51, 0.35)',
-              color: 'var(--primary)',
-              fontSize: '11px',
-              fontWeight: 800,
-              textTransform: 'uppercase',
-              letterSpacing: '1px',
-              padding: '4px 12px',
-              borderRadius: '99px',
-              marginBottom: '10px'
+              background: '#000000',
+              border: '1px solid var(--border)',
+              borderRadius: '16px',
+              padding: '28px 24px',
+              margin: '24px auto 0',
+              maxWidth: '520px',
+              textAlign: 'center',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.4)',
+              boxSizing: 'border-box',
+              width: '100%'
             }}>
-              💛 100% Back Into Our Community
-            </div>
-            <h3 className="brand-font" style={{ color: '#FFFFFF', fontSize: '21px', marginBottom: '8px' }}>
-              Where Your <span style={{ color: 'var(--primary)' }}>Donations Go</span>
-            </h3>
-            <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: '0 0 16px 0', lineHeight: 1.5 }}>
-              Every pound collected by {operatorTableName} funds local charities, schools, foodbanks, youth groups, and families in need right here in our town.
-            </p>
-
-            {approvedGrants.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '18px', textAlign: 'left' }}>
-                {approvedGrants.map((g, idx) => (
-                  <div
-                    key={g.id || idx}
-                    style={{
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      borderRadius: '10px',
-                      padding: '12px 14px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: '10px',
-                      flexWrap: 'wrap'
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: '180px' }}>
-                      <strong style={{ color: '#FFFFFF', fontSize: '14px', display: 'block' }}>{g.org_name}</strong>
-                      {g.cause_summary && (
-                        <span style={{ color: 'var(--text-muted)', fontSize: '12px', lineHeight: 1.4 }}>{g.cause_summary}</span>
-                      )}
-                    </div>
-                    {Number(g.amount_awarded) > 0 && (
-                      <span className="brand-font" style={{ color: '#86efac', fontSize: '15px', fontWeight: 800 }}>
-                        £{Number(g.amount_awarded).toLocaleString()}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={() => { setGrantStatusMsg(''); setShowGrantModal(true); }}
-              className="brand-font"
-              style={{
+              <div style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                padding: '11px 22px',
-                background: 'rgba(251, 175, 51, 0.14)',
+                gap: '6px',
+                background: 'rgba(251, 175, 51, 0.12)',
+                border: '1px solid rgba(251, 175, 51, 0.35)',
                 color: 'var(--primary)',
-                border: '1px solid var(--primary)',
-                fontSize: '13px',
-                borderRadius: '8px',
+                fontSize: '11px',
+                fontWeight: 800,
                 textTransform: 'uppercase',
-                fontWeight: 700,
-                letterSpacing: '0.6px',
-                cursor: 'pointer'
-              }}
-            >
-              🤝 Nominate a Local Cause / Apply for a Grant &rarr;
-            </button>
-          </div>
+                letterSpacing: '1px',
+                padding: '4px 12px',
+                borderRadius: '99px',
+                marginBottom: '10px'
+              }}>
+                💛 100% Back Into Our Community
+              </div>
+              <h3 className="brand-font" style={{ color: '#FFFFFF', fontSize: '21px', marginBottom: '8px' }}>
+                Where Your <span style={{ color: 'var(--primary)' }}>Donations Go</span>
+              </h3>
+              <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: '0 0 16px 0', lineHeight: 1.5 }}>
+                Every pound collected by {operatorTableName} funds local charities, schools, foodbanks, youth groups, and families in need right here in our town.
+              </p>
+
+              {approvedGrants.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: enableGrantNominations ? '18px' : 0, textAlign: 'left' }}>
+                  {approvedGrants.map((g, idx) => (
+                    <div
+                      key={g.id || idx}
+                      style={{
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '10px',
+                        padding: '12px 14px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '10px',
+                        flexWrap: 'wrap'
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: '180px' }}>
+                        <strong style={{ color: '#FFFFFF', fontSize: '14px', display: 'block' }}>{g.org_name}</strong>
+                        {g.cause_summary && (
+                          <span style={{ color: 'var(--text-muted)', fontSize: '12px', lineHeight: 1.4 }}>{g.cause_summary}</span>
+                        )}
+                      </div>
+                      {Number(g.amount_awarded) > 0 && (
+                        <span className="brand-font" style={{ color: '#86efac', fontSize: '15px', fontWeight: 800 }}>
+                          £{Number(g.amount_awarded).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {enableGrantNominations && (
+                <button
+                  type="button"
+                  onClick={() => { setGrantStatusMsg(''); setShowGrantModal(true); }}
+                  className="brand-font"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '11px 22px',
+                    background: 'rgba(251, 175, 51, 0.14)',
+                    color: 'var(--primary)',
+                    border: '1px solid var(--primary)',
+                    fontSize: '13px',
+                    borderRadius: '8px',
+                    textTransform: 'uppercase',
+                    fontWeight: 700,
+                    letterSpacing: '0.6px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🤝 Nominate a Local Cause / Apply for a Grant &rarr;
+                </button>
+              )}
+            </div>
+          )}
         </section>
 
         {/* 3. Routes & Schedule Section (Embedding address.html & Tonight's Spotlight) */}
@@ -2149,7 +2158,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
         )}
 
         {/* Local Cause Grant Application / Nomination Modal */}
-        {showGrantModal && (
+        {showGrantModal && enableGrantNominations && (
           <div
             onClick={() => setShowGrantModal(false)}
             style={{

@@ -754,6 +754,7 @@ ${tableName} Organizers`
     primary_color: tableData?.table?.primary_color || '#D31C1C',
     accent_color: tableData?.table?.accent_color || '#FBAF33',
     enable_gift_aid: tableData?.table?.enable_gift_aid || false,
+    enable_grant_nominations: tableData?.table?.enable_grant_nominations !== undefined ? Boolean(tableData.table.enable_grant_nominations) : true,
     charity_name: tableData?.table?.charity_name || '',
     charity_number: tableData?.table?.charity_number || '',
     headline_sponsor_name: tableData?.table?.headline_sponsor_name || '',
@@ -860,6 +861,7 @@ ${tableName} Organizers`
         primary_color: tableData.table.primary_color || prev.primary_color || '#D31C1C',
         accent_color: tableData.table.accent_color || prev.accent_color || '#FBAF33',
         enable_gift_aid: tableData.table.enable_gift_aid !== undefined ? Boolean(tableData.table.enable_gift_aid) : prev.enable_gift_aid,
+        enable_grant_nominations: tableData.table.enable_grant_nominations !== undefined ? Boolean(tableData.table.enable_grant_nominations) : (prev.enable_grant_nominations !== undefined ? prev.enable_grant_nominations : true),
         charity_name: tableData.table.charity_name || prev.charity_name,
         charity_number: tableData.table.charity_number !== undefined ? (tableData.table.charity_number || '') : prev.charity_number,
         headline_sponsor_name: tableData.table.headline_sponsor_name || prev.headline_sponsor_name || '',
@@ -1460,15 +1462,21 @@ ${tableName} Organizers`
     const slug = currentTableSlug || session?.tableSlug || tableData?.table?.slug || 'beverley';
     const secret = session?.googleCredential || session?.token || getAdminAuthToken(slug);
     try {
-      const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/grants?table=${encodeURIComponent(slug)}`, {
+      const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/grants?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(secret)}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${secret}`
+        },
         body: JSON.stringify({
+          secret,
           org_name: newCauseName.trim(),
           contact_name: session?.tableName || 'Round Table Committee',
           contact_email: session?.email || 'committee@roundtable.org.uk',
           amount_requested: parseFloat(newCauseAmount) || 0,
-          cause_summary: newCauseSummary.trim() || 'Supported by Round Table Santa Sleigh'
+          cause_summary: newCauseSummary.trim() || 'Supported by Round Table Santa Sleigh',
+          approved_public: 1,
+          status: 'approved'
         })
       });
       const created = await res.json();
@@ -3805,10 +3813,74 @@ ${tableName} Organizers`
                     Feature local charities, schools, and community groups supported by your Santa Sleigh on your public website, and review incoming grant applications submitted by residents.
                   </p>
                 </div>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--primary)' }}>
-                  {grantApplications.filter(g => g.status === 'approved').length} Featured on Public Site • {grantApplications.filter(g => g.status === 'pending').length} Pending Review
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const nextVal = formData.enable_grant_nominations === false ? true : false;
+                      setFormData(prev => ({ ...prev, enable_grant_nominations: nextVal }));
+                      if (onUpdateTableData) {
+                        onUpdateTableData(prev => ({
+                          ...prev,
+                          table: { ...prev.table, enable_grant_nominations: nextVal }
+                        }));
+                      }
+                      const tableSlug = currentTableSlug || session?.tableSlug || session?.tableId || 'beverley';
+                      setSaveStatus('Updating cause nomination toggle...');
+                      const res = await saveTableSettings(tableSlug, { enable_grant_nominations: nextVal });
+                      if (res && res.ok) {
+                        setSaveStatus(`Public Cause Nominations ${nextVal ? 'Allowed' : 'Disabled'} in database!`);
+                      } else {
+                        setSaveStatus(`Public Cause Nominations ${nextVal ? 'Allowed' : 'Disabled'} locally.`);
+                      }
+                      setTimeout(() => setSaveStatus(''), 3000);
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '7px 14px',
+                      borderRadius: '8px',
+                      fontWeight: 700,
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      border: formData.enable_grant_nominations !== false ? '1px solid #22c55e' : '1px solid rgba(239, 68, 68, 0.4)',
+                      background: formData.enable_grant_nominations !== false ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                      color: formData.enable_grant_nominations !== false ? '#86efac' : '#fca5a5'
+                    }}
+                    title={formData.enable_grant_nominations !== false ? "Click to disable public nomination form" : "Click to enable public nomination form"}
+                  >
+                    <span style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: formData.enable_grant_nominations !== false ? '#22c55e' : '#ef4444',
+                      display: 'inline-block'
+                    }}></span>
+                    {formData.enable_grant_nominations !== false ? 'Public Requests: ALLOWED' : 'Public Requests: DISABLED'}
+                  </button>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--primary)' }}>
+                    {grantApplications.filter(g => g.status === 'approved').length} Featured on Public Site • {grantApplications.filter(g => g.status === 'pending').length} Pending Review
+                  </span>
+                </div>
               </div>
+
+              {formData.enable_grant_nominations === false && (
+                <div style={{
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  marginBottom: '16px',
+                  fontSize: '12px',
+                  color: '#fca5a5',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <span>ℹ️ Public cause nominations &amp; grant requests are currently <strong>disabled</strong>. The "Nominate a Local Cause / Apply for a Grant" button is hidden from visitors on your public sleigh site. You can still manually add and feature approved beneficiaries below.</span>
+                </div>
+              )}
 
               {/* Quick-Add Featured Local Cause */}
               <div style={{
@@ -7082,6 +7154,73 @@ ${tableName} Organizers`
                 </div>
               </div>
 
+              {/* LOCAL CAUSE NOMINATIONS & COMMUNITY GRANTS */}
+              <div style={{
+                background: '#0d0d0b',
+                border: '1px solid var(--border)',
+                borderRadius: '12px',
+                padding: 'clamp(14px, 3vw, 22px)',
+                maxWidth: '100%',
+                boxSizing: 'border-box'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Heart size={18} color="var(--primary)" />
+                    <strong style={{ fontSize: '16px', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Local Cause Nominations &amp; Community Grants
+                    </strong>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const nextVal = formData.enable_grant_nominations === false ? true : false;
+                      setFormData(prev => ({ ...prev, enable_grant_nominations: nextVal }));
+                      if (onUpdateTableData) {
+                        onUpdateTableData(prev => ({
+                          ...prev,
+                          table: { ...prev.table, enable_grant_nominations: nextVal }
+                        }));
+                      }
+                      const tableSlug = currentTableSlug || session?.tableSlug || session?.tableId || 'beverley';
+                      setSaveStatus('Updating cause nomination toggle...');
+                      const res = await saveTableSettings(tableSlug, { enable_grant_nominations: nextVal });
+                      if (res && res.ok) {
+                        setSaveStatus(`Public Cause Nominations ${nextVal ? 'Allowed' : 'Disabled'} in database!`);
+                      } else {
+                        setSaveStatus(`Public Cause Nominations ${nextVal ? 'Allowed' : 'Disabled'} locally.`);
+                      }
+                      setTimeout(() => setSaveStatus(''), 3000);
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '7px 14px',
+                      borderRadius: '8px',
+                      fontWeight: 700,
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      border: formData.enable_grant_nominations !== false ? '1px solid #22c55e' : '1px solid rgba(239, 68, 68, 0.4)',
+                      background: formData.enable_grant_nominations !== false ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                      color: formData.enable_grant_nominations !== false ? '#86efac' : '#fca5a5'
+                    }}
+                    title={formData.enable_grant_nominations !== false ? "Click to disable public nomination form" : "Click to enable public nomination form"}
+                  >
+                    <span style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: formData.enable_grant_nominations !== false ? '#22c55e' : '#ef4444',
+                      display: 'inline-block'
+                    }}></span>
+                    {formData.enable_grant_nominations !== false ? 'Public Requests: ALLOWED' : 'Public Requests: DISABLED'}
+                  </button>
+                </div>
+                <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0, lineHeight: 1.5 }}>
+                  Allow residents and community groups to submit grant applications or nominate local causes via the "Nominate a Local Cause" popup button on your public website. If turned off, the public nomination button is hidden. You can review submissions and manage featured causes in the <strong>Donations</strong> tab.
+                </p>
+              </div>
+
               {/* LIVE PROXIMITY ALERTS (NOTIFY ME EMAIL ENGINE) */}
               <div style={{
                 background: '#0d0d0b',
@@ -8330,6 +8469,7 @@ ${tableName} Organizers`
                         primary_color: formData.primary_color,
                         accent_color: formData.accent_color || (formData.primary_color === '#D31C1C' ? '#FBAF33' : '#D31C1C'),
                         enable_gift_aid: formData.enable_gift_aid,
+                        enable_grant_nominations: formData.enable_grant_nominations !== false ? 1 : 0,
                         charity_name: formData.charity_name,
                         charity_number: formData.charity_number,
                         partners_json: partnersJson,
