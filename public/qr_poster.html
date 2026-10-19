@@ -479,6 +479,8 @@
   .sheet-grid-6 {
     width: 210mm;
     height: 297mm;
+    min-height: 297mm;
+    max-height: 297mm;
     background: #ffffff;
     color: #0d0d0b;
     margin: 0 auto;
@@ -488,11 +490,12 @@
     box-shadow: 0 16px 48px rgba(0,0,0,0.5);
     border-radius: 8px;
     overflow: hidden;
+    box-sizing: border-box;
   }
 
   .lanyard-card {
     border: 1.5px dashed #bbb;
-    padding: 14px 12px 14px;
+    padding: 12px 10px 12px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -500,6 +503,8 @@
     text-align: center;
     background: #fff;
     position: relative;
+    box-sizing: border-box;
+    overflow: hidden;
   }
 
   .lanyard-slot {
@@ -557,19 +562,105 @@
     color: var(--gold);
   }
 
+  .sheet-grid-6-rear {
+    width: 210mm;
+    height: 297mm;
+    min-height: 297mm;
+    max-height: 297mm;
+    background: #ffffff;
+    color: #0d0d0b;
+    margin: 32px auto 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    border-radius: 8px;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  .lanyard-card-rear {
+    border: 1.5px dashed #bbb;
+    padding: 10px 10px 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: #fff;
+    position: relative;
+    text-align: left;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .sheet-divider-label {
+    text-align: center;
+    margin: 32px auto 16px;
+    padding: 10px 20px;
+    background: var(--surface-2);
+    border: 1px dashed var(--gold);
+    border-radius: 8px;
+    max-width: 800px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+
   /* ── PRINT ── */
   @media print {
-    body { background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .controls-wrapper { display: none !important; }
-    .poster-preview-wrap { padding: 0; max-width: none; }
-    .poster, .sheet-grid-4, .sheet-grid-6 {
-      width: 210mm;
-      height: 297mm;
-      min-height: 297mm;
-      box-shadow: none;
-      border-radius: 0;
+    html, body {
+      background: white !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
-    @page { margin: 0; size: A4 portrait; }
+    .controls-wrapper, .sheet-divider-label { display: none !important; }
+    .poster-preview-wrap {
+      padding: 0 !important;
+      max-width: none !important;
+      margin: 0 !important;
+      width: 100% !important;
+    }
+    .poster, .sheet-grid-4, .sheet-grid-6, .sheet-grid-6-rear {
+      width: 210mm !important;
+      height: 296mm !important;
+      min-height: 296mm !important;
+      max-height: 296mm !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      margin: 0 auto !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    .lanyards-container {
+      margin: 0 !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+      border: none !important;
+    }
+    .sheet-grid-6.has-rear {
+      page-break-after: always !important;
+      break-after: page !important;
+    }
+    .sheet-grid-6.has-next-route, .sheet-grid-6-rear.has-next-route {
+      page-break-after: always !important;
+      break-after: page !important;
+    }
+    .sheet-grid-6-rear:not(.has-next-route) {
+      page-break-after: avoid !important;
+      break-after: avoid !important;
+    }
+    @page {
+      margin: 0;
+      size: A4 portrait;
+    }
   }
 </style>
 </head>
@@ -609,7 +700,13 @@ const STATE = {
   routes: [],
   selectedRoute: 0,
   layoutMode: params.get('mode') || 'poster', // 'poster' | 'buckets' | 'lanyards'
-  qrTargetMode: params.get('qr') || 'tracker' // 'tracker' | 'donate_giftaid' | 'direct_donate'
+  qrTargetMode: params.get('qr') || 'tracker', // 'tracker' | 'donate_giftaid' | 'direct_donate'
+  lanyardSides: 'double', // 'double' | 'front' | 'rear'
+  leadMarshal: '',
+  towDriver: '',
+  meetingPoint: '',
+  musterTime: '',
+  allVolunteers: []
 };
 
 init();
@@ -619,11 +716,15 @@ async function init() {
     const res = await fetch(API);
     const data = await res.json();
     STATE.settings = data.settings || data.table || {};
-    STATE.isGiftAidEnabled = Boolean(
-      STATE.settings.enable_gift_aid !== undefined
-        ? STATE.settings.enable_gift_aid
-        : (data.table && data.table.enable_gift_aid)
-    );
+    const rawGa = STATE.settings.enable_gift_aid !== undefined
+      ? STATE.settings.enable_gift_aid
+      : (data.table && data.table.enable_gift_aid);
+    STATE.isGiftAidEnabled = rawGa === true || rawGa === 1 || rawGa === '1' || rawGa === 'true';
+
+    if (!STATE.isGiftAidEnabled && STATE.qrTargetMode === 'donate_giftaid') {
+      STATE.qrTargetMode = 'direct_donate';
+    }
+
     const rawStreets = data.streets || [];
     STATE.routes = (data.routes || []).map(r => {
       const routeStreets = r.streets || rawStreets.filter(s => s.route_id === r.id).map(s => s.street_name).join(', ') || '';
@@ -633,19 +734,69 @@ async function init() {
         date: r.date || '',
         streets: routeStreets,
         "Start Time": r["Start Time"] || r.start_time || '',
-        "End Time": r["End Time"] || r.end_time || ''
+        "End Time": r["End Time"] || r.end_time || '',
+        notes: r.notes || ''
       };
     });
 
-    if (!STATE.routes.length && STATE.layoutMode === 'poster') {
-      STATE.layoutMode = 'buckets';
-      STATE.qrTargetMode = 'donate_giftaid';
+    const secret = params.get('secret') || '';
+    if (secret) {
+      try {
+        const vRes = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/volunteers?table=${encodeURIComponent(tableSlug)}&secret=${encodeURIComponent(secret)}`);
+        if (vRes.ok) {
+          STATE.allVolunteers = await vRes.json();
+        }
+      } catch(e) {}
     }
 
+    if (!STATE.routes.length && STATE.layoutMode === 'poster') {
+      STATE.layoutMode = 'buckets';
+      STATE.qrTargetMode = STATE.isGiftAidEnabled ? 'donate_giftaid' : 'direct_donate';
+    }
+
+    syncLanyardRouteData();
     renderControls();
     generatePoster();
   } catch(e) {
     document.getElementById('controlsInner').innerHTML = `<div style="text-align:center; padding:40px; color:var(--red); font-family:'DM Mono',monospace; font-size:12px;">Failed to load: ${e.message}</div>`;
+  }
+}
+
+function syncLanyardRouteData(routeIndex) {
+  const idx = routeIndex !== undefined ? Number(routeIndex) : Number(STATE.selectedRoute || 0);
+  const r = STATE.routes[idx] || {};
+  let meetingPoint = r.muster_point || r.meeting_point || '';
+  let musterTime = r.muster_time || '';
+  if (r.notes) {
+    const match = r.notes.match(/<!--\s*ROUTE_META:\s*({.*?})\s*-->/s);
+    if (match && match[1]) {
+      try {
+        const p = JSON.parse(match[1]);
+        if (!meetingPoint && p.meeting_point) meetingPoint = p.meeting_point;
+        if (!musterTime && p.muster_time) musterTime = p.muster_time;
+      } catch(e) {}
+    }
+  }
+  if (!musterTime && (r["Start Time"] || r.start_time)) {
+    const st = r["Start Time"] || r.start_time;
+    const parts = st.split(':');
+    if (parts.length >= 2) {
+      let h = parseInt(parts[0], 10);
+      let m = parseInt(parts[1], 10) - 15;
+      if (m < 0) { m += 60; h -= 1; }
+      musterTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+  }
+  STATE.meetingPoint = meetingPoint || 'Pavilion / Muster Car Park';
+  STATE.musterTime = musterTime || '17:45';
+
+  if (Array.isArray(STATE.allVolunteers) && STATE.allVolunteers.length > 0) {
+    const rName = (r.routeName || r.name || '').toLowerCase();
+    const routeVols = STATE.allVolunteers.filter(v => (v.route_name || '').toLowerCase() === rName);
+    const marshal = routeVols.find(v => /marshal|lead/i.test(v.role || ''));
+    const driver = routeVols.find(v => /driver|tow/i.test(v.role || ''));
+    STATE.leadMarshal = marshal ? `${marshal.name}${marshal.phone ? ` (${marshal.phone})` : ''}` : '';
+    STATE.towDriver = driver ? `${driver.name}${driver.phone ? ` (${driver.phone})` : ''}` : '';
   }
 }
 
@@ -677,7 +828,12 @@ function getTargetQrUrl() {
 function onLayoutChange(mode) {
   STATE.layoutMode = mode;
   if (mode === 'buckets' || mode === 'lanyards') {
-    if (STATE.qrTargetMode === 'tracker') STATE.qrTargetMode = 'donate_giftaid';
+    if (STATE.qrTargetMode === 'tracker') {
+      STATE.qrTargetMode = STATE.isGiftAidEnabled ? 'donate_giftaid' : 'direct_donate';
+    }
+  }
+  if (mode === 'lanyards') {
+    syncLanyardRouteData();
   }
   renderControls();
   generatePoster();
@@ -689,6 +845,77 @@ function renderControls() {
     : `<option value="0">General Sleigh Campaign</option>`;
 
   const isPoster = STATE.layoutMode === 'poster';
+  const isLanyards = STATE.layoutMode === 'lanyards';
+
+  if (isLanyards) {
+    document.getElementById('controlsInner').innerHTML = `
+      <div class="control-row">
+        <div class="control-group">
+          <label>Print Format</label>
+          <select id="layoutSelect" onchange="onLayoutChange(this.value)">
+            <option value="lanyards" selected>🪪 6-Up Walking Elf Lanyard Badges (A4 Sheet)</option>
+            <option value="poster">📌 1-Up A4 Street Route Poster</option>
+            <option value="buckets">🪣 4-Up Collector Bucket Stickers (A4 Sheet)</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label>Select Route For Lanyard</label>
+          <select id="routeSelect" onchange="STATE.selectedRoute=this.value; syncLanyardRouteData(this.value); renderControls(); generatePoster()">
+            ${options}
+          </select>
+        </div>
+      </div>
+
+      <div class="control-row">
+        <div class="control-group">
+          <label>Lanyard Print Sides</label>
+          <select id="lanyardSidesSelect" onchange="STATE.lanyardSides=this.value; generatePoster()">
+            <option value="double" ${STATE.lanyardSides === 'double' ? 'selected' : ''}>📄 Double-Sided (Page 1: Front QR + Page 2: Route Contacts & Safety)</option>
+            <option value="front" ${STATE.lanyardSides === 'front' ? 'selected' : ''}>Front QR Code Only (Single-Sided)</option>
+            <option value="rear" ${STATE.lanyardSides === 'rear' ? 'selected' : ''}>Rear Route Brief & Contacts Only (Single-Sided)</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label>Front QR Destination</label>
+          <select id="qrTargetSelect" onchange="STATE.qrTargetMode=this.value; generatePoster()">
+            ${STATE.isGiftAidEnabled ? `
+              <option value="donate_giftaid" ${STATE.qrTargetMode === 'donate_giftaid' ? 'selected' : ''}>💛 Online Donate + 25% Gift Aid Boost</option>
+            ` : ''}
+            <option value="direct_donate" ${STATE.qrTargetMode === 'direct_donate' ? 'selected' : ''}>💳 Direct Online Donation (Zeffy / Card / Apple Pay)</option>
+            <option value="tracker" ${STATE.qrTargetMode === 'tracker' ? 'selected' : ''}>📍 Live Sleigh Map & Tracker</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="control-row">
+        <div class="control-group">
+          <label>Lead Marshal &amp; Mobile (Rear Side)</label>
+          <input type="text" id="lanyardMarshal" value="${STATE.leadMarshal || ''}" placeholder="e.g. Ben (07123 456789)" oninput="STATE.leadMarshal=this.value; generatePoster()">
+        </div>
+        <div class="control-group">
+          <label>Tow / Sleigh Driver &amp; Mobile (Rear Side)</label>
+          <input type="text" id="lanyardDriver" value="${STATE.towDriver || ''}" placeholder="e.g. Dave (07987 654321)" oninput="STATE.towDriver=this.value; generatePoster()">
+        </div>
+      </div>
+
+      <div class="control-row">
+        <div class="control-group">
+          <label>Muster Time &amp; Staging Location (Rear Side)</label>
+          <input type="text" id="lanyardMeetingPoint" value="${STATE.meetingPoint || ''}" placeholder="e.g. Pavilion Car Park (Muster: 17:45)" oninput="STATE.meetingPoint=this.value; generatePoster()">
+        </div>
+        <div class="control-group">
+          <label>Front Custom Call-to-Action</label>
+          <input type="text" id="customHeadline" placeholder="SCAN TO DONATE" oninput="generatePoster()">
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-gold" onclick="window.print()">🖨️ Print Lanyard Sheet (${STATE.lanyardSides === 'double' ? '2 Pages Double-Sided' : '1 Page'})</button>
+        ${STATE.routes.length > 1 ? `<button class="btn btn-ghost" onclick="printAllLanyards()">🖨️ Print All ${STATE.routes.length} Route Lanyards</button>` : ''}
+      </div>
+    `;
+    return;
+  }
 
   document.getElementById('controlsInner').innerHTML = `
     <div class="control-row">
@@ -704,8 +931,10 @@ function renderControls() {
         <label>QR Code Destination</label>
         <select id="qrTargetSelect" onchange="STATE.qrTargetMode=this.value; generatePoster()">
           <option value="tracker" ${STATE.qrTargetMode === 'tracker' ? 'selected' : ''}>📍 Live Sleigh Map & Tracker</option>
-          <option value="donate_giftaid" ${STATE.qrTargetMode === 'donate_giftaid' ? 'selected' : ''}>${STATE.isGiftAidEnabled ? '💛 Online Donate + 25% Gift Aid Boost' : '💛 Online Donate Page'}</option>
-          <option value="direct_donate" ${STATE.qrTargetMode === 'direct_donate' ? 'selected' : ''}>💳 Direct Checkout (JustGiving / Ticket Tailor)</option>
+          ${STATE.isGiftAidEnabled ? `
+            <option value="donate_giftaid" ${STATE.qrTargetMode === 'donate_giftaid' ? 'selected' : ''}>💛 Online Donate + 25% Gift Aid Boost</option>
+          ` : ''}
+          <option value="direct_donate" ${STATE.qrTargetMode === 'direct_donate' ? 'selected' : ''}>💳 Direct Online Donation (Zeffy / Card / Apple Pay)</option>
         </select>
       </div>
     </div>
@@ -790,13 +1019,27 @@ function generatePoster(idx) {
 
   if (STATE.layoutMode === 'lanyards') {
     const headline = document.getElementById('customHeadline')?.value || 'SCAN TO DONATE';
-    posterEl.className = 'sheet-grid-6';
     const gaBadge = STATE.isGiftAidEnabled
       ? '<div style="font-size:11px;font-weight:800;color:#b45309;">+25% GIFT AID BOOST AVAILABLE</div>'
       : '<div style="font-size:11px;font-weight:800;color:#15803d;">SUPPORTING LOCAL COMMUNITY CAUSES</div>';
-    let cardsHtml = '';
+
+    const route = STATE.routes[idx !== undefined ? idx : STATE.selectedRoute] || {
+      routeName: sleighName,
+      date: '',
+      streets: ''
+    };
+    const routeName = route.routeName || route.name || 'Tonight\'s Sleigh Route';
+    const routeDate = formatDateLong(route.date) || 'Tonight';
+    const musterTime = STATE.musterTime || '17:45';
+    const startTime = route["Start Time"] || route.start_time || '18:00';
+    const meetingPoint = STATE.meetingPoint || 'Depot / Pavilion Car Park';
+    const marshalText = STATE.leadMarshal || '____________________';
+    const driverText = STATE.towDriver || '____________________';
+    const trackerHost = `${tableSlug}.roundtablesantasleigh.co.uk`;
+
+    let frontCardsHtml = '';
     for (let i = 0; i < 6; i++) {
-      cardsHtml += `
+      frontCardsHtml += `
         <div class="lanyard-card">
           <div class="lanyard-slot" title="Lanyard punch slot"></div>
           <div class="lanyard-badge-role">🎅 OFFICIAL SLEIGH ELF</div>
@@ -808,16 +1051,104 @@ function generatePoster(idx) {
         </div>
       `;
     }
-    posterEl.innerHTML = cardsHtml;
+
+    let rearCardsHtml = '';
     for (let i = 0; i < 6; i++) {
-      new QRCode(document.getElementById(`qrLanyard_${i}`), {
-        text: qrUrl,
-        width: 132,
-        height: 132,
-        colorDark: "#0d0d0b",
-        colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.H
-      });
+      rearCardsHtml += `
+        <div class="lanyard-card-rear">
+          <div class="lanyard-slot" title="Lanyard punch slot" style="margin: 0 auto 3px auto;"></div>
+          
+          <div class="lanyard-badge-role" style="background:#0d0d0b; color:var(--gold); display:flex; justify-content:space-between; align-items:center; padding:3px 8px; font-size:8.5px; margin-bottom:3px;">
+            <span>🦺 CREW RUN BRIEF</span>
+            <span style="color:#fff; font-size:7.5px; opacity:0.85;">VOLUNTEER PASS</span>
+          </div>
+
+          <div style="border-bottom:1.5px solid #0d0d0b; padding-bottom:3px; margin-bottom:3px;">
+            <div style="font-family:'Eurostile', sans-serif; font-size:13px; font-weight:700; color:#0d0d0b; text-transform:uppercase; line-height:1.15; word-break:break-word;">
+              ${routeName}
+            </div>
+            <div style="font-family:'DM Mono', monospace; font-size:8px; color:#4b5563; margin-top:2px; display:flex; justify-content:space-between; flex-wrap:wrap;">
+              <span>📅 ${routeDate}</span>
+              <span>⏰ Muster: <strong>${musterTime}</strong> · Sleigh: <strong>${startTime}</strong></span>
+            </div>
+            <div style="font-size:8px; color:#1f2937; margin-top:1px; font-weight:600;">📍 Staging: ${meetingPoint}</div>
+          </div>
+
+          <div style="background:#fef3c7; border:1px solid #f59e0b; border-radius:6px; padding:5px 7px; margin-bottom:3px;">
+            <div style="font-family:'DM Mono', monospace; font-size:7.5px; font-weight:800; text-transform:uppercase; color:#92400e; margin-bottom:2px; display:flex; align-items:center; gap:4px;">
+              📞 KEY CONTACTS (ROUND TABLE)
+            </div>
+            <div style="font-size:8px; color:#1f2937; line-height:1.35;">
+              <div>🦺 <strong>Lead Marshal:</strong> ${marshalText}</div>
+              <div>🚜 <strong>Sleigh Driver:</strong> ${driverText}</div>
+              <div style="color:#b45309; font-size:7px; margin-top:1px;">🚨 Emergency: 999 · Police Non-Emergency: 101</div>
+            </div>
+          </div>
+
+          <div style="background:#f3f4f6; border:1px solid #e5e7eb; border-radius:6px; padding:5px 7px; font-size:7.5px; color:#374151; line-height:1.35; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
+            <div style="font-family:'DM Mono', monospace; font-size:7.5px; font-weight:800; text-transform:uppercase; color:#111827;">
+              🛡️ VOLUNTEER SAFETY &amp; CONDUCT
+            </div>
+            <div>• Stay on pavements &amp; never cross ahead of sleigh.</div>
+            <div>• Maintain 2m distance from vehicle wheels &amp; tow hitch.</div>
+            <div>• High-vis vest &amp; torch on for full duration.</div>
+            <div>• Hold QR lanyard flat at chest height for doorsteps.</div>
+            <div>• Never open collection tins; return all to Lead Marshal.</div>
+            <div style="color:#166534; font-weight:700; margin-top:1px;">• Live GPS Tracker: ${trackerHost}</div>
+          </div>
+
+          <div class="lanyard-footer" style="padding:3px 6px; font-size:7.5px; margin-top:3px; text-align:center;">
+            ${sleighName}<br><span style="color:var(--gold);">ROUND TABLE BRITAIN &amp; IRELAND &middot; #DOMORE</span>
+          </div>
+        </div>
+      `;
+    }
+
+    const sides = STATE.lanyardSides || 'double';
+    let outputHtml = '';
+    if (sides === 'double') {
+      outputHtml = `
+        <div class="sheet-grid-6 has-rear" id="lanyardFrontSheet">
+          ${frontCardsHtml}
+        </div>
+        <div class="sheet-divider-label">
+          📄 PAGE 2: VOLUNTEER ROUTE BRIEF &amp; KEY CONTACTS (REAR SIDE)
+        </div>
+        <div class="sheet-grid-6-rear" id="lanyardRearSheet">
+          ${rearCardsHtml}
+        </div>
+      `;
+    } else if (sides === 'front') {
+      outputHtml = `
+        <div class="sheet-grid-6" id="lanyardFrontSheet">
+          ${frontCardsHtml}
+        </div>
+      `;
+    } else {
+      outputHtml = `
+        <div class="sheet-grid-6-rear" id="lanyardRearSheet" style="margin:0 auto;">
+          ${rearCardsHtml}
+        </div>
+      `;
+    }
+
+    posterEl.className = 'lanyards-container';
+    posterEl.innerHTML = outputHtml;
+
+    if (sides === 'double' || sides === 'front') {
+      for (let i = 0; i < 6; i++) {
+        const qrEl = document.getElementById(`qrLanyard_${i}`);
+        if (qrEl) {
+          new QRCode(qrEl, {
+            text: qrUrl,
+            width: 132,
+            height: 132,
+            colorDark: "#0d0d0b",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+          });
+        }
+      }
     }
     return;
   }
@@ -882,6 +1213,141 @@ function generatePoster(idx) {
     colorLight: "#ffffff",
     correctLevel: QRCode.CorrectLevel.H
   });
+}
+
+async function printAllLanyards() {
+  const poster = document.getElementById('poster');
+  poster.className = 'lanyards-container';
+  poster.innerHTML = '';
+  
+  const qrUrl = getTargetQrUrl();
+  const s = STATE.settings;
+  const logoUrl = s.logo_overlay_url || s.logo_url || '';
+  const sleighName = s.sleigh_display_name || s.name || 'Santa Sleigh';
+  const headline = document.getElementById('customHeadline')?.value || 'SCAN TO DONATE';
+  const gaBadge = STATE.isGiftAidEnabled
+    ? '<div style="font-size:11px;font-weight:800;color:#b45309;">+25% GIFT AID BOOST AVAILABLE</div>'
+    : '<div style="font-size:11px;font-weight:800;color:#15803d;">SUPPORTING LOCAL COMMUNITY CAUSES</div>';
+  const trackerHost = `${tableSlug}.roundtablesantasleigh.co.uk`;
+
+  const sides = STATE.lanyardSides || 'double';
+  const qrTasks = [];
+
+  for (let rIdx = 0; rIdx < STATE.routes.length; rIdx++) {
+    syncLanyardRouteData(rIdx);
+    const route = STATE.routes[rIdx];
+    const routeName = route.routeName || route.name || 'Tonight\'s Sleigh Route';
+    const routeDate = formatDateLong(route.date) || 'Tonight';
+    const musterTime = STATE.musterTime || '17:45';
+    const startTime = route["Start Time"] || route.start_time || '18:00';
+    const meetingPoint = STATE.meetingPoint || 'Depot / Pavilion Car Park';
+    const marshalText = STATE.leadMarshal || '____________________';
+    const driverText = STATE.towDriver || '____________________';
+    const isLastRoute = rIdx === STATE.routes.length - 1;
+
+    if (sides === 'double' || sides === 'front') {
+      const frontSheet = document.createElement('div');
+      frontSheet.className = 'sheet-grid-6' + (sides === 'double' ? ' has-rear' : (!isLastRoute ? ' has-next-route' : ''));
+      let frontCards = '';
+      for (let i = 0; i < 6; i++) {
+        const qrId = `qr_print_r${rIdx}_${i}`;
+        frontCards += `
+          <div class="lanyard-card">
+            <div class="lanyard-slot" title="Lanyard punch slot"></div>
+            <div class="lanyard-badge-role">🎅 OFFICIAL SLEIGH ELF</div>
+            ${logoUrl ? `<img src="${logoUrl}" style="width:44px;height:44px;object-fit:contain;">` : ''}
+            <div class="lanyard-title">${headline}</div>
+            <div class="lanyard-qr-box" id="${qrId}"></div>
+            ${gaBadge}
+            <div class="lanyard-footer">${sleighName}<br><span>100% TO LOCAL CHARITIES</span></div>
+          </div>
+        `;
+        qrTasks.push(qrId);
+      }
+      frontSheet.innerHTML = frontCards;
+      poster.appendChild(frontSheet);
+    }
+
+    if (sides === 'double' || sides === 'rear') {
+      const rearSheet = document.createElement('div');
+      rearSheet.className = 'sheet-grid-6-rear' + (!isLastRoute ? ' has-next-route' : '');
+      let rearCards = '';
+      for (let i = 0; i < 6; i++) {
+        rearCards += `
+          <div class="lanyard-card-rear">
+            <div class="lanyard-slot" title="Lanyard punch slot" style="margin: 0 auto 3px auto;"></div>
+            
+            <div class="lanyard-badge-role" style="background:#0d0d0b; color:var(--gold); display:flex; justify-content:space-between; align-items:center; padding:3px 8px; font-size:8.5px; margin-bottom:3px;">
+              <span>🦺 CREW RUN BRIEF</span>
+              <span style="color:#fff; font-size:7.5px; opacity:0.85;">VOLUNTEER PASS</span>
+            </div>
+
+            <div style="border-bottom:1.5px solid #0d0d0b; padding-bottom:3px; margin-bottom:3px;">
+              <div style="font-family:'Eurostile', sans-serif; font-size:13px; font-weight:700; color:#0d0d0b; text-transform:uppercase; line-height:1.15; word-break:break-word;">
+                ${routeName}
+              </div>
+              <div style="font-family:'DM Mono', monospace; font-size:8px; color:#4b5563; margin-top:2px; display:flex; justify-content:space-between; flex-wrap:wrap;">
+                <span>📅 ${routeDate}</span>
+                <span>⏰ Muster: <strong>${musterTime}</strong> · Sleigh: <strong>${startTime}</strong></span>
+              </div>
+              <div style="font-size:8px; color:#1f2937; margin-top:1px; font-weight:600;">📍 Staging: ${meetingPoint}</div>
+            </div>
+
+            <div style="background:#fef3c7; border:1px solid #f59e0b; border-radius:6px; padding:5px 7px; margin-bottom:3px;">
+              <div style="font-family:'DM Mono', monospace; font-size:7.5px; font-weight:800; text-transform:uppercase; color:#92400e; margin-bottom:2px; display:flex; align-items:center; gap:4px;">
+                📞 KEY CONTACTS (ROUND TABLE)
+              </div>
+              <div style="font-size:8px; color:#1f2937; line-height:1.35;">
+                <div>🦺 <strong>Lead Marshal:</strong> ${marshalText}</div>
+                <div>🚜 <strong>Sleigh Driver:</strong> ${driverText}</div>
+                <div style="color:#b45309; font-size:7px; margin-top:1px;">🚨 Emergency: 999 · Police Non-Emergency: 101</div>
+              </div>
+            </div>
+
+            <div style="background:#f3f4f6; border:1px solid #e5e7eb; border-radius:6px; padding:5px 7px; font-size:7.5px; color:#374151; line-height:1.35; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
+              <div style="font-family:'DM Mono', monospace; font-size:7.5px; font-weight:800; text-transform:uppercase; color:#111827;">
+                🛡️ VOLUNTEER SAFETY &amp; CONDUCT
+              </div>
+              <div>• Stay on pavements &amp; never cross ahead of sleigh.</div>
+              <div>• Maintain 2m distance from vehicle wheels &amp; tow hitch.</div>
+              <div>• High-vis vest &amp; torch on for full duration.</div>
+              <div>• Hold QR lanyard flat at chest height for doorsteps.</div>
+              <div>• Never open collection tins; return all to Lead Marshal.</div>
+              <div style="color:#166534; font-weight:700; margin-top:1px;">• Live GPS Tracker: ${trackerHost}</div>
+            </div>
+
+            <div class="lanyard-footer" style="padding:3px 6px; font-size:7.5px; margin-top:3px; text-align:center;">
+              ${sleighName}<br><span style="color:var(--gold);">ROUND TABLE BRITAIN &amp; IRELAND &middot; #DOMORE</span>
+            </div>
+          </div>
+        `;
+      }
+      rearSheet.innerHTML = rearCards;
+      poster.appendChild(rearSheet);
+    }
+  }
+
+  // Render QR codes into their elements
+  for (const qId of qrTasks) {
+    const el = document.getElementById(qId);
+    if (el) {
+      new QRCode(el, {
+        text: qrUrl,
+        width: 132,
+        height: 132,
+        colorDark: "#0d0d0b",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    }
+  }
+
+  await new Promise(r => setTimeout(r, 600));
+  window.print();
+  setTimeout(() => {
+    syncLanyardRouteData();
+    generatePoster();
+  }, 1000);
 }
 
 async function printAll() {

@@ -8,7 +8,8 @@ export default function PrintLanyardsModal({
   tableSlug = 'beverley',
   donateUrl = '',
   logoUrl = '',
-  enableGiftAid = true
+  enableGiftAid = true,
+  adminSecret = ''
 }) {
   if (!isOpen) return null;
 
@@ -53,6 +54,7 @@ export default function PrintLanyardsModal({
               background: #ffffff !important;
               color: #111827 !important;
               font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+              width: 100%;
             }
             .no-print {
               display: none !important;
@@ -91,34 +93,56 @@ export default function PrintLanyardsModal({
       }
     }
 
+    // Use full-size off-screen A4 iframe for reliable Chromium print rasterization
     let printIframe = document.getElementById('print-lanyards-iframe');
-    if (!printIframe) {
-      printIframe = document.createElement('iframe');
-      printIframe.id = 'print-lanyards-iframe';
-      printIframe.style.position = 'fixed';
-      printIframe.style.right = '0';
-      printIframe.style.bottom = '0';
-      printIframe.style.width = '0';
-      printIframe.style.height = '0';
-      printIframe.style.border = '0';
-      printIframe.style.visibility = 'hidden';
-      document.body.appendChild(printIframe);
+    if (printIframe) {
+      try { printIframe.remove(); } catch(e) {}
     }
+
+    printIframe = document.createElement('iframe');
+    printIframe.id = 'print-lanyards-iframe';
+    printIframe.style.position = 'fixed';
+    printIframe.style.left = '-9999px';
+    printIframe.style.top = '-9999px';
+    printIframe.style.width = '210mm';
+    printIframe.style.height = '297mm';
+    printIframe.style.border = 'none';
+    document.body.appendChild(printIframe);
 
     const doc = printIframe.contentDocument || printIframe.contentWindow.document;
     doc.open();
     doc.write(htmlContent);
     doc.close();
 
-    setTimeout(() => {
+    const doPrint = () => {
       try {
         printIframe.contentWindow.focus();
         printIframe.contentWindow.print();
       } catch (err) {
-        console.warn('Iframe print fallback to window.print():', err);
+        console.warn('Iframe print error, falling back to window.print():', err);
         window.print();
       }
-    }, 250);
+    };
+
+    // Ensure all remote QR images are decoded/loaded before invoking print
+    setTimeout(() => {
+      const images = Array.from(doc.images || []);
+      const pending = images.filter(img => !img.complete);
+      if (pending.length > 0) {
+        let done = 0;
+        const onDone = () => {
+          done++;
+          if (done >= pending.length) doPrint();
+        };
+        pending.forEach(img => {
+          img.onload = onDone;
+          img.onerror = onDone;
+        });
+        setTimeout(doPrint, 1500);
+      } else {
+        doPrint();
+      }
+    }, 150);
   };
 
   React.useEffect(() => {
@@ -243,7 +267,7 @@ export default function PrintLanyardsModal({
           padding: '10px 16px'
         }}>
           {/* Format Tabs */}
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <button
               type="button"
               onClick={() => setActiveTab('lanyards')}
@@ -276,6 +300,29 @@ export default function PrintLanyardsModal({
             >
               🏪 A4 Shop Window Poster
             </button>
+            <a
+              href={`/qr_poster.html?table=${encodeURIComponent(tableSlug)}&mode=lanyards&qr=${enableGiftAid ? 'donate_giftaid' : 'direct_donate'}&secret=${encodeURIComponent(adminSecret || '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                background: 'rgba(34, 197, 94, 0.15)',
+                color: '#86efac',
+                border: '1px solid #22c55e',
+                borderRadius: '6px',
+                padding: '6px 14px',
+                fontWeight: 700,
+                fontSize: '12px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                textDecoration: 'none'
+              }}
+              title="Open Print Studio for 6-Up Double-Sided Elf Lanyards with Route Contacts & Guidelines (Tool 4)"
+            >
+              <ExternalLink size={13} />
+              <span>🪪 6-Up Double-Sided Lanyards (Print Studio ↗)</span>
+            </a>
           </div>
 
           {/* QR Destination Selector */}

@@ -3266,6 +3266,50 @@ ${tableName} Organizers`
                   <span>Log Cash Bucket Tally</span>
                 </button>
 
+                <a
+                  href={`/qr_poster.html?table=${encodeURIComponent(currentTableSlug || session?.tableSlug || 'beverley')}&mode=lanyards&qr=${formData.enable_gift_aid ? 'donate_giftaid' : 'direct_donate'}&secret=${encodeURIComponent(session?.googleCredential || session?.token || getAdminAuthToken(currentTableSlug || 'beverley'))}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary"
+                  style={{
+                    padding: '9px 16px',
+                    fontSize: '13px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    borderColor: '#22c55e',
+                    color: '#86efac',
+                    textDecoration: 'none',
+                    fontWeight: 700
+                  }}
+                  title="Open Print Studio for 6-Up Double-Sided Elf Lanyards with Contacts & Rules (Tool 4)"
+                >
+                  <Printer size={16} />
+                  <span>🪪 Print 6-Up Elf Lanyards</span>
+                </a>
+
+                <a
+                  href={`/qr_poster.html?table=${encodeURIComponent(currentTableSlug || session?.tableSlug || 'beverley')}&mode=buckets&qr=${formData.enable_gift_aid ? 'donate_giftaid' : 'direct_donate'}&secret=${encodeURIComponent(session?.googleCredential || session?.token || getAdminAuthToken(currentTableSlug || 'beverley'))}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary"
+                  style={{
+                    padding: '9px 16px',
+                    fontSize: '13px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    borderColor: 'var(--primary)',
+                    color: 'var(--primary)',
+                    textDecoration: 'none',
+                    fontWeight: 700
+                  }}
+                  title="Open Print Studio for 4-Up Weatherproof Bucket Stickers"
+                >
+                  <Printer size={16} />
+                  <span>🪣 Print 4-Up Bucket Stickers</span>
+                </a>
+
                 <button
                   type="button"
                   onClick={() => setIsLanyardsModalOpen(true)}
@@ -3276,13 +3320,13 @@ ${tableName} Organizers`
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
-                    borderColor: 'var(--primary)',
-                    color: 'var(--primary)'
+                    borderColor: 'rgba(255, 255, 255, 0.2)',
+                    color: '#fff'
                   }}
-                  title="Print 4-Up QR Lanyard Badges and A4 Posters (Tool 4)"
+                  title="Print 4-Up QR Lanyard Badges and A4 Posters"
                 >
                   <Printer size={16} />
-                  <span>Print Lanyards & Posters</span>
+                  <span>Print 4-Up Badges & Posters</span>
                 </button>
               </div>
             </div>
@@ -9966,6 +10010,7 @@ ${tableName} Organizers`
         donateUrl={formData.donate_url}
         logoUrl={formData.logo_url}
         enableGiftAid={Boolean(formData.enable_gift_aid)}
+        adminSecret={session?.googleCredential || session?.token || getAdminAuthToken(currentTableSlug || 'beverley')}
       />
 
       {/* Volunteer Crew Email Composer Modal */}
