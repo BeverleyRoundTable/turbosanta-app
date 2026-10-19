@@ -3310,9 +3310,10 @@ ${tableName} Organizers`
                   <span>🪣 Print 4-Up Bucket Stickers</span>
                 </a>
 
-                <button
-                  type="button"
-                  onClick={() => setIsLanyardsModalOpen(true)}
+                <a
+                  href={`https://${encodeURIComponent((currentTableSlug || session?.tableSlug || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/qr_poster?mode=poster&secret=${encodeURIComponent(session?.googleCredential || session?.token || getAdminAuthToken(currentTableSlug || session?.tableSlug || 'beverley'))}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="btn-secondary"
                   style={{
                     padding: '9px 16px',
@@ -3320,14 +3321,16 @@ ${tableName} Organizers`
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
-                    borderColor: 'rgba(255, 255, 255, 0.2)',
-                    color: '#fff'
+                    borderColor: 'rgba(255, 255, 255, 0.25)',
+                    color: '#fff',
+                    textDecoration: 'none',
+                    fontWeight: 700
                   }}
-                  title="Print 4-Up QR Lanyard Badges and A4 Posters"
+                  title="Open Print Studio for 1-Up A4 Street Route Posters"
                 >
                   <Printer size={16} />
-                  <span>Print 4-Up Badges & Posters</span>
-                </button>
+                  <span>📌 Print A4 Route Posters</span>
+                </a>
               </div>
             </div>
 
@@ -9978,17 +9981,7 @@ ${tableName} Organizers`
         tableSlug={currentTableSlug}
       />
 
-      {/* Printable Weatherproof QR Lanyard Badges & Shop Posters Modal (Tool 4) */}
-      <PrintLanyardsModal
-        isOpen={isLanyardsModalOpen}
-        onClose={() => setIsLanyardsModalOpen(false)}
-        tableName={tableData?.table?.name || session?.tableName || 'Round Table'}
-        tableSlug={currentTableSlug || session?.tableSlug || 'beverley'}
-        donateUrl={formData.donate_url}
-        logoUrl={formData.logo_url}
-        enableGiftAid={Boolean(formData.enable_gift_aid)}
-        adminSecret={session?.googleCredential || session?.token || getAdminAuthToken(currentTableSlug || session?.tableSlug || 'beverley')}
-      />
+
 
       {/* Volunteer Crew Email Composer Modal */}
       <VolunteerEmailModal

@@ -184,7 +184,9 @@
   /* ── THE POSTER (A4) ── */
   .poster {
     width: 210mm;
+    height: 297mm;
     min-height: 297mm;
+    max-height: 297mm;
     background: #ffffff;
     color: #0d0d0b;
     font-family: 'Open Sans', sans-serif;
@@ -195,165 +197,187 @@
     border-radius: 8px;
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
+    box-sizing: border-box;
   }
 
   .poster-accent-top {
-    height: 16px;
+    height: 12px;
     background: var(--gold);
+    flex-shrink: 0;
   }
 
   .poster-content {
     flex: 1;
-    padding: 48px 48px 40px;
+    padding: 24px 36px 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: space-between;
     text-align: center;
+    box-sizing: border-box;
+    overflow: hidden;
   }
 
   .poster-logo {
-    width: 96px;
-    height: 96px;
+    width: 68px;
+    height: 68px;
     object-fit: contain;
-    margin-bottom: 24px;
+    margin-bottom: 8px;
+    flex-shrink: 0;
   }
 
   .poster-sleigh-name {
     font-family: 'DM Mono', monospace;
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 700;
-    color: #888;
+    color: #6b7280;
     text-transform: uppercase;
     letter-spacing: 2px;
-    margin-bottom: 32px;
+    margin-bottom: 8px;
+    flex-shrink: 0;
   }
 
   .poster-headline {
     font-family: 'Eurostile', sans-serif;
-    font-size: 80px;
-    line-height: 0.95;
+    font-size: 52px;
+    line-height: 0.96;
     color: #0d0d0b;
-    margin-bottom: 16px;
+    margin-bottom: 6px;
     letter-spacing: 1px;
+    flex-shrink: 0;
   }
 
   .poster-subline {
-    font-size: 28px;
+    font-size: 20px;
     font-weight: 800;
     color: var(--gold);
-    margin-bottom: 40px;
+    margin-bottom: 12px;
     text-transform: uppercase;
     letter-spacing: 1px;
+    flex-shrink: 0;
   }
 
   .poster-date-block {
     background: #0d0d0b;
     color: white;
-    padding: 24px 64px;
-    border-radius: 16px;
-    margin-bottom: 40px;
+    padding: 12px 32px 14px;
+    border-radius: 14px;
+    margin-bottom: 12px;
     width: 100%;
-    max-width: 500px;
+    max-width: 440px;
+    flex-shrink: 0;
+    box-sizing: border-box;
   }
 
   .poster-date-block .day-name {
     font-family: 'DM Mono', monospace;
-    font-size: 16px;
-    font-weight: 500;
+    font-size: 12px;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 2px;
     color: var(--gold);
-    margin-bottom: 4px;
+    margin-bottom: 2px;
   }
 
   .poster-date-block .date-main {
     font-family: 'Eurostile', sans-serif;
-    font-size: 64px;
+    font-size: 38px;
     letter-spacing: 1px;
     line-height: 1;
   }
 
   .poster-streets {
-    font-size: 20px;
-    font-weight: 500;
-    color: #444;
-    line-height: 1.6;
-    margin-bottom: 48px;
-    max-width: 600px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #374151;
+    line-height: 1.4;
+    margin-bottom: 10px;
+    max-width: 540px;
+    flex-shrink: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   .poster-streets .separator {
-    color: #ccc;
-    margin: 0 10px;
+    color: #9ca3af;
+    margin: 0 8px;
     font-weight: 700;
   }
 
   .poster-divider {
-    width: 120px;
-    height: 4px;
+    width: 60px;
+    height: 3px;
     background: #0d0d0b;
     border-radius: 2px;
-    margin: 0 auto 48px;
+    margin: 0 auto 10px;
+    flex-shrink: 0;
   }
 
   .poster-qr-section {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 6px;
+    flex-shrink: 0;
   }
 
   .poster-qr-box {
-    padding: 20px;
-    border: 6px solid #0d0d0b;
-    border-radius: 24px;
+    padding: 12px;
+    border: 4px solid #0d0d0b;
+    border-radius: 16px;
     display: inline-block;
-    margin-bottom: 24px;
+    margin-bottom: 8px;
     background: white;
-    box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    flex-shrink: 0;
   }
 
   .poster-scan-text {
     font-family: 'Eurostile', sans-serif;
-    font-size: 40px;
+    font-size: 26px;
     color: #0d0d0b;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
+    line-height: 1.1;
   }
   
   .poster-scan-sub {
     font-family: 'DM Mono', monospace;
-    font-size: 12px;
+    font-size: 10.5px;
     font-weight: 700;
     color: var(--gold);
     text-transform: uppercase;
-    letter-spacing: 2px;
-    margin-top: 4px;
+    letter-spacing: 1.5px;
+    margin-top: 3px;
   }
 
   .poster-footer {
-    padding: 24px 48px;
+    padding: 12px 36px;
     background: #0d0d0b;
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 16px;
+    gap: 12px;
     margin-top: auto;
+    flex-shrink: 0;
   }
 
   .poster-footer img {
-    width: 42px;
-    height: 42px;
+    width: 30px;
+    height: 30px;
     object-fit: contain;
     background: #fff;
-    border-radius: 8px;
-    padding: 4px;
+    border-radius: 6px;
+    padding: 2px;
   }
 
   .poster-footer .footer-text {
     font-family: 'DM Mono', monospace;
-    font-size: 12px;
-    font-weight: 500;
+    font-size: 10.5px;
+    font-weight: 600;
     color: #ccc;
     letter-spacing: 1px;
     text-transform: uppercase;
@@ -649,11 +673,11 @@
       page-break-after: always !important;
       break-after: page !important;
     }
-    .sheet-grid-6.has-next-route, .sheet-grid-6-rear.has-next-route {
+    .sheet-grid-6.has-next-route, .sheet-grid-6-rear.has-next-route, .poster.has-next-route {
       page-break-after: always !important;
       break-after: page !important;
     }
-    .sheet-grid-6-rear:not(.has-next-route) {
+    .sheet-grid-6-rear:not(.has-next-route), .poster:not(.has-next-route) {
       page-break-after: avoid !important;
       break-after: avoid !important;
     }
@@ -1279,8 +1303,8 @@ function generatePoster(idx) {
 
   new QRCode(document.getElementById('qrTarget'), {
     text: qrUrl,
-    width: 240,
-    height: 240,
+    width: 170,
+    height: 170,
     colorDark: "#0d0d0b",
     colorLight: "#ffffff",
     correctLevel: QRCode.CorrectLevel.H
@@ -1431,7 +1455,8 @@ async function printAll() {
   for (let i = 0; i < STATE.routes.length; i++) {
     generatePoster(i);
     await new Promise(r => setTimeout(r, 400)); // allow QR code to render
-    allHtml += `<div class="poster" style="page-break-after: always; margin-bottom: 20px;">${poster.innerHTML}</div>`;
+    const isLast = i === STATE.routes.length - 1;
+    allHtml += `<div class="poster${!isLast ? ' has-next-route' : ''}">${poster.innerHTML}</div>`;
   }
 
   poster.outerHTML = allHtml;
