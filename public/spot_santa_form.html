@@ -271,7 +271,7 @@
   <div id="map"></div>
   <div class="map-helper">PIN LOCATION: TAP MAP TO ADJUST PIN IF NEEDED</div>
 
-  <textarea id="caption" maxlength="200" placeholder="Where did you spot him? (e.g. Molescroft Road, waving from window)"></textarea>
+  <textarea id="caption" maxlength="200" placeholder="Where did you spot him? (e.g. High Street, waving from window)"></textarea>
 
   <button id="submitBtn" onclick="submitPhoto()">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
@@ -285,14 +285,19 @@
   const params = new URLSearchParams(window.location.search);
   const _subMatch = window.location.hostname.match(/^([a-z0-9-]+)\.roundtablesantasleigh\.co\.uk$/i);
   const subdomainSlug = (_subMatch && !['www', 'api', 'admin'].includes(_subMatch[1].toLowerCase())) ? _subMatch[1].toLowerCase() : '';
-  const tableSlug = (params.get("table") || subdomainSlug || "beverley").toLowerCase().trim();
+  const tableSlug = (params.get("table") || subdomainSlug || "").toLowerCase().trim();
   const apiUrl = params.get("api") || "";
 
-  let currentLat = 53.8436;
-  let currentLng = -0.4286;
+  // National Round Table Headquarters (Marchesi House, Birmingham)
+  const RTBI_HQ_LAT = 52.4708;
+  const RTBI_HQ_LNG = -1.9207;
+
+  let currentLat = RTBI_HQ_LAT;
+  let currentLng = RTBI_HQ_LNG;
   let map = null;
   let pinMarker = null;
   let compressedBase64 = null;
+  let routeLayer = null;
 
   // Custom Brand Pin Marker for Leaflet
   const goldIcon = L.divIcon({
@@ -303,11 +308,12 @@
   });
 
   // Initialize Map
-  function initMap(lat, lng) {
+  function initMap(lat, lng, zoomLevel = 14) {
+    if (map) return;
     currentLat = lat;
     currentLng = lng;
 
-    map = L.map('map', { attributionControl: false }).setView([lat, lng], 14);
+    map = L.map('map', { attributionControl: false }).setView([lat, lng], zoomLevel);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18
@@ -328,8 +334,34 @@
     });
   }
 
-  // Fetch Table Center or Fallback
+  // Parse GPX XML text into array of [lat, lng]
+  function parseGPXCoords(xmlStr) {
+    try {
+      const cleanXml = xmlStr.replace(/xmlns(:\w+)?=".*?"/g, '');
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(cleanXml, "text/xml");
+      const trackPoints = xmlDoc.getElementsByTagName("trkpt");
+      const coords = [];
+      for (let i = 0; i < trackPoints.length; i++) {
+        const lat = parseFloat(trackPoints[i].getAttribute("lat"));
+        const lon = parseFloat(trackPoints[i].getAttribute("lon"));
+        if (!isNaN(lat) && !isNaN(lon)) {
+          coords.push([lat, lon]);
+        }
+      }
+      return coords;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // Fetch Table Route GPX or Fallback to RTBI Headquarters
   async function loadTableLocation() {
+    if (!tableSlug) {
+      initMap(RTBI_HQ_LAT, RTBI_HQ_LNG, 13);
+      return;
+    }
+
     try {
       const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableSlug)}`);
       const data = await res.json();
@@ -338,17 +370,96 @@
         if (window.applyTurboSantaTheme && (tbl.primary_color || tbl.accent_color)) {
           window.applyTurboSantaTheme(tbl.primary_color, tbl.accent_color);
         }
-        if (data.routes && data.routes.length > 0) {
-          const firstRoute = data.routes.find(r => r.lat && r.lng) || data.routes[0];
-          if (firstRoute.lat && firstRoute.lng) {
-            initMap(parseFloat(firstRoute.lat), parseFloat(firstRoute.lng));
+
+        const routes = Array.isArray(data.routes) ? data.routes : [];
+
+        // 1. Prioritize tonight's route, then future routes, then any route with a GPX
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const sortedRoutes = [...routes].sort((a, b) => {
+          if (a.date === todayStr && b.date !== todayStr) return -1;
+          if (b.date === todayStr && a.date !== todayStr) return 1;
+          if (a.gpx_url && !b.gpx_url) return -1;
+          if (b.gpx_url && !a.gpx_url) return 1;
+          return 0;
+        });
+
+        // 2. Attempt to load GPX track coordinates from routes
+        for (const r of sortedRoutes) {
+          const gpxUrl = r.gpx_url || r.gpxUrl;
+          if (!gpxUrl) continue;
+
+          try {
+            let gpxText = "";
+            if (gpxUrl.startsWith("data:")) {
+              const b64 = gpxUrl.split(";base64,")[1];
+              if (b64) gpxText = atob(b64);
+            } else {
+              const fullUrl = gpxUrl.startsWith("http")
+                ? gpxUrl
+                : `https://turbosanta-api.beverley247.workers.dev${gpxUrl.startsWith("/") ? "" : "/"}${gpxUrl}`;
+              const gRes = await fetch(fullUrl, { cache: "no-store" });
+              if (gRes.ok) gpxText = await gRes.text();
+            }
+
+            if (gpxText) {
+              const coords = parseGPXCoords(gpxText);
+              if (coords.length > 1) {
+                // Initialize map at the first point
+                initMap(coords[0][0], coords[0][1], 14);
+
+                // Render GPX route path
+                const brandColor = (window.TurboSantaEmbed && window.TurboSantaEmbed.primaryColor) || tbl.primary_color || "#FBAF33";
+                routeLayer = L.polyline(coords, {
+                  color: brandColor,
+                  weight: 4,
+                  opacity: 0.8,
+                  lineJoin: 'round'
+                }).addTo(map);
+
+                // Fit map snugly around the route track
+                const bounds = routeLayer.getBounds();
+                map.fitBounds(bounds, { padding: [24, 24], maxZoom: 15 });
+
+                // Place initial pin at the center of the route
+                const center = bounds.getCenter();
+                currentLat = center.lat;
+                currentLng = center.lng;
+                pinMarker.setLatLng(center);
+                return;
+              }
+            }
+          } catch (gpxErr) {
+            console.warn("Could not parse route GPX:", gpxErr);
+          }
+        }
+
+        // 3. Fallback: Check if routes have planned stops with lat/lng
+        for (const r of routes) {
+          if (Array.isArray(r.planned_stops) && r.planned_stops.length > 0) {
+            const firstStop = r.planned_stops.find(s => s && s.lat && s.lng);
+            if (firstStop) {
+              initMap(parseFloat(firstStop.lat), parseFloat(firstStop.lng), 14);
+              return;
+            }
+          }
+          if (r.lat && r.lng) {
+            initMap(parseFloat(r.lat), parseFloat(r.lng), 14);
             return;
           }
         }
+
+        // 4. Fallback: Check live sleigh coordinates if active
+        if (data.live_sleigh && data.live_sleigh.lat && data.live_sleigh.lng) {
+          initMap(parseFloat(data.live_sleigh.lat), parseFloat(data.live_sleigh.lng), 15);
+          return;
+        }
       }
-    } catch(e) {}
-    // Default fallback (Beverley)
-    initMap(53.8436, -0.4286);
+    } catch(e) {
+      console.warn("Failed to load table routes for spot santa:", e);
+    }
+
+    // 5. Ultimate National Fallback: Round Table Headquarters (Marchesi House, Birmingham)
+    initMap(RTBI_HQ_LAT, RTBI_HQ_LNG, 13);
   }
 
   // Handle Photo Selection & EXIF GPS

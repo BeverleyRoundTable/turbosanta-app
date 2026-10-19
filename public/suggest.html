@@ -175,15 +175,15 @@
     const params = new URLSearchParams(location.search);
     const _subMatch = location.hostname.match(/^([a-z0-9-]+)\.roundtablesantasleigh\.co\.uk$/i);
     const subdomainSlug = (_subMatch && !['www', 'api', 'admin'].includes(_subMatch[1].toLowerCase())) ? _subMatch[1].toLowerCase() : '';
-    const tableSlug = (params.get("table") || subdomainSlug || "beverley").toLowerCase();
+    const tableSlug = (params.get("table") || subdomainSlug || "").toLowerCase();
     const apiUrl = params.get("api");
     let map, activePin = null;
 
     document.addEventListener("DOMContentLoaded", async () => {
       const loader = document.getElementById("loadingCover");
 
-      // Initialize Map (Same view and tiles as your tracker)
-      map = L.map("map", { zoomControl: false }).setView([53.84, -0.42], 13);
+      // Initialize Map (Round Table HQ fallback)
+      map = L.map("map", { zoomControl: false }).setView([52.4708, -1.9207], 13);
       L.control.zoom({ position: 'bottomright' }).addTo(map);
       
       // Standard OpenStreetMap tiles

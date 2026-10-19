@@ -26,10 +26,10 @@ export default function LiveMap({ tableData }) {
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
-    // Center on Beverley route start
+    // Default center on Round Table HQ (Marchesi House)
     const map = L.map(mapContainerRef.current, {
-      center: [53.8532, -0.4465],
-      zoom: 15,
+      center: [52.4708, -1.9207],
+      zoom: 14,
       zoomControl: true,
       attributionControl: true
     });
