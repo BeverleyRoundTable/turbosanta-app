@@ -2173,7 +2173,11 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                 borderRadius: '18px',
                 maxWidth: '500px',
                 width: '100%',
-                padding: '28px 24px',
+                maxHeight: 'calc(100vh - 32px)',
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                boxSizing: 'border-box',
+                padding: '24px 20px',
                 position: 'relative',
                 boxShadow: '0 24px 60px rgba(0,0,0,0.85)'
               }}
@@ -2194,7 +2198,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                 Know a local school, sports club, foodbank, charity, or community project that could benefit from a {operatorTableName} Santa Sleigh grant? Submit an application below!
               </p>
 
-              <form onSubmit={handleSubmitGrantNomination} style={{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
+              <form onSubmit={handleSubmitGrantNomination} style={{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left', width: '100%', boxSizing: 'border-box' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>
                     Organisation / Cause Name *
@@ -2205,12 +2209,12 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                     value={grantForm.org_name}
                     onChange={(e) => setGrantForm(prev => ({ ...prev, org_name: e.target.value }))}
                     placeholder="e.g. St Nicholas Primary PTA / Local Youth Club"
-                    style={{ width: '100%', boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '11px 14px', color: '#fff', fontSize: '14px' }}
+                    style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '11px 14px', color: '#fff', fontSize: '14px' }}
                   />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', width: '100%', boxSizing: 'border-box' }}>
+                  <div style={{ minWidth: 0 }}>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>
                       Contact Name
                     </label>
@@ -2219,10 +2223,10 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                       value={grantForm.contact_name}
                       onChange={(e) => setGrantForm(prev => ({ ...prev, contact_name: e.target.value }))}
                       placeholder="Your name"
-                      style={{ width: '100%', boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '11px 14px', color: '#fff', fontSize: '14px' }}
+                      style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '11px 14px', color: '#fff', fontSize: '14px' }}
                     />
                   </div>
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>
                       Amount Requested (£)
                     </label>
@@ -2233,13 +2237,13 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                       value={grantForm.amount_requested}
                       onChange={(e) => setGrantForm(prev => ({ ...prev, amount_requested: e.target.value }))}
                       placeholder="e.g. 250"
-                      style={{ width: '100%', boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '11px 14px', color: '#fff', fontSize: '14px' }}
+                      style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '11px 14px', color: '#fff', fontSize: '14px' }}
                     />
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', width: '100%', boxSizing: 'border-box' }}>
+                  <div style={{ minWidth: 0 }}>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>
                       Contact Email *
                     </label>
@@ -2249,10 +2253,10 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                       value={grantForm.contact_email}
                       onChange={(e) => setGrantForm(prev => ({ ...prev, contact_email: e.target.value }))}
                       placeholder="you@example.com"
-                      style={{ width: '100%', boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '11px 14px', color: '#fff', fontSize: '14px' }}
+                      style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '11px 14px', color: '#fff', fontSize: '14px' }}
                     />
                   </div>
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>
                       Phone (Optional)
                     </label>
@@ -2261,7 +2265,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                       value={grantForm.contact_phone}
                       onChange={(e) => setGrantForm(prev => ({ ...prev, contact_phone: e.target.value }))}
                       placeholder="07..."
-                      style={{ width: '100%', boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '11px 14px', color: '#fff', fontSize: '14px' }}
+                      style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '11px 14px', color: '#fff', fontSize: '14px' }}
                     />
                   </div>
                 </div>

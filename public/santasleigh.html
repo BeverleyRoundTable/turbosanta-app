@@ -2557,9 +2557,59 @@
                 document.body.appendChild(modal);
             }
             modal.innerHTML = `
-                <div id="grant-modal-backdrop" style="position: fixed; inset: 0; z-index: 99999; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; padding: 16px;">
-                    <div style="width: 100%; max-width: 500px; background: #15171c; border: 1px solid rgba(251, 175, 51, 0.45); border-radius: 20px; padding: 24px; box-shadow: 0 25px 60px rgba(0,0,0,0.9); color: #fff; position: relative;" onclick="event.stopPropagation()">
-                        <button type="button" id="grant-modal-close" style="position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.08); border: none; color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer;">✕</button>
+                <div id="grant-modal-backdrop" style="position: fixed; inset: 0; z-index: 99999; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; overflow-y: auto;">
+                    <style>
+                        .grant-modal-card {
+                            width: 100%;
+                            max-width: 500px;
+                            box-sizing: border-box;
+                            max-height: calc(100vh - 32px);
+                            overflow-y: auto;
+                            overflow-x: hidden;
+                            background: #15171c;
+                            border: 1px solid rgba(251, 175, 51, 0.45);
+                            border-radius: 20px;
+                            padding: 24px;
+                            box-shadow: 0 25px 60px rgba(0,0,0,0.9);
+                            color: #fff;
+                            position: relative;
+                        }
+                        .grant-form-grid {
+                            display: grid;
+                            grid-template-columns: 1fr 1fr;
+                            gap: 10px;
+                            width: 100%;
+                            box-sizing: border-box;
+                        }
+                        .grant-form-input {
+                            width: 100% !important;
+                            min-width: 0 !important;
+                            box-sizing: border-box !important;
+                            padding: 11px 12px !important;
+                            border-radius: 10px !important;
+                            border: 1px solid rgba(255, 255, 255, 0.16) !important;
+                            background: rgba(0, 0, 0, 0.4) !important;
+                            color: #fff !important;
+                            font-size: 13px !important;
+                            font-family: inherit !important;
+                        }
+                        .grant-form-input:focus {
+                            outline: none !important;
+                            border-color: var(--primary) !important;
+                            box-shadow: 0 0 0 2px rgba(251, 175, 51, 0.25) !important;
+                        }
+                        @media (max-width: 480px) {
+                            .grant-modal-card {
+                                padding: 20px 16px !important;
+                            }
+                            .grant-form-grid {
+                                grid-template-columns: 1fr !important;
+                                gap: 10px !important;
+                            }
+                        }
+                    </style>
+                    <div class="grant-modal-card" onclick="event.stopPropagation()">
+                        <button type="button" id="grant-modal-close" style="position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.08); border: none; color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px;">✕</button>
                         <div style="font-size: 11px; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">
                             💛 Community Funding Application
                         </div>
@@ -2567,18 +2617,18 @@
                         <p style="font-size: 13px; color: var(--text-muted); margin: 0 0 14px 0; line-height: 1.45;">
                             Know a local school, sports club, charity, or community project that could benefit from a Santa Sleigh grant? Tell our Round Table below!
                         </p>
-                        <form id="grant-nomination-form" style="display: flex; flex-direction: column; gap: 10px;">
-                            <input type="text" id="gr-org" required placeholder="Organisation / Cause / Project Name *" style="padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16); background: rgba(0,0,0,0.4); color: #fff; font-size: 13px;" />
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                <input type="text" id="gr-name" required placeholder="Your Name *" style="padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16); background: rgba(0,0,0,0.4); color: #fff; font-size: 13px;" />
-                                <input type="email" id="gr-email" required placeholder="Your Email *" style="padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16); background: rgba(0,0,0,0.4); color: #fff; font-size: 13px;" />
+                        <form id="grant-nomination-form" style="display: flex; flex-direction: column; gap: 10px; width: 100%; box-sizing: border-box;">
+                            <input type="text" id="gr-org" required class="grant-form-input" placeholder="Organisation / Cause / Project Name *" />
+                            <div class="grant-form-grid">
+                                <input type="text" id="gr-name" required class="grant-form-input" placeholder="Your Name *" />
+                                <input type="email" id="gr-email" required class="grant-form-input" placeholder="Your Email *" />
                             </div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                <input type="tel" id="gr-phone" placeholder="Phone Number (optional)" style="padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16); background: rgba(0,0,0,0.4); color: #fff; font-size: 13px;" />
-                                <input type="number" min="1" step="1" id="gr-amount" placeholder="Requested Amount (£)" style="padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16); background: rgba(0,0,0,0.4); color: #fff; font-size: 13px;" />
+                            <div class="grant-form-grid">
+                                <input type="tel" id="gr-phone" class="grant-form-input" placeholder="Phone Number (optional)" />
+                                <input type="number" min="1" step="1" id="gr-amount" class="grant-form-input" placeholder="Requested Amount (£)" />
                             </div>
-                            <textarea id="gr-summary" required rows="3" placeholder="How would a grant from our Santa Sleigh collection help the local community? *" style="padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.16); background: rgba(0,0,0,0.4); color: #fff; font-size: 13px; resize: vertical;"></textarea>
-                            <button type="submit" id="gr-submit-btn" class="brand-font" style="padding: 12px; border-radius: 12px; border: none; background: var(--primary); color: var(--on-primary); font-size: 14px; font-weight: 800; cursor: pointer; text-transform: uppercase;">
+                            <textarea id="gr-summary" required rows="3" class="grant-form-input" placeholder="How would a grant from our Santa Sleigh collection help the local community? *" style="resize: vertical;"></textarea>
+                            <button type="submit" id="gr-submit-btn" class="brand-font" style="padding: 12px; border-radius: 12px; border: none; background: var(--primary); color: var(--on-primary); font-size: 14px; font-weight: 800; cursor: pointer; text-transform: uppercase; width: 100%; box-sizing: border-box;">
                                 🤝 Submit Cause Nomination
                             </button>
                         </form>
