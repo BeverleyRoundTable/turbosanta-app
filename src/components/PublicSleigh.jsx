@@ -2179,8 +2179,8 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
               <button
                 type="button"
                 onClick={() => setIsPlayerMinimized(false)}
-                title={`Open Festive Music: ${effectiveMusicTitle}`}
-                aria-label={`Open Festive Music: ${effectiveMusicTitle}`}
+                title={isPlaying ? `Now Playing: ${effectiveMusicTitle}` : `Festive Music: ${effectiveMusicTitle}`}
+                aria-label={isPlaying ? `Now Playing: ${effectiveMusicTitle}` : `Festive Music: ${effectiveMusicTitle}`}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -2198,7 +2198,9 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                 }}
               >
                 <Music size={15} color="var(--primary)" />
-                <span>{isPlaying ? '🎵 Playing Bells' : '🔔 Festive Music'}</span>
+                <span style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', verticalAlign: 'middle' }}>
+                  {isPlaying ? `🎵 Playing: ${effectiveMusicTitle}` : `🔔 ${effectiveMusicTitle}`}
+                </span>
               </button>
             ) : (
               <div

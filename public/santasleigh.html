@@ -1872,7 +1872,7 @@
         <div id="ts-music-minimized" style="display: none;">
             <button type="button" id="ts-music-expand-btn" class="ts-music-pill-btn" aria-label="Open festive music">
                 <i class="fa-solid fa-music" style="color: var(--primary);"></i>
-                <span id="ts-music-min-label">🔔 Festive Music</span>
+                <span id="ts-music-min-label" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: middle;">🔔 Festive Music</span>
             </button>
         </div>
         <div id="ts-music-card" class="ts-music-card">
@@ -4114,6 +4114,14 @@
             const expandBtn = $('ts-music-expand-btn');
             const eq = $('ts-eq-container');
 
+            if (minLabel) {
+                minLabel.textContent = gAudioIsPlaying ? `🎵 Playing: ${displayTitle}` : `🔔 ${displayTitle}`;
+            }
+            if (expandBtn) {
+                expandBtn.title = gAudioIsPlaying ? `Now Playing: ${displayTitle} (Click to expand)` : `Festive Music: ${displayTitle} (Click to expand)`;
+                expandBtn.setAttribute('aria-label', expandBtn.title);
+            }
+
             if (closeBtn && card && minBox) {
                 closeBtn.onclick = () => {
                     card.style.display = 'none';
@@ -4137,7 +4145,11 @@
                     else eq.classList.remove('playing');
                 }
                 if (minLabel) {
-                    minLabel.textContent = playing ? '🎵 Playing Bells' : '🔔 Festive Music';
+                    minLabel.textContent = playing ? `🎵 Playing: ${displayTitle}` : `🔔 ${displayTitle}`;
+                }
+                if (expandBtn) {
+                    expandBtn.title = playing ? `Now Playing: ${displayTitle} (Click to expand)` : `Festive Music: ${displayTitle} (Click to expand)`;
+                    expandBtn.setAttribute('aria-label', expandBtn.title);
                 }
             }
 
