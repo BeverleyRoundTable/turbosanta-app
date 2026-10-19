@@ -1409,7 +1409,7 @@ async function startApp(initialTables) {
   await loadAll(false, false); 
   
   refreshTimer = setInterval(() => {
-    if (currentMode === "live") loadAll(true, true); // ⭐ SILENT BACKGROUND REFRESH
+    if (currentMode === "live" && document.visibilityState === "visible") loadAll(true, true); // ⭐ SILENT BACKGROUND REFRESH
   }, REFRESH_INTERVAL_MS);
 }
 

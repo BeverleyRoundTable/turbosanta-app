@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "verify": "node --check worker/index.js && node --check worker/santa_router.js && vite build",
+    "backup:d1": "npx wrangler d1 export turbosanta --remote --output=backups/turbosanta-d1-latest.sql --config worker/wrangler.toml",
+    "backup:r2": "npx wrangler r2 object put turbosanta-media/_backups/worker/index.js --file=worker/index.js --remote && npx wrangler r2 object put turbosanta-media/_backups/worker/santa_router.js --file=worker/santa_router.js --remote && npx wrangler r2 object put turbosanta-media/_backups/worker/wrangler.toml --file=worker/wrangler.toml --remote",
     "lint": "oxlint",
     "preview": "vite preview"
   },

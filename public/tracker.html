@@ -1469,11 +1469,7 @@
         isValidImageUrl(url) { if (!url || typeof url !== 'string') return false; try { const parsed = new URL(url); return ['http:', 'https:', 'data:'].includes(parsed.protocol); } catch { return false; } },
         resolveImageUrl(url) { if (!url || typeof url !== 'string' || !url.includes('drive.google.com')) return url; try { const u = new URL(url); const pathMatch = u.pathname.match(/\/file\/d\/([^/]+)/); const fileId = u.searchParams.get('id') || (pathMatch ? pathMatch[1] : null); return fileId ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w400` : url; } catch { return url; } },
         async loadJSON(url) {
-          const cacheBusted = url.includes('?') ? `${url}&_t=${Date.now()}` : `${url}?_t=${Date.now()}`;
-          const r = await fetch(cacheBusted, {
-            cache: "no-store",
-            headers: { 'Cache-Control': 'no-cache, no-store' }
-          });
+          const r = await fetch(url);
           if (!r.ok) throw new Error(`Fetch failed: ${r.status}`);
           return r.json();
         },
@@ -2167,7 +2163,7 @@
         if (!AppState.flags.pageVisible) return;
         try {
           const now = Date.now();
-          if (!AppState.vars.lastSettingsFetch || now - AppState.vars.lastSettingsFetch > 12000) {
+          if (!AppState.vars.lastSettingsFetch || now - AppState.vars.lastSettingsFetch > 60000) {
             try {
               const rawSettings = await Utils.loadJSON(AppState.vars.dataUrl);
               if (rawSettings && !rawSettings.error) {
@@ -2235,10 +2231,25 @@
             if (first && typeof first === "object") data = first; 
           }
 
-          // Sync live_announcement if returned directly by live-gps endpoint
-          if (data && data.live_announcement !== undefined && AppState.vars.latestApiData) {
+          // Sync live_announcement and enable_gift_aid if returned directly by live-gps endpoint
+          if (data && AppState.vars.latestApiData) {
             if (!AppState.vars.latestApiData.settings) AppState.vars.latestApiData.settings = {};
-            AppState.vars.latestApiData.settings.live_announcement = data.live_announcement;
+            if (!AppState.vars.latestApiData.table) AppState.vars.latestApiData.table = {};
+            if (data.live_announcement !== undefined) {
+              AppState.vars.latestApiData.settings.live_announcement = data.live_announcement;
+              AppState.vars.latestApiData.table.live_announcement = data.live_announcement;
+            }
+            if (data.user_announcement !== undefined) {
+              AppState.vars.latestApiData.settings.user_announcement = data.user_announcement;
+              AppState.vars.latestApiData.table.user_announcement = data.user_announcement;
+            }
+            if (data.enable_gift_aid !== undefined) {
+              AppState.vars.latestApiData.settings.enable_gift_aid = data.enable_gift_aid;
+              AppState.vars.latestApiData.table.enable_gift_aid = data.enable_gift_aid;
+              if (typeof window.updateGiftAidDisplay === 'function') {
+                window.updateGiftAidDisplay();
+              }
+            }
           }
 
           const rs = document.getElementById('routeSponsor');
@@ -4008,7 +4019,9 @@
           
           // Legacy Apps Script fast announcement loop (skipped automatically in D1 mode)
           if (!AppState.vars.isWorkerD1) {
-            setInterval(fetchFastAnnouncements, 3000);
+            setInterval(() => {
+              if (AppState.flags.pageVisible) fetchFastAnnouncements();
+            }, 30000);
             fetchFastAnnouncements();
           }
         };

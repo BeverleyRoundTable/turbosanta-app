@@ -4413,7 +4413,7 @@
             if (api) {
                 return window.sleighFetchData(api).then(data => applySettings(checkPayload(data), api));
             } else if (tableSlug) {
-                return fetch(`${CFG.workerApi}/api/payload?table=${encodeURIComponent(tableSlug)}&_t=${Date.now()}`, { cache: 'no-store' })
+                return fetch(`${CFG.workerApi}/api/payload?table=${encodeURIComponent(tableSlug)}`)
                     .then(r => r.json())
                     .then(raw => {
                         const data = checkPayload(raw);
@@ -4427,7 +4427,7 @@
             if (document.visibilityState === 'visible' && navigator.onLine) {
                 refreshSleighData().catch(() => {});
             }
-        }, 15000);
+        }, 30000);
 
         window.addEventListener('offline', () => {
             netState = 'offline';

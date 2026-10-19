@@ -187,11 +187,9 @@ export async function fetchTablePayload(tableSlug = "beverley") {
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
-    const secretQuery = token ? `&secret=${encodeURIComponent(token)}` : "";
-    const res = await fetch(`${API_BASE}/api/payload?table=${encodeURIComponent(slug)}${secretQuery}&_t=${Date.now()}`, {
-      cache: "no-store",
-      headers
-    });
+    const secretQuery = token ? `&secret=${encodeURIComponent(token)}&_t=${Date.now()}` : "";
+    const fetchOpts = token ? { cache: "no-store", headers } : {};
+    const res = await fetch(`${API_BASE}/api/payload?table=${encodeURIComponent(slug)}${secretQuery}`, fetchOpts);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     if (data.error) throw new Error(data.error);
@@ -204,9 +202,7 @@ export async function fetchTablePayload(tableSlug = "beverley") {
 
 export async function fetchLiveGps(tableSlug = "beverley") {
   try {
-    const res = await fetch(`${API_BASE}/api/live-gps?table=${encodeURIComponent(tableSlug)}&_t=${Date.now()}`, {
-      cache: "no-store"
-    });
+    const res = await fetch(`${API_BASE}/api/live-gps?table=${encodeURIComponent(tableSlug)}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } catch (err) {

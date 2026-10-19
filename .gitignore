@@ -23,7 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 
-# Private worker backend (kept locally on machine for reference, excluded from public GitHub)
+# Private worker backend & database backups (kept locally & backed up to private R2, excluded from public GitHub)
 worker/
+backups/
 .private/
 .agents/

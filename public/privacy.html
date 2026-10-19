@@ -334,9 +334,9 @@
   <header class="privacy-header">
     <div class="header-inner">
       <a href="/" id="brandLink" class="header-brand">
-        <img id="tableLogo" src="/icons/Beverley_Santa_Logo.png" alt="Santa Sleigh Logo" class="header-logo" onerror="this.src='/icons/sleigh_icon.png'">
+        <img id="tableLogo" src="/icons/RTBI_Santa.png" alt="Santa Sleigh Logo" class="header-logo" onerror="this.src='/icons/sleigh_icon.png'">
         <div class="header-title-box">
-          <h1 id="tableBrandName">Beverley Round Table Santa Sleigh</h1>
+          <h1 id="tableBrandName">Round Table Santa Sleigh</h1>
           <span>Privacy &amp; Data Protection</span>
         </div>
       </a>
@@ -353,7 +353,7 @@
     </div>
     <h2>Privacy Policy &amp; Data Protection</h2>
     <p>
-      How <strong id="tableHeroName">your local Round Table</strong> and the TurboSanta digital platform protect your personal data, manage Gift Aid tax compliance, and respect family privacy during the festive season.
+      How <strong id="tableHeroName">your local Round Table</strong> and the TurboSanta digital platform protect your personal data, safeguard children online, manage Gift Aid tax compliance, and respect family privacy during the festive season.
     </p>
   </section>
 
@@ -364,7 +364,7 @@
     <section class="policy-card">
       <h3><i class="fa-solid fa-landmark"></i> 1. Who We Are &amp; Data Controllers</h3>
       <p>
-        The Santa Sleigh digital platform is operated by <strong id="controllerName">Beverley Round Table</strong> (a member of the <em>National Association of Round Tables Great Britain &amp; Ireland</em>, Registered Charity / Non-Profit Association) in partnership with the TurboSanta 2.0 digital operations system.
+        The Santa Sleigh digital platform is operated by <strong id="controllerName">Round Table Great Britain &amp; Ireland</strong> (and its affiliated local Round Table charitable trusts and associations) in partnership with the TurboSanta 2.0 digital operations system.
       </p>
       <p>
         We are passionate volunteers dedicated to bringing festive cheer and raising vital charitable funds for local community causes, vulnerable families, sports clubs, youth groups, and hospices. We treat all personal information entrusted to us with strict confidentiality, care, and statutory compliance.
@@ -411,24 +411,46 @@
         </div>
 
         <div class="spec-item">
-          <h4><i class="fa-solid fa-envelope-open-text" style="color:#ec4899;"></i> Letters to Santa</h4>
+          <h4><i class="fa-solid fa-envelope-open-text" style="color:#ec4899;"></i> Letters &amp; Voice Messages</h4>
           <p>
-            Children’s first names and wishlists sent to Santa are processed ephemerally to generate personalized certificates and replies delivered to the parent's email.
+            Children’s first names, wishlists, and optional Magic Mailbox voice recordings are submitted with parent/guardian supervision solely to generate festive replies and moderation.
           </p>
         </div>
 
         <div class="spec-item">
           <h4><i class="fa-solid fa-robot" style="color:#a855f7;"></i> AI Digital Sleigh Assistant</h4>
           <p>
-            Questions asked to the Digital Sleigh Elf (e.g. route times, streets, Gift Aid) are processed anonymously with zero behavioral profiling or advertising tracking.
+            Questions asked to the Digital Sleigh Elf or Santa Chat are processed ephemerally with strict child-safety content filters and zero behavioral profiling or advertising tracking.
           </p>
         </div>
       </div>
     </section>
 
-    <!-- 3. Legal Basis -->
+    <!-- 3. Children's Privacy & ICO Age Appropriate Design Code -->
     <section class="policy-card">
-      <h3><i class="fa-solid fa-scale-balanced"></i> 3. Lawful Basis for Processing (UK GDPR Article 6)</h3>
+      <h3><i class="fa-solid fa-children"></i> 3. Children’s Privacy &amp; Parent/Guardian Safeguarding Notice (ICO Children’s Code)</h3>
+      <p>
+        Our interactive festive features—including <strong>Santa Radio Chat</strong>, <strong>Letters to Santa</strong>, <strong>Magic Mailbox Voice Messages</strong>, and <strong>Nice List Certificates</strong>—are designed for families to enjoy together in compliance with the UK Information Commissioner’s Office (ICO) <em>Age Appropriate Design Code (Children’s Code)</em>:
+      </p>
+      <ul>
+        <li>
+          <strong>High Privacy by Default:</strong> Children’s interactive features never track geolocation, never build user profiles, and never share data with third-party advertisers.
+        </li>
+        <li>
+          <strong>Strict AI Safeguarding Guardrails:</strong> Our Santa Claus AI Radio assistant is enforced with strict Google Gemini child-safety filters (blocking harmful, adult, or unsafe content at the lowest threshold) and system instructions that actively discourage sharing surnames, home addresses, schools, or phone numbers.
+        </li>
+        <li>
+          <strong>Parent/Guardian Supervision:</strong> Where an email address is optionally entered (for example, to receive a printable Letter from Santa by email), we ask that a parent or guardian enters their own email address. Parent email addresses are used strictly once to deliver the requested reply and are never added to marketing lists.
+        </li>
+        <li>
+          <strong>Immediate Parent Deletion Rights:</strong> Parents and guardians may request immediate removal of any Letter to Santa, Magic Mailbox voice message, or Memory Book photo at any time by emailing <a id="contactEmailLinkChild" href="mailto:santa@roundtable.org.uk" style="color:var(--primary); font-weight:700;">santa@roundtable.org.uk</a>.
+        </li>
+      </ul>
+    </section>
+
+    <!-- 4. Legal Basis -->
+    <section class="policy-card">
+      <h3><i class="fa-solid fa-scale-balanced"></i> 4. Lawful Basis for Processing (UK GDPR Article 6)</h3>
       <ul>
         <li>
           <strong>Consent (Art. 6(1)(a)):</strong> You explicitly choose to subscribe your email for arrival alerts, submit a photo to the memory book, or write a letter to Santa. You can revoke consent at any moment.
@@ -442,9 +464,9 @@
       </ul>
     </section>
 
-    <!-- 4. Retention & Purging -->
+    <!-- 5. Retention & Purging -->
     <section class="policy-card">
-      <h3><i class="fa-solid fa-clock-rotate-left"></i> 4. Data Retention &amp; Automatic Purging Schedule</h3>
+      <h3><i class="fa-solid fa-clock-rotate-left"></i> 5. Data Retention &amp; Automatic Purging Schedule</h3>
       <p>
         We do not hoard data. Information is retained only as long as strictly necessary for operational delivery or statutory tax audit:
       </p>
@@ -474,13 +496,13 @@
           <tr>
             <td><strong>Live GPS Telemetry</strong></td>
             <td>Live tracker positioning</td>
-            <td>Real-time streaming only; historical coordinate pings overwritten nightly</td>
-            <td><span class="badge-green">Ephemeral</span></td>
+            <td>Real-time streaming only; historical coordinate pings pruned automatically after 48 hours</td>
+            <td><span class="badge-green">Ephemeral (48h)</span></td>
           </tr>
           <tr>
-            <td><strong>Memory Book &amp; Letters</strong></td>
+            <td><strong>Memory Book, Letters &amp; Voice</strong></td>
             <td>Community celebration gallery &amp; Santa replies</td>
-            <td>Retained for the season gallery; deleted upon parent request</td>
+            <td>Retained for the active season only; deleted immediately upon parent request</td>
             <td><span class="badge-green">Optional / By Consent</span></td>
           </tr>
           <tr>
@@ -493,23 +515,23 @@
       </table>
     </section>
 
-    <!-- 5. Third-Party Processors -->
+    <!-- 6. Third-Party Processors -->
     <section class="policy-card">
-      <h3><i class="fa-solid fa-handshake"></i> 5. Third-Party Service Providers &amp; Processors</h3>
+      <h3><i class="fa-solid fa-handshake"></i> 6. Third-Party Service Providers &amp; Processors</h3>
       <p>
         We do <strong>not sell, rent, or trade your personal data</strong> with commercial advertisers or marketing agencies under any circumstances. We utilize trusted, enterprise-grade infrastructure providers bound by strict data processing agreements:
       </p>
       <ul>
-        <li><strong>Cloudflare Inc. (Edge Network &amp; D1 Database):</strong> Provides high-speed UK CDN hosting, encrypted SQL storage, and DDoS/abuse security protection.</li>
-        <li><strong>Google Workspace (Gmail API):</strong> Used by local Table administrators to dispatch automated operational volunteer run-sheets.</li>
+        <li><strong>Cloudflare Inc. (Edge Network, R2 &amp; D1 Database):</strong> Provides high-speed UK CDN hosting, AES-GCM encrypted credential storage, and DDoS/rate-limit security protection.</li>
+        <li><strong>Google Workspace (Gmail API) &amp; Google Gemini API:</strong> Used by local Table administrators to dispatch operational volunteer run-sheets and power child-safe Santa replies.</li>
         <li><strong>HM Revenue &amp; Customs (HMRC Charities):</strong> Receives official Gift Aid schedules for tax reclaims directly benefiting local causes.</li>
-        <li><strong>Charitable Donation Gateways (Zeffy, NatWest Payit, Stripe/SumUp):</strong> Process online card payments directly on PCI-DSS compliant secure servers. Round Table never receives or stores your credit or debit card numbers.</li>
+        <li><strong>Charitable Donation Gateways (Zeffy, JustGiving, NatWest Payit, Stripe/SumUp):</strong> Process online card payments directly on PCI-DSS compliant secure servers. Round Table never receives or stores your credit or debit card numbers.</li>
       </ul>
     </section>
 
-    <!-- 6. Cookies -->
+    <!-- 7. Cookies -->
     <section class="policy-card">
-      <h3><i class="fa-solid fa-cookie-bite"></i> 6. Cookies &amp; Local Storage</h3>
+      <h3><i class="fa-solid fa-cookie-bite"></i> 7. Cookies &amp; Local Storage</h3>
       <p>
         Our website is built on an ethical, privacy-first foundation. We do <strong>not use third-party advertising or tracking cookies</strong>. We use only strictly necessary browser LocalStorage keys:
       </p>
@@ -520,29 +542,29 @@
       </ul>
     </section>
 
-    <!-- 7. Your Rights -->
+    <!-- 8. Your Rights -->
     <section class="policy-card">
-      <h3><i class="fa-solid fa-user-shield"></i> 7. Your Statutory Rights Under UK GDPR</h3>
+      <h3><i class="fa-solid fa-user-shield"></i> 8. Your Statutory Rights Under UK GDPR</h3>
       <p>You have statutory rights regarding your personal information, including:</p>
       <ul>
         <li><strong>Right to Withdraw Consent:</strong> You can unsubscribe from doorstep arrival emails at any time with a single click or by notifying us.</li>
         <li><strong>Right of Access &amp; Portability:</strong> You may request a copy of any personal data we hold about you.</li>
         <li><strong>Right to Rectification:</strong> If any details are incorrect, we will promptly update them.</li>
-        <li><strong>Right to Erasure ("Right to be Forgotten"):</strong> You can request immediate deletion of your email, doorstep subscription, or memory book photo. <em>(Note: Statutory HMRC Gift Aid declarations are exempt from immediate erasure until the mandatory 6-year statutory audit period has elapsed).</em></li>
+        <li><strong>Right to Erasure ("Right to be Forgotten"):</strong> You can request immediate deletion of your email, doorstep subscription, letter, or memory book photo. <em>(Note: Statutory HMRC Gift Aid declarations are exempt from immediate erasure until the mandatory 6-year statutory audit period has elapsed).</em></li>
         <li><strong>Right to Lodge a Complaint:</strong> If you believe we have not handled your data fairly, you have the right to contact the UK Information Commissioner's Office (ICO) at <a href="https://ico.org.uk" target="_blank" rel="noopener noreferrer" style="color:var(--primary);">ico.org.uk</a>.</li>
       </ul>
     </section>
 
-    <!-- 8. Contact Us -->
+    <!-- 9. Contact Us -->
     <section class="policy-card">
-      <h3><i class="fa-solid fa-envelope"></i> 8. Contact Our Volunteer Data Officer</h3>
+      <h3><i class="fa-solid fa-envelope"></i> 9. Contact Our Volunteer Data Officer</h3>
       <p>
-        If you have any questions, wish to exercise any of your data rights, or want to verify the charitable activities of <strong id="contactTableName">Beverley Round Table</strong>, please reach out to our team:
+        If you have any questions, wish to exercise any of your data rights, or want to verify the charitable activities of <strong id="contactTableName">your local Round Table</strong>, please reach out to our team:
       </p>
       <div class="notice-box" style="background:var(--surface-2); border-color:var(--border-primary);">
-        <p style="margin-bottom:6px;"><strong>Committee Contact:</strong> <span id="contactCommitteeName">Beverley Round Table Santa Sleigh Committee</span></p>
+        <p style="margin-bottom:6px;"><strong>Committee Contact:</strong> <span id="contactCommitteeName">Round Table Santa Sleigh Committee</span></p>
         <p style="margin-bottom:6px;"><strong>Email:</strong> <a id="contactEmailLinkBottom" href="mailto:santa@roundtable.org.uk" style="color:var(--primary); font-weight:700;">santa@roundtable.org.uk</a></p>
-        <p style="margin-bottom:0;"><strong>Affiliation:</strong> National Association of Round Tables Great Britain &amp; Ireland • Registered in the United Kingdom</p>
+        <p style="margin-bottom:0;"><strong>Affiliation:</strong> National Association of Round Tables Great Britain &amp; Ireland • Marchesi House, 4 Embassy Drive, Edgbaston, Birmingham, B15 1TP</p>
       </div>
     </section>
 
@@ -551,7 +573,7 @@
   <!-- FOOTER -->
   <footer class="page-footer">
     <p style="margin-bottom:8px;">
-      &copy; <span id="year">2026</span> <strong id="footerTableName">Beverley Round Table Santa Sleigh</strong>. Powered by <a href="https://roundtablesantasleigh.co.uk">TurboSanta 2.0</a>.
+      &copy; <span id="year">2026</span> <strong id="footerTableName">Round Table Santa Sleigh</strong>. Powered by <a href="https://roundtablesantasleigh.co.uk">TurboSanta 2.0</a>.
     </p>
     <p style="font-size:12px; color:rgba(255,255,255,0.45);">
       Built for voluntary community service. Protecting family privacy and neighborhood cheer across the United Kingdom.
@@ -561,21 +583,26 @@
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
 
-    // Determine Town from Subdomain or ?table= query parameter
+    // Determine Town from Subdomain or explicit ?table= query parameter
     function detectTownSlug() {
       const host = window.location.hostname.toLowerCase();
       const parts = host.split('.');
-      if (parts.length >= 3 && parts[0] !== 'www' && parts[0] !== 'roundtablesantasleigh') {
+      if (parts.length >= 3 && parts[0] !== 'www' && parts[0] !== 'roundtablesantasleigh' && parts[0] !== 'national') {
         return parts[0];
       }
       const params = new URLSearchParams(window.location.search);
-      return params.get('table') || 'beverley';
+      const explicitTable = params.get('table');
+      if (explicitTable && explicitTable.toLowerCase() !== 'national') {
+        return explicitTable.toLowerCase();
+      }
+      return null;
     }
 
     const currentSlug = detectTownSlug();
 
-    // Fetch Table Branding from API
+    // Fetch Table Branding from API when a town is active
     async function loadTableDetails() {
+      if (!currentSlug) return;
       try {
         const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(currentSlug)}`);
         if (!res.ok) throw new Error('Failed to load table');
@@ -585,7 +612,7 @@
         const displayName = tbl.sleigh_display_name || (tbl.name ? `${tbl.name} Santa Sleigh` : 'Round Table Santa Sleigh');
         const tableName = tbl.name || 'Round Table';
         const contactEmail = tbl.admin_email || 'santa@roundtable.org.uk';
-        const logoUrl = tbl.sleigh_icon_url || '/icons/Beverley_Santa_Logo.png';
+        const logoUrl = tbl.logo_url || tbl.sleigh_icon_url || '/icons/RTBI_Santa.png';
 
         document.getElementById('pageTitle').textContent = `Privacy Policy & GDPR — ${displayName}`;
         document.getElementById('tableBrandName').textContent = displayName;
@@ -595,13 +622,13 @@
         document.getElementById('contactCommitteeName').textContent = `${displayName} Committee`;
         document.getElementById('footerTableName').textContent = displayName;
 
-        const emailEl = document.getElementById('contactEmailLink');
-        emailEl.href = `mailto:${contactEmail}`;
-        emailEl.textContent = contactEmail;
-
-        const emailElBtm = document.getElementById('contactEmailLinkBottom');
-        emailElBtm.href = `mailto:${contactEmail}`;
-        emailElBtm.textContent = contactEmail;
+        ['contactEmailLink', 'contactEmailLinkChild', 'contactEmailLinkBottom'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.href = `mailto:${contactEmail}`;
+            el.textContent = contactEmail;
+          }
+        });
 
         if (tbl.primary_color) {
           document.documentElement.style.setProperty('--primary', tbl.primary_color);

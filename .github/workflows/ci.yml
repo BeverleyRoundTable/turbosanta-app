@@ -1,0 +1,37 @@
+name: TurboSanta CI & Build Verification
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  verify:
+    name: Verify Build & Static Assets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify Vite production build
+        run: npm run build
+
+      - name: Verify critical public entrypoints exist in dist
+        run: |
+          test -f dist/index.html
+          test -f dist/santasleigh.html
+          test -f dist/tracker.html
+          test -f dist/national.html
+          test -f dist/privacy.html
+          test -f dist/robots.txt
+          test -f dist/sitemap.xml
