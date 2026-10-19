@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="pageTitle">Privacy Policy &amp; GDPR — Round Table Santa Sleigh</title>
+  <meta name="description" content="Official UK GDPR and Data Protection Policy for the Round Table Santa Sleigh digital platform.">
+  <meta name="theme-color" content="#0d0d0b">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    @font-face {
+      font-family: 'Eurostile';
+      src: url('/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root {
+      --primary: #FBAF33;
+      --primary-rgb: 251, 175, 51;
+      --dark: #0d0d0b;
+      --surface: #161614;
+      --surface-2: #1e1e1b;
+      --surface-3: #262622;
+      --border: rgba(255, 255, 255, 0.1);
+      --border-primary: rgba(251, 175, 51, 0.3);
+      --text: #eaeae5;
+      --text-muted: rgba(255, 255, 255, 0.65);
+      --green: #22c55e;
+      --red: #ef4444;
+      --blue: #38bdf8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Open Sans', system-ui, -apple-system, sans-serif;
+      background-color: var(--dark);
+      background-image: 
+        linear-gradient(180deg, rgba(13, 13, 11, 0.94) 0%, rgba(0, 0, 0, 0.98) 100%),
+        url('/icons/site_background.png');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      color: var(--text);
+      line-height: 1.65;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, h4, .brand-font {
+      font-family: 'Eurostile', sans-serif !important;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* HEADER */
+    header.privacy-header {
+      background: rgba(22, 22, 20, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 14px 24px;
+    }
+
+    .header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #fff;
+    }
+
+    .header-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      object-fit: contain;
+      background: rgba(251, 175, 51, 0.1);
+      padding: 4px;
+      border: 1px solid var(--border-primary);
+    }
+
+    .header-title-box h1 {
+      font-size: 15px;
+      color: #fff;
+      line-height: 1.2;
+    }
+
+    .header-title-box span {
+      font-size: 11px;
+      color: var(--primary);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      background: rgba(251, 175, 51, 0.12);
+      border: 1px solid var(--border-primary);
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: 'Eurostile', sans-serif;
+      text-transform: uppercase;
+      transition: all 0.2s ease;
+    }
+
+    .btn-back:hover {
+      background: var(--primary);
+      color: #000;
+      transform: translateY(-1px);
+    }
+
+    /* HERO */
+    .hero {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 44px 20px 24px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      border-radius: 20px;
+      background: rgba(34, 197, 94, 0.12);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 14px;
+    }
+
+    .hero h2 {
+      font-size: clamp(24px, 4vw, 36px);
+      color: #fff;
+      margin-bottom: 12px;
+      line-height: 1.2;
+    }
+
+    .hero p {
+      font-size: 15px;
+      color: var(--text-muted);
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    /* MAIN CONTAINER */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 20px 60px;
+    }
+
+    .policy-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .policy-card h3 {
+      font-size: 18px;
+      color: var(--primary);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+    }
+
+    .policy-card p {
+      margin-bottom: 14px;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .policy-card ul {
+      margin: 10px 0 16px 20px;
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .policy-card li {
+      margin-bottom: 8px;
+      line-height: 1.6;
+    }
+
+    .policy-card strong {
+      color: #fff;
+    }
+
+    .notice-box {
+      background: rgba(251, 175, 51, 0.08);
+      border-left: 4px solid var(--primary);
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 16px 0;
+      font-size: 13px;
+    }
+
+    .table-spec-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .spec-item {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .spec-item h4 {
+      font-size: 13px;
+      color: #fff;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .spec-item p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .retention-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 13px;
+    }
+
+    .retention-table th, .retention-table td {
+      padding: 10px 14px;
+      text-align: left;
+      border: 1px solid var(--border);
+    }
+
+    .retention-table th {
+      background: var(--surface-2);
+      color: var(--primary);
+      font-family: 'Eurostile', sans-serif;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+    }
+
+    .retention-table td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .badge-green {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .badge-gold {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: rgba(251, 175, 51, 0.15);
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    /* FOOTER */
+    footer.page-footer {
+      text-align: center;
+      padding: 40px 20px;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    footer.page-footer a {
+      color: var(--primary);
+      text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+      .policy-card { padding: 22px 18px; }
+      .retention-table { display: block; overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="privacy-header">
+    <div class="header-inner">
+      <a href="/" id="brandLink" class="header-brand">
+        <img id="tableLogo" src="/icons/Beverley_Santa_Logo.png" alt="Santa Sleigh Logo" class="header-logo" onerror="this.src='/icons/sleigh_icon.png'">
+        <div class="header-title-box">
+          <h1 id="tableBrandName">Beverley Round Table Santa Sleigh</h1>
+          <span>Privacy &amp; Data Protection</span>
+        </div>
+      </a>
+      <a href="/" id="backBtn" class="btn-back">
+        <i class="fa-solid fa-arrow-left"></i> Back to Tracker
+      </a>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-badge">
+      <i class="fa-solid fa-shield-halved"></i> UK GDPR &amp; Data Protection Act 2018
+    </div>
+    <h2>Privacy Policy &amp; Data Protection</h2>
+    <p>
+      How <strong id="tableHeroName">your local Round Table</strong> and the TurboSanta digital platform protect your personal data, manage Gift Aid tax compliance, and respect family privacy during the festive season.
+    </p>
+  </section>
+
+  <!-- CONTENT -->
+  <main class="container">
+
+    <!-- 1. Who We Are -->
+    <section class="policy-card">
+      <h3><i class="fa-solid fa-landmark"></i> 1. Who We Are &amp; Data Controllers</h3>
+      <p>
+        The Santa Sleigh digital platform is operated by <strong id="controllerName">Beverley Round Table</strong> (a member of the <em>National Association of Round Tables Great Britain &amp; Ireland</em>, Registered Charity / Non-Profit Association) in partnership with the TurboSanta 2.0 digital operations system.
+      </p>
+      <p>
+        We are passionate volunteers dedicated to bringing festive cheer and raising vital charitable funds for local community causes, vulnerable families, sports clubs, youth groups, and hospices. We treat all personal information entrusted to us with strict confidentiality, care, and statutory compliance.
+      </p>
+      <div class="notice-box">
+        <strong>Data Protection Lead:</strong> You can reach our Data Controller anytime at <a id="contactEmailLink" href="mailto:santa@roundtable.org.uk" style="color:var(--primary); font-weight:700;">santa@roundtable.org.uk</a>.
+      </div>
+    </section>
+
+    <!-- 2. What Data We Collect -->
+    <section class="policy-card">
+      <h3><i class="fa-solid fa-database"></i> 2. What Data We Collect &amp; Why</h3>
+      <p>
+        We only collect the absolute minimum personal data necessary to provide safe, real-time community Santa tracking and statutory charity services:
+      </p>
+
+      <div class="table-spec-grid">
+        <div class="spec-item">
+          <h4><i class="fa-solid fa-bell" style="color:var(--primary);"></i> Doorstep &amp; Street Alerts</h4>
+          <p>
+            When you subscribe for doorstep arrival notifications, you provide your <strong>email address</strong> and optionally tap your street location. We use this strictly to dispatch a message when Santa is departing or entering your neighborhood.
+          </p>
+        </div>
+
+        <div class="spec-item">
+          <h4><i class="fa-solid fa-gift" style="color:var(--green);"></i> HMRC Gift Aid Claims</h4>
+          <p>
+            When boosting a donation by +25% via Gift Aid, UK HMRC statutory rules require your <strong>title, full name, house number, and postcode</strong> to verify UK tax status.
+          </p>
+        </div>
+
+        <div class="spec-item">
+          <h4><i class="fa-solid fa-satellite-dish" style="color:var(--blue);"></i> Sleigh Live GPS Telemetry</h4>
+          <p>
+            Our map tracks the <strong>official Santa Sleigh vehicle beacon only</strong>. We <em>never</em> track, harvest, or log the personal location of families or viewers browsing the map.
+          </p>
+        </div>
+
+        <div class="spec-item">
+          <h4><i class="fa-solid fa-camera" style="color:#eab308;"></i> Community Memory Book</h4>
+          <p>
+            Families may upload festive photos and messages. All submissions undergo administrative moderation before public display. We request a parent email solely for verification.
+          </p>
+        </div>
+
+        <div class="spec-item">
+          <h4><i class="fa-solid fa-envelope-open-text" style="color:#ec4899;"></i> Letters to Santa</h4>
+          <p>
+            Children’s first names and wishlists sent to Santa are processed ephemerally to generate personalized certificates and replies delivered to the parent's email.
+          </p>
+        </div>
+
+        <div class="spec-item">
+          <h4><i class="fa-solid fa-robot" style="color:#a855f7;"></i> AI Digital Sleigh Assistant</h4>
+          <p>
+            Questions asked to the Digital Sleigh Elf (e.g. route times, streets, Gift Aid) are processed anonymously with zero behavioral profiling or advertising tracking.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Legal Basis -->
+    <section class="policy-card">
+      <h3><i class="fa-solid fa-scale-balanced"></i> 3. Lawful Basis for Processing (UK GDPR Article 6)</h3>
+      <ul>
+        <li>
+          <strong>Consent (Art. 6(1)(a)):</strong> You explicitly choose to subscribe your email for arrival alerts, submit a photo to the memory book, or write a letter to Santa. You can revoke consent at any moment.
+        </li>
+        <li>
+          <strong>Legal Obligation (Art. 6(1)(c)):</strong> We are legally mandated under UK Tax Legislation (Taxes Management Act 1970 &amp; Finance Act 2010) to collect and retain donor Gift Aid declarations for 6 years to submit valid claims to HM Revenue &amp; Customs (HMRC).
+        </li>
+        <li>
+          <strong>Legitimate Interests (Art. 6(1)(f)):</strong> Organizing voluntary community service, vehicle safety on suburban streets, volunteer marshaling, and preventing automated bot abuse of our digital services.
+        </li>
+      </ul>
+    </section>
+
+    <!-- 4. Retention & Purging -->
+    <section class="policy-card">
+      <h3><i class="fa-solid fa-clock-rotate-left"></i> 4. Data Retention &amp; Automatic Purging Schedule</h3>
+      <p>
+        We do not hoard data. Information is retained only as long as strictly necessary for operational delivery or statutory tax audit:
+      </p>
+
+      <table class="retention-table">
+        <thead>
+          <tr>
+            <th>Data Category</th>
+            <th>Purpose</th>
+            <th>Retention Period</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Doorstep Email Alerts</strong></td>
+            <td>Nightly Santa arrival notifications</td>
+            <td>Purged automatically at the close of the festive season (annually by Jan 31)</td>
+            <td><span class="badge-green">Seasonal Auto-Purge</span></td>
+          </tr>
+          <tr>
+            <td><strong>HMRC Gift Aid Records</strong></td>
+            <td>Statutory tax reclaim audit by HM Revenue &amp; Customs</td>
+            <td><strong>6 tax years</strong> (statutory requirement under UK HMRC Charities rules), securely archived then destroyed</td>
+            <td><span class="badge-gold">HMRC 6-Year Legal Mandate</span></td>
+          </tr>
+          <tr>
+            <td><strong>Live GPS Telemetry</strong></td>
+            <td>Live tracker positioning</td>
+            <td>Real-time streaming only; historical coordinate pings overwritten nightly</td>
+            <td><span class="badge-green">Ephemeral</span></td>
+          </tr>
+          <tr>
+            <td><strong>Memory Book &amp; Letters</strong></td>
+            <td>Community celebration gallery &amp; Santa replies</td>
+            <td>Retained for the season gallery; deleted upon parent request</td>
+            <td><span class="badge-green">Optional / By Consent</span></td>
+          </tr>
+          <tr>
+            <td><strong>Volunteer Run-Sheets</strong></td>
+            <td>Marshaling, hi-vis allocation &amp; safety briefings</td>
+            <td>Active season duration; refreshed annually</td>
+            <td><span class="badge-green">Annual Refresh</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 5. Third-Party Processors -->
+    <section class="policy-card">
+      <h3><i class="fa-solid fa-handshake"></i> 5. Third-Party Service Providers &amp; Processors</h3>
+      <p>
+        We do <strong>not sell, rent, or trade your personal data</strong> with commercial advertisers or marketing agencies under any circumstances. We utilize trusted, enterprise-grade infrastructure providers bound by strict data processing agreements:
+      </p>
+      <ul>
+        <li><strong>Cloudflare Inc. (Edge Network &amp; D1 Database):</strong> Provides high-speed UK CDN hosting, encrypted SQL storage, and DDoS/abuse security protection.</li>
+        <li><strong>Google Workspace (Gmail API):</strong> Used by local Table administrators to dispatch automated operational volunteer run-sheets.</li>
+        <li><strong>HM Revenue &amp; Customs (HMRC Charities):</strong> Receives official Gift Aid schedules for tax reclaims directly benefiting local causes.</li>
+        <li><strong>Charitable Donation Gateways (Zeffy, NatWest Payit, Stripe/SumUp):</strong> Process online card payments directly on PCI-DSS compliant secure servers. Round Table never receives or stores your credit or debit card numbers.</li>
+      </ul>
+    </section>
+
+    <!-- 6. Cookies -->
+    <section class="policy-card">
+      <h3><i class="fa-solid fa-cookie-bite"></i> 6. Cookies &amp; Local Storage</h3>
+      <p>
+        Our website is built on an ethical, privacy-first foundation. We do <strong>not use third-party advertising or tracking cookies</strong>. We use only strictly necessary browser LocalStorage keys:
+      </p>
+      <ul>
+        <li><code>volume_pref</code>: Remembers your preferred festive sleigh music volume level.</li>
+        <li><code>snow_pref</code>: Remembers if you toggled the falling snowflake animation on or off.</li>
+        <li><code>notif_dismissed</code>: Ensures you don't receive repetitive announcements during the same visit.</li>
+      </ul>
+    </section>
+
+    <!-- 7. Your Rights -->
+    <section class="policy-card">
+      <h3><i class="fa-solid fa-user-shield"></i> 7. Your Statutory Rights Under UK GDPR</h3>
+      <p>You have statutory rights regarding your personal information, including:</p>
+      <ul>
+        <li><strong>Right to Withdraw Consent:</strong> You can unsubscribe from doorstep arrival emails at any time with a single click or by notifying us.</li>
+        <li><strong>Right of Access &amp; Portability:</strong> You may request a copy of any personal data we hold about you.</li>
+        <li><strong>Right to Rectification:</strong> If any details are incorrect, we will promptly update them.</li>
+        <li><strong>Right to Erasure ("Right to be Forgotten"):</strong> You can request immediate deletion of your email, doorstep subscription, or memory book photo. <em>(Note: Statutory HMRC Gift Aid declarations are exempt from immediate erasure until the mandatory 6-year statutory audit period has elapsed).</em></li>
+        <li><strong>Right to Lodge a Complaint:</strong> If you believe we have not handled your data fairly, you have the right to contact the UK Information Commissioner's Office (ICO) at <a href="https://ico.org.uk" target="_blank" rel="noopener noreferrer" style="color:var(--primary);">ico.org.uk</a>.</li>
+      </ul>
+    </section>
+
+    <!-- 8. Contact Us -->
+    <section class="policy-card">
+      <h3><i class="fa-solid fa-envelope"></i> 8. Contact Our Volunteer Data Officer</h3>
+      <p>
+        If you have any questions, wish to exercise any of your data rights, or want to verify the charitable activities of <strong id="contactTableName">Beverley Round Table</strong>, please reach out to our team:
+      </p>
+      <div class="notice-box" style="background:var(--surface-2); border-color:var(--border-primary);">
+        <p style="margin-bottom:6px;"><strong>Committee Contact:</strong> <span id="contactCommitteeName">Beverley Round Table Santa Sleigh Committee</span></p>
+        <p style="margin-bottom:6px;"><strong>Email:</strong> <a id="contactEmailLinkBottom" href="mailto:santa@roundtable.org.uk" style="color:var(--primary); font-weight:700;">santa@roundtable.org.uk</a></p>
+        <p style="margin-bottom:0;"><strong>Affiliation:</strong> National Association of Round Tables Great Britain &amp; Ireland • Registered in the United Kingdom</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="page-footer">
+    <p style="margin-bottom:8px;">
+      &copy; <span id="year">2026</span> <strong id="footerTableName">Beverley Round Table Santa Sleigh</strong>. Powered by <a href="https://roundtablesantasleigh.co.uk">TurboSanta 2.0</a>.
+    </p>
+    <p style="font-size:12px; color:rgba(255,255,255,0.45);">
+      Built for voluntary community service. Protecting family privacy and neighborhood cheer across the United Kingdom.
+    </p>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Determine Town from Subdomain or ?table= query parameter
+    function detectTownSlug() {
+      const host = window.location.hostname.toLowerCase();
+      const parts = host.split('.');
+      if (parts.length >= 3 && parts[0] !== 'www' && parts[0] !== 'roundtablesantasleigh') {
+        return parts[0];
+      }
+      const params = new URLSearchParams(window.location.search);
+      return params.get('table') || 'beverley';
+    }
+
+    const currentSlug = detectTownSlug();
+
+    // Fetch Table Branding from API
+    async function loadTableDetails() {
+      try {
+        const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(currentSlug)}`);
+        if (!res.ok) throw new Error('Failed to load table');
+        const data = await res.json();
+        const tbl = data.table || {};
+
+        const displayName = tbl.sleigh_display_name || (tbl.name ? `${tbl.name} Santa Sleigh` : 'Round Table Santa Sleigh');
+        const tableName = tbl.name || 'Round Table';
+        const contactEmail = tbl.admin_email || 'santa@roundtable.org.uk';
+        const logoUrl = tbl.sleigh_icon_url || '/icons/Beverley_Santa_Logo.png';
+
+        document.getElementById('pageTitle').textContent = `Privacy Policy & GDPR — ${displayName}`;
+        document.getElementById('tableBrandName').textContent = displayName;
+        document.getElementById('tableHeroName').textContent = displayName;
+        document.getElementById('controllerName').textContent = `${tableName} (Round Table)`;
+        document.getElementById('contactTableName').textContent = displayName;
+        document.getElementById('contactCommitteeName').textContent = `${displayName} Committee`;
+        document.getElementById('footerTableName').textContent = displayName;
+
+        const emailEl = document.getElementById('contactEmailLink');
+        emailEl.href = `mailto:${contactEmail}`;
+        emailEl.textContent = contactEmail;
+
+        const emailElBtm = document.getElementById('contactEmailLinkBottom');
+        emailElBtm.href = `mailto:${contactEmail}`;
+        emailElBtm.textContent = contactEmail;
+
+        if (tbl.primary_color) {
+          document.documentElement.style.setProperty('--primary', tbl.primary_color);
+        }
+
+        const logoEl = document.getElementById('tableLogo');
+        if (logoUrl) logoEl.src = logoUrl;
+
+        // Back button points to table's main page
+        const backBtn = document.getElementById('backBtn');
+        const brandLink = document.getElementById('brandLink');
+        const homeUrl = window.location.hostname.includes('roundtablesantasleigh.co.uk')
+          ? `https://${currentSlug}.roundtablesantasleigh.co.uk/`
+          : `/?table=${encodeURIComponent(currentSlug)}`;
+        backBtn.href = homeUrl;
+        brandLink.href = homeUrl;
+
+      } catch (e) {
+        console.warn('Using standard fallback details for privacy policy', e);
+      }
+    }
+
+    loadTableDetails();
+  </script>
+</body>
+</html>

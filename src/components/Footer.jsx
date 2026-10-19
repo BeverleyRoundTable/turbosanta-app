@@ -16,7 +16,18 @@ export default function Footer({ tableData, onOpenAdminModal }) {
       fontSize: '14px'
     }}>
       <p style={{ margin: '0 0 10px 0' }}>
-        &copy; {currentYear} <strong>{displayName}</strong>. All rights reserved.
+        &copy; {currentYear} <strong>{displayName}</strong>. All rights reserved. •{' '}
+        <a
+          href="/privacy"
+          style={{
+            color: 'var(--primary)',
+            textDecoration: 'underline',
+            transition: 'color 0.2s',
+            fontWeight: 600
+          }}
+        >
+          Privacy Policy &amp; GDPR
+        </a>
       </p>
 
       <p style={{ margin: '0 0 20px 0', fontSize: '13px' }}>

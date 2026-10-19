@@ -1,0 +1,31 @@
+# Robots.txt for Round Table Santa Sleigh Platform (roundtablesantasleigh.co.uk)
+# Official Multi-Tenant Community Santa Tracker & Route Finder
+
+User-agent: *
+Allow: /
+Allow: /tracker
+Allow: /address
+Allow: /memory-book
+Allow: /privacy
+Allow: /national
+Allow: /knowledge
+Allow: /suggest
+Allow: /letter
+Allow: /snowman
+Allow: /nice_list
+Allow: /spot_santa
+
+# Disallow internal operations, crew portals, and telemetry write APIs
+Disallow: /godmode
+Disallow: /god_mode
+Disallow: /crew
+Disallow: /hub
+Disallow: /beacon
+Disallow: /planner
+Disallow: /route-planner
+Disallow: /migrate
+Disallow: /admin
+Disallow: /partner-report
+Disallow: /api/
+
+Sitemap: https://roundtablesantasleigh.co.uk/sitemap.xml

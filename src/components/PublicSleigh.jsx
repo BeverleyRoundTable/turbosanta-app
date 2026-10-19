@@ -2646,7 +2646,19 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
           color: 'var(--text-muted)',
           fontSize: '14px'
         }}>
-          <p>&copy; {currentYear} {siteName}. Powered by TurboSanta.</p>
+          <p>
+            &copy; {currentYear} {siteName}. Powered by TurboSanta. •{' '}
+            <a
+              href={isPrettyHost ? '/privacy' : `/privacy.html?table=${encodeURIComponent(cleanSlug)}`}
+              style={{
+                color: 'var(--primary)',
+                textDecoration: 'underline',
+                fontWeight: 600
+              }}
+            >
+              Privacy Policy &amp; GDPR
+            </a>
+          </p>
         </footer>
       </div>
     </div>

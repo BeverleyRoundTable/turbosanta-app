@@ -830,7 +830,8 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
           </span>
         </div>
         <p style={{ margin: '0 0 8px 0' }}>
-          TurboSanta 2.0 • Adopt, Adapt, Improve.
+          TurboSanta 2.0 • Adopt, Adapt, Improve. •{' '}
+          <a href="/privacy" style={{ color: '#FBAF33', textDecoration: 'underline', fontWeight: 600 }}>Privacy Policy &amp; GDPR</a>
         </p>
         <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255, 255, 255, 0.35)' }}>
           Built for voluntary community service. Santa tracking, street routes, and Gift Aid tax declarations are managed per local Table.

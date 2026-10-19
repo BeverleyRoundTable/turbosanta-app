@@ -2202,59 +2202,89 @@ ${tableName} Organizers`
         const todayRoute = routes.find(r => r.date === todayStr);
 
         const isLive = Boolean(liveGps?.is_fresh);
+        const isRouteInProgress = todayRoute?.status === 'In Progress';
+        const isGpsQuiet = isRouteInProgress && !isLive;
         const sleighSpeed = isLive ? (liveGps?.speed || 0) : 0;
-        const currentRoad = isLive ? (liveGps?.road_name || 'Active on Street') : 'Lapland Workshop';
+        const currentRoad = isLive ? (liveGps?.road_name || 'Active on Street') : (isGpsQuiet ? 'Signal Quiet (Check Beacon)' : 'Lapland Workshop');
         const totalRaised = Number(table.total_raised || 0);
         const goal = Number(table.fundraising_goal || 0);
 
         return (
-          <div style={{
-            maxWidth: '1000px',
-            margin: '20px auto 0 auto',
-            padding: '0 20px',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-            gap: '12px'
-          }}>
-            {/* 1. Live Sleigh Radar */}
-            <div style={{
-              background: '#151513',
-              border: isLive ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid var(--border)',
-              borderRadius: '12px',
-              padding: '14px 10px',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              overflow: 'hidden'
-            }}>
-              <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, marginBottom: '6px' }}>
-                Sleigh Radar
-              </div>
-              <div className="brand-font" style={{
-                fontSize: isLive ? '20px' : '17px',
-                color: isLive ? '#22c55e' : '#a1a1aa',
-                lineHeight: 1.1,
-                letterSpacing: '0.5px',
+          <>
+            {isGpsQuiet && (
+              <div style={{
+                maxWidth: '1000px',
+                margin: '16px auto 0 auto',
+                padding: '12px 18px',
+                background: 'rgba(239, 68, 68, 0.16)',
+                border: '1.5px solid #ef4444',
+                borderRadius: '10px',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px'
+                gap: '12px',
+                color: '#fff',
+                fontSize: '13px',
+                boxShadow: '0 0 24px rgba(239, 68, 68, 0.25)'
               }}>
-                <span style={{
-                  width: '7px',
-                  height: '7px',
-                  borderRadius: '50%',
-                  background: isLive ? '#22c55e' : '#71717a',
-                  boxShadow: isLive ? '0 0 8px #22c55e' : 'none',
-                  flexShrink: 0
-                }} />
-                <span>{isLive ? 'LIVE' : 'STANDBY'}</span>
+                <span style={{ fontSize: '22px' }}>⚠️</span>
+                <div>
+                  <strong style={{ color: '#fca5a5', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    GPS Signal Quiet Mid-Route
+                  </strong>
+                  <div style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '12px', marginTop: '2px' }}>
+                    Route &ldquo;{todayRoute?.name || "Tonight's Route"}&rdquo; is marked <em>In Progress</em>, but no GPS pings have arrived in over 3 minutes. Verify the driver has the Beacon active with GPS permissions enabled.
+                  </div>
+                </div>
               </div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {isLive ? `📍 ${currentRoad}` : 'Resting in Lapland'}
+            )}
+            <div style={{
+              maxWidth: '1000px',
+              margin: '20px auto 0 auto',
+              padding: '0 20px',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+              gap: '12px'
+            }}>
+              {/* 1. Live Sleigh Radar */}
+              <div style={{
+                background: '#151513',
+                border: isGpsQuiet ? '1.5px solid #ef4444' : (isLive ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid var(--border)'),
+                borderRadius: '12px',
+                padding: '14px 10px',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                boxShadow: isGpsQuiet ? '0 0 16px rgba(239, 68, 68, 0.3)' : 'none'
+              }}>
+                <div style={{ fontSize: '10px', color: isGpsQuiet ? '#f87171' : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, marginBottom: '6px' }}>
+                  {isGpsQuiet ? '⚠️ GPS QUIET' : 'Sleigh Radar'}
+                </div>
+                <div className="brand-font" style={{
+                  fontSize: isLive ? '20px' : (isGpsQuiet ? '16px' : '17px'),
+                  color: isLive ? '#22c55e' : (isGpsQuiet ? '#ef4444' : '#a1a1aa'),
+                  lineHeight: 1.1,
+                  letterSpacing: '0.5px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}>
+                  <span style={{
+                    width: '7px',
+                    height: '7px',
+                    borderRadius: '50%',
+                    background: isLive ? '#22c55e' : (isGpsQuiet ? '#ef4444' : '#71717a'),
+                    boxShadow: isLive ? '0 0 8px #22c55e' : (isGpsQuiet ? '0 0 8px #ef4444' : 'none'),
+                    flexShrink: 0
+                  }} />
+                  <span>{isLive ? 'LIVE' : (isGpsQuiet ? 'QUIET (>3M)' : 'STANDBY')}</span>
+                </div>
+                <div style={{ fontSize: '11px', color: isGpsQuiet ? '#fca5a5' : 'var(--text-muted)', marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {isLive ? `📍 ${currentRoad}` : (isGpsQuiet ? '⚠️ No telemetry fixes' : 'Resting in Lapland')}
+                </div>
               </div>
-            </div>
 
             {/* 2. Tonight's Route */}
             <div style={{
@@ -2356,8 +2386,9 @@ ${tableName} Organizers`
               </div>
             </div>
           </div>
-        );
-      })()}
+        </>
+      );
+    })()}
 
       {/* Navigation Sub-Tabs */}
       <div
