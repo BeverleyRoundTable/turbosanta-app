@@ -318,9 +318,9 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
 
   const isMusicEnabled = (musicMode === 'default') || (musicMode === 'custom' && Boolean(musicCustomUrl));
   const effectiveMusicUrl = musicMode === 'default'
-    ? '/media/default_sleigh_bells.mp3'
+    ? 'https://turbosanta-app.pages.dev/media/default_sleigh_bells.mp3'
     : (musicMode === 'custom' ? musicCustomUrl : '');
-  const effectiveMusicTitle = musicTitle || (musicMode === 'default' ? 'Festive Santa Sleigh Bells' : 'Festive Christmas Track');
+  const effectiveMusicTitle = musicMode === 'default' ? 'Round Table Christmas' : (musicTitle || 'Festive Christmas Track');
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);

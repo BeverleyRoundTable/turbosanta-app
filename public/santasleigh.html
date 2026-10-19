@@ -4077,9 +4077,9 @@
 
             const isEnabled = (musicMode === 'default') || (musicMode === 'custom' && Boolean(customUrl));
             const effectiveUrl = musicMode === 'default'
-                ? '/media/default_sleigh_bells.mp3'
+                ? 'https://turbosanta-app.pages.dev/media/default_sleigh_bells.mp3'
                 : (musicMode === 'custom' ? customUrl : '');
-            const displayTitle = title || (musicMode === 'default' ? 'Festive Santa Sleigh Bells' : 'Festive Christmas Track');
+            const displayTitle = musicMode === 'default' ? 'Round Table Christmas' : (title || 'Festive Christmas Track');
 
             const player = $('ts-festive-music-player');
             if (!isEnabled || !effectiveUrl) {
@@ -4257,7 +4257,7 @@
                     table_tiktok_url: tbl.tiktok_url || tbl.table_tiktok_url || stg.table_tiktok_url || '',
                     table_youtube_url: tbl.youtube_url || tbl.table_youtube_url || stg.table_youtube_url || '',
                     music_mode: tbl.music_mode || stg.music_mode || 'none',
-                    music_title: tbl.music_title || stg.music_title || '',
+                    music_title: tbl.music_mode === 'default' ? 'Round Table Christmas' : (tbl.music_title || stg.music_title || ''),
                     music_custom_url: tbl.music_custom_url || stg.music_custom_url || '',
                     music_loop: tbl.music_loop !== undefined ? tbl.music_loop : (stg.music_loop !== undefined ? stg.music_loop : true),
                     music_volume: tbl.music_volume !== undefined ? tbl.music_volume : (stg.music_volume !== undefined ? stg.music_volume : 0.5),

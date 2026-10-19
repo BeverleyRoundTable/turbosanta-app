@@ -1417,7 +1417,7 @@ ${tableName} Organizers`
     }
     const trackUrl = formData.music_mode === 'custom' && formData.music_custom_url
       ? formData.music_custom_url
-      : '/media/default_sleigh_bells.mp3';
+      : 'https://turbosanta-app.pages.dev/media/default_sleigh_bells.mp3';
 
     try {
       if (adminAudioRef.current) {
@@ -7386,7 +7386,7 @@ ${tableName} Organizers`
                       setFormData(prev => ({
                         ...prev,
                         music_mode: 'default',
-                        music_title: prev.music_title || 'Festive Santa Sleigh Bells'
+                        music_title: 'Round Table Christmas'
                       }));
                       stopAdminAudioPreview();
                     }}
@@ -7475,27 +7475,39 @@ ${tableName} Organizers`
 
                     {/* Track Title / Credit */}
                     <div>
-                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
-                        Player Display Title / Artist Credit:
-                      </label>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>
+                          Player Display Title / Artist Credit:
+                        </label>
+                        {formData.music_mode === 'default' && (
+                          <span style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 700 }}>
+                            🔒 Locked to Official Default Track
+                          </span>
+                        )}
+                      </div>
                       <input
                         type="text"
-                        value={formData.music_title || ''}
-                        placeholder={formData.music_mode === 'default' ? 'Festive Santa Sleigh Bells' : 'e.g. Sleigh Ride (Beverley Town Brass Band)'}
+                        value={formData.music_mode === 'default' ? 'Round Table Christmas' : (formData.music_title || '')}
+                        disabled={formData.music_mode === 'default'}
+                        placeholder={formData.music_mode === 'default' ? 'Round Table Christmas' : 'e.g. Sleigh Ride (Beverley Town Brass Band)'}
                         onChange={(e) => setFormData(prev => ({ ...prev, music_title: e.target.value }))}
                         style={{
                           width: '100%',
-                          background: '#0d0d0b',
+                          background: formData.music_mode === 'default' ? 'rgba(255,255,255,0.04)' : '#0d0d0b',
                           border: '1px solid var(--border)',
                           borderRadius: '6px',
                           padding: '8px 12px',
-                          color: '#fff',
+                          color: formData.music_mode === 'default' ? 'var(--primary)' : '#fff',
                           fontSize: '13px',
+                          fontWeight: formData.music_mode === 'default' ? 700 : 400,
+                          cursor: formData.music_mode === 'default' ? 'not-allowed' : 'text',
                           boxSizing: 'border-box'
                         }}
                       />
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                        Shown to families on the public floating player widget.
+                        {formData.music_mode === 'default'
+                          ? 'This official default title "Round Table Christmas" will be shown on the public floating player widget.'
+                          : 'Shown to families on the public floating player widget.'}
                       </div>
                     </div>
 
@@ -7533,7 +7545,7 @@ ${tableName} Organizers`
                           <span>{isAdminAudioPlaying ? 'Pause Test Audio' : 'Preview Track Sound'}</span>
                         </button>
                         <span style={{ fontSize: '12px', color: '#fff', fontWeight: 600 }}>
-                          {formData.music_title || (formData.music_mode === 'default' ? 'Festive Santa Sleigh Bells' : 'Custom Track')}
+                          {formData.music_mode === 'default' ? 'Round Table Christmas' : (formData.music_title || 'Custom Track')}
                         </span>
                       </div>
                       <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
@@ -8838,7 +8850,7 @@ ${tableName} Organizers`
                         enable_gift_aid: formData.enable_gift_aid,
                         enable_grant_nominations: formData.enable_grant_nominations !== false ? 1 : 0,
                         music_mode: formData.music_mode || 'none',
-                        music_title: formData.music_title || '',
+                        music_title: formData.music_mode === 'default' ? 'Round Table Christmas' : (formData.music_title || ''),
                         music_custom_url: formData.music_custom_url || null,
                         music_loop: formData.music_loop !== false ? 1 : 0,
                         music_volume: Number(formData.music_volume !== undefined ? formData.music_volume : 0.5),
