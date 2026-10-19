@@ -45,8 +45,6 @@ function resolveInitialMeetingPoint(routeMeetingPoint, tableDefaultPoint) {
 }
 
 export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, onDeleteRoute, tableSlug = 'beverley', table = {} }) {
-  if (!isOpen) return null;
-
   const isCopy = Boolean(route?.isCopy);
   const isEditing = Boolean(route?.id) && !isCopy;
   const gpxFileInputRef = useRef(null);
@@ -185,6 +183,8 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
       if (bc) bc.close();
     };
   }, [isOpen, formData.id]);
+
+  if (!isOpen) return null;
 
   const handleGpxFile = async (file) => {
     if (!file) return;

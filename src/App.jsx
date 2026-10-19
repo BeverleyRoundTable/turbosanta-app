@@ -91,11 +91,6 @@ export default function App() {
     '/hub': '/hub.html',
     '/embed': '/embed.html'
   };
-  if (cleanRouteMap[pathname]) {
-    window.location.replace(`${cleanRouteMap[pathname]}${window.location.search}`);
-    return null;
-  }
-
   // Admin Authentication State
   const initialSession = getCurrentSession();
   const [adminSession, setAdminSession] = useState(initialSession);
@@ -170,6 +165,11 @@ export default function App() {
         setLoading(false);
       });
   }, [activeTableSlug]);
+
+  if (cleanRouteMap[pathname]) {
+    window.location.replace(`${cleanRouteMap[pathname]}${window.location.search}`);
+    return null;
+  }
 
   // ROOT LANDING & PORTAL LOGIN VIEW (when no table is specified, or landing view requested)
   const isLandingView = (landingRequested || !activeTableSlug) && viewMode !== 'admin';

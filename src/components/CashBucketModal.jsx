@@ -4,8 +4,6 @@ import confetti from 'canvas-confetti';
 import { recordCashDonation, fetchCashDonations, deleteCashDonation } from '../services/api';
 
 export default function CashBucketModal({ isOpen, onClose, routes = [], tableSlug = 'beverley', onDonationRecorded }) {
-  if (!isOpen) return null;
-
   const todayStr = new Date().toISOString().slice(0, 10);
   const [amount, setAmount] = useState('');
   const [selectedRoute, setSelectedRoute] = useState(routes[0]?.name || 'Street Collection');
@@ -29,8 +27,12 @@ export default function CashBucketModal({ isOpen, onClose, routes = [], tableSlu
   };
 
   useEffect(() => {
-    loadEntries();
-  }, [tableSlug]);
+    if (isOpen) {
+      loadEntries();
+    }
+  }, [isOpen, tableSlug]);
+
+  if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();

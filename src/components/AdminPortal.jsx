@@ -22,7 +22,6 @@ import MigrationImporter from './MigrationImporter';
 import KnowledgeBase from './KnowledgeBase';
 import CashBucketModal from './CashBucketModal';
 import PrintRouteSheetModal from './PrintRouteSheetModal';
-import PrintLanyardsModal from './PrintLanyardsModal';
 import VolunteerEmailModal from './VolunteerEmailModal';
 import AdminAssistantModal from './AdminAssistantModal';
 
@@ -30,19 +29,19 @@ const OFFICIAL_GOOGLE_CLIENT_ID = "174929950272-ehpf04nea7ev4j8gfosq5acg6dvfmc95
 
 export const PUBLIC_SLOT_OPTIONS = [
   { id: '', label: 'None (Disabled)', desc: 'Slot is empty. No extra feature rendered on your public site.' },
-  { id: 'bingo', label: 'Christmas Sleigh Bingo Game', desc: 'Kerbside spotting game for families waiting on the pavement for the sleigh.', preview: (slug) => `/bingo.html?table=${encodeURIComponent(slug)}` },
-  { id: 'colouring', label: 'Festive Colouring Book (A4 Printable Studio)', desc: 'Personalized A4 colouring sheets for children to print and colour at home.', preview: (slug) => `/colouring_page.html?table=${encodeURIComponent(slug)}` },
-  { id: 'countdown', label: 'Christmas Eve Departure Countdown Clock', desc: 'Live countdown ticker to Santa departure from Lapland on Christmas Eve.', preview: (slug) => `/countdown.html?table=${encodeURIComponent(slug)}` },
-  { id: 'door_hanger', label: 'Official Door Hanger Generator', desc: 'Printable festive door hangers with live tracking QR code for families.', preview: (slug) => `/door_hanger.html?table=${encodeURIComponent(slug)}` },
-  { id: 'elf_cam', label: 'Lapland Elf Cam (Live Workshop Stream)', desc: 'Live camera feed and status updates directly from Santa Workshop in Lapland.', preview: (slug) => `/elf_cam.html?table=${encodeURIComponent(slug)}` },
-  { id: 'letter', label: 'Letter to Santa (Wish List Writer)', desc: 'Festive letter stationery for children to write wish lists straight to Lapland.', preview: (slug) => `/letter.html?table=${encodeURIComponent(slug)}` },
-  { id: 'magic_mailbox', label: 'Magic Lapland Mailbox (Voice Messages)', desc: 'Digital mailbox allowing children to record audio messages directly for Santa.', preview: (slug) => `/magic_mailbox.html?table=${encodeURIComponent(slug)}` },
-  { id: 'nice_list', label: 'Official Lapland Nice List Certificate', desc: 'Customizable certificate proving the child made Santa Good List this Christmas.', preview: (slug) => `/nice_list.html?table=${encodeURIComponent(slug)}` },
-  { id: 'adopt_reindeer', label: 'Adopt an Official Sleigh Reindeer', desc: 'Adopt Rudolph, Dasher, Prancer, or Comet and print an adoption certificate.', preview: (slug) => `/adopt_reindeer.html?table=${encodeURIComponent(slug)}` },
-  { id: 'santa_frame', label: 'Santa Visited Photo Frame Stamper', desc: 'Commemorative photo frame to stamp family pictures with date of Santa visit.', preview: (slug) => `/santa_frame.html?table=${encodeURIComponent(slug)}` },
-  { id: 'santa_bot', label: 'Santa AI Chatbot (Interactive Talking Hotline)', desc: 'Universal AI Santa chatbot for families to message Santa directly about routes, reindeer, bedtime, and Lapland magic.', preview: (slug) => `/santa_bot.html?table=${encodeURIComponent(slug)}` },
-  { id: 'snowman', label: 'Snowman Maker & Creator Studio', desc: 'Interactive snowman builder allowing kids to customise hats, scarves, and mittens.', preview: (slug) => `/snowman.html?table=${encodeURIComponent(slug)}` },
-  { id: 'spot_santa', label: 'Spot Santa Sightings & Photo Pinning', desc: 'Community Santa sightings map allowing residents to upload photos with location.', preview: (slug) => `/spot_santa_form.html?table=${encodeURIComponent(slug)}` }
+  { id: 'bingo', label: 'Christmas Sleigh Bingo Game', desc: 'Kerbside spotting game for families waiting on the pavement for the sleigh.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/bingo` },
+  { id: 'colouring', label: 'Festive Colouring Book (A4 Printable Studio)', desc: 'Personalized A4 colouring sheets for children to print and colour at home.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/colouring_page` },
+  { id: 'countdown', label: 'Christmas Eve Departure Countdown Clock', desc: 'Live countdown ticker to Santa departure from Lapland on Christmas Eve.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/countdown` },
+  { id: 'door_hanger', label: 'Official Door Hanger Generator', desc: 'Printable festive door hangers with live tracking QR code for families.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/door_hanger` },
+  { id: 'elf_cam', label: 'Lapland Elf Cam (Live Workshop Stream)', desc: 'Live camera feed and status updates directly from Santa Workshop in Lapland.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/elf_cam` },
+  { id: 'letter', label: 'Letter to Santa (Wish List Writer)', desc: 'Festive letter stationery for children to write wish lists straight to Lapland.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/letter` },
+  { id: 'magic_mailbox', label: 'Magic Lapland Mailbox (Voice Messages)', desc: 'Digital mailbox allowing children to record audio messages directly for Santa.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/magic_mailbox` },
+  { id: 'nice_list', label: 'Official Lapland Nice List Certificate', desc: 'Customizable certificate proving the child made Santa Good List this Christmas.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/nice_list` },
+  { id: 'adopt_reindeer', label: 'Adopt an Official Sleigh Reindeer', desc: 'Adopt Rudolph, Dasher, Prancer, or Comet and print an adoption certificate.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/adopt_reindeer` },
+  { id: 'santa_frame', label: 'Santa Visited Photo Frame Stamper', desc: 'Commemorative photo frame to stamp family pictures with date of Santa visit.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/santa_frame` },
+  { id: 'santa_bot', label: 'Santa AI Chatbot (Interactive Talking Hotline)', desc: 'Universal AI Santa chatbot for families to message Santa directly about routes, reindeer, bedtime, and Lapland magic.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/santa_bot` },
+  { id: 'snowman', label: 'Snowman Maker & Creator Studio', desc: 'Interactive snowman builder allowing kids to customise hats, scarves, and mittens.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/snowman` },
+  { id: 'spot_santa', label: 'Spot Santa Sightings & Photo Pinning', desc: 'Community Santa sightings map allowing residents to upload photos with location.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/spot_santa_form` }
 ];
 
 function getEquivalentDateNextYear(dateStr) {
@@ -483,9 +482,9 @@ ${tableName} Organizers`
     }
     if (!meetingTime) meetingTime = '17:45';
 
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://roundtablesantasleigh.co.uk';
-    const trackerUrl = `${origin}/tracker.html?table=${currentTableSlug}`;
-    const cockpitUrl = `${origin}/tracker.html?table=${currentTableSlug}&driver=1`;
+    const cleanSlug = String(currentTableSlug || 'beverley').trim().toLowerCase();
+    const trackerUrl = `https://${cleanSlug}.roundtablesantasleigh.co.uk`;
+    const cockpitUrl = `https://${cleanSlug}.roundtablesantasleigh.co.uk/tracker?driver=1`;
     const tableName = tableData?.table?.name || session?.tableName || 'Round Table';
 
     let msg = `🎅 *${tableName.toUpperCase()} SANTA SLEIGH — TONIGHT'S RUN!* 🎅\n\n`;
@@ -4282,7 +4281,7 @@ ${tableName} Organizers`
                   </button>
 
                   <a
-                    href={`/season_wrap.html?table=${encodeURIComponent(tableSlug)}`}
+                    href={`https://${encodeURIComponent(tableSlug)}.roundtablesantasleigh.co.uk/season-wrap`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn-primary"
@@ -4808,14 +4807,14 @@ ${tableName} Organizers`
                     badge: '05',
                     title: 'PRINT STUDIO (POSTERS, 4-UP BUCKET STICKERS & 6-UP LANYARDS)',
                     desc: 'Print-ready A4 street posters, 4-Up waterproof bucket labels, and 6-Up walking elf lanyard cards with selectable QR targets.',
-                    url: `${townOrigin}/qr_poster.html`
+                    url: `${townOrigin}/qr_poster`
                   },
                   {
                     key: 'memory',
                     badge: '06',
                     title: 'DIGITAL MEMORY BOOK',
                     desc: 'Community photo gallery and Polaroid wall where families can view and share sleigh night memories.',
-                    url: `${townOrigin}/memory_book.html`
+                    url: `${townOrigin}/memory-book`
                   }
                 ];
               })().map((item) => (
@@ -5405,7 +5404,7 @@ ${tableName} Organizers`
                             </span>
                           </div>
                           <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0, lineHeight: 1.45, wordBreak: 'break-word' }}>
-                            Volunteers who signed up via your public Crew Hub (<code style={{ color: 'var(--primary)', wordBreak: 'break-all' }}>/crew.html?table={currentTableSlug}</code>). Contact them instantly for free via Email Bcc, WhatsApp, or CSV export.
+                            Volunteers who signed up via your public Crew Hub (<code style={{ color: 'var(--primary)', wordBreak: 'break-all' }}>{currentTableSlug}.roundtablesantasleigh.co.uk/crew</code>). Contact them instantly for free via Email Bcc, WhatsApp, or CSV export.
                           </p>
                         </div>
                       </div>
@@ -5424,7 +5423,7 @@ ${tableName} Organizers`
                         <span>{loadingVolunteers ? 'Loading...' : 'Refresh'}</span>
                       </button>
                       <a
-                        href={`/crew.html?table=${encodeURIComponent(currentTableSlug)}`}
+                        href={`https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/crew`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="btn-secondary"
@@ -5619,7 +5618,7 @@ ${tableName} Organizers`
                       </p>
                       {volunteers.length === 0 && (
                         <a
-                          href={`/crew.html?table=${encodeURIComponent(currentTableSlug)}`}
+                          href={`https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/crew`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="btn-primary"
@@ -9318,7 +9317,7 @@ ${tableName} Organizers`
                   </button>
 
                   <a
-                    href={`/memory_book.html?table=${session.tableId || 'beverley'}`}
+                    href={`https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/memory-book`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn-secondary"
@@ -9977,6 +9976,8 @@ ${tableName} Organizers`
         }}
         route={sheetRoute}
         streets={(tableData?.streets || []).filter(s => s.route_id === sheetRoute?.id)}
+        volunteers={volunteers}
+        table={tableData?.table || formData}
         tableName={tableData?.table?.name || session?.tableName || 'Round Table'}
         tableSlug={currentTableSlug}
       />

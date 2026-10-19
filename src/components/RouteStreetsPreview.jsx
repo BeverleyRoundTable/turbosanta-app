@@ -83,6 +83,12 @@ export default function RouteStreetsPreview({
     };
   }, [isOpen]);
 
+  const filteredModalStreets = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return allStreets;
+    return allStreets.filter(s => s.toLowerCase().includes(q));
+  }, [allStreets, search]);
+
   if (!allStreets || allStreets.length === 0) {
     return (
       <div style={{ fontSize: '13px', color: 'var(--text-muted, #888)', fontStyle: 'italic', marginBottom: '14px' }}>
@@ -93,12 +99,6 @@ export default function RouteStreetsPreview({
 
   const visibleStreets = allStreets.slice(0, previewLimit);
   const remainingCount = allStreets.length - visibleStreets.length;
-
-  const filteredModalStreets = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return allStreets;
-    return allStreets.filter(s => s.toLowerCase().includes(q));
-  }, [allStreets, search]);
 
   const handleOpenModal = (e) => {
     e.stopPropagation();

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Printer, Share2, Copy, Check, Phone, Shield, Clock, MapPin, AlertTriangle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -7,11 +7,11 @@ export default function PrintRouteSheetModal({
   onClose,
   route,
   streets = [],
+  volunteers = [],
+  table = {},
   tableName = 'Round Table',
   tableSlug = 'beverley'
 }) {
-  if (!isOpen || !route) return null;
-
   // Helper to extract or calculate default muster time (15 mins before start time)
   const calculateDefaultMuster = (startTime) => {
     if (!startTime) return '17:45';
@@ -28,11 +28,11 @@ export default function PrintRouteSheetModal({
     return '17:45';
   };
 
-  const getInitialMeta = () => {
-    let point = route?.meeting_point || '';
-    let muster = route?.muster_time || '';
-    if (route?.notes) {
-      const match = route.notes.match(/<!--\s*ROUTE_META:\s*({.*?})\s*-->/s);
+  const getInitialMeta = (r) => {
+    let point = r?.meeting_point || '';
+    let muster = r?.muster_time || '';
+    if (r?.notes) {
+      const match = r.notes.match(/<!--\s*ROUTE_META:\s*({.*?})\s*-->/s);
       if (match && match[1]) {
         try {
           const parsed = JSON.parse(match[1]);
@@ -42,26 +42,54 @@ export default function PrintRouteSheetModal({
       }
     }
     return {
-      meetingLocation: point || 'Depot / Pavilion Car Park',
-      musterTime: muster || calculateDefaultMuster(route?.start_time)
+      meetingLocation: point || table?.default_muster_point || 'Depot / Pavilion Car Park',
+      musterTime: muster || table?.default_muster_time || calculateDefaultMuster(r?.start_time)
     };
   };
 
-  const initialMeta = getInitialMeta();
+  const initialMeta = getInitialMeta(route);
   const [leadMarshal, setLeadMarshal] = useState('');
   const [towDriver, setTowDriver] = useState('');
   const [meetingLocation, setMeetingLocation] = useState(initialMeta.meetingLocation);
   const [musterTime, setMusterTime] = useState(initialMeta.musterTime);
   const [isCopied, setIsCopied] = useState(false);
 
-  // Compute full domain and URLs
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://roundtablesantasleigh.co.uk';
-  const displayHost = origin.replace(/^https?:\/\//, '');
-  const cockpitUrl = `${origin}/tracker.html?table=${tableSlug}&driver=1`;
-  const cockpitDisplayText = `${displayHost}/tracker.html?table=${tableSlug}&driver=1`;
-  const trackerUrl = `${origin}/tracker.html?table=${tableSlug}`;
-  const trackerDisplayText = `${displayHost}/tracker.html?table=${tableSlug}`;
-  const beaconUrl = `${origin}/beacon.html?table=${tableSlug}`;
+  useEffect(() => {
+    if (!isOpen || !route) return;
+    const meta = getInitialMeta(route);
+    setMeetingLocation(meta.meetingLocation);
+    setMusterTime(meta.musterTime);
+
+    const rName = String(route.name || '').trim().toLowerCase();
+    const routeVols = (volunteers || []).filter(v => {
+      const vr = String(v.route_name || v.RouteName || '').trim().toLowerCase();
+      return !rName || vr === rName || vr.includes(rName) || rName.includes(vr);
+    });
+    const pool = routeVols.length > 0 ? routeVols : (volunteers || []);
+    const formatVol = (v) => {
+      if (!v) return '';
+      const name = String(v.name || v['Volunteer Name'] || '').trim();
+      const phone = String(v.phone || v['Phone'] || '').trim();
+      if (name && phone) return `${name} (${phone})`;
+      return name || phone || '';
+    };
+    const marshalVol = pool.find(v => /marshal|lead|head|organi[sz]er|coordinator|chair/i.test(String(v.role || v.Role || '')));
+    const driverVol = pool.find(v => /driver|tow|vehicle|tractor/i.test(String(v.role || v.Role || '')));
+    setLeadMarshal(formatVol(marshalVol));
+    setTowDriver(formatVol(driverVol));
+  }, [isOpen, route?.id, route?.name, volunteers]);
+
+  if (!isOpen || !route) return null;
+
+  // Compute full domain and clean subdomain URLs
+  const cleanSlug = String(tableSlug || 'beverley').trim().toLowerCase();
+  const townOrigin = `https://${cleanSlug}.roundtablesantasleigh.co.uk`;
+  const townHost = `${cleanSlug}.roundtablesantasleigh.co.uk`;
+  const cockpitUrl = `${townOrigin}/tracker?driver=1`;
+  const cockpitDisplayText = `${townHost}/tracker?driver=1`;
+  const trackerUrl = townOrigin;
+  const trackerDisplayText = townHost;
+  const beaconUrl = `${townOrigin}/beacon`;
 
   // Parse street list safely
   const streetList = (streets && streets.length > 0)

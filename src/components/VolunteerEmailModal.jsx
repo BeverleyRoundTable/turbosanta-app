@@ -13,8 +13,6 @@ export default function VolunteerEmailModal({
   initialRouteName = 'all',
   onSuccess
 }) {
-  if (!isOpen) return null;
-
   const [selectedRoute, setSelectedRoute] = useState(initialRouteName || 'all');
   const [selectedTemplate, setSelectedTemplate] = useState('briefing');
   const [subject, setSubject] = useState('');
@@ -155,11 +153,14 @@ ${tableName} Organizers`
 
   // Populate initial text on open or route change
   useEffect(() => {
+    if (!isOpen) return;
     const t = getTemplateContent(selectedTemplate, selectedRoute);
     setSubject(t.subject);
     setBodyText(t.body);
     setFeedback(null);
-  }, [selectedRoute]);
+  }, [isOpen, selectedRoute]);
+
+  if (!isOpen) return null;
 
   const handleSelectTemplate = (templateKey) => {
     setSelectedTemplate(templateKey);

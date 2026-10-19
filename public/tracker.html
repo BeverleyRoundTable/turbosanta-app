@@ -1100,6 +1100,17 @@
 
       function normalizeApiData(data) {
         if (!data || typeof data !== 'object') return data;
+        const tbl = data.table || {};
+        const mMode = tbl.music_mode || data.settings?.music_mode || 'none';
+        const resolvedMusicUrl = mMode === 'none'
+          ? ''
+          : (mMode === 'default'
+              ? 'https://turbosanta-api.beverley247.workers.dev/cdn/global/round_table_christmas.mp3'
+              : (tbl.music_custom_url || tbl.background_music_url || data.settings?.background_music_url || ''));
+        const isGaEnabled = tbl.enable_gift_aid !== undefined
+          ? (tbl.enable_gift_aid === true || tbl.enable_gift_aid === 1 || tbl.enable_gift_aid === '1' || tbl.enable_gift_aid === 'true')
+          : (data.settings?.enable_gift_aid === true || data.settings?.enable_gift_aid === 1 || data.settings?.enable_gift_aid === '1' || data.settings?.enable_gift_aid === 'true');
+
         if (data.table && !data.settings) {
           data.settings = {
             sleigh_display_name: data.table.sleigh_display_name || (data.table.name ? `${data.table.name} Santa Sleigh` : 'Santa Sleigh'),
@@ -1109,12 +1120,13 @@
             donate_url: data.table.donate_url || '',
             live_announcement: data.table.live_announcement || '',
             sleigh_icon_live: data.table.sleigh_icon_live || '',
-            background_music_url: data.table.background_music_url || '',
-            enable_gift_aid: data.table.enable_gift_aid !== undefined ? data.table.enable_gift_aid : false
+            background_music_url: resolvedMusicUrl,
+            enable_gift_aid: isGaEnabled
           };
         } else if (data.settings && data.table) {
-          if (data.settings.enable_gift_aid === undefined && data.table.enable_gift_aid !== undefined) {
-            data.settings.enable_gift_aid = data.table.enable_gift_aid;
+          data.settings.enable_gift_aid = isGaEnabled;
+          if (!data.settings.background_music_url && resolvedMusicUrl) {
+            data.settings.background_music_url = resolvedMusicUrl;
           }
           if (!data.settings.sleigh_icon_live && data.table.sleigh_icon_live) {
             data.settings.sleigh_icon_live = data.table.sleigh_icon_live;

@@ -2858,9 +2858,13 @@
                 };
                 if (!autoDonateParamHandled) {
                     const params = new URLSearchParams(window.location.search);
-                    if (params.get('donate') === '1' && settings.enable_gift_aid) {
+                    if (params.get('donate') === '1') {
                         autoDonateParamHandled = true;
-                        setTimeout(() => openGiftAidCheckoutModal(donateUrl, settings), 400);
+                        if (settings.enable_gift_aid) {
+                            setTimeout(() => openGiftAidCheckoutModal(donateUrl, settings), 400);
+                        } else {
+                            window.location.href = donateUrl;
+                        }
                     }
                 }
             } else {
@@ -4261,7 +4265,10 @@
                     music_custom_url: tbl.music_custom_url || stg.music_custom_url || '',
                     music_loop: tbl.music_loop !== undefined ? tbl.music_loop : (stg.music_loop !== undefined ? stg.music_loop : true),
                     music_volume: tbl.music_volume !== undefined ? tbl.music_volume : (stg.music_volume !== undefined ? stg.music_volume : 0.5),
-                    music_autoplay: tbl.music_autoplay !== undefined ? tbl.music_autoplay : (stg.music_autoplay !== undefined ? stg.music_autoplay : true)
+                    music_autoplay: tbl.music_autoplay !== undefined ? tbl.music_autoplay : (stg.music_autoplay !== undefined ? stg.music_autoplay : true),
+                    enable_gift_aid: tbl.enable_gift_aid !== undefined
+                        ? (tbl.enable_gift_aid === true || tbl.enable_gift_aid === 1 || tbl.enable_gift_aid === '1' || tbl.enable_gift_aid === 'true')
+                        : (stg.enable_gift_aid === true || stg.enable_gift_aid === 1 || stg.enable_gift_aid === '1' || stg.enable_gift_aid === 'true')
                 },
                 donations: {
                     total: tbl.total_raised ?? data.donations?.total ?? 0,

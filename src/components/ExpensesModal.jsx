@@ -24,8 +24,6 @@ export default function ExpensesModal({
   grossRaised = 0,
   giftAid = 0
 }) {
-  if (!isOpen) return null;
-
   const [activeView, setActiveView] = useState('log'); // 'log' | 'breakdown'
   const [items, setItems] = useState([]);
   const [notes, setNotes] = useState('');
@@ -40,6 +38,7 @@ export default function ExpensesModal({
 
   // Initial Data Loading & Backward Compatibility
   useEffect(() => {
+    if (!isOpen) return;
     let parsed = null;
     try {
       if (initialExpensesJson) {
@@ -107,6 +106,8 @@ export default function ExpensesModal({
       setNotes('');
     }
   }, [initialExpenses, initialExpensesJson, isOpen]);
+
+  if (!isOpen) return null;
 
   // Aggregate Category Totals & Grand Total from items
   const categoryTotals = CATEGORIES.reduce((acc, cat) => {

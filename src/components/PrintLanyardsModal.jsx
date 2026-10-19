@@ -11,8 +11,6 @@ export default function PrintLanyardsModal({
   enableGiftAid = true,
   adminSecret = ''
 }) {
-  if (!isOpen) return null;
-
   const [activeTab, setActiveTab] = useState('lanyards'); // 'lanyards' | 'poster'
   const [qrTarget, setQrTarget] = useState('donate'); // 'donate' | 'tracker'
 
@@ -159,6 +157,8 @@ export default function PrintLanyardsModal({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, activeTab, qrTarget, enableGiftAid]);
+
+  if (!isOpen) return null;
 
   return (
     <div style={{
