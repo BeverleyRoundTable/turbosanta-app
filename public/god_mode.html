@@ -491,16 +491,18 @@ async function init() {
   let adminSession = null;
   try { adminSession = JSON.parse(localStorage.getItem('turbosanta_admin_session') || '{}'); } catch(e) {}
 
-  let secret = urlToken || hashToken || cookieToken || sessionStorage.getItem('sleighSecret') || adminSession?.googleCredential || adminSession?.token;
+  let secret = urlToken || hashToken || cookieToken || sessionStorage.getItem('sleighSecret') || adminSession?.token || adminSession?.googleCredential;
 
   if (secret) {
     sessionStorage.setItem('sleighSecret', secret);
 
     let email = adminSession?.email || '';
-    if (!email && secret.startsWith('ts2_')) {
+    if (!email && secret.startsWith('ts2_sig_')) {
       try {
-        const raw = atob(secret.slice(4));
-        email = raw.split('_')[0] || '';
+        const bodyPart = secret.slice(8).split('.')[0];
+        const b64 = bodyPart.replace(/-/g, '+').replace(/_/g, '/');
+        const p = JSON.parse(atob(b64));
+        if (p?.email) email = p.email;
       } catch(e) {}
     } else if (!email && secret.includes('.')) {
       try {

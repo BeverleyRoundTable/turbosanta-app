@@ -1256,7 +1256,7 @@ function initGoogleAuth() {
   }
 }
 
-function handleGoogleCredentialResponse(response) {
+async function handleGoogleCredentialResponse(response) {
   const payload = parseJwt(response.credential);
   if (!payload || !payload.email) {
     showAuthError("Invalid Google credential. Please try signing in again.");
@@ -1274,6 +1274,19 @@ function handleGoogleCredentialResponse(response) {
     return;
   }
 
+  let signedToken = response?.credential || '';
+  try {
+    const sessRes = await fetch("https://turbosanta-api.beverley247.workers.dev/api/auth/google-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ credential: response.credential, tableSlug: "national" })
+    });
+    const sessData = await sessRes.json().catch(() => ({}));
+    if (sessRes.ok && sessData.token) {
+      signedToken = sessData.token;
+    }
+  } catch (e) {}
+
   // Approved! Create and persist national session
   const adminSession = {
     email: email,
@@ -1281,7 +1294,7 @@ function handleGoogleCredentialResponse(response) {
     picture: payload.picture || '',
     role: 'national_admin',
     isNationalAdmin: true,
-    token: response?.credential || `ts2_${btoa(email + '_' + Date.now())}`,
+    token: signedToken,
     googleCredential: response?.credential || null,
     authenticatedAt: new Date().toISOString()
   };
@@ -2103,7 +2116,10 @@ const TOWN_COORDINATES = {
   'newark': [53.0768, -0.8085],
   'ringwood': [50.8466, -1.7915],
   'abergavenny': [51.8228, -3.0180],
-  'carrick': [54.7158, -5.8080]
+  'carrick': [54.7158, -5.8080],
+  'stockton': [54.5694, -1.3175],
+  'loughborough': [52.7721, -1.2062],
+  'ellon': [57.3639, -2.0734]
 };
 
 const ROUTE_PALETTE = ['#FBAF33', '#4a9eff', '#2ecc71', '#e74c3c', '#9b59b6', '#1abc9c', '#e67e22', '#3498db', '#fd79a8', '#00cec9'];
@@ -2119,7 +2135,10 @@ function getTableColor(tableSlug, index = 0) {
     'newark': '#e67e22',
     'ringwood': '#1abc9c',
     'abergavenny': '#fd79a8',
-    'carrick': '#00cec9'
+    'carrick': '#00cec9',
+    'stockton': '#e11d48',
+    'loughborough': '#059669',
+    'ellon': '#6366f1'
   };
   return tableColors[tableSlug] || ROUTE_PALETTE[index % ROUTE_PALETTE.length];
 }

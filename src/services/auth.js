@@ -65,17 +65,28 @@ export function isNationalAdmin(email) {
 }
 
 /**
- * Returns a cryptographically valid table admin token for Cloudflare D1 verification
+ * Returns the cryptographically signed admin session token issued by the Cloudflare Worker
  */
-export function getAdminAuthToken(tableSlug = "beverley") {
+export function getAdminAuthToken() {
   const session = getCurrentSession();
-  const rawSlug = (tableSlug || session?.tableSlug || session?.tableId || "beverley").toLowerCase().trim();
-  const slug = normalizeTableSlug(rawSlug);
-  let email = session?.email;
-  if (!email || !isRoundTableEmail(email)) {
-    email = slug === "beverley" ? "beverley247@roundtable.org.uk" : `${slug}@roundtable.org.uk`;
+  if (session?.token && (session.token.startsWith("ts2_sig_") || session.token.includes("."))) {
+    return session.token;
   }
-  return `ts2_${btoa(`${email}_${Date.now()}`)}`;
+  if (session?.googleCredential && session.googleCredential.includes(".")) {
+    return session.googleCredential;
+  }
+  try {
+    if (typeof document !== "undefined" && document.cookie) {
+      const m = document.cookie.match(/(?:^|;\s*)turbosanta_auth_token=([^;]+)/);
+      if (m && m[1]) {
+        const cookieTok = decodeURIComponent(m[1]).trim();
+        if (cookieTok.startsWith("ts2_sig_") || cookieTok.includes(".")) {
+          return cookieTok;
+        }
+      }
+    }
+  } catch (e) {}
+  return "";
 }
 
 /**
@@ -183,38 +194,42 @@ export async function requestMagicLink(email) {
 }
 
 /**
- * Verifies the 6-digit code or table password and creates an authenticated session
+ * Verifies the 6-digit code and creates an authenticated session with a server-signed HMAC token
  */
 export async function verifyMagicLink(email, enteredCode) {
   const cleanEmail = email.trim().toLowerCase();
   const code = (enteredCode || '').trim();
 
   if (!code) {
-    throw new Error("Please enter your verification code or table password.");
+    throw new Error("Please enter your verification code.");
   }
 
   const details = parseTableDetailsFromEmail(cleanEmail);
   const isNational = isNationalAdmin(cleanEmail);
 
-  // 1. Verify with Cloudflare Worker OTP backend if code was provided
+  // Verify with Cloudflare Worker OTP backend and receive HMAC-signed session token
   let verifiedOnWorker = false;
+  let signedToken = "";
   try {
     const res = await fetch(`${WORKER_API}/api/auth/verify-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: cleanEmail, code })
+      body: JSON.stringify({ email: cleanEmail, code, tableSlug: details?.slug || "beverley" })
     });
     const result = await res.json();
-    if (result.ok) verifiedOnWorker = true;
+    if (result.ok && result.token) {
+      verifiedOnWorker = true;
+      signedToken = result.token;
+    }
   } catch (e) {}
 
-  if (!verifiedOnWorker) {
+  if (!verifiedOnWorker || !signedToken) {
     throw new Error("Invalid verification code. Please check your official Round Table inbox.");
   }
 
   const isGenericNational = isNational && (!details || !details.slug || ['national', 'rtbi', 'admin', 'president', 'vicepresident', 'cs', 'it'].includes(details.slug));
 
-  // Authentication succeeded! Create authenticated session
+  // Authentication succeeded! Create authenticated session with server-signed token
   const session = {
     email: cleanEmail,
     tableId: isGenericNational ? null : details.slug,
@@ -227,7 +242,7 @@ export async function verifyMagicLink(email, enteredCode) {
     role: isNational ? "national_admin" : "table_admin",
     isNationalAdmin: isNational,
     authenticatedAt: new Date().toISOString(),
-    token: `ts2_${btoa(`${cleanEmail}_${Date.now()}`)}`
+    token: signedToken
   };
 
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
@@ -271,7 +286,7 @@ export function parseGoogleCredential(idToken) {
 }
 
 /**
- * Signs in using official Google Workspace OAuth 2.0 credential
+ * Signs in using official Google Workspace OAuth 2.0 credential and exchanges for a 30-day HMAC-signed session token
  */
 export async function loginWithGoogleWorkspace(credential) {
   if (!credential || typeof credential !== 'string' || !credential.includes('.')) {
@@ -296,6 +311,31 @@ export async function loginWithGoogleWorkspace(credential) {
   const details = parseTableDetailsFromEmail(cleanEmail);
   const isNational = isNationalAdmin(cleanEmail);
   const isGenericNational = isNational && (!details || !details.slug || ['national', 'rtbi', 'admin', 'president', 'vicepresident', 'cs', 'it'].includes(details.slug));
+
+  let signedSessionToken = credential;
+  try {
+    const res = await fetch(`${WORKER_API}/api/auth/google-session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        credential,
+        tableSlug: isGenericNational ? "national" : (details?.slug || "beverley")
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || "Google Sign-In verification failed on server.");
+    }
+    if (data.ok && data.token) {
+      signedSessionToken = data.token;
+    }
+  } catch (err) {
+    if (err.message && err.message.includes("Access Denied")) {
+      throw err;
+    }
+    console.warn("Could not exchange Google JWT for signed session token, using raw Google JWT:", err);
+  }
+
   const session = {
     email: cleanEmail,
     displayName: payload.name || (isGenericNational ? 'National Fleet Admin' : details.tableName),
@@ -311,7 +351,7 @@ export async function loginWithGoogleWorkspace(credential) {
     isNationalAdmin: isNational,
     authenticatedAt: new Date().toISOString(),
     provider: "google_workspace",
-    token: credential,
+    token: signedSessionToken,
     googleCredential: credential
   };
 
@@ -329,6 +369,23 @@ export function getCurrentSession() {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed) {
+        // Reject legacy unsigned client-fabricated ts2_ tokens
+        if (parsed.token && parsed.token.startsWith("ts2_") && !parsed.token.startsWith("ts2_sig_")) {
+          if (parsed.googleCredential && parsed.googleCredential.includes(".")) {
+            parsed.token = parsed.googleCredential;
+            try { localStorage.setItem(SESSION_KEY, JSON.stringify(parsed)); } catch (e) {}
+          } else {
+            logout();
+            return null;
+          }
+        }
+        if (!parsed.token && parsed.googleCredential && parsed.googleCredential.includes(".")) {
+          parsed.token = parsed.googleCredential;
+        }
+        if (!parsed.token) {
+          logout();
+          return null;
+        }
         if (parsed.email && isRoundTableEmail(parsed.email)) {
           const details = parseTableDetailsFromEmail(parsed.email);
           const isNational = isNationalAdmin(parsed.email);
@@ -343,11 +400,6 @@ export function getCurrentSession() {
               try { localStorage.setItem(SESSION_KEY, JSON.stringify(parsed)); } catch(e) {}
             }
           }
-        }
-        if (!parsed.token && !parsed.googleCredential) {
-          const email = parsed.email || 'beverley247@roundtable.org.uk';
-          parsed.token = `ts2_${btoa(`${email}_${Date.now()}`)}`;
-          try { localStorage.setItem(SESSION_KEY, JSON.stringify(parsed)); } catch(e) {}
         }
         syncAuthCookie(parsed.token || parsed.googleCredential);
         return parsed;

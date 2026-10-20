@@ -735,24 +735,26 @@ const STATE = {
   allVolunteers: []
 };
 
-function getAuthSecret(slug) {
-  const pSecret = params.get('secret');
+function getAuthSecret() {
+  const pSecret = params.get('secret') || params.get('token');
   if (pSecret) return pSecret;
   try {
     const raw = localStorage.getItem('turbosanta_admin_session');
     if (raw) {
       const sess = JSON.parse(raw);
-      if (sess && (sess.googleCredential || sess.token)) {
-        return sess.googleCredential || sess.token;
+      if (sess && sess.token && (sess.token.startsWith('ts2_sig_') || sess.token.includes('.'))) {
+        return sess.token;
       }
-      if (sess && sess.email && (sess.email.endsWith('@roundtable.org.uk') || sess.email.endsWith('@roundtable.co.uk'))) {
-        return `ts2_${btoa(`${sess.email}_${Date.now()}`)}`;
+      if (sess && sess.googleCredential) {
+        return sess.googleCredential;
       }
     }
+    const cookieMatch = document.cookie.match(/(?:^|;\s*)turbosanta_auth_token=([^;]+)/);
+    if (cookieMatch && cookieMatch[1]) {
+      return decodeURIComponent(cookieMatch[1]).trim();
+    }
   } catch (e) {}
-  const normalizedSlug = (slug || 'beverley').toLowerCase().trim();
-  const email = normalizedSlug === 'beverley' ? 'beverley247@roundtable.org.uk' : `${normalizedSlug}@roundtable.org.uk`;
-  return `ts2_${btoa(`${email}_${Date.now()}`)}`;
+  return '';
 }
 
 init();

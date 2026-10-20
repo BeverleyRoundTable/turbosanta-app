@@ -3,7 +3,7 @@ import { getCurrentSession, getAdminAuthToken } from './auth';
 export const API_BASE = "https://turbosanta-api.beverley247.workers.dev";
 const LOCAL_AGENT_URL = "http://127.0.0.1:8080";
 
-function getAuthHeaders(explicitSecret, tableSlug = "beverley") {
+export function getAuthHeaders(explicitSecret, tableSlug = "beverley") {
   const headers = { "Content-Type": "application/json" };
   const token = explicitSecret || getAdminAuthToken(tableSlug);
   if (token) {
@@ -247,12 +247,16 @@ export async function uploadAssetToR2(file, tableSlug = "beverley") {
       else contentType = "image/png";
     }
 
-    const res = await fetch(`${API_BASE}/api/upload?table=${encodeURIComponent(tableSlug)}`, {
+    const token = getAdminAuthToken(tableSlug);
+    const headers = { "Content-Type": contentType };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${API_BASE}/api/upload?table=${encodeURIComponent(tableSlug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
       method: "POST",
       body: file,
-      headers: {
-        "Content-Type": contentType
-      }
+      headers
     });
     if (res.ok) {
       const data = await res.json();
@@ -328,11 +332,7 @@ export async function sendElfChatMessage(message, tableData) {
 export async function saveTableSettings(tableSlug = "beverley", settings = {}, explicitSecret = null) {
   try {
     const slug = (tableSlug || "beverley").toLowerCase().trim();
-    const session = getCurrentSession();
-    let token = explicitSecret || session?.token || session?.googleCredential;
-    if (!token || (!token.startsWith("ts2_") && !token.includes("beverley247") && !token.includes("."))) {
-      token = getAdminAuthToken(slug);
-    }
+    const token = explicitSecret || getAdminAuthToken(slug);
 
     const bodyPayload = {
       ...settings,
@@ -341,23 +341,11 @@ export async function saveTableSettings(tableSlug = "beverley", settings = {}, e
       secret: token
     };
 
-    let res = await fetch(`${API_BASE}/api/table/settings?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(token)}`, {
+    const res = await fetch(`${API_BASE}/api/table/settings?table=${encodeURIComponent(slug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
       method: "POST",
       headers: getAuthHeaders(token, slug),
       body: JSON.stringify(bodyPayload)
     });
-
-    // If 401 unauthorized, automatically self-heal and retry using fresh table admin token
-    if (res.status === 401) {
-      console.warn("Retrying saveTableSettings with fresh table admin token...");
-      const healToken = getAdminAuthToken(slug);
-      bodyPayload.secret = healToken;
-      res = await fetch(`${API_BASE}/api/table/settings?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(healToken)}`, {
-        method: "POST",
-        headers: getAuthHeaders(healToken, slug),
-        body: JSON.stringify(bodyPayload)
-      });
-    }
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
@@ -511,31 +499,15 @@ export async function testSantaVoice(message = "When are you visiting our town?"
 export async function saveRoute(tableSlug = "beverley", route = {}, streets = [], explicitSecret = null) {
   try {
     const slug = (tableSlug || "beverley").toLowerCase().trim();
-    const session = getCurrentSession();
-    let token = explicitSecret || session?.token || session?.googleCredential;
-    if (!token || (!token.startsWith("ts2_") && !token.includes("beverley247") && !token.includes("."))) {
-      token = getAdminAuthToken(slug);
-    }
+    const token = explicitSecret || getAdminAuthToken(slug);
 
     const bodyPayload = { route, streets, tableSlug: slug, table: slug, secret: token };
 
-    let res = await fetch(`${API_BASE}/api/routes?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(token)}`, {
+    const res = await fetch(`${API_BASE}/api/routes?table=${encodeURIComponent(slug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
       method: "POST",
       headers: getAuthHeaders(token, slug),
       body: JSON.stringify(bodyPayload)
     });
-
-    // If 401 unauthorized, automatically self-heal and retry using fresh table admin token
-    if (res.status === 401) {
-      console.warn("Retrying saveRoute with fresh table admin token...");
-      const healToken = getAdminAuthToken(slug);
-      bodyPayload.secret = healToken;
-      res = await fetch(`${API_BASE}/api/routes?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(healToken)}`, {
-        method: "POST",
-        headers: getAuthHeaders(healToken, slug),
-        body: JSON.stringify(bodyPayload)
-      });
-    }
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
@@ -551,25 +523,12 @@ export async function saveRoute(tableSlug = "beverley", route = {}, streets = []
 export async function deleteRoute(tableSlug = "beverley", routeId = "", explicitSecret = null) {
   try {
     const slug = (tableSlug || "beverley").toLowerCase().trim();
-    const session = getCurrentSession();
-    let token = explicitSecret || session?.token || session?.googleCredential;
-    if (!token || (!token.startsWith("ts2_") && !token.includes("beverley247") && !token.includes("."))) {
-      token = getAdminAuthToken(slug);
-    }
+    const token = explicitSecret || getAdminAuthToken(slug);
 
-    let res = await fetch(`${API_BASE}/api/routes?table=${encodeURIComponent(slug)}&id=${encodeURIComponent(routeId)}&secret=${encodeURIComponent(token)}`, {
+    const res = await fetch(`${API_BASE}/api/routes?table=${encodeURIComponent(slug)}&id=${encodeURIComponent(routeId)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
       method: "DELETE",
       headers: getAuthHeaders(token, slug)
     });
-
-    if (res.status === 401) {
-      console.warn("Retrying deleteRoute with fresh table admin token...");
-      const healToken = getAdminAuthToken(slug);
-      res = await fetch(`${API_BASE}/api/routes?table=${encodeURIComponent(slug)}&id=${encodeURIComponent(routeId)}&secret=${encodeURIComponent(healToken)}`, {
-        method: "DELETE",
-        headers: getAuthHeaders(healToken, slug)
-      });
-    }
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
@@ -738,11 +697,7 @@ export async function clearSubscribers(tableSlug = "beverley", explicitSecret = 
 export async function sendVolunteerBroadcastEmail(tableSlug = "beverley", { routeName, subject, message, testOnly, testEmail }, explicitSecret = null) {
   try {
     const slug = (tableSlug || "beverley").toLowerCase().trim();
-    const session = getCurrentSession();
-    let token = explicitSecret || session?.token || session?.googleCredential;
-    if (!token || (!token.startsWith("ts2_") && !token.includes("beverley247") && !token.includes("."))) {
-      token = getAdminAuthToken(slug);
-    }
+    const token = explicitSecret || getAdminAuthToken(slug);
 
     const bodyPayload = {
       routeName,
@@ -755,22 +710,11 @@ export async function sendVolunteerBroadcastEmail(tableSlug = "beverley", { rout
       secret: token
     };
 
-    let res = await fetch(`${API_BASE}/api/volunteers/email?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(token)}`, {
+    const res = await fetch(`${API_BASE}/api/volunteers/email?table=${encodeURIComponent(slug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
       method: "POST",
       headers: getAuthHeaders(token, slug),
       body: JSON.stringify(bodyPayload)
     });
-
-    if (res.status === 401) {
-      console.warn("Retrying sendVolunteerBroadcastEmail with fresh table admin token...");
-      const healToken = getAdminAuthToken(slug);
-      bodyPayload.secret = healToken;
-      res = await fetch(`${API_BASE}/api/volunteers/email?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(healToken)}`, {
-        method: "POST",
-        headers: getAuthHeaders(healToken, slug),
-        body: JSON.stringify(bodyPayload)
-      });
-    }
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
@@ -787,11 +731,7 @@ export async function sendVolunteerBroadcastEmail(tableSlug = "beverley", { rout
 export async function triggerAutomatedCrewBriefings(tableSlug = "beverley", { routeId, dryRun = false, testEmail = null } = {}, explicitSecret = null) {
   try {
     const slug = (tableSlug || "beverley").toLowerCase().trim();
-    const session = getCurrentSession();
-    let token = explicitSecret || session?.token || session?.googleCredential;
-    if (!token || (!token.startsWith("ts2_") && !token.includes("beverley247") && !token.includes("."))) {
-      token = getAdminAuthToken(slug);
-    }
+    const token = explicitSecret || getAdminAuthToken(slug);
 
     const bodyPayload = {
       route_id: routeId,
@@ -802,21 +742,11 @@ export async function triggerAutomatedCrewBriefings(tableSlug = "beverley", { ro
       secret: token
     };
 
-    let res = await fetch(`${API_BASE}/api/volunteers/auto-briefing?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(token)}`, {
+    const res = await fetch(`${API_BASE}/api/volunteers/auto-briefing?table=${encodeURIComponent(slug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
       method: "POST",
       headers: getAuthHeaders(token, slug),
       body: JSON.stringify(bodyPayload)
     });
-
-    if (res.status === 401) {
-      const healToken = getAdminAuthToken(slug);
-      bodyPayload.secret = healToken;
-      res = await fetch(`${API_BASE}/api/volunteers/auto-briefing?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(healToken)}`, {
-        method: "POST",
-        headers: getAuthHeaders(healToken, slug),
-        body: JSON.stringify(bodyPayload)
-      });
-    }
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
@@ -830,13 +760,9 @@ export async function triggerAutomatedCrewBriefings(tableSlug = "beverley", { ro
 export async function fetchAutomatedCrewBriefingStatus(tableSlug = "beverley", explicitSecret = null) {
   try {
     const slug = (tableSlug || "beverley").toLowerCase().trim();
-    const session = getCurrentSession();
-    let token = explicitSecret || session?.token || session?.googleCredential;
-    if (!token || (!token.startsWith("ts2_") && !token.includes("beverley247") && !token.includes("."))) {
-      token = getAdminAuthToken(slug);
-    }
+    const token = explicitSecret || getAdminAuthToken(slug);
 
-    const res = await fetch(`${API_BASE}/api/volunteers/auto-briefing?table=${encodeURIComponent(slug)}&dry_run=1&secret=${encodeURIComponent(token)}`, {
+    const res = await fetch(`${API_BASE}/api/volunteers/auto-briefing?table=${encodeURIComponent(slug)}&dry_run=1${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
       headers: getAuthHeaders(token, slug)
     });
 

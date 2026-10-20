@@ -1206,22 +1206,26 @@ function routeColour(index) {
   return `hsl(${hue}, ${tier.s}%, ${tier.l}%)`;
 }
 
-function getAdminSecret(tableSlug) {
+function getAdminSecret() {
   try {
+    const pSecret = params.get('secret') || params.get('token');
+    if (pSecret) return pSecret;
     const sessionStr = localStorage.getItem("turbosanta_admin_session");
     if (sessionStr) {
       const session = JSON.parse(sessionStr);
-      if (session.token && (session.token.startsWith("ts2_") || session.token.includes("beverley247") || session.token.includes("."))) {
+      if (session.token && (session.token.startsWith("ts2_sig_") || session.token.includes("."))) {
         return session.token;
       }
-      if (session.email) {
-        return `ts2_${btoa(`${session.email}_${Date.now()}`)}`;
+      if (session.googleCredential && session.googleCredential.includes(".")) {
+        return session.googleCredential;
       }
     }
+    const cookieMatch = document.cookie.match(/(?:^|;\s*)turbosanta_auth_token=([^;]+)/);
+    if (cookieMatch && cookieMatch[1]) {
+      return decodeURIComponent(cookieMatch[1]).trim();
+    }
   } catch(e) {}
-  const slug = (tableSlug || "beverley").toLowerCase().trim();
-  const email = slug === "beverley" ? "beverley247@roundtable.org.uk" : `${slug}@roundtable.org.uk`;
-  return `ts2_${btoa(`${email}_${Date.now()}`)}`;
+  return "";
 }
 
 function populateRouteSelect(preferredRouteId = null) {
@@ -1430,10 +1434,13 @@ ${trkpts}
     let gpxUrl = null;
 
     try {
-      const uploadRes = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/upload?table=${encodeURIComponent(tableParam)}`, {
+      const uploadTok = getAdminSecret(tableParam);
+      const uploadHeaders = { 'Content-Type': 'application/gpx+xml' };
+      if (uploadTok) uploadHeaders['Authorization'] = 'Bearer ' + uploadTok;
+      const uploadRes = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/upload?table=${encodeURIComponent(tableParam)}${uploadTok ? `&secret=${encodeURIComponent(uploadTok)}` : ''}`, {
         method: 'POST',
         body: blob,
-        headers: { 'Content-Type': 'application/gpx+xml' }
+        headers: uploadHeaders
       });
       if (uploadRes.ok) {
         const uploadJson = await uploadRes.json();

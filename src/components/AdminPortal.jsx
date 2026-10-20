@@ -550,7 +550,10 @@ ${tableName} Organizers`
   React.useEffect(() => {
     if (activeTab === 'memory') {
       const tableSlug = session?.tableId || session?.tableSlug || 'beverley';
-      fetch(`https://turbosanta-api.beverley247.workers.dev/api/memory-book?table=${encodeURIComponent(tableSlug)}&year=${selectedSeason}&admin=1`)
+      const token = getAdminAuthToken(tableSlug);
+      fetch(`https://turbosanta-api.beverley247.workers.dev/api/memory-book?table=${encodeURIComponent(tableSlug)}&year=${selectedSeason}&admin=1${token ? `&secret=${encodeURIComponent(token)}` : ''}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      })
         .then(res => res.json())
         .then(data => {
           if (data && Array.isArray(data.items)) {
@@ -584,15 +587,19 @@ ${tableName} Organizers`
 
   const handleModerateMemory = async (itemId, newStatus) => {
     const tableSlug = session?.tableId || session?.tableSlug || 'beverley';
+    const token = getAdminAuthToken(tableSlug);
     setMemoryItems(prev => prev.map(m => String(m.id) === String(itemId) ? { ...m, status: newStatus } : m));
     setSaveStatus(`Photo status updated to "${newStatus}"!`);
     setTimeout(() => setSaveStatus(''), 2500);
 
     try {
-      await fetch(`https://turbosanta-api.beverley247.workers.dev/api/memory-book/moderate?table=${encodeURIComponent(tableSlug)}`, {
+      await fetch(`https://turbosanta-api.beverley247.workers.dev/api/memory-book/moderate?table=${encodeURIComponent(tableSlug)}${token ? `&secret=${encodeURIComponent(token)}` : ''}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: itemId, status: newStatus })
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ id: itemId, status: newStatus, secret: token })
       });
     } catch (e) {
       console.warn("Failed to update status on worker:", e);
@@ -602,6 +609,7 @@ ${tableName} Organizers`
   const handleDeleteMemory = async (itemId) => {
     if (!confirm("Are you sure you want to permanently delete this photo submission?")) return;
     const tableSlug = session?.tableId || session?.tableSlug || 'beverley';
+    const token = getAdminAuthToken(tableSlug);
     setMemoryItems(prev => prev.filter(m => String(m.id) !== String(itemId)));
     setStorageQuota(prev => ({
       ...prev,
@@ -612,8 +620,9 @@ ${tableName} Organizers`
     setTimeout(() => setSaveStatus(''), 2500);
 
     try {
-      await fetch(`https://turbosanta-api.beverley247.workers.dev/api/memory-book?table=${encodeURIComponent(tableSlug)}&id=${encodeURIComponent(itemId)}`, {
-        method: 'DELETE'
+      await fetch(`https://turbosanta-api.beverley247.workers.dev/api/memory-book?table=${encodeURIComponent(tableSlug)}&id=${encodeURIComponent(itemId)}${token ? `&secret=${encodeURIComponent(token)}` : ''}`, {
+        method: 'DELETE',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
     } catch (e) {
       console.warn("Failed to delete memory item on worker:", e);
@@ -625,10 +634,12 @@ ${tableName} Organizers`
       return;
     }
     const tableSlug = session?.tableId || session?.tableSlug || 'beverley';
+    const token = getAdminAuthToken(tableSlug);
     setSaveStatus(`Purging ${yearToPurge} media from Cloudflare bucket...`);
     try {
-      const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/memory-book?table=${encodeURIComponent(tableSlug)}&purgeYear=${yearToPurge}`, {
-        method: 'DELETE'
+      const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/memory-book?table=${encodeURIComponent(tableSlug)}&purgeYear=${yearToPurge}${token ? `&secret=${encodeURIComponent(token)}` : ''}`, {
+        method: 'DELETE',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       if (res.ok) {
         const removedCount = memoryItems.filter(m => m.year === String(yearToPurge)).length;
@@ -1317,6 +1328,11 @@ ${tableName} Organizers`
   const [webhookSecret, setWebhookSecret] = useState(
     tableData?.table?.zeffy_webhook_secret || 'whsec_' + (session?.tableSlug || 'beverley') + '_2026'
   );
+  React.useEffect(() => {
+    if (tableData?.table?.zeffy_webhook_secret) {
+      setWebhookSecret(tableData.table.zeffy_webhook_secret);
+    }
+  }, [tableData?.table?.zeffy_webhook_secret]);
   const [testDonationAmount, setTestDonationAmount] = useState('10.00');
   const [testDonorName, setTestDonorName] = useState('Festive Supporter');
   const [isSendingTestWebhook, setIsSendingTestWebhook] = useState(false);
@@ -1712,13 +1728,17 @@ ${tableName} Organizers`
     }
   };
 
-  const generateWebhookSecret = () => {
+  const generateWebhookSecret = async () => {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
     let code = '';
-    for (let i = 0; i < 12; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-    const newSecret = `whsec_${session?.tableSlug || 'table'}_${code}`;
+    for (let i = 0; i < 16; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+    const slug = session?.tableSlug || tableData?.table?.slug || 'beverley';
+    const newSecret = `whsec_${slug}_${code}`;
     setWebhookSecret(newSecret);
-    setSaveStatus('Generated new secure webhook secret key!');
+    try {
+      await saveTableSettings(slug, { zeffy_webhook_secret: newSecret });
+    } catch (e) {}
+    setSaveStatus('Generated and saved new secure webhook secret key!');
     setTimeout(() => setSaveStatus(''), 3000);
   };
 
@@ -1734,6 +1754,7 @@ ${tableName} Organizers`
     const donor = testDonorName || 'Festive Supporter';
     const provider = selectedWebhookProvider;
     const slug = session?.tableSlug || tableData?.table?.slug || 'beverley';
+    const adminToken = getAdminAuthToken(slug);
 
     try {
       const url = `https://turbosanta-api.beverley247.workers.dev/api/webhooks/${provider}?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(webhookSecret)}&dry_run=true`;
@@ -1752,10 +1773,16 @@ ${tableName} Organizers`
 
       const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(adminToken ? { 'Authorization': `Bearer ${adminToken}` } : {})
+        },
         body: JSON.stringify(testPayload)
       });
       const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
 
       // Confetti celebration!
       confetti({

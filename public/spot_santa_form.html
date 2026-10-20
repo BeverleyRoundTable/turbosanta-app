@@ -336,23 +336,34 @@
 
   // Parse GPX XML text into array of [lat, lng]
   function parseGPXCoords(xmlStr) {
+    if (!xmlStr || typeof xmlStr !== 'string') return [];
+    const coords = [];
     try {
-      const cleanXml = xmlStr.replace(/xmlns(:\w+)?=".*?"/g, '');
       const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(cleanXml, "text/xml");
-      const trackPoints = xmlDoc.getElementsByTagName("trkpt");
-      const coords = [];
-      for (let i = 0; i < trackPoints.length; i++) {
-        const lat = parseFloat(trackPoints[i].getAttribute("lat"));
-        const lon = parseFloat(trackPoints[i].getAttribute("lon"));
-        if (!isNaN(lat) && !isNaN(lon)) {
-          coords.push([lat, lon]);
+      const xmlDoc = parser.parseFromString(xmlStr, "text/xml");
+      if (xmlDoc.getElementsByTagName("parsererror").length === 0) {
+        let pts = xmlDoc.getElementsByTagName("trkpt");
+        if (!pts || pts.length === 0) pts = xmlDoc.getElementsByTagName("rtept");
+        for (let i = 0; i < pts.length; i++) {
+          const lat = parseFloat(pts[i].getAttribute("lat"));
+          const lon = parseFloat(pts[i].getAttribute("lon"));
+          if (!isNaN(lat) && !isNaN(lon)) {
+            coords.push([lat, lon]);
+          }
         }
       }
-      return coords;
-    } catch (e) {
-      return [];
+    } catch (e) {}
+
+    if (coords.length === 0) {
+      const ptRegex = /<(?:trkpt|rtept)\s+[^>]*?(?:lat=["']([^"']+)["'][^>]*?lon=["']([^"']+)["']|lon=["']([^"']+)["'][^>]*?lat=["']([^"']+)["'])[^>]*>/gi;
+      let match;
+      while ((match = ptRegex.exec(xmlStr)) !== null) {
+        const lat = parseFloat(match[1] !== undefined ? match[1] : match[4]);
+        const lon = parseFloat(match[2] !== undefined ? match[2] : match[3]);
+        if (!isNaN(lat) && !isNaN(lon)) coords.push([lat, lon]);
+      }
     }
+    return coords;
   }
 
   // Fetch Table Route GPX or Fallback to RTBI Headquarters

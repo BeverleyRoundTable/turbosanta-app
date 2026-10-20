@@ -770,22 +770,50 @@
   }
 
   function parseGPXToLineString(xmlStr) {
-    const cleanXmlStr = xmlStr.replace(/xmlns(:\w+)?=".*?"/g, '');
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(cleanXmlStr, "text/xml");
-    const trackPoints = xmlDoc.getElementsByTagName("trkpt");
-
+    if (!xmlStr || typeof xmlStr !== 'string') return null;
     const coords = [];
-    for (let i = 0; i < trackPoints.length; i++) {
-      const lat = parseFloat(trackPoints[i].getAttribute("lat"));
-      const lon = parseFloat(trackPoints[i].getAttribute("lon"));
-      if (!isNaN(lat) && !isNaN(lon)) {
-        coords.push([lon, lat]); 
+    try {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlStr, "text/xml");
+      const hasError = xmlDoc.getElementsByTagName("parsererror").length > 0;
+      
+      if (!hasError) {
+        let pts = xmlDoc.getElementsByTagName("trkpt");
+        if (!pts || pts.length === 0) {
+          pts = xmlDoc.getElementsByTagName("rtept");
+        }
+        for (let i = 0; i < pts.length; i++) {
+          const lat = parseFloat(pts[i].getAttribute("lat"));
+          const lon = parseFloat(pts[i].getAttribute("lon"));
+          if (!isNaN(lat) && !isNaN(lon)) {
+            coords.push([lon, lat]);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("DOMParser failed on GPX, trying fallback:", e);
+    }
+
+    // Resilient fallback for any malformed GPX or namespace issue
+    if (coords.length < 2) {
+      coords.length = 0;
+      const ptRegex = /<(?:trkpt|rtept)\s+[^>]*?(?:lat=["']([^"']+)["'][^>]*?lon=["']([^"']+)["']|lon=["']([^"']+)["'][^>]*?lat=["']([^"']+)["'])[^>]*>/gi;
+      let match;
+      while ((match = ptRegex.exec(xmlStr)) !== null) {
+        const lat = parseFloat(match[1] !== undefined ? match[1] : match[4]);
+        const lon = parseFloat(match[2] !== undefined ? match[2] : match[3]);
+        if (!isNaN(lat) && !isNaN(lon)) {
+          coords.push([lon, lat]);
+        }
       }
     }
 
     if (coords.length > 1) {
-      return turf.lineString(coords);
+      try {
+        return turf.lineString(coords);
+      } catch (e) {
+        console.warn("Turf lineString failed:", e);
+      }
     }
     return null;
   }
