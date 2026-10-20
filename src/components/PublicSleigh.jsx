@@ -133,7 +133,7 @@ export const PUBLIC_FEATURE_CATALOG = {
     titleHighlight: 'MAILBOX',
     description: "Record and post your digital voice messages and festive questions directly to Santa's elves in Lapland.",
     embedSrc: (slug) => `/magic_mailbox.html?table=${encodeURIComponent(slug)}`,
-    fullscreenSrc: (slug) => `/magic_mailbox.html?table=${encodeURIComponent(slug)}`,
+    fullscreenSrc: (slug) => typeof window !== 'undefined' && window.location.hostname.includes('roundtablesantasleigh.co.uk') ? `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/magic_mailbox` : `/magic_mailbox.html?table=${encodeURIComponent(slug)}`,
     fullscreenLabel: 'Open Magic Mailbox Full-Screen',
     height: 700,
     maxWidth: 840,
@@ -176,7 +176,7 @@ export const PUBLIC_FEATURE_CATALOG = {
     titleHighlight: 'SANTA',
     description: "Children and families can speak directly with Santa in Lapland! Ask when he is visiting your street, how Rudolph is doing, or hear a jolly festive story.",
     embedSrc: (slug) => `/santa_chat.html?table=${encodeURIComponent(slug)}`,
-    fullscreenSrc: (slug) => `/santa_chat.html?table=${encodeURIComponent(slug)}`,
+    fullscreenSrc: (slug) => typeof window !== 'undefined' && window.location.hostname.includes('roundtablesantasleigh.co.uk') ? `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/santa_chat` : `/santa_chat.html?table=${encodeURIComponent(slug)}`,
     fullscreenLabel: 'Open Voice Hotline Full-Screen',
     height: 680,
     maxWidth: 760,
@@ -736,7 +736,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
 
   const resolveSlot = (slotVal) => {
     if (!slotVal || slotVal === 'none' || slotVal === 'disabled' || slotVal === '') return null;
-    if (slotVal === 'santa_chat' && !isBeverley) return null;
+    // santa_chat permitted for any table configured with it
     return slotVal;
   };
 

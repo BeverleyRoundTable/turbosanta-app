@@ -37,7 +37,7 @@ export const PUBLIC_SLOT_OPTIONS = [
   { id: 'letter', label: 'Letter to Santa (Wish List Writer)', desc: 'Festive letter stationery for children to write wish lists straight to Lapland.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/letter` },
   { id: 'magic_mailbox', label: 'Magic Lapland Mailbox (Voice Messages)', desc: 'Digital mailbox allowing children to record audio messages directly for Santa.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/magic_mailbox` },
   { id: 'nice_list', label: 'Official Lapland Nice List Certificate', desc: 'Customizable certificate proving the child made Santa Good List this Christmas.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/nice_list` },
-  { id: 'santa_chat', label: 'Santa AI Voice Call (ElevenLabs Voice Hotline)', desc: 'Interactive voice call with Santa powered by ElevenLabs conversational AI.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/santa_chat.html` },
+  { id: 'santa_chat', label: 'Santa AI Voice Call (ElevenLabs Voice Hotline)', desc: 'Interactive voice call with Santa powered by ElevenLabs conversational AI.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/santa_chat` },
   { id: 'adopt_reindeer', label: 'Adopt an Official Sleigh Reindeer', desc: 'Adopt Rudolph, Dasher, Prancer, or Comet and print an adoption certificate.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/adopt_reindeer` },
   { id: 'santa_frame', label: 'Santa Visited Photo Frame Stamper', desc: 'Commemorative photo frame to stamp family pictures with date of Santa visit.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/santa_frame` },
   { id: 'santa_bot', label: 'Santa AI Chatbot (Interactive Talking Hotline)', desc: 'Universal AI Santa chatbot for families to message Santa directly about routes, reindeer, bedtime, and Lapland magic.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/santa_bot` },
@@ -10259,7 +10259,7 @@ ${tableName} Organizers`
                 </button>
 
                 <a
-                  href={`/santa_studio.html?table=${encodeURIComponent(currentTableSlug)}`}
+                  href={`https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/santa_studio`}
                   target="_blank"
                   rel="noreferrer"
                   className="btn-primary"
@@ -10389,7 +10389,7 @@ ${tableName} Organizers`
                       When children record audio messages to Santa on your public site (via the <strong>Magic Mailbox</strong> feature slot), they will appear here instantly for Santa and your volunteers to listen and record personal voice replies!
                     </p>
                     <a
-                      href={`/magic_mailbox.html?table=${encodeURIComponent(currentTableSlug)}`}
+                      href={`https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/magic_mailbox`}
                       target="_blank"
                       rel="noreferrer"
                       style={{

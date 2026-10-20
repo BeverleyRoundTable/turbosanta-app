@@ -40,17 +40,12 @@
 
   body {
     font-family: 'Open Sans', sans-serif;
-    /* FIXED: Made background transparent to support varied host website colors */
-    background: transparent; 
-    color: var(--text);
+    background:
+      radial-gradient(ellipse 700px 500px at 50% 0%, rgba(var(--primary-rgb, 251, 175, 51), 0.12), transparent 70%),
+      var(--dark, #0d0d0b);
+    color: var(--text, #eaeae5);
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
-    /* Optional: If you want to keep the radial glow but still be transparent, 
-       you can leave this in, but it might clash with bright host sites. 
-       Usually better to let the host site dictate the background. */
-    /* background:
-      radial-gradient(ellipse 600px 400px at 50% 0%, rgba(251,175,51,0.08), transparent 60%),
-      var(--dark); */
   }
 
   .app { 
@@ -65,7 +60,7 @@
     font-size: 56px; letter-spacing: 2px; color: #fff;
     line-height: 1; margin-bottom: 8px;
   }
-  header h1 span { color: var(--gold); }
+  header h1 span { color: var(--primary, var(--gold, #FBAF33)); }
   header p { color: var(--text-dim); font-size: 15px; font-weight: 500; }
 
   .panel {
@@ -103,19 +98,21 @@
   }
   .record-btn {
     width: 168px; height: 168px; border-radius: 50%;
-    border: 4px solid var(--border-gold);
+    border: 4px solid var(--primary, var(--gold, #FBAF33));
     background: radial-gradient(circle at 30% 30%, #2a2a26, var(--surface-2));
-    color: var(--gold);
+    color: #ffffff; /* Explicit white text for high contrast on dark button */
     font-family: 'Eurostile', sans-serif;
-    font-size: 22px; letter-spacing: 1.5px;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
     cursor: pointer; transition: all 0.2s;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 6px;
-    box-shadow: 0 0 0 0 var(--gold-glow);
+    box-shadow: 0 0 25px rgba(var(--primary-rgb, 251, 175, 51), 0.35);
   }
   .record-btn:hover { border-color: var(--gold); transform: scale(1.02); }
   .record-btn:active { transform: scale(0.97); }
-  .record-btn .mic { font-size: 56px; line-height: 1; }
+  .record-btn .mic { font-size: 52px; line-height: 1; color: var(--primary, var(--gold, #FBAF33)); }
   .record-btn.recording {
     border-color: var(--red);
     background: radial-gradient(circle at 30% 30%, #3a1818, #1f0d0d);
@@ -194,8 +191,8 @@
     transition: transform 0.1s, background 0.2s; text-align: center;
   }
   .btn:active { transform: scale(0.97); }
-  .btn-gold { background: var(--gold); color: #000; }
-  .btn-gold:hover:not(:disabled) { background: #e59d28; }
+  .btn-gold { background: var(--primary, var(--gold)); color: var(--on-primary, #ffffff); font-weight: 800; box-shadow: 0 4px 14px rgba(0,0,0,0.3); }
+  .btn-gold:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
   .btn-gold:disabled { opacity: 0.5; cursor: not-allowed; }
   .btn-ghost {
     background: var(--surface-2); color: var(--text-dim);
@@ -207,7 +204,7 @@
   .status { text-align: center; padding: 48px 20px; color: var(--text-dim); font-size: 14px; font-weight: 500; }
   .spinner {
     width: 36px; height: 36px; border: 3px solid var(--border);
-    border-top-color: var(--gold); border-radius: 50%;
+    border-top-color: var(--primary, var(--gold)); border-radius: 50%;
     animation: spin 0.7s linear infinite; margin: 0 auto 16px;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -216,7 +213,7 @@
   .success-card { text-align: center; padding: 32px 16px; }
   .success-card .star { font-size: 64px; margin-bottom: 12px; line-height: 1; }
   .success-card h2 {
-    font-family: 'Eurostile', sans-serif; font-size: 36px; color: var(--gold);
+    font-family: 'Eurostile', sans-serif; font-size: 36px; color: var(--primary, var(--gold));
     letter-spacing: 1.5px; margin-bottom: 12px; line-height: 1;
   }
   .success-card p {
@@ -236,11 +233,12 @@
 
   .closed-donate {
     display: inline-block; margin-top: 24px; padding: 14px 28px;
-    background: var(--gold); color: #000; font-weight: 700; font-size: 15px;
+    background: var(--primary, var(--gold)); color: var(--on-primary, #ffffff); font-weight: 800; font-size: 15px;
     border-radius: 8px; text-decoration: none;
-    transition: background 0.2s, transform 0.1s;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+    transition: filter 0.2s, transform 0.1s;
   }
-  .closed-donate:hover { background: #e59d28; }
+  .closed-donate:hover { filter: brightness(1.1); }
   .closed-donate:active { transform: scale(0.97); }
 
   .hidden { display: none !important; }
