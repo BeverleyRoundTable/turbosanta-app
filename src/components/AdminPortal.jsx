@@ -760,6 +760,7 @@ ${tableName} Organizers`
     try {
       const endpointsToTry = [
         `/api/magic-mailbox?table=${encodeURIComponent(tableSlug)}${token ? `&secret=${encodeURIComponent(token)}` : ''}`,
+        `https://roundtablesantasleigh.co.uk/api/magic-mailbox?table=${encodeURIComponent(tableSlug)}${token ? `&secret=${encodeURIComponent(token)}` : ''}`,
         `https://turbosanta-api.beverley247.workers.dev/api/magic-mailbox?table=${encodeURIComponent(tableSlug)}${token ? `&secret=${encodeURIComponent(token)}` : ''}`
       ];
       let data = null;
@@ -10201,6 +10202,443 @@ ${tableName} Organizers`
                 ));
               })()}
             </div>
+          </div>
+        )}
+
+        
+        {/* TAB: MAGIC MAILBOX (VOICE MESSAGES & SANTA STUDIO) */}
+        {activeTab === 'mailbox' && (
+          <div>
+            {/* Header & Santa Studio Launcher */}
+            <div style={{
+              background: '#151513',
+              border: '1px solid var(--border)',
+              borderRadius: '16px',
+              padding: 'clamp(16px, 4vw, 28px)',
+              marginBottom: '20px',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '16px'
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                  <Mic size={24} color="var(--primary)" />
+                  <h2 className="brand-font" style={{ fontSize: 'clamp(20px, 4vw, 26px)', margin: 0, color: '#fff' }}>
+                    MAGIC LAPLAND MAILBOX (VOICE MESSAGES)
+                  </h2>
+                </div>
+                <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0, lineHeight: 1.5 }}>
+                  Listen to voice messages recorded by local children and record personal voice replies directly from Santa!
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={fetchMailboxQueue}
+                  disabled={isMailboxLoading}
+                  style={{
+                    background: '#222',
+                    border: '1px solid var(--border)',
+                    color: '#fff',
+                    borderRadius: '8px',
+                    padding: '10px 16px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <RefreshCw size={15} className={isMailboxLoading ? 'animate-spin' : ''} />
+                  <span>{isMailboxLoading ? 'Refreshing...' : 'Refresh Queue'}</span>
+                </button>
+
+                <a
+                  href={`/santa_studio.html?table=${encodeURIComponent(currentTableSlug)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn-primary"
+                  style={{
+                    padding: '10px 18px',
+                    fontSize: '13px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    textDecoration: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 700
+                  }}
+                >
+                  <ExternalLink size={15} />
+                  <span>Open Santa Studio Full-Screen &rarr;</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Stats Dashboard */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+              gap: '12px',
+              marginBottom: '20px'
+            }}>
+              <div style={{ background: '#111', border: '1px solid var(--border)', borderRadius: '10px', padding: '14px', textAlign: 'center' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Pending Replies</div>
+                <div style={{ fontSize: '24px', fontWeight: 800, color: '#f59e0b' }}>{mailboxStats.pending || 0}</div>
+              </div>
+              <div style={{ background: '#111', border: '1px solid var(--border)', borderRadius: '10px', padding: '14px', textAlign: 'center' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Replied Today</div>
+                <div style={{ fontSize: '24px', fontWeight: 800, color: '#22c55e' }}>{mailboxStats.repliedToday || 0}</div>
+              </div>
+              <div style={{ background: '#111', border: '1px solid var(--border)', borderRadius: '10px', padding: '14px', textAlign: 'center' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Flagged / Archived</div>
+                <div style={{ fontSize: '24px', fontWeight: 800, color: '#ef4444' }}>{mailboxStats.flagged || 0}</div>
+              </div>
+              <div style={{ background: '#111', border: '1px solid var(--border)', borderRadius: '10px', padding: '14px', textAlign: 'center' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Total Received</div>
+                <div style={{ fontSize: '24px', fontWeight: 800, color: '#fff' }}>{mailboxStats.total || mailboxMessages.length || 0}</div>
+              </div>
+            </div>
+
+            {/* Filter Selector */}
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              marginBottom: '18px',
+              borderBottom: '1px solid var(--border)',
+              paddingBottom: '12px',
+              flexWrap: 'wrap'
+            }}>
+              {[
+                { id: 'pending', label: `Pending (${mailboxStats.pending || 0})` },
+                { id: 'replied', label: `Replied (${mailboxStats.repliedToday || 0})` },
+                { id: 'flagged', label: `Flagged (${mailboxStats.flagged || 0})` },
+                { id: 'all', label: `All (${mailboxMessages.length || 0})` }
+              ].map(f => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setMailboxFilter(f.id)}
+                  style={{
+                    background: mailboxFilter === f.id ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                    color: mailboxFilter === f.id ? '#000' : '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '6px 14px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Messages List or Empty State */}
+            {(() => {
+              const filtered = mailboxMessages.filter(m => {
+                if (mailboxFilter === 'pending') return !m.replied_at && !m.flagged;
+                if (mailboxFilter === 'replied') return Boolean(m.replied_at);
+                if (mailboxFilter === 'flagged') return Boolean(m.flagged);
+                return true;
+              });
+
+              if (isMailboxLoading && mailboxMessages.length === 0) {
+                return (
+                  <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
+                    <RefreshCw size={32} className="animate-spin" style={{ margin: '0 auto 12px' }} />
+                    <p style={{ fontSize: '14px' }}>Loading Santa's Voice Mailbox...</p>
+                  </div>
+                );
+              }
+
+              if (filtered.length === 0) {
+                return (
+                  <div style={{
+                    background: '#151513',
+                    border: '1px solid var(--border)',
+                    borderRadius: '16px',
+                    padding: '48px 24px',
+                    textAlign: 'center',
+                    maxWidth: '560px',
+                    margin: '0 auto'
+                  }}>
+                    <div style={{
+                      width: '64px',
+                      height: '64px',
+                      borderRadius: '50%',
+                      background: 'rgba(251, 175, 51, 0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 16px'
+                    }}>
+                      <Mic size={32} color="var(--primary)" />
+                    </div>
+                    <h3 className="brand-font" style={{ fontSize: '20px', color: '#fff', marginBottom: '8px' }}>
+                      {mailboxFilter === 'pending' ? "No Pending Voice Messages" : "No Messages in this Folder"}
+                    </h3>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '13px', lineHeight: 1.6, margin: '0 0 16px 0' }}>
+                      When children record audio messages to Santa on your public site (via the <strong>Magic Mailbox</strong> feature slot), they will appear here instantly for Santa and your volunteers to listen and record personal voice replies!
+                    </p>
+                    <a
+                      href={`/magic_mailbox.html?table=${encodeURIComponent(currentTableSlug)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        color: 'var(--primary)',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        textDecoration: 'none'
+                      }}
+                    >
+                      <ExternalLink size={13} />
+                      <span>Preview Public Magic Mailbox Recorder &rarr;</span>
+                    </a>
+                  </div>
+                );
+              }
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {filtered.map(msg => {
+                    const isRecording = activeRecordingId === msg.id;
+                    const hasRecordedReply = Boolean(recordedUrlMap[msg.id]);
+
+                    return (
+                      <div
+                        key={msg.id}
+                        style={{
+                          background: '#151513',
+                          border: msg.flagged ? '1px solid rgba(239, 68, 68, 0.4)' : (msg.replied_at ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid var(--border)'),
+                          borderRadius: '12px',
+                          padding: '18px 20px',
+                          boxShadow: '0 4px 14px rgba(0,0,0,0.3)'
+                        }}
+                      >
+                        {/* Message Meta Row */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
+                          <div>
+                            <span style={{ fontSize: '16px', fontWeight: 800, color: '#fff', marginRight: '8px' }}>
+                              {msg.child_name || 'Anonymous Child'}
+                              {msg.child_age ? ` (Age ${msg.child_age})` : ''}
+                            </span>
+                            {msg.parent_email && (
+                              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                                • {msg.parent_email}
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {msg.flagged ? (
+                              <span style={{ fontSize: '11px', background: 'rgba(239,68,68,0.2)', color: '#fca5a5', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                                🚩 Flagged
+                              </span>
+                            ) : msg.replied_at ? (
+                              <span style={{ fontSize: '11px', background: 'rgba(34,197,94,0.2)', color: '#86efac', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                                ✓ Replied by {msg.reply_volunteer || 'Santa'}
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '11px', background: 'rgba(245,158,11,0.2)', color: '#fcd34d', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                                ⏳ Pending Reply
+                              </span>
+                            )}
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                              {msg.created_at ? new Date(msg.created_at).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }) : ''}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Child Voice Player */}
+                        <div style={{ background: '#0a0a09', padding: '10px 14px', borderRadius: '8px', marginBottom: '14px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            Child's Voice Recording:
+                          </div>
+                          <audio
+                            controls
+                            src={msg.audio_url || msg.intake_audio_url}
+                            style={{ width: '100%', height: '36px' }}
+                            preload="none"
+                          />
+                        </div>
+
+                        {/* Santa Voice Reply Section */}
+                        {msg.reply_audio_url ? (
+                          <div style={{ background: 'rgba(34, 197, 94, 0.05)', padding: '12px 14px', borderRadius: '8px', border: '1px solid rgba(34, 197, 94, 0.2)', marginBottom: '12px' }}>
+                            <div style={{ fontSize: '12px', fontWeight: 700, color: '#86efac', marginBottom: '4px' }}>
+                              🎅 Santa's Delivered Voice Reply:
+                            </div>
+                            <audio
+                              controls
+                              src={msg.reply_audio_url}
+                              style={{ width: '100%', height: '36px' }}
+                              preload="none"
+                            />
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                              Replied by <strong>{msg.reply_volunteer || 'Santa Claus'}</strong> on {new Date(msg.replied_at).toLocaleString('en-GB')}.
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ background: 'rgba(251, 175, 51, 0.04)', padding: '14px', borderRadius: '8px', border: '1px solid rgba(251, 175, 51, 0.2)', marginBottom: '12px' }}>
+                            <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--primary)', marginBottom: '6px' }}>
+                              🎙️ Record Santa's Voice Reply:
+                            </div>
+
+                            {isRecording ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.5)', padding: '8px 14px', borderRadius: '6px', color: '#fca5a5', fontWeight: 700, fontSize: '13px' }}>
+                                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
+                                  <span>Recording Voice... {recordingSeconds}s / 90s</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={stopRecordingReply}
+                                  style={{
+                                    background: '#ef4444',
+                                    color: '#fff',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    padding: '8px 16px',
+                                    fontWeight: 700,
+                                    fontSize: '13px',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  ■ Stop &amp; Review
+                                </button>
+                              </div>
+                            ) : hasRecordedReply ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                <audio controls src={recordedUrlMap[msg.id]} style={{ width: '100%', height: '36px' }} />
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                  <input
+                                    type="text"
+                                    value={replyVolunteerName}
+                                    onChange={(e) => setReplyVolunteerName(e.target.value)}
+                                    placeholder="Your Name (e.g. Santa Claus)"
+                                    style={{
+                                      background: '#000',
+                                      border: '1px solid var(--border)',
+                                      borderRadius: '6px',
+                                      padding: '8px 12px',
+                                      color: '#fff',
+                                      fontSize: '12px',
+                                      flex: '1 1 180px'
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => submitSantaReply(msg.id)}
+                                    disabled={isSubmittingReply}
+                                    style={{
+                                      background: '#22c55e',
+                                      color: '#000',
+                                      border: 'none',
+                                      borderRadius: '6px',
+                                      padding: '8px 18px',
+                                      fontWeight: 800,
+                                      fontSize: '13px',
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px'
+                                    }}
+                                  >
+                                    <Send size={14} />
+                                    <span>{isSubmittingReply ? 'Sending Reply...' : 'Deliver Santa Reply!'}</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => resetRecordingReply(msg.id)}
+                                    style={{
+                                      background: 'transparent',
+                                      color: 'var(--text-muted)',
+                                      border: '1px solid var(--border)',
+                                      borderRadius: '6px',
+                                      padding: '8px 12px',
+                                      fontSize: '12px',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    Discard &amp; Re-record
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => startRecordingReply(msg.id)}
+                                style={{
+                                  background: 'var(--primary)',
+                                  color: '#000',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  padding: '8px 16px',
+                                  fontWeight: 800,
+                                  fontSize: '13px',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '6px'
+                                }}
+                              >
+                                <Mic size={15} />
+                                <span>Record Santa Voice Reply</span>
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Actions Row */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleFlagMailboxMessage(msg.id, msg.flagged)}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: msg.flagged ? '#86efac' : '#fca5a5',
+                              fontSize: '11px',
+                              cursor: 'pointer',
+                              textDecoration: 'underline'
+                            }}
+                          >
+                            {msg.flagged ? 'Unflag' : 'Flag / Archive'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteMailboxMessage(msg.id)}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: 'rgba(239, 68, 68, 0.6)',
+                              fontSize: '11px',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <Trash2 size={12} />
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         )}
 
