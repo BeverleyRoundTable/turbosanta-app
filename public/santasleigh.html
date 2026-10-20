@@ -1748,6 +1748,9 @@
         <div id="partners-container" class="partners-grid"></div>
     </section>
 
+    <!-- MODULAR PUBLIC FEATURE SLOTS (Placed Above Memory Book) -->
+    <div id="modular-feature-slots"></div>
+
     <!-- MEMORY BOOK SECTION -->
     <section id="memory-book">
         <div class="section-header">
@@ -1759,9 +1762,6 @@
             <iframe id="memory-book-iframe" height="900" scrolling="no" title="Santa Memory Book" loading="lazy" allow="camera; microphone; geolocation"></iframe>
         </div>
     </section>
-
-    <!-- MODULAR PUBLIC FEATURE SLOTS -->
-    <div id="modular-feature-slots"></div>
 
     <!-- Sponsors Section -->
     <section id="sponsors" style="display: none;">
@@ -3878,9 +3878,10 @@
             const accentHex = (settings && settings.accent_color) || '#FBAF33';
 
             const navLinks = document.querySelector('.nav-links');
+            const navMemoryBook = $('nav-memory-book');
             const navFaq = $('nav-faq');
             const navDonate = $('nav-donate');
-            const navAnchorTarget = navFaq || navDonate;
+            const navAnchorTarget = navMemoryBook || navFaq || navDonate;
 
             activeSlots.forEach(slot => {
                 if (navLinks) {

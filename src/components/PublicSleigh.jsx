@@ -861,10 +861,10 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
           <div className="public-navbar-links">
             <a href="#tracker" className="brand-font">Tracker</a>
             <a href="#routes" className="brand-font">Routes</a>
-            <a href="#photos" className="brand-font">Photos</a>
             {activeSlots.map(slot => (
               <a key={slot.id} href={`#${slot.anchorId}`} className="brand-font">{slot.navLabel}</a>
             ))}
+            <a href="#photos" className="brand-font">Photos</a>
             <a href="#faq" className="brand-font">FAQ</a>
             <a href="#donate" className="brand-font nav-donate-pill">Donate</a>
           </div>
@@ -1862,66 +1862,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
           );
         })()}
 
-        {/* 6. Community Polaroids Section (Embedding memory_book.html) */}
-        <section id="photos" style={{ padding: '60px 20px', maxWidth: '1000px', margin: '0 auto', scrollMarginTop: '80px', position: 'relative' }}>
-          <span id="memory-book" style={{ position: 'absolute', top: '-80px', left: 0, height: 1, width: 1, opacity: 0, pointerEvents: 'none' }} />
-          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-            <h2 className="brand-font" style={{ fontSize: '38px', color: '#FFFFFF', textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>
-              COMMUNITY <span style={{ color: 'var(--primary)' }}>POLAROIDS</span>
-            </h2>
-          {(() => {
-            const socialUrl = table.instagram_url || table.facebook_url || table.tiktok_url || '';
-            const match = socialUrl.match(/(?:@|instagram\.com\/|tiktok\.com\/@?|facebook\.com\/)([\w\.-]+)/i);
-            const handle = match && match[1] && !['profile.php', 'pages', 'groups'].includes(match[1].toLowerCase()) ? ('@' + match[1].replace(/\/$/, '')) : (isBeverley ? '@beverleyroundtable' : null);
-            return (
-              <p style={{ color: 'var(--text-muted)', fontSize: '16px' }}>
-                Spotted Santa? Snap a photo or video and pin your festive polaroids to our community wall!
-                {handle && (
-                  <span> Posting on socials? Tag us <strong
-                    style={{ color: 'var(--primary)', cursor: 'pointer' }}
-                    title="Tap to copy handle"
-                    onClick={(e) => {
-                      navigator.clipboard?.writeText(handle).then(() => {
-                        const target = e.currentTarget;
-                        const orig = target.textContent;
-                        target.textContent = 'Copied! ✓';
-                        setTimeout(() => { target.textContent = orig; }, 1500);
-                      }).catch(() => {});
-                    }}
-                  >{handle}</strong> so we can re-share!</span>
-                )}
-              </p>
-            );
-          })()}
-          </div>
-
-          <div style={{
-            width: '100%',
-            background: '#000000',
-            borderRadius: '16px',
-            border: '1px solid var(--border)',
-            overflow: 'hidden',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
-          }}>
-            <iframe
-              id="memory-book-iframe"
-              src={`/memory_book.html?table=${encodeURIComponent(activeTableSlug)}`}
-              height="960"
-              scrolling="no"
-              title="Community Polaroids"
-              loading="lazy"
-              allow="camera; microphone; geolocation"
-              style={{
-                width: '100%',
-                height: '960px',
-                border: 'none',
-                display: 'block'
-              }}
-            />
-          </div>
-        </section>
-
-        {/* MODULAR PUBLIC FEATURE SLOTS (Max 2 Slots: Underneath Memory Book & Above FAQ) */}
+        {/* MODULAR PUBLIC FEATURE SLOTS (Placed Above Memory Book) */}
         {activeSlots.map((slot) => {
           const isSlotSanta = slot.id === 'santa_chat';
           return (
@@ -2025,6 +1966,65 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
             </section>
           );
         })}
+
+        {/* 6. Community Polaroids Section (Embedding memory_book.html) */}
+        <section id="photos" style={{ padding: '60px 20px', maxWidth: '1000px', margin: '0 auto', scrollMarginTop: '80px', position: 'relative' }}>
+          <span id="memory-book" style={{ position: 'absolute', top: '-80px', left: 0, height: 1, width: 1, opacity: 0, pointerEvents: 'none' }} />
+          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+            <h2 className="brand-font" style={{ fontSize: '38px', color: '#FFFFFF', textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>
+              COMMUNITY <span style={{ color: 'var(--primary)' }}>POLAROIDS</span>
+            </h2>
+          {(() => {
+            const socialUrl = table.instagram_url || table.facebook_url || table.tiktok_url || '';
+            const match = socialUrl.match(/(?:@|instagram\.com\/|tiktok\.com\/@?|facebook\.com\/)([\w\.-]+)/i);
+            const handle = match && match[1] && !['profile.php', 'pages', 'groups'].includes(match[1].toLowerCase()) ? ('@' + match[1].replace(/\/$/, '')) : (isBeverley ? '@beverleyroundtable' : null);
+            return (
+              <p style={{ color: 'var(--text-muted)', fontSize: '16px' }}>
+                Spotted Santa? Snap a photo or video and pin your festive polaroids to our community wall!
+                {handle && (
+                  <span> Posting on socials? Tag us <strong
+                    style={{ color: 'var(--primary)', cursor: 'pointer' }}
+                    title="Tap to copy handle"
+                    onClick={(e) => {
+                      navigator.clipboard?.writeText(handle).then(() => {
+                        const target = e.currentTarget;
+                        const orig = target.textContent;
+                        target.textContent = 'Copied! ✓';
+                        setTimeout(() => { target.textContent = orig; }, 1500);
+                      }).catch(() => {});
+                    }}
+                  >{handle}</strong> so we can re-share!</span>
+                )}
+              </p>
+            );
+          })()}
+          </div>
+
+          <div style={{
+            width: '100%',
+            background: '#000000',
+            borderRadius: '16px',
+            border: '1px solid var(--border)',
+            overflow: 'hidden',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+          }}>
+            <iframe
+              id="memory-book-iframe"
+              src={`/memory_book.html?table=${encodeURIComponent(activeTableSlug)}`}
+              height="960"
+              scrolling="no"
+              title="Community Polaroids"
+              loading="lazy"
+              allow="camera; microphone; geolocation"
+              style={{
+                width: '100%',
+                height: '960px',
+                border: 'none',
+                display: 'block'
+              }}
+            />
+          </div>
+        </section>
 
         {/* 7. FAQ & Safety Section */}
         <section id="faq" style={{ padding: '60px 20px', maxWidth: '840px', margin: '0 auto', scrollMarginTop: '80px' }}>
