@@ -2111,21 +2111,7 @@ function shortenName(input) {
 // ═══════════════════════════════════════════════════════════
 // HYBRID MAP ENGINE (TOWN PINS, ROUTE TOGGLES & LIVE SLEIGHS)
 // ═══════════════════════════════════════════════════════════
-const TOWN_COORDINATES = {
-  'beverley': [53.8459, -0.4281],
-  'shirley': [52.4116, -1.8285],
-  'cheltenham': [51.8994, -2.0783],
-  'melton-mowbray': [52.7662, -0.8860],
-  'meltonmowbray': [52.7662, -0.8860],
-  'lichfield': [52.6835, -1.8262],
-  'newark': [53.0768, -0.8085],
-  'ringwood': [50.8466, -1.7915],
-  'abergavenny': [51.8228, -3.0180],
-  'carrick': [54.7158, -5.8080],
-  'stockton': [54.5694, -1.3175],
-  'loughborough': [52.7721, -1.2062],
-  'ellon': [57.3639, -2.0734]
-};
+
 
 const ROUTE_PALETTE = ['#FBAF33', '#4a9eff', '#2ecc71', '#e74c3c', '#9b59b6', '#1abc9c', '#e67e22', '#3498db', '#fd79a8', '#00cec9'];
 
@@ -2424,9 +2410,9 @@ async function renderMap(data) {
 
   for (const table of activeTables) {
     const slug = (table.slug || '').toLowerCase().trim();
-    let coords = TOWN_COORDINATES[slug];
+    let coords = null;
 
-    if (!coords && table.lat && table.lng && table.lat < 60 && table.lat > 49) {
+    if (table.lat && table.lng && table.lat < 60 && table.lat > 49) {
       coords = [table.lat, table.lng];
     }
     if (!coords && allNationalRoutes && allNationalRoutes.length) {
