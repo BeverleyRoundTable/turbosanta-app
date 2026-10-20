@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Radio, Megaphone, Settings, Calendar, Heart, Shield,
+  Radio, Megaphone, Settings, Mic, Calendar, Heart, Shield,
   LogOut, ExternalLink, Save, Download, CheckCircle2,
   Users, Plus, Trash2, Edit3, Smartphone, Code, Copy,
   MapPin, Bell, Activity, MessageSquare, Check, X, BookOpen, FileSpreadsheet,
@@ -736,6 +736,213 @@ ${tableName} Organizers`
     });
     setSaveStatus(`📥 Batch downloading ${seasonItems.length} media files for ${selectedSeason} season...`);
     setTimeout(() => setSaveStatus(''), 4000);
+  };
+
+  // Magic Mailbox Voice Recordings State & Handlers
+  const [mailboxMessages, setMailboxMessages] = useState([]);
+  const [mailboxStats, setMailboxStats] = useState({ pending: 0, repliedToday: 0, flagged: 0, total: 0 });
+  const [mailboxFilter, setMailboxFilter] = useState('pending');
+  const [isMailboxLoading, setIsMailboxLoading] = useState(false);
+  const [activeRecordingId, setActiveRecordingId] = useState(null);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [replyVolunteerName, setReplyVolunteerName] = useState(session?.name || 'Santa Claus');
+  const [recordedBlobMap, setRecordedBlobMap] = useState({});
+  const [recordedUrlMap, setRecordedUrlMap] = useState({});
+  const [isSubmittingReply, setIsSubmittingReply] = useState(false);
+  const mediaRecorderRef = React.useRef(null);
+  const recordingTimerRef = React.useRef(null);
+
+  const fetchMailboxQueue = async () => {
+    setIsMailboxLoading(true);
+    const tableSlug = currentTableSlug || session?.tableId || session?.tableSlug || 'beverley';
+    const token = getAdminAuthToken(tableSlug);
+    try {
+      const endpointsToTry = [
+        `/api/magic-mailbox?table=${encodeURIComponent(tableSlug)}${token ? `&secret=${encodeURIComponent(token)}` : ''}`,
+        `https://turbosanta-api.beverley247.workers.dev/api/magic-mailbox?table=${encodeURIComponent(tableSlug)}${token ? `&secret=${encodeURIComponent(token)}` : ''}`
+      ];
+      let data = null;
+      for (const ep of endpointsToTry) {
+        try {
+          const res = await fetch(ep, {
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+          });
+          if (res.ok) {
+            data = await res.json();
+            if (data && data.ok) break;
+          }
+        } catch(e) {}
+      }
+      if (data && data.ok) {
+        setMailboxMessages(data.messages || []);
+        if (data.stats) setMailboxStats(data.stats);
+      }
+    } catch (err) {
+      console.error("Failed to fetch mailbox queue:", err);
+    } finally {
+      setIsMailboxLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (activeTab === 'mailbox') {
+      fetchMailboxQueue();
+    }
+  }, [activeTab, currentTableSlug]);
+
+  const startRecordingReply = async (messageId) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeOptions = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];
+      let chosenMime = '';
+      for (const m of mimeOptions) {
+        if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) { chosenMime = m; break; }
+      }
+      const recorder = chosenMime ? new MediaRecorder(stream, { mimeType: chosenMime }) : new MediaRecorder(stream);
+      const chunks = [];
+      recorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunks.push(e.data); };
+      recorder.onstop = () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+        const url = URL.createObjectURL(blob);
+        setRecordedBlobMap(prev => ({ ...prev, [messageId]: blob }));
+        setRecordedUrlMap(prev => ({ ...prev, [messageId]: url }));
+        setActiveRecordingId(null);
+      };
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setActiveRecordingId(messageId);
+      setRecordingSeconds(0);
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingSeconds(s => {
+          if (s >= 90) {
+            stopRecordingReply();
+            return 90;
+          }
+          return s + 1;
+        });
+      }, 1000);
+    } catch(err) {
+      alert("Microphone access denied. Please check your browser microphone permissions.");
+      console.error(err);
+    }
+  };
+
+  const stopRecordingReply = () => {
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  const resetRecordingReply = (messageId) => {
+    setRecordedBlobMap(prev => {
+      const next = { ...prev };
+      delete next[messageId];
+      return next;
+    });
+    setRecordedUrlMap(prev => {
+      if (prev[messageId]) URL.revokeObjectURL(prev[messageId]);
+      const next = { ...prev };
+      delete next[messageId];
+      return next;
+    });
+  };
+
+  const submitSantaReply = async (messageId) => {
+    const blob = recordedBlobMap[messageId];
+    if (!blob) {
+      alert("Please record a Santa reply first!");
+      return;
+    }
+    setIsSubmittingReply(true);
+    const tableSlug = currentTableSlug || session?.tableId || session?.tableSlug || 'beverley';
+    const token = getAdminAuthToken(tableSlug);
+    try {
+      const audioData = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onloadend = () => resolve(r.result);
+        r.onerror = reject;
+        r.readAsDataURL(blob);
+      });
+
+      const payload = {
+        action: 'submitSantaReply',
+        messageId,
+        audioData,
+        audioMime: blob.type || 'audio/webm',
+        volunteer: replyVolunteerName || 'Santa Claus',
+        secret: token
+      };
+
+      const res = await fetch(`/api/magic-mailbox?table=${encodeURIComponent(tableSlug)}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(payload)
+      });
+      const result = await res.json();
+      if (!result.ok) throw new Error(result.error || 'Failed to submit Santa reply');
+
+      confetti({ particleCount: 75, spread: 60, origin: { y: 0.7 } });
+      alert(result.message || "Santa's magical voice reply delivered!");
+      resetRecordingReply(messageId);
+      await fetchMailboxQueue();
+    } catch(err) {
+      alert("Error sending reply: " + err.message);
+    } finally {
+      setIsSubmittingReply(false);
+    }
+  };
+
+  const handleFlagMailboxMessage = async (messageId, currentFlagged) => {
+    const tableSlug = currentTableSlug || session?.tableId || session?.tableSlug || 'beverley';
+    const token = getAdminAuthToken(tableSlug);
+    const reason = currentFlagged ? 'unflagged' : prompt('Reason for flagging (optional):', 'Inappropriate or blank audio');
+    if (reason === null) return;
+    try {
+      const res = await fetch(`/api/magic-mailbox?table=${encodeURIComponent(tableSlug)}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          action: 'flagMagicMailbox',
+          messageId,
+          reason,
+          secret: token
+        })
+      });
+      const result = await res.json();
+      if (!result.ok) throw new Error(result.error || 'Failed to flag message');
+      await fetchMailboxQueue();
+    } catch(e) {
+      alert('Error flagging message: ' + e.message);
+    }
+  };
+
+  const handleDeleteMailboxMessage = async (messageId) => {
+    if (!confirm('Are you sure you want to permanently delete this voice message?')) return;
+    const tableSlug = currentTableSlug || session?.tableId || session?.tableSlug || 'beverley';
+    const token = getAdminAuthToken(tableSlug);
+    try {
+      const res = await fetch(`/api/magic-mailbox?table=${encodeURIComponent(tableSlug)}&id=${encodeURIComponent(messageId)}${token ? `&secret=${encodeURIComponent(token)}` : ''}`, {
+        method: 'DELETE',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      const result = await res.json();
+      if (!result.ok) throw new Error(result.error || 'Failed to delete message');
+      await fetchMailboxQueue();
+    } catch(e) {
+      alert('Error deleting message: ' + e.message);
+    }
   };
 
   // Embed & Crew Alert State
@@ -2449,6 +2656,7 @@ ${tableName} Organizers`
             { id: 'season_wrap', label: 'Season Wrap & Analytics', icon: BarChart3 },
             { id: 'knowledge', label: 'Lessons Learned', icon: BookOpen },
             { id: 'memory', label: 'Polaroids & Media', icon: Camera },
+            { id: 'mailbox', label: 'Magic Mailbox (Voice)', icon: Mic },
             { id: 'migration', label: 'Sheets Importer', icon: FileSpreadsheet },
             { id: 'embeds', label: 'Embeds', icon: Code },
             { id: 'crew', label: 'Crew', icon: Bell },
