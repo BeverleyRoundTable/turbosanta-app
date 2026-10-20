@@ -1597,21 +1597,28 @@ async function loadAll(fetchRegistry = true, isBackground = false) {
   }
   
   try {
-    // 1. Fast-track fetch to TurboSanta D1 API directly, with proxy fallback
-    let payload;
-    try {
-      const d1Url = `https://turbosanta-api.beverley247.workers.dev/api/national?mode=${currentMode}&secret=${encodeURIComponent(savedPass)}`;
-      payload = await fetchWithTimeout(d1Url, 8000);
-      if (!payload || !payload.ok || !payload.tables) throw new Error('D1 national summary fallback');
-    } catch(d1Err) {
+    // 1. Fast-track fetch to National API: same-origin first, then worker fallback
+    let payload = null;
+    const endpointsToTry = [
+      `/api/national?mode=${currentMode}&secret=${encodeURIComponent(savedPass)}`,
+      `https://turbosanta-api.beverley247.workers.dev/api/national?mode=${currentMode}&secret=${encodeURIComponent(savedPass)}`,
+      `https://roundtablesantasleigh.co.uk/api/national?mode=${currentMode}&secret=${encodeURIComponent(savedPass)}`
+    ];
+
+    for (const ep of endpointsToTry) {
       try {
-        const targetScript = `${REGISTRY_URL}?function=getNationalSummary&secret=${encodeURIComponent(savedPass)}&mode=${currentMode}`;
-        const fastTrackUrl = `https://santaproxy.beverley247.workers.dev/?ttl=60&target=${encodeURIComponent(targetScript)}`;
-        payload = await fetchWithTimeout(fastTrackUrl, FETCH_TIMEOUT_MS);
-      } catch (proxyErr) {
-        console.warn("Proxy fallback also failed:", proxyErr);
-        payload = { ok: true, tables: results.length ? results : [] };
+        const res = await fetchWithTimeout(ep, 6000);
+        if (res && res.ok && Array.isArray(res.tables)) {
+          payload = res;
+          break;
+        }
+      } catch (err) {
+        console.warn("Endpoint failed, trying next:", ep, err);
       }
+    }
+
+    if (!payload) {
+      throw new Error("Unable to connect to National API. Please check connection.");
     }
     
     if (payload.error) {
@@ -1630,7 +1637,8 @@ async function loadAll(fetchRegistry = true, isBackground = false) {
     const errors = payload.errors || [];
 
     // ⭐ Accurately calculate completed vs planned routes & visited vs scheduled streets from live table schedules
-    if (currentMode === "live" && results.length > 0) {
+    const needsDetailFetch = results.some(t => t.routesPlanned === undefined);
+    if (needsDetailFetch && currentMode === "live" && results.length > 0) {
       await Promise.allSettled(results.map(async (table) => {
         if (table.api) {
           try {
@@ -2227,12 +2235,18 @@ async function loadNationalRoutes() {
   if (allNationalRoutes.length > 0 || isRoutesLoading) return;
   isRoutesLoading = true;
   try {
-    const res = await fetch("https://turbosanta-api.beverley247.workers.dev/api/national/routes?filter=all");
+    let res = await fetch("/api/national/routes?filter=all").catch(() => null);
+    if (!res || !res.ok) {
+      res = await fetch("https://turbosanta-api.beverley247.workers.dev/api/national/routes?filter=all").catch(() => null);
+    }
     if (res.ok) {
       const data = await res.json();
       allNationalRoutes = data.routes || [];
       if (natMap) {
         renderRoutesOnMap();
+        if (results && results.length) {
+          renderMap(results);
+        }
       }
     }
   } catch(e) {
@@ -2415,10 +2429,20 @@ async function renderMap(data) {
     if (table.lat && table.lng && table.lat < 60 && table.lat > 49) {
       coords = [table.lat, table.lng];
     }
+    if (!coords && table.todayGpx) {
+      let pts = gpxCache.get(table.todayRouteId || slug);
+      if (!pts) {
+        pts = await getRouteLatLngs({ id: table.todayRouteId || slug, gpxUrl: table.todayGpx });
+      }
+      if (pts && pts.length > 0) coords = pts[0];
+    }
     if (!coords && allNationalRoutes && allNationalRoutes.length) {
-      const tableRoute = allNationalRoutes.find(r => r.tableSlug === slug && gpxCache.has(r.id));
+      const tableRoute = allNationalRoutes.find(r => (r.tableSlug === slug || r.tableId === slug) && r.gpxUrl);
       if (tableRoute) {
-        const pts = gpxCache.get(tableRoute.id);
+        let pts = gpxCache.get(tableRoute.id);
+        if (!pts && tableRoute.gpxUrl) {
+          pts = await getRouteLatLngs(tableRoute);
+        }
         if (pts && pts.length > 0) coords = pts[0];
       }
     }
