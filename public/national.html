@@ -1846,8 +1846,6 @@ function renderLeaderboard(data) {
 }
 
 function renderCharts(data) {
-  const labels = data.map(d => shortenName(d));
-
   // Dynamically scale chart height with number of tables so rows never squash together
   const dynamicHeight = Math.max(260, (data.length * 30) + 50);
   document.querySelectorAll('.chart-container').forEach(el => {
@@ -1887,21 +1885,78 @@ function renderCharts(data) {
   Object.values(charts).forEach(c => { if (c && typeof c.destroy === 'function') c.destroy(); });
   charts = {};
 
+  // 1. Donations Chart (Sorted highest raised to lowest)
+  const donationsData = [...data].sort((a, b) => (b.raised || 0) - (a.raised || 0) || (b.netRaised || 0) - (a.netRaised || 0));
+  const donationsLabels = donationsData.map(d => shortenName(d));
+
   charts.donations = new Chart(document.getElementById('donationsChart'), {
     type: 'bar',
-    data: { labels, datasets: [{ data: data.map(d => d.raised), backgroundColor: getColors('251, 175, 51', data), borderRadius: 4 }] },
-    options: { ...chartDefaults, scales: { x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { family: 'DM Mono', size: 11 }, callback: v => '£' + v.toLocaleString() } }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'Open Sans', size: 12, weight: '600' } } } } }
+    data: {
+      labels: donationsLabels,
+      datasets: [{
+        data: donationsData.map(d => d.raised || 0),
+        backgroundColor: getColors('251, 175, 51', donationsData),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      ...chartDefaults,
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: {
+            color: 'rgba(255,255,255,0.3)',
+            font: { family: 'DM Mono', size: 11 },
+            callback: v => '£' + v.toLocaleString()
+          }
+        },
+        y: {
+          grid: { display: false },
+          ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'Open Sans', size: 12, weight: '600' } }
+        }
+      }
+    }
   });
+
+  // 2. Views Chart (Sorted highest views to lowest)
+  const viewsData = [...data].sort((a, b) => (b.views || 0) - (a.views || 0));
+  const viewsLabels = viewsData.map(d => shortenName(d));
 
   charts.views = new Chart(document.getElementById('viewsChart'), {
     type: 'bar',
-    data: { labels, datasets: [{ data: data.map(d => d.views), backgroundColor: getColors('156, 39, 176', data), borderRadius: 4 }] },
-    options: { ...chartDefaults, scales: { x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { family: 'DM Mono', size: 11 } } }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'Open Sans', size: 12, weight: '600' } } } } }
+    data: {
+      labels: viewsLabels,
+      datasets: [{
+        data: viewsData.map(d => d.views || 0),
+        backgroundColor: getColors('156, 39, 176', viewsData),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      ...chartDefaults,
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: 'rgba(255,255,255,0.3)', font: { family: 'DM Mono', size: 11 } }
+        },
+        y: {
+          grid: { display: false },
+          ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'Open Sans', size: 12, weight: '600' } }
+        }
+      }
+    }
   });
 
-  // Streets Chart (Visited vs Scheduled)
-  const streetsVisitedData = data.map(d => (d.streetsScheduled !== undefined ? (d.streets || 0) : 0));
-  const streetsRemainingData = data.map(d => {
+  // 3. Streets Chart (Sorted highest scheduled streets to lowest)
+  const streetsData = [...data].sort((a, b) => {
+    const aTotal = a.streetsScheduled !== undefined ? a.streetsScheduled : (a.streets || 0);
+    const bTotal = b.streetsScheduled !== undefined ? b.streetsScheduled : (b.streets || 0);
+    return bTotal - aTotal || (b.streets || 0) - (a.streets || 0);
+  });
+  const streetsLabels = streetsData.map(d => shortenName(d));
+
+  const streetsVisitedData = streetsData.map(d => (d.streetsScheduled !== undefined ? (d.streets || 0) : 0));
+  const streetsRemainingData = streetsData.map(d => {
     const total = d.streetsScheduled !== undefined ? d.streetsScheduled : (d.streets || 0);
     const visited = d.streetsScheduled !== undefined ? (d.streets || 0) : 0;
     return Math.max(0, total - visited);
@@ -1911,7 +1966,7 @@ function renderCharts(data) {
     {
       label: currentMode === "live" ? 'Visited' : 'Streets',
       data: streetsVisitedData,
-      backgroundColor: getColors('46, 204, 113', data),
+      backgroundColor: getColors('46, 204, 113', streetsData),
       borderRadius: 4
     }
   ];
@@ -1928,7 +1983,7 @@ function renderCharts(data) {
 
   charts.streets = new Chart(document.getElementById('streetsChart'), {
     type: 'bar',
-    data: { labels, datasets: streetsDatasets },
+    data: { labels: streetsLabels, datasets: streetsDatasets },
     options: {
       ...chartDefaults,
       interaction: { mode: 'index', intersect: false },
@@ -1949,7 +2004,7 @@ function renderCharts(data) {
           ...chartDefaults.plugins.tooltip,
           callbacks: {
             label: function(context) {
-              const d = data[context.dataIndex];
+              const d = streetsData[context.dataIndex];
               const visited = d.streetsScheduled !== undefined ? (d.streets || 0) : 0;
               const scheduled = d.streetsScheduled !== undefined ? d.streetsScheduled : (d.streets || 0);
               const remaining = Math.max(0, scheduled - visited);
@@ -1980,9 +2035,16 @@ function renderCharts(data) {
     }
   });
 
-  // Routes Chart (Completed vs Planned)
-  const routesCompletedData = data.map(d => (d.routesPlanned !== undefined ? (d.routes || 0) : 0));
-  const routesRemainingData = data.map(d => {
+  // 4. Routes Chart (Sorted highest planned routes to lowest)
+  const routesData = [...data].sort((a, b) => {
+    const aTotal = a.routesPlanned !== undefined ? a.routesPlanned : (a.routes || 0);
+    const bTotal = b.routesPlanned !== undefined ? b.routesPlanned : (b.routes || 0);
+    return bTotal - aTotal || (b.routes || 0) - (a.routes || 0);
+  });
+  const routesLabels = routesData.map(d => shortenName(d));
+
+  const routesCompletedData = routesData.map(d => (d.routesPlanned !== undefined ? (d.routes || 0) : 0));
+  const routesRemainingData = routesData.map(d => {
     const total = d.routesPlanned !== undefined ? d.routesPlanned : (d.routes || 0);
     const completed = d.routesPlanned !== undefined ? (d.routes || 0) : 0;
     return Math.max(0, total - completed);
@@ -1992,7 +2054,7 @@ function renderCharts(data) {
     {
       label: currentMode === "live" ? 'Completed' : 'Routes',
       data: routesCompletedData,
-      backgroundColor: getColors('74, 158, 255', data),
+      backgroundColor: getColors('74, 158, 255', routesData),
       borderRadius: 4
     }
   ];
@@ -2009,7 +2071,7 @@ function renderCharts(data) {
 
   charts.routes = new Chart(document.getElementById('routesChart'), {
     type: 'bar',
-    data: { labels, datasets: routesDatasets },
+    data: { labels: routesLabels, datasets: routesDatasets },
     options: {
       ...chartDefaults,
       interaction: { mode: 'index', intersect: false },
@@ -2030,7 +2092,7 @@ function renderCharts(data) {
           ...chartDefaults.plugins.tooltip,
           callbacks: {
             label: function(context) {
-              const d = data[context.dataIndex];
+              const d = routesData[context.dataIndex];
               const completed = d.routesPlanned !== undefined ? (d.routes || 0) : 0;
               const planned = d.routesPlanned !== undefined ? d.routesPlanned : (d.routes || 0);
               const remaining = Math.max(0, planned - completed);
@@ -2061,10 +2123,33 @@ function renderCharts(data) {
     }
   });
 
+  // 5. Messages Chart (Sorted highest messages to lowest)
+  const messagesData = [...data].sort((a, b) => (b.messages || 0) - (a.messages || 0));
+  const messagesLabels = messagesData.map(d => shortenName(d));
+
   charts.messages = new Chart(document.getElementById('messagesChart'), {
     type: 'bar',
-    data: { labels, datasets: [{ data: data.map(d => d.messages), backgroundColor: getColors('211, 28, 28', data), borderRadius: 4 }] },
-    options: { ...chartDefaults, scales: { x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { family: 'DM Mono', size: 11 } } }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'Open Sans', size: 12, weight: '600' } } } } }
+    data: {
+      labels: messagesLabels,
+      datasets: [{
+        data: messagesData.map(d => d.messages || 0),
+        backgroundColor: getColors('211, 28, 28', messagesData),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      ...chartDefaults,
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: 'rgba(255,255,255,0.3)', font: { family: 'DM Mono', size: 11 } }
+        },
+        y: {
+          grid: { display: false },
+          ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'Open Sans', size: 12, weight: '600' } }
+        }
+      }
+    }
   });
 }
 
