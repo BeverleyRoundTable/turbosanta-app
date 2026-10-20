@@ -3862,7 +3862,7 @@
 
             const resolveSlot = (slotVal) => {
                 if (!slotVal || slotVal === 'none' || slotVal === 'disabled' || slotVal === '') return null;
-                if (slotVal === 'santa_chat' && !isBeverley) return null;
+                // santa_chat permitted for any table configured with it
                 return slotVal;
             };
 

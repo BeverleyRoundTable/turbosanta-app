@@ -26,7 +26,12 @@
 
     avatarUrl: "",
     previewParam: "santa",
-    workerApi: "https://turbosanta-api.beverley247.workers.dev"
+    workerApi: (typeof window !== "undefined" && (window.location.hostname.includes("roundtablesantasleigh.co.uk") || window.location.hostname.includes("pages.dev") || window.location.hostname.includes("localhost"))) ? window.location.origin : "https://roundtablesantasleigh.co.uk"
+  };
+
+  var KNOWN_AGENTS = {
+    "beverley": "agent_4401kxaqcqygfb4940wnc4a9haeh",
+    "abergavenny": "agent_2101m5d5sktze0rb4mchkhaz1aqj"
   };
 
   var WIDGET_TAG = "elevenlabs-convai";
@@ -137,7 +142,7 @@
         return fetch(payloadUrl)
           .then(function (r) { return r.json(); })
           .then(function (d) {
-            return (d && d.table && d.table.elevenlabs_agent_id) || CONFIG.agentId;
+            return (d && d.table && d.table.elevenlabs_agent_id) || (KNOWN_AGENTS && KNOWN_AGENTS[slug]) || CONFIG.agentId;
           })
           .catch(function () {
             return CONFIG.agentId;
@@ -226,7 +231,7 @@
 
   function injectWidget(agentId) {
     if (injected) return;
-    var finalAgentId = param("agent_id") || agentId || CONFIG.agentId;
+    var finalAgentId = param("agent_id") || agentId || (KNOWN_AGENTS && KNOWN_AGENTS[resolveTableSlug()]) || CONFIG.agentId;
     if (!finalAgentId || finalAgentId === "PASTE_AGENT_ID_HERE") {
       console.warn("[SantaChat] No agent ID set — widget not loaded.");
       return;
@@ -294,11 +299,6 @@
     if (param("driver") === "1" && !hasPreviewFlag()) return;
 
     var slug = resolveTableSlug();
-    // Strictly isolate Santa Chat to Beverley
-    if (slug !== "beverley" && !param("agent_id") && !hasPreviewFlag()) {
-      console.info("[SantaChat] Santa Chat is exclusive to Beverley.");
-      return;
-    }
 
     resolveMountAndOpts();
 

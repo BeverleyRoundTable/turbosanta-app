@@ -37,6 +37,7 @@ export const PUBLIC_SLOT_OPTIONS = [
   { id: 'letter', label: 'Letter to Santa (Wish List Writer)', desc: 'Festive letter stationery for children to write wish lists straight to Lapland.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/letter` },
   { id: 'magic_mailbox', label: 'Magic Lapland Mailbox (Voice Messages)', desc: 'Digital mailbox allowing children to record audio messages directly for Santa.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/magic_mailbox` },
   { id: 'nice_list', label: 'Official Lapland Nice List Certificate', desc: 'Customizable certificate proving the child made Santa Good List this Christmas.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/nice_list` },
+  { id: 'santa_chat', label: 'Santa AI Voice Call (ElevenLabs Voice Hotline)', desc: 'Interactive voice call with Santa powered by ElevenLabs conversational AI.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/santa_chat.html` },
   { id: 'adopt_reindeer', label: 'Adopt an Official Sleigh Reindeer', desc: 'Adopt Rudolph, Dasher, Prancer, or Comet and print an adoption certificate.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/adopt_reindeer` },
   { id: 'santa_frame', label: 'Santa Visited Photo Frame Stamper', desc: 'Commemorative photo frame to stamp family pictures with date of Santa visit.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/santa_frame` },
   { id: 'santa_bot', label: 'Santa AI Chatbot (Interactive Talking Hotline)', desc: 'Universal AI Santa chatbot for families to message Santa directly about routes, reindeer, bedtime, and Lapland magic.', preview: (slug) => `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/santa_bot` },
@@ -1008,6 +1009,7 @@ ${tableName} Organizers`
     })(),
     gemini_model: tableData?.table?.gemini_model || localStorage.getItem('turbosanta_global_gemini_model') || 'auto',
     enable_colouring: Boolean(tableData?.table?.enable_colouring),
+    elevenlabs_agent_id: tableData?.table?.elevenlabs_agent_id || '',
     public_slot_1: tableData?.table?.public_slot_1 || '',
     public_slot_2: tableData?.table?.public_slot_2 || (tableData?.table?.enable_colouring ? 'colouring' : '') || '',
     expenses: tableData?.table?.expenses !== undefined ? tableData?.table?.expenses : (tableData?.expenses !== undefined ? tableData?.expenses : 0),
@@ -1123,6 +1125,7 @@ ${tableName} Organizers`
         })(),
         gemini_model: tableData.table.gemini_model || prev.gemini_model || 'auto',
         enable_colouring: tableData.table.enable_colouring !== undefined ? Boolean(tableData.table.enable_colouring) : prev.enable_colouring,
+        elevenlabs_agent_id: tableData.table.elevenlabs_agent_id !== undefined ? (tableData.table.elevenlabs_agent_id || '') : prev.elevenlabs_agent_id,
         public_slot_1: tableData.table.public_slot_1 !== undefined ? (tableData.table.public_slot_1 || '') : prev.public_slot_1,
         public_slot_2: tableData.table.public_slot_2 !== undefined ? (tableData.table.public_slot_2 || '') : prev.public_slot_2,
         expenses: tableData.table.expenses !== undefined ? tableData.table.expenses : (tableData.expenses !== undefined ? tableData.expenses : prev.expenses),
@@ -7514,6 +7517,42 @@ ${tableName} Organizers`
                   </div>
                 </div>
 
+                
+                {/* ElevenLabs Agent ID Input (for Santa AI Voice Call) */}
+                {(formData.public_slot_1 === 'santa_chat' || formData.public_slot_2 === 'santa_chat') && (
+                  <div style={{
+                    marginTop: '12px',
+                    padding: '12px 14px',
+                    background: '#161614',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px'
+                  }}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--primary)', marginBottom: '4px' }}>
+                      ElevenLabs Agent ID for Santa Voice Call
+                    </label>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+                      Your Table&apos;s ElevenLabs Conversational AI Agent ID.
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="e.g. agent_2101m5d5sktze0rb4mchkhaz1aqj"
+                      value={formData.elevenlabs_agent_id || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, elevenlabs_agent_id: e.target.value.trim() }))}
+                      style={{
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        background: '#000',
+                        border: '1px solid var(--border)',
+                        borderRadius: '6px',
+                        padding: '8px 12px',
+                        color: '#fff',
+                        fontSize: '13px',
+                        fontFamily: 'monospace'
+                      }}
+                    />
+                  </div>
+                )}
+
                 {/* Swap Order Button & Active Status */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
                   <button
@@ -9189,6 +9228,7 @@ ${tableName} Organizers`
                         headline_sponsor_url: leadPartner.url || formData.headline_sponsor_url || null,
                         headline_sponsor_tagline: leadPartner.role || formData.headline_sponsor_tagline || null,
                         gemini_model: chosenGeminiModel,
+                        elevenlabs_agent_id: formData.elevenlabs_agent_id || null,
                         public_slot_1: formData.public_slot_1 || '',
                         public_slot_2: formData.public_slot_2 || '',
                         enable_colouring: (formData.public_slot_1 === 'colouring' || formData.public_slot_2 === 'colouring') ? 1 : 0,
