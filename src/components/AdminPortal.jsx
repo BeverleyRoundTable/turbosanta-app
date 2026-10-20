@@ -551,7 +551,7 @@ ${tableName} Organizers`
   React.useEffect(() => {
     if (activeTab === 'memory') {
       const tableSlug = session?.tableId || session?.tableSlug || 'beverley';
-      const token = getAdminAuthToken(tableSlug);
+      const token = session?.googleCredential || session?.token || getAdminAuthToken(tableSlug);
       fetch(`https://turbosanta-api.beverley247.workers.dev/api/memory-book?table=${encodeURIComponent(tableSlug)}&year=${selectedSeason}&admin=1${token ? `&secret=${encodeURIComponent(token)}` : ''}`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       })
@@ -588,7 +588,7 @@ ${tableName} Organizers`
 
   const handleModerateMemory = async (itemId, newStatus) => {
     const tableSlug = session?.tableId || session?.tableSlug || 'beverley';
-    const token = getAdminAuthToken(tableSlug);
+    const token = session?.googleCredential || session?.token || getAdminAuthToken(tableSlug);
     setMemoryItems(prev => prev.map(m => String(m.id) === String(itemId) ? { ...m, status: newStatus } : m));
     setSaveStatus(`Photo status updated to "${newStatus}"!`);
     setTimeout(() => setSaveStatus(''), 2500);
@@ -610,7 +610,7 @@ ${tableName} Organizers`
   const handleDeleteMemory = async (itemId) => {
     if (!confirm("Are you sure you want to permanently delete this photo submission?")) return;
     const tableSlug = session?.tableId || session?.tableSlug || 'beverley';
-    const token = getAdminAuthToken(tableSlug);
+    const token = session?.googleCredential || session?.token || getAdminAuthToken(tableSlug);
     setMemoryItems(prev => prev.filter(m => String(m.id) !== String(itemId)));
     setStorageQuota(prev => ({
       ...prev,
@@ -635,7 +635,7 @@ ${tableName} Organizers`
       return;
     }
     const tableSlug = session?.tableId || session?.tableSlug || 'beverley';
-    const token = getAdminAuthToken(tableSlug);
+    const token = session?.googleCredential || session?.token || getAdminAuthToken(tableSlug);
     setSaveStatus(`Purging ${yearToPurge} media from Cloudflare bucket...`);
     try {
       const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/memory-book?table=${encodeURIComponent(tableSlug)}&purgeYear=${yearToPurge}${token ? `&secret=${encodeURIComponent(token)}` : ''}`, {
@@ -756,7 +756,7 @@ ${tableName} Organizers`
   const fetchMailboxQueue = async () => {
     setIsMailboxLoading(true);
     const tableSlug = currentTableSlug || session?.tableId || session?.tableSlug || 'beverley';
-    const token = getAdminAuthToken(tableSlug);
+    const token = session?.googleCredential || session?.token || getAdminAuthToken(tableSlug);
     try {
       const endpointsToTry = [
         `/api/magic-mailbox?table=${encodeURIComponent(tableSlug)}${token ? `&secret=${encodeURIComponent(token)}` : ''}`,
@@ -863,7 +863,7 @@ ${tableName} Organizers`
     }
     setIsSubmittingReply(true);
     const tableSlug = currentTableSlug || session?.tableId || session?.tableSlug || 'beverley';
-    const token = getAdminAuthToken(tableSlug);
+    const token = session?.googleCredential || session?.token || getAdminAuthToken(tableSlug);
     try {
       const audioData = await new Promise((resolve, reject) => {
         const r = new FileReader();
@@ -905,7 +905,7 @@ ${tableName} Organizers`
 
   const handleFlagMailboxMessage = async (messageId, currentFlagged) => {
     const tableSlug = currentTableSlug || session?.tableId || session?.tableSlug || 'beverley';
-    const token = getAdminAuthToken(tableSlug);
+    const token = session?.googleCredential || session?.token || getAdminAuthToken(tableSlug);
     const reason = currentFlagged ? 'unflagged' : prompt('Reason for flagging (optional):', 'Inappropriate or blank audio');
     if (reason === null) return;
     try {
@@ -933,7 +933,7 @@ ${tableName} Organizers`
   const handleDeleteMailboxMessage = async (messageId) => {
     if (!confirm('Are you sure you want to permanently delete this voice message?')) return;
     const tableSlug = currentTableSlug || session?.tableId || session?.tableSlug || 'beverley';
-    const token = getAdminAuthToken(tableSlug);
+    const token = session?.googleCredential || session?.token || getAdminAuthToken(tableSlug);
     try {
       const res = await fetch(`/api/magic-mailbox?table=${encodeURIComponent(tableSlug)}&id=${encodeURIComponent(messageId)}${token ? `&secret=${encodeURIComponent(token)}` : ''}`, {
         method: 'DELETE',
@@ -7618,6 +7618,68 @@ ${tableName} Organizers`
                       : `${(formData.public_slot_1 ? 1 : 0) + (formData.public_slot_2 ? 1 : 0)} of 2 slots active.`}
                   </span>
                 </div>
+
+                {(formData.public_slot_1 === 'magic_mailbox' || formData.public_slot_2 === 'magic_mailbox') && (
+                  <div style={{
+                    background: 'rgba(251, 175, 51, 0.08)',
+                    border: '1px solid rgba(251, 175, 51, 0.3)',
+                    borderRadius: '10px',
+                    padding: '14px 16px',
+                    marginTop: '14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '12px'
+                  }}>
+                    <div>
+                      <div style={{ color: 'var(--primary, #FBAF33)', fontWeight: 800, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Mic size={15} /> Incoming Children's Voice Messages
+                      </div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '2px' }}>
+                        Recorded audio messages appear in the dedicated <strong>Magic Mailbox (Voice)</strong> tab, or in full-screen <strong>Santa Studio</strong>.
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('mailbox')}
+                        style={{
+                          background: 'var(--primary, #FBAF33)',
+                          color: '#000',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '6px 14px',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Open Mailbox Queue &rarr;
+                      </button>
+                      <a
+                        href={`https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/santa_studio?table=${encodeURIComponent(currentTableSlug)}&secret=${encodeURIComponent(session?.googleCredential || session?.token || getAdminAuthToken(currentTableSlug))}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.1)',
+                          color: '#fff',
+                          border: '1px solid var(--border)',
+                          borderRadius: '6px',
+                          padding: '6px 12px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          textDecoration: 'none',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        <ExternalLink size={13} /> Santa Studio
+                      </a>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* LOCAL CAUSE NOMINATIONS & COMMUNITY GRANTS */}
@@ -10344,9 +10406,11 @@ ${tableName} Organizers`
             {/* Messages List or Empty State */}
             {(() => {
               const filtered = mailboxMessages.filter(m => {
-                if (mailboxFilter === 'pending') return !m.replied_at && !m.flagged;
-                if (mailboxFilter === 'replied') return Boolean(m.replied_at);
-                if (mailboxFilter === 'flagged') return Boolean(m.flagged);
+                const isReplied = Boolean(m.replied_at) || (m.status || '').toLowerCase().includes('replied');
+                const isFlagged = Boolean(m.flagged) || (m.status || '').toLowerCase().includes('flag') || Boolean(m.flag_reason);
+                if (mailboxFilter === 'pending') return !isReplied && !isFlagged;
+                if (mailboxFilter === 'replied') return isReplied;
+                if (mailboxFilter === 'flagged') return isFlagged;
                 return true;
               });
 
