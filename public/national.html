@@ -809,7 +809,7 @@
 
     .chart-container {
       position: relative;
-      height: 260px;
+      min-height: 260px;
     }
 
     .loading-wrap {
@@ -1839,6 +1839,12 @@ function renderLeaderboard(data) {
 
 function renderCharts(data) {
   const labels = data.map(d => shortenName(d));
+
+  // Dynamically scale chart height with number of tables so rows never squash together
+  const dynamicHeight = Math.max(260, (data.length * 30) + 50);
+  document.querySelectorAll('.chart-container').forEach(el => {
+    el.style.height = `${dynamicHeight}px`;
+  });
   
   const getColors = (baseRgb, arr) => {
     return arr.map((_, i) => {
@@ -1851,6 +1857,9 @@ function renderCharts(data) {
     indexAxis: 'y',
     responsive: true,
     maintainAspectRatio: false,
+    categoryPercentage: 0.70,
+    barPercentage: 0.85,
+    maxBarThickness: 14,
     plugins: {
       legend: { display: false },
       tooltip: {
@@ -1872,13 +1881,13 @@ function renderCharts(data) {
 
   charts.donations = new Chart(document.getElementById('donationsChart'), {
     type: 'bar',
-    data: { labels, datasets: [{ data: data.map(d => d.raised), backgroundColor: getColors('251, 175, 51', data), borderRadius: 6, barThickness: 24 }] },
+    data: { labels, datasets: [{ data: data.map(d => d.raised), backgroundColor: getColors('251, 175, 51', data), borderRadius: 4 }] },
     options: { ...chartDefaults, scales: { x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { family: 'DM Mono', size: 11 }, callback: v => '£' + v.toLocaleString() } }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'Open Sans', size: 12, weight: '600' } } } } }
   });
 
   charts.views = new Chart(document.getElementById('viewsChart'), {
     type: 'bar',
-    data: { labels, datasets: [{ data: data.map(d => d.views), backgroundColor: getColors('156, 39, 176', data), borderRadius: 6, barThickness: 24 }] },
+    data: { labels, datasets: [{ data: data.map(d => d.views), backgroundColor: getColors('156, 39, 176', data), borderRadius: 4 }] },
     options: { ...chartDefaults, scales: { x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { family: 'DM Mono', size: 11 } } }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'Open Sans', size: 12, weight: '600' } } } } }
   });
 
@@ -1895,8 +1904,7 @@ function renderCharts(data) {
       label: currentMode === "live" ? 'Visited' : 'Streets',
       data: streetsVisitedData,
       backgroundColor: getColors('46, 204, 113', data),
-      borderRadius: 4,
-      barThickness: 22
+      borderRadius: 4
     }
   ];
   if (currentMode === "live") {
@@ -1906,8 +1914,7 @@ function renderCharts(data) {
       backgroundColor: 'rgba(46, 204, 113, 0.22)',
       borderColor: 'rgba(46, 204, 113, 0.6)',
       borderWidth: 1,
-      borderRadius: 4,
-      barThickness: 22
+      borderRadius: 4
     });
   }
 
@@ -1978,8 +1985,7 @@ function renderCharts(data) {
       label: currentMode === "live" ? 'Completed' : 'Routes',
       data: routesCompletedData,
       backgroundColor: getColors('74, 158, 255', data),
-      borderRadius: 4,
-      barThickness: 22
+      borderRadius: 4
     }
   ];
   if (currentMode === "live") {
@@ -1989,8 +1995,7 @@ function renderCharts(data) {
       backgroundColor: 'rgba(74, 158, 255, 0.22)',
       borderColor: 'rgba(74, 158, 255, 0.6)',
       borderWidth: 1,
-      borderRadius: 4,
-      barThickness: 22
+      borderRadius: 4
     });
   }
 
@@ -2050,7 +2055,7 @@ function renderCharts(data) {
 
   charts.messages = new Chart(document.getElementById('messagesChart'), {
     type: 'bar',
-    data: { labels, datasets: [{ data: data.map(d => d.messages), backgroundColor: getColors('211, 28, 28', data), borderRadius: 6, barThickness: 24 }] },
+    data: { labels, datasets: [{ data: data.map(d => d.messages), backgroundColor: getColors('211, 28, 28', data), borderRadius: 4 }] },
     options: { ...chartDefaults, scales: { x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: 'rgba(255,255,255,0.3)', font: { family: 'DM Mono', size: 11 } } }, y: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'Open Sans', size: 12, weight: '600' } } } } }
   });
 }
