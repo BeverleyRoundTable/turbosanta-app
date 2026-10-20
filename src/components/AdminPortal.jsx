@@ -10259,7 +10259,7 @@ ${tableName} Organizers`
                 </button>
 
                 <a
-                  href={`https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/santa_studio`}
+                  href={`https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/santa_studio?table=${encodeURIComponent(currentTableSlug)}&secret=${encodeURIComponent(session?.googleCredential || session?.token || getAdminAuthToken(currentTableSlug))}`}
                   target="_blank"
                   rel="noreferrer"
                   className="btn-primary"

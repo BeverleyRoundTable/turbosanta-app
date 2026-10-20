@@ -391,8 +391,19 @@ const params = new URLSearchParams(location.search);
 const _subMatch = location.hostname.match(/^([a-z0-9-]+)\.roundtablesantasleigh\.co\.uk$/i);
 const subdomainSlug = (_subMatch && !['www', 'api', 'admin'].includes(_subMatch[1].toLowerCase())) ? _subMatch[1].toLowerCase() : '';
 const tableSlug = (params.get('table') || subdomainSlug || 'beverley').toLowerCase().trim();
-const API = params.get('api') || ('/api/magic-mailbox?table=' + encodeURIComponent(tableSlug));
-const WORKER_FALLBACK_API = 'https://turbosanta-api.beverley247.workers.dev/api/magic-mailbox?table=' + encodeURIComponent(tableSlug);
+
+function getBaseApi() {
+  if (params.get('api')) return params.get('api');
+  return '/api/magic-mailbox?table=' + encodeURIComponent(tableSlug);
+}
+
+function makeApiUrl(extraParams = {}) {
+  const base = getBaseApi();
+  const sep = base.includes('?') ? '&' : '?';
+  const q = new URLSearchParams(extraParams);
+  const qs = q.toString();
+  return qs ? `${base}${sep}${qs}` : base;
+}
 
 let secret = '';
 let volunteerName = '';
@@ -405,73 +416,155 @@ let heartbeatTimer = null; // Refreshes claim on expanded card every 30s
 
 const recState = new Map();
 
-document.addEventListener("DOMContentLoaded", () => {
-  if (!API) {
-    document.getElementById('initArea').innerHTML =
-      '<div class="error-msg">Missing <strong>?api=</strong> parameter.<br><br><code>santa_studio.html?api=YOUR_API_URL</code></div>';
-    return;
+function getAuthToken() {
+  // 1. From URL query parameter (?secret=... or ?token=...)
+  const qSecret = params.get('secret') || params.get('token');
+  if (qSecret) {
+    try { sessionStorage.setItem('turbosanta_auth_token', qSecret); } catch (_) {}
+    return qSecret;
   }
+
+  // 2. From sessionStorage
+  try {
+    const sToken = sessionStorage.getItem('turbosanta_auth_token');
+    if (sToken) return sToken;
+  } catch (_) {}
+
+  // 3. From localStorage turbosanta_admin_session (Google OAuth session)
+  try {
+    const rawSession = localStorage.getItem('turbosanta_admin_session');
+    if (rawSession) {
+      const parsed = JSON.parse(rawSession);
+      const tok = parsed?.token || parsed?.googleCredential;
+      if (tok) return tok;
+    }
+  } catch (_) {}
+
+  // 4. From cookie (shared across *.roundtablesantasleigh.co.uk)
+  try {
+    const cookieMatch = document.cookie.match(/(?:^|;\s*)turbosanta_auth_token=([^;]+)/);
+    if (cookieMatch && cookieMatch[1]) {
+      return decodeURIComponent(cookieMatch[1].trim());
+    }
+  } catch (_) {}
+
+  // 5. Stored opsSecret
+  try {
+    const ops = sessionStorage.getItem('opsSecret');
+    if (ops) return ops;
+  } catch (_) {}
+
+  return '';
+}
+
+document.addEventListener("DOMContentLoaded", () => {
   init();
 });
 
 async function init() {
-  secret = sessionStorage.getItem('opsSecret') || '';
+  secret = getAuthToken();
 
   if (!secret) {
-    secret = prompt("🎅 Santa Studio Authorization\n\nEnter the Master Password:");
-    if (!secret) {
-      document.getElementById('initArea').innerHTML =
-        '<div class="error-msg">Password required to access Santa Studio.</div>';
-      return;
-    }
-  }
-
-  try {
-    const sep = API.includes('?') ? '&' : '?';
-    const check = await fetch(`${API}${sep}function=verifyGodMode&secret=${encodeURIComponent(secret)}`);
-    const result = await check.json();
-    if (!result.valid) {
-      sessionStorage.removeItem('opsSecret');
-      document.getElementById('initArea').innerHTML =
-        '<div class="error-msg">❌ Access Denied. Reload to try again.</div>';
-      return;
-    }
-    sessionStorage.setItem('opsSecret', secret);
-  } catch(e) {
-    document.getElementById('initArea').innerHTML =
-      `<div class="error-msg">Connection failed: ${e.message}</div>`;
+    showAuthRequired();
     return;
   }
 
-  // First fetch — also gives us santaVolunteers list
   try {
-    const res = await fetch(`${API}?function=getMagicMailboxQueue&secret=${encodeURIComponent(secret)}`);
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
+    const fetchEndpoints = [
+      makeApiUrl({ secret }),
+      `https://roundtablesantasleigh.co.uk/api/magic-mailbox?table=${encodeURIComponent(tableSlug)}&secret=${encodeURIComponent(secret)}`,
+      `https://turbosanta-api.beverley247.workers.dev/api/magic-mailbox?table=${encodeURIComponent(tableSlug)}&secret=${encodeURIComponent(secret)}`
+    ];
+
+    let data = null;
+    let authFailed = false;
+
+    for (const ep of fetchEndpoints) {
+      try {
+        const res = await fetch(ep, {
+          headers: { 'Authorization': `Bearer ${secret}` }
+        });
+        if (res.status === 401 || res.status === 403) {
+          authFailed = true;
+          break;
+        }
+        if (res.ok) {
+          const json = await res.json();
+          if (json.ok) {
+            data = json;
+            break;
+          }
+        }
+      } catch (err) {
+        // try next endpoint fallback
+      }
+    }
+
+    if (!data) {
+      if (authFailed) {
+        try {
+          sessionStorage.removeItem('turbosanta_auth_token');
+          sessionStorage.removeItem('opsSecret');
+        } catch (_) {}
+        showAuthRequired("Your organizer session has expired or does not have access to this town.");
+        return;
+      }
+      throw new Error("Could not reach Santa's Lapland Mailbox server.");
+    }
+
+    try { sessionStorage.setItem('turbosanta_auth_token', secret); } catch (_) {}
     pending = data.pending || [];
     repliedToday = data.repliedToday || [];
     santaVolunteers = data.santaVolunteers || [];
     renderStats(data.stats || {});
+
+    document.getElementById('initArea').classList.add('hidden');
+    volunteerName = localStorage.getItem('santaVolunteer') || '';
+
+    if (volunteerName && santaVolunteers.length && !santaVolunteers.includes(volunteerName)) {
+      localStorage.removeItem('santaVolunteer');
+      volunteerName = '';
+    }
+
+    if (!volunteerName) {
+      showNamePicker();
+    } else {
+      enterStudio();
+    }
   } catch(e) {
-    document.getElementById('initArea').innerHTML =
-      `<div class="error-msg">Failed to load queue: ${e.message}</div>`;
-    return;
+    document.getElementById('initArea').innerHTML = `
+      <div class="panel" style="text-align: center; max-width: 480px; margin: 40px auto; padding: 32px 24px;">
+        <div style="font-size: 40px; margin-bottom: 12px;">⚠️</div>
+        <h3 style="font-size: 22px; color: var(--red); margin-bottom: 8px;">Connection Failed</h3>
+        <p style="color: var(--text-dim); font-size: 14px; margin-bottom: 20px;">${escapeHtml(e.message)}</p>
+        <button onclick="location.reload()" class="btn btn-gold" style="display:inline-block; padding:12px 24px;">Retry Connection</button>
+      </div>
+    `;
   }
+}
 
-  document.getElementById('initArea').classList.add('hidden');
-  volunteerName = localStorage.getItem('santaVolunteer') || '';
-
-  // If stored name isn't in current list, force re-pick
-  if (volunteerName && santaVolunteers.length && !santaVolunteers.includes(volunteerName)) {
-    localStorage.removeItem('santaVolunteer');
-    volunteerName = '';
-  }
-
-  if (!volunteerName) {
-    showNamePicker();
-  } else {
-    enterStudio();
-  }
+function showAuthRequired(customMsg) {
+  const returnUrl = encodeURIComponent(window.location.href);
+  const loginUrl = `https://roundtablesantasleigh.co.uk/?table=${encodeURIComponent(tableSlug)}&admin=1&return=${returnUrl}`;
+  
+  document.getElementById('initArea').innerHTML = `
+    <div class="panel" style="text-align: center; max-width: 500px; margin: 40px auto; padding: 40px 24px; border: 1px solid var(--border);">
+      <div style="font-size: 52px; margin-bottom: 14px;">🎅</div>
+      <h2 style="font-family: 'Eurostile', sans-serif; font-size: 28px; letter-spacing: 1.5px; color: #fff; margin-bottom: 12px; line-height: 1.1;">
+        Santa Studio Authorization
+      </h2>
+      <p style="color: var(--text-dim); font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
+        ${customMsg ? `<strong style="color:var(--red); display:block; margin-bottom:8px;">${escapeHtml(customMsg)}</strong>` : ''}
+        Santa Studio is exclusively for verified Round Table elves and organizers. All legacy passwords have been retired in favour of official <strong>Google Workspace Authentication</strong>.
+      </p>
+      <a href="${loginUrl}" class="btn btn-gold" style="display: inline-block; padding: 14px 28px; text-decoration: none; font-size: 15px; font-weight: 800; border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,0.3);">
+        Sign in with Google &rarr;
+      </a>
+      <p style="margin-top: 18px; font-size: 12px; color: var(--text-muted); line-height: 1.5;">
+        Signed-in organizers can also launch Santa Studio directly from the Magic Mailbox tab in the Admin Portal.
+      </p>
+    </div>
+  `;
 }
 
 function showNamePicker() {
@@ -482,13 +575,12 @@ function showNamePicker() {
     document.getElementById('namePickerStep').innerHTML = `
       <h3>Who's playing Santa today?</h3>
       <p style="font-size: 13px; color: var(--text-dim); line-height: 1.6; margin-bottom: 20px;">
-        No volunteer list configured yet. Type your first name below.
-        <br><span style="color:var(--text-muted); font-size:12px;">Tip: Lead Elf can set up the list in Settings sheet column W.</span>
+        Enter your first name below so families and fellow elves know who replied.
       </p>
       <form onsubmit="confirmFreeName(event)">
         <div class="field">
           <label>Your first name</label>
-          <input type="text" id="freeName" required maxlength="40" placeholder="e.g. Ben">
+          <input type="text" id="freeName" required maxlength="40" placeholder="e.g. Santa Ben">
         </div>
         <button type="submit" class="btn btn-gold" style="width: 100%;">Enter Studio →</button>
       </form>`;
@@ -535,36 +627,39 @@ function enterStudio() {
   });
   renderQueue();
 
-  // Stop the heartbeat when the volunteer closes the tab — claim then
-  // goes stale naturally after 10 minutes
   window.addEventListener('beforeunload', stopHeartbeat);
 
   setInterval(() => {
     if (!currentExpandedId && document.visibilityState === 'visible') loadQueue();
-  }, 60000);
+  }, 30000);
 }
 
 // ── LOAD QUEUE ─────────────────────────────────────────────
 
 async function loadQueue() {
   try {
-    const res = await fetch(`${API}?function=getMagicMailboxQueue&secret=${encodeURIComponent(secret)}`);
+    const res = await fetch(makeApiUrl({ secret }), {
+      headers: { 'Authorization': `Bearer ${secret}` }
+    });
     const data = await res.json();
-    if (data.error) throw new Error(data.error);
+    if (!data.ok) throw new Error(data.error || 'Failed to load queue');
     pending = data.pending || [];
     repliedToday = data.repliedToday || [];
+    if (Array.isArray(data.santaVolunteers) && data.santaVolunteers.length > 0) {
+      santaVolunteers = data.santaVolunteers;
+    }
     renderStats(data.stats || {});
     renderQueue();
   } catch(e) {
     document.getElementById('queueContainer').innerHTML =
-      `<p style="color:var(--red); font-family:'DM Mono', monospace; font-size:12px;">Error loading queue: ${e.message}</p>`;
+      `<p style="color:var(--red); font-family:'DM Mono', monospace; font-size:12px; padding: 20px; text-align: center;">Error loading queue: ${escapeHtml(e.message)}</p>`;
   }
 }
 
 function renderStats(stats) {
   document.getElementById('statPending').textContent = stats.pending || 0;
   document.getElementById('statTotal').textContent = stats.repliedToday || 0;
-  const mine = (repliedToday || []).filter(m => m.claimedBy === volunteerName).length;
+  const mine = (repliedToday || []).filter(m => (m.claimedBy || m.claimed_by || m.repliedBy || m.replied_by) === volunteerName).length;
   document.getElementById('statMine').textContent = mine;
   document.getElementById('tabPendingCount').textContent = (pending || []).length;
   document.getElementById('tabRepliedCount').textContent = (repliedToday || []).length;
@@ -609,10 +704,10 @@ function buildCard(msg, mode) {
   card.className = 'msg-card';
   card.dataset.id = msg.id;
 
-  const ago = timeAgo(msg.timestamp);
-  const childName = msg.childName || 'A child';
+  const ago = timeAgo(msg.timestamp || msg.created_at);
+  const childName = msg.childName || msg.child_name || 'A child';
 
-  const claimedBy = msg.claimedBy || '';
+  const claimedBy = msg.claimedBy || msg.claimed_by || '';
   const isMine = claimedBy && claimedBy === volunteerName;
   const isOtherClaim = claimedBy && claimedBy !== volunteerName && mode === 'pending';
 
@@ -632,7 +727,8 @@ function buildCard(msg, mode) {
     }
   } else {
     pillHtml = `<span class="pill pill-replied">Replied</span>`;
-    claimLineHtml = claimedBy ? `<span class="claim-line">📬 By ${escapeHtml(claimedBy)}</span>` : '';
+    const repliedPerson = msg.repliedBy || msg.replied_by || claimedBy;
+    claimLineHtml = repliedPerson ? `<span class="claim-line">📬 By ${escapeHtml(repliedPerson)}</span>` : '';
   }
   if (cardClass) card.classList.add(cardClass);
 
@@ -663,8 +759,9 @@ function alertOtherClaim(name) {
 
 async function toggleCard(id, mode) {
   const card = document.querySelector(`.msg-card[data-id="${id}"]`);
-  if (!card) return;
   const replyArea = document.getElementById(`reply-${id}`);
+  if (!card || !replyArea) return;
+
   const expanded = card.classList.contains('expanded');
 
   document.querySelectorAll('.msg-card').forEach(c => c.classList.remove('expanded'));
@@ -678,12 +775,16 @@ async function toggleCard(id, mode) {
 
   if (mode === 'pending') {
     const msg = pending.find(m => m.id === id);
-    const alreadyMine = msg && msg.claimedBy === volunteerName;
+    const alreadyMine = msg && (msg.claimedBy || msg.claimed_by) === volunteerName;
 
     if (!alreadyMine) {
       try {
-        const claimRes = await fetch(API, {
+        const claimRes = await fetch(makeApiUrl(), {
           method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${secret}`
+          },
           body: JSON.stringify({
             action: 'claimMagicMailbox',
             messageId: id,
@@ -697,7 +798,11 @@ async function toggleCard(id, mode) {
           loadQueue();
           return;
         }
-        if (msg) { msg.claimedBy = volunteerName; msg.claimedAt = new Date().toISOString(); }
+        if (msg) {
+          msg.claimedBy = volunteerName;
+          msg.claimed_by = volunteerName;
+          msg.claimedAt = new Date().toISOString();
+        }
         card.classList.add('claimed-mine');
       } catch(e) {
         alert("Network error claiming message: " + e.message);
@@ -711,20 +816,15 @@ async function toggleCard(id, mode) {
   replyArea.classList.remove('hidden');
   currentExpandedId = id;
 
-  // Start the heartbeat for pending claims (no need to refresh "Replied" rows)
   if (mode === 'pending') startHeartbeat(id);
 
   loadIncomingAudio(id);
 }
 
 // ── HEARTBEAT ──────────────────────────────────────────────
-// While a Pending card is expanded, ping the server every 30s
-// to refresh ClaimedAt. Without this, after 10 minutes the
-// claim goes stale and another Santa can take it.
 
 function startHeartbeat(id) {
   stopHeartbeat();
-  // Fire one immediately so the claim is freshened straight away
   sendHeartbeat(id);
   heartbeatTimer = setInterval(() => sendHeartbeat(id), 30000);
 }
@@ -737,13 +837,15 @@ function stopHeartbeat() {
 }
 
 async function sendHeartbeat(id) {
-  // Skip if tab is hidden — saves traffic and lets the claim go stale
-  // naturally if the volunteer truly walked away
   if (document.visibilityState !== 'visible') return;
 
   try {
-    const res = await fetch(API, {
+    const res = await fetch(makeApiUrl(), {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${secret}`
+      },
       body: JSON.stringify({
         action: 'heartbeatMagicMailbox',
         messageId: id,
@@ -752,8 +854,6 @@ async function sendHeartbeat(id) {
       })
     });
     const data = await res.json();
-    // If someone else nicked the claim (e.g. came back from "tab was asleep"),
-    // collapse the card and reload the queue so the volunteer sees the truth
     if (!data.ok && data.takenBy) {
       stopHeartbeat();
       currentExpandedId = null;
@@ -761,7 +861,6 @@ async function sendHeartbeat(id) {
       loadQueue();
     }
   } catch (e) {
-    // Silent fail — network blip shouldn't disrupt the volunteer
     console.warn('Heartbeat failed:', e.message);
   }
 }
@@ -784,12 +883,21 @@ function buildReplyAreaHtml(id, mode) {
   const releaseBtn = mode === 'pending'
     ? `<button class="btn btn-ghost" style="flex: 0 0 auto; max-width: 110px;" onclick="releaseMessage('${id}')">↩️ Release</button>` : '';
 
+  const msg = (repliedToday || []).find(m => m.id === id);
+  const existingReplyHtml = (isUpdate && msg && (msg.reply_audio_url || msg.replyAudioUrl)) ? `
+    <span class="label gold">📬 Existing Santa reply</span>
+    <div class="audio-wrap" style="margin-bottom: 16px;">
+      <audio controls src="${msg.reply_audio_url || msg.replyAudioUrl}"></audio>
+    </div>` : '';
+
   return `
     ${updateBanner}
     <span class="label">🎧 The child's message</span>
     <div class="audio-wrap">
       <audio controls preload="none" id="incoming-audio-${id}" data-loaded="0"></audio>
     </div>
+
+    ${existingReplyHtml}
 
     ${recordHeader}
     <div class="recorder">
@@ -817,17 +925,26 @@ async function loadIncomingAudio(id) {
   if (!audioEl || audioEl.dataset.loaded === '1') return;
   audioEl.dataset.loaded = '1';
 
+  const msg = (pending || []).find(m => m.id === id) || (repliedToday || []).find(m => m.id === id);
+  if (msg && (msg.audio_url || msg.intake_audio_url)) {
+    audioEl.src = msg.audio_url || msg.intake_audio_url;
+    return;
+  }
+
   try {
-    if (msg.audio_url) {
-      audioEl.src = msg.audio_url;
-    } else {
-      const res = await fetch(`${API}?function=getMagicMailboxAudio&id=${encodeURIComponent(id)}&secret=${encodeURIComponent(secret)}`).catch(() => fetch(`${WORKER_FALLBACK_API}&function=getMagicMailboxAudio&id=${encodeURIComponent(id)}&secret=${encodeURIComponent(secret)}`));
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error || 'Failed to load audio');
+    const res = await fetch(makeApiUrl({ id, secret }), {
+      headers: { 'Authorization': `Bearer ${secret}` }
+    });
+    const data = await res.json();
+    if (data.audio_url) {
+      audioEl.src = data.audio_url;
+    } else if (data.audio && data.mime) {
       audioEl.src = `data:${data.mime};base64,${data.audio}`;
+    } else {
+      throw new Error(data.error || 'Audio recording unavailable');
     }
   } catch (e) {
-    audioEl.outerHTML = `<p style="color:var(--red); font-size:13px; font-family:'DM Mono',monospace;">⚠️ Could not load audio: ${e.message}</p>`;
+    audioEl.outerHTML = `<p style="color:var(--red); font-size:13px; font-family:'DM Mono',monospace; padding:8px;">⚠️ Could not load audio: ${escapeHtml(e.message)}</p>`;
   }
 }
 
@@ -836,8 +953,12 @@ async function loadIncomingAudio(id) {
 async function releaseMessage(id) {
   if (!confirm("Release this claim? Another Santa will be able to pick it up.")) return;
   try {
-    const res = await fetch(API, {
+    const res = await fetch(makeApiUrl(), {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${secret}`
+      },
       body: JSON.stringify({
         action: 'releaseMagicMailbox',
         messageId: id,
@@ -977,7 +1098,14 @@ async function sendReply(id, isUpdate) {
       secret: secret
     };
 
-    const res = await fetch(API, { method: 'POST', body: JSON.stringify(payload) });
+    const res = await fetch(makeApiUrl(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${secret}`
+      },
+      body: JSON.stringify(payload)
+    });
     const result = await res.json();
 
     if (!result.ok) throw new Error(result.error || 'Unknown error');
@@ -1010,7 +1138,14 @@ async function flagMessage(id) {
       volunteer: volunteerName,
       secret: secret
     };
-    const res = await fetch(API, { method: 'POST', body: JSON.stringify(payload) });
+    const res = await fetch(makeApiUrl(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${secret}`
+      },
+      body: JSON.stringify(payload)
+    });
     const result = await res.json();
     if (!result.ok) throw new Error(result.error || 'Unknown error');
     currentExpandedId = null;
@@ -1034,7 +1169,11 @@ function blobToBase64(blob) {
 
 function timeAgo(iso) {
   if (!iso) return 'just now';
-  const then = new Date(iso).getTime();
+  let cleanIso = String(iso).trim();
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(cleanIso)) {
+    cleanIso = cleanIso.replace(' ', 'T') + 'Z';
+  }
+  const then = new Date(cleanIso).getTime();
   if (isNaN(then)) return 'recently';
   const diff = Date.now() - then;
   const mins = Math.round(diff / 60000);
@@ -1048,24 +1187,9 @@ function timeAgo(iso) {
 
 function escapeHtml(s) {
   return String(s || '').replace(/[&<>"']/g, c => ({
-    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[c]));
 }
-
-(function() {
-  if (window.self === window.top) return;
-  let lastH = 0;
-  const sendHeight = () => {
-    const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
-    if (h > 100 && Math.abs(h - lastH) > 4) {
-      lastH = h;
-      window.parent.postMessage({ type: 'turbosanta-resize', height: h + 16 }, '*');
-    }
-  };
-  window.addEventListener('load', sendHeight);
-  if (window.ResizeObserver) new ResizeObserver(sendHeight).observe(document.body);
-  setInterval(sendHeight, 1000);
-})();
 </script>
 </body>
 </html>
