@@ -97,31 +97,69 @@
     padding: 24px 0 12px;
   }
   .record-btn {
-    width: 168px; height: 168px; border-radius: 50%;
+    width: 176px; height: 176px; border-radius: 50%;
     border: 4px solid var(--primary, var(--gold, #FBAF33));
-    background: radial-gradient(circle at 30% 30%, #2a2a26, var(--surface-2));
-    color: #ffffff; /* Explicit white text for high contrast on dark button */
-    font-family: 'Eurostile', sans-serif;
-    font-size: 20px;
-    font-weight: 800;
-    letter-spacing: 1.5px;
-    cursor: pointer; transition: all 0.2s;
+    background: radial-gradient(circle at 35% 30%, #2a2a26, var(--surface-2, #1e1e1b));
+    color: #ffffff;
+    cursor: pointer; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 6px;
+    gap: 8px;
+    padding: 14px;
+    box-sizing: border-box;
     box-shadow: 0 0 25px rgba(var(--primary-rgb, 251, 175, 51), 0.35);
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
   }
-  .record-btn:hover { border-color: var(--gold); transform: scale(1.02); }
+  .record-btn:hover { border-color: var(--primary, var(--gold)); transform: scale(1.02); }
   .record-btn:active { transform: scale(0.97); }
-  .record-btn .mic { font-size: 52px; line-height: 1; color: var(--primary, var(--gold, #FBAF33)); }
+
+  .record-btn .mic {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary, var(--gold, #FBAF33));
+    transition: transform 0.2s ease, color 0.2s ease;
+  }
+  .record-btn .mic-icon {
+    display: block;
+  }
+  .record-btn .mic-icon.recording {
+    color: var(--red, #D31C1C);
+    animation: iconPulse 1s infinite alternate;
+  }
+  .record-btn .mic-icon.success {
+    color: #2ecc71;
+  }
+  @keyframes iconPulse {
+    from { transform: scale(0.95); opacity: 0.9; }
+    to { transform: scale(1.08); opacity: 1; }
+  }
+
+  .record-btn #recordLabel {
+    font-family: 'Eurostile', sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    color: #ffffff;
+    text-transform: uppercase;
+    text-align: center;
+    line-height: 1.25;
+    max-width: 125px;
+    margin: 0;
+    pointer-events: none;
+  }
+
   .record-btn.recording {
-    border-color: var(--red);
+    border-color: var(--red, #D31C1C);
     background: radial-gradient(circle at 30% 30%, #3a1818, #1f0d0d);
     color: #fff;
     animation: recordPulse 1.2s infinite;
   }
-  .record-btn.recording .mic { color: var(--red); }
+  .record-btn.recording #recordLabel {
+    color: #fff;
+  }
   @keyframes recordPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(211,28,28,0.4); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(211,28,28,0.45); }
     50%      { box-shadow: 0 0 0 18px rgba(211,28,28,0); }
   }
 
@@ -442,6 +480,19 @@ async function init() {
   }
 }
 
+
+function setRecordIcon(state) {
+  const holder = document.getElementById('micIconHolder');
+  if (!holder) return;
+  if (state === 'recording') {
+    holder.innerHTML = '<svg class="mic-icon recording" viewBox="0 0 24 24" width="38" height="38" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="3" /></svg>';
+  } else if (state === 'recorded') {
+    holder.innerHTML = '<svg class="mic-icon success" viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>';
+  } else {
+    holder.innerHTML = '<svg class="mic-icon" viewBox="0 0 24 24" width="42" height="42" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>';
+  }
+}
+
 // ── RECORDING ──────────────────────────────────────────────
 
 async function toggleRecord() {
@@ -484,7 +535,7 @@ async function startRecording() {
       // Reset UI
       const btn = document.getElementById('recordBtn');
       btn.classList.remove('recording');
-      btn.querySelector('.mic').textContent = '✅';
+      setRecordIcon('recorded');
       document.getElementById('recordLabel').textContent = 'RECORDED!';
     };
 
@@ -493,7 +544,7 @@ async function startRecording() {
     // UI: recording state
     const btn = document.getElementById('recordBtn');
     btn.classList.add('recording');
-    btn.querySelector('.mic').textContent = '⏹️';
+    setRecordIcon('recording');
     document.getElementById('recordLabel').textContent = 'TAP TO STOP';
     document.getElementById('playback').classList.add('hidden');
 
@@ -532,7 +583,7 @@ function resetRecording() {
   document.getElementById('progressFill').style.width = '0%';
   const btn = document.getElementById('recordBtn');
   btn.classList.remove('recording');
-  btn.querySelector('.mic').textContent = '🎙️';
+  setRecordIcon('idle');
   document.getElementById('recordLabel').textContent = 'TAP TO RECORD';
 }
 
