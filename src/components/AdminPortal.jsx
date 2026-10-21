@@ -8190,6 +8190,76 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                   </button>
                 </div>
 
+                {/* Direct Audio Downloads for Sleigh Sound Systems & MP3 Players */}
+                <div style={{
+                  marginBottom: '16px',
+                  padding: '12px 14px',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '10px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '18px' }}>📻</span>
+                    <div>
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>
+                        Audio Downloads for Sleigh PA Systems &amp; MP3 Players
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        Add our official festive audio tracks directly to your sleigh sound equipment USB or playlist:
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <a
+                      href="https://roundtablesantasleigh.co.uk/media/round_table_christmas.mp3"
+                      download="round_table_christmas.mp3"
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        color: '#FBAF33',
+                        background: 'rgba(251, 175, 51, 0.12)',
+                        border: '1px solid rgba(251, 175, 51, 0.35)',
+                        borderRadius: '6px',
+                        padding: '6px 12px',
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <i className="fa-solid fa-download"></i> Round Table Christmas (MP3)
+                    </a>
+                    <a
+                      href="https://roundtablesantasleigh.co.uk/media/three_wheel_christmas.mp3"
+                      download="three_wheel_christmas.mp3"
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        color: '#60a5fa',
+                        background: 'rgba(59, 130, 246, 0.12)',
+                        border: '1px solid rgba(59, 130, 246, 0.35)',
+                        borderRadius: '6px',
+                        padding: '6px 12px',
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <i className="fa-solid fa-download"></i> Three Wheel Christmas (MP3)
+                    </a>
+                  </div>
+                </div>
+
                 {formData.music_mode !== 'none' && (
                   <div style={{ background: '#161614', border: '1px solid var(--border)', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
                     {/* If Custom MP3, show Uploader */}
