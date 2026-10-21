@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Radio, Megaphone, Settings, Mic, Calendar, Heart, Shield,
   LogOut, ExternalLink, Save, Download, CheckCircle2,
@@ -8,7 +8,7 @@ import {
   CreditCard, Key, Zap, RefreshCw, Send, Link2,
   BarChart3, TrendingUp, Award, Printer, PieChart, Receipt,
   Mail, HardDrive, AlertTriangle, Database, FileText, Coins, Share2, QrCode, ArrowUpDown, Volume2, VolumeX, Music, Play, Pause, UploadCloud,
-  Phone, MessageCircle, UserCheck, Search, Clock, Bot, CheckCircle, Navigation
+  Phone, MessageCircle, UserCheck, Search, Clock, Bot, CheckCircle, Navigation, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { logoutAdmin, isNationalAdmin, getAdminAuthToken } from '../services/auth';
@@ -95,6 +95,51 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   const [liveGps, setLiveGps] = useState(tableData?.live_sleigh || null);
   const [isDetectingModel, setIsDetectingModel] = useState(false);
   const [detectStatus, setDetectStatus] = useState('');
+
+  // Horizontal Tab Scroll & Visibility Controls
+  const tabsScrollRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkTabsScroll = useCallback(() => {
+    const el = tabsScrollRef.current;
+    if (!el) return;
+    const hasOverflow = el.scrollWidth > el.clientWidth + 2;
+    setCanScrollLeft(el.scrollLeft > 6);
+    setCanScrollRight(hasOverflow && el.scrollLeft < el.scrollWidth - el.clientWidth - 6);
+  }, []);
+
+  useEffect(() => {
+    checkTabsScroll();
+    const handleResize = () => checkTabsScroll();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [checkTabsScroll]);
+
+  // When activeTab changes, auto-scroll that tab smoothly into view
+  useEffect(() => {
+    const el = document.getElementById(`admin-tab-${activeTab}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+    const timer = setTimeout(checkTabsScroll, 250);
+    return () => clearTimeout(timer);
+  }, [activeTab, checkTabsScroll]);
+
+  const scrollTabs = (direction) => {
+    if (!tabsScrollRef.current) return;
+    const scrollAmount = direction === 'left' ? -280 : 280;
+    tabsScrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+  };
+
+  const handleTabsWheel = (e) => {
+    if (tabsScrollRef.current && e.deltaY !== 0) {
+      // Allow vertical mouse wheel hover to scroll tabs horizontally
+      e.preventDefault();
+      tabsScrollRef.current.scrollLeft += e.deltaY;
+      checkTabsScroll();
+    }
+  };
 
   const currentTableSlug = session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley';
   const cleanTown = formatTownNameFromSlug(currentTableSlug);
@@ -2284,154 +2329,156 @@ ${tableName} Organizers`
       <header style={{
         background: '#151513',
         borderBottom: '1px solid var(--border)',
-        padding: '16px 24px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '12px'
+        padding: '16px 20px',
+        width: '100%',
+        boxSizing: 'border-box'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{
-            background: 'var(--primary)',
-            color: '#000',
-            padding: '8px',
-            borderRadius: '10px',
-            display: 'flex'
-          }}>
-            <Shield size={22} />
-          </div>
-          <div>
-            <div className="brand-font" style={{ fontSize: '18px', fontWeight: 800 }}>
-              <span>{session.tableName}</span>
-              <span style={{ color: 'var(--primary)', marginLeft: '8px' }}>• God Mode 2.0</span>
+        <div style={{
+          maxWidth: '1200px',
+          width: '100%',
+          margin: '0 auto',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '14px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{
+              background: 'var(--primary)',
+              color: '#000',
+              padding: '8px',
+              borderRadius: '10px',
+              display: 'flex'
+            }}>
+              <Shield size={22} />
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                Authenticated as <code>{session.email}</code>
-              </span>
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  background: isScreenAwake ? 'rgba(34, 197, 94, 0.12)' : 'rgba(255, 255, 255, 0.05)',
-                  border: isScreenAwake ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid var(--border)',
-                  borderRadius: '12px',
-                  padding: '2px 8px',
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  color: isScreenAwake ? '#86efac' : 'var(--text-muted)'
-                }}
-                title="Screen Wake Lock keeps your monitor and screensavers awake while watching live telemetry"
-              >
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: isScreenAwake ? '#22c55e' : '#666', boxShadow: isScreenAwake ? '0 0 6px #22c55e' : 'none' }} />
-                <span>{isScreenAwake ? 'Screen Awake' : 'Wake Lock Ready'}</span>
+            <div>
+              <div className="brand-font" style={{ fontSize: '18px', fontWeight: 800 }}>
+                <span>{session.tableName}</span>
+                <span style={{ color: 'var(--primary)', marginLeft: '8px' }}>• God Mode 2.0</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  Authenticated as <code>{session.email}</code>
+                </span>
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    background: isScreenAwake ? 'rgba(34, 197, 94, 0.12)' : 'rgba(255, 255, 255, 0.05)',
+                    border: isScreenAwake ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid var(--border)',
+                    borderRadius: '12px',
+                    padding: '2px 8px',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    color: isScreenAwake ? '#86efac' : 'var(--text-muted)'
+                  }}
+                  title="Screen Wake Lock keeps your monitor and screensavers awake while watching live telemetry"
+                >
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: isScreenAwake ? '#22c55e' : '#666', boxShadow: isScreenAwake ? '0 0 6px #22c55e' : 'none' }} />
+                  <span>{isScreenAwake ? 'Screen Awake' : 'Wake Lock Ready'}</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div
-          className="no-scrollbar"
-          style={{
-            display: 'flex',
-            gap: '8px',
-            alignItems: 'center',
-            overflowX: 'auto',
-            maxWidth: '100%',
-            width: '100%',
-            paddingBottom: '4px',
-            WebkitOverflowScrolling: 'touch',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-            flexWrap: 'nowrap'
-          }}
-        >
-          {/* Dedicated Cockpit Button */}
-          <button
-            onClick={() => setIsCockpitOpen(true)}
-            className="btn-primary"
-            style={{ padding: '8px 14px', fontSize: '13px', flexShrink: 0, whiteSpace: 'nowrap' }}
-          >
-            <Smartphone size={16} />
-            <span>Driver Cockpit Mode</span>
-          </button>
-
-          <a
-            href={(() => {
-              const townSlug = encodeURIComponent((session.tableSlug || session.tableId || 'beverley').toLowerCase());
-              const token = session.token || session.googleCredential || getAdminAuthToken(session.tableSlug || session.tableId || 'beverley');
-              const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';
-              return `https://${townSlug}.roundtablesantasleigh.co.uk/godmode${tokenParam}`;
-            })()}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-secondary"
-            style={{ padding: '8px 12px', fontSize: '13px', borderColor: 'var(--primary)', color: 'var(--primary)', textDecoration: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}
-            title="Open classic GitHub God Mode in full screen"
-          >
-            <Activity size={15} />
-            <span>Classic God Mode</span>
-          </a>
-
-          <a
-            href={`https://${encodeURIComponent((session.tableSlug || session.tableId || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/guide`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-secondary"
-            style={{ padding: '8px 12px', fontSize: '13px', textDecoration: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}
-            title="Open TurboSanta Master Guide & Docs"
-          >
-            <BookOpen size={15} />
-            <span>Guide & Docs</span>
-          </a>
-
-          <button
-            type="button"
-            onClick={() => setIsAssistantModalOpen(true)}
-            className="btn-secondary"
+          <div
             style={{
-              padding: '8px 14px',
-              fontSize: '13px',
-              borderColor: 'rgba(251, 175, 51, 0.6)',
-              color: 'var(--primary)',
-              background: 'rgba(251, 175, 51, 0.08)',
-              flexShrink: 0,
-              whiteSpace: 'nowrap',
               display: 'flex',
+              gap: '8px',
               alignItems: 'center',
-              gap: '6px',
-              fontWeight: 700
+              flexWrap: 'wrap',
+              justifyContent: 'flex-end',
+              flex: '1 1 auto'
             }}
-            title="Ask TurboSanta (Grounded in your live Cloudflare D1 data)"
           >
-            <Sparkles size={15} />
-            <span>Ask TurboSanta</span>
-          </button>
+            {/* Dedicated Cockpit Button */}
+            <button
+              onClick={() => setIsCockpitOpen(true)}
+              className="btn-primary"
+              style={{ padding: '8px 14px', fontSize: '13px', flexShrink: 0, whiteSpace: 'nowrap' }}
+            >
+              <Smartphone size={16} />
+              <span>Driver Cockpit Mode</span>
+            </button>
 
-          <a
-            href={typeof window !== 'undefined' && window.location.hostname.includes('roundtablesantasleigh.co.uk')
-              ? `https://${encodeURIComponent((session.tableSlug || session.tableId || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/`
-              : `/?table=${encodeURIComponent(session.tableSlug || session.tableId || 'beverley')}&public=1`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-secondary"
-            style={{ padding: '8px 12px', fontSize: '13px', textDecoration: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}
-            title="Open live public tracker site for this table"
-          >
-            <ExternalLink size={15} />
-            <span>Public Site</span>
-          </a>
+            <a
+              href={(() => {
+                const townSlug = encodeURIComponent((session.tableSlug || session.tableId || 'beverley').toLowerCase());
+                const token = session.token || session.googleCredential || getAdminAuthToken(session.tableSlug || session.tableId || 'beverley');
+                const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';
+                return `https://${townSlug}.roundtablesantasleigh.co.uk/godmode${tokenParam}`;
+              })()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary"
+              style={{ padding: '8px 12px', fontSize: '13px', borderColor: 'var(--primary)', color: 'var(--primary)', textDecoration: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}
+              title="Open classic GitHub God Mode in full screen"
+            >
+              <Activity size={15} />
+              <span>Classic God Mode</span>
+            </a>
 
-          <button
-            onClick={() => { logoutAdmin(); onLogout(); }}
-            className="btn-secondary"
-            style={{ padding: '8px 12px', fontSize: '13px', borderColor: '#d31c1c', color: '#fca5a5', flexShrink: 0, whiteSpace: 'nowrap' }}
-          >
-            <LogOut size={15} />
-            <span>Sign Out</span>
-          </button>
+            <a
+              href={`https://${encodeURIComponent((session.tableSlug || session.tableId || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/guide`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary"
+              style={{ padding: '8px 12px', fontSize: '13px', textDecoration: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}
+              title="Open TurboSanta Master Guide & Docs"
+            >
+              <BookOpen size={15} />
+              <span>Guide & Docs</span>
+            </a>
+
+            <button
+              type="button"
+              onClick={() => setIsAssistantModalOpen(true)}
+              className="btn-secondary"
+              style={{
+                padding: '8px 14px',
+                fontSize: '13px',
+                borderColor: 'rgba(251, 175, 51, 0.6)',
+                color: 'var(--primary)',
+                background: 'rgba(251, 175, 51, 0.08)',
+                flexShrink: 0,
+                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontWeight: 700
+              }}
+              title="Ask TurboSanta (Grounded in your live Cloudflare D1 data)"
+            >
+              <Sparkles size={15} />
+              <span>Ask TurboSanta</span>
+            </button>
+
+            <a
+              href={typeof window !== 'undefined' && window.location.hostname.includes('roundtablesantasleigh.co.uk')
+                ? `https://${encodeURIComponent((session.tableSlug || session.tableId || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/`
+                : `/?table=${encodeURIComponent(session.tableSlug || session.tableId || 'beverley')}&public=1`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary"
+              style={{ padding: '8px 12px', fontSize: '13px', textDecoration: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}
+              title="Open live public tracker site for this table"
+            >
+              <ExternalLink size={15} />
+              <span>Public Site</span>
+            </a>
+
+            <button
+              onClick={() => { logoutAdmin(); onLogout(); }}
+              className="btn-secondary"
+              style={{ padding: '8px 12px', fontSize: '13px', borderColor: '#d31c1c', color: '#fca5a5', flexShrink: 0, whiteSpace: 'nowrap' }}
+            >
+              <LogOut size={15} />
+              <span>Sign Out</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -2455,7 +2502,7 @@ ${tableName} Organizers`
           <>
             {isGpsQuiet && (
               <div style={{
-                maxWidth: '1000px',
+                maxWidth: '1200px',
                 margin: '16px auto 0 auto',
                 padding: '12px 18px',
                 background: 'rgba(239, 68, 68, 0.16)',
@@ -2480,7 +2527,7 @@ ${tableName} Organizers`
               </div>
             )}
             <div style={{
-              maxWidth: '1000px',
+              maxWidth: '1200px',
               margin: '20px auto 0 auto',
               padding: '0 20px',
               display: 'grid',
@@ -2632,77 +2679,207 @@ ${tableName} Organizers`
       );
     })()}
 
-      {/* Navigation Sub-Tabs */}
-      <div
-        className="admin-subtabs-nav"
+      {/* Navigation Sub-Tabs with Sleek Visible Scrollbar & Chevron Nav */}
+      <nav
+        aria-label="Admin Navigation Tabs"
         style={{
           background: '#121210',
           borderBottom: '1px solid var(--border)',
           margin: '20px 0 0 0',
-          padding: '0 16px',
-          display: 'flex',
-          justifyContent: 'center',
-          overflowX: 'auto',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
+          padding: '0',
           width: '100%',
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
+          position: 'relative'
         }}
       >
         <div style={{
-          display: 'flex',
-          gap: '4px',
-          alignItems: 'center',
           maxWidth: '1200px',
           width: '100%',
-          justifyContent: 'flex-start'
+          margin: '0 auto',
+          padding: '0 8px',
+          boxSizing: 'border-box',
+          display: 'flex',
+          alignItems: 'center',
+          position: 'relative'
         }}>
-          {[
-            { id: 'announcements', label: 'Live Broadcast', icon: Megaphone },
-            { id: 'routes', label: 'Routes & Times', icon: Calendar },
-            { id: 'webhooks', label: 'Donations', icon: CreditCard },
-            { id: 'season_wrap', label: 'Season Wrap & Analytics', icon: BarChart3 },
-            { id: 'knowledge', label: 'Lessons Learned', icon: BookOpen },
-            { id: 'memory', label: 'Polaroids & Media', icon: Camera },
-            { id: 'mailbox', label: 'Magic Mailbox (Voice)', icon: Mic },
-            { id: 'migration', label: 'Sheets Importer', icon: FileSpreadsheet },
-            { id: 'embeds', label: 'Embeds', icon: Code },
-            { id: 'crew', label: 'Crew', icon: Bell },
-            { id: 'settings', label: 'Table Settings', icon: Settings },
-            { id: 'giftaid', label: 'Gift Aid', icon: Heart }
-          ].map(tab => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  borderBottom: isActive ? '3px solid var(--primary)' : '3px solid transparent',
-                  color: isActive ? 'var(--primary)' : 'var(--text-muted)',
-                  fontWeight: 700,
-                  fontSize: '13px',
-                  padding: '12px 10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0
-                }}
-              >
-                <Icon size={15} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
+          {/* Left Scroll Chevron (appears when tabs are scrolled right) */}
+          {canScrollLeft && (
+            <button
+              type="button"
+              onClick={() => scrollTabs('left')}
+              title="Scroll tabs left"
+              aria-label="Scroll tabs left"
+              style={{
+                position: 'absolute',
+                left: '6px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                zIndex: 10,
+                background: 'rgba(21, 21, 19, 0.95)',
+                border: '1px solid var(--border)',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--primary)',
+                cursor: 'pointer',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.7)',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; }}
+            >
+              <ChevronLeft size={18} />
+            </button>
+          )}
+
+          {/* Left Edge Gradient Fade */}
+          {canScrollLeft && (
+            <div
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: '45px',
+                pointerEvents: 'none',
+                background: 'linear-gradient(to right, #121210 25%, transparent 100%)',
+                zIndex: 5
+              }}
+            />
+          )}
+
+          {/* Scrollable Tabs Track */}
+          <div
+            ref={tabsScrollRef}
+            onScroll={checkTabsScroll}
+            onWheel={handleTabsWheel}
+            className="admin-subtabs-nav"
+            style={{
+              display: 'flex',
+              gap: '4px',
+              alignItems: 'center',
+              overflowX: 'auto',
+              WebkitOverflowScrolling: 'touch',
+              width: '100%',
+              padding: '4px 0 8px 0',
+              boxSizing: 'border-box',
+              scrollBehavior: 'smooth'
+            }}
+          >
+            {[
+              { id: 'announcements', label: 'Live Broadcast', icon: Megaphone },
+              { id: 'routes', label: 'Routes & Times', icon: Calendar },
+              { id: 'webhooks', label: 'Donations', icon: CreditCard },
+              { id: 'season_wrap', label: 'Season Wrap & Analytics', icon: BarChart3 },
+              { id: 'knowledge', label: 'Lessons Learned', icon: BookOpen },
+              { id: 'memory', label: 'Polaroids & Media', icon: Camera },
+              { id: 'mailbox', label: 'Magic Mailbox (Voice)', icon: Mic },
+              { id: 'migration', label: 'Sheets Importer', icon: FileSpreadsheet },
+              { id: 'embeds', label: 'Embeds', icon: Code },
+              { id: 'crew', label: 'Crew', icon: Bell },
+              { id: 'settings', label: 'Table Settings', icon: Settings },
+              { id: 'giftaid', label: 'Gift Aid', icon: Heart }
+            ].map(tab => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  id={`admin-tab-${tab.id}`}
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{
+                    background: isActive ? 'rgba(251, 175, 51, 0.08)' : 'transparent',
+                    border: 'none',
+                    borderBottom: isActive ? '3px solid var(--primary)' : '3px solid transparent',
+                    color: isActive ? 'var(--primary)' : 'var(--text-muted)',
+                    fontWeight: 700,
+                    fontSize: '13px',
+                    padding: '12px 14px',
+                    borderRadius: '6px 6px 0 0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.color = '#fff';
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.color = 'var(--text-muted)';
+                      e.currentTarget.style.background = 'transparent';
+                    }
+                  }}
+                >
+                  <Icon size={15} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right Edge Gradient Fade */}
+          {canScrollRight && (
+            <div
+              style={{
+                position: 'absolute',
+                right: 0,
+                top: 0,
+                bottom: 0,
+                width: '45px',
+                pointerEvents: 'none',
+                background: 'linear-gradient(to left, #121210 25%, transparent 100%)',
+                zIndex: 5
+              }}
+            />
+          )}
+
+          {/* Right Scroll Chevron (appears when more tabs exist to the right) */}
+          {canScrollRight && (
+            <button
+              type="button"
+              onClick={() => scrollTabs('right')}
+              title="Scroll tabs right"
+              aria-label="Scroll tabs right"
+              style={{
+                position: 'absolute',
+                right: '6px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                zIndex: 10,
+                background: 'rgba(21, 21, 19, 0.95)',
+                border: '1px solid var(--border)',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--primary)',
+                cursor: 'pointer',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.7)',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; }}
+            >
+              <ChevronRight size={18} />
+            </button>
+          )}
         </div>
-      </div>
+      </nav>
 
       {/* Main Content Area */}
-      <main style={{ maxWidth: '1000px', margin: '0 auto', padding: '30px 20px' }}>
+      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '30px 20px' }}>
         {saveStatus && (
           <div style={{
             background: 'rgba(34, 197, 94, 0.15)',

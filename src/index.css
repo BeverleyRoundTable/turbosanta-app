@@ -372,12 +372,35 @@ h1, h2, h3, h4, h5, h6, .brand-font, nav a, .nav-link, .header-caps {
 }
 
 /* Suppress scrollbars on admin subtabs nav */
-.no-scrollbar, .admin-subtabs-nav {
+.no-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
-.no-scrollbar::-webkit-scrollbar, .admin-subtabs-nav::-webkit-scrollbar {
+.no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* Elegant visible custom scrollbar for admin subtabs nav */
+.admin-subtabs-nav {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(251, 175, 51, 0.45) rgba(255, 255, 255, 0.05);
+}
+.admin-subtabs-nav::-webkit-scrollbar {
+  height: 6px;
+  display: block;
+}
+.admin-subtabs-nav::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
+  margin: 0 12px;
+}
+.admin-subtabs-nav::-webkit-scrollbar-thumb {
+  background: rgba(251, 175, 51, 0.4);
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+.admin-subtabs-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(251, 175, 51, 0.85);
 }
 
 /* --- Modern RTBI Glassmorphism & Visual Polish --- */
