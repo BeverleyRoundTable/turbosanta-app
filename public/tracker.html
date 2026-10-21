@@ -1022,7 +1022,7 @@
             styleEl.id = styleId;
             document.head.appendChild(styleEl);
           }
-          const sanitized = customCss.replace(/<[^>]*>/g, '').replace(/expression\\s*\\(|javascript:/gi, '');
+          const sanitized = customCss.replace(/<[^>]*>/g, '').replace(/expression\s*\(|javascript:/gi, '');
           styleEl.textContent = sanitized;
         } else if (styleEl) {
           styleEl.remove();
