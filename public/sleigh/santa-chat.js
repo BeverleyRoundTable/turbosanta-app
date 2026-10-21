@@ -24,7 +24,7 @@
       end: "Back to Lapland"
     },
 
-    avatarUrl: "",
+    avatarUrl: "https://roundtablesantasleigh.co.uk/icons/santa-avatar.png",
     previewParam: "santa",
     workerApi: (typeof window !== "undefined" && (window.location.hostname.includes("roundtablesantasleigh.co.uk") || window.location.hostname.includes("pages.dev") || window.location.hostname.includes("localhost"))) ? window.location.origin : "https://roundtablesantasleigh.co.uk"
   };
