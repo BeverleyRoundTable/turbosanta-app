@@ -7421,6 +7421,41 @@ ${tableName} Organizers`
                         <span>Preview Slot 1 Feature &rarr;</span>
                       </a>
                     )}
+
+                    {formData.public_slot_1 === 'santa_chat' && (
+                      <div style={{
+                        marginTop: '6px',
+                        padding: '8px 10px',
+                        background: 'rgba(59, 130, 246, 0.08)',
+                        border: '1px solid rgba(59, 130, 246, 0.25)',
+                        borderRadius: '6px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px'
+                      }}>
+                        <div style={{ fontSize: '11px', color: '#93c5fd', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <i className="fa-solid fa-wand-magic-sparkles"></i>
+                          <span style={{ fontWeight: 600 }}>Needs an ElevenLabs Agent ID</span>
+                        </div>
+                        <a
+                          href={`/santa_agent_guide.html?table=${encodeURIComponent(currentTableSlug || 'beverley')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            fontSize: '11px',
+                            color: '#60a5fa',
+                            textDecoration: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontWeight: 700
+                          }}
+                        >
+                          <i className="fa-solid fa-book-open"></i>
+                          <span>How to Setup Your ElevenLabs Agent (Step-by-Step Guide) &rarr;</span>
+                        </a>
+                      </div>
+                    )}
                   </div>
 
                   {/* Slot 2 Selection */}
@@ -7519,6 +7554,41 @@ ${tableName} Organizers`
                         <span>Preview Slot 2 Feature &rarr;</span>
                       </a>
                     )}
+
+                    {formData.public_slot_2 === 'santa_chat' && (
+                      <div style={{
+                        marginTop: '6px',
+                        padding: '8px 10px',
+                        background: 'rgba(59, 130, 246, 0.08)',
+                        border: '1px solid rgba(59, 130, 246, 0.25)',
+                        borderRadius: '6px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px'
+                      }}>
+                        <div style={{ fontSize: '11px', color: '#93c5fd', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <i className="fa-solid fa-wand-magic-sparkles"></i>
+                          <span style={{ fontWeight: 600 }}>Needs an ElevenLabs Agent ID</span>
+                        </div>
+                        <a
+                          href={`/santa_agent_guide.html?table=${encodeURIComponent(currentTableSlug || 'beverley')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            fontSize: '11px',
+                            color: '#60a5fa',
+                            textDecoration: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontWeight: 700
+                          }}
+                        >
+                          <i className="fa-solid fa-book-open"></i>
+                          <span>How to Setup Your ElevenLabs Agent (Step-by-Step Guide) &rarr;</span>
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -7606,7 +7676,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                         <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--primary)' }}>
                           🎅 ElevenLabs Agent ID for Santa Voice Call
                         </label>
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                           <a
                             href="/icons/santa-avatar.png"
                             download="santa-avatar.png"
@@ -7627,9 +7697,10 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                           >
                             <i className="fa-solid fa-download"></i> Download Santa Icon
                           </a>
-                          <button
-                            type="button"
-                            onClick={() => setShowElevenLabsGuide(!showElevenLabsGuide)}
+                          <a
+                            href={`/santa_agent_guide.html?table=${encodeURIComponent(currentTableSlug || 'beverley')}`}
+                            target="_blank"
+                            rel="noreferrer"
                             style={{
                               fontSize: '11px',
                               color: '#60a5fa',
@@ -7637,18 +7708,37 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                               padding: '4px 8px',
                               borderRadius: '4px',
                               border: '1px solid rgba(59, 130, 246, 0.3)',
+                              textDecoration: 'none',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontWeight: 700
+                            }}
+                          >
+                            <i className="fa-solid fa-arrow-up-right-from-square"></i> Open Full Guide (New Tab)
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => setShowElevenLabsGuide(!showElevenLabsGuide)}
+                            style={{
+                              fontSize: '11px',
+                              color: '#cbd5e1',
+                              background: 'rgba(255, 255, 255, 0.05)',
+                              padding: '4px 8px',
+                              borderRadius: '4px',
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
                               cursor: 'pointer',
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '4px'
                             }}
                           >
-                            <i className="fa-solid fa-book-open"></i> {showElevenLabsGuide ? 'Hide Setup Guide' : 'Setup Guide'}
+                            <i className="fa-solid fa-book-open"></i> {showElevenLabsGuide ? 'Hide Cheatsheet' : 'Quick Cheatsheet'}
                           </button>
                         </div>
                       </div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                        Enter your Table&apos;s ElevenLabs Conversational AI Agent ID. Don&apos;t have one yet? Click <strong>Setup Guide</strong> for step-by-step instructions.
+                        Enter your Table&apos;s ElevenLabs Conversational AI Agent ID. Don&apos;t have one yet? Follow our <a href={`/santa_agent_guide.html?table=${encodeURIComponent(currentTableSlug || 'beverley')}`} target="_blank" rel="noreferrer" style={{ color: '#60a5fa', textDecoration: 'underline', fontWeight: 600 }}>Step-by-Step Setup Guide</a> to create one in 3 minutes.
                       </div>
                       <input
                         type="text"
