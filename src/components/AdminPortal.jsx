@@ -9996,13 +9996,13 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                     }}>
                       <div style={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span>⚠️</span>
-                        <span>Use At Your Own Risk • Strictly Unsupported by National Team</span>
+                        <span>Use At Your Own Risk • Custom Styling Override</span>
                       </div>
                       <div>
                         The default Round Table TurboSanta kerbside theme, high-contrast layouts, and mobile GPS positioning take precedence. Any CSS entered below is injected as a secondary stylesheet onto your table's public pages.
                       </div>
                       <div style={{ marginTop: '6px' }}>
-                        Because TurboSanta receives continuous updates throughout December, <strong>any visual defects, unreadable text, or tracking map glitches caused by custom CSS overrides will NOT be investigated by national support.</strong>
+                        Because TurboSanta receives continuous updates throughout December, please ensure you test your changes carefully on mobile so your tracking map and street lists remain clear and readable.
                       </div>
                     </div>
 
