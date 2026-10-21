@@ -109,13 +109,15 @@
     });
   }
 
-  function buildRouteInfo(todayRoute, nextRoute) {
+  function buildRouteInfo(todayRoute, nextRoute, townName) {
+    var town = townName || "town";
     var parts = [];
     if (todayRoute) {
-      parts.push("The sleigh IS out tonight on the " + (todayRoute.routeName || todayRoute.name || "Beverley") + " route.");
+      parts.push("The sleigh IS out tonight in " + town + " on the " + (todayRoute.routeName || todayRoute.name || "local") + " route.");
+      if (todayRoute.start_time) parts.push("Approximate start time is " + todayRoute.start_time + ".");
       if (todayRoute.streets) parts.push("Streets tonight: " + todayRoute.streets + ".");
     } else {
-      parts.push("The sleigh is not out tonight.");
+      parts.push("The sleigh is not out in " + town + " tonight.");
     }
     if (nextRoute) {
       parts.push("Next visit: " + fmtDate(nextRoute.date) +
@@ -164,7 +166,10 @@
           var appleIconEl = document.getElementById("site-apple-touch-icon") || document.querySelector("link[rel='apple-touch-icon']");
           if (appleIconEl && appleIconEl.href !== data.table.logo_url) appleIconEl.href = data.table.logo_url;
         }
-        return data.routes || [];
+        return {
+          routes: data.routes || [],
+          table: data.table || {}
+        };
       });
   }
 
@@ -323,15 +328,24 @@
 
     Promise.all([
       fetchAgentSecret(slug).catch(function () { return initialAgentId; }),
-      fetchRoutes(slug).catch(function () { return []; })
+      fetchRoutes(slug).catch(function () { return { routes: [], table: {} }; })
     ]).then(function (results) {
       clearTimeout(syncTimeout);
       var agentId = results[0] || initialAgentId;
-      var routes = results[1] || [];
+      var routeData = results[1] || {};
+      var routes = routeData.routes || [];
+      var table = routeData.table || {};
+
+      var rawTown = (table.name || slug || "Round Table")
+        .replace(/santa'?s?/i, "")
+        .replace(/sleigh/i, "")
+        .replace(/round\s+table/i, "")
+        .trim();
+      var townName = rawTown ? (rawTown.charAt(0).toUpperCase() + rawTown.slice(1)) : (slug.charAt(0).toUpperCase() + slug.slice(1));
 
       var todayRoute = getTodayRoute(routes);
       var nextRoute = getNextRoute(routes);
-      lastRouteInfo = buildRouteInfo(todayRoute, nextRoute);
+      lastRouteInfo = buildRouteInfo(todayRoute, nextRoute, townName);
 
       var shouldShow = hasPreviewFlag() || !gated ||
         (todayRoute && withinHours(CONFIG.routeDayHours)) ||
