@@ -1010,7 +1010,7 @@ ${tableName} Organizers`
     })(),
     gemini_model: tableData?.table?.gemini_model || localStorage.getItem('turbosanta_global_gemini_model') || 'auto',
     enable_colouring: Boolean(tableData?.table?.enable_colouring),
-    elevenlabs_agent_id: tableData?.table?.elevenlabs_agent_id || '',
+    elevenlabs_agent_id: tableData?.table?.elevenlabs_agent_id || (currentTableSlug === 'beverley' ? 'agent_4401kxaqcqygfb4940wnc4a9haeh' : (currentTableSlug === 'abergavenny' ? 'agent_2101m5d5sktze0rb4mchkhaz1aqj' : '')),
     public_slot_1: tableData?.table?.public_slot_1 || '',
     public_slot_2: tableData?.table?.public_slot_2 || (tableData?.table?.enable_colouring ? 'colouring' : '') || '',
     expenses: tableData?.table?.expenses !== undefined ? tableData?.table?.expenses : (tableData?.expenses !== undefined ? tableData?.expenses : 0),
@@ -1126,7 +1126,9 @@ ${tableName} Organizers`
         })(),
         gemini_model: tableData.table.gemini_model || prev.gemini_model || 'auto',
         enable_colouring: tableData.table.enable_colouring !== undefined ? Boolean(tableData.table.enable_colouring) : prev.enable_colouring,
-        elevenlabs_agent_id: tableData.table.elevenlabs_agent_id !== undefined ? (tableData.table.elevenlabs_agent_id || '') : prev.elevenlabs_agent_id,
+        elevenlabs_agent_id: (tableData.table.elevenlabs_agent_id !== undefined && tableData.table.elevenlabs_agent_id !== null && tableData.table.elevenlabs_agent_id !== '')
+          ? tableData.table.elevenlabs_agent_id
+          : (prev.elevenlabs_agent_id || (currentTableSlug === 'beverley' ? 'agent_4401kxaqcqygfb4940wnc4a9haeh' : (currentTableSlug === 'abergavenny' ? 'agent_2101m5d5sktze0rb4mchkhaz1aqj' : ''))),
         public_slot_1: tableData.table.public_slot_1 !== undefined ? (tableData.table.public_slot_1 || '') : prev.public_slot_1,
         public_slot_2: tableData.table.public_slot_2 !== undefined ? (tableData.table.public_slot_2 || '') : prev.public_slot_2,
         expenses: tableData.table.expenses !== undefined ? tableData.table.expenses : (tableData.expenses !== undefined ? tableData.expenses : prev.expenses),
