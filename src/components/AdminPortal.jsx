@@ -387,7 +387,7 @@ Important volunteer briefing & reminders:
 • Please dress warmly in layers and wear sturdy walking shoes or boots.
 • High-visibility vests and collecting buckets/card readers will be handed out at muster.
 • Keep children on the pavement and stay alert to passing traffic.
-• Live Sleigh Tracker: ${origin}/?table=${encodeURIComponent(currentTableSlug)}
+• Live Sleigh Tracker: https://${encodeURIComponent(currentTableSlug.toLowerCase())}.roundtablesantasleigh.co.uk
 
 Looking forward to bringing the Christmas magic tonight!
 
@@ -10071,7 +10071,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                         }}
                       />
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>
-                        Tip: Styles apply exclusively to your table's domain or <code style={{ color: 'var(--primary)' }}>?table={currentTableSlug}</code> pages upon saving.
+                        Tip: Styles apply exclusively to <code style={{ color: 'var(--primary)' }}>https://{currentTableSlug}.roundtablesantasleigh.co.uk</code> upon saving.
                       </div>
                     </div>
                   </div>
