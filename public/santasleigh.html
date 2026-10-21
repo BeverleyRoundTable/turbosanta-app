@@ -3738,9 +3738,12 @@
                 title: 'TALK TO',
                 titleHighlight: 'SANTA',
                 description: 'Children and families can speak directly with Santa in Lapland! Ask when he is visiting your street, how Rudolph is doing, or hear a jolly festive story.',
-                embedSrc: slug => `/santa_chat.html?table=${encodeURIComponent(slug)}`,
+                embedSrc: slug => {
+                    const origin = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? location.origin : 'https://roundtablesantasleigh.co.uk';
+                    return `${origin}/santa_chat.html?table=${encodeURIComponent(slug)}`;
+                },
                 fullscreenSrc: null,
-    fullscreenLabel: null,
+                fullscreenLabel: null,
                 height: 680,
                 maxWidth: 760,
                 allowMicrophone: true
@@ -3853,13 +3856,8 @@
                 }
                 return;
             }
-            container.replaceChildren();
-
-            document.querySelectorAll('.nav-modular-slot').forEach(n => n.remove());
 
             const slug = (settings && (settings.slug || settings.id)) || window.__sleighTableSlug || 'beverley';
-            const isBeverley = String(slug).toLowerCase() === 'beverley';
-
             const resolveSlot = (slotVal) => {
                 if (!slotVal || slotVal === 'none' || slotVal === 'disabled' || slotVal === '') return null;
                 // santa_chat permitted for any table configured with it
@@ -3873,6 +3871,18 @@
             const slot2 = (raw2 && raw2 !== raw1 && PUBLIC_FEATURE_CATALOG[raw2]) ? PUBLIC_FEATURE_CATALOG[raw2] : null;
 
             const activeSlots = [slot1, slot2].filter(Boolean);
+            const slotSignature = activeSlots.map(s => s.id).join(',');
+
+            // Prevent tearing down and reloading active iframes (such as Santa voice calls) on poll intervals
+            if (container.dataset.renderedSlots === slotSignature) {
+                return;
+            }
+            container.dataset.renderedSlots = slotSignature;
+
+            container.replaceChildren();
+
+            document.querySelectorAll('.nav-modular-slot').forEach(n => n.remove());
+
             if (!activeSlots.length) return;
             const primaryHex = (settings && settings.primary_color) || '#D31C1C';
             const accentHex = (settings && settings.accent_color) || '#FBAF33';
@@ -3942,15 +3952,18 @@
                     ifrWrap.appendChild(chrome);
                 }
 
+                const isSantaChat = slot.id === 'santa_chat';
                 const ifr = document.createElement('iframe');
                 ifr.id = slot.anchorId + '-iframe';
                 ifr.height = String(slot.height || 700);
                 ifr.title = slot.title + ' ' + slot.titleHighlight;
-                ifr.loading = 'lazy';
+                ifr.loading = isSantaChat ? 'eager' : 'lazy';
 
                 let targetSrc = slot.embedSrc(slug);
-                const joinChar = targetSrc.includes('?') ? '&' : '?';
-                targetSrc += joinChar + 'embed=1&primary=' + encodeURIComponent(primaryHex) + '&accent=' + encodeURIComponent(accentHex);
+                if (!isSantaChat) {
+                    const joinChar = targetSrc.includes('?') ? '&' : '?';
+                    targetSrc += joinChar + 'embed=1&primary=' + encodeURIComponent(primaryHex) + '&accent=' + encodeURIComponent(accentHex);
+                }
                 ifr.src = targetSrc;
                 ifr.setAttribute('scrolling', 'no');
                 ifr.style.width = '100%';
@@ -3958,8 +3971,9 @@
                 ifr.style.display = 'block';
                 ifr.style.overflow = 'hidden';
 
-                let allowAttrs = ['camera', 'microphone', 'geolocation', 'autoplay'];
-                ifr.allow = allowAttrs.join('; ');
+                ifr.allow = isSantaChat
+                    ? 'microphone *; autoplay *; speaker-selection *; clipboard-write *'
+                    : 'camera; microphone; geolocation; autoplay';
 
                 ifrWrap.appendChild(ifr);
                 sec.appendChild(ifrWrap);

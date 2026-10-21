@@ -175,7 +175,12 @@ export const PUBLIC_FEATURE_CATALOG = {
     title: 'TALK TO',
     titleHighlight: 'SANTA',
     description: "Children and families can speak directly with Santa in Lapland! Ask when he is visiting your street, how Rudolph is doing, or hear a jolly festive story.",
-    embedSrc: (slug) => `/santa_chat.html?table=${encodeURIComponent(slug)}`,
+    embedSrc: (slug) => {
+      const origin = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+        ? window.location.origin
+        : 'https://roundtablesantasleigh.co.uk';
+      return `${origin}/santa_chat.html?table=${encodeURIComponent(slug)}`;
+    },
     fullscreenSrc: null,
     fullscreenLabel: null,
     height: 680,
@@ -1921,20 +1926,19 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
               }}>
                 {(() => {
                   let targetSrc = slot.embedSrc(activeTableSlug);
-                  const joinChar = targetSrc.includes('?') ? '&' : '?';
-                  targetSrc += `${joinChar}embed=1&primary=${encodeURIComponent(primaryColor)}&accent=${encodeURIComponent(table.accent_color || '#FBAF33')}`;
-                  if (isSlotSanta) {
-                    targetSrc += `&provider=gemini`;
+                  if (!isSlotSanta) {
+                    const joinChar = targetSrc.includes('?') ? '&' : '?';
+                    targetSrc += `${joinChar}embed=1&primary=${encodeURIComponent(primaryColor)}&accent=${encodeURIComponent(table.accent_color || '#FBAF33')}`;
                   }
                   return (
                     <iframe
                       id={`feature-${slot.id}-embed`}
                       src={targetSrc}
                       scrolling="no"
-                      allow="camera; microphone; geolocation; autoplay"
+                      allow={isSlotSanta ? "microphone *; autoplay *; speaker-selection *; clipboard-write *" : "camera; microphone; geolocation; autoplay"}
                       style={{ width: '100%', height: `${slot.height}px`, border: 'none', display: 'block', overflow: 'hidden' }}
                       title={`${slot.title} ${slot.titleHighlight}`}
-                      loading="lazy"
+                      loading={isSlotSanta ? "eager" : "lazy"}
                     />
                   );
                 })()}

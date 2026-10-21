@@ -309,18 +309,24 @@
 
     var gated = CONFIG.routeNightsOnly && !OPTS.always;
     var show = hasPreviewFlag() || !gated || OPTS.always || inManualWindow();
+    if (!show) return;
 
-    // 1. INSTANT LOAD: inject widget immediately with default Beverley agent ID
-    if (show) {
-      injectWidget(CONFIG.agentId);
-    }
+    var initialAgentId = param("agent_id") || (KNOWN_AGENTS && KNOWN_AGENTS[slug]) || CONFIG.agentId;
 
-    // 2. BACKGROUND SYNC: fetch Cloudflare secret agent ID, route info, and favicon in parallel
+    // Fast sync: resolve agent ID & route info before mounting to prevent
+    // mid-call attribute mutations from terminating active conversations.
+    var syncTimeout = setTimeout(function () {
+      if (!injected) {
+        injectWidget(initialAgentId);
+      }
+    }, 1000);
+
     Promise.all([
-      fetchAgentSecret(slug).catch(function () { return CONFIG.agentId; }),
+      fetchAgentSecret(slug).catch(function () { return initialAgentId; }),
       fetchRoutes(slug).catch(function () { return []; })
     ]).then(function (results) {
-      var agentId = results[0] || CONFIG.agentId;
+      clearTimeout(syncTimeout);
+      var agentId = results[0] || initialAgentId;
       var routes = results[1] || [];
 
       var todayRoute = getTodayRoute(routes);
@@ -331,28 +337,19 @@
         (todayRoute && withinHours(CONFIG.routeDayHours)) ||
         OPTS.always || inManualWindow();
 
-      var el = document.querySelector(WIDGET_TAG);
       if (shouldShow) {
-        if (!el) {
+        if (!injected) {
           injectWidget(agentId);
-        } else {
-          if (agentId && agentId !== CONFIG.agentId) {
-            el.setAttribute("agent-id", agentId);
-          }
-          if (lastRouteInfo && typeof lastRouteInfo === "string") {
-            var cleanRoute = lastRouteInfo.replace(/[^\x20-\x7E]/g, "").trim();
-            if (cleanRoute) {
-              try {
-                el.setAttribute("dynamic-variables", JSON.stringify({ route_info: cleanRoute }));
-              } catch (e) {}
-            }
-          }
         }
-      } else if (el) {
+      } else if (injected) {
         removeWidget();
       }
     }).catch(function (e) {
+      clearTimeout(syncTimeout);
       console.warn("[SantaChat] Background sync error:", e);
+      if (!injected) {
+        injectWidget(initialAgentId);
+      }
     });
   }
 
