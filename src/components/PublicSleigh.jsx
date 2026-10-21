@@ -176,8 +176,8 @@ export const PUBLIC_FEATURE_CATALOG = {
     titleHighlight: 'SANTA',
     description: "Children and families can speak directly with Santa in Lapland! Ask when he is visiting your street, how Rudolph is doing, or hear a jolly festive story.",
     embedSrc: (slug) => `/santa_chat.html?table=${encodeURIComponent(slug)}`,
-    fullscreenSrc: (slug) => typeof window !== 'undefined' && window.location.hostname.includes('roundtablesantasleigh.co.uk') ? `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/santa_chat` : `/santa_chat.html?table=${encodeURIComponent(slug)}`,
-    fullscreenLabel: 'Open Voice Hotline Full-Screen',
+    fullscreenSrc: null,
+    fullscreenLabel: null,
     height: 680,
     maxWidth: 760,
     allowMicrophone: true
