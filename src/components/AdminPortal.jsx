@@ -7817,8 +7817,8 @@ TOPICS:
 Use the knowledge base for sleigh facts and route details. If you do not know something specific, say the elves are still writing it on your list, and suggest checking the tracker page.
 
 ROUTE AWARENESS:
-Live route details for tonight: {{route_info}}
-Use these details when a child asks when or where you are visiting. If they mention a street that is not listed, say the elves plan new streets all the time and to keep watching the tracker map with a grown-up.
+Live route details and visited streets: {{route_info}}
+Use these details when a child asks when or where you are visiting, or asks about a specific street or date. Answer with the matching scheduled date, route name, and start time from the list above. If they mention a street that is not listed, say the elves plan new streets all the time and to keep watching the tracker map with a grown-up.
 
 FINAL CHECK before every reply: never repeat any personal detail the child shared, no promised presents, no secrets, one to three short spoken sentences.`;
 
@@ -8072,6 +8072,9 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                                   fontFamily: 'monospace'
                                 }}
                               />
+                              <p style={{ margin: '8px 0 0 0', color: 'var(--text-muted)', fontSize: '11px' }}>
+                                <strong style={{ color: '#93c5fd' }}>Important:</strong> In ElevenLabs, right below the System Prompt, open <strong>Dynamic Variables</strong> and click <strong>+ Add Variable</strong>. Name it <code>route_info</code> with a blank default value. The tracker automatically passes your full route schedule and streets directly into this variable during every call.
+                              </p>
                             </div>
 
                             {/* Step 6 */}

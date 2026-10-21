@@ -26,7 +26,12 @@
 
     avatarUrl: "",
     previewParam: "santa",
-    workerApi: "https://turbosanta-api.beverley247.workers.dev"
+    workerApi: (typeof window !== "undefined" && (window.location.hostname.includes("roundtablesantasleigh.co.uk") || window.location.hostname.includes("pages.dev") || window.location.hostname.includes("localhost"))) ? window.location.origin : "https://roundtablesantasleigh.co.uk"
+  };
+
+  var KNOWN_AGENTS = {
+    "beverley": "agent_4401kxaqcqygfb4940wnc4a9haeh",
+    "abergavenny": "agent_2101m5d5sktze0rb4mchkhaz1aqj"
   };
 
   var WIDGET_TAG = "elevenlabs-convai";
@@ -61,7 +66,31 @@
   }
 
   function resolveTableSlug() {
-    return (param("table") || "beverley").toLowerCase().trim();
+    var p = param("table");
+    if (p) return p.toLowerCase().trim();
+    try {
+      var host = window.location.hostname.toLowerCase();
+      if (host.endsWith(".roundtablesantasleigh.co.uk")) {
+        var sub = host.replace(".roundtablesantasleigh.co.uk", "").split(".")[0];
+        if (sub && sub !== "www" && sub !== "api" && sub !== "admin") {
+          return sub;
+        }
+      }
+      var parts = host.split(".");
+      if (parts.length > 2 && !host.includes("pages.dev") && !host.includes("workers.dev") && !host.includes("localhost")) {
+        if (parts[0] && parts[0] !== "www") return parts[0];
+      }
+    } catch (e) {}
+    return "beverley";
+  }
+
+  function cleanText(str) {
+    if (!str) return "";
+    return String(str)
+      .replace(/[\r\n\t]+/g, " ")
+      .replace(/[^\x20-\x7E\xA0-\xFF]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
   function hasPreviewFlag() {
@@ -104,19 +133,74 @@
     });
   }
 
-  function buildRouteInfo(todayRoute, nextRoute) {
+  function buildRouteInfo(routes, streets, townName) {
+    var town = townName || "town";
+    var streetList = streets || [];
+    var routeList = routes || [];
+
+    // Map streets by route_id
+    var streetsByRoute = {};
+    for (var i = 0; i < streetList.length; i++) {
+      var s = streetList[i];
+      if (!s || !s.route_id || !s.street_name) continue;
+      if (!streetsByRoute[s.route_id]) streetsByRoute[s.route_id] = [];
+      var name = cleanText(s.street_name);
+      if (name && streetsByRoute[s.route_id].indexOf(name) === -1) {
+        streetsByRoute[s.route_id].push(name);
+      }
+    }
+
+    // Also include any inline streets defined directly on the route object
+    for (var j = 0; j < routeList.length; j++) {
+      var r = routeList[j];
+      if (r && r.id && r.streets && typeof r.streets === "string" && r.streets.trim()) {
+        if (!streetsByRoute[r.id]) streetsByRoute[r.id] = [];
+        var extra = r.streets.split(/[,;\n\r]+/);
+        for (var k = 0; k < extra.length; k++) {
+          var ename = cleanText(extra[k]);
+          if (ename && streetsByRoute[r.id].indexOf(ename) === -1) {
+            streetsByRoute[r.id].push(ename);
+          }
+        }
+      }
+    }
+
+    var today = todayISO();
+    var sortedRoutes = routeList.slice().sort(function (a, b) {
+      return (a.date || "").localeCompare(b.date || "");
+    });
+    var todayRoute = sortedRoutes.find(function (item) { return item.date === today; });
+
     var parts = [];
     if (todayRoute) {
-      parts.push("The sleigh IS out tonight on the " + (todayRoute.routeName || todayRoute.name || "Beverley") + " route.");
-      if (todayRoute.streets) parts.push("Streets tonight: " + todayRoute.streets + ".");
+      var tName = cleanText(todayRoute.name || todayRoute.routeName || "local");
+      var tTime = todayRoute.start_time ? " starting around " + cleanText(todayRoute.start_time) : "";
+      parts.push("TONIGHT: The sleigh IS out visiting " + town + " tonight on the '" + tName + "' route" + tTime + ".");
+      var tStreets = (streetsByRoute[todayRoute.id] || []).join(", ");
+      if (tStreets) {
+        parts.push("Streets visited tonight: " + tStreets + ".");
+      }
     } else {
-      parts.push("The sleigh is not out tonight.");
+      parts.push("TONIGHT: The sleigh is not out in " + town + " tonight.");
     }
-    if (nextRoute) {
-      parts.push("Next visit: " + fmtDate(nextRoute.date) +
-        (nextRoute.routeName || nextRoute.name ? " (" + (nextRoute.routeName || nextRoute.name) + " route)" : "") + ".");
+
+    if (sortedRoutes.length > 0) {
+      var summaries = [];
+      for (var m = 0; m < sortedRoutes.length; m++) {
+        var rt = sortedRoutes[m];
+        var rtName = cleanText(rt.name || rt.routeName || "Route");
+        var rtDate = fmtDate(rt.date);
+        var rtTime = rt.start_time ? " (starts " + cleanText(rt.start_time) + ")" : "";
+        var rtStreets = (streetsByRoute[rt.id] || []).join(", ");
+        summaries.push(rtDate + " - " + rtName + rtTime + ": " + (rtStreets || "Check tracker map"));
+      }
+      parts.push("FULL " + town.toUpperCase() + " SCHEDULE & STREETS: " + summaries.join(" | ") + ".");
+      parts.push("When asked when Santa visits a street, tell the child the exact scheduled date, route name, and start time above. If their street is not on this schedule, say the elves plan new streets every year and to watch the live tracker map with a grown-up.");
+    } else {
+      parts.push("The elves are still finalizing the route schedule for " + town + " — please check the tracker map.");
     }
-    return parts.join(" ") || lastRouteInfo;
+
+    return parts.join(" ");
   }
 
   /* Fetch agent ID from Cloudflare Secret (/api/santa-agent) with fallback to payload */
@@ -137,7 +221,7 @@
         return fetch(payloadUrl)
           .then(function (r) { return r.json(); })
           .then(function (d) {
-            return (d && d.table && d.table.elevenlabs_agent_id) || CONFIG.agentId;
+            return (d && d.table && d.table.elevenlabs_agent_id) || (KNOWN_AGENTS && KNOWN_AGENTS[slug]) || CONFIG.agentId;
           })
           .catch(function () {
             return CONFIG.agentId;
@@ -159,7 +243,11 @@
           var appleIconEl = document.getElementById("site-apple-touch-icon") || document.querySelector("link[rel='apple-touch-icon']");
           if (appleIconEl && appleIconEl.href !== data.table.logo_url) appleIconEl.href = data.table.logo_url;
         }
-        return data.routes || [];
+        return {
+          routes: data.routes || [],
+          streets: data.streets || [],
+          table: data.table || {}
+        };
       });
   }
 
@@ -225,13 +313,13 @@
   }
 
   function injectWidget(agentId) {
-    if (injected) return;
-    var finalAgentId = param("agent_id") || agentId || CONFIG.agentId;
+    var finalAgentId = param("agent_id") || agentId || (KNOWN_AGENTS && KNOWN_AGENTS[resolveTableSlug()]) || CONFIG.agentId;
     if (!finalAgentId || finalAgentId === "PASTE_AGENT_ID_HERE") {
       console.warn("[SantaChat] No agent ID set — widget not loaded.");
       return;
     }
 
+    var cleanRoute = cleanText(lastRouteInfo);
     var el = document.querySelector(WIDGET_TAG);
     if (!el) {
       el = document.createElement(WIDGET_TAG);
@@ -240,14 +328,11 @@
       el.setAttribute("always-expanded", "true");
       el.setAttribute("show-resize-button", "true");
 
-      if (lastRouteInfo && typeof lastRouteInfo === "string") {
-        var cleanRoute = lastRouteInfo.replace(/[^\x20-\x7E]/g, "").trim();
-        if (cleanRoute) {
-          try {
-            el.setAttribute("dynamic-variables", JSON.stringify({ route_info: cleanRoute }));
-          } catch (e) {
-            console.warn("[SantaChat] Dynamic variables error:", e);
-          }
+      if (cleanRoute) {
+        try {
+          el.setAttribute("dynamic-variables", JSON.stringify({ route_info: cleanRoute }));
+        } catch (e) {
+          console.warn("[SantaChat] Dynamic variables error:", e);
         }
       }
 
@@ -265,6 +350,15 @@
       } else {
         document.body.appendChild(el);
       }
+    } else {
+      if (finalAgentId && el.getAttribute("agent-id") !== finalAgentId) {
+        el.setAttribute("agent-id", finalAgentId);
+      }
+      if (cleanRoute) {
+        try {
+          el.setAttribute("dynamic-variables", JSON.stringify({ route_info: cleanRoute }));
+        } catch (e) {}
+      }
     }
 
     if (!window.customElements || !window.customElements.get(WIDGET_TAG)) {
@@ -278,7 +372,7 @@
     }
 
     injected = true;
-    console.info("[SantaChat] ElevenLabs ConvAI loaded (instant). Agent: " + finalAgentId);
+    console.info("[SantaChat] ElevenLabs ConvAI loaded. Agent: " + finalAgentId + ", Route info length: " + cleanRoute.length);
   }
 
   function removeWidget() {
@@ -294,11 +388,6 @@
     if (param("driver") === "1" && !hasPreviewFlag()) return;
 
     var slug = resolveTableSlug();
-    // Strictly isolate Santa Chat to Beverley
-    if (slug !== "beverley" && !param("agent_id") && !hasPreviewFlag()) {
-      console.info("[SantaChat] Santa Chat is exclusive to Beverley.");
-      return;
-    }
 
     resolveMountAndOpts();
 
@@ -309,50 +398,54 @@
 
     var gated = CONFIG.routeNightsOnly && !OPTS.always;
     var show = hasPreviewFlag() || !gated || OPTS.always || inManualWindow();
+    if (!show) return;
 
-    // 1. INSTANT LOAD: inject widget immediately with default Beverley agent ID
-    if (show) {
-      injectWidget(CONFIG.agentId);
-    }
+    var initialAgentId = param("agent_id") || (KNOWN_AGENTS && KNOWN_AGENTS[slug]) || CONFIG.agentId;
 
-    // 2. BACKGROUND SYNC: fetch Cloudflare secret agent ID, route info, and favicon in parallel
+    // Safety timeout in case network stalls completely: 3500ms
+    var syncTimeout = setTimeout(function () {
+      if (!injected) {
+        console.warn("[SantaChat] Timeout fallback — injecting widget with fallback agent ID");
+        injectWidget(initialAgentId);
+      }
+    }, 3500);
+
     Promise.all([
-      fetchAgentSecret(slug).catch(function () { return CONFIG.agentId; }),
-      fetchRoutes(slug).catch(function () { return []; })
+      fetchAgentSecret(slug).catch(function () { return initialAgentId; }),
+      fetchRoutes(slug).catch(function () { return { routes: [], streets: [], table: {} }; })
     ]).then(function (results) {
-      var agentId = results[0] || CONFIG.agentId;
-      var routes = results[1] || [];
+      clearTimeout(syncTimeout);
+      var agentId = results[0] || initialAgentId;
+      var routeData = results[1] || {};
+      var routes = routeData.routes || [];
+      var streets = routeData.streets || [];
+      var table = routeData.table || {};
+
+      var rawTown = (table.name || slug || "Round Table")
+        .replace(/santa'?s?/i, "")
+        .replace(/sleigh/i, "")
+        .replace(/round\s+table/i, "")
+        .trim();
+      var townName = rawTown ? (rawTown.charAt(0).toUpperCase() + rawTown.slice(1)) : (slug.charAt(0).toUpperCase() + slug.slice(1));
 
       var todayRoute = getTodayRoute(routes);
-      var nextRoute = getNextRoute(routes);
-      lastRouteInfo = buildRouteInfo(todayRoute, nextRoute);
+      lastRouteInfo = buildRouteInfo(routes, streets, townName);
 
       var shouldShow = hasPreviewFlag() || !gated ||
         (todayRoute && withinHours(CONFIG.routeDayHours)) ||
         OPTS.always || inManualWindow();
 
-      var el = document.querySelector(WIDGET_TAG);
       if (shouldShow) {
-        if (!el) {
-          injectWidget(agentId);
-        } else {
-          if (agentId && agentId !== CONFIG.agentId) {
-            el.setAttribute("agent-id", agentId);
-          }
-          if (lastRouteInfo && typeof lastRouteInfo === "string") {
-            var cleanRoute = lastRouteInfo.replace(/[^\x20-\x7E]/g, "").trim();
-            if (cleanRoute) {
-              try {
-                el.setAttribute("dynamic-variables", JSON.stringify({ route_info: cleanRoute }));
-              } catch (e) {}
-            }
-          }
-        }
-      } else if (el) {
+        injectWidget(agentId);
+      } else if (injected) {
         removeWidget();
       }
     }).catch(function (e) {
+      clearTimeout(syncTimeout);
       console.warn("[SantaChat] Background sync error:", e);
+      if (!injected) {
+        injectWidget(initialAgentId);
+      }
     });
   }
 
