@@ -3231,8 +3231,8 @@
             visibleRoutes.forEach(({ route, d, isPast }) => {
                 const card = el('div', isPast ? 'route-card is-past' : 'route-card');
 
-                const start = route['Start Time'] || '';
-                const end = route['End Time'] || '';
+                const start = route['Start Time'] || route.start_time || route.startTime || '';
+                const end = route['End Time'] || route.end_time || route.endTime || '';
                 const time = (start && end) ? start + ' - ' + end : '';
                 const dateText = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
                 
@@ -3309,8 +3309,8 @@
         function renderTodaySpotlight({ route, d }, sponsors, parent) {
             const card = el('div', 'today-spotlight-card');
 
-            const start = route['Start Time'] || '';
-            const end = route['End Time'] || '';
+            const start = route['Start Time'] || route.start_time || route.startTime || '';
+            const end = route['End Time'] || route.end_time || route.endTime || '';
             const time = (start && end) ? start + ' - ' + end : '';
             const dateText = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 

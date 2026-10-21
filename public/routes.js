@@ -133,8 +133,8 @@ function startRoutes() {
         const uniqueMapId = highlight ? `map-featured-${safeNameId}` : `map-list-${safeNameId}`;
 
         const dateLabel = formatDate(route.date); 
-        const startTime = route["Start Time"] || "";
-        const endTime = route["End Time"] || "";
+        const startTime = route["Start Time"] || route.start_time || route.startTime || "";
+        const endTime = route["End Time"] || route.end_time || route.endTime || "";
         const timeStr = startTime ? ` · ${startTime}–${endTime}` : "";
         const notes = route.notes || "";
         const streets = route.streets || "";

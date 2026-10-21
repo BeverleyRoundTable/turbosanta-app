@@ -689,11 +689,15 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
         const routeStreets = r.streets || (rawStreets.filter(s => s.route_id === r.id).map(s => s.street_name).join(', ')) || '';
 
         const routeSponsors = extractRouteSponsors(r);
+        const startTime = r.start_time || r['Start Time'] || r.startTime || '';
+        const endTime = r.end_time || r['End Time'] || r.endTime || '';
 
         return {
           ...r,
           d,
           day,
+          start_time: startTime,
+          end_time: endTime,
           routeName: r.name || r.routeName,
           streets: routeStreets,
           sponsors: routeSponsors,

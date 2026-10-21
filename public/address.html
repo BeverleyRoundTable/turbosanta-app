@@ -493,6 +493,19 @@
     return h + ":" + String(m).padStart(2, "0") + ap;
   }
 
+  function formatRouteClockDisplay(raw) {
+    if (!raw) return '17:30 (5:30pm)';
+    const s = String(raw).trim();
+    const match = s.match(/^(\d{1,2}):(\d{2})/);
+    if (!match) return s;
+    let h = parseInt(match[1], 10);
+    const m = match[2];
+    const ap = h >= 12 ? 'pm' : 'am';
+    const h12 = h % 12 || 12;
+    if (s.toLowerCase().includes('pm') || s.toLowerCase().includes('am')) return s;
+    return s + ' (' + h12 + ':' + m + ap + ')';
+  }
+
   function parseRouteClock(hm) {
     const m = String(hm || "").match(/^(\d{1,2}):(\d{2})/);
     if (!m) return null;
@@ -712,9 +725,15 @@
         routesData = data.routes.map(r => {
           const routeStreets = (data.streets || []).filter(s => s.route_id === r.id).map(s => s.street_name);
           const spList = extractRouteSponsors(r);
+          const stTime = r.start_time || r['Start Time'] || r.startTime || '';
+          const edTime = r.end_time || r['End Time'] || r.endTime || '';
           return {
             ...r,
             routeName: r.name || r.routeName || 'Santa Route',
+            'Start Time': stTime,
+            'End Time': edTime,
+            start_time: stTime,
+            end_time: edTime,
             streets: r.streets || (routeStreets.length ? routeStreets.join(', ') : ''),
             gpxUrl: r.gpxUrl || r.gpx_url || '',
             sponsors: spList
@@ -1016,7 +1035,7 @@
         const todayBanner = isToday ? `
           <div style="background: rgba(251, 175, 51, 0.15); border: 1px solid var(--primary); border-radius: 8px; padding: 10px 14px; margin-top: 10px; display: flex; align-items: center; gap: 10px;">
             <span style="background: var(--primary); color: #000; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 100px; text-transform: uppercase;">TODAY!</span>
-            <span style="font-size: 13px; font-weight: 700; color: #fff;">🎅 Santa is on this route TONIGHT! Track him live from ${route['Start Time'] || '17:30'}</span>
+            <span style="font-size: 13px; font-weight: 700; color: #fff;">🎅 Santa is on this route TONIGHT! Track him live from ${formatRouteClockDisplay(route.start_time || route['Start Time'])}</span>
           </div>
         ` : '';
 
@@ -1082,7 +1101,7 @@
         resultsDiv.innerHTML += `
           <div class="addr-route-card ${isToday ? 'is-today' : ''}" data-route-name="${route.routeName}" style="--route-color: ${route.color || PRIMARY};">
             <h3 class="addr-route-title">${route.routeName}</h3>
-            <p class="addr-route-date">${formattedDate} (Starts at approx ${route['Start Time'] || '17:30'})</p>
+            <p class="addr-route-date">${formattedDate} (Starts at approx ${formatRouteClockDisplay(route.start_time || route['Start Time'])})</p>
             ${todayBanner}
             ${locationLine ? `<p style="margin: 12px 0 0; font-size: 13px; font-weight: 600; color: var(--text-dim);">${locationLine}</p>` : ''}
             ${sponsorHtml}
