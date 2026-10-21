@@ -482,6 +482,15 @@ if (!API && !TABLE_SLUG) {
 }
   
 async function init() {
+  // Safety timeout: guarantee loader is dismissed even under extreme network stalls
+  setTimeout(() => {
+    const l = document.getElementById('loader');
+    if (l && !l.classList.contains('done')) {
+      console.warn('Loader safety timeout fired');
+      l.classList.add('done');
+    }
+  }, 5000);
+
   const urlToken = params.get('token') || params.get('secret') || params.get('auth');
   const hashMatch = window.location.hash.match(/[#&](?:token|secret|auth)=([^&]+)/i);
   const hashToken = hashMatch ? decodeURIComponent(hashMatch[1]) : '';
@@ -492,6 +501,15 @@ async function init() {
   try { adminSession = JSON.parse(localStorage.getItem('turbosanta_admin_session') || '{}'); } catch(e) {}
 
   let secret = urlToken || hashToken || cookieToken || sessionStorage.getItem('sleighSecret') || adminSession?.token || adminSession?.googleCredential;
+  if (secret && typeof secret === 'string') {
+    secret = secret.trim();
+    if (secret.includes('.')) {
+      const parts = secret.split('.');
+      if (parts.length === 3 && parts[2].length > 342) {
+        secret = parts[0] + '.' + parts[1] + '.' + parts[2].slice(0, 342);
+      }
+    }
+  }
 
   if (secret) {
     sessionStorage.setItem('sleighSecret', secret);
@@ -599,10 +617,16 @@ async function init() {
     return;
   }
 
-  await fetchApiData();
-  buildDashboard();
-  initMap();
-  document.getElementById('loader').classList.add('done');
+  try {
+    await fetchApiData();
+    buildDashboard();
+    initMap();
+  } catch (err) {
+    console.error('Dashboard initialization error:', err);
+  } finally {
+    const l = document.getElementById('loader');
+    if (l) l.classList.add('done');
+  }
   
   await fetchGps();
   // 🛡️ Initialize GPS Health without the direct Firebase URL
@@ -2203,8 +2227,7 @@ const GpsHealth = (() => {
       paint(age, last?.lat || null, last?.lng || null, false, null);
     }
   }
-  }
- 
+
   return {
     init() {
       if (tmr) clearInterval(tmr);
