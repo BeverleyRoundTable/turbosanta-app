@@ -222,6 +222,17 @@
   .wp-stop-input:focus { outline: none; border-color: var(--primary); }
 
   .street-list { max-height: 200px; overflow-y: auto; margin-top: 12px; padding-right: 12px; }
+
+  /* Planned Stops on GPX Styles */
+  .stops-list { max-height: 240px; overflow-y: auto; margin-top: 10px; padding-right: 4px; display: flex; flex-direction: column; gap: 8px; }
+  .stop-item { display: flex; align-items: center; gap: 8px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; transition: border-color 0.15s; }
+  .stop-item:hover { border-color: rgba(var(--primary-rgb), 0.4); }
+  .stop-badge { background: var(--red); color: #fff; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+  .stop-name-input { flex: 1; background: transparent; border: 1px solid transparent; color: #fff; font-family: inherit; font-size: 12px; font-weight: 600; padding: 4px 6px; border-radius: 4px; outline: none; transition: all 0.2s; }
+  .stop-name-input:focus { background: var(--surface-3); border-color: var(--primary); }
+  .stop-btn-icon { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; font-size: 13px; border-radius: 4px; transition: color 0.15s; }
+  .stop-btn-icon:hover { color: #fff; }
+  .stop-btn-del:hover { color: var(--red) !important; }
   .street-item { display: flex; align-items: center; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
   .street-num { font-size: 11px; color: var(--primary); font-weight: 700; min-width: 20px; text-align: right; }
   .street-name { font-weight: 600; color: #fff; flex: 1; }
@@ -320,6 +331,11 @@
           <div class="dropzone-text">Drag &amp; drop <em>.gpx</em> or tap to browse</div>
         </div>
         <div id="fileBadge" style="display:none"></div>
+        <div id="uploadActions" style="display:none; margin-top:10px;">
+          <button class="btn btn-dim btn-sm" onclick="convertGpxToEditableRoute()" style="width:100%; font-size:11px; display:inline-flex; align-items:center; justify-content:center; gap:6px;">
+            <span>✏️ Convert GPX to Editable Waypoints</span>
+          </button>
+        </div>
       </div>
 
       <div class="sb-section" id="placeSection" style="display:none">
@@ -345,6 +361,7 @@
         <div class="stats-grid">
           <div class="stat"><div class="stat-value primary" id="statDist">—</div><div class="stat-label">Distance</div></div>
           <div class="stat"><div class="stat-value" id="statWaypoints">—</div><div class="stat-label">Waypoints</div></div>
+          <div class="stat"><div class="stat-value" id="statStops">0</div><div class="stat-label">Planned Stops</div></div>
           <div class="stat"><div class="stat-value primary" id="statTime">—</div><div class="stat-label">Est. Time</div></div>
           <div class="stat"><div class="stat-value" id="statDense">—</div><div class="stat-label">Export Points</div></div>
         </div>
@@ -362,6 +379,32 @@
             <option value="20">20m</option>
             <option value="50">50m (sparse)</option>
           </select>
+        </div>
+      </div>
+
+      <!-- Planned Stops & Waypoints Section -->
+      <div class="sb-section" id="plannedStopsSection" style="display:none">
+        <div class="sb-label">
+          <span>🛑 Planned Stops (<span id="stopsCountLabel">0</span>)</span>
+          <span style="font-size:10px; color:var(--primary); font-weight:700;">Public Sleigh Radar</span>
+        </div>
+
+        <div style="background:var(--surface-2); border:1px solid var(--border-primary); border-radius:10px; padding:12px; margin-bottom:12px;">
+          <div style="font-size:12px; color:var(--text-dim); line-height:1.4; margin-bottom:10px;">
+            Mark official stops (pubs, schools, greens) along your route. These appear as interactive Santa pins on the public live tracker.
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button id="btnAddStopMode" class="btn btn-primary btn-sm" onclick="toggleAddStopMode()" style="flex:1; display:inline-flex; align-items:center; justify-content:center; gap:6px;">
+              <span>📍 + Add Stop (Click Map)</span>
+            </button>
+            <button class="btn btn-dim btn-sm" onclick="clearAllPlannedStops()" title="Remove all stops" style="padding:8px 12px;">
+              ✕ Clear
+            </button>
+          </div>
+        </div>
+
+        <div id="stopsListContainer" class="stops-list">
+          <!-- Dynamically populated stop items -->
         </div>
       </div>
 
@@ -492,6 +535,11 @@ let snappedLayer = null;
 let uploadLayer = null;
 let waypointMarkers = [];
 let existingRouteLayers = [];
+let stopsLayer = L.layerGroup();
+window.plannedStops = [];
+window.isAddingStop = false;
+window.stopMarkerInstances = [];
+window.currentLoadedRoute = null;
 
 const routingServers = {
   driving: 'https://routing.openstreetmap.de/routed-car/route/v1/driving',
@@ -503,6 +551,7 @@ const map = L.map('map', { zoomControl: true, preferCanvas: true }).setView([52.
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap', maxZoom: 19
 }).addTo(map);
+stopsLayer.addTo(map);
 
 setTimeout(() => { map.invalidateSize(); }, 200);
 
@@ -529,6 +578,10 @@ function setActiveToolProfile(btn) {
 }
 
 map.on('click', async e => {
+  if (window.isAddingStop) {
+    addStopAtLatLng(e.latlng.lat, e.latlng.lng);
+    return;
+  }
   if (mode !== 'place') return;
   const { lat, lng } = e.latlng;
   addWaypointMarker(lat, lng);
@@ -614,6 +667,286 @@ function updateMarkerVisual(index) {
     iconSize: [16, 16],
     iconAnchor: [8, 8]
   }));
+}
+
+/* ==========================================================================
+   PLANNED STOPS ON GPX / ROUTE MANAGEMENT
+   Allows Round Tables to click directly on an existing GPX track to mark stops
+   without destroying or recalculating the route geometry.
+   ========================================================================== */
+
+function renderPlannedStops() {
+  if (stopsLayer) stopsLayer.clearLayers();
+  window.stopMarkerInstances = [];
+
+  (window.plannedStops || []).forEach((stop, i) => {
+    const marker = createStopMarker(stop, i);
+    stopsLayer.addLayer(marker);
+    window.stopMarkerInstances.push(marker);
+  });
+
+  renderPlannedStopsList();
+  updatePlannedStopsCountBadge();
+}
+
+function updatePlannedStopsCountBadge() {
+  const count = window.plannedStops ? window.plannedStops.length : 0;
+  const countLabel = document.getElementById('stopsCountLabel');
+  if (countLabel) countLabel.textContent = count;
+  const statStops = document.getElementById('statStops');
+  if (statStops) statStops.textContent = count;
+}
+
+function createStopMarker(stop, index) {
+  const marker = L.marker([stop.lat, stop.lng], {
+    draggable: true,
+    zIndexOffset: 3000 + index,
+    icon: L.divIcon({
+      className: 'custom-stop-div-icon',
+      html: `
+        <div style="
+          background: #D31C1C;
+          border: 2px solid #FBAF33;
+          color: #ffffff;
+          border-radius: 50%;
+          width: 26px;
+          height: 26px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 900;
+          font-size: 11px;
+          font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.8);
+          cursor: pointer;
+          transform: translate(-13px, -13px);
+        ">
+          ${index + 1}
+        </div>
+      `,
+      iconSize: [0, 0]
+    })
+  });
+
+  marker.bindTooltip(`Stop #${index + 1}: ${stop.name || 'Planned Stop'}`, {
+    direction: 'top',
+    offset: [0, -14]
+  });
+
+  const popupContent = document.createElement('div');
+  popupContent.style.minWidth = '220px';
+  popupContent.style.color = '#111';
+  popupContent.style.fontFamily = '-apple-system, BlinkMacSystemFont, sans-serif';
+  popupContent.innerHTML = `
+    <div style="font-weight:900; font-size:13px; color:#D31C1C; margin-bottom:6px; display:flex; align-items:center; gap:4px;">
+      <span>🛑 Planned Stop #${index + 1}</span>
+    </div>
+    <div style="margin-bottom:8px;">
+      <label style="display:block; font-size:11px; font-weight:700; color:#555; margin-bottom:3px;">Stop Name / Landmark:</label>
+      <input type="text" id="popupStopInput_${index}" value="${(stop.name || '').replace(/"/g, '&quot;')}" placeholder="e.g. The Red Lion Pub (18:30)" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #ccc; border-radius:6px; font-size:12px; font-weight:600; outline:none;">
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #eee; padding-top:6px;">
+      <span style="font-size:10px; color:#777;">Drag pin to move</span>
+      <button id="popupStopDel_${index}" style="background:#fee2e2; color:#b91c1c; border:1px solid #f87171; border-radius:4px; padding:3px 8px; font-size:10px; font-weight:700; cursor:pointer;">Delete Stop</button>
+    </div>
+  `;
+
+  marker.bindPopup(popupContent);
+
+  marker.on('popupopen', () => {
+    const input = document.getElementById(`popupStopInput_${index}`);
+    if (input) {
+      input.focus();
+      input.oninput = (e) => {
+        updatePlannedStopName(index, e.target.value);
+      };
+    }
+    const delBtn = document.getElementById(`popupStopDel_${index}`);
+    if (delBtn) {
+      delBtn.onclick = () => {
+        deletePlannedStop(index);
+      };
+    }
+  });
+
+  marker.on('dragend', () => {
+    const pos = marker.getLatLng();
+    stop.lat = pos.lat;
+    stop.lng = pos.lng;
+    renderPlannedStopsList();
+    updateStats();
+  });
+
+  return marker;
+}
+
+function renderPlannedStopsList() {
+  const container = document.getElementById('stopsListContainer');
+  if (!container) return;
+
+  if (!window.plannedStops || window.plannedStops.length === 0) {
+    container.innerHTML = `
+      <div style="padding:14px; text-align:center; color:var(--text-muted); font-size:12px; background:rgba(255,255,255,0.02); border-radius:8px; border:1px dashed var(--border);">
+        No stops marked yet. Click <strong>+ Add Stop</strong> above, then tap anywhere along your route to mark where Santa stops!
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = window.plannedStops.map((stop, i) => {
+    const safeName = (stop.name || `Stop ${i + 1}`).replace(/"/g, '&quot;');
+    return `
+      <div class="stop-item" id="stopItem_${i}">
+        <div class="stop-badge">${i + 1}</div>
+        <input type="text" class="stop-name-input" value="${safeName}" placeholder="Stop ${i + 1} Name..."
+               oninput="updatePlannedStopName(${i}, this.value)"
+               onchange="updatePlannedStopName(${i}, this.value)">
+        <button class="stop-btn-icon" onclick="panToPlannedStop(${i})" title="Center on Map">🎯</button>
+        <button class="stop-btn-icon stop-btn-del" onclick="deletePlannedStop(${i})" title="Delete Stop">🗑️</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function panToPlannedStop(index) {
+  const stop = window.plannedStops[index];
+  if (!stop) return;
+  map.setView([stop.lat, stop.lng], Math.max(map.getZoom(), 16), { animate: true });
+  const marker = window.stopMarkerInstances[index];
+  if (marker) {
+    marker.openPopup();
+  }
+}
+
+function updatePlannedStopName(index, newName) {
+  if (window.plannedStops[index]) {
+    window.plannedStops[index].name = newName;
+    const marker = window.stopMarkerInstances[index];
+    if (marker) {
+      marker.setTooltipContent(`Stop #${index + 1}: ${newName || 'Planned Stop'}`);
+      const popupInput = document.getElementById(`popupStopInput_${index}`);
+      if (popupInput && popupInput.value !== newName) {
+        popupInput.value = newName;
+      }
+    }
+  }
+}
+
+function deletePlannedStop(index) {
+  window.plannedStops.splice(index, 1);
+  renderPlannedStops();
+  updateStats();
+}
+
+function clearAllPlannedStops() {
+  if (!window.plannedStops || window.plannedStops.length === 0) return;
+  if (!confirm("Remove all planned stops from this route?")) return;
+  window.plannedStops = [];
+  renderPlannedStops();
+  updateStats();
+}
+
+function toggleAddStopMode(forceState = null) {
+  window.isAddingStop = forceState !== null ? forceState : !window.isAddingStop;
+  const btn = document.getElementById('btnAddStopMode');
+  const toast = document.getElementById('mapToast');
+
+  if (window.isAddingStop) {
+    if (btn) {
+      btn.style.background = '#d31c1c';
+      btn.style.color = '#fff';
+      btn.innerHTML = '<span>❌ Click Map to Drop (Tap to Finish)</span>';
+      btn.style.boxShadow = '0 0 14px rgba(211,28,28,0.6)';
+    }
+    map.getContainer().style.cursor = 'crosshair';
+    if (toast) {
+      toast.textContent = '📍 Click anywhere along the route to place a Planned Stop';
+      toast.style.display = 'block';
+    }
+  } else {
+    if (btn) {
+      btn.style.background = '';
+      btn.style.color = '';
+      btn.innerHTML = '<span>📍 + Add Stop (Click Map)</span>';
+      btn.style.boxShadow = '';
+    }
+    map.getContainer().style.cursor = mode === 'place' ? 'crosshair' : '';
+    if (toast) {
+      toast.style.display = mode === 'place' ? 'block' : 'none';
+      if (mode === 'place') toast.textContent = 'Click the map to place waypoints';
+    }
+  }
+}
+
+function addStopAtLatLng(lat, lng) {
+  const stopIndex = window.plannedStops.length;
+  const defaultName = `Stop ${stopIndex + 1}`;
+  const newStop = {
+    id: `stop_${Date.now()}_${stopIndex + 1}`,
+    name: defaultName,
+    lat: lat,
+    lng: lng
+  };
+  window.plannedStops.push(newStop);
+  renderPlannedStops();
+  updateStats();
+
+  setTimeout(() => {
+    const marker = window.stopMarkerInstances[stopIndex];
+    if (marker) {
+      marker.openPopup();
+    }
+  }, 60);
+}
+
+function convertGpxToEditableRoute() {
+  const pts = getActivePoints();
+  if (pts.length < 2) {
+    alert("Please load or upload a GPX route first.");
+    return;
+  }
+
+  if (!confirm("Convert this GPX trail into editable route points?\\n\\nThis switches into Route Builder mode with the points mapped out so you can extend the route, drag turning points, or modify streets.")) {
+    return;
+  }
+
+  // Sample points up to 35 key points
+  const sampled = sampleRoutePoints(pts, 35);
+
+  clearAllWaypoints();
+
+  sampled.forEach((pt, i) => {
+    addWaypointMarker(pt[0], pt[1]);
+    waypoints.push({
+      lat: pt[0],
+      lng: pt[1],
+      isStop: false,
+      stopName: '',
+      nextMode: 'driving'
+    });
+  });
+
+  setMode('place');
+  updateWpUI();
+  routeAllWaypoints();
+  updateStats();
+
+  const toast = document.getElementById('mapToast');
+  if (toast) {
+    toast.textContent = `✓ GPX converted to ${waypoints.length} editable waypoints! Drag or click to modify`;
+    toast.style.display = 'block';
+  }
+}
+
+function sampleRoutePoints(pts, maxCount = 35) {
+  if (pts.length <= maxCount) return pts.slice();
+  const step = (pts.length - 1) / (maxCount - 1);
+  const result = [];
+  for (let i = 0; i < maxCount; i++) {
+    const idx = Math.min(pts.length - 1, Math.round(i * step));
+    result.push(pts[idx]);
+  }
+  return result;
 }
 
 function addWaypointMarker(lat, lng) {
@@ -826,6 +1159,13 @@ function drawSnappedRoute() {
     color: '#D31C1C', weight: 4, opacity: 0.9
   }).addTo(map);
 
+  snappedLayer.on('click', e => {
+    if (window.isAddingStop) {
+      L.DomEvent.stopPropagation(e);
+      addStopAtLatLng(e.latlng.lat, e.latlng.lng);
+    }
+  });
+
   updateStats();
 }
 
@@ -872,7 +1212,7 @@ function parseGPX(text, name, size) {
   snappedGeometry = [];
 
   // Parse any planned <wpt> stops in GPX
-  window._parsedExistingStops = [];
+  window.plannedStops = [];
   const wptNodes = gpx.querySelectorAll('wpt');
   wptNodes.forEach((w, i) => {
     const lat = parseFloat(w.getAttribute('lat'));
@@ -880,16 +1220,34 @@ function parseGPX(text, name, size) {
     const nameNode = w.querySelector('name');
     const stopName = nameNode ? nameNode.textContent.trim() : `Stop ${i + 1}`;
     if (!isNaN(lat) && !isNaN(lon)) {
-      window._parsedExistingStops.push({ lat, lng: lon, name: stopName, isStop: true });
+      window.plannedStops.push({ id: `stop_${i + 1}`, lat, lng: lon, name: stopName });
     }
   });
 
+  // If GPX has no <wpt> stops, check if currently selected route in D1 has planned_stops
+  if (window.plannedStops.length === 0 && window.currentLoadedRoute && Array.isArray(window.currentLoadedRoute.planned_stops) && window.currentLoadedRoute.planned_stops.length > 0) {
+    window.plannedStops = window.currentLoadedRoute.planned_stops.map((s, i) => ({
+      id: s.id || `stop_${i + 1}`,
+      lat: parseFloat(s.lat),
+      lng: parseFloat(s.lng || s.lon),
+      name: s.name || `Stop ${i + 1}`
+    }));
+  }
+
+  renderPlannedStops();
+
   if (uploadLayer) map.removeLayer(uploadLayer);
   uploadLayer = L.polyline(pts, { color: '#D31C1C', weight: 4, opacity: 0.9 }).addTo(map);
+  uploadLayer.on('click', e => {
+    if (window.isAddingStop) {
+      L.DomEvent.stopPropagation(e);
+      addStopAtLatLng(e.latlng.lat, e.latlng.lng);
+    }
+  });
   map.fitBounds(uploadLayer.getBounds(), { padding: [40, 40] });
 
-  const stopsNotice = window._parsedExistingStops.length > 0 
-    ? ` · <span style="color:var(--primary);">${window._parsedExistingStops.length} stops</span>` 
+  const stopsNotice = window.plannedStops.length > 0 
+    ? ` · <span style="color:var(--primary); font-weight:700;">${window.plannedStops.length} stops</span>` 
     : '';
 
   document.getElementById('fileBadge').style.display = 'block';
@@ -898,6 +1256,8 @@ function parseGPX(text, name, size) {
     <div class="file-badge-info"><div class="file-badge-name">${name}</div><div class="file-badge-meta">${pts.length} pts · ${(size/1024).toFixed(1)} KB${stopsNotice}</div></div>
     <button class="file-badge-clear" onclick="clearUpload()">✕</button>
   </div>`;
+  const upAct = document.getElementById('uploadActions');
+  if (upAct) upAct.style.display = 'block';
 
   updateStats();
   detectStreets();
@@ -907,9 +1267,17 @@ function clearUpload() {
   abortGeocode();
   if (uploadLayer) { map.removeLayer(uploadLayer); uploadLayer = null; }
   uploadedPoints = [];
-  window._parsedExistingStops = [];
+  if (stopsLayer) stopsLayer.clearLayers();
+  window.plannedStops = [];
+  window.stopMarkerInstances = [];
+  window.currentLoadedRoute = null;
+  toggleAddStopMode(false);
   document.getElementById('fileBadge').style.display = 'none';
+  const upAct = document.getElementById('uploadActions');
+  if (upAct) upAct.style.display = 'none';
   document.getElementById('statsSection').style.display = 'none';
+  const stopsSec = document.getElementById('plannedStopsSection');
+  if (stopsSec) stopsSec.style.display = 'none';
   document.getElementById('streetsSection').style.display = 'none';
   const tackEl = document.getElementById('tackSection');
   if (tackEl) tackEl.style.display = 'none';
@@ -930,6 +1298,8 @@ function updateStats() {
     document.getElementById('streetsSection').style.display = 'none';
     const tackEl = document.getElementById('tackSection');
     if (tackEl) tackEl.style.display = 'none';
+    const stopsSec = document.getElementById('plannedStopsSection');
+    if (stopsSec) stopsSec.style.display = 'none';
     document.getElementById('mapLegend').style.display = 'none';
     return;
   }
@@ -944,7 +1314,11 @@ function updateStats() {
   document.getElementById('statDense').textContent = dense.length.toLocaleString();
   updateTime(distMi);
 
+  updatePlannedStopsCountBadge();
+
   document.getElementById('statsSection').style.display = 'block';
+  const stopsSec = document.getElementById('plannedStopsSection');
+  if (stopsSec) stopsSec.style.display = 'block';
   document.getElementById('streetsSection').style.display = 'block';
   const tackEl = document.getElementById('tackSection');
   if (tackEl) tackEl.style.display = 'block';
@@ -1003,12 +1377,19 @@ function exportDenseGPX() {
   const dense = densifyPoints(pts, density);
 
   let wptTags = '';
-  waypoints.forEach((w, i) => {
-    if (w.isStop) {
+  if (Array.isArray(window.plannedStops) && window.plannedStops.length > 0) {
+    window.plannedStops.forEach((st, i) => {
       const defaultName = `Stop ${i + 1}`;
-      wptTags += `  <wpt lat="${w.lat.toFixed(7)}" lon="${w.lng.toFixed(7)}">\n    <name>${escXml(w.stopName || defaultName)}</name>\n  </wpt>\n`;
-    }
-  });
+      wptTags += `  <wpt lat="${Number(st.lat).toFixed(7)}" lon="${Number(st.lng).toFixed(7)}">\n    <name>${escXml(st.name || defaultName)}</name>\n  </wpt>\n`;
+    });
+  } else {
+    waypoints.forEach((w, i) => {
+      if (w.isStop) {
+        const defaultName = `Stop ${i + 1}`;
+        wptTags += `  <wpt lat="${w.lat.toFixed(7)}" lon="${w.lng.toFixed(7)}">\n    <name>${escXml(w.stopName || defaultName)}</name>\n  </wpt>\n`;
+      }
+    });
+  }
 
   const trkpts = dense.map(p => `      <trkpt lat="${p[0].toFixed(7)}" lon="${p[1].toFixed(7)}">\n      </trkpt>`).join('\n');
 
@@ -1304,6 +1685,7 @@ async function loadSelectedRouteGpx() {
   if (!val || val === '__NEW__') return;
 
   const route = allTableRoutes.find(r => r.id === val);
+  window.currentLoadedRoute = route;
   const gpxUrl = route?.gpx_url || route?.gpxUrl;
   if (!gpxUrl) {
     alert("This route does not have an existing GPX track to load.");
@@ -1326,9 +1708,10 @@ async function loadSelectedRouteGpx() {
 
     const toast = document.getElementById('mapToast');
     if (toast) {
-      toast.textContent = `📍 Loaded existing GPX track for ${route.name}`;
+      const stopsTxt = window.plannedStops && window.plannedStops.length > 0 ? ` with ${window.plannedStops.length} planned stops` : '';
+      toast.textContent = `📍 Loaded GPX track for ${route.name}${stopsTxt}`;
       toast.style.display = 'block';
-      setTimeout(() => { if (mode !== 'place') toast.style.display = 'none'; }, 3000);
+      setTimeout(() => { if (mode !== 'place') toast.style.display = 'none'; }, 3500);
     }
   } catch(err) {
     console.error("Failed to load existing route GPX:", err);
@@ -1394,22 +1777,23 @@ async function attachGpxToSelectedRoute() {
     const density = parseInt(document.getElementById('densitySelect')?.value || '10');
     const dense = densifyPoints(pts, density);
 
-    // Extract stops from placed waypoints or parsed stops
+    // Extract planned stops from window.plannedStops or waypoints
     let plannedStops = [];
     let wptTags = '';
 
-    waypoints.forEach((w, i) => {
-      if (w.isStop) {
-        const stopName = w.stopName || `Stop ${i + 1}`;
-        wptTags += `  <wpt lat="${w.lat.toFixed(7)}" lon="${w.lng.toFixed(7)}">\n    <name>${escXml(stopName)}</name>\n  </wpt>\n`;
-        plannedStops.push({ lat: w.lat, lng: w.lng, name: stopName });
-      }
-    });
-
-    if (plannedStops.length === 0 && Array.isArray(window._parsedExistingStops) && window._parsedExistingStops.length > 0) {
-      window._parsedExistingStops.forEach(st => {
-        wptTags += `  <wpt lat="${st.lat.toFixed(7)}" lon="${st.lng.toFixed(7)}">\n    <name>${escXml(st.name)}</name>\n  </wpt>\n`;
-        plannedStops.push({ lat: st.lat, lng: st.lng, name: st.name });
+    if (Array.isArray(window.plannedStops) && window.plannedStops.length > 0) {
+      window.plannedStops.forEach((st, i) => {
+        const stopName = st.name || `Stop ${i + 1}`;
+        wptTags += `  <wpt lat="${Number(st.lat).toFixed(7)}" lon="${Number(st.lng).toFixed(7)}">\n    <name>${escXml(stopName)}</name>\n  </wpt>\n`;
+        plannedStops.push({ id: st.id || `stop_${i + 1}`, lat: Number(st.lat), lng: Number(st.lng), name: stopName });
+      });
+    } else {
+      waypoints.forEach((w, i) => {
+        if (w.isStop) {
+          const stopName = w.stopName || `Stop ${i + 1}`;
+          wptTags += `  <wpt lat="${w.lat.toFixed(7)}" lon="${w.lng.toFixed(7)}">\n    <name>${escXml(stopName)}</name>\n  </wpt>\n`;
+          plannedStops.push({ id: `stop_${i + 1}`, lat: w.lat, lng: w.lng, name: stopName });
+        }
       });
     }
 

@@ -801,6 +801,144 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
               </div>
             </div>
 
+            {/* Planned Stops on GPX Section */}
+            <div style={{
+              background: '#0d0d0b',
+              border: '1px solid var(--border)',
+              borderRadius: '12px',
+              padding: '16px 20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', color: '#fff', fontWeight: 600, margin: 0 }}>
+                    🛑 Planned Stops ({formData.planned_stops?.length || 0})
+                  </label>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    Actual stopping points (pubs, schools, greens). Shown as interactive pins on the public tracker.
+                  </span>
+                </div>
+                <a
+                  href={`/route_planner.html?table=${encodeURIComponent(tableSlug || 'beverley')}&routeId=${encodeURIComponent(formData.id || '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    fontSize: '11px',
+                    color: 'var(--primary)',
+                    background: 'rgba(251, 175, 51, 0.1)',
+                    border: '1px solid rgba(251, 175, 51, 0.3)',
+                    borderRadius: '6px',
+                    padding: '6px 10px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    textDecoration: 'none',
+                    fontWeight: 700
+                  }}
+                >
+                  <Navigation size={12} />
+                  <span>Mark Stops on Map (Route Planner) &rarr;</span>
+                </a>
+              </div>
+
+              {formData.planned_stops && formData.planned_stops.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto' }}>
+                  {formData.planned_stops.map((stop, sIdx) => (
+                    <div key={stop.id || `stop-${sIdx}`} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      background: '#161614',
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      padding: '8px 12px'
+                    }}>
+                      <span style={{
+                        background: '#D31C1C',
+                        color: '#fff',
+                        borderRadius: '50%',
+                        width: '22px',
+                        height: '22px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        flexShrink: 0
+                      }}>
+                        {sIdx + 1}
+                      </span>
+                      <input
+                        type="text"
+                        value={stop.name || ''}
+                        onChange={(e) => {
+                          const updated = [...formData.planned_stops];
+                          updated[sIdx] = { ...updated[sIdx], name: e.target.value };
+                          setFormData(prev => ({ ...prev, planned_stops: updated }));
+                        }}
+                        placeholder={`Stop ${sIdx + 1} Name (e.g. Red Lion Pub)`}
+                        style={{
+                          flex: 1,
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#fff',
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          outline: 'none'
+                        }}
+                      />
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                        {Number(stop.lat).toFixed(4)}, {Number(stop.lng).toFixed(4)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = formData.planned_stops.filter((_, idx) => idx !== sIdx);
+                          setFormData(prev => ({ ...prev, planned_stops: updated }));
+                          setGpxStats(prev => prev ? ({ ...prev, stopsCount: updated.length }) : prev);
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                          padding: '2px 6px',
+                          fontSize: '13px'
+                        }}
+                        title="Delete stop"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{
+                  padding: '12px 14px',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  borderRadius: '8px',
+                  border: '1px dashed var(--border)',
+                  fontSize: '12px',
+                  color: 'var(--text-muted)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span>No planned stops marked on this route yet.</span>
+                  <a
+                    href={`/route_planner.html?table=${encodeURIComponent(tableSlug || 'beverley')}&routeId=${encodeURIComponent(formData.id || '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: '#FBAF33', fontWeight: 700, textDecoration: 'none' }}
+                  >
+                    + Click Map to Drop Stops &rarr;
+                  </a>
+                </div>
+              )}
+            </div>
+
             <div>
               <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
                 Street Timetable (Comma-separated)
