@@ -1011,6 +1011,22 @@
           PRIMARY_HEX = '#FBAF33';
           ['--primary', '--primary-rgb', '--on-primary'].forEach(p => root.style.removeProperty(p));
         }
+
+        // Apply optional Custom CSS Override safely (platform format takes baseline precedence)
+        const customCss = (settings && (settings.custom_css || (settings.table && settings.table.custom_css))) || '';
+        const styleId = 'turbosanta-table-custom-css';
+        let styleEl = document.getElementById(styleId);
+        if (customCss && typeof customCss === 'string' && customCss.trim()) {
+          if (!styleEl) {
+            styleEl = document.createElement('style');
+            styleEl.id = styleId;
+            document.head.appendChild(styleEl);
+          }
+          const sanitized = customCss.replace(/<[^>]*>/g, '').replace(/expression\\s*\\(|javascript:/gi, '');
+          styleEl.textContent = sanitized;
+        } else if (styleEl) {
+          styleEl.remove();
+        }
       }
 
       function loadCachedTheme(key) {
@@ -1124,7 +1140,8 @@
             live_announcement: data.table.live_announcement || '',
             sleigh_icon_live: data.table.sleigh_icon_live || '',
             background_music_url: resolvedMusicUrl,
-            enable_gift_aid: isGaEnabled
+            enable_gift_aid: isGaEnabled,
+            custom_css: data.table.custom_css || ''
           };
         } else if (data.settings && data.table) {
           data.settings.enable_gift_aid = isGaEnabled;

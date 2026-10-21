@@ -1082,8 +1082,12 @@ ${tableName} Organizers`
     auto_crew_briefing_enabled: tableData?.table?.auto_crew_briefing_enabled !== undefined ? Boolean(tableData.table.auto_crew_briefing_enabled) : true,
     crew_briefing_hours_before: tableData?.table?.crew_briefing_hours_before !== undefined ? Number(tableData.table.crew_briefing_hours_before) : 2,
     default_muster_point: tableData?.table?.default_muster_point || '',
-    default_muster_time: tableData?.table?.default_muster_time || ''
+    default_muster_time: tableData?.table?.default_muster_time || '',
+    custom_css: tableData?.table?.custom_css || '',
+    custom_css_acknowledged: Boolean(tableData?.table?.custom_css)
   });
+
+  const [showAdvancedCss, setShowAdvancedCss] = useState(Boolean(tableData?.table?.custom_css));
 
   // Gmail Workspace Connection & Proximity Engine States
   const [isConnectingGmail, setIsConnectingGmail] = useState(false);
@@ -1200,7 +1204,8 @@ ${tableName} Organizers`
         auto_crew_briefing_enabled: tableData.table.auto_crew_briefing_enabled !== undefined ? Boolean(tableData.table.auto_crew_briefing_enabled) : prev.auto_crew_briefing_enabled,
         crew_briefing_hours_before: tableData.table.crew_briefing_hours_before !== undefined ? Number(tableData.table.crew_briefing_hours_before) : prev.crew_briefing_hours_before,
         default_muster_point: tableData.table.default_muster_point !== undefined ? tableData.table.default_muster_point : (prev.default_muster_point || ''),
-        default_muster_time: tableData.table.default_muster_time !== undefined ? tableData.table.default_muster_time : (prev.default_muster_time || '')
+        default_muster_time: tableData.table.default_muster_time !== undefined ? tableData.table.default_muster_time : (prev.default_muster_time || ''),
+        custom_css: tableData.table.custom_css !== undefined ? (tableData.table.custom_css || '') : (prev.custom_css || '')
       }));
     }
   }, [tableData, currentTableSlug]);
@@ -9918,6 +9923,161 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                 </div>
               )}
 
+              {/* ADVANCED CUSTOM CSS OVERRIDE (EXPANDABLE & AT-YOUR-OWN-RISK) */}
+              <div style={{
+                background: '#0d0d0b',
+                border: formData.custom_css ? '1px solid rgba(251, 175, 51, 0.4)' : '1px solid var(--border)',
+                borderRadius: '12px',
+                padding: '16px 20px',
+                transition: 'all 0.2s ease'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedCss(!showAdvancedCss)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    padding: 0,
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    color: '#fff',
+                    textAlign: 'left'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Code size={18} color="var(--primary)" />
+                    <div>
+                      <strong style={{ fontSize: '15px', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Advanced Custom Stylesheet / CSS Override
+                      </strong>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                        Optional local stylesheet overrides (Platform format & dark theme take precedence)
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {Boolean(formData.custom_css?.trim()) && (
+                      <span style={{
+                        fontSize: '10px',
+                        fontWeight: 800,
+                        padding: '2px 8px',
+                        borderRadius: '10px',
+                        background: 'rgba(251, 175, 51, 0.15)',
+                        color: 'var(--primary)',
+                        border: '1px solid rgba(251, 175, 51, 0.3)'
+                      }}>
+                        Active Override
+                      </span>
+                    )}
+                    <span style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: 700 }}>
+                      {showAdvancedCss ? '▲ Collapse' : '▼ Expand'}
+                    </span>
+                  </div>
+                </button>
+
+                {showAdvancedCss && (
+                  <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                    {/* At-Your-Own-Risk Disclaimer Banner */}
+                    <div style={{
+                      background: 'rgba(239, 68, 68, 0.12)',
+                      border: '1px solid rgba(239, 68, 68, 0.4)',
+                      borderRadius: '8px',
+                      padding: '12px 14px',
+                      marginBottom: '14px',
+                      fontSize: '12.5px',
+                      lineHeight: 1.5,
+                      color: '#fca5a5'
+                    }}>
+                      <div style={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>⚠️</span>
+                        <span>Use At Your Own Risk • Strictly Unsupported by National Team</span>
+                      </div>
+                      <div>
+                        The default Round Table TurboSanta kerbside theme, high-contrast layouts, and mobile GPS positioning take precedence. Any CSS entered below is injected as a secondary stylesheet onto your table's public pages.
+                      </div>
+                      <div style={{ marginTop: '6px' }}>
+                        Because TurboSanta receives continuous updates throughout December, <strong>any visual defects, unreadable text, or tracking map glitches caused by custom CSS overrides will NOT be investigated by national support.</strong>
+                      </div>
+                    </div>
+
+                    {/* Risk Acknowledgment Checkbox */}
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '14px', cursor: 'pointer', userSelect: 'none' }}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(formData.custom_css_acknowledged)}
+                        onChange={(e) => setFormData(prev => ({ ...prev, custom_css_acknowledged: e.target.checked }))}
+                        style={{ marginTop: '3px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                      />
+                      <span style={{ fontSize: '13px', color: '#fff', fontWeight: 600 }}>
+                        I understand this is an advanced developer feature, is entirely at our table's own risk, and agree to verify mobile layout readability at kerbside.
+                      </span>
+                    </label>
+
+                    {/* CSS Code Editor */}
+                    <div style={{ opacity: formData.custom_css_acknowledged ? 1 : 0.5, pointerEvents: formData.custom_css_acknowledged ? 'auto' : 'none', transition: 'opacity 0.2s ease' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                          Custom CSS Rules:
+                        </label>
+                        {Boolean(formData.custom_css) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm("Clear all custom CSS overrides and restore default platform styling?")) {
+                                setFormData(prev => ({ ...prev, custom_css: '', custom_css_acknowledged: false }));
+                              }
+                            }}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#ef4444',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              padding: '2px 6px',
+                              textDecoration: 'underline'
+                            }}
+                          >
+                            Reset to Platform Defaults
+                          </button>
+                        )}
+                      </div>
+
+                      <textarea
+                        rows={7}
+                        value={formData.custom_css || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, custom_css: e.target.value }))}
+                        placeholder={
+`/* Example: Tweak typography or adjust a specific card */
+/* Warning: Setting a white background without recoloring dark-mode text will cause invisible white-on-white text! */
+
+/* .brand-font { letter-spacing: 0.5px; } */`
+                        }
+                        style={{
+                          width: '100%',
+                          background: '#080807',
+                          border: '1px solid var(--border)',
+                          borderRadius: '8px',
+                          padding: '12px',
+                          color: '#38bdf8',
+                          fontSize: '12.5px',
+                          fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+                          lineHeight: 1.5,
+                          boxSizing: 'border-box',
+                          resize: 'vertical'
+                        }}
+                      />
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>
+                        Tip: Styles apply exclusively to your table's domain or <code style={{ color: 'var(--primary)' }}>?table={currentTableSlug}</code> pages upon saving.
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
                   <button
@@ -9982,7 +10142,8 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                         notify_passed_msg: formData.notify_passed_msg || null,
                         justgiving_url: formData.justgiving_url || null,
                         tickettailor_event_id: formData.tickettailor_event_id || null,
-                        tickettailor_api_key: (formData.tickettailor_api_key && formData.tickettailor_api_key.trim()) ? formData.tickettailor_api_key.trim() : undefined
+                        tickettailor_api_key: (formData.tickettailor_api_key && formData.tickettailor_api_key.trim()) ? formData.tickettailor_api_key.trim() : undefined,
+                        custom_css: formData.custom_css ? formData.custom_css.trim() : null
                       };
 
                       try {

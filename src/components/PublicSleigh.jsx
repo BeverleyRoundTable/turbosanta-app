@@ -321,6 +321,31 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
   const musicVolume = (table.music_volume !== undefined && table.music_volume !== null) ? Number(table.music_volume) : 0.5;
   const musicAutoplay = table.music_autoplay !== false;
 
+  // Inject Table Custom CSS Override safely (at their risk, platform format takes precedence)
+  useEffect(() => {
+    const customCss = (table.custom_css || '').trim();
+    const styleId = 'turbosanta-table-custom-css';
+    let styleEl = document.getElementById(styleId);
+
+    if (customCss) {
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        document.head.appendChild(styleEl);
+      }
+      // Sanitize: strip any HTML/script tags or expression execution
+      const sanitized = customCss.replace(/<[^>]*>/g, '').replace(/expression\s*\(|javascript:/gi, '');
+      styleEl.textContent = sanitized;
+    } else if (styleEl) {
+      styleEl.remove();
+    }
+
+    return () => {
+      const el = document.getElementById(styleId);
+      if (el) el.remove();
+    };
+  }, [table.custom_css]);
+
   const isMusicEnabled = (musicMode === 'default') || (musicMode === 'custom' && Boolean(musicCustomUrl));
   const effectiveMusicUrl = musicMode === 'default'
     ? 'https://turbosanta-app.pages.dev/media/round_table_christmas.mp3'
