@@ -183,6 +183,14 @@ export async function fetchTablePayload(tableSlug = "beverley") {
     try {
       token = getAdminAuthToken(slug);
     } catch (e) {}
+    if (!token && typeof window !== "undefined" && window.__sleighPrefetchedData && !window.__sleighPrefetchedConsumed) {
+      const pref = window.__sleighPrefetchedData;
+      const prefSlug = (pref?.table?.slug || pref?.table?.id || "").toLowerCase().trim();
+      if (prefSlug === slug && Array.isArray(pref?.routes)) {
+        window.__sleighPrefetchedConsumed = true;
+        return pref;
+      }
+    }
     const headers = {};
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;

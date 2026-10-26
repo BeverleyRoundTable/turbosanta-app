@@ -531,10 +531,10 @@ async function submitCashLog() {
     });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || "Failed to log cash");
-    L(`💷 Logged £${amt.toFixed(2)} (${routeName}) — Sleigh total: £${Number(data.new_total || amt).toFixed(2)}`, "g");
+    L(`💷 Logged £${amt.toFixed(2)} (${routeName}) — Sleigh total: £${Number(data.total_raised ?? data.new_total ?? amt).toFixed(2)}`, "g");
     msg.style.display = "block";
     msg.style.color = "var(--green)";
-    msg.textContent = `✅ Added £${amt.toFixed(2)}! New total: £${Number(data.new_total || amt).toFixed(2)}`;
+    msg.textContent = `✅ Added £${amt.toFixed(2)}! New total: £${Number(data.total_raised ?? data.new_total ?? amt).toFixed(2)}`;
     _("CashAmt").value = "";
     setTimeout(() => { _("CashM").classList.remove("open"); }, 1400);
   } catch (e) {
@@ -733,7 +733,7 @@ function gpsOn() {
       const acc=Math.round(c.accuracy);
       const aEl=_("Va"); aEl.textContent=acc; aEl.className="sv "+(acc<=10?"cg":acc<=30?"cw":"ca");
       if(c.speed!=null&&c.speed>=0){const kph=Math.round(c.speed*3.6);const sEl=_("Vs");sEl.textContent=kph;sEl.className="sv "+(kph>2?"cg":"cw")}
-      putFix(payload);
+      if (!window._lastPutFixTs || (now - window._lastPutFixTs >= 3500)) { window._lastPutFixTs = now; putFix(payload); }
     },
     err => { L(`⚠️ GPS: ${err.message} (${err.code})`,"r"); _("St").textContent="GPS Error: "+err.message; setMode("err"); },
     { enableHighAccuracy:true, maximumAge:0, timeout:4000 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import {
   Radio, Megaphone, Settings, Mic, Calendar, Heart, Shield,
   LogOut, ExternalLink, Save, Download, CheckCircle2,
@@ -18,7 +18,6 @@ import DropzoneUpload from './DropzoneUpload';
 import RouteEditorModal from './RouteEditorModal';
 import ExpensesModal from './ExpensesModal';
 import DriverBeacon from './DriverBeacon';
-import MigrationImporter from './MigrationImporter';
 import KnowledgeBase from './KnowledgeBase';
 import CashBucketModal from './CashBucketModal';
 import PrintRouteSheetModal from './PrintRouteSheetModal';
@@ -26,6 +25,8 @@ import VolunteerEmailModal from './VolunteerEmailModal';
 import AdminAssistantModal from './AdminAssistantModal';
 import SocialPostModal from './SocialPostModal';
 import CrewBriefingAiModal from './CrewBriefingAiModal';
+
+const MigrationImporter = lazy(() => import('./MigrationImporter'));
 
 const OFFICIAL_GOOGLE_CLIENT_ID = "174929950272-ehpf04nea7ev4j8gfosq5acg6dvfmc95.apps.googleusercontent.com";
 
@@ -12390,25 +12391,27 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
 
         {/* TAB: 1.0 EXCEL & SHEETS IMPORTER */}
         {activeTab === 'migration' && (
-          <MigrationImporter
-            tableSlug={tableData?.table?.slug || session.tableId || 'beverley'}
-            currentTableData={tableData}
-            onApplyMigration={(migratedData) => {
-              if (onUpdateTableData) {
-                onUpdateTableData(prev => ({
-                  ...prev,
-                  table: {
-                    ...prev.table,
-                    ...migratedData.table
-                  },
-                  routes: migratedData.routes,
-                  streets: migratedData.streets
-                }));
-              }
-              setSaveStatus('✅ Successfully imported 1.0 data! Routes, streets, and settings populated.');
-              setTimeout(() => setSaveStatus(''), 4000);
-            }}
-          />
+          <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading Migration Importer...</div>}>
+            <MigrationImporter
+              tableSlug={tableData?.table?.slug || session.tableId || 'beverley'}
+              currentTableData={tableData}
+              onApplyMigration={(migratedData) => {
+                if (onUpdateTableData) {
+                  onUpdateTableData(prev => ({
+                    ...prev,
+                    table: {
+                      ...prev.table,
+                      ...migratedData.table
+                    },
+                    routes: migratedData.routes,
+                    streets: migratedData.streets
+                  }));
+                }
+                setSaveStatus('✅ Successfully imported 1.0 data! Routes, streets, and settings populated.');
+                setTimeout(() => setSaveStatus(''), 4000);
+              }}
+            />
+          </Suspense>
         )}
 
         {/* GLOBAL ADMIN FOOTER & SUPPORTER RIBBON */}
