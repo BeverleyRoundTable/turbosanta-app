@@ -1739,6 +1739,14 @@ ${tableName} Organizers`
       guide: 'In your PayPal Developer Dashboard > Webhooks, add webhook for PAYMENT.CAPTURE.COMPLETED.'
     },
     {
+      id: 'donorbox',
+      name: 'Donorbox',
+      tag: 'One-Off & Monthly Gifts',
+      badgeColor: '#2563eb',
+      description: 'Capture online gifts and recurring pledges instantly when supporters donate via your Donorbox form or widget.',
+      guide: 'In your Donorbox Dashboard > Account / Settings > Webhooks, add this Webhook URL and select "Donation Created".'
+    },
+    {
       id: 'custom',
       name: 'Custom / Zapier / Make',
       tag: 'Automations & Custom Code',
@@ -2128,6 +2136,10 @@ ${tableName} Organizers`
         source: provider,
         streetName: 'High Street (Live Test)',
         dry_run: true,
+        status: 'paid',
+        donor: { name: donor, first_name: donor },
+        campaign: { name: 'Santa Sleigh Appeal' },
+        comment: 'Keep up the great work Round Table!',
         data: {
           amount: amt * 100,
           contact: { firstName: donor },
@@ -3990,7 +4002,7 @@ ${tableName} Organizers`
                   </span>
                 </div>
                 <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0, maxWidth: '750px' }}>
-                  Choose your donation platforms (Zeffy, Stripe, SumUp, JustGiving, PayPal, physical cash, or custom webhooks). Input your webhook secret and copy the generated webhook endpoint into your provider’s dashboard to stream donations straight to your live tracker in real-time.
+                  Choose your donation platforms (Zeffy, Donorbox, Stripe, SumUp, JustGiving, Ticket Tailor, PayPal, physical cash, or custom webhooks). Input your webhook secret and copy the generated webhook endpoint into your provider’s dashboard to stream donations straight to your live tracker in real-time.
                 </p>
               </div>
 
@@ -5003,6 +5015,7 @@ ${tableName} Organizers`
           const stripeItem = breakdown.find(b => b.source === 'stripe');
           const sumupItem = breakdown.find(b => b.source === 'sumup');
           const cashItem = breakdown.find(b => b.source === 'cash');
+          const donorboxItem = breakdown.find(b => b.source === 'donorbox');
 
           const gaDebriefNote = isGiftAidEligible && currentStats.giftAid > 0
             ? `including +£${currentStats.giftAid.toFixed(2)} HMRC Gift Aid reclaim`
@@ -5416,6 +5429,21 @@ ${tableName} Organizers`
                       {cashItem?.count || 0} physical coin bucket drops
                     </div>
                   </div>
+
+                  {donorboxItem && Number(donorboxItem.total || 0) > 0 && (
+                    <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '10px', padding: '16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>🎁 Donorbox Online</span>
+                        <span style={{ fontSize: '11px', color: '#60a5fa', background: 'rgba(96, 165, 250, 0.1)', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>Online Gifts</span>
+                      </div>
+                      <div className="brand-font" style={{ fontSize: '24px', color: '#fff', marginBottom: '4px' }}>
+                        £{Number(donorboxItem?.total || 0).toFixed(2)}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        {donorboxItem?.count || 0} Donorbox contributions
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

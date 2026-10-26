@@ -54,7 +54,7 @@ export default function AdminAssistantModal({
   const [messages, setMessages] = useState([
     {
       role: 'model',
-      text: `👋 Hello **${tableName}** team! I'm **TurboSanta**, your operations and settings assistant.\n\nI have direct, real-time access to your table's **Cloudflare D1 database** and the full **TurboSanta System Guide**.\n\nAsk me anything about:\n- 🎛️ **Modular Public Slots** (AI Santa Chat, Naughty/Nice Certificate, Reindeer Adoption, etc.)\n- 🗺️ **Routes & GPX** (drawing routes, attaching GPX files directly to timetable)\n- 📍 **Driver Beacon & Sleigh Radar** (why the sleigh is "Resting in Lapland" vs "Live")\n- 💳 **Donations & Webhooks** (Zeffy, SumUp, JustGiving, Cash Buckets, Gift Aid)\n- 👥 **Crew & Volunteers** (dispatching route briefings via Gmail BCC)\n- 🎨 **Branding & Settings** (what every toggle in Table Settings changes)`,
+      text: `👋 Hello **${tableName}** team! I'm **TurboSanta**, your operations and settings assistant.\n\nI have direct, real-time access to your table's **Cloudflare D1 database** and the full **TurboSanta System Guide**.\n\nAsk me anything about:\n- 🎛️ **Modular Public Slots** (AI Santa Chat, Naughty/Nice Certificate, Reindeer Adoption, etc.)\n- 🗺️ **Routes & GPX** (drawing routes, attaching GPX files directly to timetable)\n- 📍 **Driver Beacon & Sleigh Radar** (why the sleigh is "Resting in Lapland" vs "Live")\n- 💳 **Donations & Webhooks** (Zeffy, Donorbox, SumUp, JustGiving, Cash Buckets, Gift Aid)\n- 👥 **Crew & Volunteers** (dispatching route briefings via Gmail BCC)\n- 🎨 **Branding & Settings** (what every toggle in Table Settings changes)`,
       timestamp: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -168,7 +168,7 @@ export default function AdminAssistantModal({
     { label: '⚖️ Towing & Street Permits', prompt: 'What are the UK DVSA trailer towing rules and council street collection permit requirements?' },
     { label: '🎛️ How Do Slots Work?', prompt: 'How do the 2 modular public slots work on our public site? What happens when I enable or disable them?' },
     { label: '🗺️ Attach GPX to Route', prompt: 'How do I link a GPX route file created in Route Planner directly to a route in my schedule?' },
-    { label: '💳 Connect Webhooks', prompt: 'How do I connect Zeffy, SumUp, or JustGiving webhooks so donations automatically update our live thermometer?' }
+    { label: '💳 Connect Webhooks', prompt: 'How do I connect Zeffy, Donorbox, SumUp, or JustGiving webhooks so donations automatically update our live thermometer?' }
   ];
 
   // Helper to render markdown-like text
