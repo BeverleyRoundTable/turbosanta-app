@@ -426,7 +426,7 @@ export async function askFleetAdvisor(tableSlug = "beverley", { question, catego
  */
 export async function askAdminAssistant(tableSlug = "beverley", { message, history = [], model }) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 18000); // 18s client timeout
+  const timeoutId = setTimeout(() => controller.abort(), 28000); // 28s client timeout
 
   try {
     const selectedModel = model || localStorage.getItem('turbosanta_global_gemini_model') || 'auto';
@@ -478,21 +478,6 @@ export async function fetchLatestAiModels(tableSlug = "beverley") {
         { id: "gemini-3.6-flash", displayName: "Gemini 3.6 Flash (Stable, Previous-Generation Flash)" }
       ]
     };
-  }
-}
-
-export async function testSantaVoice(message = "When are you visiting our town?", tableSlug = "beverley", model = "auto") {
-  try {
-    const res = await fetch(`${API_BASE}/api/santa-voice?table=${encodeURIComponent(tableSlug)}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, model })
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } catch (err) {
-    console.error("testSantaVoice error:", err);
-    return { ok: false, error: err.message };
   }
 }
 

@@ -15,6 +15,11 @@
 /route-planner     /route_planner     200
 /planner           /route_planner     200
 /memory-book       /memory_book       200
+/magic-mailbox     /magic_mailbox     200
+/magic-mailbox/    /magic_mailbox     200
 /season-wrap       /season_wrap       200
 /partner-report    /partner_report    200
 /volunteer-cert    /volunteer_cert    200
+/admin             /?admin=1          302
+/admin/            /?admin=1          302
+/admin.html        /?admin=1          302

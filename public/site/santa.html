@@ -362,6 +362,35 @@ caches your custom fonts for a year, drastically speeding up load times:
                         Spotted Santa? Help us build our digital memory book and share your festive photos with the community! Posting on socials? Tag us <strong class="text-brt-red font-semibold cursor-pointer" onclick="navigator.clipboard?.writeText('@beverleyroundtable'); const self=this; self.innerText='Copied! ✓'; setTimeout(()=>self.innerText='@beverleyroundtable', 1500);" title="Tap to copy handle">@beverleyroundtable</strong> so we can re-share the magic!
                     </p>
                 </div>
+                
+                <!-- #TUKMAS PROMOTION CARD -->
+                <div class="max-w-4xl mx-auto mb-10 bg-gradient-to-r from-brt-red/20 via-white/5 to-brt-red/20 border-2 border-brt-red/40 rounded-3xl p-6 md:p-8 backdrop-blur-md shadow-[0_0_35px_rgba(211,28,28,0.25)] relative overflow-hidden">
+                    <div class="absolute -right-10 -bottom-10 w-44 h-44 bg-brt-red/15 rounded-full blur-3xl pointer-events-none"></div>
+                    <div class="flex flex-col md:flex-row items-center gap-6 md:gap-8 relative z-10 text-center md:text-left">
+                        <div class="flex-shrink-0 group">
+                            <img src="/media/tukmas.png" alt="#Tukmas Sleigh Mascot" class="w-32 sm:w-40 md:w-44 h-auto object-contain filter drop-shadow-[0_0_20px_rgba(211,28,28,0.6)] group-hover:scale-105 transition-transform duration-300">
+                        </div>
+                        <div class="flex-grow">
+                            <div class="inline-flex items-center gap-2 bg-brt-red/30 border border-brt-red/50 text-white text-xs font-heading font-extrabold px-3 py-1 rounded-full uppercase tracking-widest mb-3">
+                                🎅 Electric Tuk-Tuk Sleigh × Christmas = #Tukmas
+                            </div>
+                            <h3 class="font-heading font-black text-2xl sm:text-3xl text-white uppercase tracking-tight mb-2">
+                                Celebrate <span class="text-brt-red">#Tukmas</span> in Beverley! 🛷
+                            </h3>
+                            <p class="font-body text-gray-300 text-sm sm:text-base leading-relaxed mb-4">
+                                Our bespoke electric tuk-tuk sleigh is touring your streets! When you snap photos of Santa and his volunteer elves, share them using our official hashtag <span class="text-white font-extrabold bg-brt-red/50 px-2.5 py-0.5 rounded-lg border border-brt-red cursor-pointer inline-flex items-center gap-1 hover:bg-brt-red transition-colors" onclick="navigator.clipboard?.writeText('#tukmas'); alert('Copied #tukmas to clipboard!');" title="Click to copy #tukmas">#tukmas</span> and tag <strong class="text-brt-red font-semibold cursor-pointer" onclick="navigator.clipboard?.writeText('@beverleyroundtable'); alert('Copied @beverleyroundtable to clipboard!');">@beverleyroundtable</strong> across Instagram, Facebook &amp; TikTok to help us spread the festive cheer!
+                            </p>
+                            <div class="flex flex-wrap items-center justify-center md:justify-start gap-3">
+                                <button type="button" onclick="navigator.clipboard?.writeText('#tukmas @beverleyroundtable'); const b=this; b.innerHTML='<i class=\'fa-solid fa-check\'></i> Copied #tukmas!'; setTimeout(()=>b.innerHTML='<i class=\'fa-solid fa-copy\'></i> Copy #tukmas Tags', 2000);" class="font-heading font-bold uppercase text-xs sm:text-sm bg-brt-red text-white px-5 py-2.5 rounded-full hover:bg-white hover:text-brt-red transition-all shadow-[0_5px_15px_rgba(211,28,28,0.4)] flex items-center gap-2 cursor-pointer">
+                                    <i class="fa-solid fa-copy"></i> Copy #tukmas Tags
+                                </button>
+                                <span class="font-body text-xs text-gray-400 italic">
+                                    Tag us on social media so Santa's elves can re-share!
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="bg-white/5 p-2 md:p-4 rounded-[2.5rem] border border-brt-red/20 shadow-[0_0_40px_rgba(211,28,28,0.15)] relative">
                     <div class="absolute inset-0 bg-brt-red/5 blur-2xl rounded-[2.5rem] -z-10 pointer-events-none"></div>
                     <iframe id="memory-book-iframe" class="w-full h-[850px] min-h-[500px] rounded-[2rem] border-0 iframe-loading bg-[#151513]" allow="camera; microphone; geolocation" title="Santa Memory Book" loading="lazy"></iframe>
@@ -1090,6 +1119,18 @@ function renderDonations(donations, settings) {
                     if (appleFav && appleFav.href !== dynamicLogo) appleFav.href = dynamicLogo;
                 }
                 
+                // Inject Table Custom CSS Override
+                const customCss = (raw.table?.custom_css || raw.settings?.custom_css || '').trim();
+                if (customCss) {
+                    let styleEl = document.getElementById('turbosanta-table-custom-css');
+                    if (!styleEl) {
+                        styleEl = document.createElement('style');
+                        styleEl.id = 'turbosanta-table-custom-css';
+                        document.head.appendChild(styleEl);
+                    }
+                    styleEl.textContent = customCss;
+                }
+
                 // Normalize D1 payload
                 const donations = {
                     total: raw.table?.total_raised || raw.donations?.total || 0,
@@ -1135,6 +1176,20 @@ function renderDonations(donations, settings) {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
 
+                function parseTimeToMinutes(t) {
+                    if (!t || typeof t !== 'string') return 0;
+                    const m = t.trim().match(/^(\d{1,2})[:.](\d{2})(?::\d{2})?\s*(am|pm)?$/i);
+                    if (m) {
+                        let h = parseInt(m[1], 10);
+                        const mins = parseInt(m[2], 10);
+                        const ampm = (m[3] || '').toLowerCase();
+                        if (ampm === 'pm' && h < 12) h += 12;
+                        if (ampm === 'am' && h === 12) h = 0;
+                        return h * 60 + mins;
+                    }
+                    return 0;
+                }
+
                 const allRoutes = routes
                     .filter(r => r && r.routeName)
                     .map(route => {
@@ -1145,16 +1200,23 @@ function renderDonations(donations, settings) {
                         return { route, d, day };
                     })
                     .filter(Boolean)
-                    .sort((a, b) => a.day - b.day);
+                    .sort((a, b) => {
+                        const dayDiff = a.day.getTime() - b.day.getTime();
+                        if (dayDiff !== 0) return dayDiff;
+                        const timeA = parseTimeToMinutes(a.route['Start Time'] || a.route.start_time);
+                        const timeB = parseTimeToMinutes(b.route['Start Time'] || b.route.start_time);
+                        if (timeA !== timeB) return timeA - timeB;
+                        return (a.route.routeName || '').localeCompare(b.route.routeName || '');
+                    });
 
                 if (!allRoutes.length) {
                     container.innerHTML = `<div class="col-span-full text-center"><p class="font-body text-gray-400">No routes scheduled yet. Check back soon!</p></div>`;
                     return;
                 }
 
-                // Check for Today's Route
-                const todayItem = allRoutes.find(item => item.day.getTime() === today.getTime());
-                const otherRoutes = allRoutes.filter(item => item !== todayItem);
+                // Check for Today's Route(s)
+                const todayItems = allRoutes.filter(item => item.day.getTime() === today.getTime());
+                const otherRoutes = allRoutes.filter(item => !todayItems.includes(item));
 
                 // Setup or clear the spotlight container
                 let todayContainer = document.getElementById('today-route-container');
@@ -1167,9 +1229,9 @@ function renderDonations(donations, settings) {
                 todayContainer.innerHTML = '';
 
                 // 1. Render Red Halo Spotlight if today is a route day
-                if (todayItem) {
+                todayItems.forEach(todayItem => {
                     renderTodaySpotlight(todayItem, sponsors, todayContainer);
-                }
+                });
 
                 // 2. Render all other routes in the regular grid
                 otherRoutes.forEach(({ route, d, day }) => {

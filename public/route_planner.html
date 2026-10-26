@@ -341,13 +341,13 @@
       <div class="sb-section" id="placeSection" style="display:none">
         <div class="sb-label">Build Route <span class="wp-count" id="wpCount">0 pts</span></div>
         <div class="place-info">
-          <strong>Mode For Next Clicks:</strong> Click <strong>🚶 Walking</strong> before plotting through pedestrian zones, then switch back to <strong>🚗 Driving</strong> on main roads.
+          <strong>Mode For Next Clicks:</strong> Use <strong>🚗 Driving</strong> on public roads, <strong>🚶 Walking</strong> to snap through pedestrian precincts/walkways, or <strong>📐 Direct (No Snap)</strong> for freehand pin drops across car parks, school grounds, or unmapped areas.
         </div>
         <div class="profile-row">
-          <button class="profile-btn active" data-profile="driving" onclick="setActiveToolProfile(this)">🚗 Driving</button>
-          <button class="profile-btn" data-profile="foot" onclick="setActiveToolProfile(this)">🚶 Walking</button>
-          <button class="profile-btn" data-profile="direct" onclick="setActiveToolProfile(this)">🛷 Direct (Precinct)</button>
-          <button class="profile-btn" data-profile="bike" onclick="setActiveToolProfile(this)">🚴 Cycling</button>
+          <button class="profile-btn active" data-profile="driving" onclick="setActiveToolProfile(this)" title="Snaps to vehicular roads (respects one-ways & restrictions)">🚗 Driving</button>
+          <button class="profile-btn" data-profile="foot" onclick="setActiveToolProfile(this)" title="Snaps to footpaths, walkways & pedestrian zones (ignores one-ways)">🚶 Walking</button>
+          <button class="profile-btn" data-profile="direct" onclick="setActiveToolProfile(this)" title="Straight line pin drop with zero road snapping (car parks, greens, unmapped tracks)">📐 Direct (No Snap)</button>
+          <button class="profile-btn" data-profile="bike" onclick="setActiveToolProfile(this)" title="Snaps to cycleways and quiet roads">🚴 Cycling</button>
         </div>
         <div class="wp-list" id="wpList"></div>
         <div class="btn-row" style="justify-content: center;">
@@ -613,10 +613,10 @@ function updateWpUI() {
         <div class="wp-leg-row">
           <span class="wp-leg-label">Leg ${i + 1} ➔${i + 2}:</span>
           <select class="wp-leg-select" onchange="updateLegMode(${i}, this.value)">
-            <option value="driving" ${w.nextMode === 'driving' ? 'selected' : ''}>🚗 Driving (Road)</option>
-            <option value="foot" ${w.nextMode === 'foot' ? 'selected' : ''}>🚶 Walking (Precinct)</option>
-            <option value="direct" ${w.nextMode === 'direct' ? 'selected' : ''}>🛷 Direct (Precinct)</option>
-            <option value="bike" ${w.nextMode === 'bike' ? 'selected' : ''}>🚴 Cycling</option>
+            <option value="driving" ${w.nextMode === 'driving' ? 'selected' : ''}>🚗 Driving (Road Snap)</option>
+            <option value="foot" ${w.nextMode === 'foot' ? 'selected' : ''}>🚶 Walking (Footpath / Precinct Snap)</option>
+            <option value="direct" ${w.nextMode === 'direct' ? 'selected' : ''}>📐 Direct (Straight Line — No Snap)</option>
+            <option value="bike" ${w.nextMode === 'bike' ? 'selected' : ''}>🚴 Cycling (Cycleway Snap)</option>
           </select>
         </div>
         ` : ''}
@@ -1555,7 +1555,7 @@ if (tableParam) {
 }
 
 const legacyApi = params.get("api");
-const WORKER_URL = "https://santaproxy.beverley247.workers.dev/";
+const WORKER_URL = "https://turbosanta-api.beverley247.workers.dev/";
 
 let DATA_URL = null;
 if (legacyApi) {
@@ -1753,8 +1753,10 @@ async function attachGpxToSelectedRoute() {
       }
       const newDate = document.getElementById('newRouteDateInput')?.value || new Date().toISOString().slice(0, 10);
       const newTime = document.getElementById('newRouteTimeInput')?.value || '18:00';
+      const cleanRouteSlug = newName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+      const newRouteId = cleanRouteSlug ? `${tableParam}_${cleanRouteSlug}` : `${tableParam}_route_${Date.now()}`;
       targetRoute = {
-        id: `${tableParam}_route_${Date.now()}`,
+        id: newRouteId,
         table_id: tableParam,
         name: newName,
         date: newDate,

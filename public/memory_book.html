@@ -317,7 +317,175 @@
     }
 
     /* --- VIDEO LIGHTBOX (full-size player, controls never clipped) --- */
-    .video-lightbox { z-index: 6000; }
+    
+    /* --- POLAROID HOVER & ZOOM BADGE --- */
+    .polaroid {
+      cursor: zoom-in;
+    }
+    .polaroid.is-video {
+      cursor: pointer;
+    }
+    .polaroid-zoom-badge {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.65);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      backdrop-filter: blur(4px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      pointer-events: none;
+      z-index: 2;
+    }
+    .polaroid:hover .polaroid-zoom-badge {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* --- IMAGE POLAROID LIGHTBOX --- */
+    .image-lightbox {
+      z-index: 7000;
+      background: rgba(0, 0, 0, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 20px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .image-lightbox-card {
+      background: #ffffff;
+      padding: 16px 16px 20px 16px;
+      border-radius: 6px;
+      box-shadow: 0 25px 70px rgba(0,0,0,0.9), 0 0 40px rgba(251, 175, 51, 0.15);
+      max-width: min(92vw, 760px);
+      max-height: min(92vh, 840px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-sizing: border-box;
+      position: relative;
+      animation: polaroidPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes polaroidPop {
+      from { transform: scale(0.9) translateY(20px); opacity: 0; }
+      to { transform: scale(1) translateY(0); opacity: 1; }
+    }
+    .image-lightbox-frame {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000000;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    .image-lightbox-frame img {
+      max-width: 100%;
+      max-height: min(65vh, 600px);
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      display: block;
+      border-radius: 2px;
+    }
+    .image-lightbox-footer {
+      width: 100%;
+      text-align: center;
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .image-lightbox-caption {
+      font-family: 'Eurostile', 'Open Sans', sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: #1a1a1a;
+      letter-spacing: 0.5px;
+      line-height: 1.2;
+      max-width: 90%;
+      word-break: break-word;
+    }
+    .image-lightbox-meta {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 4px;
+    }
+    .image-lightbox-counter {
+      font-size: 12px;
+      font-weight: 600;
+      color: #71717a;
+    }
+    .image-lightbox-dl {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(251, 175, 51, 0.15);
+      border: 1px solid rgba(251, 175, 51, 0.4);
+      color: #b45309;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .image-lightbox-dl:hover {
+      background: var(--primary);
+      color: #000;
+      border-color: var(--primary);
+    }
+    .lightbox-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(20, 20, 20, 0.75);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      z-index: 10;
+      backdrop-filter: blur(4px);
+    }
+    .lightbox-nav:hover {
+      background: var(--primary);
+      color: #000000;
+      border-color: var(--primary);
+      transform: translateY(-50%) scale(1.1);
+    }
+    .lightbox-prev { left: 24px; }
+    .lightbox-next { right: 24px; }
+    @media(max-width: 768px) {
+      .image-lightbox-card { padding: 12px 12px 16px 12px; }
+      .image-lightbox-caption { font-size: 18px; }
+      .image-lightbox-frame img { max-height: 52vh; }
+      .lightbox-nav {
+        width: 38px;
+        height: 38px;
+        background: rgba(0,0,0,0.85);
+      }
+      .lightbox-prev { left: 8px; }
+      .lightbox-next { right: 8px; }
+    }
+.video-lightbox { z-index: 6000; }
     .lightbox-inner {
       display: flex; flex-direction: column; align-items: center; gap: 12px;
     }
@@ -381,24 +549,38 @@
 
   <div id="uploadModal" class="modal-overlay">
     <div class="modal-box">
-      <div class="modal-title">Share a Polaroid</div>
-      <div class="modal-desc">Send us your best photo or a short video clip from the night! Everything is reviewed by the elves before being pinned to the wall.</div>
-      <div id="modalSocialNotice" class="modal-social-hint" style="display: none;">
-        Posting straight to your own stories or feed instead? Tag <strong id="modalSocialHandle" class="social-handle" title="Tap to copy handle"></strong> so we can re-share your festive photos!
-      </div>
-      
-      <div class="file-drop-area" id="dropArea" onclick="document.getElementById('fileInput').click()">
-        <span id="dropText">Tap to select a photo or video</span>
-        <input type="file" id="fileInput" accept="image/jpeg, image/png, video/mp4, video/quicktime, video/webm">
+      <div id="modalFormContent">
+        <div class="modal-title">Share a Polaroid</div>
+        <div class="modal-desc">Send us your best photo or a short video clip from the night! Everything is reviewed by the elves before being pinned to the wall.</div>
+        <div id="modalSocialNotice" class="modal-social-hint" style="display: none;">
+          Posting straight to your own stories or feed instead? Tag <strong id="modalSocialHandle" class="social-handle" title="Tap to copy handle"></strong> so we can re-share your festive photos!
+        </div>
+        
+        <div class="file-drop-area" id="dropArea" onclick="document.getElementById('fileInput').click()">
+          <span id="dropText">Tap to select a photo or video</span>
+          <input type="file" id="fileInput" accept="image/jpeg, image/png, video/mp4, video/quicktime, video/webm">
+        </div>
+
+        <img id="imagePreview" class="preview-img" alt="Preview">
+        <video id="videoPreview" class="preview-video" controls playsinline muted></video>
+        <div class="upload-hint" id="uploadHint">Videos must be under 25&nbsp;MB (roughly a 15–25 second clip).</div>
+
+        <div class="modal-btns">
+          <button class="btn btn-full btn-cancel" id="cancelUploadBtn">Cancel</button>
+          <button class="btn btn-full" id="confirmUploadBtn" disabled>Upload</button>
+        </div>
       </div>
 
-      <img id="imagePreview" class="preview-img" alt="Preview">
-      <video id="videoPreview" class="preview-video" controls playsinline muted></video>
-      <div class="upload-hint" id="uploadHint">Videos must be under 25&nbsp;MB (roughly a 15–25 second clip).</div>
-
-      <div class="modal-btns">
-        <button class="btn btn-full btn-cancel" id="cancelUploadBtn">Cancel</button>
-        <button class="btn btn-full" id="confirmUploadBtn" disabled>Upload</button>
+      <div id="modalSuccessContent" style="display: none; text-align: center; padding: 12px 6px;">
+        <div style="font-size: 52px; margin-bottom: 12px; animation: bounce 1.2s infinite alternate;">🎅✨</div>
+        <div class="modal-title" style="font-size: 22px; margin-bottom: 8px;">Submitted for Moderation!</div>
+        <div class="modal-desc" style="font-size: 14px; line-height: 1.5; color: #ddd; margin-bottom: 16px;">
+          Thank you! To ensure our Santa Sleigh remains safe and family-friendly, all photos and clips are reviewed by Round Table elves before going live in the Memory Book.
+        </div>
+        <div id="modalSuccessTag" style="display: none; font-size: 13px; color: var(--gold, #FBAF33); background: rgba(251,175,51,0.12); border: 1px solid rgba(251,175,51,0.3); border-radius: 8px; padding: 10px 14px; margin-bottom: 20px;">
+          Posting on social media too? Tag <strong id="modalSuccessTagHandle" style="color: #fff;"></strong> so we can re-share it!
+        </div>
+        <button class="btn btn-full" id="modalSuccessCloseBtn" type="button" style="width: 100%;">Done</button>
       </div>
     </div>
   </div>
@@ -411,7 +593,35 @@
     </div>
   </div>
 
-  <canvas id="compressCanvas" style="display:none;"></canvas>
+  
+  <!-- 🖼️ IMAGE LIGHTBOX (CLICK TO ENLARGE POLAROID) -->
+  <div id="imageLightbox" class="modal-overlay image-lightbox" role="dialog" aria-modal="true" aria-label="Enlarged Polaroid">
+    <button class="lightbox-close" id="imageLightboxClose" aria-label="Close enlarged photo">&times;</button>
+    
+    <button class="lightbox-nav lightbox-prev" id="imageLightboxPrev" aria-label="Previous photo" title="Previous photo (Left arrow)">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    </button>
+    <button class="lightbox-nav lightbox-next" id="imageLightboxNext" aria-label="Next photo" title="Next photo (Right arrow)">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </button>
+
+    <div class="image-lightbox-card" id="imageLightboxCard">
+      <div class="image-lightbox-frame">
+        <img id="imageLightboxImg" src="" alt="Enlarged community photo" />
+      </div>
+      <div class="image-lightbox-footer">
+        <div class="image-lightbox-caption" id="imageLightboxCaption">Magical!</div>
+        <div class="image-lightbox-meta">
+          <span class="image-lightbox-counter" id="imageLightboxCounter">Photo 1 of 1</span>
+          <a class="image-lightbox-dl" id="imageLightboxDownload" href="#" download="santa_sleigh_memory.jpg" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Save Photo
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+<canvas id="compressCanvas" style="display:none;"></canvas>
 
   <script>
     
@@ -501,7 +711,8 @@
       const apiUrl = getApiUrl();
       const sep = apiUrl && apiUrl.includes('?') ? '&' : '?';
       if (apiUrl) loadCachedTheme(apiUrl);
-  const WORKER_URL = "https://santaproxy.beverley247.workers.dev/";
+      const WORKER_URL = "https://turbosanta-api.beverley247.workers.dev/";
+      let currentSocialHandle = "";
 
       // Elements
       const gallery = document.getElementById('gallery');
@@ -545,6 +756,115 @@
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && videoLightbox.style.display === 'flex') closeVideoLightbox();
       });
+      // --- 📸 IMAGE POLAROID LIGHTBOX CONTROLS ---
+      let allImagePolaroids = [];
+      let currentPhotoIndex = 0;
+
+      const imageLightbox = document.getElementById('imageLightbox');
+      const imageLightboxImg = document.getElementById('imageLightboxImg');
+      const imageLightboxCaption = document.getElementById('imageLightboxCaption');
+      const imageLightboxCounter = document.getElementById('imageLightboxCounter');
+      const imageLightboxDownload = document.getElementById('imageLightboxDownload');
+      const imageLightboxClose = document.getElementById('imageLightboxClose');
+      const imageLightboxPrev = document.getElementById('imageLightboxPrev');
+      const imageLightboxNext = document.getElementById('imageLightboxNext');
+
+      function openImageLightbox(index) {
+        if (!allImagePolaroids || allImagePolaroids.length === 0) return;
+        currentPhotoIndex = (index + allImagePolaroids.length) % allImagePolaroids.length;
+        const photo = allImagePolaroids[currentPhotoIndex];
+
+        // Broadcast to parent window so full-screen top-level modal can open if embedded in iframe
+        if (window.parent && window.parent !== window) {
+          try {
+            window.parent.postMessage({
+              type: 'TURBOSANTA_OPEN_IMAGE',
+              url: photo.url,
+              caption: photo.caption,
+              index: currentPhotoIndex,
+              allPhotos: allImagePolaroids
+            }, '*');
+          } catch(e) {}
+        }
+
+        // Also display in-page modal for standalone and fallback viewing
+        updateLightboxPhoto();
+        if (imageLightbox) {
+          imageLightbox.style.display = 'flex';
+          document.body.style.overflow = 'hidden';
+        }
+      }
+
+      function updateLightboxPhoto() {
+        if (!allImagePolaroids[currentPhotoIndex] || !imageLightbox) return;
+        const photo = allImagePolaroids[currentPhotoIndex];
+        imageLightboxImg.src = photo.url;
+        imageLightboxCaption.textContent = photo.caption || 'Magical!';
+        imageLightboxCounter.textContent = `Photo ${currentPhotoIndex + 1} of ${allImagePolaroids.length}`;
+        imageLightboxDownload.href = photo.url;
+
+        if (allImagePolaroids.length <= 1) {
+          imageLightboxPrev.style.display = 'none';
+          imageLightboxNext.style.display = 'none';
+        } else {
+          imageLightboxPrev.style.display = 'flex';
+          imageLightboxNext.style.display = 'flex';
+        }
+      }
+
+      function closeImageLightbox() {
+        if (!imageLightbox) return;
+        imageLightbox.style.display = 'none';
+        imageLightboxImg.src = '';
+        document.body.style.overflow = '';
+      }
+
+      function showPrevPhoto() {
+        if (allImagePolaroids.length <= 1) return;
+        currentPhotoIndex = (currentPhotoIndex - 1 + allImagePolaroids.length) % allImagePolaroids.length;
+        updateLightboxPhoto();
+      }
+
+      function showNextPhoto() {
+        if (allImagePolaroids.length <= 1) return;
+        currentPhotoIndex = (currentPhotoIndex + 1) % allImagePolaroids.length;
+        updateLightboxPhoto();
+      }
+
+      if (imageLightboxClose) imageLightboxClose.addEventListener('click', closeImageLightbox);
+      if (imageLightboxPrev) imageLightboxPrev.addEventListener('click', (e) => { e.stopPropagation(); showPrevPhoto(); });
+      if (imageLightboxNext) imageLightboxNext.addEventListener('click', (e) => { e.stopPropagation(); showNextPhoto(); });
+      if (imageLightbox) {
+        imageLightbox.addEventListener('click', (e) => {
+          if (e.target === imageLightbox) closeImageLightbox();
+        });
+      }
+
+      // Keyboard navigation for image lightbox
+      document.addEventListener('keydown', (e) => {
+        if (imageLightbox && imageLightbox.style.display === 'flex') {
+          if (e.key === 'Escape') closeImageLightbox();
+          else if (e.key === 'ArrowLeft') showPrevPhoto();
+          else if (e.key === 'ArrowRight') showNextPhoto();
+        }
+      });
+
+      // Swipe navigation on touch devices
+      let touchStartX = 0;
+      if (imageLightbox) {
+        imageLightbox.addEventListener('touchstart', (e) => {
+          touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+        imageLightbox.addEventListener('touchend', (e) => {
+          const touchEndX = e.changedTouches[0].screenX;
+          const diff = touchEndX - touchStartX;
+          if (Math.abs(diff) > 40) {
+            if (diff > 0) showPrevPhoto();
+            else showNextPhoto();
+          }
+        }, { passive: true });
+      }
+
 
       // --- 1. LOAD GALLERY DATA & YEARS ---
       const yearSelect = document.getElementById('yearSelect');
@@ -600,7 +920,33 @@
             const onPlay = () => openVideo(media.id);
             facade.addEventListener('click', onPlay);
           } else {
-            card.innerHTML = `<img src="${media.url}" alt="Community Photo" loading="lazy"><div class="polaroid-caption">${caption}</div>`;
+            const photoIdx = allImagePolaroids.length;
+            allImagePolaroids.push({ url: media.url, caption });
+
+            card.innerHTML = `
+              <div class="polaroid-zoom-badge" title="Click to enlarge">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  <line x1="11" y1="8" x2="11" y2="14"></line>
+                  <line x1="8" y1="11" x2="14" y2="11"></line>
+                </svg>
+              </div>
+              <img src="${media.url}" alt="${caption} - Click to enlarge" loading="lazy">
+              <div class="polaroid-caption">${caption}</div>
+            `;
+            card.setAttribute('role', 'button');
+            card.setAttribute('tabindex', '0');
+            card.setAttribute('title', 'Click to view full size');
+            
+            const onEnlarge = () => openImageLightbox(photoIdx);
+            card.addEventListener('click', onEnlarge);
+            card.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onEnlarge();
+              }
+            });
           }
           gallery.appendChild(card);
         });
@@ -681,7 +1027,7 @@
         loadGallery(currentYear);
 
         // Social handle extraction & tagline display
-        let currentSocialHandle = '';
+        currentSocialHandle = '';
 
         function getSocialHandle(s) {
           if (!s) return '';
@@ -836,9 +1182,15 @@
         confirmUploadBtn.textContent = "Upload";
         base64Output = null;
         mediaKind = null;
+        const formBox = document.getElementById('modalFormContent');
+        const successBox = document.getElementById('modalSuccessContent');
+        if (formBox) formBox.style.display = 'block';
+        if (successBox) successBox.style.display = 'none';
       };
 
       document.getElementById('cancelUploadBtn').onclick = resetModal;
+      const modalSuccessCloseBtn = document.getElementById('modalSuccessCloseBtn');
+      if (modalSuccessCloseBtn) modalSuccessCloseBtn.onclick = resetModal;
 
       // Handle file selection: images get compressed, videos get validated + read raw
       fileInput.addEventListener('change', function(event) {
@@ -938,19 +1290,24 @@
         const tableSlug = (params.get("table") || subdomainSlug || "beverley").toLowerCase();
         const numYear = parseInt(yearSelect.value) || new Date().getFullYear();
 
-        // Dispatch upload to backend moderation queue
-        if (apiUrl) {
-          try {
+        try {
+          let uploadOk = false;
+          let errorMessage = null;
+
+          if (apiUrl) {
             const uploadTarget = `${WORKER_URL}?target=${encodeURIComponent(apiUrl)}`;
-            await fetch(uploadTarget, {
+            const res = await fetch(uploadTarget, {
               method: "POST",
               headers: { "Content-Type": "text/plain" },
               body: JSON.stringify({ action: "uploadMemoryPhoto", imageData: base64Output, status: "pending" })
             });
-          } catch (e) {}
-        } else {
-          try {
-            await fetch(`https://turbosanta-api.beverley247.workers.dev/api/memory-book?table=${encodeURIComponent(tableSlug)}`, {
+            if (res.ok) {
+              uploadOk = true;
+            } else {
+              errorMessage = "Upload failed. Please try again.";
+            }
+          } else {
+            const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/memory-book?table=${encodeURIComponent(tableSlug)}`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -961,17 +1318,49 @@
                 status: 'pending'
               })
             });
-          } catch (e) {
-            console.warn("Upload dispatch notice:", e);
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.ok !== false) {
+              uploadOk = true;
+            } else {
+              errorMessage = data.error || `Upload failed (${res.status}). Please try again.`;
+            }
           }
-        }
 
-        // Cheerful success confirmation with clear screening explanation
-        const what = (mediaKind === 'video') ? "video clip" : "photo";
-        const tagMsg = currentSocialHandle ? `\n\nPosting on social media too? Tag ${currentSocialHandle} so we can see and re-share it!` : '';
-        alert(`🎅 Thank you! Your festive ${what} has been submitted for moderation.\n\nTo ensure our Santa Sleigh remains safe and family-friendly, all submissions are screened and approved by Round Table elves before going live in the Memory Book.${tagMsg}`);
-        resetModal();
-        loadGallery(numYear);
+          if (!uploadOk) {
+            alert(errorMessage || "Upload could not be completed. Please try again.");
+            confirmUploadBtn.disabled = false;
+            confirmUploadBtn.textContent = (mediaKind === 'video') ? "Upload Clip" : "Upload Photo";
+            return;
+          }
+
+          // Show in-modal celebration/confirmation
+          const formBox = document.getElementById('modalFormContent');
+          const successBox = document.getElementById('modalSuccessContent');
+          const successTag = document.getElementById('modalSuccessTag');
+          const successTagHandle = document.getElementById('modalSuccessTagHandle');
+
+          if (currentSocialHandle && successTag && successTagHandle) {
+            successTagHandle.textContent = currentSocialHandle;
+            successTag.style.display = 'block';
+          }
+
+          if (formBox && successBox) {
+            formBox.style.display = 'none';
+            successBox.style.display = 'block';
+          } else {
+            const what = (mediaKind === 'video') ? "video clip" : "photo";
+            const tagMsg = currentSocialHandle ? `\n\nPosting on social media too? Tag ${currentSocialHandle} so we can see and re-share it!` : '';
+            alert(`🎅 Thank you! Your festive ${what} has been submitted for moderation.\n\nTo ensure our Santa Sleigh remains safe and family-friendly, all submissions are screened and approved by Round Table elves before going live in the Memory Book.${tagMsg}`);
+            resetModal();
+          }
+
+          loadGallery(numYear);
+        } catch (e) {
+          console.error("Upload error:", e);
+          alert("Network error while uploading. Please check your connection and try again.");
+          confirmUploadBtn.disabled = false;
+          confirmUploadBtn.textContent = (mediaKind === 'video') ? "Upload Clip" : "Upload Photo";
+        }
       });
 
       (function() {

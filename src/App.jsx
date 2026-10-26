@@ -140,6 +140,11 @@ export default function App() {
     const isAdminRequested = params.get('admin') === '1' || params.get('admin') === 'true' || params.get('god') === '1' || params.get('god') === 'true';
     if (isAdminRequested) {
       if (adminSession) {
+        const isBeverley = adminSession.email === 'beverley247@roundtable.org.uk' || adminSession.tableSlug === 'beverley' || (adminSession.email && adminSession.email.includes('beverley'));
+        if (adminSession.isNationalAdmin && !isBeverley) {
+          window.location.href = '/national.html';
+          return;
+        }
         setViewMode('admin');
       } else {
         setIsLoginModalOpen(true);
@@ -202,6 +207,11 @@ export default function App() {
               onClose={() => setIsLoginModalOpen(false)}
               onLoginSuccess={(session) => {
                 setAdminSession(session);
+                const isBeverley = session.email === 'beverley247@roundtable.org.uk' || session.tableSlug === 'beverley' || (session.email && session.email.includes('beverley'));
+                if (session.isNationalAdmin && !isBeverley) {
+                  window.location.href = '/national.html';
+                  return;
+                }
                 const slug = session.tableSlug || 'beverley';
                 setActiveTableSlug(slug);
                 setViewMode('admin');
@@ -257,7 +267,14 @@ export default function App() {
             </span>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
               <button
-                onClick={() => setViewMode('admin')}
+                onClick={() => {
+                  const isBeverley = adminSession.email === 'beverley247@roundtable.org.uk' || adminSession.tableSlug === 'beverley' || (adminSession.email && adminSession.email.includes('beverley'));
+                  if (adminSession.isNationalAdmin && !isBeverley) {
+                    window.location.href = '/national.html';
+                    return;
+                  }
+                  setViewMode('admin');
+                }}
                 className="brand-font"
                 style={{
                   background: 'var(--primary, #FBAF33)',
@@ -298,6 +315,11 @@ export default function App() {
           activeTableSlug={activeTableSlug}
           onOpenLogin={() => {
             if (adminSession) {
+              const isBeverley = adminSession.email === 'beverley247@roundtable.org.uk' || adminSession.tableSlug === 'beverley' || (adminSession.email && adminSession.email.includes('beverley'));
+              if (adminSession.isNationalAdmin && !isBeverley) {
+                window.location.href = '/national.html';
+                return;
+              }
               setViewMode('admin');
             } else {
               setIsLoginModalOpen(true);
@@ -313,6 +335,11 @@ export default function App() {
             onClose={() => setIsLoginModalOpen(false)}
             onLoginSuccess={(session) => {
               setAdminSession(session);
+              const isBeverley = session.email === 'beverley247@roundtable.org.uk' || session.tableSlug === 'beverley' || (session.email && session.email.includes('beverley'));
+              if (session.isNationalAdmin && !isBeverley) {
+                window.location.href = '/national.html';
+                return;
+              }
               const slug = session.tableSlug || activeTableSlug || 'beverley';
               setActiveTableSlug(slug);
               setViewMode('admin');

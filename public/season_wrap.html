@@ -770,6 +770,15 @@ function render(data) {
   const netRaised = (totalRaised + totalGiftAid) - totalExpenses;
   const pct = targetAmount > 0 ? Math.min(100, Math.round((totalRaised / targetAmount) * 100)) : 0;
   const volunteers = s.wrap_volunteers || data.volunteers_count || s.sponsor_pack_volunteers || (routeCount > 0 ? routeCount * 6 : 18);
+  const volunteerHours = Number(data.volunteer_hours || (volunteers * 4 * Math.max(1, routeCount)));
+  const subscribers = Number(data.subscribers_count || 0);
+  const grantsAwarded = Number(data.grants_awarded || 0);
+  const causesCount = Number(data.causes_count || 0);
+  const milesDriven = Number(data.miles_driven || Math.round((uniqueStreets * 0.45) + (routeCount * 4.5)));
+  const cashRaised = Number(data.cash_raised || 0);
+  const digitalRaised = Number(data.digital_raised || Math.max(0, totalRaised - cashRaised));
+  const donationCount = Number(data.donation_count || breakdown.reduce((sum, b) => sum + (Number(b.count) || 0), 0) || (totalRaised > 0 ? 1 : 0));
+  const avgDonation = donationCount > 0 ? (totalRaised / donationCount).toFixed(2) : (data.avg_donation || '0.00');
 
   // Digital Reach — Autopopulated from Payload or Settings fallback
   const computedViews = a.totalViews || completedRoutes.reduce((sum, r) => sum + (parseInt(r.views) || 0), 0);
@@ -847,8 +856,24 @@ function render(data) {
         ${targetAmount ? `<div class="sub">Target: ${currency}${targetAmount.toLocaleString()}</div>` : ''}
       </div>
       <div class="hero-stat">
+        <div class="number" style="color: #60a5fa;">${currency}${grantsAwarded.toLocaleString()}</div>
+        <div class="label">Community Grants</div>
+        <div class="sub">${causesCount} causes funded</div>
+      </div>
+      <div class="hero-stat">
         <div class="number gold">${volunteers}</div>
         <div class="label">Volunteers</div>
+        <div class="sub">~${volunteerHours} volunteer hrs</div>
+      </div>
+      <div class="hero-stat">
+        <div class="number" style="color: #38bdf8;">${subscribers}</div>
+        <div class="label">Doorstep Alerts</div>
+        <div class="sub">Families notified</div>
+      </div>
+      <div class="hero-stat">
+        <div class="number" style="color: #fbbf24;">${milesDriven} mi</div>
+        <div class="label">Sleigh Mileage</div>
+        <div class="sub">Curbside tour distance</div>
       </div>
     </div>`;
 
@@ -1171,7 +1196,11 @@ function render(data) {
     streets: uniqueStreets,
     totalViews: totalViews || '', 
     messages: totalMessages || '', 
-    volunteers: volunteers || ''
+    volunteers: volunteers || '',
+    subscribers: subscribers || 0,
+    grants_awarded: grantsAwarded || 0,
+    causes_count: causesCount || 0,
+    miles_driven: milesDriven || 0
   };
 
   const configEl = document.getElementById('chartConfig');

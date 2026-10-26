@@ -1203,7 +1203,7 @@ body.dim-ui .route-sponsor:hover { opacity: 0.85; }
       document.getElementById('installAppBtn').addEventListener('click', async () => { const overlay = document.getElementById('installOverlayBox'); if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; overlay.classList.remove('visible'); deferredPrompt = null; clearTimeout(installTimeout); } });
 
       // ⚡ CLOUDFLARE WORKER ENDPOINT
-      const WORKER_URL = "https://santaproxy.beverley247.workers.dev/";
+      const WORKER_URL = "https://turbosanta-api.beverley247.workers.dev/";
 
       async function fetchFastAnnouncements() {
         if (!AppState.flags.pageVisible || !AppState.vars.apiUrl) return;

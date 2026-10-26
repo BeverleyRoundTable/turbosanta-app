@@ -171,8 +171,9 @@ async function boot() {
   const ltxt = document.getElementById('loaderText');
 
   // ── 1. Authenticate ──
+  const urlPin = urlParams.get('pin') || urlParams.get('driver_pin');
   const urlToken = urlParams.get('token') || urlParams.get('secret') || urlParams.get('auth');
-  const hashMatch = window.location.hash.match(/[#&](?:token|secret|auth)=([^&]+)/i);
+  const hashMatch = window.location.hash.match(/[#&](?:token|secret|auth|pin)=([^&]+)/i);
   const hashToken = hashMatch ? decodeURIComponent(hashMatch[1]) : '';
   const cookieMatch = document.cookie.match(/(?:^|;\s*)turbosanta_auth_token=([^;]+)/);
   const cookieToken = cookieMatch ? decodeURIComponent(cookieMatch[1]) : '';
@@ -182,7 +183,7 @@ async function boot() {
     adminSession = JSON.parse(localStorage.getItem("turbosanta_admin_session") || "{}");
   } catch(e) {}
 
-  let secret = urlToken || hashToken || cookieToken || sessionStorage.getItem('beaconSecret') || adminSession?.token || adminSession?.googleCredential;
+  let secret = urlPin || urlToken || hashToken || cookieToken || sessionStorage.getItem('beaconSecret') || adminSession?.token || adminSession?.googleCredential;
 
   if (secret) {
     sessionStorage.setItem('beaconSecret', secret);
@@ -245,19 +246,77 @@ async function boot() {
   );
 
   if (!secret) {
+    const properName = tableParam ? (tableParam.charAt(0).toUpperCase() + tableParam.slice(1)) : 'Round Table';
     const adminLoginUrl = `https://roundtablesantasleigh.co.uk/?table=${encodeURIComponent(tableParam || 'beverley')}&admin=1`;
     document.getElementById('app').innerHTML = `
-      <div class="error-msg" style="text-align:center; padding:30px 20px;">
-        <h2 style="color:#ffd700; margin-bottom:15px;">🔒 Driver Beacon Authorization Required</h2>
-        <p style="font-size:16px; line-height:1.6; color:#ccc; margin-bottom:25px;">
-          GPS broadcasting is protected. Drivers must be authenticated with their official <strong>@roundtable.org.uk</strong> Google Workspace account.
+      <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:80vh; padding:24px 20px; text-align:center; max-width:440px; margin:0 auto;">
+        <div style="width:72px; height:72px; border-radius:50%; background:var(--gold-dim); border:2px solid var(--gold); display:flex; align-items:center; justify-content:center; font-size:32px; margin-bottom:18px;">
+          🚗
+        </div>
+        <h2 style="color:#fff; font-family:var(--sans); font-size:22px; font-weight:800; margin-bottom:8px; letter-spacing:0.5px;">
+          ${properName} Driver Beacon
+        </h2>
+        <p style="font-size:14px; line-height:1.5; color:var(--dim); margin-bottom:24px;">
+          Enter your Table's 4-digit Driver PIN to start broadcasting Santa's live GPS tracker:
         </p>
-        <a href="${adminLoginUrl}" style="display:inline-block; background:#ffd700; color:#000; font-weight:bold; padding:12px 24px; border-radius:8px; text-decoration:none; text-transform:uppercase; font-size:14px; letter-spacing:1px;">
-          Sign In via Admin Portal
-        </a>
+
+        <form id="pinUnlockForm" style="width:100%; display:flex; flex-direction:column; gap:12px; margin-bottom:24px;">
+          <input type="text" id="driverPinInput" inputmode="numeric" placeholder="Enter PIN (e.g. 5921)" maxlength="12" autofocus
+            style="width:100%; padding:16px 14px; font-size:20px; font-family:var(--mono); text-align:center; letter-spacing:5px; font-weight:800; background:var(--card); color:#fff; border:2px solid var(--border); border-radius:14px; outline:none; transition:border-color .2s;" />
+          <div id="pinErrorMsg" style="display:none; color:var(--red); font-size:12px; font-weight:700;"></div>
+          <button type="submit" id="unlockPinBtn"
+            style="width:100%; background:var(--gold); color:#000; font-weight:900; padding:16px; border-radius:14px; border:none; font-size:15px; cursor:pointer; text-transform:uppercase; letter-spacing:1.2px; font-family:var(--sans); box-shadow:0 4px 20px rgba(251,175,51,0.25);">
+            Unlock Driver Beacon
+          </button>
+        </form>
+
+        <div style="border-top:1px solid var(--border); width:100%; padding-top:18px;">
+          <p style="font-size:12px; color:var(--dim); margin-bottom:10px;">Are you an organiser with a Google Account?</p>
+          <a href="${adminLoginUrl}" style="color:var(--gold); font-size:13px; font-weight:700; text-decoration:none;">
+            Sign in via Admin Portal &rarr;
+          </a>
+        </div>
       </div>
     `;
     document.getElementById('loader').classList.add('done');
+
+    const form = document.getElementById('pinUnlockForm');
+    const input = document.getElementById('driverPinInput');
+    const errMsg = document.getElementById('pinErrorMsg');
+    const submitBtn = document.getElementById('unlockPinBtn');
+
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const enteredPin = (input.value || '').trim();
+      if (!enteredPin) return;
+      submitBtn.disabled = true;
+      submitBtn.textContent = "VERIFYING PIN...";
+      errMsg.style.display = 'none';
+
+      try {
+        const verifyRes = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/auth/verify?table=${encodeURIComponent(tableParam || 'beverley')}&pin=${encodeURIComponent(enteredPin)}&secret=${encodeURIComponent(enteredPin)}`, {
+          headers: { 'Authorization': `Bearer ${enteredPin}` }
+        });
+        const vData = await verifyRes.json();
+        if (vData.valid) {
+          sessionStorage.setItem('beaconSecret', enteredPin);
+          document.getElementById('loader').classList.remove('done');
+          boot();
+          return;
+        } else {
+          errMsg.textContent = "❌ Invalid Driver PIN. Please check with your sleigh organiser.";
+          errMsg.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Unlock Driver Beacon";
+          input.focus();
+        }
+      } catch (err) {
+        errMsg.textContent = "Network error: " + err.message;
+        errMsg.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Unlock Driver Beacon";
+      }
+    };
     return;
   }
 
@@ -266,7 +325,7 @@ async function boot() {
     if (tableParam && !API.includes("script.google.com")) {
       let isBeaconValid = false;
       try {
-        const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/auth/verify?table=${encodeURIComponent(tableParam)}&secret=${encodeURIComponent(secret)}`, {
+        const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/auth/verify?table=${encodeURIComponent(tableParam)}&secret=${encodeURIComponent(secret)}&pin=${encodeURIComponent(secret)}`, {
           headers: { 'Authorization': `Bearer ${secret}` }
         });
         const result = await res.json();
@@ -278,11 +337,11 @@ async function boot() {
           <div class="error-msg" style="text-align:center; padding:30px 20px;">
             <h2 style="color:#ff5252; margin-bottom:15px;">❌ Access Denied</h2>
             <p style="font-size:16px; line-height:1.6; color:#ccc; margin-bottom:25px;">
-              Only verified @roundtable.org.uk Google Workspace accounts can broadcast GPS telemetry.
+              Invalid credentials or Driver PIN for ${tableParam}. Please verify with your sleigh organiser.
             </p>
-            <a href="/" style="display:inline-block; background:#ffd700; color:#000; font-weight:bold; padding:12px 24px; border-radius:8px; text-decoration:none; font-size:14px;">
-              Return to Admin Portal
-            </a>
+            <button onclick="sessionStorage.removeItem('beaconSecret'); location.href=location.pathname + '?table=${encodeURIComponent(tableParam)}';" style="display:inline-block; background:#ffd700; color:#000; font-weight:bold; padding:12px 24px; border-radius:8px; border:none; cursor:pointer; font-size:14px;">
+              Re-enter Driver PIN
+            </button>
           </div>
         `;
         document.getElementById('loader').classList.add('done');
@@ -293,9 +352,24 @@ async function boot() {
       X.url = `https://turbosanta-api.beverley247.workers.dev/api/telemetry?table=${encodeURIComponent(tableParam)}`;
       const properName = tableParam.charAt(0).toUpperCase() + tableParam.slice(1);
       X.sleighName = `${properName} Santa Sleigh`;
+
+      // Auto-detect active route for tonight
+      try {
+        const pRes = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableParam)}`);
+        const pData = await pRes.json();
+        X.routes = pData.routes || [];
+        const todayIso = new Date().toISOString().slice(0, 10);
+        const active = X.routes.find(r => r.status === 'In Progress') || X.routes.find(r => r.date === todayIso) || X.routes[0];
+        if (active) {
+          X.routeId = active.id;
+          X.routeName = active.name || active.routeName;
+        }
+      } catch(e) {
+        X.routes = [];
+      }
     } else {
       const sep = API.includes('?') ? '&' : '?';
-      const res = await fetch(`${API}${sep}function=verifyBeaconAuth&secret=${encodeURIComponent(secret)}`, {
+      const res = await fetch(`${API}${sep}function=verifyBeaconAuth&secret=${encodeURIComponent(secret)}&pin=${encodeURIComponent(secret)}`, {
         headers: { 'Authorization': `Bearer ${secret}` }
       });
       const result = await res.json();
@@ -349,6 +423,15 @@ function buildUI() {
       <div class="hdr-left"><div id="Hd" class="hdr-dot"></div><span class="hdr-lbl">Beacon</span></div>
       <div class="hdr-right"><span id="Hn" class="hdr-name">${X.sleighName}</span></div>
     </div>
+    <div style="padding:6px 16px; background:var(--raised); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; font-size:12px;">
+      <span style="color:var(--dim); font-weight:700;">🛷 ROUTE:</span>
+      <select id="BeaconRouteSelect" style="background:var(--card); color:var(--gold); border:1px solid var(--border); border-radius:6px; padding:4px 8px; font-weight:700; font-size:12px; max-width:70%; outline:none;">
+        ${(X.routes && X.routes.length > 0)
+          ? X.routes.map(r => `<option value="${r.id}" ${r.id === X.routeId ? 'selected' : ''}>${r.name || r.routeName}</option>`).join('')
+          : '<option value="">General Sleigh Run</option>'
+        }
+      </select>
+    </div>
     <div class="stage">
       <div id="R" class="ring idle"><div class="core"><div id="Re" class="core-e">📡</div><div id="Rs" class="core-s">idle</div></div></div>
       <div id="St" class="stx">Tap START to begin transmitting</div>
@@ -398,6 +481,14 @@ function buildUI() {
 
   // Wire buttons
   _("Cm").onclick = toggleBeacon;
+  const bRouteSel = _("BeaconRouteSelect");
+  if (bRouteSel) {
+    bRouteSel.onchange = () => {
+      X.routeId = bRouteSel.value || null;
+      X.routeName = bRouteSel.options[bRouteSel.selectedIndex]?.text || '';
+      L(`🛷 Route set to: ${X.routeName}`, "g");
+    };
+  }
   _("Cc").onclick = () => { _("CashMsg").style.display = "none"; _("CashM").classList.add("open"); };
   _("CashSkip").onclick = () => _("CashM").classList.remove("open");
   _("CashSave").onclick = submitCashLog;
@@ -617,7 +708,13 @@ function gpsOn() {
   X.wid = navigator.geolocation.watchPosition(
     pos => {
   const c = pos.coords;
-  const payload = { lat: c.latitude, lng: c.longitude, ts: new Date().toISOString() };
+  const payload = {
+    lat: c.latitude,
+    lng: c.longitude,
+    speed: c.speed != null ? Math.round(c.speed * 3.6) : 0,
+    route_id: X.routeId || null,
+    ts: new Date().toISOString()
+  };
   
   if (window._lastRoadName) payload.roadName = window._lastRoadName;
 

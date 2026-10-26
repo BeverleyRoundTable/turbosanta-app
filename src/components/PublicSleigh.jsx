@@ -119,8 +119,8 @@ export const PUBLIC_FEATURE_CATALOG = {
     titleHighlight: 'SANTA',
     description: "Children can write their Christmas wish list on official Round Table festive stationery and print it out to send directly to Lapland!",
     embedSrc: (slug) => `/letter.html?table=${encodeURIComponent(slug)}`,
-    fullscreenSrc: (slug) => `/letter.html?table=${encodeURIComponent(slug)}`,
-    fullscreenLabel: 'Open Letter Writer Full-Screen',
+    fullscreenSrc: null,
+    fullscreenLabel: null,
     height: 760,
     maxWidth: 900
   },
@@ -288,6 +288,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
   const [showFab, setShowFab] = useState(false);
   const [showGiftAidCheckoutModal, setShowGiftAidCheckoutModal] = useState(false);
   const [showGrantModal, setShowGrantModal] = useState(false);
+  const [lightboxPhoto, setLightboxPhoto] = useState(null);
   const [grantForm, setGrantForm] = useState({
     org_name: '',
     contact_name: '',
@@ -489,7 +490,10 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          table_slug: slug,
+          table: slug,
           org_name: grantForm.org_name.trim(),
+          organisation_name: grantForm.org_name.trim(),
           contact_name: grantForm.contact_name.trim(),
           contact_email: grantForm.contact_email.trim(),
           contact_phone: grantForm.contact_phone.trim(),
@@ -649,6 +653,42 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
+  // 📸 Listen for Digital Memory Book polaroid enlargement clicks from iframe
+  useEffect(() => {
+    const handlePhotoMsg = (e) => {
+      if (e.data && e.data.type === 'TURBOSANTA_OPEN_IMAGE') {
+        setLightboxPhoto({
+          url: e.data.url,
+          caption: e.data.caption || 'Festive Memory',
+          index: typeof e.data.index === 'number' ? e.data.index : 0,
+          allPhotos: Array.isArray(e.data.allPhotos) ? e.data.allPhotos : [{ url: e.data.url, caption: e.data.caption }]
+        });
+      }
+    };
+    window.addEventListener('message', handlePhotoMsg);
+    return () => window.removeEventListener('message', handlePhotoMsg);
+  }, []);
+
+  // Keyboard navigation & escape for public lightbox
+  useEffect(() => {
+    if (!lightboxPhoto) return;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setLightboxPhoto(null);
+      } else if (e.key === 'ArrowLeft' && lightboxPhoto.allPhotos && lightboxPhoto.allPhotos.length > 1) {
+        const prevIdx = (lightboxPhoto.index - 1 + lightboxPhoto.allPhotos.length) % lightboxPhoto.allPhotos.length;
+        const prevItem = lightboxPhoto.allPhotos[prevIdx];
+        setLightboxPhoto(p => ({ ...p, index: prevIdx, url: prevItem.url, caption: prevItem.caption }));
+      } else if (e.key === 'ArrowRight' && lightboxPhoto.allPhotos && lightboxPhoto.allPhotos.length > 1) {
+        const nextIdx = (lightboxPhoto.index + 1) % lightboxPhoto.allPhotos.length;
+        const nextItem = lightboxPhoto.allPhotos[nextIdx];
+        setLightboxPhoto(p => ({ ...p, index: nextIdx, url: nextItem.url, caption: nextItem.caption }));
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [lightboxPhoto]);
+
   // Top-level Screen Wake Lock for Public View Page (keeps phone/tablet screens awake while watching Santa)
   const [isScreenAwake, setIsScreenAwake] = useState(false);
   useEffect(() => {
@@ -738,7 +778,18 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
         };
       })
       .filter(Boolean)
-      .sort((a, b) => a.day - b.day);
+      .sort((a, b) => {
+        const dayDiff = a.day.getTime() - b.day.getTime();
+        if (dayDiff !== 0) return dayDiff;
+        const parseMin = (t) => {
+          if (!t) return 0;
+          const m = String(t).trim().match(/^(\d{1,2})[:.](\d{2})/);
+          return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : 0;
+        };
+        const timeDiff = parseMin(a.start_time) - parseMin(b.start_time);
+        if (timeDiff !== 0) return timeDiff;
+        return (a.routeName || '').localeCompare(b.routeName || '');
+      });
 
     const foundToday = processed.find(item => item.day.getTime() === today.getTime());
     const others = processed.filter(item => item !== foundToday);
@@ -2665,6 +2716,223 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                   {isSubmittingGrant ? 'Submitting Application...' : '💛 Submit Grant Nomination'}
                 </button>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* 📸 Top-Level Full Viewport Polaroid Lightbox Modal */}
+        {lightboxPhoto && (
+          <div
+            onClick={() => setLightboxPhoto(null)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0, 0, 0, 0.92)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              zIndex: 999999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '20px',
+              animation: 'fadeIn 0.2s ease-out'
+            }}
+          >
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={() => setLightboxPhoto(null)}
+              aria-label="Close enlarged photo"
+              style={{
+                position: 'absolute',
+                top: '20px',
+                right: '24px',
+                width: '44px',
+                height: '44px',
+                borderRadius: '50%',
+                background: 'rgba(30, 30, 30, 0.85)',
+                color: '#fff',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                fontSize: '26px',
+                lineHeight: 1,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 10,
+                transition: 'all 0.2s'
+              }}
+            >
+              &times;
+            </button>
+
+            {/* Prev arrow */}
+            {lightboxPhoto.allPhotos && lightboxPhoto.allPhotos.length > 1 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const prevIdx = (lightboxPhoto.index - 1 + lightboxPhoto.allPhotos.length) % lightboxPhoto.allPhotos.length;
+                  const prevItem = lightboxPhoto.allPhotos[prevIdx];
+                  setLightboxPhoto({
+                    ...lightboxPhoto,
+                    index: prevIdx,
+                    url: prevItem.url,
+                    caption: prevItem.caption
+                  });
+                }}
+                aria-label="Previous photo"
+                title="Previous photo (Left arrow)"
+                style={{
+                  position: 'absolute',
+                  left: '20px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '50%',
+                  background: 'rgba(30, 30, 30, 0.85)',
+                  color: '#fff',
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                  fontSize: '22px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  zIndex: 10,
+                  transition: 'all 0.2s'
+                }}
+              >
+                &#10094;
+              </button>
+            )}
+
+            {/* Next arrow */}
+            {lightboxPhoto.allPhotos && lightboxPhoto.allPhotos.length > 1 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const nextIdx = (lightboxPhoto.index + 1) % lightboxPhoto.allPhotos.length;
+                  const nextItem = lightboxPhoto.allPhotos[nextIdx];
+                  setLightboxPhoto({
+                    ...lightboxPhoto,
+                    index: nextIdx,
+                    url: nextItem.url,
+                    caption: nextItem.caption
+                  });
+                }}
+                aria-label="Next photo"
+                title="Next photo (Right arrow)"
+                style={{
+                  position: 'absolute',
+                  right: '20px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '50%',
+                  background: 'rgba(30, 30, 30, 0.85)',
+                  color: '#fff',
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                  fontSize: '22px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  zIndex: 10,
+                  transition: 'all 0.2s'
+                }}
+              >
+                &#10095;
+              </button>
+            )}
+
+            {/* Oversized Polaroid Card */}
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: '#ffffff',
+                padding: '16px 16px 22px 16px',
+                borderRadius: '8px',
+                boxShadow: '0 25px 80px rgba(0, 0, 0, 0.9), 0 0 40px rgba(251, 175, 51, 0.2)',
+                maxWidth: 'min(92vw, 780px)',
+                maxHeight: 'min(92vh, 860px)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                position: 'relative',
+                boxSizing: 'border-box'
+              }}
+            >
+              <div style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#0a0a0a',
+                borderRadius: '4px',
+                overflow: 'hidden',
+                border: '1px solid rgba(0, 0, 0, 0.1)'
+              }}>
+                <img
+                  src={lightboxPhoto.url}
+                  alt={lightboxPhoto.caption || 'Enlarged polaroid'}
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: 'min(66vh, 600px)',
+                    width: 'auto',
+                    height: 'auto',
+                    objectFit: 'contain',
+                    display: 'block'
+                  }}
+                />
+              </div>
+              <div style={{ marginTop: '16px', textAlign: 'center', width: '100%' }}>
+                <div style={{
+                  fontFamily: 'Eurostile, sans-serif',
+                  fontSize: '24px',
+                  fontWeight: 800,
+                  color: '#1a1a1a',
+                  letterSpacing: '0.5px'
+                }}>
+                  {lightboxPhoto.caption || 'Magical!'}
+                </div>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '16px',
+                  marginTop: '8px'
+                }}>
+                  {lightboxPhoto.allPhotos && lightboxPhoto.allPhotos.length > 1 && (
+                    <span style={{ fontSize: '12px', color: '#71717a', fontWeight: 600 }}>
+                      Photo {lightboxPhoto.index + 1} of {lightboxPhoto.allPhotos.length}
+                    </span>
+                  )}
+                  <a
+                    href={lightboxPhoto.url}
+                    download="santa_sleigh_memory.jpg"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: 'rgba(251, 175, 51, 0.15)',
+                      border: '1px solid rgba(251, 175, 51, 0.4)',
+                      color: '#b45309',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      padding: '4px 12px',
+                      borderRadius: '20px',
+                      textDecoration: 'none'
+                    }}
+                  >
+                    Save Photo 📥
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         )}

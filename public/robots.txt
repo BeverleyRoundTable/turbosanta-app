@@ -7,7 +7,6 @@ Allow: /tracker
 Allow: /address
 Allow: /memory-book
 Allow: /privacy
-Allow: /national
 Allow: /knowledge
 Allow: /suggest
 Allow: /letter
@@ -15,7 +14,8 @@ Allow: /snowman
 Allow: /nice_list
 Allow: /spot_santa
 
-# Disallow internal operations, crew portals, and telemetry write APIs
+# Disallow internal operations, crew portals, national fleet radar, and telemetry write APIs
+Disallow: /national
 Disallow: /godmode
 Disallow: /god_mode
 Disallow: /crew

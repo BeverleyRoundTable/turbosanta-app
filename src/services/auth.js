@@ -18,7 +18,15 @@ export const DEFAULT_NATIONAL_ADMIN_EMAILS = [
   "beverley247@roundtable.org.uk",
   "national@roundtable.org.uk",
   "admin@roundtable.org.uk",
-  "rtbi@roundtable.org.uk"
+  "rtbi@roundtable.org.uk",
+  "president@roundtable.org.uk",
+  "vicepresident@roundtable.org.uk",
+  "secretary@roundtable.org.uk",
+  "media@roundtable.org.uk",
+  "communications@roundtable.org.uk",
+  "treasurer@roundtable.org.uk",
+  "cs@roundtable.org.uk",
+  "it@roundtable.org.uk"
 ];
 
 export const SLUG_ALIASES = {
@@ -102,6 +110,21 @@ export function parseTableDetailsFromEmail(email) {
 
   const clean = email.trim().toLowerCase();
   const localPart = clean.split("@")[0];
+
+  const NATIONAL_ROLES = [
+    "national", "rtbi", "admin", "president", "vicepresident",
+    "secretary", "media", "communications", "treasurer", "cs", "it"
+  ];
+  if (NATIONAL_ROLES.includes(localPart) || clean.startsWith("national@") || clean.startsWith("rtbi@")) {
+    return {
+      slug: null,
+      tableId: null,
+      town: 'National',
+      tableNumber: '',
+      tableName: 'National Fleet Admin',
+      isNational: true
+    };
+  }
 
   // Strip standard role prefixes: chairman., secretary., santa., info., etc.
   const core = localPart.replace(/^(chairman|secretary|treasurer|santa|admin|info|contact|events)\./, '');
@@ -227,7 +250,8 @@ export async function verifyMagicLink(email, enteredCode) {
     throw new Error("Invalid verification code. Please check your official Round Table inbox.");
   }
 
-  const isGenericNational = isNational && (!details || !details.slug || ['national', 'rtbi', 'admin', 'president', 'vicepresident', 'cs', 'it'].includes(details.slug));
+  const isBeverley = cleanEmail === 'beverley247@roundtable.org.uk' || cleanEmail.includes('beverley') || details?.slug === 'beverley';
+  const isGenericNational = isNational && !isBeverley;
 
   // Authentication succeeded! Create authenticated session with server-signed token
   const session = {
@@ -310,7 +334,8 @@ export async function loginWithGoogleWorkspace(credential) {
 
   const details = parseTableDetailsFromEmail(cleanEmail);
   const isNational = isNationalAdmin(cleanEmail);
-  const isGenericNational = isNational && (!details || !details.slug || ['national', 'rtbi', 'admin', 'president', 'vicepresident', 'cs', 'it'].includes(details.slug));
+  const isBeverley = cleanEmail === 'beverley247@roundtable.org.uk' || cleanEmail.includes('beverley') || details?.slug === 'beverley';
+  const isGenericNational = isNational && !isBeverley;
 
   let signedSessionToken = credential;
   try {
@@ -389,13 +414,24 @@ export function getCurrentSession() {
         if (parsed.email && isRoundTableEmail(parsed.email)) {
           const details = parseTableDetailsFromEmail(parsed.email);
           const isNational = isNationalAdmin(parsed.email);
-          const isGenericNational = isNational && (!details || !details.slug || ['national', 'rtbi', 'admin', 'president', 'vicepresident', 'cs', 'it'].includes(details.slug));
+          const isBeverley = parsed.email.toLowerCase().trim() === 'beverley247@roundtable.org.uk' || parsed.email.toLowerCase().includes('beverley') || details?.slug === 'beverley';
+          const isGenericNational = isNational && !isBeverley;
           if (!isGenericNational && details?.slug) {
             let changed = false;
             if (!parsed.tableId) { parsed.tableId = details.slug; changed = true; }
             if (!parsed.tableSlug) { parsed.tableSlug = details.slug; changed = true; }
             if (!parsed.tableNumber && details.tableNumber) { parsed.tableNumber = details.tableNumber; changed = true; }
             if (!parsed.tableName || parsed.tableName === 'National Fleet Admin') { parsed.tableName = details.tableName; changed = true; }
+            if (changed) {
+              try { localStorage.setItem(SESSION_KEY, JSON.stringify(parsed)); } catch(e) {}
+            }
+          } else if (isGenericNational) {
+            let changed = false;
+            if (parsed.tableId !== null) { parsed.tableId = null; changed = true; }
+            if (parsed.tableSlug !== null) { parsed.tableSlug = null; changed = true; }
+            if (parsed.tableName !== 'National Fleet Admin') { parsed.tableName = 'National Fleet Admin'; changed = true; }
+            if (parsed.town !== 'National') { parsed.town = 'National'; changed = true; }
+            if (!parsed.isNationalAdmin) { parsed.isNationalAdmin = true; changed = true; }
             if (changed) {
               try { localStorage.setItem(SESSION_KEY, JSON.stringify(parsed)); } catch(e) {}
             }

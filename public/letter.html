@@ -253,17 +253,29 @@
   </div>
 
   <div class="panel success-panel" id="successPanel">
-    <div class="success-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></div>
+    <div class="success-icon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></div>
     <h2>WHOOSH! IT'S GONE!</h2>
-    <p id="successSubtext">Your letter has arrived at Santa's Workshop in Lapland!</p>
-    <div id="santaReplyCard" style="display:none; margin: 20px 0; padding: 20px; background: var(--surface-2); border: 1px solid var(--border-gold); border-radius: 14px; text-align: left;">
-      <div style="font-family:'DM Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:1.2px; color:var(--gold); margin-bottom:10px; font-weight:700;">✨ Official Reply from Lapland</div>
-      <div id="santaReplyText" style="font-size:14px; line-height:1.7; color:var(--text); white-space:pre-line;"></div>
+    <p id="successSubtext" style="font-size:16px; color:#fff; margin-bottom:18px;">Your letter has flown safely all the way to Santa's Workshop in Lapland! ❄️✨</p>
+    
+    <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px; padding: 22px 18px; margin: 18px 0; text-align: left; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+        <span style="font-size:22px;">🎅</span>
+        <strong style="color:var(--gold); font-size:13px; text-transform:uppercase; letter-spacing:0.8px;">Santa is reading your letter right now!</strong>
+      </div>
+      <p style="font-size:14px; line-height:1.6; color:var(--text); margin-bottom:14px;">
+        Santa Claus and Head Elf Bernard are taking their time to read through every wish, joke, and question. Santa will craft a deeply personal, magical reply and send it on its way!
+      </p>
+      <div style="background: rgba(251,175,51,0.08); border: 1px solid rgba(251,175,51,0.25); border-radius: 8px; padding: 10px 14px; display:flex; align-items:center; gap:8px; font-size:13px; color:#fff; word-break:break-all;">
+        <span>📬</span>
+        <span>Delivering directly to: <strong id="parentEmailDisplay" style="color:var(--gold);"></strong></span>
+      </div>
+      <div style="margin-top:10px; font-size:11px; color:var(--text-muted); line-height:1.4;">
+        ✨ Keep an eye on your inbox shortly! Be sure to check your junk or spam folder just in case our magic postal elf gets caught in a Lapland snowstorm.
+      </div>
     </div>
-    <p id="emailNote" style="font-size:13px; color:var(--text-dim);"><strong>Parents:</strong> Check your inbox shortly for a magical copy from Santa Claus!</p>
-    <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:18px;">
-      <button type="button" onclick="window.print()" class="btn-submit" style="width:auto; padding:12px 22px; font-size:12px;">Print Santa's Reply</button>
-      <button type="button" onclick="resetLetterForm()" style="background:var(--surface-2); border:1px solid var(--border); color:var(--text-dim); padding:12px 20px; border-radius:12px; cursor:pointer; font-family:'Eurostile',sans-serif; font-size:12px; text-transform:uppercase;">Write Another</button>
+
+    <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:20px;">
+      <button type="button" onclick="resetLetterForm()" class="btn-submit" style="width:auto; padding:12px 24px; font-size:13px; margin: 0;">Write Another Letter ✉️</button>
     </div>
   </div>
 </div>
@@ -292,12 +304,16 @@
     btn.disabled = true;
     btn.innerHTML = "Flying to Lapland... 🦌💨";
 
+    const childName = document.getElementById('childName').value.trim();
+    const parentEmail = document.getElementById('parentEmail').value.trim();
+    const wishlist = document.getElementById('wishlist').value.trim();
+
     const payload = {
       action: "sendLetterToSanta",
       tableSlug,
-      childName: document.getElementById('childName').value.trim(),
-      parentEmail: document.getElementById('parentEmail').value.trim(),
-      wishlist: document.getElementById('wishlist').value.trim()
+      childName,
+      parentEmail,
+      wishlist
     };
 
     try {
@@ -310,28 +326,19 @@
       const result = await response.json();
 
       if (result.ok) {
-        if (result.santaReply) {
-          document.getElementById('santaReplyText').textContent = result.santaReply;
-          document.getElementById('santaReplyCard').style.display = 'block';
-        }
-        const emailNote = document.getElementById('emailNote');
-        if (result.emailed) {
-          emailNote.innerHTML = "<strong>Parents:</strong> A copy of Santa's reply has also been sent to your email inbox!";
-        } else {
-          emailNote.innerHTML = "<strong>Parents:</strong> Save or print Santa's official Lapland reply above as a keepsake!";
-        }
+        document.getElementById('parentEmailDisplay').textContent = parentEmail;
         document.getElementById('letterPanel').style.display = 'none';
         document.getElementById('successPanel').style.display = 'block';
         sendHeight();
       } else {
         alert("Oh no! The elves dropped the letter: " + (result.error || "Unknown error"));
         btn.disabled = false;
-        btn.innerHTML = "Try Again 🚀";
+        btn.innerHTML = "Send to Lapland 🚀";
       }
     } catch (error) {
       alert("Connection error to Lapland! Please check your internet.");
       btn.disabled = false;
-      btn.innerHTML = "Try Again 🚀";
+      btn.innerHTML = "Send to Lapland 🚀";
     }
   }
 

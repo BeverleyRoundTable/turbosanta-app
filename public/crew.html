@@ -668,18 +668,20 @@ function populateRouteDropdowns(routes) {
     dropdown.innerHTML = '<option value="">-- Choose a Route --</option>';
     let count = 0;
     (routes || []).forEach(route => {
-      if(route.routeName) {
+      const rName = route.routeName || route.name;
+      if (rName) {
         count++;
         const d = route.date ? new Date(route.date) : null;
         const friendlyDate = d && !isNaN(d.getTime()) ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : "Scheduled";
         
         const option = document.createElement('option');
-        option.value = route.routeName;
-        const startTime = route["Start Time"] || "";
-        const endTime = route["End Time"] || "";
+        option.value = rName;
+        option.dataset.routeId = route.id || "";
+        const startTime = route["Start Time"] || route.start_time || "";
+        const endTime = route["End Time"] || route.end_time || "";
         const timeStr = startTime ? ` (${startTime}–${endTime})` : "";
 
-        option.textContent = `${route.routeName} — ${friendlyDate}${timeStr}`;
+        option.textContent = `${rName} — ${friendlyDate}${timeStr}`;
         dropdown.appendChild(option);
       }
     });
@@ -699,9 +701,14 @@ async function submitVolunteer(e) {
   btn.innerText = "Submitting...";
   btn.disabled = true;
 
+  const routeSelect = document.getElementById('routeSelect');
+  const selectedOpt = routeSelect.options[routeSelect.selectedIndex];
+  const routeId = selectedOpt ? (selectedOpt.dataset.routeId || "") : "";
+
   const payload = {
     action: "registerVolunteer",
-    routeName: document.getElementById('routeSelect').value,
+    routeId: routeId,
+    routeName: routeSelect.value,
     name: document.getElementById('volName').value,
     role: document.getElementById('volRole').value,
     phone: document.getElementById('volPhone').value,

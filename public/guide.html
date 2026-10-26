@@ -395,6 +395,7 @@
         <li><a href="#drivercockpit"><i class="fa-solid fa-location-arrow"></i> Driver Cockpit &amp; Cash Log</a></li>
         <li><a href="#godmode"><i class="fa-solid fa-satellite-dish"></i> God Mode Admin</a></li>
         <li><a href="#reports"><i class="fa-solid fa-chart-pie"></i> AGM, Sponsor &amp; Cert Tools</a></li>
+        <li><a href="#ai-suite"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Operations Suite</a></li>
         <li><a href="#dataprotection"><i class="fa-solid fa-user-shield"></i> Data Protection &amp; Privacy</a></li>
         <li><a href="#backend"><i class="fa-solid fa-database"></i> Cloudflare &amp; API Reference</a></li>
         <li><a href="#support"><i class="fa-solid fa-heart" style="color:var(--primary);"></i> Support the Project</a></li>
@@ -903,6 +904,88 @@
             <p>Create and print personalised Round Table thank-you certificates for your volunteer drivers, elves, and bucket collectors.</p>
             <a id="linkVolunteerCert" href="https://beverley.roundtablesantasleigh.co.uk/volunteer_cert.html" target="_blank" class="btn btn-secondary" style="margin-top:10px;">Open Certificate Studio <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
           </div>
+        </div>
+      </section>
+
+      
+      <!-- SECTION: ARTIFICIAL INTELLIGENCE & OPERATIONS SUITE -->
+      <section id="ai-suite" class="doc-section">
+        <h2><i class="fa-solid fa-wand-magic-sparkles" style="color:var(--primary);"></i> Artificial Intelligence &amp; Operations Suite (Gemini 3.8 Flash)</h2>
+        <p>
+          TurboSanta includes an integrated suite of purpose-built artificial intelligence tools powered by <strong>Google Gemini 3.8 Flash</strong>. The AI engine is designed to save volunteer organisers hours of manual work during freezing December nights, while keeping community safety and child protection front and centre.
+        </p>
+
+        <div class="card" style="margin-bottom: 20px; border-left: 4px solid var(--primary); background: rgba(251, 175, 51, 0.04);">
+          <h3 style="color: var(--primary);"><i class="fa-solid fa-layer-group"></i> Multi-Model Fallback Cascade &amp; Model Selector</h3>
+          <p style="font-size: 13px; line-height: 1.6; color: var(--text-muted);">
+            In <strong>Admin Portal &rarr; Settings &rarr; AI Model</strong>, each Table can select their preferred Gemini model (defaulting to <code>gemini-3.8-flash</code>). 
+            All AI operations run through TurboSanta's <strong>Cascade Engine</strong>:
+          </p>
+          <div style="background: #000; padding: 12px 16px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #86efac; margin: 10px 0; border: 1px solid var(--border);">
+            gemini-3.8-flash (Primary) &rarr; gemini-3.7-flash &rarr; gemini-3.6-flash &rarr; gemini-2.5-flash &rarr; gemini-1.5-flash (Emergency Backup)
+          </div>
+          <p style="font-size: 12px; color: var(--text-muted); margin: 0;">
+            If Google ever experiences temporary regional rate limits or cloud hiccups on the primary model, requests seamlessly cascade down without failure.
+          </p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3>🎙️ 1. Magic Mailbox: Voice Transcription &amp; Wish Extractor</h3>
+            <p>Children record audio messages directly into their phone or tablet microphone. Gemini listens to the audio to:</p>
+            <ul style="font-size: 12px; color: var(--text-muted); margin-left: 18px; line-height: 1.6;">
+              <li>Transcribe what the child said into text</li>
+              <li>Extract top Christmas wishes and requested gifts</li>
+              <li>Screen for safeguarding or emotional distress concerns</li>
+              <li>Draft an authentic, personalized Santa script for elf volunteers to copy or read aloud</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h3>📱 2. One-Click Social Media &amp; PR Wrap-Up</h3>
+            <p>At the end of a 3-hour tour, click <strong>"AI Social Post"</strong> in Cockpit or Route Manager to pull tonight's live statistics:</p>
+            <ul style="font-size: 12px; color: var(--text-muted); margin-left: 18px; line-height: 1.6;">
+              <li><strong>Facebook &amp; Instagram:</strong> Community-first copy celebrating miles walked, cash raised, and sponsor shout-outs</li>
+              <li><strong>WhatsApp Volunteer Crew:</strong> Quick thank-you message to bucket collectors</li>
+              <li><strong>Local Press Release:</strong> Formatted release ready to email local news desks</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h3>🛡️ 3. Public Spotting Notes &amp; Cheer Wall Auto-Moderation</h3>
+            <p>Supporters post live cheer notes and Santa sightings from the tracker:</p>
+            <ul style="font-size: 12px; color: var(--text-muted); margin-left: 18px; line-height: 1.6;">
+              <li>Real-time &lt;200ms evaluation filters profanity, harassment, or accidental home addresses</li>
+              <li>Instantly approves safe, joyful messages so they appear live on the tracker ticker</li>
+              <li>Admins retain full override controls (Approve, Reject, Delete) in Tab 4</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h3>📸 4. Digital Memory Book: Safety Scanner &amp; Santa Polaroid Captions</h3>
+            <p>When families upload polaroid photos meeting Santa on the street:</p>
+            <ul style="font-size: 12px; color: var(--text-muted); margin-left: 18px; line-height: 1.6;">
+              <li>Gemini Vision automatically verifies child safeguarding and family-friendliness</li>
+              <li>Generates a charming 1-sentence photo caption signed by <strong>Santa Claus</strong> referencing knitted hats, reindeer antlers, or smiles</li>
+            </ul>
+          </div>
+
+          <div class="card" style="grid-column: 1 / -1;">
+            <h3>🦺 5. Automated Volunteer Marshaling &amp; Tactical Briefing Generator</h3>
+            <p>Generates tailored WhatsApp and clipboard safety briefings for volunteer elves before departure, inspecting muster points, street types, cul-de-sacs, main road crossings, and wet weather gear protocols.</p>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 20px; border-left: 4px solid #2ecc71;">
+          <h3 style="color: #2ecc71;"><i class="fa-solid fa-shield-halved"></i> Billing Safety &amp; Abuse Protection</h3>
+          <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 8px;">
+            TurboSanta is engineered with enterprise-grade abuse prevention so your Gemini API account is safe from unexpected usage spikes:
+          </p>
+          <ul style="font-size: 12px; color: var(--text-muted); margin-left: 18px; line-height: 1.8;">
+            <li><strong>Per-IP Rate Limiting:</strong> Every public endpoint (voice recordings, cheer notes, polaroids, letters to Santa) is throttled by Cloudflare Workers (e.g. 5 requests per 5 minutes per IP).</li>
+            <li><strong>Hard Monthly Caps:</strong> Google Cloud Billing supports hard monthly caps (e.g., £10/month) with proactive email alerts at 50%, 90%, and 100%.</li>
+            <li><strong>Micro-Cost Token Architecture:</strong> Spotting note filters use ~10 tokens, and photo/audio tasks run asynchronously in the background via Cloudflare Workers' <code>ctx.waitUntil</code>, keeping total seasonal operating costs under £1.00 for a typical Table.</li>
+          </ul>
         </div>
       </section>
 

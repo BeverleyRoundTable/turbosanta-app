@@ -218,6 +218,34 @@ TurboSanta maintains strict architectural separation between public spectator da
 
 ---
 
+## 🤖 Built-in Artificial Intelligence Suite (Powered by Google Gemini 3.8 Flash)
+
+TurboSanta features a full-stack, multimodal AI operations engine designed specifically for Santa Sleigh organizers, powered by **Google Gemini 3.8 Flash** with automatic model cascading and enterprise-grade abuse safeguards:
+
+### 1. The 5 Integrated AI Features
+* 🎙️ **Magic Mailbox (Audio Transcription & Wish Extractor)**: 
+  * Multimodal audio listening directly parses children's spoken voice recordings (`.webm`/`.mp3`).
+  * Extracts requested gifts, screens for emotional distress or safeguarding flags, and auto-drafts a personalized Lapland Santa reply script for volunteer elves.
+* 📱 **One-Click End-of-Night Social & PR Generator**: 
+  * Generates high-energy, community-first Facebook/Instagram updates, WhatsApp volunteer crew thank-yous, and local press releases by pulling tonight's real-time miles walked, cash collected, and sponsor shout-outs.
+* 🛡️ **Public Spotting Notes & Cheer Wall Auto-Moderation**: 
+  * High-speed (<200ms) safety scanner that evaluates incoming public cheer messages, auto-approving safe community sightings to the tracker ticker while blocking profanity, phone numbers, or house addresses.
+* 📸 **Digital Memory Book Vision Safety & Polaroid Captioner**: 
+  * Gemini Vision inspects uploaded polaroid photos for child safeguarding, automatically authoring joyful Santa-signed captions (*"Look at those bright Christmas smiles! Rudolph loved your flashing antlers! - Santa Claus 🎅"*).
+* 🦺 **Automated Volunteer Marshaling & Weather Briefings**: 
+  * Compiles tactical briefings for walking marshals, analyzing muster points, cul-de-sacs, main road crossings, and wet weather high-vis gear checklists.
+
+### 2. Multi-Model Fallback Cascade & Model Selector
+* **Database Settings**: In **Admin Portal → Settings → AI Model Selection**, each Table can select their preferred Gemini model (defaulting to `gemini-3.8-flash`). All AI features immediately respect this database setting.
+* **Cascade Engine**: To guarantee 100% uptime during peak weekend runs, TurboSanta automatically falls back across Google AI Studio models if any endpoint experiences high traffic:
+  $\text{gemini-3.8-flash (Primary)} \longrightarrow \text{gemini-3.7-flash} \longrightarrow \text{gemini-3.6-flash} \longrightarrow \text{gemini-2.5-flash} \longrightarrow \text{gemini-1.5-flash (Backup)}$
+
+### 3. Billing Safety & Abuse Protection
+* **Per-IP Rate Limits**: All public-facing AI endpoints are protected with strict per-IP rate limits in Cloudflare Workers (e.g. 5 requests per 5 minutes per IP).
+* **Zero Cost Overruns**: Minimal token consumption keeps total seasonal API costs under £1.00 for an entire town. Supports hard monthly spend caps (e.g., £10/month) with proactive email alerts at 50%, 90%, and 100%.
+
+---
+
 ## 🧪 Start-to-Finish Testing Walkthrough
 
 To verify the platform end-to-end, follow this testing path:

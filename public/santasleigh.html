@@ -46,7 +46,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/brands.min.css">
 
     <!-- API Preconnections -->
-    <link rel="preconnect" href="https://santaproxy.beverley247.workers.dev">
+    <link rel="preconnect" href="https://turbosanta-api.beverley247.workers.dev">
     <link rel="preconnect" href="https://turbosanta-app.pages.dev">
 
     <style>
@@ -1542,7 +1542,7 @@
     window.__sleighApiUrl = urlParams.get('api');
 
     window.SLEIGH_CONFIG = Object.assign({
-        proxyBase: 'https://santaproxy.beverley247.workers.dev',
+        proxyBase: 'https://turbosanta-api.beverley247.workers.dev',
         frameBase: window.location.origin,
         assetBase: window.location.origin + '/icons',
         workerApi: 'https://turbosanta-api.beverley247.workers.dev',
@@ -2185,6 +2185,21 @@
                 root.style.removeProperty('--accent');
             }
 
+            // Inject Table Custom CSS Override
+            const customCss = (settings && settings.custom_css ? String(settings.custom_css) : '').trim();
+            const styleId = 'turbosanta-table-custom-css';
+            let styleEl = document.getElementById(styleId);
+            if (customCss) {
+                if (!styleEl) {
+                    styleEl = document.createElement('style');
+                    styleEl.id = styleId;
+                    document.head.appendChild(styleEl);
+                }
+                styleEl.textContent = customCss;
+            } else if (styleEl) {
+                styleEl.remove();
+            }
+
             const bgEl = $('site-bg');
             const videoEl = $('hero-bg-video');
             const videoWrap = $('hero-video-wrap');
@@ -2788,11 +2803,14 @@
                 btn.disabled = true;
                 btn.textContent = 'Submitting...';
                 try {
-                    const res = await fetch(`${CFG.workerApi}/api/grants`, {
+                    const targetTable = table || window.__sleighTableSlug || 'beverley';
+                    const res = await fetch(`${CFG.workerApi}/api/grants?table=${encodeURIComponent(targetTable)}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            table_slug: table,
+                            table_slug: targetTable,
+                            table: targetTable,
+                            org_name: document.getElementById('gr-org').value.trim(),
                             organisation_name: document.getElementById('gr-org').value.trim(),
                             contact_name: document.getElementById('gr-name').value.trim(),
                             contact_email: document.getElementById('gr-email').value.trim(),
@@ -2801,18 +2819,33 @@
                             cause_summary: document.getElementById('gr-summary').value.trim()
                         })
                     });
-                    if (res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    if (res.ok && data.ok) {
                         btn.textContent = '✅ Nomination Received — Thank You!';
                         btn.style.background = '#16a34a';
                         btn.style.color = '#fff';
-                        setTimeout(close, 1600);
+                        setTimeout(close, 1800);
                     } else {
                         btn.disabled = false;
-                        btn.textContent = '🤝 Submit Cause Nomination';
+                        btn.textContent = '⚠️ ' + (data.error || 'Submission failed. Please check inputs.');
+                        btn.style.background = '#ef4444';
+                        btn.style.color = '#fff';
+                        setTimeout(() => {
+                            btn.textContent = '🤝 Submit Cause Nomination';
+                            btn.style.background = 'var(--primary)';
+                            btn.style.color = 'var(--on-primary)';
+                        }, 4000);
                     }
-                } catch (_) {
+                } catch (err) {
                     btn.disabled = false;
-                    btn.textContent = '🤝 Submit Cause Nomination';
+                    btn.textContent = '⚠️ Network error: ' + (err.message || 'Please retry.');
+                    btn.style.background = '#ef4444';
+                    btn.style.color = '#fff';
+                    setTimeout(() => {
+                        btn.textContent = '🤝 Submit Cause Nomination';
+                        btn.style.background = 'var(--primary)';
+                        btn.style.color = 'var(--on-primary)';
+                    }, 4000);
                 }
             };
         }
@@ -3201,7 +3234,11 @@
                 .filter(item => item !== todayItem)
                 .sort((a, b) => {
                     if (a.isPast !== b.isPast) return a.isPast ? 1 : -1;
-                    return a.day - b.day;
+                    const dDiff = a.day.getTime() - b.day.getTime();
+                    if (dDiff !== 0) return dDiff;
+                    const timeA = String(a.route['Start Time'] || a.route.start_time || '');
+                    const timeB = String(b.route['Start Time'] || b.route.start_time || '');
+                    return timeA.localeCompare(timeB);
                 });
 
             const hasPast = otherRoutes.some(r => r.isPast);
@@ -3669,8 +3706,8 @@
                 titleHighlight: 'SANTA',
                 description: 'Children can write their Christmas wish list on official Round Table festive stationery and print it out to send directly to Lapland!',
                 embedSrc: slug => `/letter.html?table=${encodeURIComponent(slug)}`,
-                fullscreenSrc: slug => `/letter.html?table=${encodeURIComponent(slug)}`,
-                fullscreenLabel: 'Open Letter Writer Full-Screen',
+                fullscreenSrc: null,
+                fullscreenLabel: null,
                 height: 760,
                 maxWidth: 900
             },

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta name="robots" content="noindex, nofollow">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TurboSanta</title>
@@ -648,15 +649,18 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 14px;
-      overflow: hidden;
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
       box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     }
 
     .lb-header {
       display: grid;
-      grid-template-columns: 44px 1.2fr 85px 85px 80px 85px 70px 80px 80px 75px;
-      column-gap: 14px;
-      padding: 14px 20px;
+      grid-template-columns: 40px minmax(140px, 1.2fr) 80px 75px 70px 80px 65px 75px 75px 60px 60px 60px 75px 65px;
+      column-gap: 12px;
+      min-width: 980px;
+      padding: 14px 18px;
       background: var(--surface-2);
       border-bottom: 1px solid var(--border);
       font-family: 'Eurostile', sans-serif;
@@ -670,9 +674,10 @@
 
     .lb-row {
       display: grid;
-      grid-template-columns: 44px 1.2fr 85px 85px 80px 85px 70px 80px 80px 75px;
-      column-gap: 14px;
-      padding: 14px 20px;
+      grid-template-columns: 40px minmax(140px, 1.2fr) 80px 75px 70px 80px 65px 75px 75px 60px 60px 60px 75px 65px;
+      column-gap: 12px;
+      min-width: 980px;
+      padding: 14px 18px;
       align-items: center;
       border-bottom: 1px solid var(--border);
       transition: background 0.15s;
@@ -938,6 +943,7 @@
         grid-template-columns: 38px 1fr 80px; 
         column-gap: 12px; 
         padding: 12px 14px; 
+        min-width: 0 !important;
       }
       .lb-rank { 
         font-size: 16px; 
@@ -951,20 +957,10 @@
         padding: 2px 6px;
       }
       
-      .lb-header span:nth-child(3),
-      .lb-header span:nth-child(4),
-      .lb-header span:nth-child(5),
-      .lb-header span:nth-child(7),
-      .lb-header span:nth-child(8),
-      .lb-header span:nth-child(9),
-      .lb-header span:nth-child(10),
-      .lb-row .lb-val:nth-child(3),
-      .lb-row .lb-val:nth-child(4),
-      .lb-row .lb-val:nth-child(5),
-      .lb-row .lb-val:nth-child(7),
-      .lb-row .lb-val:nth-child(8),
-      .lb-row .lb-val:nth-child(9),
-      .lb-row .lb-val:nth-child(10) { display: none; }
+      .lb-header span:nth-child(n+3):not(:nth-child(6)),
+      .lb-row .lb-val:nth-child(n+3):not(:nth-child(6)) {
+        display: none !important;
+      }
     }
   </style>
 </head>
@@ -1058,6 +1054,22 @@
           <div class="stat-label">Messages</div>
           <div class="stat-value" id="totalMessages">—</div>
         </div>
+        <div class="stat-card">
+          <div class="stat-label">Community Grants</div>
+          <div class="stat-value" style="color: #60a5fa;" id="totalGrants">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Active Elves (Volunteers)</div>
+          <div class="stat-value" style="color: #f472b6;" id="totalVolunteers">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Doorstep Alerts</div>
+          <div class="stat-value" style="color: #38bdf8;" id="totalSubscribers">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Sleigh Mileage</div>
+          <div class="stat-value" style="color: #fbbf24;" id="totalMiles">—</div>
+        </div>
       </div>
     </header>
 
@@ -1093,6 +1105,10 @@
             <span>Routes</span>
             <span>Streets</span>
             <span>Msgs</span>
+            <span>Elves</span>
+            <span>Alerts</span>
+            <span>Grants</span>
+            <span>Miles</span>
           </div>
           <div id="leaderboardBody"></div>
         </div>
@@ -1123,6 +1139,32 @@
             <div class="chart-title">Donations by Table (£)</div>
             <div class="chart-container"><canvas id="donationsChart"></canvas></div>
           </div>
+          
+          <div class="chart-card">
+            <div class="chart-title">Giving Channels (Digital vs Physical Cash)</div>
+            <div class="chart-container chart-fixed-height" style="height: 260px;"><canvas id="paymentSplitChart"></canvas></div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-title">Community Grants Awarded to Good Causes (£)</div>
+            <div class="chart-container"><canvas id="grantsChart"></canvas></div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-title">Active Workforce &amp; Volunteer Elves</div>
+            <div class="chart-container"><canvas id="volunteersChart"></canvas></div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-title">&ldquo;Santa Radar&rdquo; Doorstep Alert Subscribers</div>
+            <div class="chart-container"><canvas id="subscribersChart"></canvas></div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-title">Sleigh Fleet Tour Mileage (Miles)</div>
+            <div class="chart-container"><canvas id="milesChart"></canvas></div>
+          </div>
+
           <div class="chart-card">
             <div class="chart-title">Tracker Views</div>
             <div class="chart-container"><canvas id="viewsChart"></canvas></div>
@@ -1183,7 +1225,15 @@ const DEFAULT_NATIONAL_EMAILS = [
   'beverley247@roundtable.org.uk',
   'national@roundtable.org.uk',
   'admin@roundtable.org.uk',
-  'rtbi@roundtable.org.uk'
+  'rtbi@roundtable.org.uk',
+  'president@roundtable.org.uk',
+  'vicepresident@roundtable.org.uk',
+  'secretary@roundtable.org.uk',
+  'media@roundtable.org.uk',
+  'communications@roundtable.org.uk',
+  'treasurer@roundtable.org.uk',
+  'cs@roundtable.org.uk',
+  'it@roundtable.org.uk'
 ];
 
 const OFFICIAL_GOOGLE_CLIENT_ID = "174929950272-ehpf04nea7ev4j8gfosq5acg6dvfmc95.apps.googleusercontent.com";
@@ -1690,7 +1740,7 @@ async function loadAll(fetchRegistry = true, isBackground = false) {
     }
 
     results.sort((a, b) => b.netRaised - a.netRaised);
-    render(results, errors, isBackground);
+    render(results, errors, isBackground, payload.totals || null);
 
   } catch (err) {
     console.error("National fetch failed:", err);
@@ -1711,11 +1761,11 @@ async function loadAll(fetchRegistry = true, isBackground = false) {
   }
 }
   
-function render(data, errors, isBackground) {
-  renderHeroStats(data);
+function render(data, errors, isBackground, totals = null) {
+  renderHeroStats(data, totals);
   renderTicker(data);
   renderLeaderboard(data);
-  renderCharts(data);
+  renderCharts(data, totals);
   renderErrors(errors);
 
   if (natMap && currentMode === "live") {
@@ -1723,20 +1773,30 @@ function render(data, errors, isBackground) {
   }
 }
 
-function renderHeroStats(data) {
-  const liveTables = currentMode === "live" 
-      ? data.filter(d => d.ok).length 
-      : data.filter(d => d.raised > 0 || d.routes > 0).length;
+function renderHeroStats(data, totals = null) {
+  const liveTables = totals?.liveTablesCount !== undefined
+    ? totals.liveTablesCount
+    : (currentMode === "live" 
+        ? data.filter(d => d.ok).length 
+        : data.filter(d => d.raised > 0 || d.routes > 0).length);
 
-  const totalRaised = data.reduce((s, d) => s + d.raised, 0);
-  const totalExpenses = data.reduce((s, d) => s + d.expenses, 0);
-  const totalNet = data.reduce((s, d) => s + d.netRaised, 0);
-  const totalViews = data.reduce((s, d) => s + d.views, 0);
-  const totalRoutes = data.reduce((s, d) => s + (d.routes || 0), 0);
-  const totalRoutesPlanned = data.reduce((s, d) => s + (d.routesPlanned !== undefined ? d.routesPlanned : (d.routes || 0)), 0);
-  const totalStreets = data.reduce((s, d) => s + (d.streets || 0), 0);
-  const totalStreetsScheduled = data.reduce((s, d) => s + (d.streetsScheduled !== undefined ? d.streetsScheduled : (d.streets || 0)), 0);
-  const totalMessages = data.reduce((s, d) => s + d.messages, 0);
+  const totalRaised = totals?.grossRaised !== undefined ? totals.grossRaised : data.reduce((s, d) => s + (d.raised || 0), 0);
+  const totalExpenses = totals?.expenses !== undefined ? totals.expenses : data.reduce((s, d) => s + (d.expenses || 0), 0);
+  const totalNet = totals?.netRaised !== undefined ? totals.netRaised : data.reduce((s, d) => s + (d.netRaised || 0), 0);
+  const totalViews = totals?.totalViews !== undefined ? totals.totalViews : data.reduce((s, d) => s + (d.views || 0), 0);
+  const totalRoutes = totals?.routesCompleted !== undefined ? totals.routesCompleted : data.reduce((s, d) => s + (d.routes || 0), 0);
+  const totalRoutesPlanned = totals?.routesPlanned !== undefined ? totals.routesPlanned : data.reduce((s, d) => s + (d.routesPlanned !== undefined ? d.routesPlanned : (d.routes || 0)), 0);
+  const totalStreets = totals?.streetsCompleted !== undefined ? totals.streetsCompleted : data.reduce((s, d) => s + (d.streets || 0), 0);
+  const totalStreetsScheduled = totals?.streetsScheduled !== undefined ? totals.streetsScheduled : data.reduce((s, d) => s + (d.streetsScheduled !== undefined ? d.streetsScheduled : (d.streets || 0)), 0);
+  const totalMessages = totals?.messages !== undefined ? totals.messages : data.reduce((s, d) => s + (d.messages || 0), 0);
+
+  // Analytical Metrics Rollup
+  const totalVolunteers = totals?.volunteers !== undefined ? totals.volunteers : data.reduce((s, d) => s + (d.volunteers || 0), 0);
+  const totalVolunteerHours = totals?.volunteerHours !== undefined ? totals.volunteerHours : data.reduce((s, d) => s + (d.volunteerHours || 0), 0);
+  const totalSubscribers = totals?.subscribers !== undefined ? totals.subscribers : data.reduce((s, d) => s + (d.subscribers || 0), 0);
+  const totalGrants = totals?.grantsAwarded !== undefined ? totals.grantsAwarded : data.reduce((s, d) => s + (d.grantsAwarded || 0), 0);
+  const totalCauses = totals?.causesCount !== undefined ? totals.causesCount : data.reduce((s, d) => s + (d.causesCount || 0), 0);
+  const totalMiles = totals?.milesDriven !== undefined ? totals.milesDriven : data.reduce((s, d) => s + (d.milesDriven || 0), 0);
 
   document.getElementById('totalTables').textContent = liveTables.toLocaleString('en-GB');
   document.getElementById('totalRaised').textContent = '£' + Math.round(totalRaised).toLocaleString('en-GB');
@@ -1753,6 +1813,23 @@ function renderHeroStats(data) {
   }
 
   document.getElementById('totalMessages').textContent = totalMessages.toLocaleString('en-GB');
+
+  const elGrants = document.getElementById('totalGrants');
+  if (elGrants) {
+    elGrants.innerHTML = `£${Math.round(totalGrants).toLocaleString('en-GB')} <span style="font-size: 0.5em; color: var(--text-dim); font-weight: normal;">(${totalCauses} causes)</span>`;
+  }
+  const elVolunteers = document.getElementById('totalVolunteers');
+  if (elVolunteers) {
+    elVolunteers.innerHTML = `${totalVolunteers.toLocaleString('en-GB')} <span style="font-size: 0.5em; color: var(--text-dim); font-weight: normal;">(~${totalVolunteerHours.toLocaleString('en-GB')} hrs)</span>`;
+  }
+  const elSubscribers = document.getElementById('totalSubscribers');
+  if (elSubscribers) {
+    elSubscribers.textContent = totalSubscribers.toLocaleString('en-GB');
+  }
+  const elMiles = document.getElementById('totalMiles');
+  if (elMiles) {
+    elMiles.innerHTML = `${totalMiles.toLocaleString('en-GB')} <span style="font-size: 0.55em; color: var(--text-dim); font-weight: normal;">miles</span>`;
+  }
 }
 
 function renderTicker(data) {
@@ -1840,15 +1917,19 @@ function renderLeaderboard(data) {
         <div class="lb-val" title="${rDone} completed of ${rPlan} planned">${routesHtml}</div>
         <div class="lb-val" title="${sDone} visited of ${sPlan} scheduled">${streetsHtml}</div>
         <div class="lb-val">${(d.messages || 0).toLocaleString()}</div>
+        <div class="lb-val" style="color: #f472b6;" title="${(d.volunteers || 0)} registered elves (~${(d.volunteerHours || 0)} hours)">${(d.volunteers || 0).toLocaleString()}</div>
+        <div class="lb-val" style="color: #38bdf8;" title="${(d.subscribers || 0)} doorstep alert subscribers">${(d.subscribers || 0).toLocaleString()}</div>
+        <div class="lb-val" style="color: #60a5fa;" title="£${Math.round(d.grantsAwarded || 0).toLocaleString('en-GB')} awarded to ${d.causesCount || 0} causes">£${Math.round(d.grantsAwarded || 0).toLocaleString('en-GB')}</div>
+        <div class="lb-val" style="color: #fbbf24;" title="${(d.milesDriven || 0)} miles covered">${(d.milesDriven || 0).toLocaleString()} mi</div>
       </div>
     `;
   });
 }
 
-function renderCharts(data) {
-  // Dynamically scale chart height with number of tables so rows never squash together
+function renderCharts(data, totals = null) {
+  // Dynamically scale chart height with number of tables so rows never squash together (excluding fixed height charts like doughnut)
   const dynamicHeight = Math.max(260, (data.length * 30) + 50);
-  document.querySelectorAll('.chart-container').forEach(el => {
+  document.querySelectorAll('.chart-container:not(.chart-fixed-height)').forEach(el => {
     el.style.height = `${dynamicHeight}px`;
   });
   
@@ -2151,6 +2232,237 @@ function renderCharts(data) {
       }
     }
   });
+
+  // 6. Payment Split Chart (Doughnut: Digital vs Cash Buckets)
+  const totalGross = totals?.grossRaised !== undefined ? totals.grossRaised : data.reduce((s, d) => s + (d.raised || 0), 0);
+  const totalCash = totals?.cashRaised !== undefined ? totals.cashRaised : data.reduce((s, d) => s + (d.cashRaised || 0), 0);
+  const totalDigital = totals?.digitalRaised !== undefined ? totals.digitalRaised : Math.max(0, totalGross - totalCash);
+  const paymentSplitEl = document.getElementById('paymentSplitChart');
+
+  if (paymentSplitEl) {
+    charts.paymentSplit = new Chart(paymentSplitEl, {
+      type: 'doughnut',
+      data: {
+        labels: ['Digital & Contactless', 'Physical Cash Buckets'],
+        datasets: [{
+          data: [totalDigital, totalCash],
+          backgroundColor: ['#38bdf8', '#fbbf24'],
+          borderColor: '#1e222d',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: {
+              color: 'rgba(255,255,255,0.7)',
+              font: { family: 'Open Sans', size: 11, weight: '600' },
+              padding: 14
+            }
+          },
+          tooltip: {
+            ...chartDefaults.plugins.tooltip,
+            callbacks: {
+              label: function(context) {
+                const val = context.parsed;
+                const pct = totalGross > 0 ? Math.round((val / totalGross) * 100) : 0;
+                return ` £${Math.round(val).toLocaleString('en-GB')} (${pct}%)`;
+              }
+            }
+          }
+        },
+        cutout: '68%'
+      }
+    });
+  }
+
+  // 7. Community Grants Awarded Chart (Sorted highest grants to lowest)
+  const grantsData = [...data].sort((a, b) => (b.grantsAwarded || 0) - (a.grantsAwarded || 0));
+  const grantsLabels = grantsData.map(d => shortenName(d));
+  const grantsEl = document.getElementById('grantsChart');
+
+  if (grantsEl) {
+    charts.grants = new Chart(grantsEl, {
+      type: 'bar',
+      data: {
+        labels: grantsLabels,
+        datasets: [{
+          data: grantsData.map(d => d.grantsAwarded || 0),
+          backgroundColor: getColors('96, 165, 250', grantsData),
+          borderRadius: 4
+        }]
+      },
+      options: {
+        ...chartDefaults,
+        plugins: {
+          ...chartDefaults.plugins,
+          tooltip: {
+            ...chartDefaults.plugins.tooltip,
+            callbacks: {
+              label: function(context) {
+                const d = grantsData[context.dataIndex];
+                return ` Grants: £${Math.round(d.grantsAwarded || 0).toLocaleString('en-GB')} (${d.causesCount || 0} local causes)`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(255,255,255,0.04)' },
+            ticks: {
+              color: 'rgba(255,255,255,0.3)',
+              font: { family: 'DM Mono', size: 11 },
+              callback: v => '£' + v.toLocaleString()
+            }
+          },
+          y: {
+            grid: { display: false },
+            ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'Open Sans', size: 12, weight: '600' } }
+          }
+        }
+      }
+    });
+  }
+
+  // 8. Active Volunteers & Workforce Power Chart
+  const volData = [...data].sort((a, b) => (b.volunteers || 0) - (a.volunteers || 0));
+  const volLabels = volData.map(d => shortenName(d));
+  const volEl = document.getElementById('volunteersChart');
+
+  if (volEl) {
+    charts.volunteers = new Chart(volEl, {
+      type: 'bar',
+      data: {
+        labels: volLabels,
+        datasets: [{
+          data: volData.map(d => d.volunteers || 0),
+          backgroundColor: getColors('244, 114, 182', volData),
+          borderRadius: 4
+        }]
+      },
+      options: {
+        ...chartDefaults,
+        plugins: {
+          ...chartDefaults.plugins,
+          tooltip: {
+            ...chartDefaults.plugins.tooltip,
+            callbacks: {
+              label: function(context) {
+                const d = volData[context.dataIndex];
+                return ` Elves: ${(d.volunteers || 0).toLocaleString()} (~ ${(d.volunteerHours || 0).toLocaleString()} deployed hours)`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(255,255,255,0.04)' },
+            ticks: { color: 'rgba(255,255,255,0.3)', font: { family: 'DM Mono', size: 11 }, precision: 0 }
+          },
+          y: {
+            grid: { display: false },
+            ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'Open Sans', size: 12, weight: '600' } }
+          }
+        }
+      }
+    });
+  }
+
+  // 9. Doorstep Alert Subscribers ("Santa Radar") Chart
+  const subData = [...data].sort((a, b) => (b.subscribers || 0) - (a.subscribers || 0));
+  const subLabels = subData.map(d => shortenName(d));
+  const subEl = document.getElementById('subscribersChart');
+
+  if (subEl) {
+    charts.subscribers = new Chart(subEl, {
+      type: 'bar',
+      data: {
+        labels: subLabels,
+        datasets: [{
+          data: subData.map(d => d.subscribers || 0),
+          backgroundColor: getColors('56, 189, 248', subData),
+          borderRadius: 4
+        }]
+      },
+      options: {
+        ...chartDefaults,
+        plugins: {
+          ...chartDefaults.plugins,
+          tooltip: {
+            ...chartDefaults.plugins.tooltip,
+            callbacks: {
+              label: function(context) {
+                const d = subData[context.dataIndex];
+                return ` Alert Listeners: ${(d.subscribers || 0).toLocaleString()}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(255,255,255,0.04)' },
+            ticks: { color: 'rgba(255,255,255,0.3)', font: { family: 'DM Mono', size: 11 }, precision: 0 }
+          },
+          y: {
+            grid: { display: false },
+            ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'Open Sans', size: 12, weight: '600' } }
+          }
+        }
+      }
+    });
+  }
+
+  // 10. Sleigh Fleet Tour Mileage Chart
+  const milesData = [...data].sort((a, b) => (b.milesDriven || 0) - (a.milesDriven || 0));
+  const milesLabels = milesData.map(d => shortenName(d));
+  const milesEl = document.getElementById('milesChart');
+
+  if (milesEl) {
+    charts.miles = new Chart(milesEl, {
+      type: 'bar',
+      data: {
+        labels: milesLabels,
+        datasets: [{
+          data: milesData.map(d => d.milesDriven || 0),
+          backgroundColor: getColors('251, 191, 36', milesData),
+          borderRadius: 4
+        }]
+      },
+      options: {
+        ...chartDefaults,
+        plugins: {
+          ...chartDefaults.plugins,
+          tooltip: {
+            ...chartDefaults.plugins.tooltip,
+            callbacks: {
+              label: function(context) {
+                const d = milesData[context.dataIndex];
+                return ` Distance: ${(d.milesDriven || 0).toLocaleString()} miles`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(255,255,255,0.04)' },
+            ticks: {
+              color: 'rgba(255,255,255,0.3)',
+              font: { family: 'DM Mono', size: 11 },
+              callback: v => v.toLocaleString() + ' mi'
+            }
+          },
+          y: {
+            grid: { display: false },
+            ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'Open Sans', size: 12, weight: '600' } }
+          }
+        }
+      }
+    });
+  }
 }
 
 function renderErrors(errors) {

@@ -75,7 +75,11 @@ export default function WorkshopOverlay({ isOpen, onClose, routes = [], tableDat
 
   const upcomingRoutes = routes
     .filter(r => r.date && new Date(r.date) >= new Date())
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .sort((a, b) => {
+      const dDiff = new Date(a.date) - new Date(b.date);
+      if (dDiff !== 0) return dDiff;
+      return (a.start_time || '').localeCompare(b.start_time || '');
+    })
     .slice(0, 3);
 
   return (

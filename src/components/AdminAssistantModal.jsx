@@ -115,6 +115,8 @@ export default function AdminAssistantModal({
             model: res.model || displayModel,
             thinkingMode: res.thinkingMode || 'adaptive',
             grounded: res.grounded !== false,
+            webSearchUsed: Boolean(res.webSearchUsed),
+            sources: res.sources || [],
             timestamp: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
           }
         ]);
@@ -162,11 +164,11 @@ export default function AdminAssistantModal({
 
   const quickChips = [
     { label: '🔍 Audit My Settings', prompt: 'Please audit my current table settings, routes, and donation setup. Is there anything missing or misconfigured?' },
+    { label: '🌦️ Live Weather & Safety', prompt: 'What is the current weather forecast for our town and our route safety advice?' },
+    { label: '⚖️ Towing & Street Permits', prompt: 'What are the UK DVSA trailer towing rules and council street collection permit requirements?' },
     { label: '🎛️ How Do Slots Work?', prompt: 'How do the 2 modular public slots work on our public site? What happens when I enable or disable them?' },
     { label: '🗺️ Attach GPX to Route', prompt: 'How do I link a GPX route file created in Route Planner directly to a route in my schedule?' },
-    { label: '📍 Sleigh Resting in Lapland?', prompt: 'Why is our sleigh tracker showing "Resting in Lapland"? How does the driver turn on live GPS?' },
-    { label: '💳 Connect Webhooks', prompt: 'How do I connect Zeffy, SumUp, or JustGiving webhooks so donations automatically update our live thermometer?' },
-    { label: '👥 Crew Volunteer Briefings', prompt: 'How do I send email briefings to our volunteer crew without triggering spam or reply-all issues?' }
+    { label: '💳 Connect Webhooks', prompt: 'How do I connect Zeffy, SumUp, or JustGiving webhooks so donations automatically update our live thermometer?' }
   ];
 
   // Helper to render markdown-like text
@@ -248,6 +250,8 @@ export default function AdminAssistantModal({
       .replace(/\*\*(.*?)\*\*/g, '<strong style="color: #fff;">$1</strong>')
       // Italic *text*
       .replace(/\*(.*?)\*/g, '<em style="color: #e4e4e7;">$1</em>')
+      // Links [title](url)
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline; font-weight: 500;">$1 ↗</a>')
       // Inline code `code`
       .replace(/`([^`]+)`/g, '<code style="background: rgba(251, 175, 51, 0.15); color: #fbbf24; padding: 2px 5px; border-radius: 4px; font-family: monospace; font-size: 12px; border: 1px solid rgba(251, 175, 51, 0.25);">$1</code>');
   };
@@ -413,7 +417,7 @@ export default function AdminAssistantModal({
                       gap: '4px'
                     }}>
                       <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#22c55e' }} />
-                      D1 Live
+                      D1 Live • Web Search 🌐
                     </span>
                   </div>
                   <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
@@ -589,7 +593,25 @@ export default function AdminAssistantModal({
                           color: isUser ? 'rgba(0, 0, 0, 0.6)' : 'var(--text-muted)',
                           gap: '12px'
                         }}>
-                          <span>{m.timestamp}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span>{m.timestamp}</span>
+                            {m.webSearchUsed && (
+                              <span style={{
+                                background: 'rgba(59, 130, 246, 0.15)',
+                                border: '1px solid rgba(59, 130, 246, 0.4)',
+                                color: '#93c5fd',
+                                fontSize: '9.5px',
+                                fontWeight: 700,
+                                padding: '1px 6px',
+                                borderRadius: '8px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px'
+                              }}>
+                                🌐 Live Web Search
+                              </span>
+                            )}
+                          </div>
                           {!isUser && (
                             <button
                               type="button"

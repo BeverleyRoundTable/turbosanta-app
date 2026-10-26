@@ -1247,7 +1247,11 @@
             if (routes && routes.length > 0) {
                 futureRouteObjects = routes
                     .filter(r => r.date && !isNaN(new Date(r.date)) && new Date(r.date) >= now)
-                    .sort((a,b) => new Date(a.date) - new Date(b.date));
+                    .sort((a, b) => {
+                        const dDiff = new Date(a.date) - new Date(b.date);
+                        if (dDiff !== 0) return dDiff;
+                        return (a.start_time || '').localeCompare(b.start_time || '');
+                    });
             }
             
             let targetDate = null;
@@ -1434,7 +1438,7 @@
 
         try {
           const targetScript = Utils.appendQuery(AppState.vars.apiUrl, "function=getAnnouncement");
-          const fastTrackUrl = `https://santaproxy.beverley247.workers.dev/?ttl=2&target=${encodeURIComponent(targetScript)}`;
+          const fastTrackUrl = `https://turbosanta-api.beverley247.workers.dev/?ttl=2&target=${encodeURIComponent(targetScript)}`;
           const data = await Utils.loadJSON(fastTrackUrl);
           const liveMsg = data?.settings?.live_announcement || '';
 
@@ -2147,8 +2151,20 @@
             AppState.vars.pendingSubscription = { lat, lng };
             AppState.vars.notifyLatLng = { lat, lng };
             AppState.vars.userSnapCache = null;
-            document.getElementById("emailModal").style.display = "flex";
-            document.getElementById("subEmail").focus();
+
+            const curD = AppState.vars.latestApiData || {};
+            const curT = curD.table || curD.settings || {};
+            const urlHideSignup = new URLSearchParams(location.search).get("hide_signup") === "1" || new URLSearchParams(location.search).get("no_signup") === "1";
+            const emailDisabled = (curT.notify_email_enabled === 0 || curT.notify_email_enabled === false || urlHideSignup);
+
+            if (emailDisabled) {
+              AppState.dom.statusBox.textContent = "📍 Pin saved for in-browser Santa alerts!";
+              showToast("Your doorstep pin is active! Santa's live ETA will show at the bottom.");
+              Utils.toggleFollowControls(true);
+            } else {
+              document.getElementById("emailModal").style.display = "flex";
+              document.getElementById("subEmail").focus();
+            }
           });
         }
       }
@@ -2665,7 +2681,11 @@
             const streetMatch = (r.streets || '').toLowerCase().includes(q);
             return nameMatch || streetMatch;
           })
-          .sort((a, b) => new Date(a.date) - new Date(b.date));
+          .sort((a, b) => {
+                        const dDiff = new Date(a.date) - new Date(b.date);
+                        if (dDiff !== 0) return dDiff;
+                        return (a.start_time || '').localeCompare(b.start_time || '');
+                    });
 
         if (futureRoutes.length === 0) {
           list.innerHTML = `<div style="text-align:center; color: var(--text-dim); margin-top: 20px;">${q ? 'No matching streets or routes found.' : 'No upcoming routes scheduled.'}</div>`;
@@ -2740,22 +2760,28 @@
           navBtn.style.cssText = "position:absolute; bottom:80px; left:10%; width:80%; padding:20px; font-size:20px; font-weight:900; font-family:'Eurostile',sans-serif; letter-spacing:2px; background:var(--primary); color:var(--on-primary); border-radius:16px; z-index:9999; border:3px solid rgba(255,255,255,0.2); box-shadow:0 10px 40px rgba(0,0,0,0.6), 0 0 30px rgba(var(--primary-rgb), 0.3); cursor:pointer;";
           document.body.appendChild(navBtn);
           
-          const BeaconDB = { db: null, sent: 0, depth: 0, init: () => new Promise((resolve) => { const req = indexedDB.open("TurboBeacon", 1); req.onupgradeneeded = e => { if(!e.target.result.objectStoreNames.contains("q")) e.target.result.createObjectStore("q", {keyPath:"id", autoIncrement:true}); }; req.onsuccess = () => { BeaconDB.db = req.result; resolve(); }; req.onerror = () => resolve(); }), add: (p) => new Promise(res => { if(!BeaconDB.db) return res(); const tx = BeaconDB.db.transaction("q","readwrite"); tx.objectStore("q").add({p, t:Date.now()}); tx.oncomplete=()=>{ BeaconDB.updateUI(); res(); }; }), getAll: () => new Promise(res => { if(!BeaconDB.db) return res([]); const tx = BeaconDB.db.transaction("q","readonly"); const req = tx.objectStore("q").getAll(); req.onsuccess=()=>res(req.result||[]); }), del: (id) => new Promise(res => { if(!BeaconDB.db) return res(); const tx = BeaconDB.db.transaction("q","readwrite"); tx.objectStore("q").delete(id); tx.oncomplete=res; }), updateUI: async () => { if(!BeaconDB.db) return; BeaconDB.depth = (await BeaconDB.getAll()).length; const qEl = document.getElementById('txQueued'); if(qEl) qEl.textContent = BeaconDB.depth; const pill = document.getElementById('txPill'); if(pill) { if (BeaconDB.depth > 0) { pill.style.borderColor = "var(--primary)"; pill.style.color = "var(--primary)"; document.getElementById('txState').textContent = "BUFFERING"; } else { pill.style.borderColor = "#00e676"; pill.style.color = "#00e676"; document.getElementById('txState').textContent = "LIVE"; } } }, flush: async (url) => { if (BeaconDB.depth === 0 || !navigator.onLine) return; const items = await BeaconDB.getAll(); if (!items.length) return; items.sort((a,b) => a.t - b.t); const bSec = sessionStorage.getItem('beaconSecret') || ''; for (const it of items) { if (Date.now() - it.t > 90*60*1000) { await BeaconDB.del(it.id); continue; } try { const r = await fetch(url, { method:"PUT", headers:{"Content-Type":"application/json", "Authorization": `Bearer ${bSec}`}, body:JSON.stringify(it.p) }); if (r.ok) { await BeaconDB.del(it.id); BeaconDB.sent++; document.getElementById('txSent').textContent = BeaconDB.sent; } else break; } catch { break; } } BeaconDB.updateUI(); } };
+          const BeaconDB = { db: null, sent: 0, depth: 0, init: () => new Promise((resolve) => { const req = indexedDB.open("TurboBeacon", 1); req.onupgradeneeded = e => { if(!e.target.result.objectStoreNames.contains("q")) e.target.result.createObjectStore("q", {keyPath:"id", autoIncrement:true}); }; req.onsuccess = () => { BeaconDB.db = req.result; resolve(); }; req.onerror = () => resolve(); }), add: (p) => new Promise(res => { if(!BeaconDB.db) return res(); const tx = BeaconDB.db.transaction("q","readwrite"); tx.objectStore("q").add({p, t:Date.now()}); tx.oncomplete=()=>{ BeaconDB.updateUI(); res(); }; }), getAll: () => new Promise(res => { if(!BeaconDB.db) return res([]); const tx = BeaconDB.db.transaction("q","readonly"); const req = tx.objectStore("q").getAll(); req.onsuccess=()=>res(req.result||[]); }), del: (id) => new Promise(res => { if(!BeaconDB.db) return res(); const tx = BeaconDB.db.transaction("q","readwrite"); tx.objectStore("q").delete(id); tx.oncomplete=res; }), updateUI: async () => { if(!BeaconDB.db) return; BeaconDB.depth = (await BeaconDB.getAll()).length; const qEl = document.getElementById('txQueued'); if(qEl) qEl.textContent = BeaconDB.depth; const pill = document.getElementById('txPill'); if(pill) { if (BeaconDB.depth > 0) { pill.style.borderColor = "var(--primary)"; pill.style.color = "var(--primary)"; document.getElementById('txState').textContent = "BUFFERING"; } else { pill.style.borderColor = "#00e676"; pill.style.color = "#00e676"; document.getElementById('txState').textContent = "LIVE"; } } }, flush: async (url) => { if (BeaconDB.depth === 0 || !navigator.onLine) return; const items = await BeaconDB.getAll(); if (!items.length) return; items.sort((a,b) => a.t - b.t); const bSec = sessionStorage.getItem('beaconSecret') || ''; for (const it of items) { if (Date.now() - it.t > 90*60*1000) { await BeaconDB.del(it.id); continue; } try { const r = await fetch(url, { method:"PUT", headers:{"Content-Type":"application/json", "Authorization": `Bearer ${bSec}`}, body:JSON.stringify({ ...it.p, pin: bSec }) }); if (r.ok) { await BeaconDB.del(it.id); BeaconDB.sent++; document.getElementById('txSent').textContent = BeaconDB.sent; } else break; } catch { break; } } BeaconDB.updateUI(); } };
           
           navBtn.onclick = async () => {
-            let secret = sessionStorage.getItem('beaconSecret');
+            let secret = params.get('pin') || params.get('driver_pin') || params.get('token') || params.get('secret') || sessionStorage.getItem('beaconSecret');
             let adminSession = null;
             try {
               adminSession = JSON.parse(localStorage.getItem("turbosanta_admin_session") || "{}");
             } catch(e) {}
 
-            if (adminSession && (adminSession.googleCredential || adminSession.token)) {
+            if (!secret && adminSession && (adminSession.googleCredential || adminSession.token)) {
               secret = adminSession.googleCredential || adminSession.token;
-              sessionStorage.setItem('beaconSecret', secret);
             }
 
             if (!secret) {
-              alert("Driver Beacon Authorization Required:\n\nPlease sign in with your official @roundtable.org.uk Google Workspace account via the Admin Portal before starting sat-nav.");
+              const enteredPin = prompt("Enter Driver PIN to start Sat-Nav & GPS Beacon (or leave blank if signed into Google Workspace):");
+              if (enteredPin && enteredPin.trim()) {
+                secret = enteredPin.trim();
+              }
+            }
+
+            if (!secret) {
+              alert("Driver Beacon Authorization Required:\n\nPlease enter your Table's Driver PIN or sign in with your official @roundtable.org.uk Google Workspace account via the Admin Portal.");
               return;
             }
             navBtn.textContent = "VERIFYING...";
@@ -2768,14 +2794,14 @@
                 if (!targetSlug) throw new Error("Missing ?table=SLUG parameter");
                 let isValid = false;
                 try {
-                  const chk = await fetch(`${WORKER_URL}/api/auth/verify?table=${encodeURIComponent(targetSlug)}&secret=${encodeURIComponent(secret)}`, {
+                  const chk = await fetch(`${WORKER_URL}/api/auth/verify?table=${encodeURIComponent(targetSlug)}&secret=${encodeURIComponent(secret)}&pin=${encodeURIComponent(secret)}`, {
                     headers: { 'Authorization': `Bearer ${secret}` }
                   });
                   const chkRes = await chk.json();
                   if (chkRes.valid) isValid = true;
                 } catch(e) {}
                 if (!isValid) {
-                  alert("Access Denied: Only verified @roundtable.org.uk Google Workspace accounts can broadcast GPS telemetry.");
+                  alert("Access Denied: Invalid Driver PIN or unverified Google account for " + targetSlug + ".");
                   navBtn.textContent = "START SAT-NAV & BEACON";
                   sessionStorage.removeItem('beaconSecret');
                   return;
@@ -2783,14 +2809,14 @@
                 sessionStorage.setItem('beaconSecret', secret);
                 gpsLoggerUrl = `${WORKER_URL}/api/telemetry?table=${encodeURIComponent(targetSlug)}`;
               } else {
-                const res = await fetch(Utils.appendQuery(AppState.vars.apiUrl, `function=verifyBeaconAuth&secret=${encodeURIComponent(secret)}`), {
+                const res = await fetch(Utils.appendQuery(AppState.vars.apiUrl, `function=verifyBeaconAuth&secret=${encodeURIComponent(secret)}&pin=${encodeURIComponent(secret)}`), {
                   headers: { 'Authorization': `Bearer ${secret}` }
                 });
                 const result = await res.json();
                 if (!result.valid) { alert("Access Denied."); navBtn.textContent = "START SAT-NAV & BEACON"; sessionStorage.removeItem('beaconSecret'); return; }
                 sessionStorage.setItem('beaconSecret', secret);
                 navBtn.textContent = "FETCHING CONFIG...";
-                const cfgRes = await fetch(Utils.appendQuery(AppState.vars.apiUrl, `function=getBeaconConfig&secret=${encodeURIComponent(secret)}`), {
+                const cfgRes = await fetch(Utils.appendQuery(AppState.vars.apiUrl, `function=getBeaconConfig&secret=${encodeURIComponent(secret)}&pin=${encodeURIComponent(secret)}`), {
                   headers: { 'Authorization': `Bearer ${secret}` }
                 });
                 const cfg = await cfgRes.json();
@@ -3737,8 +3763,14 @@
             AppState.map.panTo(AppState.marker.getLatLng());
           };
 
-          // When embedded inside the turnkey page, pin-drop & email signup live in #routes (address.html) where all GPX routes are visible
-          if (window.self !== window.top && AppState.dom.notifyBtn) {
+          // When embedded inside turnkey page OR when table has disabled resident email alerts, hide the notifyBtn
+          const urlParams = new URLSearchParams(location.search);
+          const urlHideSignup = urlParams.get("hide_signup") === "1" || urlParams.get("no_signup") === "1";
+          const curD = AppState.vars.latestApiData || apiData || {};
+          const curT = curD.table || curD.settings || {};
+          const isEmailDisabled = (curT.notify_email_enabled === 0 || curT.notify_email_enabled === false || urlHideSignup);
+
+          if ((window.self !== window.top || isEmailDisabled) && AppState.dom.notifyBtn) {
             AppState.dom.notifyBtn.style.display = "none";
           }
 
@@ -3807,23 +3839,24 @@
             const msg = input.value.trim(); 
             if (!msg) return; 
             document.getElementById('msgModal').style.display = 'none'; 
-            showToast("Sending message to the elves..."); 
+            showToast("Sending cheer to Santa & the elves..."); 
             
-            const messageTarget = `${WORKER_URL}?target=${encodeURIComponent(AppState.vars.apiUrl)}`;
+            const cleanSlug = AppState.vars.tableSlug || 'beverley';
+            const messageTarget = `https://turbosanta-api.beverley247.workers.dev/api/messages?table=${encodeURIComponent(cleanSlug)}`;
 
             fetch(messageTarget, { 
               method: 'POST', 
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ 
-                action: "submitUserMessage", 
                 message: msg, 
-                routeName: AppState.vars.todayRoute?.routeName || '',
-                clientId: localStorage.getItem("turbo_santa_client_id")
+                authorName: "Community Supporter",
+                routeId: AppState.vars.todayRoute?.id || AppState.vars.todayRoute?.routeName || ''
               }) 
             })
             .then(r => r.json())
             .then(d => { 
-              if (d.ok) showToast("Sent! Waiting for Elf approval..."); 
-              else showToast(d.error || "Failed to send."); 
+              if (d.ok) showToast(d.message || "Approved! Your cheer is now live on the tracker! 🎅"); 
+              else showToast(d.error || "Failed to send cheer."); 
             })
             .catch(() => showToast("Network error.")); 
             

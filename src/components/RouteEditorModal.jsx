@@ -4,6 +4,16 @@ import DropzoneUpload from './DropzoneUpload';
 import { uploadAssetToR2 } from '../services/api';
 import { extractRouteSponsors } from '../utils/sponsors';
 
+export function slugifyRouteId(tableSlug, name) {
+  const cleanTable = String(tableSlug || 'beverley').toLowerCase().trim();
+  const cleanName = String(name || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return cleanName ? `${cleanTable}_${cleanName}` : `${cleanTable}_route_${Date.now()}`;
+}
+
 function formatRouteDateWithWeekday(dateStr) {
   if (!dateStr) return '';
   const parts = String(dateStr).split('-');
@@ -309,6 +319,9 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
     const isNewDateFuture = formData.date && new Date(formData.date + 'T23:59:59') >= new Date();
 
     let targetId = formData.id;
+    if (!targetId || targetId.startsWith('route_') || isCopy) {
+      targetId = slugifyRouteId(tableSlug, formData.name);
+    }
     if (isEditing && isPastOriginal && isNewDateFuture) {
       const wantCopy = window.confirm(
         `💡 You are changing the date of a completed route from ${route.date} to ${formData.date}.\n\n` +
@@ -317,7 +330,8 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
         `Click "Cancel" to Overwrite the past route.`
       );
       if (wantCopy) {
-        targetId = `route_${Date.now()}`;
+        const nextYear = new Date(formData.date).getFullYear();
+        targetId = `${slugifyRouteId(tableSlug, formData.name)}_${nextYear}`;
       }
     }
 
