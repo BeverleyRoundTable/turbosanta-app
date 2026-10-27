@@ -3,6 +3,7 @@ import { fetchTablePayload, getTableFallback } from './services/api';
 import { getCurrentSession, logoutAdmin } from './services/auth';
 import { Shield } from 'lucide-react';
 
+const PublicDirectory = lazy(() => import('./components/PublicDirectory'));
 const LandingPortal = lazy(() => import('./components/LandingPortal'));
 const PublicSleigh = lazy(() => import('./components/PublicSleigh'));
 const AdminLoginModal = lazy(() => import('./components/AdminLoginModal'));
@@ -34,10 +35,12 @@ const FullPageLoader = ({ label = 'Loading Sleigh Radar...' }) => (
 
 export default function App() {
   const urlParams = new URLSearchParams(window.location.search);
+  const pathname = window.location.pathname.toLowerCase().replace(/\/+$/, '') || '/';
+  const host = window.location.hostname.toLowerCase();
+
   const getInitialTable = () => {
     const tableParam = urlParams.get('table');
-    if (tableParam) return tableParam;
-    const host = window.location.hostname.toLowerCase();
+    if (tableParam) return tableParam.toLowerCase().trim();
     if (host.includes('beverleyroundtable.co.uk') || host.startsWith('beverley.')) {
       return 'beverley';
     }
@@ -58,13 +61,22 @@ export default function App() {
     }
     return null;
   };
-  const initialTableParam = getInitialTable();
-  const initialAdminParam = urlParams.get('admin') === '1' || urlParams.get('admin') === 'true' || urlParams.get('god') === '1' || urlParams.get('god') === 'true';
-  const isPublicExplicitlyRequested = urlParams.get('view') === 'public' || urlParams.get('public') === '1';
-  const isLandingRequested = urlParams.get('view') === 'landing' || urlParams.get('landing') === '1';
-  const [landingRequested, setLandingRequested] = useState(isLandingRequested);
 
-  const pathname = window.location.pathname.toLowerCase().replace(/\/+$/, '');
+  const initialTableParam = getInitialTable();
+  const initialAdminParam =
+    pathname === '/admin' ||
+    pathname.startsWith('/admin/') ||
+    host.startsWith('admin.') ||
+    urlParams.get('admin') === '1' ||
+    urlParams.get('admin') === 'true' ||
+    urlParams.get('god') === '1' ||
+    urlParams.get('god') === 'true';
+
+  const isPublicExplicitlyRequested = urlParams.get('view') === 'public' || urlParams.get('public') === '1';
+  const isGatewayRequested = urlParams.get('view') === 'landing' || urlParams.get('view') === 'gateway' || urlParams.get('landing') === '1';
+  const [gatewayRequested, setGatewayRequested] = useState(isGatewayRequested);
+  const [isAdminRoute, setIsAdminRoute] = useState(initialAdminParam);
+
   const cleanRouteMap = {
     '/tracker': '/tracker.html',
     '/address': '/address.html',
@@ -91,26 +103,24 @@ export default function App() {
     '/hub': '/hub.html',
     '/embed': '/embed.html'
   };
+
   // Admin Authentication State
   const initialSession = getCurrentSession();
   const [adminSession, setAdminSession] = useState(initialSession);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [loginInitialEmail, setLoginInitialEmail] = useState('');
+  const [loginInitialEmail, setLoginInitialEmail] = useState(initialTableParam || '');
 
-  // When already logged in, the default site is the Admin Portal!
-  // Unless user specifically requested public or landing preview.
+  // Default to Admin Portal only when on /admin (or ?admin=1) and logged in
   const shouldDefaultToAdmin = Boolean(
-    initialAdminParam || 
-    (initialSession && !isPublicExplicitlyRequested && !landingRequested)
+    initialAdminParam && initialSession && !isPublicExplicitlyRequested && !gatewayRequested
   );
 
   const [viewMode, setViewMode] = useState(shouldDefaultToAdmin ? 'admin' : 'public');
 
   // Active table slug:
-  // 1. Explicit ?table= query parameter or subdomain
-  // 2. Active admin session's table slug
-  // 3. Fallback to null (triggers LandingPortal if not logged in)
-  const resolvedTableSlug = initialTableParam || (initialSession ? (initialSession.tableSlug || initialSession.tableId || 'beverley') : null);
+  // On public root (/), initialTableParam is null -> renders PublicDirectory.
+  // On /admin, resolves from ?table= param or active adminSession.
+  const resolvedTableSlug = initialTableParam || (initialAdminParam && initialSession ? (initialSession.tableSlug || initialSession.tableId || 'beverley') : null);
   const [activeTableSlug, setActiveTableSlug] = useState(resolvedTableSlug);
   const [tableData, setTableData] = useState(null);
   const [loading, setLoading] = useState(Boolean(resolvedTableSlug && (shouldDefaultToAdmin || initialTableParam)));
@@ -119,7 +129,7 @@ export default function App() {
     logoutAdmin();
     setAdminSession(null);
     setActiveTableSlug(null);
-    setLandingRequested(true);
+    setGatewayRequested(true);
     setViewMode('public');
     try {
       localStorage.removeItem("turbosanta_admin_session");
@@ -127,30 +137,30 @@ export default function App() {
       sessionStorage.clear();
     } catch (e) {}
 
-    // Hard redirect to clean homepage at roundtablesantasleigh.co.uk
-    const host = window.location.hostname.toLowerCase();
-    const homeUrl = (host.includes('roundtablesantasleigh.co.uk') || host.includes('pages.dev'))
-      ? 'https://roundtablesantasleigh.co.uk/'
-      : window.location.origin + '/';
-    window.location.replace(homeUrl);
+    // Redirect back to /admin login gateway
+    const logoutUrl = (host.includes('roundtablesantasleigh.co.uk') || host.includes('pages.dev'))
+      ? 'https://roundtablesantasleigh.co.uk/admin'
+      : window.location.origin + '/admin';
+    window.location.replace(logoutUrl);
   };
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const isAdminRequested = params.get('admin') === '1' || params.get('admin') === 'true' || params.get('god') === '1' || params.get('god') === 'true';
-    if (isAdminRequested) {
+    if (isAdminRoute && !gatewayRequested) {
       if (adminSession) {
         const isBeverley = adminSession.email === 'beverley247@roundtable.org.uk' || adminSession.tableSlug === 'beverley' || (adminSession.email && adminSession.email.includes('beverley'));
         if (adminSession.isNationalAdmin && !isBeverley) {
           window.location.href = '/national.html';
           return;
         }
+        const targetSlug = initialTableParam || adminSession.tableSlug || adminSession.tableId || 'beverley';
+        if (!activeTableSlug) setActiveTableSlug(targetSlug);
         setViewMode('admin');
-      } else {
+      } else if (initialTableParam) {
+        setLoginInitialEmail(initialTableParam);
         setIsLoginModalOpen(true);
       }
     }
-  }, [adminSession]);
+  }, [adminSession, isAdminRoute, gatewayRequested, initialTableParam, activeTableSlug]);
 
   useEffect(() => {
     if (!activeTableSlug) {
@@ -176,11 +186,41 @@ export default function App() {
     return null;
   }
 
-  // ROOT LANDING & PORTAL LOGIN VIEW (when no table is specified, or landing view requested)
-  const isLandingView = (landingRequested || !activeTableSlug) && viewMode !== 'admin';
-  if (isLandingView) {
+  // 1. PUBLIC ROOT DIRECTORY VIEW (roundtablesantasleigh.co.uk/)
+  // Shown whenever a visitor lands on the root domain without a specific table or /admin path
+  const isPublicRootDirectory = !isAdminRoute && !activeTableSlug && viewMode !== 'admin';
+  if (isPublicRootDirectory) {
     return (
-      <Suspense fallback={<FullPageLoader label="Loading TurboSanta Portal..." />}>
+      <Suspense fallback={<FullPageLoader label="Loading Round Table Sleigh Directory..." />}>
+        <PublicDirectory
+          session={adminSession}
+          onNavigateAdmin={() => {
+            setIsAdminRoute(true);
+            if (adminSession && !gatewayRequested) {
+              const slug = adminSession.tableSlug || adminSession.tableId || 'beverley';
+              setActiveTableSlug(slug);
+              setViewMode('admin');
+              window.history.pushState(null, '', `/admin?table=${encodeURIComponent(slug)}`);
+            } else {
+              window.history.pushState(null, '', '/admin');
+            }
+          }}
+          onSelectTable={(slug) => {
+            setActiveTableSlug(slug);
+            const url = new URL(window.location.href);
+            url.searchParams.set('table', slug);
+            window.history.pushState(null, '', url.pathname + url.search);
+          }}
+        />
+      </Suspense>
+    );
+  }
+
+  // 2. ORGANISER COMMAND & ADMIN LOGIN GATEWAY (/admin when not logged in or when gateway requested)
+  const isOrganiserGateway = isAdminRoute && (gatewayRequested || !adminSession || viewMode !== 'admin');
+  if (isOrganiserGateway) {
+    return (
+      <Suspense fallback={<FullPageLoader label="Loading Table Command Gateway..." />}>
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
           <LandingPortal
             session={adminSession}
@@ -189,13 +229,10 @@ export default function App() {
               setIsLoginModalOpen(true);
             }}
             onSelectTable={(slug) => {
-              setLandingRequested(false);
+              setGatewayRequested(false);
+              setIsAdminRoute(false);
               setActiveTableSlug(slug);
-              const url = new URL(window.location.href);
-              url.searchParams.delete('view');
-              url.searchParams.delete('landing');
-              url.searchParams.set('table', slug);
-              window.history.pushState(null, '', url.pathname + url.search);
+              window.history.pushState(null, '', `/?table=${encodeURIComponent(slug)}`);
             }}
           />
 
@@ -215,8 +252,8 @@ export default function App() {
                 const slug = session.tableSlug || 'beverley';
                 setActiveTableSlug(slug);
                 setViewMode('admin');
-                setLandingRequested(false);
-                window.history.pushState(null, '', `/?table=${encodeURIComponent(slug)}&admin=1`);
+                setGatewayRequested(false);
+                window.history.pushState(null, '', `/admin?table=${encodeURIComponent(slug)}`);
               }}
             />
           )}
@@ -229,7 +266,7 @@ export default function App() {
     return <FullPageLoader />;
   }
 
-  // IF ADMIN VIEW IS ACTIVE AND LOGGED IN
+  // 3. AUTHENTICATED TABLE ADMIN PORTAL (/admin)
   if (viewMode === 'admin' && adminSession) {
     return (
       <Suspense fallback={<FullPageLoader label="Loading Mission Control..." />}>
@@ -243,7 +280,7 @@ export default function App() {
     );
   }
 
-  // OPTIMAL PUBLIC SLEIGH TRACKER VIEW
+  // 4. PUBLIC SLEIGH TRACKER VIEW ({town}.roundtablesantasleigh.co.uk or /?table={town})
   return (
     <Suspense fallback={<FullPageLoader />}>
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -273,7 +310,9 @@ export default function App() {
                     window.location.href = '/national.html';
                     return;
                   }
+                  setIsAdminRoute(true);
                   setViewMode('admin');
+                  window.history.pushState(null, '', `/admin?table=${encodeURIComponent(activeTableSlug || adminSession.tableSlug || 'beverley')}`);
                 }}
                 className="brand-font"
                 style={{
@@ -320,7 +359,9 @@ export default function App() {
                 window.location.href = '/national.html';
                 return;
               }
+              setIsAdminRoute(true);
               setViewMode('admin');
+              window.history.pushState(null, '', `/admin?table=${encodeURIComponent(activeTableSlug || adminSession.tableSlug || 'beverley')}`);
             } else {
               setIsLoginModalOpen(true);
             }
@@ -342,9 +383,10 @@ export default function App() {
               }
               const slug = session.tableSlug || activeTableSlug || 'beverley';
               setActiveTableSlug(slug);
+              setIsAdminRoute(true);
               setViewMode('admin');
-              setLandingRequested(false);
-              window.history.pushState(null, '', `/?table=${encodeURIComponent(slug)}&admin=1`);
+              setGatewayRequested(false);
+              window.history.pushState(null, '', `/admin?table=${encodeURIComponent(slug)}`);
             }}
           />
         )}

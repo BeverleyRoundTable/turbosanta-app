@@ -796,4 +796,38 @@ export async function sendSantaChatMessage(tableSlug = "beverley", message = "",
   }
 }
 
+export async function fetchPublicTables() {
+  const FALLBACK_PUBLIC_TABLES = [
+    { slug: "abergavenny", town_name: "Abergavenny", sleigh_display_name: "Abergavenny Round Table Santa Sleigh", logo_url: "/icons/RTBI_Santa.png", primary_color: "#FBAF33", url: "https://abergavenny.roundtablesantasleigh.co.uk/" },
+    { slug: "beverley", town_name: "Beverley", sleigh_display_name: "Beverley Round Table Santa Sleigh", table_number: 247, logo_url: "https://turbosanta-api.beverley247.workers.dev/cdn/beverley/1792057900198_nv4wns.png", primary_color: "#D31C1C", url: "https://beverley.roundtablesantasleigh.co.uk/" },
+    { slug: "carrick", town_name: "Carrick", sleigh_display_name: "Carrick Round Table Santa Sleigh", logo_url: "/icons/RTBI_Santa.png", primary_color: "#FBAF33", url: "https://carrick.roundtablesantasleigh.co.uk/" },
+    { slug: "cheltenham", town_name: "Cheltenham", sleigh_display_name: "Cheltenham Round Table Santa Sleigh", logo_url: "/icons/RTBI_Santa.png", primary_color: "#FBAF33", url: "https://cheltenham.roundtablesantasleigh.co.uk/" },
+    { slug: "knowleanddorridge", town_name: "Knowle & Dorridge", sleigh_display_name: "Knowle & Dorridge Round Table Santa Sleigh", logo_url: "/icons/RTBI_Santa.png", primary_color: "#FBAF33", url: "https://knowleanddorridge.roundtablesantasleigh.co.uk/" },
+    { slug: "lichfield", town_name: "Lichfield", sleigh_display_name: "Lichfield Round Table Santa Sleigh", logo_url: "https://turbosanta-api.beverley247.workers.dev/cdn/lichfield/1792090228292_hz4t7j.png", primary_color: "#FBAF33", url: "https://lichfield.roundtablesantasleigh.co.uk/" },
+    { slug: "linlithgow", town_name: "Linlithgow", sleigh_display_name: "Linlithgow Round Table Santa Sleigh", logo_url: "/icons/RTBI_Santa.png", primary_color: "#D31C1C", url: "https://linlithgow.roundtablesantasleigh.co.uk/" },
+    { slug: "loughborough", town_name: "Loughborough", sleigh_display_name: "Loughborough Round Table Santa Sleigh", logo_url: "/icons/RTBI_Santa.png", primary_color: "#FBAF33", url: "https://loughborough.roundtablesantasleigh.co.uk/" },
+    { slug: "melton-mowbray", town_name: "Melton Mowbray", sleigh_display_name: "Melton Mowbray Round Table Santa Sleigh", logo_url: "/icons/RTBI_Santa.png", primary_color: "#FBAF33", url: "https://melton-mowbray.roundtablesantasleigh.co.uk/" },
+    { slug: "middlesbrough", town_name: "Middlesbrough", sleigh_display_name: "Middlesbrough Round Table Santa Sleigh", logo_url: "https://turbosanta-api.beverley247.workers.dev/cdn/middlesbrough/1793044071007_nlnc7e.png", primary_color: "#ff6900", url: "https://middlesbrough.roundtablesantasleigh.co.uk/" },
+    { slug: "mold", town_name: "Mold", sleigh_display_name: "Mold Round Table Santa Sleigh", logo_url: "/icons/RTBI_Santa.png", primary_color: "#FBAF33", url: "https://mold.roundtablesantasleigh.co.uk/" },
+    { slug: "newark", town_name: "Newark", sleigh_display_name: "Newark Round Table Santa Sleigh", logo_url: "/icons/RTBI_Santa.png", primary_color: "#FBAF33", url: "https://newark.roundtablesantasleigh.co.uk/" },
+    { slug: "nuneaton", town_name: "Nuneaton", sleigh_display_name: "Nuneaton Round Table Santa Sleigh", logo_url: "/icons/RTBI_Santa.png", primary_color: "#FBAF33", url: "https://nuneaton.roundtablesantasleigh.co.uk/" },
+    { slug: "ringwood", town_name: "Ringwood", sleigh_display_name: "Ringwood Round Table Santa Sleigh", logo_url: "/icons/RTBI_Santa.png", primary_color: "#D31C1C", url: "https://ringwood.roundtablesantasleigh.co.uk/" },
+    { slug: "shirley", town_name: "Shirley", sleigh_display_name: "Shirley Round Table Santa Sleigh", logo_url: "https://turbosanta-api.beverley247.workers.dev/cdn/shirley/1792579678331_mfpfpl.png", primary_color: "#FBAF33", url: "https://shirley.roundtablesantasleigh.co.uk/" },
+    { slug: "stockton", town_name: "Stockton", sleigh_display_name: "Stockton Round Table Santa Sleigh", logo_url: "https://turbosanta-api.beverley247.workers.dev/cdn/stockton/1792397480202_lll8iv.png", primary_color: "#FBAF33", url: "https://stockton.roundtablesantasleigh.co.uk/" }
+  ];
+
+  try {
+    const res = await fetch(`${API_BASE}/api/public/tables`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (Array.isArray(data?.tables) && data.tables.length > 0) {
+      return data.tables;
+    }
+    return FALLBACK_PUBLIC_TABLES;
+  } catch (err) {
+    console.warn("Failed to fetch public tables directory, using fallback:", err);
+    return FALLBACK_PUBLIC_TABLES;
+  }
+}
+
 

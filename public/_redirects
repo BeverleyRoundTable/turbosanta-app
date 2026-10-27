@@ -20,6 +20,6 @@
 /season-wrap       /season_wrap       200
 /partner-report    /partner_report    200
 /volunteer-cert    /volunteer_cert    200
-/admin             /?admin=1          302
-/admin/            /?admin=1          302
-/admin.html        /?admin=1          302
+/admin             /index.html        200
+/admin/            /index.html        200
+/admin.html        /index.html        200

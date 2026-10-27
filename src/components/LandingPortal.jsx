@@ -22,7 +22,10 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
 
   const handleViewTracker = () => {
     if (!detected) return;
-    if (onSelectTable) {
+    const host = window.location.hostname.toLowerCase();
+    if (host.includes('roundtablesantasleigh.co.uk')) {
+      window.location.href = `https://${detected.slug}.roundtablesantasleigh.co.uk/`;
+    } else if (onSelectTable) {
       onSelectTable(detected.slug);
     } else {
       window.location.href = `/?table=${encodeURIComponent(detected.slug)}`;
@@ -32,7 +35,7 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
   const handleOpenAdmin = () => {
     if (session) {
       const slug = detected?.slug || session.tableSlug || 'beverley';
-      window.location.href = `/?table=${encodeURIComponent(slug)}&admin=1`;
+      window.location.href = `/admin?table=${encodeURIComponent(slug)}`;
     } else {
       onOpenLogin(inputVal || '');
     }
@@ -99,6 +102,22 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+          <a
+            href="/"
+            style={{
+              color: '#eaeae5',
+              textDecoration: 'none',
+              fontSize: '13px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <MapPin size={15} color="#FBAF33" />
+            <span className="desktop-only">Public Town Finder</span>
+          </a>
+
           <a
             href="/guide.html"
             style={{
@@ -264,7 +283,7 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
               </div>
             </div>
             <button
-              onClick={() => window.location.href = `/?table=${encodeURIComponent(session.tableSlug || detected?.slug || 'beverley')}&admin=1`}
+              onClick={() => window.location.href = `/admin?table=${encodeURIComponent(session.tableSlug || detected?.slug || 'beverley')}`}
               style={{
                 backgroundColor: '#2ecc71',
                 color: '#000000',

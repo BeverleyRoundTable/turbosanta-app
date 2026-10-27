@@ -56,7 +56,7 @@ class ErrorBoundary extends React.Component {
                   localStorage.removeItem('ts2_admin_session');
                   sessionStorage.clear();
                 } catch(e) {}
-                window.location.href = '/?view=landing';
+                window.location.href = '/';
               }}
               style={{
                 background: '#161614',
