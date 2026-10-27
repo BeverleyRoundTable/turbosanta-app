@@ -175,7 +175,8 @@ export default function DropzoneUpload({
                     maxHeight: '70px',
                     maxWidth: '180px',
                     objectFit: 'contain',
-                    background: '#fff',
+                    background: '#000000',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
                     borderRadius: '4px',
                     padding: '4px'
                   }}

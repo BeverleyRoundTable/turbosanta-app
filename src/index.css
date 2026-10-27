@@ -269,7 +269,8 @@ h1, h2, h3, h4, h5, h6, .brand-font, nav a, .nav-link, .header-caps {
   width: 44px;
   object-fit: contain;
   border-radius: 50%;
-  background: #FFFFFF;
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   padding: 2px;
   flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(0,0,0,0.5);

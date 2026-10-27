@@ -91,7 +91,8 @@ export default function PublicDirectory({ session, onNavigateAdmin, onSelectTabl
               height: '44px',
               width: '44px',
               borderRadius: '50%',
-              background: '#ffffff',
+              background: '#000000',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
               padding: '2px',
               boxShadow: '0 0 14px rgba(251, 175, 51, 0.4)'
             }}
@@ -465,13 +466,14 @@ export default function PublicDirectory({ session, onNavigateAdmin, onSelectTabl
                       width: '56px',
                       height: '56px',
                       borderRadius: '14px',
-                      backgroundColor: '#ffffff',
+                      backgroundColor: '#000000',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
                       padding: '4px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0,
-                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)'
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.05)'
                     }}>
                       <img
                         src={logoSrc}
@@ -631,7 +633,7 @@ export default function PublicDirectory({ session, onNavigateAdmin, onSelectTabl
           <img
             src="/icons/RTBI_Santa.png"
             alt="RTBI"
-            style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#fff', padding: '1px' }}
+            style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#000000', border: '1px solid rgba(255, 255, 255, 0.15)', padding: '1px' }}
           />
           <span style={{ fontFamily: 'Eurostile, sans-serif', fontWeight: 800, color: '#FBAF33', letterSpacing: '1px' }}>
             ROUND TABLE GREAT BRITAIN &amp; IRELAND

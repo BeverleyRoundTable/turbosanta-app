@@ -75,7 +75,8 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
               height: '44px',
               width: '44px',
               borderRadius: '50%',
-              background: '#ffffff',
+              background: '#000000',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
               padding: '2px',
               boxShadow: '0 0 12px rgba(251, 175, 51, 0.35)'
             }}
@@ -842,7 +843,7 @@ export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
           <img
             src="/icons/RTBI_Santa.png"
             alt="RTBI"
-            style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#fff', padding: '1px' }}
+            style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#000000', border: '1px solid rgba(255, 255, 255, 0.15)', padding: '1px' }}
           />
           <span style={{ fontFamily: 'Eurostile, sans-serif', fontWeight: 800, color: '#FBAF33', letterSpacing: '1px' }}>
             ROUND TABLE GREAT BRITAIN & IRELAND

@@ -62,7 +62,8 @@ export default function Navbar({ tableData, onBackToPortal }) {
               width: '46px',
               objectFit: 'contain',
               borderRadius: '50%',
-              background: '#ffffff',
+              background: '#000000',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
               padding: '2px',
               boxShadow: '0 0 10px rgba(251, 175, 51, 0.3)'
             }}
