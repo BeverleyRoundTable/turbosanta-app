@@ -591,6 +591,24 @@
           </div>
         </div>
 
+        
+        <!-- Live Tracker Reel & Simulator Demo -->
+        <div class="hub-card featured">
+          <div>
+            <span class="card-badge badge-gold"><i class="fa-solid fa-video"></i> Social Media &amp; Promo Studio</span>
+            <h3><i class="fa-solid fa-film" style="color:var(--primary);"></i> Live Tracker Reel Simulator</h3>
+            <p>Demo Santa gliding down your town's actual streets, test resident doorstep arrival alerts &amp; live countdowns, and record clean, watermark-free screen capture reels for TikTok, Instagram &amp; Facebook!</p>
+          </div>
+          <div>
+            <div class="url-preview" id="trackerDemoUrl">https://beverley.roundtablesantasleigh.co.uk/trackerdemo</div>
+            <div class="card-actions">
+              <a id="btnLaunchTrackerDemo" href="https://beverley.roundtablesantasleigh.co.uk/trackerdemo" target="_blank" class="btn btn-primary"><i class="fa-solid fa-play"></i> Launch Reel Simulator</a>
+              <button class="btn btn-secondary" onclick="copyDynamicUrl('trackerDemoUrl')"><i class="fa-solid fa-copy"></i> Copy Link</button>
+              <button class="btn btn-secondary" onclick="openQrModal('trackerDemoUrl', 'Tracker Demo QR')"><i class="fa-solid fa-qrcode"></i></button>
+            </div>
+          </div>
+        </div>
+
         <!-- God Mode -->
         <div class="hub-card featured">
           <div>
@@ -857,6 +875,7 @@
       const links = {
         adminPortalUrl: `${townBase}/admin`,
         trackerUrl: `${townBase}/tracker`,
+        trackerDemoUrl: `${townBase}/trackerdemo`,
         crewUrl: `${townBase}/crew`,
         publicSiteUrl: townBase,
         addressUrl: `${townBase}/address`,
@@ -895,6 +914,7 @@
         btnHeaderAdmin: links.adminPortalUrl,
         btnHeaderTracker: links.trackerUrl,
         btnLaunchAdminPortal: links.adminPortalUrl,
+        btnLaunchTrackerDemo: links.trackerDemoUrl,
         btnLaunchCrew: links.crewUrl,
         btnLaunchPublic: links.publicSiteUrl,
         btnLaunchAddress: links.addressUrl,

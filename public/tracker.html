@@ -830,12 +830,167 @@
       .ws-donate { margin-top: 10px; padding: 10px 16px; }
       .ws-skip-btn { margin-top: 10px; }
     }
+
+    /* 🎬 LIVE TRACKER REEL / DEMO SIMULATOR STYLES */
+    .demo-bar {
+      position: absolute;
+      top: 76px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(18, 18, 16, 0.96);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(251, 175, 51, 0.4);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7), 0 0 18px rgba(251, 175, 51, 0.15);
+      border-radius: 16px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 4100;
+      max-width: calc(100vw - 20px);
+      box-sizing: border-box;
+      flex-wrap: wrap;
+      justify-content: center;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      color: #fff;
+      font-size: 12px;
+    }
+    .demo-bar.hidden-recording {
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transform: translate(-50%, -15px) !important;
+    }
+    .demo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(251, 175, 51, 0.16);
+      border: 1px solid rgba(251, 175, 51, 0.4);
+      color: #FBAF33;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 800;
+      font-family: 'Eurostile', sans-serif;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+    .demo-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+    .demo-btn:hover {
+      background: rgba(255, 255, 255, 0.16);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+    .demo-btn.active {
+      background: #FBAF33;
+      color: #000;
+      border-color: #FBAF33;
+    }
+    .demo-select {
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      max-width: 140px;
+      outline: none;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .demo-select option {
+      background: #161614;
+      color: #fff;
+    }
+    .demo-slider-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .demo-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 80px;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      outline: none;
+      cursor: pointer;
+    }
+    .demo-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #FBAF33;
+      cursor: pointer;
+      box-shadow: 0 0 6px rgba(0,0,0,0.5);
+    }
+    .demo-restore-btn {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: rgba(18, 18, 16, 0.88);
+      border: 1px solid rgba(251, 175, 51, 0.45);
+      color: #FBAF33;
+      border-radius: 50px;
+      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      z-index: 4200;
+      display: none;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+      font-family: 'Eurostile', sans-serif;
+      letter-spacing: 0.5px;
+    }
+    .demo-restore-btn:hover {
+      background: rgba(251, 175, 51, 0.2);
+    }
     
   </style>
 </head>
 <body>
   <div id="loadingCover"><div id="loadingSpinner"></div></div>
   <div class="status-popup" id="statusBox" role="status" aria-live="polite" aria-atomic="true">Searching for Santa…</div>
+
+  <!-- 🎬 DEMO SIMULATOR REEL TOOLBAR (Appears only on /trackerdemo or with ?demo=1) -->
+  <div id="demoToolbar" class="demo-bar" style="display: none;">
+    <div class="demo-badge">🎬 Reel Demo</div>
+    <select id="demoRouteSelect" class="demo-select" title="Switch Route"></select>
+    <button id="demoPlayBtn" class="demo-btn active" title="Play or Pause Santa Movement">⏸ Pause</button>
+    <div style="display:inline-flex; gap:3px;">
+      <button id="demoSpeed1" class="demo-btn" title="1x Real-Time Pace (~10mph)">1x</button>
+      <button id="demoSpeed3" class="demo-btn active" title="3x Reel Pace (~30mph, Best for 30s Video)">3x</button>
+      <button id="demoSpeed8" class="demo-btn" title="8x Fast Forward">8x</button>
+    </div>
+    <div class="demo-slider-wrap">
+      <input type="range" id="demoScrubber" class="demo-slider" min="0" max="100" value="0" title="Scrub Santa along route">
+      <span id="demoProgressPct" style="font-size:10px; opacity:0.8; width:26px;">0%</span>
+    </div>
+    <button id="demoPinBtn" class="demo-btn" title="Place demo resident house pin ahead of Santa to show live ETA countdown">🎯 Drop House Pin</button>
+    <button id="demoRecordBtn" class="demo-btn" style="background:#d31c1c; border-color:#d31c1c; font-weight:800;" title="Hide demo toolbar for clean screen recording">🎥 Record Mode</button>
+  </div>
+  <button id="demoRestoreBtn" class="demo-restore-btn" title="Exit recording mode and restore demo controls">🎬 Exit Record Mode</button>
 
   <a id="routeSponsor" class="route-sponsor" target="_blank" rel="noopener" aria-label="Tonight's route sponsor">
     <span>Sponsored by</span>
@@ -1240,6 +1395,7 @@
       const WorkshopManager = {
         timerId: null,
         init(routes) {
+            if (typeof AppState !== 'undefined' && AppState?.flags?.isDemo) return false;
             const now = new Date();
             now.setHours(0, 0, 0, 0);
             
@@ -1472,12 +1628,17 @@
 
       const AppState = {
         map: null, mlMap: null, marker: null, notifyMarker: null, gpxRoute: null, lastFix: null, recentFixes: [], routeFixes: [],
-        flags: { follow: true, firstFix: true, isKiosk: false, gpxLoaded: false, snowActive: false, pageVisible: !document.hidden, awaitingPin: false, browserNotified: sessionStorage.getItem("SANTA_BROWSER_NOTIFIED") === "1", hasPassedSticky: sessionStorage.getItem("SANTA_HAS_PASSED") === "1", celebrationFired: sessionStorage.getItem("SANTA_CELEBRATION_FIRED") === "1", musicEnabled: false, beaconActive: false },
+        flags: { follow: true, firstFix: true, isKiosk: false, isDemo: false, gpxLoaded: false, snowActive: false, pageVisible: !document.hidden, awaitingPin: false, browserNotified: sessionStorage.getItem("SANTA_BROWSER_NOTIFIED") === "1", hasPassedSticky: sessionStorage.getItem("SANTA_HAS_PASSED") === "1", celebrationFired: sessionStorage.getItem("SANTA_CELEBRATION_FIRED") === "1", musicEnabled: false, beaconActive: false },
         vars: { apiUrl: null, tableSlug: "", sleighName: "Santa Sleigh", staleSince: null, lastSnapIndex: 0, snowflakes: [], animRaf: null, pendingSubscription: null, notifyLatLng: null, lastVisualPos: null, escapeListener: null, lastElfCamUrl: null, lastSeenMsgTs: Number(sessionStorage.getItem('SANTA_LAST_MSG_TS')) || 0, pollTimer: null, consecutiveErrors: 0, musicUrl: null, currentMapHeading: 0, latestApiData: null, lastSettingsFetch: 0, lastTxTime: 0, lastLeafletRouteIdx: -1, lastMlRouteIdx: -1, userSnapCache: null, etaEmaSec: null },
         dom: { loading: document.getElementById("loadingCover"), statusBox: document.getElementById("statusBox"), followBtn: document.getElementById("followBtn"), recenterBtn: document.getElementById("recenterBtn"), notifyBtn: document.getElementById("notifyBtn"), msgBtn: document.getElementById("msgBtn"), statusDot: document.getElementById("statusDot"), donateLink: document.getElementById("donateLink"), donateBox: document.getElementById("donateBox"), kioskBanner: document.getElementById("kioskBanner"), sponsorBox: document.getElementById("kioskSponsor"), toast: document.getElementById("toast"), snowCanvas: document.getElementById("snow"), shareBtn: document.getElementById("shareBtn"), musicBtn: document.getElementById("musicBtn"), fireworks: document.getElementById("fireworks") }
       };
 
-      function scheduleNextPoll() { if (AppState.vars.pollTimer) clearTimeout(AppState.vars.pollTimer); const delay = Math.min(AppConfig.API.REFRESH_MS * Math.pow(2, AppState.vars.consecutiveErrors), AppConfig.API.REFRESH_MAX_MS); AppState.vars.pollTimer = setTimeout(updateTracker, delay); }
+      function scheduleNextPoll() {
+        if (AppState.flags && AppState.flags.isDemo) return;
+        if (AppState.vars.pollTimer) clearTimeout(AppState.vars.pollTimer);
+        const delay = Math.min(AppConfig.API.REFRESH_MS * Math.pow(2, AppState.vars.consecutiveErrors), AppConfig.API.REFRESH_MAX_MS);
+        AppState.vars.pollTimer = setTimeout(updateTracker, delay);
+      }
 
       const Utils = {
         validPos: (lat, lng) => typeof lat === "number" && !isNaN(lat) && typeof lng === "number" && !isNaN(lng),
@@ -2247,16 +2408,19 @@
             }
           }
 
-          // 🚀 UNIVERSAL FIREBASE / D1 GATEWAY: Fetch via Cloudflare Worker
-          const fastGpsUrl = AppState.vars.isWorkerD1
-            ? `${WORKER_URL}/api/live-gps?table=${encodeURIComponent(AppState.vars.tableSlug)}`
-            : `${WORKER_URL}?action=liveGps&api=${encodeURIComponent(AppState.vars.apiUrl)}`;
-          
+          // 🚀 UNIVERSAL FIREBASE / D1 GATEWAY: Fetch via Cloudflare Worker (or Demo Simulator)
           let data = null;
-          try {
-            data = await Utils.loadJSON(fastGpsUrl);
-          } catch (e) {
-            data = null;
+          if (AppState.flags.isDemo && typeof DemoSimulator !== 'undefined') {
+            data = DemoSimulator.getLiveTelemetry();
+          } else {
+            const fastGpsUrl = AppState.vars.isWorkerD1
+              ? `${WORKER_URL}/api/live-gps?table=${encodeURIComponent(AppState.vars.tableSlug)}`
+              : `${WORKER_URL}?action=liveGps&api=${encodeURIComponent(AppState.vars.apiUrl)}`;
+            try {
+              data = await Utils.loadJSON(fastGpsUrl);
+            } catch (e) {
+              data = null;
+            }
           }
 
           if (data && typeof data === "object" && !data.lat) { 
@@ -2737,8 +2901,264 @@
         });
       }
 
+      // 🎬 TURBOSANTA 2.0 LIVE TRACKER REEL & DEMO SIMULATOR
+      const DemoSimulator = {
+        isPlaying: true,
+        multiplier: 3, // 3x default is optimal for 15-45s Reels
+        baseSpeedMps: 4.5, // ~10 mph cruise speed
+        simDist: 0,
+        lastTickTime: null,
+        simTimer: null,
+        simRoutes: [],
+
+        init(routes, activeRoute) {
+          this.simRoutes = routes || [];
+          const toolbar = document.getElementById('demoToolbar');
+          const restoreBtn = document.getElementById('demoRestoreBtn');
+          if (toolbar) toolbar.style.display = 'flex';
+
+          // Ensure map follows Santa initially
+          AppState.flags.follow = true;
+          if (AppState.dom.followBtn) AppState.dom.followBtn.textContent = "Follow: ON";
+
+          // Populate route selector
+          const routeSelect = document.getElementById('demoRouteSelect');
+          if (routeSelect && this.simRoutes.length > 0) {
+            routeSelect.innerHTML = '';
+            this.simRoutes.forEach((r, idx) => {
+              const opt = document.createElement('option');
+              opt.value = r.id;
+              opt.textContent = r.name || r.routeName || `Route ${idx + 1}`;
+              if (activeRoute && r.id === activeRoute.id) opt.selected = true;
+              routeSelect.appendChild(opt);
+            });
+
+            routeSelect.onchange = async () => {
+              const selectedId = routeSelect.value;
+              const target = this.simRoutes.find(r => String(r.id) === String(selectedId));
+              if (target) {
+                AppState.vars.activeRoute = target;
+                if (target.gpxUrl || target.gpx_url) {
+                  await loadGpxRoute(target.gpxUrl || target.gpx_url);
+                } else {
+                  await loadGpxRoute('/gpx/HtoG.gpx');
+                }
+                if (AppState.flags.gpxLoaded && AppState.gpxRoute && AppState.gpxRoute.length > 0) {
+                  const allLatLngs = AppState.gpxRoute.map(p => [p.lat, p.lng]);
+                  if (AppState.dynamicRouteRemainingGlow) AppState.dynamicRouteRemainingGlow.setLatLngs(allLatLngs);
+                  if (AppState.dynamicRouteRemainingMain) AppState.dynamicRouteRemainingMain.setLatLngs(allLatLngs);
+                  if (AppState.dynamicRoutePastGlow) AppState.dynamicRoutePastGlow.setLatLngs([]);
+                  if (AppState.dynamicRoutePastMain) AppState.dynamicRoutePastMain.setLatLngs([]);
+                  if (AppState.map) {
+                    try { AppState.map.fitBounds(allLatLngs, { padding: [40, 40] }); } catch(e){}
+                  }
+                }
+                DemoSimulator.reset(true);
+              }
+            };
+          }
+
+          // Wire controls
+          const playBtn = document.getElementById('demoPlayBtn');
+          if (playBtn) {
+            playBtn.onclick = () => {
+              DemoSimulator.isPlaying = !DemoSimulator.isPlaying;
+              playBtn.textContent = DemoSimulator.isPlaying ? '⏸ Pause' : '▶ Play';
+              playBtn.classList.toggle('active', DemoSimulator.isPlaying);
+            };
+          }
+
+          const s1 = document.getElementById('demoSpeed1');
+          const s3 = document.getElementById('demoSpeed3');
+          const s8 = document.getElementById('demoSpeed8');
+          const setSpeed = (mul, activeBtn) => {
+            DemoSimulator.multiplier = mul;
+            [s1, s3, s8].forEach(b => b && b.classList.remove('active'));
+            if (activeBtn) activeBtn.classList.add('active');
+          };
+          if (s1) s1.onclick = () => setSpeed(1, s1);
+          if (s3) s3.onclick = () => setSpeed(3, s3);
+          if (s8) s8.onclick = () => setSpeed(8, s8);
+
+          const scrubber = document.getElementById('demoScrubber');
+          if (scrubber) {
+            scrubber.oninput = (e) => {
+              const pct = parseFloat(e.target.value) / 100;
+              if (AppState.gpxRoute && AppState.gpxRoute.length > 1) {
+                const total = AppState.gpxRoute[AppState.gpxRoute.length - 1].dist;
+                DemoSimulator.simDist = total * pct;
+                updateTracker();
+              }
+            };
+          }
+
+          const pinBtn = document.getElementById('demoPinBtn');
+          if (pinBtn) {
+            pinBtn.onclick = () => DemoSimulator.dropHousePinAhead(400);
+          }
+
+          const recordBtn = document.getElementById('demoRecordBtn');
+          if (recordBtn && toolbar && restoreBtn) {
+            recordBtn.onclick = () => {
+              toolbar.classList.add('hidden-recording');
+              restoreBtn.style.display = 'flex';
+              showToast("🎥 Record Mode Active: UI controls hidden for clean video capture!");
+            };
+            restoreBtn.onclick = () => {
+              toolbar.classList.remove('hidden-recording');
+              restoreBtn.style.display = 'none';
+            };
+          }
+
+          // Auto-fit route bounds on start
+          if (AppState.gpxRoute && AppState.gpxRoute.length > 0 && AppState.map) {
+            try {
+              const bounds = AppState.gpxRoute.map(p => [p.lat, p.lng]);
+              AppState.map.fitBounds(bounds, { padding: [40, 40] });
+            } catch (e) {}
+          }
+
+          // Start ticker
+          DemoSimulator.reset(false);
+          if (DemoSimulator.simTimer) clearInterval(DemoSimulator.simTimer);
+          DemoSimulator.lastTickTime = performance.now();
+          DemoSimulator.simTimer = setInterval(() => DemoSimulator.tick(), 150);
+
+          // Auto-drop resident house pin ~400m ahead on start so ETA banner immediately renders
+          setTimeout(() => {
+            if (!AppState.vars.notifyLatLng) {
+              DemoSimulator.dropHousePinAhead(450);
+            }
+          }, 1000);
+        },
+
+        reset(fitMap = false) {
+          DemoSimulator.simDist = 0;
+          DemoSimulator.lastTickTime = performance.now();
+          AppState.flags.hasPassedSticky = false;
+          AppState.flags.celebrationFired = false;
+          sessionStorage.removeItem("SANTA_CELEBRATION_FIRED");
+          sessionStorage.removeItem("SANTA_HAS_PASSED");
+          if (fitMap && AppState.gpxRoute && AppState.map) {
+            try {
+              AppState.map.fitBounds(AppState.gpxRoute.map(p => [p.lat, p.lng]), { padding: [40, 40] });
+            } catch (e) {}
+          }
+        },
+
+        dropHousePinAhead(offsetMeters = 400) {
+          if (!AppState.gpxRoute || AppState.gpxRoute.length < 2) return;
+          const total = AppState.gpxRoute[AppState.gpxRoute.length - 1].dist;
+          const targetDist = Math.min(total - 10, DemoSimulator.simDist + offsetMeters);
+          let bestPt = AppState.gpxRoute[0];
+          let minDiff = Infinity;
+          for (const pt of AppState.gpxRoute) {
+            const diff = Math.abs(pt.dist - targetDist);
+            if (diff < minDiff) {
+              minDiff = diff;
+              bestPt = pt;
+            }
+          }
+          // Slight offset (approx 12-15 meters) to look like a house beside the pavement
+          const houseLat = bestPt.lat + 0.00012;
+          const houseLng = bestPt.lng + 0.00012;
+          showNotifyMarker(houseLat, houseLng, true);
+          AppState.flags.browserNotified = false;
+          AppState.flags.hasPassedSticky = false;
+          AppState.flags.celebrationFired = false;
+          sessionStorage.removeItem("SANTA_CELEBRATION_FIRED");
+          sessionStorage.removeItem("SANTA_HAS_PASSED");
+          showToast("📍 Demo House Pin Placed! Watch Santa's ETA count down.");
+          updateTracker();
+        },
+
+        tick() {
+          if (!DemoSimulator.isPlaying || !AppState.gpxRoute || AppState.gpxRoute.length < 2) return;
+          const now = performance.now();
+          const dt = Math.min(0.5, (now - (DemoSimulator.lastTickTime || now)) / 1000);
+          DemoSimulator.lastTickTime = now;
+
+          const stepDist = DemoSimulator.baseSpeedMps * DemoSimulator.multiplier * dt;
+          const totalDist = AppState.gpxRoute[AppState.gpxRoute.length - 1].dist;
+
+          DemoSimulator.simDist += stepDist;
+          if (DemoSimulator.simDist > totalDist) {
+            DemoSimulator.simDist = 0;
+            AppState.flags.hasPassedSticky = false;
+            AppState.flags.celebrationFired = false;
+            sessionStorage.removeItem("SANTA_CELEBRATION_FIRED");
+            sessionStorage.removeItem("SANTA_HAS_PASSED");
+          }
+
+          // Update Scrubber UI
+          const scrubber = document.getElementById('demoScrubber');
+          const progressPct = document.getElementById('demoProgressPct');
+          if (scrubber && totalDist > 0) {
+            const pct = Math.round((DemoSimulator.simDist / totalDist) * 100);
+            scrubber.value = pct;
+            if (progressPct) progressPct.textContent = `${pct}%`;
+          }
+
+          updateTracker();
+        },
+
+        getLiveTelemetry() {
+          if (!AppState.gpxRoute || AppState.gpxRoute.length < 2) {
+            return {
+              lat: 53.8459,
+              lng: -0.4281,
+              is_fresh: true,
+              is_live: true,
+              speed: 12,
+              heading: 90,
+              road_name: 'High Street',
+              ts: new Date().toISOString()
+            };
+          }
+
+          const route = AppState.gpxRoute;
+          const curDist = DemoSimulator.simDist;
+
+          let idx = 0;
+          while (idx < route.length - 1 && route[idx + 1].dist < curDist) {
+            idx++;
+          }
+
+          const p1 = route[idx];
+          const p2 = route[Math.min(route.length - 1, idx + 1)];
+          const segLen = (p2.dist - p1.dist) || 1;
+          const segFraction = Math.max(0, Math.min(1, (curDist - p1.dist) / segLen));
+
+          const lat = p1.lat + (p2.lat - p1.lat) * segFraction;
+          const lng = p1.lng + (p2.lng - p1.lng) * segFraction;
+
+          // Bearing angle
+          const y = Math.sin((p2.lng - p1.lng) * Math.PI / 180) * Math.cos(p2.lat * Math.PI / 180);
+          const x = Math.cos(p1.lat * Math.PI / 180) * Math.sin(p2.lat * Math.PI / 180) -
+                    Math.sin(p1.lat * Math.PI / 180) * Math.cos(p2.lat * Math.PI / 180) * Math.cos((p2.lng - p1.lng) * Math.PI / 180);
+          const bearing = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+
+          const currentRoad = p1.roadName || p2.roadName || (AppState.vars.activeRoute ? (AppState.vars.activeRoute.name || AppState.vars.activeRoute.routeName) : 'High Street');
+          const speedMph = Math.round(DemoSimulator.baseSpeedMps * DemoSimulator.multiplier * 2.23694);
+
+          return {
+            lat,
+            lng,
+            is_fresh: true,
+            is_live: true,
+            speed: speedMph,
+            heading: Math.round(bearing),
+            road_name: currentRoad,
+            ts: new Date().toISOString()
+          };
+        }
+      };
+
       async function init() {
         const params = new URLSearchParams(location.search);
+        const isDemo = params.get("demo") === "1" || params.get("demo") === "true" || location.pathname.includes("trackerdemo") || location.pathname.includes("tracker-demo") || location.pathname.endsWith("/demo");
+        AppState.flags.isDemo = isDemo;
+        if (AppState.flags.isDemo) document.body.classList.add("demo-mode");
         AppState.flags.isKiosk = params.get("kiosk") === "1" || sessionStorage.getItem("SANTA_KIOSK") === "1";
         if (params.get("kiosk") === "1") sessionStorage.setItem("SANTA_KIOSK", "1");
         if (AppState.flags.isKiosk) document.body.classList.add("kiosk");
@@ -3217,11 +3637,13 @@
           route = allRoutes.find(r => String(r.id) === reqRoute || (r.routeName && r.routeName.toLowerCase().includes(reqRoute.toLowerCase()))) || null;
         } else if (todayRoute) {
           route = todayRoute;
+        } else if (AppState.flags.isDemo && allRoutes.length > 0) {
+          route = allRoutes.find(r => r.gpxUrl || r.gpx_url) || allRoutes[0];
         }
         AppState.vars.todayRoute = todayRoute;
         AppState.vars.activeRoute = route;
 
-        if (!AppState.flags.isDriver && !AppState.flags.isKiosk && !todayRoute) {
+        if (!AppState.flags.isDriver && !AppState.flags.isKiosk && !todayRoute && !AppState.flags.isDemo) {
             WorkshopManager.init(apiData.routes);
         }
 
@@ -3319,9 +3741,11 @@
           AppState.dom.kioskBanner.appendChild(subtitleDiv);
           AppState.dom.kioskBanner.classList.add("visible");
         }
-        if (route && route.gpxUrl && route.gpxUrl.trim() !== "") {
-          await loadGpxRoute(route.gpxUrl.trim());
+        if (route && (route.gpxUrl || route.gpx_url) && (route.gpxUrl || route.gpx_url).trim() !== "") {
+          await loadGpxRoute((route.gpxUrl || route.gpx_url).trim());
           if (AppState.flags.isDriver && AppState.flags.gpxLoaded) TurnByTurn.load(AppState.gpxRoute);
+        } else if (AppState.flags.isDemo) {
+          await loadGpxRoute('/gpx/HtoG.gpx');
         } else {
           AppState.gpxRoute = null;
           AppState.flags.gpxLoaded = false;
@@ -4082,6 +4506,9 @@
         window.addEventListener("resize", SnowSystem.resize);
         if (driverLibsPromise) await driverLibsPromise;
         window.initTrackerMap();
+        if (AppState.flags.isDemo && typeof DemoSimulator !== 'undefined') {
+          DemoSimulator.init(apiData.routes || [], AppState.vars.activeRoute);
+        }
         window.SantaDebug = { AppState, SnowSystem, Fireworks, SleighAudio, animateMarkerTo, Utils, AppConfig, TurnByTurn };
       }
 

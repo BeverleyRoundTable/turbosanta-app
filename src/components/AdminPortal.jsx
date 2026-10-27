@@ -5739,6 +5739,13 @@ ${tableName} Organizers`
                     url: `${townOrigin}/qr_poster`
                   },
                   {
+                    key: 'trackerdemo',
+                    badge: '07',
+                    title: 'LIVE TRACKER REEL & DEMO SIMULATOR',
+                    desc: 'Simulate Santa gliding through your streets, test doorstep arrival ETAs, and record clean, watermark-free screen capture reels for TikTok, Instagram & Facebook.',
+                    url: `${townOrigin}/trackerdemo`
+                  },
+                  {
                     key: 'memory',
                     badge: '06',
                     title: 'DIGITAL MEMORY BOOK',

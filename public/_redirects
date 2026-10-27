@@ -23,3 +23,9 @@
 /admin             /index.html        200
 /admin/            /index.html        200
 /admin.html        /index.html        200
+/trackerdemo       /tracker.html?demo=1 200
+/trackerdemo/      /tracker.html?demo=1 200
+/tracker-demo      /tracker.html?demo=1 200
+/tracker-demo/     /tracker.html?demo=1 200
+/demo              /tracker.html?demo=1 200
+/demo/             /tracker.html?demo=1 200
