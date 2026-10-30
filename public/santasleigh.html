@@ -1037,6 +1037,20 @@
             border: 1px solid rgba(var(--primary-rgb), 0.5);
             border-radius: var(--radius-md);
             padding: 20px;
+            box-sizing: border-box;
+            overflow: hidden;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        @media (max-width: 640px) {
+            .today-spotlight-card {
+                padding: 18px 16px;
+                gap: 16px;
+            }
+            .today-sponsor-box {
+                padding: 14px;
+            }
         }
 
         /* --- ROUTE FILTER TABS & SCHEDULE GRID --- */
@@ -1075,8 +1089,10 @@
 
         .routes-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
             gap: 20px;
+            width: 100%;
+            box-sizing: border-box;
         }
         .route-card {
             background: var(--bg-card);
@@ -1089,6 +1105,12 @@
             display: flex;
             flex-direction: column;
             transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+            box-sizing: border-box;
+            overflow: hidden;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            min-width: 0;
+            width: 100%;
         }
         .route-card:hover {
             transform: translateY(-4px);
@@ -1108,6 +1130,7 @@
             margin-bottom: 8px;
             line-height: 1.25;
             overflow-wrap: break-word;
+            word-break: break-word;
         }
         .route-date {
             font-weight: 800;
@@ -1122,25 +1145,149 @@
             flex-wrap: wrap;
         }
 
+        @media (max-width: 640px) {
+            .routes-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+            .route-card {
+                padding: 18px 16px;
+            }
+        }
+
         /* --- PARTNERS & SPONSORS --- */
         .partners-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 18px;
             text-align: left;
+            width: 100%;
+            box-sizing: border-box;
         }
         .partner-card {
             background: var(--bg-card);
             backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
             border: 1px solid var(--border);
             border-radius: 16px;
-            padding: 24px;
+            padding: 22px;
             transition: transform 0.2s ease, border-color 0.2s ease;
             box-shadow: var(--shadow-card);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-sizing: border-box;
+            overflow: hidden;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            min-width: 0;
+            width: 100%;
         }
         .partner-card:hover {
             transform: translateY(-3px);
             border-color: rgba(var(--primary-rgb), 0.45);
+        }
+        .partner-card-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 12px;
+            min-width: 0;
+            width: 100%;
+            box-sizing: border-box;
+            flex-wrap: wrap;
+        }
+        .partner-card-logo-box {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border-radius: 10px;
+            padding: 4px 6px;
+            box-shadow: none;
+            flex-shrink: 0;
+            text-decoration: none;
+            max-width: 110px;
+            max-height: 52px;
+        }
+        .partner-card-logo-box img {
+            height: 48px;
+            max-width: 100px;
+            object-fit: contain;
+            display: block;
+        }
+        .partner-card-meta {
+            min-width: 140px;
+            flex: 1;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            min-width: 0;
+        }
+        .partner-card-role {
+            color: var(--primary);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 800;
+            margin-bottom: 4px;
+            overflow-wrap: break-word;
+            word-break: break-word;
+        }
+        .partner-card-title {
+            font-size: clamp(15px, 3.8vw, 19px);
+            color: #FFFFFF;
+            margin: 0;
+            line-height: 1.25;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            hyphens: auto;
+        }
+        .partner-card-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-bottom: 12px;
+            overflow-wrap: break-word;
+            word-break: break-word;
+        }
+        .partner-card-link {
+            display: inline-block;
+            color: var(--primary);
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            text-decoration: none;
+            margin-top: auto;
+            padding-top: 6px;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            max-width: 100%;
+        }
+        .partner-card-link:hover {
+            text-decoration: underline;
+        }
+        @media (max-width: 640px) {
+            .partners-grid {
+                grid-template-columns: 1fr;
+                gap: 14px;
+            }
+            .partner-card {
+                padding: 16px 14px 18px;
+            }
+            .partner-card-header {
+                gap: 12px;
+            }
+            .partner-card-logo-box {
+                max-width: 95px;
+                max-height: 46px;
+            }
+            .partner-card-logo-box img {
+                height: 42px;
+                max-width: 90px;
+            }
+            .partner-card-title {
+                font-size: clamp(15px, 4.2vw, 18px);
+            }
         }
         .sponsors-grid {
             display: flex;
@@ -3148,8 +3295,8 @@
                 const stop = isStop(st);
                 const chip = document.createElement('span');
                 chip.style.cssText = stop
-                    ? 'font-size: 11px; font-weight: 800; color: #FFFFFF; background: rgba(211, 28, 28, 0.85); border: 1px solid rgba(255, 120, 120, 0.6); padding: 4px 9px; border-radius: 7px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 0 10px rgba(211, 28, 28, 0.4);'
-                    : 'font-size: 11px; font-weight: 600; color: #E5E7EB; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1); padding: 4px 9px; border-radius: 7px; display: inline-flex; align-items: center; gap: 4px;';
+                    ? 'font-size: 11px; font-weight: 800; color: #FFFFFF; background: rgba(211, 28, 28, 0.85); border: 1px solid rgba(255, 120, 120, 0.6); padding: 4px 9px; border-radius: 7px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 0 10px rgba(211, 28, 28, 0.4); max-width: 100%; word-break: break-word; overflow-wrap: break-word;'
+                    : 'font-size: 11px; font-weight: 600; color: #E5E7EB; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1); padding: 4px 9px; border-radius: 7px; display: inline-flex; align-items: center; gap: 4px; max-width: 100%; word-break: break-word; overflow-wrap: break-word;';
                 
                 chip.innerHTML = (stop ? '<i class="fa-solid fa-star" style="font-size: 10px;"></i> ' : '') + formatStop(st);
                 chipsContainer.appendChild(chip);
@@ -3323,7 +3470,7 @@
 
                     cardSponsors.forEach(sp => {
                         const contentFlex = el('div');
-                        contentFlex.style.cssText = 'display: flex; gap: 12px; align-items: center;';
+                        contentFlex.style.cssText = 'display: flex; gap: 12px; align-items: center; min-width: 0;';
 
                         const logoUrl = safeUrl(sp.logo_url || sp.sponsorUrl);
                         if (logoUrl) {
@@ -3337,6 +3484,9 @@
                         const sponsorMatch = sponsors.find(s => s.name === sp.name);
                         const sponsorLink = safeUrl(sp.link || sp.sponsorLink || (sponsorMatch ? sponsorMatch.sponsorLink : ''));
                         
+                        const spNameBox = el('div');
+                        spNameBox.style.cssText = 'min-width: 0; flex: 1; overflow-wrap: break-word; word-break: break-word;';
+
                         const spNameText = String(sp.name || 'Sponsor');
                         if (sponsorLink) {
                             const a = document.createElement('a');
@@ -3344,16 +3494,17 @@
                             a.target = '_blank';
                             a.rel = 'noopener noreferrer';
                             a.textContent = spNameText;
-                            a.style.cssText = 'color: var(--text-main); font-weight: 700; text-decoration: none; font-size: 14px;';
+                            a.style.cssText = 'color: var(--text-main); font-weight: 700; text-decoration: none; font-size: 14px; display: inline-block; overflow-wrap: break-word; word-break: break-word; max-width: 100%;';
                             a.onmouseover = () => a.style.textDecoration = 'underline';
                             a.onmouseout = () => a.style.textDecoration = 'none';
-                            contentFlex.appendChild(a);
+                            spNameBox.appendChild(a);
                         } else {
                             const strong = el('strong', '', spNameText);
-                            strong.style.cssText = 'color: var(--text-main); font-size: 14px;';
-                            contentFlex.appendChild(strong);
+                            strong.style.cssText = 'color: var(--text-main); font-size: 14px; display: inline-block; overflow-wrap: break-word; word-break: break-word; max-width: 100%;';
+                            spNameBox.appendChild(strong);
                         }
 
+                        contentFlex.appendChild(spNameBox);
                         sponsorList.appendChild(contentFlex);
                     });
 
@@ -3390,8 +3541,7 @@
             routeInfo.appendChild(dateEl);
 
             const title = el('h3', 'brand-font', String(route.routeName));
-            title.style.fontSize = '30px';
-            title.style.margin = '4px 0 10px 0';
+            title.style.cssText = 'font-size: clamp(20px, 5vw, 30px); margin: 4px 0 10px 0; line-height: 1.2; overflow-wrap: break-word; word-break: break-word;';
             routeInfo.appendChild(title);
 
             if (route.postponed_note) {
@@ -3431,7 +3581,7 @@
                     itemBox.style.cssText = 'display: flex; flex-direction: column; gap: 8px;' + (routeSponsors.length > 1 ? ' background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px;' : '');
 
                     const contentFlex = el('div');
-                    contentFlex.style.cssText = 'display: flex; gap: 14px; align-items: center;';
+                    contentFlex.style.cssText = 'display: flex; gap: 14px; align-items: center; min-width: 0;';
 
                     const logoUrl = safeUrl(sp.logo_url || sp.sponsorUrl);
                     if (logoUrl) {
@@ -3443,6 +3593,8 @@
                     }
 
                     const textFlex = el('div');
+                    textFlex.style.cssText = 'min-width: 0; flex: 1; overflow-wrap: break-word; word-break: break-word;';
+
                     const spLink = safeUrl(sp.link || sp.sponsorLink);
                     if (spLink) {
                         const a = document.createElement('a');
@@ -3450,13 +3602,13 @@
                         a.target = '_blank';
                         a.rel = 'noopener noreferrer sponsored';
                         a.textContent = String(sp.name || 'Sponsor');
-                        a.style.cssText = 'color: var(--text-main); font-weight: bold; text-decoration: none; font-size: 16px;';
+                        a.style.cssText = 'color: var(--text-main); font-weight: bold; text-decoration: none; font-size: 16px; display: inline-block; overflow-wrap: break-word; word-break: break-word; max-width: 100%;';
                         a.onmouseover = () => a.style.textDecoration = 'underline';
                         a.onmouseout = () => a.style.textDecoration = 'none';
                         textFlex.appendChild(a);
                     } else {
                         const strong = el('strong', '', String(sp.name || ''));
-                        strong.style.cssText = 'color: var(--text-main); font-size: 16px;';
+                        strong.style.cssText = 'color: var(--text-main); font-size: 16px; display: inline-block; overflow-wrap: break-word; word-break: break-word; max-width: 100%;';
                         textFlex.appendChild(strong);
                     }
                     contentFlex.appendChild(textFlex);
@@ -4081,8 +4233,7 @@
                         const pRole = p.role || p.tagline || 'Partner';
                         const pUrl = safeUrl(p.url || p.link || p.website || p.website_url || '');
 
-                        const header = el('div', '', '');
-                        header.style.cssText = 'display: flex; align-items: center; gap: 16px; margin-bottom: 12px; flex-wrap: wrap;';
+                        const header = el('div', 'partner-card-header', '');
 
                         if (pLogo) {
                             const logoBox = document.createElement(pUrl ? 'a' : 'div');
@@ -4091,42 +4242,36 @@
                                 logoBox.target = '_blank';
                                 logoBox.rel = 'noopener noreferrer';
                             }
-                            logoBox.style.cssText = 'display: inline-flex; align-items: center; justify-content: center; background: transparent; border-radius: 10px; padding: 4px 6px; box-shadow: none; flex-shrink: 0; text-decoration: none;';
+                            logoBox.className = 'partner-card-logo-box';
                             const img = document.createElement('img');
                             img.src = pLogo;
                             img.alt = pName ? `${pName} logo` : 'Partner logo';
-                            img.style.cssText = 'height: 52px; max-width: 160px; object-fit: contain; display: block;';
                             img.loading = 'lazy';
                             logoBox.appendChild(img);
                             header.appendChild(logoBox);
                         }
 
-                        const meta = el('div', '', '');
-                        meta.style.cssText = 'min-width: 0; flex: 1;';
+                        const meta = el('div', 'partner-card-meta', '');
 
-                        const role = el('div', '', pRole);
-                        role.style.cssText = 'color: var(--primary); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 800; margin-bottom: 4px;';
+                        const role = el('div', 'partner-card-role', pRole);
                         meta.appendChild(role);
 
-                        const title = el('h3', 'brand-font', pName);
-                        title.style.cssText = 'font-size: 20px; color: #FFFFFF; margin: 0;';
+                        const title = el('h3', 'brand-font partner-card-title', pName);
                         meta.appendChild(title);
 
                         header.appendChild(meta);
                         card.appendChild(header);
 
                         if (p.description) {
-                            const desc = el('p', '', p.description);
-                            desc.style.cssText = 'font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 12px;';
+                            const desc = el('p', 'partner-card-desc', p.description);
                             card.appendChild(desc);
                         }
 
                         if (pUrl) {
-                            const a = el('a', '', `Visit ${pName} →`);
+                            const a = el('a', 'partner-card-link', `Visit ${pName} →`);
                             a.href = pUrl;
                             a.target = '_blank';
                             a.rel = 'noopener noreferrer';
-                            a.style.cssText = 'display: inline-block; color: var(--primary); font-size: 12px; font-weight: 700; text-transform: uppercase; text-decoration: none; margin-top: 4px;';
                             card.appendChild(a);
                         }
                         partCont.appendChild(card);

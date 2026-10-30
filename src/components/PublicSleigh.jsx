@@ -1885,8 +1885,24 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                   const pUrl = p.url || p.link || p.website || p.website_url || '';
 
                   return (
-                    <div key={idx} style={{ background: '#000000', border: '1px solid var(--border)', borderRadius: '14px', padding: '22px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                    <div
+                      key={idx}
+                      style={{
+                        background: '#000000',
+                        border: '1px solid var(--border)',
+                        borderRadius: '16px',
+                        padding: '20px 18px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        boxSizing: 'border-box',
+                        overflow: 'hidden',
+                        wordWrap: 'break-word',
+                        overflowWrap: 'break-word',
+                        minWidth: 0,
+                        width: '100%'
+                      }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '12px', flexWrap: 'wrap', minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
                         {pLogo && (
                           <div style={{
                             display: 'inline-flex',
@@ -1896,14 +1912,16 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                             borderRadius: '10px',
                             padding: '4px 6px',
                             boxShadow: 'none',
-                            flexShrink: 0
+                            flexShrink: 0,
+                            maxWidth: '110px',
+                            maxHeight: '52px'
                           }}>
                             {pUrl ? (
-                              <a href={pUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textDecoration: 'none' }}>
+                              <a href={pUrl} target="_blank" rel="noopener noreferrer sponsored" style={{ display: 'block', textDecoration: 'none' }}>
                                 <img
                                   src={pLogo}
                                   alt={pName ? `${pName} logo` : 'Partner logo'}
-                                  style={{ height: '52px', maxWidth: '160px', objectFit: 'contain', display: 'block' }}
+                                  style={{ height: '48px', maxWidth: '100px', objectFit: 'contain', display: 'block' }}
                                   loading="lazy"
                                 />
                               </a>
@@ -1911,31 +1929,31 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                               <img
                                 src={pLogo}
                                 alt={pName ? `${pName} logo` : 'Partner logo'}
-                                style={{ height: '52px', maxWidth: '160px', objectFit: 'contain', display: 'block' }}
+                                style={{ height: '48px', maxWidth: '100px', objectFit: 'contain', display: 'block' }}
                                 loading="lazy"
                               />
                             )}
                           </div>
                         )}
-                        <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ minWidth: 0, flex: 1, overflowWrap: 'break-word', wordBreak: 'break-word' }}>
                           <div
                             className="brand-font"
-                            style={{ color: 'var(--primary)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 800, marginBottom: '4px' }}>
+                            style={{ color: 'var(--primary)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 800, marginBottom: '4px', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
                             {pRole}
                           </div>
-                          <h3 className="brand-font" style={{ fontSize: '20px', color: '#FFFFFF', margin: 0 }}>
+                          <h3 className="brand-font" style={{ fontSize: 'clamp(15px, 3.8vw, 19px)', color: '#FFFFFF', margin: 0, lineHeight: 1.25, overflowWrap: 'break-word', wordBreak: 'break-word', hyphens: 'auto' }}>
                             {pName}
                           </h3>
                         </div>
                       </div>
 
                       {p.description && (
-                        <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '12px' }}>
+                        <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '12px', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
                           {p.description}
                         </p>
                       )}
                       {pUrl && (
-                        <a href={pUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', color: 'var(--primary)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', textDecoration: 'none', marginTop: '4px' }}>
+                        <a href={pUrl} target="_blank" rel="noopener noreferrer sponsored" style={{ display: 'inline-block', color: 'var(--primary)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', textDecoration: 'none', marginTop: 'auto', paddingTop: '6px', overflowWrap: 'break-word', wordBreak: 'break-word', maxWidth: '100%' }}>
                           Visit {pName} &rarr;
                         </a>
                       )}

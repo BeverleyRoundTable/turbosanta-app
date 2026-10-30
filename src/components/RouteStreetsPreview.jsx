@@ -487,7 +487,10 @@ export default function RouteStreetsPreview({
                 alignItems: 'center',
                 gap: '4px',
                 lineHeight: 1.3,
-                boxShadow: isStop ? '0 0 10px rgba(211, 28, 28, 0.4)' : 'none'
+                boxShadow: isStop ? '0 0 10px rgba(211, 28, 28, 0.4)' : 'none',
+                maxWidth: '100%',
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word'
               }}
             >
               {isStop ? <Star size={11} fill="currentColor" /> : <MapPin size={10} style={{ opacity: 0.5 }} />}
