@@ -35,7 +35,11 @@ export const SLUG_ALIASES = {
   "melton-mowbray": "melton-mowbray",
   "westonsupermare": "weston-super-mare",
   "newcastleupontyne": "newcastle-upon-tyne",
-  "stratforduponavon": "stratford-upon-avon"
+  "stratforduponavon": "stratford-upon-avon",
+  "darlington": "darlington",
+  "darlingtonbondgate": "darlington",
+  "darlington-bondgate": "darlington",
+  "darlingtontongate": "darlington"
 };
 
 export function normalizeTableSlug(slug) {

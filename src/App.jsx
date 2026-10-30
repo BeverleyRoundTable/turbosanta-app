@@ -1,6 +1,6 @@
 import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { fetchTablePayload, getTableFallback } from './services/api';
-import { getCurrentSession, logoutAdmin } from './services/auth';
+import { getCurrentSession, logoutAdmin, normalizeTableSlug } from './services/auth';
 import { Shield } from 'lucide-react';
 
 const PublicDirectory = lazy(() => import('./components/PublicDirectory'));
@@ -40,7 +40,7 @@ export default function App() {
 
   const getInitialTable = () => {
     const tableParam = urlParams.get('table');
-    if (tableParam) return tableParam.toLowerCase().trim();
+    if (tableParam) return normalizeTableSlug(tableParam.toLowerCase().trim());
     if (host.includes('beverleyroundtable.co.uk') || host.startsWith('beverley.')) {
       return 'beverley';
     }
@@ -48,7 +48,7 @@ export default function App() {
     if (host.endsWith('.roundtablesantasleigh.co.uk')) {
       const sub = host.replace('.roundtablesantasleigh.co.uk', '').split('.')[0];
       if (sub && sub !== 'www' && sub !== 'santa' && sub !== 'demo' && sub !== 'admin' && sub !== 'turbosanta') {
-        return sub;
+        return normalizeTableSlug(sub);
       }
     }
     // Custom domains with subdomains (excluding root roundtablesantasleigh.co.uk)
