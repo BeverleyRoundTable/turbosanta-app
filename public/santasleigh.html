@@ -3299,7 +3299,18 @@
                 const streetsPreview = createRouteStreetsPreview(route.streets, route.routeName, dateText, time, 5);
                 card.appendChild(streetsPreview);
 
-                if (route.sponsorName) {
+                const cardSponsors = (Array.isArray(route.sponsors) && route.sponsors.length > 0)
+                    ? route.sponsors.filter(s => s && (s.name || s.logo_url))
+                    : ((route.sponsorName || route.sponsorUrl)
+                        ? [{
+                            name: route.sponsorName,
+                            logo_url: route.sponsorUrl,
+                            link: route.sponsorLink,
+                            description: route.sponsorDescription
+                        }]
+                        : []);
+
+                if (cardSponsors.length > 0) {
                     const sponsorBox = el('div');
                     sponsorBox.style.cssText = 'margin-top: auto; padding-top: 15px; border-top: 1px solid var(--border);';
                     
@@ -3307,37 +3318,46 @@
                     sponsorLabel.style.cssText = 'font-size: 10px; color: var(--primary); text-transform: uppercase; font-weight: 800; margin-bottom: 8px; letter-spacing: 0.8px;';
                     sponsorBox.appendChild(sponsorLabel);
 
-                    const contentFlex = el('div');
-                    contentFlex.style.cssText = 'display: flex; gap: 12px; align-items: center;';
+                    const sponsorList = el('div');
+                    sponsorList.style.cssText = 'display: flex; flex-direction: column; gap: 8px;';
 
-                    if (route.sponsorUrl) {
-                        const img = document.createElement('img');
-                        img.src = safeUrl(route.sponsorUrl);
-                        img.alt = String(route.sponsorName);
-                        img.style.cssText = 'width: 48px; height: 48px; object-fit: contain; background: #fff; border-radius: 8px; padding: 4px; flex-shrink: 0;';
-                        contentFlex.appendChild(img);
-                    }
+                    cardSponsors.forEach(sp => {
+                        const contentFlex = el('div');
+                        contentFlex.style.cssText = 'display: flex; gap: 12px; align-items: center;';
 
-                    const sponsorMatch = sponsors.find(sp => sp.name === route.sponsorName);
-                    const sponsorLink = sponsorMatch ? safeUrl(sponsorMatch.sponsorLink) : safeUrl(route.sponsorLink);
-                    
-                    if (sponsorLink) {
-                        const a = document.createElement('a');
-                        a.href = sponsorLink;
-                        a.target = '_blank';
-                        a.rel = 'noopener noreferrer';
-                        a.textContent = String(route.sponsorName);
-                        a.style.cssText = 'color: var(--text-main); font-weight: 700; text-decoration: none; font-size: 15px;';
-                        a.onmouseover = () => a.style.textDecoration = 'underline';
-                        a.onmouseout = () => a.style.textDecoration = 'none';
-                        contentFlex.appendChild(a);
-                    } else {
-                        const strong = el('strong', '', String(route.sponsorName));
-                        strong.style.cssText = 'color: var(--text-main); font-size: 15px;';
-                        contentFlex.appendChild(strong);
-                    }
+                        const logoUrl = safeUrl(sp.logo_url || sp.sponsorUrl);
+                        if (logoUrl) {
+                            const img = document.createElement('img');
+                            img.src = logoUrl;
+                            img.alt = String(sp.name || 'Sponsor');
+                            img.style.cssText = 'width: 44px; height: 44px; object-fit: contain; background: #fff; border-radius: 8px; padding: 4px; flex-shrink: 0;';
+                            contentFlex.appendChild(img);
+                        }
 
-                    sponsorBox.appendChild(contentFlex);
+                        const sponsorMatch = sponsors.find(s => s.name === sp.name);
+                        const sponsorLink = safeUrl(sp.link || sp.sponsorLink || (sponsorMatch ? sponsorMatch.sponsorLink : ''));
+                        
+                        const spNameText = String(sp.name || 'Sponsor');
+                        if (sponsorLink) {
+                            const a = document.createElement('a');
+                            a.href = sponsorLink;
+                            a.target = '_blank';
+                            a.rel = 'noopener noreferrer';
+                            a.textContent = spNameText;
+                            a.style.cssText = 'color: var(--text-main); font-weight: 700; text-decoration: none; font-size: 14px;';
+                            a.onmouseover = () => a.style.textDecoration = 'underline';
+                            a.onmouseout = () => a.style.textDecoration = 'none';
+                            contentFlex.appendChild(a);
+                        } else {
+                            const strong = el('strong', '', spNameText);
+                            strong.style.cssText = 'color: var(--text-main); font-size: 14px;';
+                            contentFlex.appendChild(strong);
+                        }
+
+                        sponsorList.appendChild(contentFlex);
+                    });
+
+                    sponsorBox.appendChild(sponsorList);
                     card.appendChild(sponsorBox);
                 }
 

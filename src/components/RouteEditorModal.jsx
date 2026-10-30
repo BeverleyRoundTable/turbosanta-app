@@ -1146,6 +1146,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                       <DropzoneUpload
                         label="Sponsor Logo (.png)"
                         currentImage={sp.logo_url}
+                        tableSlug={tableSlug}
                         onImageSelected={(url) => handleUpdateSponsor(idx, 'logo_url', url)}
                         helperText="Upload sponsor's transparent logo directly (No GitHub upload required!)."
                       />
