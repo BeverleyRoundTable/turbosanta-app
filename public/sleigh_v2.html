@@ -30,7 +30,6 @@
   <div class="sky-backdrop" id="sky-backdrop">
     <div class="sky-bg-layer" id="sky-bg-layer" style="background-image: url('/icons/site_background.png');"></div>
     <div class="sky-bg-overlay" id="sky-bg-overlay"></div>
-    <div class="sky-media-layer" id="sky-media-layer"></div>
   </div>
   <canvas id="snow-canvas" aria-hidden="true"></canvas>
 
@@ -101,7 +100,13 @@
     <!-- HERO COMMAND STAGE -->
     <section class="hero-stage" id="hero">
       <div class="container hero-container">
-        <div class="hero-card">
+        <div class="hero-card" id="hero-card">
+          <!-- Ambient Hero Video Loop (Active when table background_mode is video or custom_video) -->
+          <div class="hero-video-wrap" id="hero-video-wrap" style="display:none;" aria-hidden="true">
+            <video id="hero-bg-video" autoplay loop muted playsinline webkit-playsinline disablePictureInPicture></video>
+            <div class="hero-video-overlay"></div>
+          </div>
+
           <div class="status-pill-row">
             <div class="live-status-badge" id="hero-status-badge">
               <span class="pulse-dot"></span>

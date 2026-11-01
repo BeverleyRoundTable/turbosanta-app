@@ -1412,7 +1412,9 @@
     const table = state.payload?.table || {};
     const bgLayer = document.getElementById('sky-bg-layer');
     const bgOverlay = document.getElementById('sky-bg-overlay');
-    const mediaLayer = document.getElementById('sky-media-layer');
+    const heroCard = document.getElementById('hero-card');
+    const heroVideoWrap = document.getElementById('hero-video-wrap');
+    const heroVideoEl = document.getElementById('hero-bg-video');
 
     const slug = state.slug || 'beverley';
     const storedBgMode = localStorage.getItem(`turbosanta_${slug}_bg_mode`);
@@ -1434,12 +1436,17 @@
     // 'video' | 'default_video' -> Default Video loop
     // 'custom_video' | 'custom' -> Custom Video loop
     const bgMode = (apiMode !== '') ? apiMode : (localMode || 'image');
+    try {
+      if (apiMode !== '') localStorage.setItem(`turbosanta_${slug}_bg_mode`, bgMode);
+    } catch (e) {}
+
     const isCustomVideo = (bgMode === 'custom_video' || bgMode === 'custom-video' || bgMode === 'custom') && !!customVideo;
     const isDefaultVideo = bgMode === 'video' || bgMode === 'default_video' || bgMode === 'default-video' || ((bgMode === 'custom_video' || bgMode === 'custom') && !customVideo);
     const isVideo = isCustomVideo || isDefaultVideo;
 
     if (isVideo) {
-      // 1. VIDEO MODE (e.g. Stockton, Abergavenny, Isle of Wight, Lichfield):
+      // 1. VIDEO MODE (e.g. Beverley, Stockton, Abergavenny, Isle of Wight):
+      // Hide static background image on sky layer, keep ambient stars
       if (bgLayer) {
         bgLayer.style.display = 'none';
         bgLayer.style.backgroundImage = 'none';
@@ -1447,32 +1454,87 @@
       if (bgOverlay) {
         bgOverlay.style.background = 'radial-gradient(ellipse 80% 50% at 18% -10%, rgba(var(--primary-rgb), 0.16), transparent 65%), radial-gradient(ellipse 65% 45% at 85% 8%, rgba(var(--accent-rgb), 0.12), transparent 60%), radial-gradient(ellipse 90% 60% at 50% 100%, rgba(16, 24, 40, 0.9), transparent 70%), var(--bg-obsidian)';
       }
-      if (mediaLayer) {
-        const defaultVideoUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.origin.includes('pages.dev'))
-          ? '/media/santa.mp4'
-          : 'https://turbosanta-app.pages.dev/media/santa.mp4';
-        const vidUrl = isCustomVideo ? customVideo : defaultVideoUrl;
 
-        mediaLayer.style.display = 'block';
-        mediaLayer.innerHTML = `<video id="sky-video" autoplay loop muted playsinline webkit-playsinline disablePictureInPicture src="${escapeHtml(vidUrl)}"></video>`;
+      if (heroCard) {
+        heroCard.classList.add('has-video');
+      }
 
-        const vidEl = mediaLayer.querySelector('video');
-        if (vidEl) {
-          vidEl.defaultMuted = true;
-          vidEl.muted = true;
-          vidEl.play().catch(() => {});
-          vidEl.addEventListener('error', () => {
-            if (vidEl.src && !vidEl.src.includes('turbosanta-app.pages.dev') && vidEl.src.endsWith('/media/santa.mp4')) {
-              vidEl.src = 'https://turbosanta-app.pages.dev/media/santa.mp4';
-              vidEl.load();
-              vidEl.play().catch(() => {});
+      if (heroVideoWrap && heroVideoEl) {
+        heroVideoWrap.style.display = 'block';
+
+        const desiredSrc = isCustomVideo ? customVideo : '/media/santa.mp4';
+        const currentSrc = heroVideoEl.getAttribute('src') || '';
+
+        // Error fallback to Pages CDN if local origin cannot resolve media
+        if (!heroVideoEl._errorFallbackBound) {
+          heroVideoEl._errorFallbackBound = true;
+          heroVideoEl.addEventListener('error', () => {
+            const cdnFallback = 'https://turbosanta-app.pages.dev/media/santa.mp4';
+            if (heroVideoEl.src && !heroVideoEl.src.includes('turbosanta-app.pages.dev') && heroVideoEl.src.endsWith('/media/santa.mp4')) {
+              heroVideoEl.src = cdnFallback;
+              heroVideoEl.load();
+              heroVideoEl.play().catch(() => {});
             }
+          }, true);
+        }
+
+        // Only reassign .src if it changed to avoid interrupting in-flight playback
+        if (currentSrc !== desiredSrc && !(desiredSrc.endsWith('/media/santa.mp4') && currentSrc.endsWith('/media/santa.mp4'))) {
+          heroVideoEl.setAttribute('src', desiredSrc);
+          heroVideoEl.src = desiredSrc;
+          heroVideoEl.load();
+        }
+
+        heroVideoEl.defaultMuted = true;
+        heroVideoEl.muted = true;
+        heroVideoEl.setAttribute('muted', '');
+        heroVideoEl.setAttribute('playsinline', '');
+        heroVideoEl.setAttribute('webkit-playsinline', '');
+
+        const playPromise = heroVideoEl.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {
+            const onTouch = () => {
+              heroVideoEl.defaultMuted = true;
+              heroVideoEl.muted = true;
+              heroVideoEl.play().catch(() => {});
+              window.removeEventListener('touchstart', onTouch);
+              window.removeEventListener('click', onTouch);
+            };
+            window.addEventListener('touchstart', onTouch, { passive: true, once: true });
+            window.addEventListener('click', onTouch, { passive: true, once: true });
           });
+        }
+
+        if (window.IntersectionObserver && !heroVideoEl._observerAttached) {
+          heroVideoEl._observerAttached = true;
+          if (heroCard) {
+            const obs = new IntersectionObserver((entries) => {
+              entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                  heroVideoEl.play().catch(() => {});
+                } else {
+                  heroVideoEl.pause();
+                }
+              });
+            }, { threshold: 0.05 });
+            obs.observe(heroCard);
+          }
         }
       }
     } else {
       // 2. STATIC IMAGE MODE (Default):
-      // Respect custom uploaded image (e.g. Beverley, Chepstow) or fall back to default /icons/site_background.png
+      // Respect custom uploaded image (e.g. Beverley custom image, Chepstow) or fall back to default /icons/site_background.png
+      if (heroCard) {
+        heroCard.classList.remove('has-video');
+      }
+      if (heroVideoWrap) {
+        heroVideoWrap.style.display = 'none';
+      }
+      if (heroVideoEl) {
+        heroVideoEl.pause();
+      }
+
       const bgImg = safeUrl(table.background_url) || '/icons/site_background.png';
       if (bgLayer) {
         bgLayer.style.display = 'block';
@@ -1480,10 +1542,6 @@
       }
       if (bgOverlay) {
         bgOverlay.style.background = 'linear-gradient(180deg, rgba(8, 12, 20, 0.45) 0%, rgba(8, 12, 20, 0.72) 50%, rgba(6, 9, 15, 0.94) 100%)';
-      }
-      if (mediaLayer) {
-        mediaLayer.style.display = 'none';
-        mediaLayer.innerHTML = '';
       }
     }
 
