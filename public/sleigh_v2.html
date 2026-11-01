@@ -82,8 +82,7 @@
         <a href="#streets">Find My Street</a>
         <a href="#routes">Route Schedule</a>
         <a href="#impact">Local Impact</a>
-        <a href="#magic">Family Zone</a>
-        <a href="#memories">Memory Wall</a>
+        <a href="#memories" id="nav-memory-wall">Memory Wall</a>
         <a href="#faq">Safety &amp; FAQ</a>
       </nav>
 
@@ -135,7 +134,7 @@
             </a>
             <button type="button" id="hero-donate-cta" class="btn-glass">
               <i class="fa-solid fa-hand-holding-heart" style="color:var(--primary);"></i>
-              <span>Donate (+25% Gift Aid)</span>
+              <span id="hero-donate-label">Donate Online</span>
             </button>
             <button type="button" id="hero-alert-cta" class="btn-glass">
               <i class="fa-solid fa-bell" style="color:var(--primary);"></i>
@@ -280,12 +279,12 @@
                 <div class="thermo-bar" id="fundraiser-bar" style="width:8%;"></div>
               </div>
               <p style="font-size:12.5px; color:var(--text-secondary); margin-top:10px;" id="fundraiser-subnote">
-                Zero platform fees when donating via our official community link — plus UK taxpayers add 25% free via HMRC Gift Aid.
+                Zero platform fees when donating via our official community link — 100% of your donation goes directly to local community charities and good causes.
               </p>
             </div>
 
-            <!-- Interactive +25% Gift Aid Calculator -->
-            <div class="giftaid-calculator-box" id="giftaid-calc-box">
+            <!-- Interactive +25% Gift Aid Calculator (Rendered dynamically if Gift Aid is enabled) -->
+            <div class="giftaid-calculator-box" id="giftaid-calc-box" style="display:none;">
               <div class="ga-calc-head">
                 <span style="font-weight:800; font-size:13px; color:#fff;">See Your Free +25% HMRC Gift Aid Boost</span>
                 <span class="ga-tag">+25% Free</span>
@@ -304,10 +303,10 @@
 
             <div style="display:flex; flex-wrap:wrap; gap:10px;">
               <button type="button" id="impact-donate-btn" class="btn-brand" style="flex:1; min-width:210px;">
-                <i class="fa-solid fa-wand-magic-sparkles"></i>
-                <span>Boost by 25% &amp; Donate Now</span>
+                <i class="fa-solid fa-heart"></i>
+                <span>Donate Online to Sleigh Appeal</span>
               </button>
-              <a id="impact-giftaid-only-btn" href="/giftaid" target="_blank" rel="noopener" class="btn-glass">
+              <a id="impact-giftaid-only-btn" href="/giftaid" target="_blank" rel="noopener" class="btn-glass" style="display:none;">
                 <span>Donated Cash/Card? Claim Gift Aid</span>
               </a>
             </div>
@@ -350,19 +349,8 @@
       </div>
     </section>
 
-    <!-- KERBSIDE & FAMILY MAGIC ARCADE (ZERO SCROLL-TRAP THEATER LAUNCHER) -->
-    <section class="page-section" id="magic">
-      <div class="container">
-        <div class="section-head">
-          <div>
-            <div class="section-eyebrow"><i class="fa-solid fa-star"></i> Interactive Lapland Experiences</div>
-            <h2 class="section-title">FAMILY &amp; KERBSIDE <span class="hl">FUN ZONE</span></h2>
-            <p class="section-subtitle">Keep little ones entertained while waiting for the sleigh bells! Tap any experience to launch it instantly.</p>
-          </div>
-        </div>
-        <div class="arcade-grid" id="arcade-grid"></div>
-      </div>
-    </section>
+    <!-- MODULAR PUBLIC FEATURE SLOTS (Respects 2-Choice Selection, Live Embedded Just Like V1) -->
+    <div id="modular-feature-slots"></div>
 
     <!-- NATIVE POLAROID COMMUNITY MEMORY WALL -->
     <section class="page-section" id="memories">
@@ -443,7 +431,7 @@
               <i class="fa-solid fa-chevron-down" style="color:var(--primary);"></i>
             </summary>
             <div class="faq-answer">
-              Yes! Our street collectors carry traditional sealed buckets for coins and notes, QR codes on their lanyards, and contactless tap-to-donate options — or you can donate online right here with +25% Gift Aid.
+              Yes! Our street collectors carry traditional sealed buckets for coins and notes, QR codes on their lanyards, and contactless tap-to-donate options — or you can donate online right here.
             </div>
           </details>
         </div>

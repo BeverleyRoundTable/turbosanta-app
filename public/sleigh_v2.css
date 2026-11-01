@@ -854,6 +854,43 @@ body {
   flex-wrap: wrap;
 }
 
+.tracker-fs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(var(--primary-rgb), 0.12);
+  border: 1px solid rgba(var(--primary-rgb), 0.3);
+  transition: all 0.2s ease;
+}
+
+.tracker-fs:hover {
+  background: var(--primary);
+  color: #0f172a;
+}
+
+.tracker-fs[hidden] { display: none; }
+
+.modular-slot-section {
+  scroll-margin-top: 80px;
+}
+
+.modular-slot-iframe {
+  width: 100%;
+  border: none;
+  display: block;
+  background: transparent;
+  overflow: hidden;
+  transition: height 0.2s ease;
+}
+
 .iframe-container iframe {
   width: 100%;
   border: none;

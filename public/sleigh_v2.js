@@ -8,128 +8,235 @@
   const API_ORIGIN = 'https://turbosanta-api.beverley247.workers.dev';
   const DEFAULT_RICH_TABLE = 'stockton';
 
-  const ARCADE_CATALOG = {
-    letter: {
-      id: 'letter',
-      icon: '✉️',
-      kicker: 'Official Lapland Post',
-      title: 'Write a Letter to Santa',
-      desc: 'Compose and print an official Round Table Christmas wish list straight for Lapland.',
-      path: '/letter.html'
-    },
-    elf_cam: {
-      id: 'elf_cam',
-      icon: '🎥',
-      kicker: 'Live Workshop Feed',
-      title: 'Lapland Elf Cam',
-      desc: 'Peek inside Santa’s workshop with live Rovaniemi weather and sleigh packing status.',
-      path: '/elf_cam.html'
-    },
-    santa_bot: {
-      id: 'santa_bot',
-      icon: '🎅',
-      kicker: 'Lapland AI Hotline',
-      title: 'Chat With Santa',
-      desc: 'Ask Santa when he is visiting your street, how Rudolph is doing, or hear a festive joke!',
-      path: '/santa_bot.html'
-    },
+  function isGiftAidEnabled(tbl = state.payload?.table) {
+    if (!tbl) return false;
+    const val = tbl.enable_gift_aid;
+    return val === true || val === 1 || val === '1' || val === 'true';
+  }
+
+  const PUBLIC_FEATURE_CATALOG = {
     bingo: {
       id: 'bingo',
-      icon: '🎯',
-      kicker: 'Kerbside Family Game',
-      title: 'Sleigh Spotting Bingo',
-      desc: 'Play on your phone while waiting on the pavement — tick off bells, antlers, and elves!',
-      path: '/bingo.html'
-    },
-    nice_list: {
-      id: 'nice_list',
-      icon: '📜',
-      kicker: 'Official Certificate',
-      title: 'Nice List Certificate',
-      desc: 'Personalise and print an official Lapland Good List certificate with your child’s name.',
-      path: '/nice_list.html'
-    },
-    magic_mailbox: {
-      id: 'magic_mailbox',
-      icon: '🎙️',
-      kicker: 'Voice Recording',
-      title: 'Magic Voice Mailbox',
-      desc: 'Record a festive audio message for Santa and receive a personalised spoken reply.',
-      path: '/magic_mailbox.html'
+      anchorId: 'bingo',
+      navLabel: 'Bingo',
+      badge: 'Interactive Family Game',
+      title: 'CHRISTMAS',
+      titleHighlight: 'BINGO',
+      description: 'Play along with interactive digital Christmas Bingo while you wait for Santa to visit your street!',
+      embedSrc: slug => `/bingo.html?table=${encodeURIComponent(slug)}`,
+      fullscreenSrc: slug => `/bingo.html?table=${encodeURIComponent(slug)}`,
+      fullscreenLabel: 'Play Bingo Full-Screen',
+      height: 720,
+      maxWidth: 900
     },
     colouring: {
       id: 'colouring',
-      icon: '🖍️',
-      kicker: 'Printable A4 Activity',
-      title: 'Festive Colouring Studio',
-      desc: 'Customise and print free Santa Sleigh colouring sheets for snowy afternoons at home.',
-      path: '/colouring_page.html'
-    },
-    door_hanger: {
-      id: 'door_hanger',
-      icon: '🚪',
-      kicker: 'Printable Door Sign',
-      title: 'Please Stop Here Hanger',
-      desc: 'Print an official Santa Sleigh door hanger complete with your town’s live radar QR code.',
-      path: '/door_hanger.html'
-    },
-    adopt_reindeer: {
-      id: 'adopt_reindeer',
-      icon: '🦌',
-      kicker: 'Sleigh Keeper Club',
-      title: 'Adopt a Reindeer',
-      desc: 'Choose your favourite flying reindeer and generate an official keeper certificate.',
-      path: '/adopt_reindeer.html'
-    },
-    santa_frame: {
-      id: 'santa_frame',
-      icon: '📸',
-      kicker: 'Photo Souvenir',
-      title: 'Santa Visited Photo Frame',
-      desc: 'Stamp your family pavement selfie with our commemorative Santa Sleigh frame.',
-      path: '/santa_frame.html'
+      anchorId: 'colouring',
+      navLabel: 'Colouring',
+      badge: 'Printable Lapland Studio',
+      title: 'FESTIVE',
+      titleHighlight: 'COLOURING BOOK',
+      description: "Personalise and print free Santa Sleigh colouring sheets at home on A4 paper! Add your child's name and share their artwork with our sleigh volunteers!",
+      embedSrc: slug => `/colouring_page.html?table=${encodeURIComponent(slug)}`,
+      fullscreenSrc: slug => `/colouring_page.html?table=${encodeURIComponent(slug)}`,
+      fullscreenLabel: 'Open Colouring Studio Full-Screen',
+      height: 800,
+      maxWidth: 1000
     },
     countdown: {
       id: 'countdown',
-      icon: '⏳',
-      kicker: 'Christmas Eve Clock',
-      title: 'Lapland Departure Clock',
-      desc: 'Watch the official countdown tick down to Santa’s big Christmas Eve takeoff.',
-      path: '/countdown.html'
+      anchorId: 'countdown',
+      navLabel: 'Countdown',
+      badge: 'Lapland Departure Clock',
+      title: 'CHRISTMAS EVE',
+      titleHighlight: 'COUNTDOWN',
+      description: "Watch the live countdown tick away to Santa's big departure from Lapland on Christmas Eve!",
+      embedSrc: slug => `/countdown.html?table=${encodeURIComponent(slug)}`,
+      fullscreenSrc: slug => `/countdown.html?table=${encodeURIComponent(slug)}`,
+      fullscreenLabel: 'View Countdown Full-Screen',
+      height: 420,
+      maxWidth: 840
     },
-    snowman: {
-      id: 'snowman',
-      icon: '⛄',
-      kicker: 'Winter Builder',
-      title: 'Build a Snowman',
-      desc: 'Dress up your own festive snowman while waiting for the sleigh music down your road.',
-      path: '/snowman.html'
+    door_hanger: {
+      id: 'door_hanger',
+      anchorId: 'door-hanger',
+      navLabel: 'Door Hanger',
+      badge: 'Printable Sleigh Alert',
+      title: 'OFFICIAL',
+      titleHighlight: 'DOOR HANGER',
+      description: 'Customise and print festive Santa Sleigh door hangers for your front door with live tracking QR code so Santa knows to stop!',
+      embedSrc: slug => `/door_hanger.html?table=${encodeURIComponent(slug)}`,
+      fullscreenSrc: slug => `/door_hanger.html?table=${encodeURIComponent(slug)}`,
+      fullscreenLabel: 'Open Door Hanger Full-Screen',
+      height: 740,
+      maxWidth: 840
+    },
+    elf_cam: {
+      id: 'elf_cam',
+      anchorId: 'elf-cam',
+      navLabel: 'Elf Cam',
+      badge: 'Live from Lapland Workshop',
+      title: 'LAPLAND',
+      titleHighlight: 'ELF CAM',
+      description: "Tune in directly to Santa's Workshop in Lapland! See elf packing status, current Rovaniemi weather, and live sleigh camera telemetry.",
+      embedSrc: slug => `/elf_cam.html?table=${encodeURIComponent(slug)}`,
+      fullscreenSrc: slug => `/elf_cam.html?table=${encodeURIComponent(slug)}`,
+      fullscreenLabel: 'Open Elf Cam Full-Screen',
+      height: 680,
+      maxWidth: 840
+    },
+    letter: {
+      id: 'letter',
+      anchorId: 'letter',
+      navLabel: 'Letter to Santa',
+      badge: 'Official Lapland Post',
+      title: 'LETTER TO',
+      titleHighlight: 'SANTA',
+      description: 'Children can write their Christmas wish list on official Round Table festive stationery and print it out to send directly to Lapland!',
+      embedSrc: slug => `/letter.html?table=${encodeURIComponent(slug)}`,
+      fullscreenSrc: slug => `/letter.html?table=${encodeURIComponent(slug)}`,
+      fullscreenLabel: 'Write Letter Full-Screen',
+      height: 760,
+      maxWidth: 900
+    },
+    magic_mailbox: {
+      id: 'magic_mailbox',
+      anchorId: 'magic-mailbox',
+      navLabel: 'Magic Mailbox',
+      badge: 'Direct Audio Line to Santa',
+      title: 'MAGIC LAPLAND',
+      titleHighlight: 'MAILBOX',
+      description: "Record and post your digital voice messages and festive questions directly to Santa's elves in Lapland.",
+      embedSrc: slug => `/magic_mailbox.html?table=${encodeURIComponent(slug)}`,
+      fullscreenSrc: slug => (typeof window !== 'undefined' && window.location.hostname.includes('roundtablesantasleigh.co.uk')) ? `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/magic_mailbox` : `/magic_mailbox.html?table=${encodeURIComponent(slug)}`,
+      fullscreenLabel: 'Open Magic Mailbox Full-Screen',
+      height: 700,
+      maxWidth: 840,
+      allowMicrophone: true
+    },
+    nice_list: {
+      id: 'nice_list',
+      anchorId: 'nice-list',
+      navLabel: 'Nice List',
+      badge: 'Lapland Certified',
+      title: 'OFFICIAL',
+      titleHighlight: 'NICE LIST CERTIFICATE',
+      description: "Customise and print an official Lapland certificate certifying that your child has officially made Santa's Good List this Christmas.",
+      embedSrc: slug => `/nice_list.html?table=${encodeURIComponent(slug)}`,
+      fullscreenSrc: slug => `/nice_list.html?table=${encodeURIComponent(slug)}`,
+      fullscreenLabel: 'Generate Certificate Full-Screen',
+      height: 740,
+      maxWidth: 900
+    },
+    adopt_reindeer: {
+      id: 'adopt_reindeer',
+      anchorId: 'adopt-reindeer',
+      navLabel: 'Adopt Reindeer',
+      badge: 'Official Sleigh Keeper',
+      title: 'ADOPT A',
+      titleHighlight: 'SLEIGH REINDEER',
+      description: "Adopt one of Santa's flying reindeer, choose your keeper name, and print your official Round Table adoption certificate!",
+      embedSrc: slug => `/adopt_reindeer.html?table=${encodeURIComponent(slug)}`,
+      fullscreenSrc: slug => `/adopt_reindeer.html?table=${encodeURIComponent(slug)}`,
+      fullscreenLabel: 'Adopt a Reindeer Full-Screen',
+      height: 740,
+      maxWidth: 900
+    },
+    santa_bot: {
+      id: 'santa_bot',
+      anchorId: 'santa-bot',
+      navLabel: 'Talk to Santa',
+      badge: 'Lapland Live AI Hotline',
+      title: 'TALK TO',
+      titleHighlight: 'SANTA',
+      description: "Children and families can message Santa directly in Lapland! Ask when he is visiting your street, how Rudolph is doing, or hear a jolly festive story.",
+      embedSrc: slug => `/santa_bot.html?table=${encodeURIComponent(slug)}`,
+      fullscreenSrc: slug => `/santa_bot.html?table=${encodeURIComponent(slug)}`,
+      fullscreenLabel: 'Open Santa AI Chat Full-Screen',
+      height: 720,
+      maxWidth: 820,
+      allowMicrophone: true
     },
     santa_chat: {
       id: 'santa_chat',
-      icon: '📞',
-      kicker: 'Lapland Live Audio',
-      title: 'Talk to Santa Live',
-      desc: 'Speak directly with Santa in Lapland on the festive voice hotline!',
-      path: '/santa_chat.html'
+      anchorId: 'santa-chat',
+      navLabel: 'Talk to Santa',
+      badge: 'Live Audio Connection to Lapland',
+      title: 'TALK TO',
+      titleHighlight: 'SANTA LIVE',
+      description: 'Children and families can speak directly with Santa in Lapland on the live festive telephone hotline!',
+      embedSrc: slug => {
+        const origin = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? location.origin : 'https://roundtablesantasleigh.co.uk';
+        return `${origin}/santa_chat.html?table=${encodeURIComponent(slug)}`;
+      },
+      fullscreenSrc: slug => {
+        const origin = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? location.origin : 'https://roundtablesantasleigh.co.uk';
+        return `${origin}/santa_chat.html?table=${encodeURIComponent(slug)}`;
+      },
+      fullscreenLabel: 'Open Voice Hotline Full-Screen',
+      height: 680,
+      maxWidth: 760,
+      allowMicrophone: true
+    },
+    santa_frame: {
+      id: 'santa_frame',
+      anchorId: 'santa-frame',
+      navLabel: 'Santa Visited',
+      badge: 'Memory Photo Stamper',
+      title: 'SANTA VISITED',
+      titleHighlight: 'PHOTO FRAME',
+      description: 'Upload a festive family photo to stamp it with our official Santa Visited commemorative frame and date stamp.',
+      embedSrc: slug => `/santa_frame.html?table=${encodeURIComponent(slug)}`,
+      fullscreenSrc: slug => `/santa_frame.html?table=${encodeURIComponent(slug)}`,
+      fullscreenLabel: 'Open Photo Frame Full-Screen',
+      height: 720,
+      maxWidth: 840
     },
     santa_studio: {
       id: 'santa_studio',
-      icon: '🎙️',
-      kicker: 'Workshop Voice Booth',
-      title: 'Santa Recording Studio',
-      desc: 'Festive voice recording and reply booth for volunteers and families to exchange holiday cheer.',
-      path: '/santa_studio.html'
+      anchorId: 'santa-studio',
+      navLabel: 'Santa Studio',
+      badge: 'Workshop Voice Booth',
+      title: 'SANTA',
+      titleHighlight: 'AUDIO STUDIO',
+      description: 'Festive voice recording and reply booth for volunteers and families to exchange holiday cheer.',
+      embedSrc: slug => `/santa_studio.html?table=${encodeURIComponent(slug)}`,
+      fullscreenSrc: slug => `/santa_studio.html?table=${encodeURIComponent(slug)}`,
+      fullscreenLabel: 'Open Audio Studio Full-Screen',
+      height: 740,
+      maxWidth: 840,
+      allowMicrophone: true
+    },
+    snowman: {
+      id: 'snowman',
+      anchorId: 'snowman-builder',
+      navLabel: 'Snowman Maker',
+      badge: 'Interactive Winter Builder',
+      title: 'SNOWMAN',
+      titleHighlight: 'CREATOR STUDIO',
+      description: 'Customise and build your own snowman with hats, scarves, jumpers, and mittens to download and share with family!',
+      embedSrc: slug => `/snowman.html?table=${encodeURIComponent(slug)}`,
+      fullscreenSrc: slug => `/snowman.html?table=${encodeURIComponent(slug)}`,
+      fullscreenLabel: 'Open Snowman Maker Full-Screen',
+      height: 720,
+      maxWidth: 900
     },
     spot_santa: {
       id: 'spot_santa',
-      icon: '📍',
-      kicker: 'Community Sightings',
-      title: 'Spot Santa Sightings',
-      desc: 'Snap a photo of Santa passing down your street and pin your sighting to the map!',
-      path: '/spot_santa_form.html'
+      anchorId: 'spot-santa',
+      navLabel: 'Spot Santa',
+      badge: 'Community Sightings',
+      title: 'SPOT',
+      titleHighlight: 'SANTA SIGHTINGS',
+      description: 'Snap a photo of Santa passing down your street and pin your sighting to our community map!',
+      embedSrc: slug => `/spot_santa_form.html?table=${encodeURIComponent(slug)}`,
+      fullscreenSrc: slug => `/spot_santa_form.html?table=${encodeURIComponent(slug)}`,
+      fullscreenLabel: 'Submit Sighting Full-Screen',
+      height: 700,
+      maxWidth: 600
     }
   };
+  PUBLIC_FEATURE_CATALOG.santa_studio = PUBLIC_FEATURE_CATALOG.santa_bot;
 
   // --- Application State ---
   const state = {
@@ -446,7 +553,7 @@
       }
 
       // 3. Dynamic auto-resizing of iframes based on their content height
-      const rawH = e.data.height || e.data.addressLookupHeight || e.data.frameHeight;
+      const rawH = e.data.height || e.data.frameHeight || e.data.routesHeight || e.data.letterHeight || e.data.niceListHeight || e.data.santasBeenHeight || e.data.snowmanFrameHeight || e.data.addressLookupHeight;
       if (typeof rawH === 'number' && rawH > 60) {
         const targetH = Math.min(Math.max(Math.round(rawH), 320), 1200);
         const iframes = document.querySelectorAll('iframe');
@@ -588,6 +695,11 @@
 
     const heroTown = document.getElementById('hero-town-hl');
     if (heroTown) heroTown.textContent = town;
+
+    const heroDonateLbl = document.getElementById('hero-donate-label') || document.querySelector('#hero-donate-cta span');
+    if (heroDonateLbl) {
+      heroDonateLbl.textContent = isGiftAidEnabled(table) ? 'Donate (+25% Gift Aid)' : 'Donate Online';
+    }
 
     // Announcement Banner
     const strip = document.getElementById('announcement-strip');
@@ -903,9 +1015,10 @@
   function renderFundraisingAndImpact() {
     const table = state.payload?.table || {};
     const currency = table.currency || '£';
+    const isGa = isGiftAidEnabled(table);
     const internalRaised = Number(table.total_raised || 0);
     const externalRaised = Number(table.external_raised_total || 0);
-    const giftAidBonus = Number(state.payload?.gift_aid?.giftAid || 0);
+    const giftAidBonus = isGa ? Number(state.payload?.gift_aid?.giftAid || 0) : 0;
     const totalRaised = internalRaised + externalRaised + giftAidBonus;
     const goal = Number(table.fundraising_goal || 5000);
 
@@ -924,7 +1037,7 @@
       if (subnote) {
         const count = Number(state.payload?.donation_count || 0);
         subnote.textContent = count > 0
-          ? `Supported by ${count} generous doorstep & online donations${giftAidBonus > 0 ? ` (including ${currency}${giftAidBonus.toFixed(2)} HMRC Gift Aid)` : ''}!`
+          ? `Supported by ${count} generous doorstep & online donations${isGa && giftAidBonus > 0 ? ` (including ${currency}${giftAidBonus.toFixed(2)} HMRC Gift Aid)` : ''}!`
           : 'Every penny goes directly to local community charities and good causes.';
       }
     } else {
@@ -933,7 +1046,11 @@
       if (bigAmt) bigAmt.textContent = `${currency}${goal.toLocaleString('en-GB')}`;
       if (goalLbl) goalLbl.textContent = '100% Volunteer-Run • Zero Admin Cut';
       if (bar) bar.style.width = '12%';
-      if (subnote) subnote.textContent = 'Be among the first supporters of this year’s sleigh appeal — every £1 becomes £1.25 with free HMRC Gift Aid!';
+      if (subnote) {
+        subnote.textContent = isGa
+          ? 'Be among the first supporters of this year’s sleigh appeal — every £1 becomes £1.25 with free HMRC Gift Aid!'
+          : 'Be among the first supporters of this year’s sleigh appeal — 100% of donations go directly to local community charities and good causes.';
+      }
     }
 
     const charityEl = document.getElementById('impact-charity-name');
@@ -975,7 +1092,23 @@
       grantBtn.style.display = table.enable_grant_nominations === false ? 'none' : 'inline-flex';
     }
 
-    updateGiftAidCalculator(state.selectedTierAmount);
+    // Toggle Gift Aid Calculator and Buttons based on table setting
+    const calcBox = document.getElementById('giftaid-calc-box');
+    if (calcBox) calcBox.style.display = isGa ? 'block' : 'none';
+
+    const gaOnlyBtn = document.getElementById('impact-giftaid-only-btn');
+    if (gaOnlyBtn) gaOnlyBtn.style.display = isGa ? 'inline-flex' : 'none';
+
+    const donateBtn = document.getElementById('impact-donate-btn');
+    if (donateBtn) {
+      donateBtn.innerHTML = isGa
+        ? '<i class="fa-solid fa-wand-magic-sparkles"></i><span>Boost by 25% &amp; Donate Now</span>'
+        : '<i class="fa-solid fa-heart"></i><span>Donate Online to Sleigh Appeal</span>';
+    }
+
+    if (isGa) {
+      updateGiftAidCalculator(state.selectedTierAmount);
+    }
   }
 
   function updateGiftAidCalculator(amt) {
@@ -996,14 +1129,13 @@
     if (modalAmt) modalAmt.value = String(state.selectedTierAmount);
   }
 
-  function renderArcadeGrid() {
-    const grid = document.getElementById('arcade-grid');
-    const magicSection = document.getElementById('magic');
-    const magicNavLinks = document.querySelectorAll('a[href="#magic"]');
-    if (!grid) return;
+  function renderModularSlots() {
+    const container = document.getElementById('modular-feature-slots');
+    if (!container) return;
 
     const table = state.payload?.table || {};
     const settings = state.payload?.settings || {};
+    const slug = state.slug || 'beverley';
 
     const resolveSlot = (slotVal) => {
       if (!slotVal) return null;
@@ -1015,46 +1147,92 @@
     const raw1 = resolveSlot(table.public_slot_1 || settings.public_slot_1);
     const raw2 = resolveSlot(table.public_slot_2 || settings.public_slot_2);
 
-    const slot1 = (raw1 && ARCADE_CATALOG[raw1]) ? raw1 : null;
-    const slot2 = (raw2 && raw2 !== raw1 && ARCADE_CATALOG[raw2]) ? raw2 : null;
+    const slot1 = (raw1 && PUBLIC_FEATURE_CATALOG[raw1]) ? PUBLIC_FEATURE_CATALOG[raw1] : null;
+    const slot2 = (raw2 && raw2 !== raw1 && PUBLIC_FEATURE_CATALOG[raw2]) ? PUBLIC_FEATURE_CATALOG[raw2] : null;
 
-    // Respect the 2 choice selection: strictly only display the choices configured for this table
-    const selectedIds = [slot1, slot2].filter(Boolean);
+    const activeSlots = [slot1, slot2].filter(Boolean);
+    const slotSignature = activeSlots.map(s => s.id).join(',');
 
-    // If no slots are selected for this table, cleanly hide the section and nav link
-    if (selectedIds.length === 0) {
-      if (magicSection) magicSection.style.display = 'none';
-      magicNavLinks.forEach(a => a.style.display = 'none');
-      grid.innerHTML = '';
-      return;
+    // Synchronize Desktop Nav Links (Inserted right before Memory Wall)
+    document.querySelectorAll('.nav-modular-slot').forEach(n => n.remove());
+    const navLinks = document.querySelector('.desktop-nav');
+    const navTarget = document.getElementById('nav-memory-wall') || document.querySelector('.desktop-nav a[href="#memories"]');
+    if (navLinks && activeSlots.length) {
+      activeSlots.forEach(slot => {
+        const navA = document.createElement('a');
+        navA.href = '#' + slot.anchorId;
+        navA.textContent = slot.navLabel;
+        navA.className = 'nav-modular-slot';
+        if (navTarget) navLinks.insertBefore(navA, navTarget);
+        else navLinks.appendChild(navA);
+      });
     }
 
-    if (magicSection) magicSection.style.display = '';
-    magicNavLinks.forEach(a => a.style.display = '');
+    // Prevent tearing down and reloading active iframes (such as live Santa calls) on background intervals
+    if (container.dataset.renderedSlots === slotSignature) {
+      return;
+    }
+    container.dataset.renderedSlots = slotSignature;
+    container.innerHTML = '';
 
-    grid.innerHTML = selectedIds.map(id => {
-      const item = ARCADE_CATALOG[id];
-      return `
-        <button type="button" class="arcade-tile is-featured" data-arcade-id="${escapeHtml(item.id)}">
-          <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
-            <div class="arcade-icon-box">${item.icon}</div>
-            <span class="r-badge tonight">Featured</span>
+    if (!activeSlots.length) return;
+
+    const primaryHex = table.primary_color || '#D31C1C';
+    const accentHex = table.accent_color || '#FBAF33';
+
+    activeSlots.forEach(slot => {
+      const isSantaChat = slot.id === 'santa_chat';
+      let targetSrc = slot.embedSrc(slug);
+      if (!isSantaChat) {
+        const joinChar = targetSrc.includes('?') ? '&' : '?';
+        targetSrc += joinChar + 'embed=1&primary=' + encodeURIComponent(primaryHex) + '&accent=' + encodeURIComponent(accentHex);
+      }
+
+      const sec = document.createElement('section');
+      sec.className = 'page-section modular-slot-section';
+      sec.id = slot.anchorId;
+
+      const fsSrc = slot.fullscreenSrc ? slot.fullscreenSrc(slug) : null;
+
+      sec.innerHTML = `
+        <div class="container" style="max-width:${slot.maxWidth || 1000}px;">
+          <div class="section-head">
+            <div>
+              <div class="section-eyebrow"><i class="fa-solid fa-sparkles"></i> ${escapeHtml(slot.badge || 'Interactive Lapland Experience')}</div>
+              <h2 class="section-title">${slot.title} <span class="hl">${slot.titleHighlight}</span></h2>
+              <p class="section-subtitle">${escapeHtml(slot.description || '')}</p>
+            </div>
           </div>
-          <div>
-            <div class="arcade-kicker">${escapeHtml(item.kicker)}</div>
-            <h3 class="arcade-title">${escapeHtml(item.title)}</h3>
+          <div class="iframe-container">
+            <div class="iframe-chrome">
+              <div class="iframe-chrome-left">
+                <span class="chrome-pulse" aria-hidden="true"></span>
+                <span>${escapeHtml(slot.badge || slot.navLabel)}</span>
+              </div>
+              <div class="iframe-chrome-actions">
+                ${fsSrc ? `
+                  <a class="tracker-fs" href="${escapeHtml(fsSrc)}" target="_blank" rel="noopener">
+                    <span>${escapeHtml(slot.fullscreenLabel || 'Open Full-Screen')}</span>
+                    <i class="fa-solid fa-up-right-from-square"></i>
+                  </a>
+                ` : ''}
+              </div>
+            </div>
+            <iframe
+              id="${slot.anchorId}-iframe"
+              class="modular-slot-iframe"
+              height="${slot.height || 720}"
+              title="${escapeHtml(slot.title)} ${escapeHtml(slot.titleHighlight)}"
+              allow="${isSantaChat ? 'microphone *; autoplay *; speaker-selection *; clipboard-write *' : 'camera; microphone; geolocation; autoplay'}"
+              loading="${isSantaChat ? 'eager' : 'lazy'}"
+              scrolling="no"
+              src="${targetSrc}"
+            ></iframe>
           </div>
-          <p class="arcade-desc">${escapeHtml(item.desc)}</p>
-          <span class="arcade-launch-cta">Launch Experience &#8594;</span>
-        </button>
+        </div>
       `;
-    }).join('');
 
-    grid.querySelectorAll('[data-arcade-id]').forEach(tile => {
-      tile.addEventListener('click', () => {
-        const item = ARCADE_CATALOG[tile.getAttribute('data-arcade-id')];
-        if (item) openTheaterModal(item);
-      });
+      container.appendChild(sec);
     });
   }
 
@@ -1246,12 +1424,12 @@
   function openDonateFlow() {
     const table = state.payload?.table || {};
     const donateUrl = table.donate_url || table.justgiving_url || '';
-    if (table.enable_gift_aid !== false) {
+    if (isGiftAidEnabled(table)) {
       openModal('giftaid-modal');
     } else if (donateUrl) {
       window.open(donateUrl, '_blank', 'noopener');
     } else {
-      openModal('giftaid-modal');
+      alert('Online donation details will be announced soon. Thank you for supporting our Santa Sleigh appeal!');
     }
   }
 
@@ -1322,7 +1500,7 @@
       renderHeroMetrics();
       renderRoutesGrid();
       renderFundraisingAndImpact();
-      renderArcadeGrid();
+      renderModularSlots();
       renderPartnersPedestal();
 
       // Parallel non-blocking loads: GPX tracks, Memory Wall, Live Cheer, View counter
