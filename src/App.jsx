@@ -103,7 +103,9 @@ export default function App() {
     '/hub': '/hub.html',
     '/embed': '/embed.html',
     '/v2': '/sleigh_v2.html',
-    '/sleigh_v2': '/sleigh_v2.html'
+    '/sleigh_v2': '/sleigh_v2.html',
+    '/v3': '/sleigh_v3.html',
+    '/sleigh_v3': '/sleigh_v3.html'
   };
 
   // Admin Authentication State
