@@ -104,6 +104,30 @@
       title: 'Build a Snowman',
       desc: 'Dress up your own festive snowman while waiting for the sleigh music down your road.',
       path: '/snowman.html'
+    },
+    santa_chat: {
+      id: 'santa_chat',
+      icon: '📞',
+      kicker: 'Lapland Live Audio',
+      title: 'Talk to Santa Live',
+      desc: 'Speak directly with Santa in Lapland on the festive voice hotline!',
+      path: '/santa_chat.html'
+    },
+    santa_studio: {
+      id: 'santa_studio',
+      icon: '🎙️',
+      kicker: 'Workshop Voice Booth',
+      title: 'Santa Recording Studio',
+      desc: 'Festive voice recording and reply booth for volunteers and families to exchange holiday cheer.',
+      path: '/santa_studio.html'
+    },
+    spot_santa: {
+      id: 'spot_santa',
+      icon: '📍',
+      kicker: 'Community Sightings',
+      title: 'Spot Santa Sightings',
+      desc: 'Snap a photo of Santa passing down your street and pin your sighting to the map!',
+      path: '/spot_santa_form.html'
     }
   };
 
@@ -931,29 +955,47 @@
 
   function renderArcadeGrid() {
     const grid = document.getElementById('arcade-grid');
+    const magicSection = document.getElementById('magic');
+    const magicNavLinks = document.querySelectorAll('a[href="#magic"]');
     if (!grid) return;
+
     const table = state.payload?.table || {};
+    const settings = state.payload?.settings || {};
 
-    const featuredIds = [table.public_slot_1, table.public_slot_2]
-      .map(s => String(s || '').trim())
-      .filter(s => s && ARCADE_CATALOG[s]);
+    const resolveSlot = (slotVal) => {
+      if (!slotVal) return null;
+      const s = String(slotVal).trim().toLowerCase();
+      if (!s || s === 'none' || s === 'disabled' || s === 'false' || s === 'null') return null;
+      return s;
+    };
 
-    const defaultOrder = ['letter', 'elf_cam', 'santa_bot', 'bingo', 'nice_list', 'magic_mailbox', 'colouring', 'door_hanger'];
-    const orderedIds = Array.from(new Set([...featuredIds, ...defaultOrder]))
-      .filter(id => {
-        if (id === 'magic_mailbox' && table.enable_magic_mailbox === false) return false;
-        return Boolean(ARCADE_CATALOG[id]);
-      })
-      .slice(0, 8);
+    const raw1 = resolveSlot(table.public_slot_1 || settings.public_slot_1);
+    const raw2 = resolveSlot(table.public_slot_2 || settings.public_slot_2);
 
-    grid.innerHTML = orderedIds.map(id => {
+    const slot1 = (raw1 && ARCADE_CATALOG[raw1]) ? raw1 : null;
+    const slot2 = (raw2 && raw2 !== raw1 && ARCADE_CATALOG[raw2]) ? raw2 : null;
+
+    // Respect the 2 choice selection: strictly only display the choices configured for this table
+    const selectedIds = [slot1, slot2].filter(Boolean);
+
+    // If no slots are selected for this table, cleanly hide the section and nav link
+    if (selectedIds.length === 0) {
+      if (magicSection) magicSection.style.display = 'none';
+      magicNavLinks.forEach(a => a.style.display = 'none');
+      grid.innerHTML = '';
+      return;
+    }
+
+    if (magicSection) magicSection.style.display = '';
+    magicNavLinks.forEach(a => a.style.display = '');
+
+    grid.innerHTML = selectedIds.map(id => {
       const item = ARCADE_CATALOG[id];
-      const isFeatured = featuredIds.includes(id);
       return `
-        <button type="button" class="arcade-tile${isFeatured ? ' is-featured' : ''}" data-arcade-id="${escapeHtml(item.id)}">
+        <button type="button" class="arcade-tile is-featured" data-arcade-id="${escapeHtml(item.id)}">
           <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
             <div class="arcade-icon-box">${item.icon}</div>
-            ${isFeatured ? '<span class="r-badge tonight">Featured</span>' : ''}
+            <span class="r-badge tonight">Featured</span>
           </div>
           <div>
             <div class="arcade-kicker">${escapeHtml(item.kicker)}</div>

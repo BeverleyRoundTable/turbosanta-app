@@ -1650,8 +1650,10 @@ body {
 /* --- FAMILY & KERBSIDE MAGIC ARCADE (THEATER LAUNCHER) --- */
 .arcade-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  max-width: 920px;
+  margin: 0 auto;
 }
 
 .arcade-tile {
