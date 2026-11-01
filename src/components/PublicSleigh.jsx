@@ -1536,14 +1536,14 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                       }}
                     >
                       <div style={{ flex: 1, minWidth: '180px' }}>
-                        <strong style={{ color: '#FFFFFF', fontSize: '14px', display: 'block' }}>{g.org_name}</strong>
+                        <strong style={{ color: '#FFFFFF', fontSize: '14px', display: 'block' }}>{g.org_name || g.organisation_name || g.name || g.title || 'Local Cause'}</strong>
                         {g.cause_summary && (
                           <span style={{ color: 'var(--text-muted)', fontSize: '12px', lineHeight: 1.4 }}>{g.cause_summary}</span>
                         )}
                       </div>
-                      {Number(g.amount_awarded) > 0 && (
+                      {(Number(g.amount_awarded) > 0 || Number(g.amount_requested) > 0) && (
                         <span className="brand-font" style={{ color: '#86efac', fontSize: '15px', fontWeight: 800 }}>
-                          £{Number(g.amount_awarded).toLocaleString()}
+                          £{(Number(g.amount_awarded) > 0 ? Number(g.amount_awarded) : Number(g.amount_requested)).toLocaleString()}
                         </span>
                       )}
                     </div>
