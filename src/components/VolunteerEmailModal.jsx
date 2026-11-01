@@ -55,6 +55,9 @@ export default function VolunteerEmailModal({
   const getTemplateContent = (type, routeName) => {
     const activeRouteObj = routes.find(r => r.name === routeName || r.id === routeName);
     const startTm = activeRouteObj?.start_time || '18:00';
+    const musterTm = activeRouteObj?.muster_time || table?.default_muster_time || startTm;
+    const musterPt = activeRouteObj?.muster_point || activeRouteObj?.meeting_point || table?.default_muster_point || '';
+    const musterPtLine = musterPt ? `\nMuster Point: ${musterPt}` : '';
     const routeDisplay = routeName && routeName !== 'all' ? routeName : 'Upcoming Sleigh Route';
     const cleanSlug = String(currentTableSlug || table.slug || 'beverley').trim().toLowerCase();
     const trackerLink = `https://${cleanSlug}.roundtablesantasleigh.co.uk/tracker`;
@@ -88,7 +91,7 @@ We are short of a few pairs of walking elves and bucket collectors for our sleig
 
 If you or any friends, partners, or family members are free to join us for an hour or two with a hi-vis vest and collection tin, we would love to have you.
 
-Muster Time: ${startTm}
+Muster Time: ${musterTm}${musterPtLine}
 Route: ${routeDisplay}
 
 Please reply directly to this email or meet us at the start point. Let's make sure the sleigh rolls tonight!
@@ -136,7 +139,7 @@ ${tableName} Organizers`
 Thank you for volunteering with the ${tableName}! Here is your operational briefing for our upcoming route:
 
 Route: ${routeDisplay}
-Muster Time: ${startTm}
+Muster Time: ${musterTm} (Rollout: ${startTm})${musterPtLine}
 
 Important volunteer briefing & reminders:
 • Please dress warmly in waterproof layers and wear sturdy walking shoes or boots.

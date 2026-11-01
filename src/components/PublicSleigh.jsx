@@ -1618,10 +1618,12 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
           </div>
 
           {/* Dedicated Spotlight for Tonight's Route */}
-          {todayItem && (
+          {todayItem && (() => {
+            const isTodayPostponed = String(todayItem.status_override || todayItem.status || '').toLowerCase() === 'postponed';
+            return (
             <div style={{
               background: '#000000',
-              border: todayItem.status_override === 'Postponed' ? '2px solid #ef4444' : '2px solid var(--primary)',
+              border: isTodayPostponed ? '2px solid #ef4444' : '2px solid var(--primary)',
               borderRadius: '16px',
               padding: '26px 30px',
               marginBottom: '35px',
@@ -1638,8 +1640,8 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
-                    background: todayItem.status_override === 'Postponed' ? '#ef4444' : 'var(--primary)',
-                    color: todayItem.status_override === 'Postponed' ? '#FFFFFF' : 'var(--on-primary)',
+                    background: isTodayPostponed ? '#ef4444' : 'var(--primary)',
+                    color: isTodayPostponed ? '#FFFFFF' : 'var(--on-primary)',
                     fontSize: '12px',
                     fontWeight: 800,
                     textTransform: 'uppercase',
@@ -1648,7 +1650,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                     borderRadius: '20px',
                     marginBottom: '10px'
                   }}>
-                  <Star size={14} fill="currentColor" /> {todayItem.status_override === 'Postponed' ? '🌧️ WEATHER UPDATE — POSTPONED' : "TONIGHT'S ROUTE"}
+                  <Star size={14} fill="currentColor" /> {isTodayPostponed ? '🌧️ WEATHER UPDATE — POSTPONED' : "TONIGHT'S ROUTE"}
                 </div>
 
                 <div
@@ -1743,7 +1745,8 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                 </div>
               )}
             </div>
-          )}
+            );
+          })()}
 
           {/* Routes Grid */}
           <div style={{
@@ -1757,12 +1760,13 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
 
             {otherRoutes.map((r, idx) => {
               const isPast = r.day < new Date(new Date().setHours(0,0,0,0));
+              const isRoutePostponed = String(r.status_override || r.status || '').toLowerCase() === 'postponed';
               return (
                 <div
                   key={idx}
                   style={{
                     background: '#000000',
-                    border: r.status_override === 'Postponed' ? '1px solid #ef4444' : '1px solid var(--border)',
+                    border: isRoutePostponed ? '1px solid #ef4444' : '1px solid var(--border)',
                     borderRadius: '12px',
                     padding: '20px',
                     boxShadow: '0 10px 20px rgba(0,0,0,0.4)',
@@ -1774,8 +1778,8 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                   <div
                     className="brand-font"
                     style={{ fontWeight: 700, color: 'var(--primary)', marginBottom: '5px', textTransform: 'uppercase', fontSize: '13px', letterSpacing: '1px' }}>
-                    {r.status_override === 'Postponed' && <span style={{ color: '#fca5a5' }}>🌧️ POSTPONED | </span>}
-                    {isPast && r.status_override !== 'Postponed' && <span style={{ color: '#FFFFFF' }}>✓ COMPLETED | </span>}
+                    {isRoutePostponed && <span style={{ color: '#fca5a5' }}>🌧️ POSTPONED | </span>}
+                    {isPast && !isRoutePostponed && <span style={{ color: '#FFFFFF' }}>✓ COMPLETED | </span>}
                     {r.d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
                     {r.start_time && ` | ${r.start_time} - ${r.end_time || '20:30'}`}
                   </div>

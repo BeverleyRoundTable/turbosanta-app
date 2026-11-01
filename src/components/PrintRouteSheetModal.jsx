@@ -29,14 +29,14 @@ export default function PrintRouteSheetModal({
   };
 
   const getInitialMeta = (r) => {
-    let point = r?.meeting_point || '';
+    let point = r?.muster_point || r?.meeting_point || '';
     let muster = r?.muster_time || '';
     if (r?.notes) {
       const match = r.notes.match(/<!--\s*ROUTE_META:\s*({.*?})\s*-->/s);
       if (match && match[1]) {
         try {
           const parsed = JSON.parse(match[1]);
-          if (!point && parsed.meeting_point) point = parsed.meeting_point;
+          if (!point && (parsed.muster_point || parsed.meeting_point)) point = parsed.muster_point || parsed.meeting_point;
           if (!muster && parsed.muster_time) muster = parsed.muster_time;
         } catch(e) {}
       }

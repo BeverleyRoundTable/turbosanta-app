@@ -67,14 +67,14 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
   };
 
   const extractRouteMeta = (r) => {
-    let meeting_point = r?.meeting_point || '';
+    let meeting_point = r?.muster_point || r?.meeting_point || '';
     let muster_time = r?.muster_time || '';
     if (r?.notes) {
       const m = r.notes.match(/<!--\s*ROUTE_META:\s*({.*?})\s*-->/s);
       if (m && m[1]) {
         try {
           const parsed = JSON.parse(m[1]);
-          if (!meeting_point && parsed.meeting_point) meeting_point = parsed.meeting_point;
+          if (!meeting_point && (parsed.muster_point || parsed.meeting_point)) meeting_point = parsed.muster_point || parsed.meeting_point;
           if (!muster_time && parsed.muster_time) muster_time = parsed.muster_time;
         } catch(e) {}
       }
@@ -101,7 +101,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
     sponsor_name: route?.sponsor_name || '',
     sponsor_link: route?.sponsor_link || '',
     sponsor_description: route?.sponsor_description || '',
-    sponsor_logo_url: route?.sponsor_logo_url || ''
+    sponsor_logo_url: route?.sponsor_logo_url || route?.sponsor_logo || ''
   });
 
   const [gpxStats, setGpxStats] = useState(
@@ -142,7 +142,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
       sponsor_name: route?.sponsor_name || '',
       sponsor_link: route?.sponsor_link || '',
       sponsor_description: route?.sponsor_description || '',
-      sponsor_logo_url: route?.sponsor_logo_url || ''
+      sponsor_logo_url: route?.sponsor_logo_url || route?.sponsor_logo || ''
     });
     setGpxStats(
       route?.gpx_url
@@ -381,6 +381,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
     const updatedRoute = {
       ...formData,
       id: targetId,
+      muster_point: routeMeta.meeting_point,
       meeting_point: routeMeta.meeting_point,
       muster_time: routeMeta.muster_time,
       streets: streetsArray,
@@ -390,6 +391,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
       sponsor_name: validSponsors.map(s => s.name).filter(Boolean).join(' • ') || (validSponsors[0]?.name || ''),
       sponsor_link: validSponsors[0]?.link || '',
       sponsor_description: validSponsors[0]?.description || '',
+      sponsor_logo: validSponsors[0]?.logo_url || '',
       sponsor_logo_url: validSponsors[0]?.logo_url || ''
     };
     delete updatedRoute.isCopy;

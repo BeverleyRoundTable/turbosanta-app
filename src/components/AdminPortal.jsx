@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { logoutAdmin, isNationalAdmin, getAdminAuthToken } from '../services/auth';
-import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, saveRoute, deleteRoute, connectTableGmail, disconnectTableGmail, testTableGmailAlert, fetchSubscribers, clearSubscribers, triggerAutomatedCrewBriefings, fetchAutomatedCrewBriefingStatus, uploadAssetToR2 } from '../services/api';
+import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, saveRoute, deleteRoute, connectTableGmail, disconnectTableGmail, testTableGmailAlert, fetchSubscribers, clearSubscribers, triggerAutomatedCrewBriefings, fetchAutomatedCrewBriefingStatus, uploadAssetToR2, fetchGiftAidSummary, updateGiftAidStatus, exportGiftAidCsv } from '../services/api';
 import { extractRouteSponsors } from '../utils/sponsors';
 import DropzoneUpload from './DropzoneUpload';
 import RouteEditorModal from './RouteEditorModal';
@@ -379,9 +379,13 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
       const token = session?.googleCredential || session?.token || getAdminAuthToken(slug);
       const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/messages/moderate?table=${encodeURIComponent(slug)}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           id: msgId,
+          status: action,
           action,
           secret: token
         })
@@ -417,7 +421,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   const getVolEmail = (v) => v.email || v["Email"] || '';
   const getVolOrg = (v) => v.organisation || v["Organisation"] || '';
   const getVolRoute = (v) => v.route_name || v["RouteName"] || '';
-  const getVolStatus = (v) => v.status || v["Check-in Status"] || 'Confirmed';
+  const getVolStatus = (v) => v.status || v["Check-in Status"] || (v.checked_in ? 'Checked In' : 'Confirmed');
   const getVolBucket = (v) => v.bucket_number || v["Bucket Number"] || '';
 
   const formatPhoneForWhatsApp = (phone) => {
@@ -577,7 +581,7 @@ ${tableName} Organizers`
     } catch(e) {}
 
     let meetingTime = route.muster_time;
-    let meetingPoint = route.meeting_point;
+    let meetingPoint = route.muster_point || route.meeting_point;
     if (route.notes) {
       const match = route.notes.match(/<!--\s*ROUTE_META:\s*({.*?})\s*-->/s);
       if (match && match[1]) {
@@ -1065,10 +1069,39 @@ ${tableName} Organizers`
     }
   };
 
-  // Embed & Crew Alert State
+  // Embed, Crew Alert & Live Gift Aid Ledger State
   const [copiedKey, setCopiedKey] = useState('');
-  const [crewAlertText, setCrewAlertText] = useState('');
-  const [activeCrewAlert, setActiveCrewAlert] = useState('');
+  const [crewAlertText, setCrewAlertText] = useState(tableData?.table?.crew_alert || '');
+  const [activeCrewAlert, setActiveCrewAlert] = useState(tableData?.table?.crew_alert || '');
+  const [giftAidSummary, setGiftAidSummary] = useState({ declarations: 0, totalDonations: 0, totalGiftAid: 0, entries: [] });
+  const [giftAidLoading, setGiftAidLoading] = useState(false);
+
+  const loadGiftAidSummary = useCallback(async () => {
+    const slug = currentTableSlug || session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley';
+    const token = session?.googleCredential || session?.token || getAdminAuthToken(slug);
+    setGiftAidLoading(true);
+    try {
+      const data = await fetchGiftAidSummary(slug, token);
+      if (data && data.ok) {
+        setGiftAidSummary({
+          declarations: Number(data.declarations || 0),
+          totalDonations: Number(data.totalDonations || 0),
+          totalGiftAid: Number(data.totalGiftAid || 0),
+          entries: Array.isArray(data.entries) ? data.entries : []
+        });
+      }
+    } catch (e) {
+      console.warn('Failed to load Gift Aid summary:', e);
+    } finally {
+      setGiftAidLoading(false);
+    }
+  }, [currentTableSlug, session, tableData?.table?.slug]);
+
+  useEffect(() => {
+    if (activeTab === 'giftaid') {
+      loadGiftAidSummary();
+    }
+  }, [activeTab, loadGiftAidSummary]);
 
   const copyToClipboard = (key, text) => {
     navigator.clipboard.writeText(text);
@@ -1195,6 +1228,10 @@ ${tableName} Organizers`
     // Background polling of live stats must NEVER overwrite the user's active settings form!
     if (tableData?.table && (!hasLoadedFormDataRef.current || isSlugChanged)) {
       hasLoadedFormDataRef.current = true;
+      setActiveCrewAlert(tableData.table.crew_alert || '');
+      if (isSlugChanged) {
+        setCrewAlertText(tableData.table.crew_alert || '');
+      }
       setFormData(prev => ({
         ...prev,
         sleigh_display_name: standardSleighDisplayName,
@@ -1909,16 +1946,20 @@ ${tableName} Organizers`
             ...prev?.table,
             justgiving_url: formData.justgiving_url || null,
             tickettailor_event_id: formData.tickettailor_event_id || null,
-            tickettailor_configured: Boolean(formData.tickettailor_api_key || prev?.table?.tickettailor_configured),
+            tickettailor_connected: Boolean(formData.tickettailor_api_key || prev?.table?.tickettailor_connected || prev?.table?.tickettailor_configured),
+            tickettailor_configured: Boolean(formData.tickettailor_api_key || prev?.table?.tickettailor_connected || prev?.table?.tickettailor_configured),
             total_raised: data.total_raised ?? prev?.table?.total_raised,
-            external_raised_total: data.external_total ?? prev?.table?.external_raised_total,
-            external_synced_at: data.synced_at
+            external_raised_total: (data.external_raised_total ?? data.external_total) ?? prev?.table?.external_raised_total,
+            external_synced_at: data.external_synced_at || data.synced_at || new Date().toISOString()
           }
         }));
       }
       const parts = [];
-      if (data.jg_amount !== null && data.jg_amount !== undefined) parts.push(`JustGiving: £${Number(data.jg_amount).toFixed(2)}`);
-      if (data.tt_amount !== null && data.tt_amount !== undefined) parts.push(`Ticket Tailor: £${Number(data.tt_amount).toFixed(2)} (${data.tt_orders || 0} orders)`);
+      const jgVal = data.jg_amount ?? data.justgiving_raised;
+      const ttVal = data.tt_amount ?? data.tickettailor_raised;
+      const ttOrders = data.tt_orders ?? data.tickettailor_orders ?? 0;
+      if (jgVal !== null && jgVal !== undefined) parts.push(`JustGiving: £${Number(jgVal).toFixed(2)}`);
+      if (ttVal !== null && ttVal !== undefined) parts.push(`Ticket Tailor: £${Number(ttVal).toFixed(2)} (${ttOrders} orders)`);
       if (data.errors && data.errors.length) parts.push(`Warnings: ${data.errors.join('; ')}`);
       setExternalSyncStatus(`✅ Synced! ${parts.length ? parts.join(' • ') + ' — ' : ''}Grand Total Raised: £${Number(data.total_raised || 0).toFixed(2)}`);
       confetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
@@ -2040,7 +2081,8 @@ ${tableName} Organizers`
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || 'Failed to send departure alerts');
-      alert(`✅ Sent ${data.sent || 0} "Tonight's the Night!" emails for ${route.name} (${data.matched || 0} subscribers matched on route).`);
+      const matchedCount = data.matched ?? data.total_matched ?? 0;
+      alert(`✅ Sent ${data.sent || 0} "Tonight's the Night!" emails for ${route.name} (${matchedCount} subscribers matched on route).`);
     } catch (e) {
       alert(`❌ Could not send departure emails: ${e.message}`);
     } finally {
@@ -2077,23 +2119,26 @@ ${tableName} Organizers`
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || 'Failed to postpone route');
+      const bannerText = data.announcement ?? data.live_announcement ?? '';
+      const emailedCount = data.emails_sent ?? data.emailed_subscribers ?? 0;
       if (onUpdateTableData) {
         onUpdateTableData(prev => ({
           ...prev,
           routes: (prev.routes || []).map(r => r.id === route.id ? {
             ...r,
             date: (newDate && newDate.trim()) ? newDate.trim() : r.date,
+            status: 'Postponed',
             status_override: 'Postponed',
             postponed_note: note.trim()
           } : r),
           table: {
             ...prev.table,
-            live_announcement: data.announcement || prev?.table?.live_announcement
+            live_announcement: bannerText || prev?.table?.live_announcement
           }
         }));
       }
-      setAnnouncementText(data.announcement || '');
-      alert(`🌧️ Route updated! Live weather banner published and ${data.emails_sent || 0} pinned families emailed.`);
+      if (bannerText) setAnnouncementText(bannerText);
+      alert(`🌧️ Route updated! Live weather banner published and ${emailedCount} pinned families emailed.`);
     } catch (e) {
       alert(`❌ Failed to postpone route: ${e.message}`);
     } finally {
@@ -2105,7 +2150,7 @@ ${tableName} Organizers`
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
     let code = '';
     for (let i = 0; i < 16; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-    const slug = session?.tableSlug || tableData?.table?.slug || 'beverley';
+    const slug = currentTableSlug || session?.tableSlug || tableData?.table?.slug || 'beverley';
     const newSecret = `whsec_${slug}_${code}`;
     setWebhookSecret(newSecret);
     try {
@@ -2116,7 +2161,7 @@ ${tableName} Organizers`
   };
 
   const getWebhookEndpointUrl = (provider) => {
-    const slug = session?.tableSlug || tableData?.table?.slug || 'beverley';
+    const slug = currentTableSlug || session?.tableSlug || tableData?.table?.slug || 'beverley';
     return `https://turbosanta-api.beverley247.workers.dev/api/webhooks/${provider}?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(webhookSecret)}`;
   };
 
@@ -2126,7 +2171,7 @@ ${tableName} Organizers`
     const amt = parseFloat(testDonationAmount) || 10;
     const donor = testDonorName || 'Festive Supporter';
     const provider = selectedWebhookProvider;
-    const slug = session?.tableSlug || tableData?.table?.slug || 'beverley';
+    const slug = currentTableSlug || session?.tableSlug || tableData?.table?.slug || 'beverley';
     const adminToken = getAdminAuthToken(slug);
 
     try {
@@ -2425,19 +2470,42 @@ ${tableName} Organizers`
     setTimeout(() => setSaveStatus(''), 3000);
   };
 
-  // HMRC R68 CSV Download
-  const handleExportHmrc = () => {
-    const csvContent = "data:text/csv;charset=utf-8," +
-      "Title,First Name,Last Name,House name or number,Postcode,Aggregated donations,Sponsored event,Date,Amount\n" +
-      "Mr,John,Smith,14,HU17 8PP,,,09/12/26,10.00\n" +
-      "Mrs,Sarah,Jenkins,22 High Street,HU17 9AA,,,09/12/26,20.00\n";
-    const encodedUri = encodeURI(csvContent);
+  // HMRC R68 CSV Download (Live Cloudflare D1 Declarations)
+  const handleExportHmrc = async (statusFilter = 'All') => {
+    const slug = currentTableSlug || session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley';
+    const token = session?.googleCredential || session?.token || getAdminAuthToken(slug);
+    setSaveStatus('Preparing statutory HMRC R68 Gift Aid CSV from D1...');
+    const res = await exportGiftAidCsv(slug, statusFilter, token);
+    if (!res || !res.ok || typeof res.csv !== 'string') {
+      alert(res?.error || 'Failed to export HMRC Gift Aid CSV.');
+      setSaveStatus('');
+      return;
+    }
+    const blob = new Blob(["\uFEFF" + res.csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `HMRC_GiftAid_R68_${session.tableId}.csv`);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `HMRC_GiftAid_R68_${slug}_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setSaveStatus(`✓ Exported ${res.count || 0} HMRC R68 Gift Aid declaration(s)!`);
+    setTimeout(() => setSaveStatus(''), 3500);
+  };
+
+  const handleMarkGiftAidClaimed = async (entryId = null) => {
+    const slug = currentTableSlug || session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley';
+    const token = session?.googleCredential || session?.token || getAdminAuthToken(slug);
+    const payload = entryId ? { mode: 'single', id: entryId, status: 'Claimed' } : { mode: 'bulkAll', status: 'Claimed' };
+    const res = await updateGiftAidStatus(slug, payload, token);
+    if (res && res.ok) {
+      setSaveStatus('✓ Updated Gift Aid claim status in D1!');
+      loadGiftAidSummary();
+    } else {
+      alert(res?.error || 'Failed to update Gift Aid status.');
+    }
+    setTimeout(() => setSaveStatus(''), 3000);
   };
 
   // RESTRICTED VIEW FOR NATIONAL BOARD ACCOUNTS (VIEW ONLY ON NATIONAL FLEET RADAR)
@@ -3498,19 +3566,24 @@ ${tableName} Organizers`
                                     <strong style={{ fontSize: '20px', color: '#fff' }}>
                                       {r.name}
                                     </strong>
-                                    <span style={{
-                                      background: r.status_override === 'Postponed' ? 'rgba(239, 68, 68, 0.18)' : 'rgba(251, 175, 51, 0.15)',
-                                      color: r.status_override === 'Postponed' ? '#fca5a5' : 'var(--primary)',
-                                      border: r.status_override === 'Postponed' ? '1px solid #ef4444' : '1px solid var(--border-gold)',
-                                      fontSize: '10px',
-                                      fontWeight: 800,
-                                      padding: '2px 8px',
-                                      borderRadius: '4px',
-                                      textTransform: 'uppercase',
-                                      letterSpacing: '0.5px'
-                                    }}>
-                                      {r.status_override === 'Postponed' ? '🌧️ Postponed / Rescheduled' : 'Upcoming'}
-                                    </span>
+                                    {(() => {
+                                      const isRoutePostponed = String(r.status_override || r.status || '').toLowerCase() === 'postponed';
+                                      return (
+                                        <span style={{
+                                          background: isRoutePostponed ? 'rgba(239, 68, 68, 0.18)' : 'rgba(251, 175, 51, 0.15)',
+                                          color: isRoutePostponed ? '#fca5a5' : 'var(--primary)',
+                                          border: isRoutePostponed ? '1px solid #ef4444' : '1px solid var(--border-gold)',
+                                          fontSize: '10px',
+                                          fontWeight: 800,
+                                          padding: '2px 8px',
+                                          borderRadius: '4px',
+                                          textTransform: 'uppercase',
+                                          letterSpacing: '0.5px'
+                                        }}>
+                                          {isRoutePostponed ? '🌧️ Postponed / Rescheduled' : (r.status || 'Upcoming')}
+                                        </span>
+                                      );
+                                    })()}
                                   </div>
                                   <div style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: 600, marginBottom: '8px' }}>
                                     📅 {formatRouteDateWithWeekday(r.date)} • ⏰ {r.start_time || '18:00'} - {r.end_time || '20:30'}
@@ -4505,9 +4578,14 @@ ${tableName} Organizers`
                     gap: '12px'
                   }}>
                     {webhookProviders.map(p => {
-                      const entry = breakdown.find(b => String(b.source).toLowerCase() === p.id.toLowerCase());
-                      const amt = entry ? Number(entry.total || 0) : 0;
-                      const count = entry ? Number(entry.count || 0) : 0;
+                      const pKey = p.id.toLowerCase();
+                      const matchingEntries = breakdown.filter(b => {
+                        const bSrc = String(b.source || '').toLowerCase();
+                        if (pKey === 'cash' || pKey === 'cash_bucket') return bSrc === 'cash' || bSrc === 'cash_bucket';
+                        return bSrc === pKey;
+                      });
+                      const amt = matchingEntries.reduce((sum, e) => sum + Number(e.total || 0), 0);
+                      const count = matchingEntries.reduce((sum, e) => sum + Number(e.count || 0), 0);
 
                       return (
                         <div
@@ -4606,13 +4684,13 @@ ${tableName} Organizers`
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
-                    Ticket Tailor API Key {tableData?.table?.tickettailor_configured ? <span style={{ color: '#22c55e' }}>(✓ Connected)</span> : '(Optional)'}
+                    Ticket Tailor API Key {(tableData?.table?.tickettailor_connected || tableData?.table?.tickettailor_configured) ? <span style={{ color: '#22c55e' }}>(✓ Connected)</span> : '(Optional)'}
                   </label>
                   <input
                     type="password"
                     value={formData.tickettailor_api_key || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, tickettailor_api_key: e.target.value }))}
-                    placeholder={tableData?.table?.tickettailor_configured ? '•••••••• (Saved — enter new sk_ key to replace)' : 'sk_... (from Ticket Tailor > Settings > API)'}
+                    placeholder={(tableData?.table?.tickettailor_connected || tableData?.table?.tickettailor_configured) ? '•••••••• (Saved — enter new sk_ key to replace)' : 'sk_... (from Ticket Tailor > Settings > API)'}
                     style={{
                       width: '100%',
                       boxSizing: 'border-box',
@@ -4971,7 +5049,7 @@ ${tableName} Organizers`
               digitalRaised: liveDigitalRaised,
               donationCount: liveDonationCount,
               avgDonation: liveAvgDonation,
-              views: 3200,
+              views: Number(tableData?.table?.total_views ?? tableData?.total_views ?? 0),
               target: liveTarget
             }
           };
@@ -5018,11 +5096,17 @@ ${tableName} Organizers`
           const avgPerRoute = currentStats.routes > 0 ? (currentStats.raised / currentStats.routes).toFixed(2) : '0.00';
           const avgPerStreet = currentStats.streets > 0 ? (currentStats.raised / currentStats.streets).toFixed(2) : '0.00';
 
-          const zeffyItem = breakdown.find(b => b.source === 'zeffy');
-          const stripeItem = breakdown.find(b => b.source === 'stripe');
-          const sumupItem = breakdown.find(b => b.source === 'sumup');
-          const cashItem = breakdown.find(b => b.source === 'cash');
-          const donorboxItem = breakdown.find(b => b.source === 'donorbox');
+          const zeffyItem = breakdown.find(b => String(b.source || '').toLowerCase() === 'zeffy');
+          const stripeItem = breakdown.find(b => String(b.source || '').toLowerCase() === 'stripe');
+          const sumupItem = breakdown.find(b => String(b.source || '').toLowerCase() === 'sumup');
+          const cashEntries = breakdown.filter(b => ['cash', 'cash_bucket'].includes(String(b.source || '').toLowerCase()));
+          const cashItem = {
+            total: cashEntries.reduce((sum, e) => sum + Number(e.total || 0), 0),
+            count: cashEntries.reduce((sum, e) => sum + Number(e.count || 0), 0)
+          };
+          const donorboxItem = breakdown.find(b => String(b.source || '').toLowerCase() === 'donorbox');
+          const justgivingItem = breakdown.find(b => String(b.source || '').toLowerCase() === 'justgiving');
+          const tickettailorItem = breakdown.find(b => String(b.source || '').toLowerCase() === 'tickettailor');
 
           const gaDebriefNote = isGiftAidEligible && currentStats.giftAid > 0
             ? `including +£${currentStats.giftAid.toFixed(2)} HMRC Gift Aid reclaim`
@@ -5391,10 +5475,10 @@ ${tableName} Organizers`
                       <span style={{ fontSize: '11px', color: '#22c55e', background: 'rgba(34, 197, 94, 0.1)', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>0% Fee</span>
                     </div>
                     <div className="brand-font" style={{ fontSize: '24px', color: 'var(--primary)', marginBottom: '4px' }}>
-                      £{Number(zeffyItem?.total || (currentStats.raised > 0 ? currentStats.raised : 0)).toFixed(2)}
+                      £{Number(zeffyItem?.total || 0).toFixed(2)}
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      {zeffyItem?.count || (currentStats.raised > 0 ? 1 : 0)} transactions · 100% to Charity
+                      {zeffyItem?.count || 0} transactions · 100% to Charity
                     </div>
                   </div>
 
@@ -5448,6 +5532,36 @@ ${tableName} Organizers`
                       </div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                         {donorboxItem?.count || 0} Donorbox contributions
+                      </div>
+                    </div>
+                  )}
+
+                  {justgivingItem && Number(justgivingItem.total || 0) > 0 && (
+                    <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '10px', padding: '16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>💜 JustGiving</span>
+                        <span style={{ fontSize: '11px', color: '#c084fc', background: 'rgba(192, 132, 252, 0.1)', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>Auto-Synced</span>
+                      </div>
+                      <div className="brand-font" style={{ fontSize: '24px', color: '#fff', marginBottom: '4px' }}>
+                        £{Number(justgivingItem?.total || 0).toFixed(2)}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        Synced JustGiving campaign total
+                      </div>
+                    </div>
+                  )}
+
+                  {tickettailorItem && Number(tickettailorItem.total || 0) > 0 && (
+                    <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '10px', padding: '16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>🎟️ Ticket Tailor</span>
+                        <span style={{ fontSize: '11px', color: '#34d399', background: 'rgba(52, 211, 153, 0.1)', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>Tickets &amp; Gifts</span>
+                      </div>
+                      <div className="brand-font" style={{ fontSize: '24px', color: '#fff', marginBottom: '4px' }}>
+                        £{Number(tickettailorItem?.total || 0).toFixed(2)}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        Synced Ticket Tailor orders &amp; donations
                       </div>
                     </div>
                   )}
@@ -5652,6 +5766,18 @@ ${tableName} Organizers`
                     <tbody>
                       {routes.map((r, i) => {
                         const routeStreets = streets.filter(st => st.route_id === r.id || st.routeName === r.name);
+                        const rawOv = String(r.status_override || r.status || '').toLowerCase();
+                        const isPostponed = rawOv === 'postponed';
+                        const isInProgress = rawOv === 'in progress';
+                        const isPastDate = Boolean(r.date && new Date(r.date + 'T23:59:59') < new Date());
+                        const isCompleted = !isPostponed && (rawOv === 'completed' || isPastDate);
+                        const badgeLabel = isPostponed ? 'Postponed' : (isInProgress ? 'In Progress' : (isCompleted ? 'Completed' : 'Scheduled'));
+                        const badgeBg = isPostponed
+                          ? 'rgba(239, 68, 68, 0.15)'
+                          : (isInProgress ? 'rgba(251, 175, 51, 0.2)' : (isCompleted ? 'rgba(34, 197, 94, 0.1)' : 'rgba(255, 255, 255, 0.08)'));
+                        const badgeColor = isPostponed
+                          ? '#fca5a5'
+                          : (isInProgress ? 'var(--primary)' : (isCompleted ? '#86efac' : '#e5e7eb'));
                         return (
                           <tr key={r.id || i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                             <td style={{ padding: '12px', fontFamily: 'monospace', color: 'var(--primary)' }}>{r.date || 'TBD'}</td>
@@ -5659,8 +5785,8 @@ ${tableName} Organizers`
                             <td style={{ padding: '12px', color: 'var(--text-muted)' }}>{routeStreets.length > 0 ? `${routeStreets.length} streets` : 'Full corridor'}</td>
                             <td style={{ padding: '12px', color: 'var(--text-muted)' }}>{r.start_time || '18:00'}</td>
                             <td style={{ padding: '12px', textAlign: 'right' }}>
-                              <span style={{ background: 'rgba(34, 197, 94, 0.1)', color: '#86efac', padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
-                                Completed
+                              <span style={{ background: badgeBg, color: badgeColor, padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
+                                {badgeLabel}
                               </span>
                             </td>
                           </tr>
@@ -5693,7 +5819,7 @@ ${tableName} Organizers`
               </div>
 
               <a
-                href={`https://${encodeURIComponent((session.tableSlug || session.tableId || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/embed`}
+                href={`https://${encodeURIComponent((currentTableSlug || session.tableSlug || session.tableId || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/embed`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-secondary"
@@ -5706,7 +5832,7 @@ ${tableName} Organizers`
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {(() => {
-                const townSlug = encodeURIComponent((session.tableSlug || session.tableId || 'beverley').toLowerCase());
+                const townSlug = encodeURIComponent((currentTableSlug || session.tableSlug || session.tableId || 'beverley').toLowerCase());
                 const townOrigin = `https://${townSlug}.roundtablesantasleigh.co.uk`;
                 return [
                   {
@@ -6857,9 +6983,18 @@ ${tableName} Organizers`
 
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 <button
-                  onClick={() => {
-                    setActiveCrewAlert(crewAlertText);
-                    setSaveStatus('🚨 Alert broadcasted to all crew devices!');
+                  onClick={async () => {
+                    const cleanMsg = (crewAlertText || '').trim();
+                    const slug = currentTableSlug || session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley';
+                    setActiveCrewAlert(cleanMsg);
+                    if (onUpdateTableData) {
+                      onUpdateTableData(prev => ({
+                        ...prev,
+                        table: { ...prev?.table, crew_alert: cleanMsg || null }
+                      }));
+                    }
+                    const res = await saveTableSettings(slug, { crew_alert: cleanMsg });
+                    setSaveStatus(res?.ok ? '🚨 Alert broadcasted & saved to all crew devices!' : '🚨 Alert broadcasted locally!');
                     setTimeout(() => setSaveStatus(''), 3000);
                   }}
                   className="btn-primary"
@@ -6870,10 +7005,18 @@ ${tableName} Organizers`
                 </button>
                 {activeCrewAlert && (
                   <button
-                    onClick={() => {
+                    onClick={async () => {
+                      const slug = currentTableSlug || session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley';
                       setActiveCrewAlert('');
                       setCrewAlertText('');
-                      setSaveStatus('Crew alert cleared.');
+                      if (onUpdateTableData) {
+                        onUpdateTableData(prev => ({
+                          ...prev,
+                          table: { ...prev?.table, crew_alert: null }
+                        }));
+                      }
+                      await saveTableSettings(slug, { crew_alert: '' });
+                      setSaveStatus('Crew alert cleared from crew screens.');
                       setTimeout(() => setSaveStatus(''), 3000);
                     }}
                     className="btn-secondary"
@@ -10919,6 +11062,10 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                         justgiving_url: formData.justgiving_url || null,
                         tickettailor_event_id: formData.tickettailor_event_id || null,
                         tickettailor_api_key: (formData.tickettailor_api_key && formData.tickettailor_api_key.trim()) ? formData.tickettailor_api_key.trim() : undefined,
+                        auto_crew_briefing_enabled: formData.auto_crew_briefing_enabled !== false ? 1 : 0,
+                        crew_briefing_hours_before: Number(formData.crew_briefing_hours_before || 2),
+                        default_muster_point: formData.default_muster_point || '',
+                        default_muster_time: formData.default_muster_time || '',
                         custom_css: formData.custom_css ? formData.custom_css.trim() : null,
                         driver_pin: formData.driver_pin ? String(formData.driver_pin).trim() : null
                       };
@@ -11082,14 +11229,26 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
               </div>
 
               {formData.enable_gift_aid && (
-                <button
-                  onClick={handleExportHmrc}
-                  className="btn-primary"
-                  style={{ padding: '10px 20px' }}
-                >
-                  <Download size={18} />
-                  <span>Export HMRC R68 CSV</span>
-                </button>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={loadGiftAidSummary}
+                    className="btn-secondary"
+                    style={{ padding: '10px 14px' }}
+                  >
+                    <RefreshCw size={16} />
+                    <span>{giftAidLoading ? 'Loading...' : 'Refresh Ledger'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleExportHmrc('All')}
+                    className="btn-primary"
+                    style={{ padding: '10px 20px' }}
+                  >
+                    <Download size={18} />
+                    <span>Export HMRC R68 CSV</span>
+                  </button>
+                </div>
               )}
             </div>
 
@@ -11232,7 +11391,89 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                 ✓ HMRC R68 Columns: Title | First Name | Last Name | House No | Postcode | Date | Amount
               </div>
 
-              {/* Sample HMRC Declaration Preview */}
+              {/* Live Cloudflare D1 HMRC Gift Aid Ledger */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px', marginTop: '18px', marginBottom: '18px' }}>
+                <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '10px', padding: '14px' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Declarations in D1</div>
+                  <div className="brand-font" style={{ fontSize: '24px', color: '#fff' }}>{giftAidSummary.declarations}</div>
+                </div>
+                <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '10px', padding: '14px' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Eligible Donations</div>
+                  <div className="brand-font" style={{ fontSize: '24px', color: 'var(--primary)' }}>£{Number(giftAidSummary.totalDonations || 0).toFixed(2)}</div>
+                </div>
+                <div style={{ background: '#151513', border: '1px solid rgba(34, 197, 94, 0.35)', borderRadius: '10px', padding: '14px' }}>
+                  <div style={{ fontSize: '11px', color: '#86efac', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>HMRC 25% Reclaim</div>
+                  <div className="brand-font" style={{ fontSize: '24px', color: '#22c55e' }}>+£{Number(giftAidSummary.totalGiftAid || 0).toFixed(2)}</div>
+                </div>
+              </div>
+
+              {giftAidSummary.entries.length > 0 ? (
+                <div style={{
+                  marginTop: '12px',
+                  background: '#151513',
+                  border: '1px solid rgba(34, 197, 94, 0.3)',
+                  borderRadius: '10px',
+                  padding: '16px 20px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
+                    <strong style={{ color: '#fff', fontSize: '14px' }}>
+                      Live Gift Aid Declarations ({giftAidSummary.entries.length})
+                    </strong>
+                    {giftAidSummary.entries.some(e => (e.status || 'Pending') === 'Pending') && (
+                      <button
+                        type="button"
+                        onClick={() => handleMarkGiftAidClaimed(null)}
+                        className="btn-secondary"
+                        style={{ padding: '6px 12px', fontSize: '12px', borderColor: '#22c55e', color: '#86efac' }}
+                      >
+                        <CheckCircle2 size={14} />
+                        <span>Mark All Pending as Claimed</span>
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', color: '#fff', textAlign: 'left', minWidth: '580px' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-muted)' }}>
+                          <th style={{ padding: '8px 10px' }}>Date</th>
+                          <th style={{ padding: '8px 10px' }}>Donor Name</th>
+                          <th style={{ padding: '8px 10px' }}>House &amp; Postcode</th>
+                          <th style={{ padding: '8px 10px' }}>Donation</th>
+                          <th style={{ padding: '8px 10px' }}>Gift Aid (+25%)</th>
+                          <th style={{ padding: '8px 10px' }}>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {giftAidSummary.entries.map((entry) => (
+                          <tr key={entry.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                            <td style={{ padding: '10px', fontFamily: 'monospace', color: 'var(--text-muted)' }}>{entry.date || '—'}</td>
+                            <td style={{ padding: '10px', fontWeight: 700 }}>{entry.name || 'Donor'}</td>
+                            <td style={{ padding: '10px', color: 'var(--text-muted)' }}>
+                              {[entry.house_name_or_number, entry.postcode].filter(Boolean).join(', ') || '—'}
+                            </td>
+                            <td style={{ padding: '10px', fontWeight: 700 }}>£{Number(entry.amount || 0).toFixed(2)}</td>
+                            <td style={{ padding: '10px', color: '#86efac', fontWeight: 700 }}>+£{Number(entry.giftAid || 0).toFixed(2)}</td>
+                            <td style={{ padding: '10px' }}>
+                              <span style={{
+                                background: entry.status === 'Claimed' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(251, 175, 51, 0.15)',
+                                color: entry.status === 'Claimed' ? '#86efac' : 'var(--primary)',
+                                border: entry.status === 'Claimed' ? '1px solid #22c55e' : '1px solid rgba(251, 175, 51, 0.4)',
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: 700
+                              }}>
+                                {entry.status || 'Pending'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+              /* Sample HMRC Declaration Preview when 0 declarations exist */
               <div style={{
                 marginTop: '18px',
                 background: '#151513',
@@ -11292,9 +11533,10 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                   </table>
                 </div>
                 <p style={{ margin: '12px 0 0 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                  💡 Note: When donors tick Gift Aid during checkout on Zeffy or card readers, actual rows are recorded into your Table's D1 SQL database. This sample row is purely for template visualization and is not in D1.
+                  💡 Note: When donors submit Gift Aid declarations via your public turnkey site or Gift Aid form, live rows appear here automatically and export directly via the HMRC R68 CSV button above.
                 </p>
               </div>
+              )}
             </div>
           </div>
         )}
@@ -12093,12 +12335,14 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                     const isRecording = activeRecordingId === msg.id;
                     const hasRecordedReply = Boolean(recordedUrlMap[msg.id]);
 
+                    const isFlagged = Boolean(msg.flagged || String(msg.status || '').toLowerCase().includes('flag') || msg.flag_reason);
+                    const repliedBy = msg.reply_volunteer || msg.replied_by || 'Santa Claus';
                     return (
                       <div
                         key={msg.id}
                         style={{
                           background: '#151513',
-                          border: msg.flagged ? '1px solid rgba(239, 68, 68, 0.4)' : (msg.replied_at ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid var(--border)'),
+                          border: isFlagged ? '1px solid rgba(239, 68, 68, 0.4)' : (msg.replied_at ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid var(--border)'),
                           borderRadius: '12px',
                           padding: '18px 20px',
                           boxShadow: '0 4px 14px rgba(0,0,0,0.3)'
@@ -12118,13 +12362,13 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                             )}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            {msg.flagged ? (
+                            {isFlagged ? (
                               <span style={{ fontSize: '11px', background: 'rgba(239,68,68,0.2)', color: '#fca5a5', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                                🚩 Flagged
+                                🚩 Flagged{msg.flag_reason ? `: ${msg.flag_reason}` : ''}
                               </span>
                             ) : msg.replied_at ? (
                               <span style={{ fontSize: '11px', background: 'rgba(34,197,94,0.2)', color: '#86efac', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                                ✓ Replied by {msg.reply_volunteer || 'Santa'}
+                                ✓ Replied by {repliedBy}
                               </span>
                             ) : (
                               <span style={{ fontSize: '11px', background: 'rgba(245,158,11,0.2)', color: '#fcd34d', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
@@ -12239,7 +12483,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                               preload="none"
                             />
                             <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                              Replied by <strong>{msg.reply_volunteer || 'Santa Claus'}</strong> on {new Date(msg.replied_at).toLocaleString('en-GB')}.
+                              Replied by <strong>{repliedBy}</strong> on {new Date(msg.replied_at).toLocaleString('en-GB')}.
                             </div>
                           </div>
                         ) : (
@@ -12357,17 +12601,17 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                           <button
                             type="button"
-                            onClick={() => handleFlagMailboxMessage(msg.id, msg.flagged)}
+                            onClick={() => handleFlagMailboxMessage(msg.id, isFlagged)}
                             style={{
                               background: 'transparent',
                               border: 'none',
-                              color: msg.flagged ? '#86efac' : '#fca5a5',
+                              color: isFlagged ? '#86efac' : '#fca5a5',
                               fontSize: '11px',
                               cursor: 'pointer',
                               textDecoration: 'underline'
                             }}
                           >
-                            {msg.flagged ? 'Unflag' : 'Flag / Archive'}
+                            {isFlagged ? 'Unflag' : 'Flag / Archive'}
                           </button>
                           <button
                             type="button"

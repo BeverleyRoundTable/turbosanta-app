@@ -536,9 +536,10 @@ export async function deleteRoute(tableSlug = "beverley", routeId = "", explicit
 
 export async function recordCashDonation(tableSlug = "beverley", cashData = {}, explicitSecret = null) {
   try {
-    const res = await fetch(`${API_BASE}/api/donations/cash?table=${encodeURIComponent(tableSlug)}`, {
+    const slug = (tableSlug || "beverley").toLowerCase().trim();
+    const res = await fetch(`${API_BASE}/api/donations/cash?table=${encodeURIComponent(slug)}`, {
       method: "POST",
-      headers: getAuthHeaders(explicitSecret),
+      headers: getAuthHeaders(explicitSecret, slug),
       body: JSON.stringify(cashData)
     });
     if (!res.ok) {
@@ -554,8 +555,9 @@ export async function recordCashDonation(tableSlug = "beverley", cashData = {}, 
 
 export async function fetchCashDonations(tableSlug = "beverley", explicitSecret = null) {
   try {
-    const res = await fetch(`${API_BASE}/api/donations/cash?table=${encodeURIComponent(tableSlug)}`, {
-      headers: getAuthHeaders(explicitSecret)
+    const slug = (tableSlug || "beverley").toLowerCase().trim();
+    const res = await fetch(`${API_BASE}/api/donations/cash?table=${encodeURIComponent(slug)}`, {
+      headers: getAuthHeaders(explicitSecret, slug)
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
@@ -567,14 +569,69 @@ export async function fetchCashDonations(tableSlug = "beverley", explicitSecret 
 
 export async function deleteCashDonation(tableSlug = "beverley", donationId = "", explicitSecret = null) {
   try {
-    const res = await fetch(`${API_BASE}/api/donations/cash?table=${encodeURIComponent(tableSlug)}&id=${encodeURIComponent(donationId)}`, {
+    const slug = (tableSlug || "beverley").toLowerCase().trim();
+    const res = await fetch(`${API_BASE}/api/donations/cash?table=${encodeURIComponent(slug)}&id=${encodeURIComponent(donationId)}`, {
       method: "DELETE",
-      headers: getAuthHeaders(explicitSecret)
+      headers: getAuthHeaders(explicitSecret, slug)
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } catch (err) {
     console.error("Delete cash donation error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
+// ==============================================================
+// 🎁 HMRC GIFT AID SUMMARY, STATUS & STATUTORY R68 CSV EXPORT
+// ==============================================================
+
+export async function fetchGiftAidSummary(tableSlug = "beverley", explicitSecret = null) {
+  try {
+    const slug = (tableSlug || "beverley").toLowerCase().trim();
+    const res = await fetch(`${API_BASE}/api/gift-aid/summary?table=${encodeURIComponent(slug)}`, {
+      headers: getAuthHeaders(explicitSecret, slug)
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error("Fetch Gift Aid summary error:", err);
+    return { ok: false, declarations: 0, totalDonations: 0, totalGiftAid: 0, entries: [] };
+  }
+}
+
+export async function updateGiftAidStatus(tableSlug = "beverley", payload = { mode: "bulkAll", status: "Claimed" }, explicitSecret = null) {
+  try {
+    const slug = (tableSlug || "beverley").toLowerCase().trim();
+    const res = await fetch(`${API_BASE}/api/gift-aid/status?table=${encodeURIComponent(slug)}`, {
+      method: "POST",
+      headers: getAuthHeaders(explicitSecret, slug),
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error("Update Gift Aid status error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
+export async function exportGiftAidCsv(tableSlug = "beverley", statusFilter = "All", explicitSecret = null) {
+  try {
+    const slug = (tableSlug || "beverley").toLowerCase().trim();
+    const res = await fetch(`${API_BASE}/api/gift-aid/export?table=${encodeURIComponent(slug)}&status=${encodeURIComponent(statusFilter)}`, {
+      headers: {
+        ...getAuthHeaders(explicitSecret, slug),
+        "Accept": "application/json"
+      }
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || `HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (err) {
+    console.error("Export Gift Aid CSV error:", err);
     return { ok: false, error: err.message };
   }
 }

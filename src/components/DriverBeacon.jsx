@@ -3,11 +3,13 @@ import {
   Radio, Play, Square, Compass, Battery, ArrowLeft,
   ExternalLink, Navigation, Volume2, VolumeX, MessageSquare, Check, Sparkles
 } from 'lucide-react';
+import { getAdminAuthToken } from '../services/auth';
 
 export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
   // Mode: 'satnav' (Full Waze-style 3D Turn-by-Turn GPS Sat-Nav) | 'standby' (Low-Power Battery-Saver Beacon)
   const [cockpitMode, setCockpitMode] = useState('satnav');
   const [broadcastToast, setBroadcastToast] = useState('');
+  const [crewAlert, setCrewAlert] = useState('');
 
   // Standby Beacon Mode State
   const [isActive, setIsActive] = useState(false);
@@ -30,7 +32,7 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
   const watchIdRef = useRef(null);
   const wakeLockRef = useRef(null);
 
-  const tableSlug = session?.tableId || 'beverley';
+  const tableSlug = session?.tableSlug || session?.tableId || 'beverley';
   const tableName = session?.tableName || 'Santa Sleigh';
   const satNavUrl = `/tracker.html?table=${encodeURIComponent(tableSlug)}&driver=1`;
 
@@ -43,6 +45,28 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
       }).catch(() => {});
     }
   }, []);
+
+  // Poll active Crew Alert from Lead Elf / Admin Portal
+  useEffect(() => {
+    let cancelled = false;
+    const pollAlert = async () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      try {
+        const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableSlug)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) {
+          setCrewAlert(String(data?.table?.crew_alert || '').trim());
+        }
+      } catch (e) {}
+    };
+    pollAlert();
+    const timer = setInterval(pollAlert, 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [tableSlug]);
 
   // Audio Ping generator using Web Audio API (for standby beacon)
   const playBeaconBeep = () => {
@@ -112,7 +136,7 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
           playBeaconBeep();
 
           // Transmit directly to Cloudflare Edge API
-          const beaconSecret = session?.googleCredential || session?.token || '';
+          const beaconSecret = session?.googleCredential || session?.token || getAdminAuthToken(tableSlug) || '';
           fetch(`https://turbosanta-api.beverley247.workers.dev/api/telemetry?table=${encodeURIComponent(tableSlug)}`, {
             method: 'PUT',
             headers: {
@@ -300,6 +324,29 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
           </a>
         </div>
       </header>
+
+      {/* Active Crew Alert Banner from Lead Elf */}
+      {crewAlert && (
+        <div style={{
+          background: 'rgba(211, 28, 28, 0.22)',
+          borderBottom: '1px solid rgba(211, 28, 28, 0.5)',
+          color: '#fff',
+          padding: '8px 14px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          fontSize: '12px',
+          fontWeight: 700,
+          flexShrink: 0,
+          zIndex: 55
+        }}>
+          <span style={{ color: '#ff6b6b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px', fontSize: '11px' }}>
+            Lead Elf Alert:
+          </span>
+          <span>{crewAlert}</span>
+        </div>
+      )}
 
       {/* Broadcast Toast Notification */}
       {broadcastToast && (

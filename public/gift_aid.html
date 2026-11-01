@@ -473,12 +473,22 @@
     };
 
     try {
-      await fetch(submitUrl, {
+      const fetchMode = tableSlug ? 'cors' : 'no-cors';
+      const res = await fetch(submitUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-        mode: tableSlug ? 'cors' : 'no-cors'
+        mode: fetchMode
       });
+      if (fetchMode === 'cors') {
+        const resData = await res.json().catch(() => ({}));
+        if (!res.ok || resData.ok === false) {
+          alert(resData.error || 'Could not record Gift Aid declaration — please check your details and try again.');
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = 'Submit Declaration';
+          return;
+        }
+      }
 
       const giftAid = Math.round(amt * 0.25 * 100) / 100;
       document.getElementById('boostEcho').innerHTML = `

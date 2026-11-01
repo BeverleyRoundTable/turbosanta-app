@@ -496,8 +496,8 @@ export function generateSqlMigration(data, rawTableSlug = 'beverley') {
     lines.push(`DELETE FROM routes WHERE table_id = '${tableSlug}';\n`);
 
     data.routes.forEach(r => {
-      lines.push(`INSERT INTO routes (id, table_id, name, date, start_time, gpx_url, sponsor_logo, status) VALUES (`);
-      lines.push(`  '${r.id}', '${tableSlug}', '${r.name.replace(/'/g, "''")}', '${r.date}', '${r.start_time}', '${(r.gpx_url || '').replace(/'/g, "''")}', '${(r.sponsor_logo || '').replace(/'/g, "''")}', 'Scheduled'`);
+      lines.push(`INSERT INTO routes (id, table_id, name, date, start_time, end_time, gpx_url, sponsor_logo, sponsor_logo_url, status) VALUES (`);
+      lines.push(`  '${r.id}', '${tableSlug}', '${r.name.replace(/'/g, "''")}', '${r.date}', '${r.start_time || '18:00'}', '${r.end_time || '20:30'}', '${(r.gpx_url || '').replace(/'/g, "''")}', '${(r.sponsor_logo_url || r.sponsor_logo || '').replace(/'/g, "''")}', '${(r.sponsor_logo_url || r.sponsor_logo || '').replace(/'/g, "''")}', 'Scheduled'`);
       lines.push(`);`);
     });
     lines.push('');
