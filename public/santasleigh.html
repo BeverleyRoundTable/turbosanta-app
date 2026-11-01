@@ -3076,8 +3076,10 @@
                 }
             }
 
+            const isGaNominations = !(settings.enable_grant_nominations === false || settings.enable_grant_nominations === 0 || settings.enable_grant_nominations === '0' || settings.enable_grant_nominations === 'false');
             const grantBtn = $('open-grant-modal-btn');
             if (grantBtn) {
+                grantBtn.style.display = isGaNominations ? 'inline-block' : 'none';
                 grantBtn.onclick = () => openGrantNominationModal();
             }
             const grantsGrid = $('approved-grants-grid');

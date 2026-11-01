@@ -14,6 +14,13 @@
     return val === true || val === 1 || val === '1' || val === 'true';
   }
 
+  function isGrantNominationsEnabled(tbl = state.payload?.table) {
+    if (!tbl) return true;
+    const val = tbl.enable_grant_nominations;
+    if (val === false || val === 0 || val === '0' || val === 'false') return false;
+    return true;
+  }
+
   const PUBLIC_FEATURE_CATALOG = {
     bingo: {
       id: 'bingo',
@@ -1121,9 +1128,13 @@
       }
     }
 
+    const grantWrap = document.getElementById('grant-action-wrap');
     const grantBtn = document.getElementById('open-grant-btn');
-    if (grantBtn) {
-      grantBtn.style.display = table.enable_grant_nominations === false ? 'none' : 'inline-flex';
+    const isGrantsActive = isGrantNominationsEnabled(table);
+    if (grantWrap) {
+      grantWrap.style.display = isGrantsActive ? 'block' : 'none';
+    } else if (grantBtn) {
+      grantBtn.style.display = isGrantsActive ? 'flex' : 'none';
     }
 
     // Toggle Gift Aid Calculator and Buttons based on table setting
