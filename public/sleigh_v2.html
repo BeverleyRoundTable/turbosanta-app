@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Santa Sleigh — Live Community Radar &amp; Schedule</title>
+  <meta name="description" content="Track Santa live across our streets, search your road in seconds, get automatic doorstep alerts, and support 100% local charities.">
+  <meta name="theme-color" content="#080a0f">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Round Table Santa Sleigh — Live Community Radar">
+  <meta property="og:description" content="Track Santa live across our streets, search your road in seconds, and support local community causes.">
+  <meta property="og:image" content="https://roundtablesantasleigh.co.uk/icons/RTBI_Santa_dark.png?v=2">
+
+  <link rel="icon" type="image/png" href="/icons/RTBI_Santa.png">
+  <link rel="apple-touch-icon" href="/icons/RTBI_Santa.png">
+  <link rel="preload" href="/site/Eurostile_Extended_2_Bold.woff2" as="font" type="font/woff2" crossorigin>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="/sleigh_v2.css">
+</head>
+<body>
+
+  <!-- Ambient Winter Night Sky & Optional Video/Image Layer -->
+  <div class="sky-backdrop" id="sky-backdrop">
+    <div class="sky-media-layer" id="sky-media-layer">
+      <video id="sky-video" autoplay loop muted playsinline webkit-playsinline disablePictureInPicture>
+        <source src="/media/santa.mp4" type="video/mp4">
+        <source src="/media/santa.webm" type="video/webm">
+      </video>
+    </div>
+  </div>
+  <canvas id="snow-canvas" aria-hidden="true"></canvas>
+
+  <!-- V2 Test Lab Bar (Allows instant dataset & state switching on real production D1 data) -->
+  <div class="test-lab-bar" id="test-lab-bar">
+    <div class="test-lab-inner">
+      <div class="test-lab-left">
+        <span class="lab-badge"><i class="fa-solid fa-flask"></i> V2 Design Preview</span>
+        <button type="button" class="lab-pill" data-table="stockton" title="14 GPX Routes, 174 Streets, 4 Partners, Grant">Stockton (14 Routes)</button>
+        <button type="button" class="lab-pill" data-table="ringwood" title="10 GPX Routes, 9 Route Sponsors, Crimson Theme">Ringwood (9 Sponsors)</button>
+        <button type="button" class="lab-pill" data-table="cheltenham" title="8 GPX Routes, 5 Live Memory Photos">Cheltenham (Photos)</button>
+        <button type="button" class="lab-pill" data-table="abergavenny" title="4 Routes, 291 Streets, Voice Santa">Abergavenny (291 Streets)</button>
+        <button type="button" class="lab-pill" data-table="beverley" title="Live Donations, Custom Crest, Red/Gold">Beverley</button>
+        <select id="lab-all-tables" class="lab-select" aria-label="Switch live Round Table dataset">
+          <option value="">All Live Tables...</option>
+        </select>
+      </div>
+      <div class="test-lab-right">
+        <button type="button" class="lab-pill active" data-sim="auto">Live State</button>
+        <button type="button" class="lab-pill sim-live" data-sim="live"><i class="fa-solid fa-satellite-dish"></i> Simulate Sleigh LIVE</button>
+        <button type="button" class="lab-pill sim-rain" data-sim="rain"><i class="fa-solid fa-cloud-showers-heavy"></i> Simulate Rain-Check</button>
+        <a id="lab-compare-v1" href="/santasleigh.html?table=stockton" target="_blank" rel="noopener" class="lab-link">Compare V1 &#8599;</a>
+        <button type="button" id="lab-hide-btn" class="lab-pill" title="Hide preview toolbar" aria-label="Hide preview toolbar">&#10005;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Operational Announcement Strip -->
+  <div class="announcement-strip" id="announcement-strip" role="status" aria-live="polite"></div>
+
+  <!-- Sticky Glass Navigation -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="#top" class="brand-lockup">
+        <div class="brand-crest-wrap">
+          <img id="header-logo" src="/icons/RTBI_Santa.png" alt="Round Table Santa Sleigh Crest" class="brand-crest">
+        </div>
+        <div class="brand-text-col">
+          <span class="brand-kicker" id="header-kicker">Official Community Sleigh</span>
+          <span class="brand-name brand-font" id="header-title">Santa Sleigh</span>
+        </div>
+      </a>
+
+      <nav class="desktop-nav" aria-label="Primary sections">
+        <a href="#radar">Live Radar</a>
+        <a href="#routes">Routes &amp; Streets</a>
+        <a href="#impact">Local Impact</a>
+        <a href="#magic">Family Zone</a>
+        <a href="#memories">Memory Wall</a>
+        <a href="#faq">Safety &amp; FAQ</a>
+      </nav>
+
+      <div class="header-actions">
+        <button type="button" id="music-toggle-btn" class="btn-glass btn-sm" style="display:none;" aria-label="Toggle sleigh jingles">
+          <i class="fa-solid fa-music" style="color:var(--primary);"></i>
+          <span id="music-btn-label">Jingles</span>
+        </button>
+        <button type="button" id="header-donate-btn" class="btn-brand btn-sm">
+          <i class="fa-solid fa-heart"></i>
+          <span>Donate</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <!-- SPLIT-STAGE HERO + NATIVE MULTI-ROUTE GPX RADAR -->
+    <section class="hero-stage" id="radar">
+      <div class="container hero-grid">
+
+        <!-- Left Column: Story, Status, Instant Street Search & Metrics -->
+        <div class="hero-copy-card">
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            <div class="status-pill-row">
+              <div class="live-status-badge" id="hero-status-badge">
+                <span class="pulse-dot"></span>
+                <span id="hero-status-text">Connecting to Sleigh Radar...</span>
+              </div>
+              <div class="countdown-chip tabular" id="hero-countdown-chip" style="display:none;">
+                <i class="fa-regular fa-clock" style="color:var(--primary);"></i>
+                <span id="hero-countdown-text"></span>
+              </div>
+            </div>
+
+            <h1 class="hero-headline" id="hero-headline">
+              Bringing Christmas Magic Across <span class="hl" id="hero-town-hl">Our Community</span>
+            </h1>
+
+            <p class="hero-subcopy" id="hero-subcopy">
+              Search your street in seconds, watch Santa's sleigh glide live across our neighbourhood routes, and help our Round Table volunteers raise vital funds — 100% stays in our local community.
+            </p>
+          </div>
+
+          <!-- Instant Zero-Iframe Street, Postcode & GPS Doorstep Finder -->
+          <div class="street-finder-box">
+            <div class="finder-label">
+              <span><i class="fa-solid fa-magnifying-glass-location"></i> When Is Santa On My Street?</span>
+              <span class="finder-count tabular" id="finder-street-total">Scanning streets...</span>
+            </div>
+            <div class="finder-input-row">
+              <div class="finder-input-wrap">
+                <i class="fa-solid fa-magnifying-glass finder-icon"></i>
+                <input
+                  type="text"
+                  id="street-search-input"
+                  class="finder-input"
+                  placeholder="Type your street name or UK postcode..."
+                  autocomplete="off"
+                >
+                <button type="button" id="street-search-clear" class="finder-clear-btn" aria-label="Clear search">
+                  <i class="fa-solid fa-circle-xmark"></i>
+                </button>
+              </div>
+              <button type="button" id="use-gps-btn" class="finder-gps-btn" title="Find nearest sleigh route to my location">
+                <i class="fa-solid fa-location-crosshairs"></i>
+                <span>Near Me</span>
+              </button>
+            </div>
+            <div class="finder-results-popover" id="finder-results-popover" role="region" aria-live="polite"></div>
+          </div>
+
+          <!-- Live Town Route Coverage Metrics -->
+          <div class="hero-metrics-row">
+            <div class="hero-metric-tile">
+              <div class="hero-metric-val brand-font tabular" id="metric-routes">--</div>
+              <div class="hero-metric-lbl">Sleigh Routes</div>
+            </div>
+            <div class="hero-metric-tile">
+              <div class="hero-metric-val brand-font tabular" id="metric-streets">--</div>
+              <div class="hero-metric-lbl">Streets Covered</div>
+            </div>
+            <div class="hero-metric-tile">
+              <div class="hero-metric-val brand-font tabular" id="metric-local">100%</div>
+              <div class="hero-metric-lbl">To Local Causes</div>
+            </div>
+          </div>
+
+          <div class="hero-cta-row">
+            <button type="button" id="hero-donate-cta" class="btn-brand">
+              <i class="fa-solid fa-hand-holding-heart"></i>
+              <span>Donate Online (+25% Gift Aid)</span>
+            </button>
+            <button type="button" id="hero-alert-cta" class="btn-glass">
+              <i class="fa-solid fa-bell" style="color:var(--primary);"></i>
+              <span>Get Doorstep Alert</span>
+            </button>
+            <button type="button" id="hero-share-cta" class="btn-glass" aria-label="Share sleigh tracker">
+              <i class="fa-solid fa-share-nodes"></i>
+              <span>Share</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Right Column: Native Interactive Multi-Route GPX Radar -->
+        <div class="radar-stage-card">
+          <div class="radar-top-bar">
+            <div class="radar-title-group">
+              <span class="radar-indicator" id="radar-dot"></span>
+              <div>
+                <div class="radar-heading brand-font" id="radar-title">Interactive Sleigh Radar</div>
+                <div class="radar-sub" id="radar-subtitle">Loading GPX route network...</div>
+              </div>
+            </div>
+            <div class="radar-controls">
+              <button type="button" id="map-all-routes-btn" class="radar-ctrl-btn active">
+                <i class="fa-solid fa-layer-group"></i> All Routes
+              </button>
+              <button type="button" id="map-pin-house-btn" class="radar-ctrl-btn" title="Click your home on the map for a 250m email alert">
+                <i class="fa-solid fa-bell"></i> Pin Alert
+              </button>
+              <a id="map-fullscreen-link" href="/tracker" target="_blank" rel="noopener" class="radar-ctrl-btn">
+                <i class="fa-solid fa-expand"></i> 3D Sat-Nav
+              </a>
+            </div>
+          </div>
+
+          <div class="radar-map-viewport">
+            <div id="v2-leaflet-map" aria-label="Interactive Santa Sleigh GPX Route Map"></div>
+
+            <div class="map-hud-overlay">
+              <div class="map-telemetry-card">
+                <div class="sleigh-avatar-badge" id="hud-sleigh-emoji">&#127877;</div>
+                <div class="telemetry-meta">
+                  <div class="telemetry-road" id="hud-road-name">Lapland Sleigh Workshop</div>
+                  <div class="telemetry-detail tabular" id="hud-telemetry-detail">Tap any glowing route to inspect streets &amp; stops</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Moderated Community Cheer Strip -->
+          <div class="radar-cheer-bar">
+            <div class="cheer-ticker-wrap">
+              <span class="cheer-tag"><i class="fa-solid fa-wand-magic-sparkles"></i> Live Cheer</span>
+              <span class="cheer-text" id="cheer-ticker-text">Wave to Santa and our volunteer elves when we pass your street!</span>
+            </div>
+            <button type="button" id="open-cheer-btn" class="mini-action-pill">
+              &#128075; Send Cheer
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- MASTER ROUTE SCHEDULE & STREET EXPLORER -->
+    <section class="page-section" id="routes">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <div class="section-eyebrow"><i class="fa-solid fa-route"></i> Complete Street-by-Street Schedule</div>
+            <h2 class="section-title">SLEIGH <span class="hl">ROUTE NIGHTS</span></h2>
+            <p class="section-subtitle">Click any route night to fly the radar map to its GPX corridor, inspect every street in order, add it to your phone calendar, or set an automatic doorstep alert.</p>
+          </div>
+        </div>
+
+        <div class="routes-toolbar">
+          <div class="filter-tabs" role="tablist">
+            <button type="button" class="filter-tab active" data-rfilter="upcoming">Upcoming Nights</button>
+            <button type="button" class="filter-tab" data-rfilter="all">All Routes (<span id="all-routes-count">0</span>)</button>
+          </div>
+          <input
+            type="text"
+            id="routes-filter-input"
+            class="route-inline-filter"
+            placeholder="Filter routes, areas, sponsors or streets..."
+          >
+        </div>
+
+        <div class="routes-bento-grid" id="routes-bento-grid"></div>
+      </div>
+    </section>
+
+    <!-- COMMUNITY IMPACT, ADAPTIVE FUNDRAISING & +25% GIFT AID -->
+    <section class="page-section" id="impact">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <div class="section-eyebrow"><i class="fa-solid fa-heart-circle-check"></i> 100% Volunteer-Run Charity Appeal</div>
+            <h2 class="section-title">EVERY PENNY STAYS <span class="hl">LOCAL</span></h2>
+            <p class="section-subtitle">Our elves give their evenings for free so every pound collected on the doorstep or donated online goes straight to local good causes, grassroots clubs, and families in need.</p>
+          </div>
+        </div>
+
+        <div class="impact-bento">
+          <!-- Left: Adaptive Campaign Progress + Interactive Gift Aid Value Booster -->
+          <div class="fundraiser-card-v2">
+            <div>
+              <div class="section-eyebrow" id="fundraiser-kicker"><i class="fa-solid fa-bolt"></i> Season Appeal</div>
+              <div class="thermo-header-row">
+                <div class="raised-big-figure brand-font tabular" id="fundraiser-big-amount">£0</div>
+                <div class="goal-figure tabular" id="fundraiser-goal-label">Season Target: £2,000</div>
+              </div>
+              <div class="thermo-track" style="margin-top:14px;">
+                <div class="thermo-bar" id="fundraiser-bar" style="width:8%;"></div>
+              </div>
+              <p style="font-size:12.5px; color:var(--text-secondary); margin-top:10px;" id="fundraiser-subnote">
+                Zero platform fees when donating via our official community link — plus UK taxpayers add 25% free via HMRC Gift Aid.
+              </p>
+            </div>
+
+            <!-- Interactive +25% Gift Aid Calculator -->
+            <div class="giftaid-calculator-box" id="giftaid-calc-box">
+              <div class="ga-calc-head">
+                <span style="font-weight:800; font-size:13px; color:#fff;">See Your Free +25% HMRC Gift Aid Boost</span>
+                <span class="ga-tag">+25% Free</span>
+              </div>
+              <div class="tier-pills-row">
+                <button type="button" class="tier-pill" data-amt="3">£3</button>
+                <button type="button" class="tier-pill active" data-amt="5">£5</button>
+                <button type="button" class="tier-pill" data-amt="10">£10</button>
+                <button type="button" class="tier-pill" data-amt="20">£20</button>
+              </div>
+              <div class="ga-math-line tabular">
+                <span>Your <strong id="calc-base" style="color:#fff;">£5.00</strong> gift + <strong id="calc-bonus" style="color:#6ee7b7;">£1.25</strong> HMRC boost =</span>
+                <span class="ga-math-total brand-font" id="calc-total">£6.25</span>
+              </div>
+            </div>
+
+            <div style="display:flex; flex-wrap:wrap; gap:10px;">
+              <button type="button" id="impact-donate-btn" class="btn-brand" style="flex:1; min-width:210px;">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <span>Boost by 25% &amp; Donate Now</span>
+              </button>
+              <a id="impact-giftaid-only-btn" href="/giftaid" target="_blank" rel="noopener" class="btn-glass">
+                <span>Donated Cash/Card? Claim Gift Aid</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Right Stack: Local Beneficiaries / Grant Nominations + Volunteer Crew CTA -->
+          <div class="impact-side-stack">
+            <div class="glass-bento-card">
+              <div>
+                <div class="section-eyebrow"><i class="fa-solid fa-hand-holding-medical"></i> Local Beneficiaries &amp; Grants</div>
+                <h3 style="font-size:20px; margin-bottom:8px;">WHERE YOUR <span class="hl">DONATIONS GO</span></h3>
+                <p style="font-size:13.5px; color:var(--text-secondary); line-height:1.55;">
+                  Funds raised by <strong id="impact-charity-name" style="color:#fff;">our Round Table</strong> directly support local charities, youth groups, schools, and community projects across our area.
+                </p>
+                <div class="beneficiary-chips" id="beneficiary-chips" style="margin-top:14px;"></div>
+              </div>
+              <div>
+                <button type="button" id="open-grant-btn" class="btn-glass btn-sm" style="width:100%;">
+                  <i class="fa-solid fa-seedling" style="color:var(--primary);"></i>
+                  <span>Nominate a Local Cause / Apply for a Grant</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="glass-bento-card">
+              <div>
+                <div class="section-eyebrow"><i class="fa-solid fa-sleigh"></i> Join Our Sleigh Crew</div>
+                <h3 style="font-size:20px; margin-bottom:8px;">VOLUNTEER AS AN <span class="hl">ELF TONIGHT</span></h3>
+                <p style="font-size:13.5px; color:var(--text-secondary); line-height:1.55;">
+                  Community groups, sports clubs, friends, and neighbours are welcome! Help us walk the streets with buckets and spread festive cheer.
+                </p>
+              </div>
+              <a id="volunteer-crew-link" href="/crew" target="_blank" rel="noopener" class="btn-glass btn-sm" style="width:100%;">
+                <i class="fa-solid fa-users"></i>
+                <span>Open Volunteer Sign-Up &amp; Crew Hub &#8594;</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- KERBSIDE & FAMILY MAGIC ARCADE (ZERO SCROLL-TRAP THEATER LAUNCHER) -->
+    <section class="page-section" id="magic">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <div class="section-eyebrow"><i class="fa-solid fa-star"></i> Interactive Lapland Experiences</div>
+            <h2 class="section-title">FAMILY &amp; KERBSIDE <span class="hl">FUN ZONE</span></h2>
+            <p class="section-subtitle">Keep little ones entertained while waiting for the sleigh bells! Tap any experience to launch it instantly.</p>
+          </div>
+        </div>
+        <div class="arcade-grid" id="arcade-grid"></div>
+      </div>
+    </section>
+
+    <!-- NATIVE POLAROID COMMUNITY MEMORY WALL -->
+    <section class="page-section" id="memories">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <div class="section-eyebrow"><i class="fa-solid fa-camera-retro"></i> Doorstep Smiles</div>
+            <h2 class="section-title">COMMUNITY <span class="hl">MEMORY WALL</span></h2>
+            <p class="section-subtitle">Spotted Santa on your street? Snap a festive family photo from the pavement and add it to our town's digital memory book!</p>
+          </div>
+          <button type="button" id="open-photo-upload-btn" class="btn-brand btn-sm">
+            <i class="fa-solid fa-camera"></i>
+            <span>Share a Sleigh Photo</span>
+          </button>
+        </div>
+        <div class="memory-wall-grid" id="memory-wall-grid"></div>
+      </div>
+    </section>
+
+    <!-- UNIFIED COMMUNITY PARTNERS & ROUTE SPONSORS -->
+    <section class="page-section" id="partners" style="display:none;">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <div class="section-eyebrow"><i class="fa-solid fa-award"></i> Keeping The Sleigh Rolling</div>
+            <h2 class="section-title">COMMUNITY <span class="hl">PARTNERS &amp; SPONSORS</span></h2>
+            <p class="section-subtitle">Huge thanks to the generous local businesses and partner charities supporting this year's sleigh tour.</p>
+          </div>
+        </div>
+        <div class="partners-pedestal-grid" id="partners-pedestal-grid"></div>
+      </div>
+    </section>
+
+    <!-- TWO-COLUMN SAFETY & CUL-DE-SAC FAQ -->
+    <section class="page-section" id="faq">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <div class="section-eyebrow"><i class="fa-solid fa-shield-heart"></i> Kerbside Safety &amp; Info</div>
+            <h2 class="section-title">GOOD TO <span class="hl">KNOW</span></h2>
+          </div>
+        </div>
+
+        <div class="faq-two-col">
+          <details class="faq-card" open>
+            <summary>
+              <span>Will you definitely come down my exact street?</span>
+              <i class="fa-solid fa-chevron-down" style="color:var(--primary);"></i>
+            </summary>
+            <div class="faq-answer">
+              Our published routes are a guide, not a guarantee. We are 100% volunteer-run and depend on safe road conditions, weather, and clear access around parked cars. Follow the live GPS radar above or set a 250m Doorstep Alert to see our exact progress!
+            </div>
+          </details>
+
+          <details class="faq-card" open>
+            <summary>
+              <span>Why didn't the sleigh turn into my cul-de-sac?</span>
+              <i class="fa-solid fa-chevron-down" style="color:var(--primary);"></i>
+            </summary>
+            <div class="faq-answer">
+              The towing vehicle and sleigh trailer are long and cannot safely reverse down tight cul-de-sacs blocked by evening parking. If you live in a tight close, pop out to the main junction corner when you get your approaching alert to wave to Santa!
+            </div>
+          </details>
+
+          <details class="faq-card">
+            <summary>
+              <span>Can children climb onto the sleigh for photos?</span>
+              <i class="fa-solid fa-chevron-down" style="color:var(--primary);"></i>
+            </summary>
+            <div class="faq-answer">
+              For safety and insurance reasons, nobody may climb onto the sleigh during street routes. You are very welcome to take photos with Santa waving from the sleigh while standing safely on the pavement!
+            </div>
+          </details>
+
+          <details class="faq-card">
+            <summary>
+              <span>Do your elves take contactless cards as well as cash?</span>
+              <i class="fa-solid fa-chevron-down" style="color:var(--primary);"></i>
+            </summary>
+            <div class="faq-answer">
+              Yes! Our street collectors carry traditional sealed buckets for coins and notes, QR codes on their lanyards, and contactless tap-to-donate options — or you can donate online right here with +25% Gift Aid.
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ROUND TABLE "DO MORE" CLUB FOOTER -->
+    <section class="page-section" style="padding-top:16px;">
+      <div class="container">
+        <div class="club-footer-card">
+          <div style="max-width:660px;">
+            <div class="section-eyebrow"><i class="fa-solid fa-circle-nodes"></i> Proudly Operated By Local Volunteers</div>
+            <h2 style="font-size:24px; margin-bottom:10px;" id="footer-club-heading">ROUND TABLE</h2>
+            <p style="font-size:14px; color:var(--text-secondary); line-height:1.6;">
+              Round Table is a community and social club for men aged 18–45. Whether organising town events, trying new adventures, or taking the Santa Sleigh out in December, we exist to make friends, have fun, and <strong class="hl">Do More</strong> for our local town.
+            </p>
+          </div>
+          <div class="social-pills" id="footer-social-pills"></div>
+        </div>
+
+        <div class="site-copyright">
+          &copy; <span id="copyright-year">2026</span> <span id="copyright-name">Round Table Santa Sleigh</span>. Powered by TurboSanta &bull;
+          <a href="/privacy">Privacy Policy &amp; GDPR</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Mobile Sticky Glass Thumb Dock -->
+  <nav class="mobile-thumb-dock" aria-label="Quick mobile actions">
+    <a href="#radar" class="dock-item">
+      <i class="fa-solid fa-satellite-dish"></i>
+      <span>Live Map</span>
+    </a>
+    <a href="#routes" class="dock-item">
+      <i class="fa-solid fa-route"></i>
+      <span>My Street</span>
+    </a>
+    <a href="#magic" class="dock-item">
+      <i class="fa-solid fa-wand-magic-sparkles"></i>
+      <span>Kids Fun</span>
+    </a>
+    <button type="button" id="mobile-dock-donate" class="dock-item dock-donate">
+      <i class="fa-solid fa-heart"></i>
+      <span>Donate</span>
+    </button>
+  </nav>
+
+  <!-- MODAL 1: Theater Launcher for Family Experiences -->
+  <div class="modal-backdrop-v2" id="theater-modal" role="dialog" aria-modal="true">
+    <div class="modal-panel-v2 theater-wide">
+      <div class="theater-top-bar">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span id="theater-icon" style="font-size:20px;">&#10024;</span>
+          <strong class="brand-font" id="theater-title" style="font-size:15px;">Lapland Experience</strong>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <a id="theater-fs-link" href="#" target="_blank" rel="noopener" class="radar-ctrl-btn">
+            <span>Full Screen</span> <i class="fa-solid fa-up-right-from-square"></i>
+          </a>
+          <button type="button" class="modal-close-x" data-close="theater-modal" aria-label="Close">&#10005;</button>
+        </div>
+      </div>
+      <iframe id="theater-iframe" class="theater-iframe" title="Interactive Festive Experience" allow="microphone; camera; geolocation"></iframe>
+    </div>
+  </div>
+
+  <!-- MODAL 2: Pre-Checkout +25% Gift Aid & Online Donation -->
+  <div class="modal-backdrop-v2" id="giftaid-modal" role="dialog" aria-modal="true">
+    <div class="modal-panel-v2">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+        <div>
+          <span class="ga-tag">+25% HMRC Boost</span>
+          <h3 style="font-size:22px; margin-top:8px;">BOOST YOUR <span class="hl">DONATION</span></h3>
+          <p style="font-size:13px; color:var(--text-secondary); margin-top:4px;">
+            UK taxpayer? Confirm your address in 15 seconds so our charity can claim an extra <strong>25p for every £1</strong> from HMRC at zero cost to you!
+          </p>
+        </div>
+        <button type="button" class="modal-close-x" data-close="giftaid-modal" aria-label="Close">&#10005;</button>
+      </div>
+
+      <form id="v2-giftaid-form" class="form-grid-v2">
+        <div class="form-row-2">
+          <input type="text" id="v2-ga-first" class="input-v2" required placeholder="First Name *" autocomplete="given-name">
+          <input type="text" id="v2-ga-last" class="input-v2" required placeholder="Last Name *" autocomplete="family-name">
+        </div>
+        <div class="form-row-2">
+          <input type="text" id="v2-ga-address" class="input-v2" required placeholder="House No. &amp; Street *" autocomplete="address-line1">
+          <input type="text" id="v2-ga-postcode" class="input-v2" required placeholder="Postcode *" autocomplete="postal-code" style="text-transform:uppercase;">
+        </div>
+        <div class="form-row-2">
+          <input type="number" id="v2-ga-amount" class="input-v2" required min="1" step="0.01" value="5" placeholder="Amount (£) *">
+          <input type="email" id="v2-ga-email" class="input-v2" placeholder="Email (optional)" autocomplete="email">
+        </div>
+        <label style="display:flex; gap:10px; align-items:flex-start; font-size:12px; color:var(--text-secondary); background:rgba(255,255,255,0.04); padding:10px 12px; border-radius:10px; cursor:pointer;">
+          <input type="checkbox" id="v2-ga-confirm" checked required style="margin-top:3px; accent-color:var(--primary);">
+          <span>I am a UK taxpayer and understand that if I pay less Income/Capital Gains Tax than the Gift Aid claimed on all my donations in this tax year, it is my responsibility to pay any difference.</span>
+        </label>
+        <button type="submit" id="v2-ga-submit" class="btn-brand" style="width:100%;">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span>Save +25% Gift Aid &amp; Continue to Donate &#8594;</span>
+        </button>
+        <button type="button" id="v2-ga-skip" class="btn-glass btn-sm" style="width:100%;">
+          Skip Gift Aid — Go Straight to Online Donation &#8594;
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 3: Automatic 250m Doorstep Proximity Email Alert -->
+  <div class="modal-backdrop-v2" id="alert-modal" role="dialog" aria-modal="true">
+    <div class="modal-panel-v2">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+        <div>
+          <div class="section-eyebrow"><i class="fa-solid fa-bell"></i> Free GPS Proximity Ping</div>
+          <h3 style="font-size:22px;">DOORSTEP <span class="hl">SLEIGH ALERT</span></h3>
+          <p style="font-size:13px; color:var(--text-secondary); margin-top:4px;" id="alert-modal-desc">
+            Enter your postcode (or use GPS) and email — we'll automatically ping you when Santa sets off and when his sleigh comes within 250 metres of your home!
+          </p>
+        </div>
+        <button type="button" class="modal-close-x" data-close="alert-modal" aria-label="Close">&#10005;</button>
+      </div>
+
+      <form id="v2-alert-form" class="form-grid-v2">
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="v2-alert-postcode" class="input-v2" placeholder="Your UK Postcode or Street..." style="flex:1;">
+          <button type="button" id="v2-alert-gps-btn" class="btn-glass btn-sm">
+            <i class="fa-solid fa-location-crosshairs"></i> Use GPS
+          </button>
+        </div>
+        <div id="v2-alert-coords-status" style="font-size:12px; color:#6ee7b7; display:none;"></div>
+        <select id="v2-alert-route" class="input-v2"></select>
+        <input type="email" id="v2-alert-email" class="input-v2" required placeholder="Your Email Address *" autocomplete="email">
+        <button type="submit" id="v2-alert-submit" class="btn-brand" style="width:100%;">
+          <i class="fa-solid fa-paper-plane"></i>
+          <span>Activate My Free Doorstep Alert</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 4: Local Cause Grant Nomination -->
+  <div class="modal-backdrop-v2" id="grant-modal" role="dialog" aria-modal="true">
+    <div class="modal-panel-v2">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+        <div>
+          <div class="section-eyebrow"><i class="fa-solid fa-seedling"></i> Community Service Fund</div>
+          <h3 style="font-size:22px;">NOMINATE A <span class="hl">LOCAL CAUSE</span></h3>
+          <p style="font-size:13px; color:var(--text-secondary); margin-top:4px;">
+            Know a local charity, youth team, school project, or community group that could use funding from this year's sleigh appeal? Tell our committee!
+          </p>
+        </div>
+        <button type="button" class="modal-close-x" data-close="grant-modal" aria-label="Close">&#10005;</button>
+      </div>
+
+      <form id="v2-grant-form" class="form-grid-v2">
+        <input type="text" id="v2-gr-org" class="input-v2" required placeholder="Charity / Club / Cause Name *">
+        <div class="form-row-2">
+          <input type="text" id="v2-gr-name" class="input-v2" required placeholder="Your Name *">
+          <input type="email" id="v2-gr-email" class="input-v2" required placeholder="Contact Email *">
+        </div>
+        <div class="form-row-2">
+          <input type="tel" id="v2-gr-phone" class="input-v2" placeholder="Phone (optional)">
+          <input type="number" id="v2-gr-amount" class="input-v2" min="1" step="1" placeholder="Approx. Amount (£)">
+        </div>
+        <textarea id="v2-gr-summary" class="input-v2" rows="3" required placeholder="How would this grant help our local community? *"></textarea>
+        <button type="submit" id="v2-gr-submit" class="btn-brand" style="width:100%;">
+          <i class="fa-solid fa-check"></i>
+          <span>Submit Local Cause Nomination</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 5: Send Live Cheer to Santa & Crew -->
+  <div class="modal-backdrop-v2" id="cheer-modal" role="dialog" aria-modal="true">
+    <div class="modal-panel-v2">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+        <div>
+          <div class="section-eyebrow"><i class="fa-solid fa-wand-magic-sparkles"></i> Kerbside Shoutout</div>
+          <h3 style="font-size:22px;">WAVE TO <span class="hl">SANTA &amp; ELVES</span></h3>
+          <p style="font-size:13px; color:var(--text-secondary); margin-top:4px;">
+            Post a festive wave or thank-you message to appear on the live community cheer ticker!
+          </p>
+        </div>
+        <button type="button" class="modal-close-x" data-close="cheer-modal" aria-label="Close">&#10005;</button>
+      </div>
+
+      <form id="v2-cheer-form" class="form-grid-v2">
+        <input type="text" id="v2-cheer-author" class="input-v2" maxlength="40" placeholder="Family or First Name (e.g. The Thompsons)">
+        <textarea id="v2-cheer-msg" class="input-v2" rows="3" maxlength="160" required placeholder="e.g. Listening out in our PJs on Ashwood Drive! Merry Christmas elves!"></textarea>
+        <button type="submit" id="v2-cheer-submit" class="btn-brand" style="width:100%;">
+          <i class="fa-solid fa-paper-plane"></i>
+          <span>Send Festive Cheer</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 6: Upload Photo to Community Memory Wall -->
+  <div class="modal-backdrop-v2" id="photo-modal" role="dialog" aria-modal="true">
+    <div class="modal-panel-v2">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+        <div>
+          <div class="section-eyebrow"><i class="fa-solid fa-camera-retro"></i> Digital Memory Book</div>
+          <h3 style="font-size:22px;">SHARE YOUR <span class="hl">SLEIGH PHOTO</span></h3>
+          <p style="font-size:13px; color:var(--text-secondary); margin-top:4px;">
+            Upload a festive photo from tonight's sleigh visit! Photos appear on the wall once verified by our family-friendly safety check.
+          </p>
+        </div>
+        <button type="button" class="modal-close-x" data-close="photo-modal" aria-label="Close">&#10005;</button>
+      </div>
+
+      <form id="v2-photo-form" class="form-grid-v2">
+        <input type="file" id="v2-photo-file" class="input-v2" accept="image/*" required>
+        <input type="text" id="v2-photo-caption" class="input-v2" maxlength="100" placeholder="Caption (e.g. Waving to Santa on Meadowfield Drive!)">
+        <button type="submit" id="v2-photo-submit" class="btn-brand" style="width:100%;">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span>Upload to Memory Book</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="/sleigh_v2.js"></script>
+</body>
+</html>

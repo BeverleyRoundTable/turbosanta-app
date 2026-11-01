@@ -101,7 +101,9 @@ export default function App() {
     '/volunteer_cert': '/volunteer_cert.html',
     '/guide': '/guide.html',
     '/hub': '/hub.html',
-    '/embed': '/embed.html'
+    '/embed': '/embed.html',
+    '/v2': '/sleigh_v2.html',
+    '/sleigh_v2': '/sleigh_v2.html'
   };
 
   // Admin Authentication State

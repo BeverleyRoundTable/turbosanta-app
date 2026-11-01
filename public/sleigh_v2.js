@@ -1,0 +1,2144 @@
+/* ==========================================================================
+   TurboSanta V2 — Ground-Up Public Sleigh Runtime
+   Zero-Iframe-Soup Interactive GPX Radar, 0ms Street Search, Adaptive Impact
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  const API_ORIGIN = 'https://turbosanta-api.beverley247.workers.dev';
+  const DEFAULT_RICH_TABLE = 'stockton';
+
+  const ARCADE_CATALOG = {
+    letter: {
+      id: 'letter',
+      icon: '✉️',
+      kicker: 'Official Lapland Post',
+      title: 'Write a Letter to Santa',
+      desc: 'Compose and print an official Round Table Christmas wish list straight for Lapland.',
+      path: '/letter.html'
+    },
+    elf_cam: {
+      id: 'elf_cam',
+      icon: '🎥',
+      kicker: 'Live Workshop Feed',
+      title: 'Lapland Elf Cam',
+      desc: 'Peek inside Santa’s workshop with live Rovaniemi weather and sleigh packing status.',
+      path: '/elf_cam.html'
+    },
+    santa_bot: {
+      id: 'santa_bot',
+      icon: '🎅',
+      kicker: 'Lapland AI Hotline',
+      title: 'Chat With Santa',
+      desc: 'Ask Santa when he is visiting your street, how Rudolph is doing, or hear a festive joke!',
+      path: '/santa_bot.html'
+    },
+    bingo: {
+      id: 'bingo',
+      icon: '🎯',
+      kicker: 'Kerbside Family Game',
+      title: 'Sleigh Spotting Bingo',
+      desc: 'Play on your phone while waiting on the pavement — tick off bells, antlers, and elves!',
+      path: '/bingo.html'
+    },
+    nice_list: {
+      id: 'nice_list',
+      icon: '📜',
+      kicker: 'Official Certificate',
+      title: 'Nice List Certificate',
+      desc: 'Personalise and print an official Lapland Good List certificate with your child’s name.',
+      path: '/nice_list.html'
+    },
+    magic_mailbox: {
+      id: 'magic_mailbox',
+      icon: '🎙️',
+      kicker: 'Voice Recording',
+      title: 'Magic Voice Mailbox',
+      desc: 'Record a festive audio message for Santa and receive a personalised spoken reply.',
+      path: '/magic_mailbox.html'
+    },
+    colouring: {
+      id: 'colouring',
+      icon: '🖍️',
+      kicker: 'Printable A4 Activity',
+      title: 'Festive Colouring Studio',
+      desc: 'Customise and print free Santa Sleigh colouring sheets for snowy afternoons at home.',
+      path: '/colouring_page.html'
+    },
+    door_hanger: {
+      id: 'door_hanger',
+      icon: '🚪',
+      kicker: 'Printable Door Sign',
+      title: 'Please Stop Here Hanger',
+      desc: 'Print an official Santa Sleigh door hanger complete with your town’s live radar QR code.',
+      path: '/door_hanger.html'
+    },
+    adopt_reindeer: {
+      id: 'adopt_reindeer',
+      icon: '🦌',
+      kicker: 'Sleigh Keeper Club',
+      title: 'Adopt a Reindeer',
+      desc: 'Choose your favourite flying reindeer and generate an official keeper certificate.',
+      path: '/adopt_reindeer.html'
+    },
+    santa_frame: {
+      id: 'santa_frame',
+      icon: '📸',
+      kicker: 'Photo Souvenir',
+      title: 'Santa Visited Photo Frame',
+      desc: 'Stamp your family pavement selfie with our commemorative Santa Sleigh frame.',
+      path: '/santa_frame.html'
+    },
+    countdown: {
+      id: 'countdown',
+      icon: '⏳',
+      kicker: 'Christmas Eve Clock',
+      title: 'Lapland Departure Clock',
+      desc: 'Watch the official countdown tick down to Santa’s big Christmas Eve takeoff.',
+      path: '/countdown.html'
+    },
+    snowman: {
+      id: 'snowman',
+      icon: '⛄',
+      kicker: 'Winter Builder',
+      title: 'Build a Snowman',
+      desc: 'Dress up your own festive snowman while waiting for the sleigh music down your road.',
+      path: '/snowman.html'
+    }
+  };
+
+  // --- Application State ---
+  const state = {
+    slug: resolveInitialSlug(),
+    simMode: 'auto', // 'auto' | 'live' | 'rain'
+    payload: null,
+    routes: [],
+    streetsByRoute: new Map(), // routeId -> [streetName]
+    allStreetRecords: [],      // [{ street, route, waypoint }]
+    gpxCache: new Map(),       // gpxUrl -> { points: [[lat,lng]], waypoints: [{name,lat,lng}] }
+    selectedRouteId: null,
+    expandedRouteStreets: new Set(),
+    routeFilterTab: 'upcoming',
+    routeFilterQuery: '',
+    selectedTierAmount: 5,
+    pinHouseMode: false,
+    alertCoords: null,
+    map: null,
+    routeLayerGroup: null,
+    waypointLayerGroup: null,
+    sleighMarker: null,
+    housePinMarker: null,
+    simTimer: null,
+    simTickIndex: 0,
+    countdownTimer: null,
+    cheerMessages: [],
+    cheerIndex: 0,
+    audioEl: null,
+    isMusicPlaying: false
+  };
+
+  function resolveInitialSlug() {
+    const rawSearch = window.location.search || '';
+    const m = /[?&]table=([^&#]+)/i.exec(rawSearch);
+    if (m && m[1]) {
+      return decodeURIComponent(m[1]).trim().toLowerCase();
+    }
+    const host = (window.location.hostname || '').toLowerCase();
+    if (host.endsWith('.roundtablesantasleigh.co.uk')) {
+      const sub = host.replace('.roundtablesantasleigh.co.uk', '').split('.')[0];
+      if (sub && !['www', 'admin', 'national', 'turbosanta', 'santa', 'demo'].includes(sub)) {
+        return sub;
+      }
+    }
+    if (window.__sleighTableSlug && window.__sleighTableSlug !== 'national') {
+      return String(window.__sleighTableSlug).toLowerCase();
+    }
+    return DEFAULT_RICH_TABLE;
+  }
+
+  function escapeHtml(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function parseHexRgb(v) {
+    if (typeof v !== 'string') return null;
+    const hex = /^#([0-9a-f]{3,8})$/i.exec(v.trim());
+    if (!hex) return null;
+    let h = hex[1];
+    if (h.length === 3 || h.length === 4) h = h.split('').map(c => c + c).join('');
+    if (h.length < 6) return null;
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+
+  function readableTextOn(rgb) {
+    if (!rgb) return '#090a0d';
+    const lin = (c) => {
+      const s = c / 255;
+      return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    };
+    const L = 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]);
+    return ((L + 0.05) / 0.05) >= (1.05 / (L + 0.05)) ? '#090a0d' : '#ffffff';
+  }
+
+  function applyBrandTheme(table) {
+    const root = document.documentElement;
+    const pRgb = parseHexRgb(table.primary_color) || [251, 175, 51];
+    const aRgb = parseHexRgb(table.accent_color) || [211, 28, 28];
+    const primaryHex = parseHexRgb(table.primary_color) ? table.primary_color.trim() : '#FBAF33';
+    const accentHex = parseHexRgb(table.accent_color) ? table.accent_color.trim() : '#D31C1C';
+
+    root.style.setProperty('--primary', primaryHex);
+    root.style.setProperty('--primary-rgb', pRgb.join(', '));
+    root.style.setProperty('--on-primary', readableTextOn(pRgb));
+    root.style.setProperty('--accent', accentHex);
+    root.style.setProperty('--accent-rgb', aRgb.join(', '));
+
+    let customStyle = document.getElementById('v2-tenant-custom-css');
+    if (table.custom_css && String(table.custom_css).trim()) {
+      if (!customStyle) {
+        customStyle = document.createElement('style');
+        customStyle.id = 'v2-tenant-custom-css';
+        document.head.appendChild(customStyle);
+      }
+      customStyle.textContent = table.custom_css;
+    } else if (customStyle) {
+      customStyle.remove();
+    }
+  }
+
+  function extractTownName(table, slug) {
+    const raw = table?.sleigh_display_name || table?.name || slug || 'Community';
+    const cleaned = raw
+      .replace(/round\s*table/gi, '')
+      .replace(/santa'?s?\s*sleigh/gi, '')
+      .replace(/\b\d+\b/g, '')
+      .replace(/[-_]+/g, ' ')
+      .trim();
+    if (cleaned) return cleaned;
+    return String(slug || 'Community')
+      .split(/[-_]+/)
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+  }
+
+  function parseLocalRouteDate(dateStr) {
+    if (!dateStr) return null;
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(dateStr).trim());
+    if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function todayMidnight() {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  }
+
+  function isRoutePostponed(route, idx) {
+    if (state.simMode === 'rain' && idx === 0) return true;
+    const st = String(route.status_override || route.status || '').toLowerCase();
+    return st.includes('postponed') || st.includes('cancelled') || st.includes('rain');
+  }
+
+  function isRouteLive(route, idx) {
+    if (state.simMode === 'live' && idx === 0) return true;
+    if (state.simMode === 'rain' && idx === 0) return false;
+    const st = String(route.status_override || route.status || '').toLowerCase();
+    return st === 'in progress' || st === 'live' || st === 'active';
+  }
+
+  function isRouteToday(route) {
+    const d = parseLocalRouteDate(route.date);
+    if (!d) return false;
+    const t = todayMidnight();
+    return d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth() && d.getDate() === t.getDate();
+  }
+
+  function isRouteCompleted(route, idx) {
+    if (isRouteLive(route, idx) || isRoutePostponed(route, idx)) return false;
+    const st = String(route.status || '').toLowerCase();
+    if (st === 'completed') return true;
+    const d = parseLocalRouteDate(route.date);
+    if (!d) return false;
+    return d.getTime() < todayMidnight().getTime();
+  }
+
+  function getRouteSponsors(route) {
+    const list = [];
+    if (Array.isArray(route.sponsors)) {
+      route.sponsors.forEach(s => {
+        if (s && (s.name || s.logo_url || s.sponsor_logo)) {
+          list.push({
+            name: s.name || s.sponsor_name || 'Route Sponsor',
+            logo: s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '',
+            url: s.link || s.sponsor_link || s.url || ''
+          });
+        }
+      });
+    }
+    if (list.length === 0 && (route.sponsor_name || route.sponsor_logo_url || route.sponsor_logo)) {
+      list.push({
+        name: route.sponsor_name || 'Official Route Sponsor',
+        logo: route.sponsor_logo_url || route.sponsor_logo || '',
+        url: route.sponsor_link || ''
+      });
+    }
+    return list;
+  }
+
+  function buildSubdomainToolUrl(toolPath) {
+    const host = (window.location.hostname || '').toLowerCase();
+    const cleanPath = toolPath.startsWith('/') ? toolPath : `/${toolPath}`;
+    if (host.endsWith('.roundtablesantasleigh.co.uk')) {
+      return `https://${encodeURIComponent(state.slug)}.roundtablesantasleigh.co.uk${cleanPath}`;
+    }
+    const sep = cleanPath.includes('?') ? '&' : '?';
+    return `${cleanPath}${sep}table=${encodeURIComponent(state.slug)}`;
+  }
+
+  // --- Leaflet Interactive GPX Radar ---
+  function initLeafletMap() {
+    if (state.map || typeof L === 'undefined') return;
+    state.map = L.map('v2-leaflet-map', {
+      zoomControl: false,
+      scrollWheelZoom: false,
+      attributionControl: true
+    }).setView([54.52, -1.31], 12);
+
+    L.control.zoom({ position: 'topright' }).addTo(state.map);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap &copy; CARTO',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(state.map);
+
+    state.routeLayerGroup = L.layerGroup().addTo(state.map);
+    state.waypointLayerGroup = L.layerGroup().addTo(state.map);
+
+    state.map.on('click', (e) => {
+      if (!state.pinHouseMode) return;
+      handleMapHousePinDrop(e.latlng.lat, e.latlng.lng);
+    });
+  }
+
+  async function fetchAndParseGpx(gpxUrl) {
+    if (!gpxUrl) return null;
+    if (state.gpxCache.has(gpxUrl)) return state.gpxCache.get(gpxUrl);
+
+    try {
+      const res = await fetch(gpxUrl);
+      if (!res.ok) return null;
+      const xmlText = await res.text();
+      const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
+
+      const points = [];
+      let ptNodes = doc.querySelectorAll('trkpt');
+      if (!ptNodes || ptNodes.length === 0) ptNodes = doc.querySelectorAll('rtept');
+      ptNodes.forEach(pt => {
+        const lat = parseFloat(pt.getAttribute('lat'));
+        const lon = parseFloat(pt.getAttribute('lon'));
+        if (!isNaN(lat) && !isNaN(lon)) points.push([lat, lon]);
+      });
+
+      const waypoints = [];
+      doc.querySelectorAll('wpt').forEach(w => {
+        const lat = parseFloat(w.getAttribute('lat'));
+        const lon = parseFloat(w.getAttribute('lon'));
+        const nameEl = w.querySelector('name');
+        const name = nameEl ? nameEl.textContent.trim() : '';
+        if (!isNaN(lat) && !isNaN(lon) && name) {
+          waypoints.push({ name, lat, lng: lon });
+        }
+      });
+
+      if (points.length === 0 && waypoints.length > 1) {
+        waypoints.forEach(w => points.push([w.lat, w.lng]));
+      }
+
+      const parsed = { points, waypoints };
+      state.gpxCache.set(gpxUrl, parsed);
+      return parsed;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function loadAllRoutesGpxAndRenderMap(fitAll = true) {
+    initLeafletMap();
+    if (!state.map) return;
+
+    const routesWithGpx = state.routes.filter(r => r.gpx_url);
+    const subtitleEl = document.getElementById('radar-subtitle');
+    if (subtitleEl) {
+      subtitleEl.textContent = routesWithGpx.length > 0
+        ? `Loading ${routesWithGpx.length} GPX route corridors...`
+        : 'Interactive town sleigh radar';
+    }
+
+    await Promise.all(routesWithGpx.map(r => fetchAndParseGpx(r.gpx_url)));
+
+    // Enrich street search index with named GPX waypoints not already in route_streets
+    rebuildStreetSearchIndex();
+    renderHeroMetrics();
+    renderMapLayers(fitAll);
+  }
+
+  function renderMapLayers(fitBounds = false) {
+    if (!state.map || !state.routeLayerGroup) return;
+    state.routeLayerGroup.clearLayers();
+    state.waypointLayerGroup.clearLayers();
+
+    const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#FBAF33';
+    const allBoundsPoints = [];
+    const selectedBoundsPoints = [];
+
+    state.routes.forEach((route, idx) => {
+      const gpx = route.gpx_url ? state.gpxCache.get(route.gpx_url) : null;
+      if (!gpx || gpx.points.length < 2) return;
+
+      const isSelected = state.selectedRouteId && String(route.id) === String(state.selectedRouteId);
+      const isLive = isRouteLive(route, idx);
+
+      gpx.points.forEach(p => {
+        allBoundsPoints.push(p);
+        if (isSelected) selectedBoundsPoints.push(p);
+      });
+
+      if (isSelected || isLive) {
+        const lineColor = isLive ? '#10b981' : primaryColor;
+        // Outer neon halo
+        L.polyline(gpx.points, {
+          color: lineColor,
+          weight: 10,
+          opacity: 0.26,
+          lineCap: 'round'
+        }).addTo(state.routeLayerGroup);
+
+        // Core crisp track
+        const activePoly = L.polyline(gpx.points, {
+          color: lineColor,
+          weight: 4,
+          opacity: 1,
+          lineCap: 'round'
+        }).addTo(state.routeLayerGroup);
+
+        activePoly.bindPopup(`<strong>${escapeHtml(route.name)}</strong><br>${escapeHtml(formatFriendlyDate(route.date))} &bull; ${escapeHtml(route.start_time || '18:00')}`);
+
+        // Start & Finish pins
+        const startPt = gpx.points[0];
+        const endPt = gpx.points[gpx.points.length - 1];
+        L.circleMarker(startPt, {
+          radius: 7,
+          fillColor: '#10b981',
+          color: '#ffffff',
+          weight: 2,
+          fillOpacity: 1
+        }).bindPopup(`<strong>Start:</strong> ${escapeHtml(route.name)} (${escapeHtml(route.start_time || '18:00')})`).addTo(state.waypointLayerGroup);
+
+        L.circleMarker(endPt, {
+          radius: 7,
+          fillColor: '#ef4444',
+          color: '#ffffff',
+          weight: 2,
+          fillOpacity: 1
+        }).bindPopup(`<strong>Finish:</strong> ${escapeHtml(route.name)} (${escapeHtml(route.end_time || '20:30')})`).addTo(state.waypointLayerGroup);
+
+        // Named street waypoints along selected route
+        gpx.waypoints.slice(0, 40).forEach(w => {
+          L.circleMarker([w.lat, w.lng], {
+            radius: 4.5,
+            fillColor: primaryColor,
+            color: '#090a0d',
+            weight: 1.5,
+            fillOpacity: 0.95
+          }).bindPopup(`<strong>${escapeHtml(w.name)}</strong><br><span style="font-size:12px;opacity:0.8;">${escapeHtml(route.name)}</span>`).addTo(state.waypointLayerGroup);
+        });
+      } else {
+        // Subtle background thread for all other town routes
+        const bgPoly = L.polyline(gpx.points, {
+          color: primaryColor,
+          weight: 2.5,
+          opacity: state.selectedRouteId ? 0.32 : 0.68
+        }).addTo(state.routeLayerGroup);
+
+        bgPoly.on('click', () => selectRouteAndFocus(route.id, true));
+        bgPoly.bindTooltip(`${route.name} (${formatFriendlyDate(route.date)})`, { sticky: true });
+      }
+    });
+
+    const subtitleEl = document.getElementById('radar-subtitle');
+    const selectedRoute = state.routes.find(r => String(r.id) === String(state.selectedRouteId));
+    if (subtitleEl) {
+      if (selectedRoute) {
+        subtitleEl.textContent = `${selectedRoute.name} • ${formatFriendlyDate(selectedRoute.date)} (${selectedRoute.start_time || '18:00'}–${selectedRoute.end_time || '20:30'})`;
+      } else {
+        const gpxLoadedCount = state.routes.filter(r => r.gpx_url && state.gpxCache.get(r.gpx_url)?.points?.length > 1).length;
+        subtitleEl.textContent = gpxLoadedCount > 0
+          ? `Showing all ${gpxLoadedCount} GPX sleigh routes — tap any route to inspect`
+          : 'Live GPS Sleigh Telemetry';
+      }
+    }
+
+    if (fitBounds) {
+      const pts = selectedBoundsPoints.length > 1 ? selectedBoundsPoints : allBoundsPoints;
+      if (pts.length > 1) {
+        state.map.fitBounds(L.latLngBounds(pts), { padding: [32, 32], maxZoom: 15 });
+      }
+    }
+
+    updateLiveSleighMarkerAndHud();
+  }
+
+  function updateLiveSleighMarkerAndHud() {
+    if (!state.map) return;
+    clearInterval(state.simTimer);
+
+    const hudRoad = document.getElementById('hud-road-name');
+    const hudDetail = document.getElementById('hud-telemetry-detail');
+    const radarDot = document.getElementById('radar-dot');
+
+    // 1. Simulated Live Night Mode (glides smoothly along Route #1 or selected route GPX)
+    if (state.simMode === 'live') {
+      const targetRoute = state.routes.find(r => String(r.id) === String(state.selectedRouteId)) || state.routes[0];
+      const gpx = targetRoute?.gpx_url ? state.gpxCache.get(targetRoute.gpx_url) : null;
+      if (radarDot) radarDot.classList.add('live');
+
+      if (gpx && gpx.points.length > 1) {
+        const step = () => {
+          state.simTickIndex = (state.simTickIndex + 1) % gpx.points.length;
+          const pt = gpx.points[state.simTickIndex];
+          placeSleighMarker(pt[0], pt[1], targetRoute.name);
+
+          // Find closest named waypoint or street
+          const nearWpt = findNearestWaypointName(pt[0], pt[1], gpx.waypoints, targetRoute);
+          const pct = Math.round((state.simTickIndex / gpx.points.length) * 100);
+          if (hudRoad) hudRoad.textContent = `LIVE: ${nearWpt}`;
+          if (hudDetail) hudDetail.textContent = `${targetRoute.name} • 4 mph • ${pct}% along route`;
+        };
+        step();
+        state.simTimer = setInterval(step, 1400);
+        return;
+      }
+    }
+
+    // 2. Real Live GPS Telemetry from API
+    const live = state.payload?.live_sleigh;
+    if (live && live.is_fresh && live.lat && live.lng) {
+      if (radarDot) radarDot.classList.add('live');
+      placeSleighMarker(live.lat, live.lng, live.road_name || 'Santa Live');
+      if (hudRoad) hudRoad.textContent = live.road_name || 'Santa is Live on Route!';
+      if (hudDetail) hudDetail.textContent = `Live GPS • ${Math.round(live.speed || 0)} mph • Updated ${live.age_sec || 0}s ago`;
+      return;
+    }
+
+    // 3. Resting / Route Inspection State
+    if (radarDot) radarDot.classList.remove('live');
+    if (state.sleighMarker) {
+      state.map.removeLayer(state.sleighMarker);
+      state.sleighMarker = null;
+    }
+    const sel = state.routes.find(r => String(r.id) === String(state.selectedRouteId));
+    if (sel) {
+      const streets = state.streetsByRoute.get(String(sel.id)) || [];
+      if (hudRoad) hudRoad.textContent = sel.name;
+      if (hudDetail) hudDetail.textContent = `${formatFriendlyDate(sel.date)} • ${sel.start_time || '18:00'}–${sel.end_time || '20:30'} • ${streets.length} streets`;
+    } else {
+      const next = findNextUpcomingRoute();
+      if (next) {
+        if (hudRoad) hudRoad.textContent = `Next Outing: ${next.name}`;
+        if (hudDetail) hudDetail.textContent = `${formatFriendlyDate(next.date)} at ${next.start_time || '18:00'} • Tap any route to zoom`;
+      } else {
+        if (hudRoad) hudRoad.textContent = 'Sleigh Resting in Workshop';
+        if (hudDetail) hudDetail.textContent = 'Check routes below or register for doorstep alerts';
+      }
+    }
+  }
+
+  function placeSleighMarker(lat, lng, label) {
+    if (!state.map) return;
+    const icon = L.divIcon({
+      className: '',
+      html: '<div class="sleigh-map-marker" title="Santa Live Position">🎅</div>',
+      iconSize: [44, 44],
+      iconAnchor: [22, 22]
+    });
+    if (!state.sleighMarker) {
+      state.sleighMarker = L.marker([lat, lng], { icon, zIndexOffset: 1000 }).addTo(state.map);
+    } else {
+      state.sleighMarker.setLatLng([lat, lng]);
+    }
+    state.sleighMarker.bindTooltip(label || 'Santa Sleigh Live', { direction: 'top' });
+  }
+
+  function findNearestWaypointName(lat, lng, waypoints, route) {
+    if (waypoints && waypoints.length > 0) {
+      let best = waypoints[0];
+      let bestDist = Infinity;
+      waypoints.forEach(w => {
+        const d = haversineMeters(lat, lng, w.lat, w.lng);
+        if (d < bestDist) {
+          bestDist = d;
+          best = w;
+        }
+      });
+      return best.name.replace(/\s*-\s*(START|END|FINISH)$/i, '');
+    }
+    const streets = state.streetsByRoute.get(String(route?.id)) || [];
+    return streets[0] || route?.name || 'Active Sleigh Route';
+  }
+
+  function selectRouteAndFocus(routeId, scrollMapIntoView = false) {
+    state.selectedRouteId = routeId ? String(routeId) : null;
+    const allBtn = document.getElementById('map-all-routes-btn');
+    if (allBtn) allBtn.classList.toggle('active', !state.selectedRouteId);
+
+    renderMapLayers(true);
+    renderRoutesGrid();
+
+    if (scrollMapIntoView) {
+      document.getElementById('radar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  // --- Street & Postcode Search + Haversine Proximity ---
+  function haversineMeters(lat1, lon1, lat2, lon2) {
+    const R = 6371000;
+    const toRad = d => (d * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  function findClosestRoutesToPoint(lat, lng) {
+    const scored = [];
+    state.routes.forEach(r => {
+      const gpx = r.gpx_url ? state.gpxCache.get(r.gpx_url) : null;
+      if (!gpx || gpx.points.length === 0) return;
+      let minMeters = Infinity;
+      gpx.points.forEach(pt => {
+        const d = haversineMeters(lat, lng, pt[0], pt[1]);
+        if (d < minMeters) minMeters = d;
+      });
+      scored.push({ route: r, distanceMeters: Math.round(minMeters) });
+    });
+    return scored.sort((a, b) => a.distanceMeters - b.distanceMeters);
+  }
+
+  function rebuildStreetSearchIndex() {
+    state.streetsByRoute.clear();
+    state.allStreetRecords = [];
+
+    const rawStreets = state.payload?.streets || [];
+    const routeById = new Map(state.routes.map(r => [String(r.id), r]));
+
+    rawStreets.forEach(s => {
+      const rId = String(s.route_id || '');
+      const name = String(s.street_name || s.name || '').trim();
+      if (!name) return;
+      if (!state.streetsByRoute.has(rId)) state.streetsByRoute.set(rId, []);
+      const arr = state.streetsByRoute.get(rId);
+      if (!arr.some(existing => existing.toLowerCase() === name.toLowerCase())) {
+        arr.push(name);
+        const route = routeById.get(rId);
+        if (route) {
+          state.allStreetRecords.push({ street: name, route, lat: s.lat || null, lng: s.lng || null });
+        }
+      }
+    });
+
+    // Also include named GPX waypoints so every GPX stop is searchable
+    state.routes.forEach(route => {
+      const rId = String(route.id);
+      if (!state.streetsByRoute.has(rId)) state.streetsByRoute.set(rId, []);
+      const arr = state.streetsByRoute.get(rId);
+      const gpx = route.gpx_url ? state.gpxCache.get(route.gpx_url) : null;
+      if (gpx && gpx.waypoints.length > 0) {
+        gpx.waypoints.forEach(w => {
+          const clean = w.name.replace(/\s*-\s*(START|END|FINISH)$/i, '').trim();
+          if (!clean) return;
+          if (!arr.some(ex => ex.toLowerCase() === clean.toLowerCase())) {
+            arr.push(clean);
+            state.allStreetRecords.push({ street: clean, route, lat: w.lat, lng: w.lng });
+          } else {
+            const rec = state.allStreetRecords.find(x => x.route.id === route.id && x.street.toLowerCase() === clean.toLowerCase());
+            if (rec && !rec.lat) {
+              rec.lat = w.lat;
+              rec.lng = w.lng;
+            }
+          }
+        });
+      }
+    });
+
+    const totalEl = document.getElementById('finder-street-total');
+    if (totalEl) {
+      totalEl.textContent = state.allStreetRecords.length > 0
+        ? `${state.allStreetRecords.length} streets indexed`
+        : `${state.routes.length} routes scheduled`;
+    }
+  }
+
+  function isLikelyUkPostcode(q) {
+    return /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i.test(q.trim());
+  }
+
+  async function handleHeroStreetSearch(query) {
+    const popover = document.getElementById('finder-results-popover');
+    const clearBtn = document.getElementById('street-search-clear');
+    const q = String(query || '').trim();
+
+    if (clearBtn) clearBtn.style.display = q ? 'block' : 'none';
+    if (!popover) return;
+
+    if (!q) {
+      popover.classList.remove('open');
+      popover.innerHTML = '';
+      return;
+    }
+
+    popover.classList.add('open');
+    const lower = q.toLowerCase();
+
+    const matches = state.allStreetRecords.filter(rec =>
+      rec.street.toLowerCase().includes(lower) ||
+      String(rec.route.name || '').toLowerCase().includes(lower)
+    ).slice(0, 12);
+
+    if (matches.length > 0) {
+      popover.innerHTML = matches.map((m, idx) => `
+        <div class="finder-result-item" data-match-idx="${idx}">
+          <div class="finder-res-main">
+            <div class="finder-res-street">${escapeHtml(m.street)}</div>
+            <div class="finder-res-meta">
+              <strong style="color:var(--primary);">${escapeHtml(m.route.name)}</strong> &bull;
+              ${escapeHtml(formatFriendlyDate(m.route.date))} (${escapeHtml(m.route.start_time || '18:00')}–${escapeHtml(m.route.end_time || '20:30')})
+            </div>
+          </div>
+          <div class="finder-res-actions">
+            <button type="button" class="mini-action-pill" data-fly-route="${escapeHtml(m.route.id)}" data-lat="${m.lat || ''}" data-lng="${m.lng || ''}">Map</button>
+            <button type="button" class="mini-action-pill" data-alert-route="${escapeHtml(m.route.id)}" data-lat="${m.lat || ''}" data-lng="${m.lng || ''}" data-street="${escapeHtml(m.street)}">&#128276; Alert</button>
+          </div>
+        </div>
+      `).join('');
+      bindFinderResultButtons(popover);
+      return;
+    }
+
+    // If looks like a UK postcode or address with no direct street match, offer instant geocoding
+    if (isLikelyUkPostcode(q) || q.length >= 4) {
+      popover.innerHTML = `
+        <div style="padding:10px 12px; font-size:13px; color:var(--text-secondary); display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <span>No exact street named "<strong>${escapeHtml(q)}</strong>" — check closest GPX route by postcode/map?</span>
+          <button type="button" id="geocode-lookup-btn" class="mini-action-pill">Find Closest Route &#8594;</button>
+        </div>
+      `;
+      document.getElementById('geocode-lookup-btn')?.addEventListener('click', () => geocodeAndShowNearest(q));
+    }
+  }
+
+  function bindFinderResultButtons(container) {
+    container.querySelectorAll('[data-fly-route]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const rId = btn.getAttribute('data-fly-route');
+        const lat = parseFloat(btn.getAttribute('data-lat'));
+        const lng = parseFloat(btn.getAttribute('data-lng'));
+        selectRouteAndFocus(rId, false);
+        if (!isNaN(lat) && !isNaN(lng) && state.map) {
+          state.map.setView([lat, lng], 16, { animate: true });
+        }
+      });
+    });
+
+    container.querySelectorAll('[data-alert-route]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const rId = btn.getAttribute('data-alert-route');
+        const lat = parseFloat(btn.getAttribute('data-lat'));
+        const lng = parseFloat(btn.getAttribute('data-lng'));
+        const street = btn.getAttribute('data-street') || '';
+        openDoorstepAlertModal({
+          routeId: rId,
+          lat: !isNaN(lat) ? lat : null,
+          lng: !isNaN(lng) ? lng : null,
+          label: street
+        });
+      });
+    });
+
+    container.querySelectorAll('.finder-result-item').forEach(row => {
+      row.addEventListener('click', () => {
+        const flyBtn = row.querySelector('[data-fly-route]');
+        if (flyBtn) flyBtn.click();
+      });
+    });
+  }
+
+  async function geocodeAndShowNearest(query) {
+    const popover = document.getElementById('finder-results-popover');
+    if (!popover) return;
+    popover.classList.add('open');
+    popover.innerHTML = `<div style="padding:12px; font-size:13px; color:var(--text-secondary);">Locating <strong>${escapeHtml(query)}</strong> against GPX corridors...</div>`;
+
+    try {
+      const town = extractTownName(state.payload?.table, state.slug);
+      const qFull = isLikelyUkPostcode(query) ? query : `${query}, ${town}, UK`;
+      const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=gb&limit=1&q=${encodeURIComponent(qFull)}`;
+      const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      const items = await res.json();
+      if (!Array.isArray(items) || items.length === 0) {
+        popover.innerHTML = `<div style="padding:12px; font-size:13px; color:#fca5a5;">Could not locate that postcode/address. Try searching a nearby main road name!</div>`;
+        return;
+      }
+      const lat = parseFloat(items[0].lat);
+      const lng = parseFloat(items[0].lon);
+      showNearestRoutesForCoordinates(lat, lng, query.toUpperCase());
+    } catch (e) {
+      popover.innerHTML = `<div style="padding:12px; font-size:13px; color:#fca5a5;">Location lookup unavailable right now — browse routes below.</div>`;
+    }
+  }
+
+  function showNearestRoutesForCoordinates(lat, lng, label) {
+    const popover = document.getElementById('finder-results-popover');
+    if (!popover) return;
+    popover.classList.add('open');
+
+    if (state.map) {
+      if (state.housePinMarker) state.map.removeLayer(state.housePinMarker);
+      state.housePinMarker = L.circleMarker([lat, lng], {
+        radius: 8,
+        fillColor: '#38bdf8',
+        color: '#ffffff',
+        weight: 2.5,
+        fillOpacity: 1
+      }).addTo(state.map).bindPopup(`<strong>Your Pin:</strong> ${escapeHtml(label || 'Your Location')}`).openPopup();
+    }
+
+    const nearest = findClosestRoutesToPoint(lat, lng).slice(0, 3);
+    if (nearest.length === 0) {
+      openDoorstepAlertModal({ lat, lng, label });
+      return;
+    }
+
+    selectRouteAndFocus(nearest[0].route.id, false);
+    if (state.map) state.map.setView([lat, lng], 15, { animate: true });
+
+    popover.innerHTML = nearest.map(item => {
+      const distStr = item.distanceMeters < 1000
+        ? `${item.distanceMeters}m from sleigh track`
+        : `${(item.distanceMeters / 1000).toFixed(1)}km away`;
+      return `
+        <div class="finder-result-item">
+          <div class="finder-res-main">
+            <div class="finder-res-street">${escapeHtml(item.route.name)} <span style="color:#6ee7b7; font-size:12px;">(${distStr})</span></div>
+            <div class="finder-res-meta">${escapeHtml(formatFriendlyDate(item.route.date))} &bull; ${escapeHtml(item.route.start_time || '18:00')}–${escapeHtml(item.route.end_time || '20:30')}</div>
+          </div>
+          <div class="finder-res-actions">
+            <button type="button" class="mini-action-pill" data-fly-route="${escapeHtml(item.route.id)}" data-lat="${lat}" data-lng="${lng}">Zoom</button>
+            <button type="button" class="mini-action-pill" data-alert-route="${escapeHtml(item.route.id)}" data-lat="${lat}" data-lng="${lng}" data-street="${escapeHtml(label || 'My Home')}">&#128276; 250m Alert</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+    bindFinderResultButtons(popover);
+  }
+
+  function handleMapHousePinDrop(lat, lng) {
+    state.pinHouseMode = false;
+    document.getElementById('map-pin-house-btn')?.classList.remove('active');
+    const nearest = findClosestRoutesToPoint(lat, lng);
+    const bestRouteId = nearest[0]?.route?.id || '';
+    const dist = nearest[0] ? ` (${nearest[0].distanceMeters}m from ${nearest[0].route.name})` : '';
+    openDoorstepAlertModal({
+      routeId: bestRouteId,
+      lat,
+      lng,
+      label: `Pinned Home${dist}`
+    });
+  }
+
+  // --- Date & Calendar Formatting ---
+  function formatFriendlyDate(dateStr) {
+    const d = parseLocalRouteDate(dateStr);
+    if (!d) return 'Date TBC';
+    return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  }
+
+  function findNextUpcomingRoute() {
+    const nowMid = todayMidnight().getTime();
+    const upcoming = state.routes
+      .map(r => ({ r, d: parseLocalRouteDate(r.date) }))
+      .filter(x => x.d && x.d.getTime() >= nowMid)
+      .sort((a, b) => a.d.getTime() - b.d.getTime());
+    return upcoming[0]?.r || state.routes[0] || null;
+  }
+
+  function downloadRouteIcs(route) {
+    const d = parseLocalRouteDate(route.date);
+    if (!d) return;
+    const [sh, sm] = String(route.start_time || '18:00').split(':').map(n => parseInt(n, 10) || 0);
+    const [eh, em] = String(route.end_time || '20:30').split(':').map(n => parseInt(n, 10) || 0);
+
+    const pad = n => String(n).padStart(2, '0');
+    const ymd = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
+    const dtStart = `${ymd}T${pad(sh)}${pad(sm)}00`;
+    const dtEnd = `${ymd}T${pad(eh)}${pad(em)}00`;
+    const sleighName = state.payload?.table?.sleigh_display_name || 'Round Table Santa Sleigh';
+    const streets = (state.streetsByRoute.get(String(route.id)) || []).slice(0, 20).join(', ');
+
+    const ics = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//TurboSanta//Round Table Santa Sleigh//EN',
+      'BEGIN:VEVENT',
+      `UID:sleigh-${route.id}@roundtablesantasleigh.co.uk`,
+      `DTSTAMP:${ymd}T120000Z`,
+      `DTSTART:${dtStart}`,
+      `DTEND:${dtEnd}`,
+      `SUMMARY:🎅 ${sleighName} — ${route.name}`,
+      `DESCRIPTION:Santa visits ${route.name}! Track live at https://${state.slug}.roundtablesantasleigh.co.uk . Streets: ${streets}`,
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ].join('\r\n');
+
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `Santa_Sleigh_${String(route.name || 'Route').replace(/[^a-z0-9]+/gi, '_')}.ics`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  // --- UI Renderers ---
+  function renderHeaderAndHero() {
+    const table = state.payload?.table || {};
+    const town = extractTownName(table, state.slug);
+    const displayName = table.sleigh_display_name || table.name || `${town} Round Table Santa Sleigh`;
+
+    document.title = `${displayName} — Live Radar & Street Schedule`;
+    const logoEl = document.getElementById('header-logo');
+    if (logoEl) {
+      logoEl.src = table.logo_url || '/icons/RTBI_Santa.png';
+      logoEl.onerror = () => { logoEl.src = '/icons/RTBI_Santa.png'; };
+    }
+    const headerTitle = document.getElementById('header-title');
+    if (headerTitle) headerTitle.textContent = displayName;
+    const headerKicker = document.getElementById('header-kicker');
+    if (headerKicker) headerKicker.textContent = table.table_number ? `Round Table #${table.table_number}` : 'Official Community Sleigh';
+
+    const heroTown = document.getElementById('hero-town-hl');
+    if (heroTown) heroTown.textContent = town;
+
+    // Announcement Banner
+    const strip = document.getElementById('announcement-strip');
+    if (strip) {
+      if (state.simMode === 'rain') {
+        const rName = state.routes[0]?.name || 'Tonight’s Route';
+        strip.textContent = `🌧️ WEATHER UPDATE: ${rName} has been postponed due to high winds & heavy rain. New rain-check date will be announced shortly!`;
+        strip.className = 'announcement-strip visible is-urgent';
+      } else if (table.live_announcement && String(table.live_announcement).trim()) {
+        const msg = String(table.live_announcement).trim();
+        const urgent = /postponed|cancel|weather|warning|rain|ice/i.test(msg);
+        strip.textContent = msg;
+        strip.className = `announcement-strip visible${urgent ? ' is-urgent' : ''}`;
+      } else {
+        strip.className = 'announcement-strip';
+      }
+    }
+
+    // Status & Countdown Pill
+    const badge = document.getElementById('hero-status-badge');
+    const badgeText = document.getElementById('hero-status-text');
+    const cdChip = document.getElementById('hero-countdown-chip');
+    const cdText = document.getElementById('hero-countdown-text');
+
+    clearInterval(state.countdownTimer);
+    const liveNow = state.simMode === 'live' || Boolean(state.payload?.live_sleigh?.is_fresh) || state.routes.some((r, i) => isRouteLive(r, i));
+
+    if (state.simMode === 'rain') {
+      badge.className = 'live-status-badge is-postponed';
+      badgeText.textContent = `Rain-Check: ${state.routes[0]?.name || 'Route'} Postponed`;
+      if (cdChip) cdChip.style.display = 'none';
+    } else if (liveNow) {
+      const activeR = state.routes.find((r, i) => isRouteLive(r, i)) || state.routes[0];
+      badge.className = 'live-status-badge is-live';
+      badgeText.textContent = `LIVE NOW: ${activeR ? activeR.name : 'Santa Is On The Streets!'}`;
+      if (cdChip) {
+        cdChip.style.display = 'inline-flex';
+        cdText.textContent = 'Live GPS Radar Active';
+      }
+    } else {
+      badge.className = 'live-status-badge';
+      const nextR = findNextUpcomingRoute();
+      if (nextR) {
+        const todayMatch = isRouteToday(nextR);
+        badgeText.textContent = todayMatch
+          ? `Tonight: ${nextR.name} (${nextR.start_time || '18:00'})`
+          : `Next Sleigh Night: ${formatFriendlyDate(nextR.date)} — ${nextR.name}`;
+        startNextRouteCountdown(nextR, cdChip, cdText);
+      } else {
+        badgeText.textContent = `${town} Sleigh Season Hub`;
+        if (cdChip) cdChip.style.display = 'none';
+      }
+    }
+
+    // Fullscreen tracker & crew links
+    const fsLink = document.getElementById('map-fullscreen-link');
+    if (fsLink) fsLink.href = buildSubdomainToolUrl('/tracker');
+    const crewLink = document.getElementById('volunteer-crew-link');
+    if (crewLink) crewLink.href = buildSubdomainToolUrl('/crew');
+    const gaOnlyLink = document.getElementById('impact-giftaid-only-btn');
+    if (gaOnlyLink) gaOnlyLink.href = buildSubdomainToolUrl('/giftaid');
+
+    // Footer & Socials
+    const clubHeading = document.getElementById('footer-club-heading');
+    if (clubHeading) clubHeading.textContent = `${town.toUpperCase()} ROUND TABLE`;
+    const copyName = document.getElementById('copyright-name');
+    if (copyName) copyName.textContent = displayName;
+    const copyYear = document.getElementById('copyright-year');
+    if (copyYear) copyYear.textContent = String(new Date().getFullYear());
+
+    const socialsWrap = document.getElementById('footer-social-pills');
+    if (socialsWrap) {
+      const links = [
+        table.facebook_url && { href: table.facebook_url, icon: 'fa-brands fa-facebook', label: 'Facebook' },
+        table.instagram_url && { href: table.instagram_url, icon: 'fa-brands fa-instagram', label: 'Instagram' },
+        table.tiktok_url && { href: table.tiktok_url, icon: 'fa-brands fa-tiktok', label: 'TikTok' },
+        table.website_url && { href: table.website_url, icon: 'fa-solid fa-globe', label: 'Club Website' }
+      ].filter(Boolean);
+
+      socialsWrap.innerHTML = links.map(l => `
+        <a href="${escapeHtml(l.href)}" target="_blank" rel="noopener noreferrer" class="btn-glass btn-sm">
+          <i class="${l.icon}" style="color:var(--primary);"></i>
+          <span>${escapeHtml(l.label)}</span>
+        </a>
+      `).join('');
+    }
+
+    // Compare V1 link in Test Lab
+    const v1Link = document.getElementById('lab-compare-v1');
+    if (v1Link) v1Link.href = `/santasleigh.html?table=${encodeURIComponent(state.slug)}`;
+  }
+
+  function startNextRouteCountdown(route, chipEl, textEl) {
+    if (!chipEl || !textEl || !route?.date) return;
+    const d = parseLocalRouteDate(route.date);
+    if (!d) {
+      chipEl.style.display = 'none';
+      return;
+    }
+    const [sh, sm] = String(route.start_time || '18:00').split(':').map(n => parseInt(n, 10) || 0);
+    const targetMs = new Date(d.getFullYear(), d.getMonth(), d.getDate(), sh, sm, 0).getTime();
+
+    const tick = () => {
+      const diff = targetMs - Date.now();
+      if (diff <= 0) {
+        chipEl.style.display = 'none';
+        return;
+      }
+      chipEl.style.display = 'inline-flex';
+      const days = Math.floor(diff / 86400000);
+      const hrs = Math.floor((diff % 86400000) / 3600000);
+      const mins = Math.floor((diff % 3600000) / 60000);
+      textEl.textContent = days > 0
+        ? `Departs in ${days}d ${hrs}h ${mins}m`
+        : `Departs in ${hrs}h ${mins}m`;
+    };
+    tick();
+    state.countdownTimer = setInterval(tick, 30000);
+  }
+
+  function renderHeroMetrics() {
+    const routesEl = document.getElementById('metric-routes');
+    const streetsEl = document.getElementById('metric-streets');
+    const localEl = document.getElementById('metric-local');
+    if (routesEl) routesEl.textContent = String(state.routes.length || 0);
+    if (streetsEl) streetsEl.textContent = String(state.allStreetRecords.length || (state.payload?.streets?.length || 0));
+
+    const partnersCount = (state.payload?.partners?.length || 0);
+    const grantsCount = (state.payload?.approved_grants?.length || 0);
+    if (localEl) {
+      localEl.textContent = (partnersCount + grantsCount) > 0 ? '100%' : '100%';
+    }
+  }
+
+  function renderRoutesGrid() {
+    const grid = document.getElementById('routes-bento-grid');
+    const countSpan = document.getElementById('all-routes-count');
+    if (countSpan) countSpan.textContent = String(state.routes.length);
+    if (!grid) return;
+
+    if (state.routes.length === 0) {
+      grid.innerHTML = `
+        <div class="glass-bento-card" style="grid-column: 1 / -1; text-align:center; padding:42px 24px;">
+          <div style="font-size:34px;">🛷</div>
+          <h3 style="font-size:20px;">Routes Being Finalised By Our Elves</h3>
+          <p style="font-size:14px; color:var(--text-secondary); max-width:480px; margin:0 auto;">
+            Our volunteer route planners are putting the finishing touches on this year’s sleigh dates. Register for a free Doorstep Alert above to be notified first!
+          </p>
+        </div>
+      `;
+      return;
+    }
+
+    const q = state.routeFilterQuery.trim().toLowerCase();
+
+    // Smart auto-fallback: if 'upcoming' has 0 routes (e.g. off-season dates), show all
+    const hasAnyUpcoming = state.routes.some((r, idx) => !isRouteCompleted(r, idx));
+    const effectiveTab = (state.routeFilterTab === 'upcoming' && !hasAnyUpcoming) ? 'all' : state.routeFilterTab;
+
+    const visibleRoutes = state.routes.filter((route, idx) => {
+      if (effectiveTab === 'upcoming' && isRouteCompleted(route, idx)) return false;
+      if (!q) return true;
+      const streets = state.streetsByRoute.get(String(route.id)) || [];
+      const sponsors = getRouteSponsors(route);
+      return (
+        String(route.name || '').toLowerCase().includes(q) ||
+        String(route.date || '').toLowerCase().includes(q) ||
+        streets.some(s => s.toLowerCase().includes(q)) ||
+        sponsors.some(sp => sp.name.toLowerCase().includes(q))
+      );
+    });
+
+    if (visibleRoutes.length === 0) {
+      grid.innerHTML = `
+        <div class="glass-bento-card" style="grid-column: 1 / -1; text-align:center; padding:34px 20px;">
+          <p style="color:var(--text-secondary);">No routes matched "<strong>${escapeHtml(state.routeFilterQuery)}</strong>". Try clearing the filter or switching to All Routes.</p>
+        </div>
+      `;
+      return;
+    }
+
+    grid.innerHTML = visibleRoutes.map((route) => {
+      const origIdx = state.routes.indexOf(route);
+      const d = parseLocalRouteDate(route.date);
+      const monthStr = d ? d.toLocaleDateString('en-GB', { month: 'short' }) : 'DEC';
+      const dayStr = d ? String(d.getDate()).padStart(2, '0') : '--';
+      const dowStr = d ? d.toLocaleDateString('en-GB', { weekday: 'short' }) : 'TBC';
+
+      const live = isRouteLive(route, origIdx);
+      const postponed = isRoutePostponed(route, origIdx);
+      const today = isRouteToday(route);
+      const completed = isRouteCompleted(route, origIdx);
+      const isSelected = String(state.selectedRouteId) === String(route.id);
+
+      let statusBadge = `<span class="r-badge">Scheduled</span>`;
+      if (live) statusBadge = `<span class="r-badge live">● Live On Street</span>`;
+      else if (postponed) statusBadge = `<span class="r-badge postponed">🌧️ Postponed</span>`;
+      else if (today) statusBadge = `<span class="r-badge tonight">✨ Tonight</span>`;
+      else if (completed) statusBadge = `<span class="r-badge completed">✓ Visited</span>`;
+
+      const sponsors = getRouteSponsors(route);
+      const primarySponsor = sponsors[0] || null;
+      const sponsorHtml = primarySponsor ? `
+        <${primarySponsor.url ? `a href="${escapeHtml(primarySponsor.url)}" target="_blank" rel="noopener noreferrer"` : 'div'} class="route-sponsor-strip">
+          ${primarySponsor.logo ? `<div class="sponsor-logo-pedestal"><img src="${escapeHtml(primarySponsor.logo)}" alt="${escapeHtml(primarySponsor.name)}" loading="lazy"></div>` : ''}
+          <div class="sponsor-strip-meta">
+            <div class="sponsor-strip-kicker">Night Sponsored By</div>
+            <div class="sponsor-strip-name">${escapeHtml(sponsors.map(s => s.name).join(' • '))}</div>
+          </div>
+          ${primarySponsor.url ? '<i class="fa-solid fa-arrow-up-right-from-square" style="font-size:11px; color:var(--text-muted);"></i>' : ''}
+        </${primarySponsor.url ? 'a' : 'div'}>
+      ` : '';
+
+      const allStreets = state.streetsByRoute.get(String(route.id)) || [];
+      const isExpanded = state.expandedRouteStreets.has(String(route.id)) || Boolean(q);
+      const previewStreets = isExpanded ? allStreets : allStreets.slice(0, 7);
+      const hiddenCount = Math.max(0, allStreets.length - previewStreets.length);
+
+      const streetsHtml = allStreets.length > 0 ? `
+        <div class="route-streets-wrap">
+          ${previewStreets.map(st => {
+            const matched = q && st.toLowerCase().includes(q);
+            return `<span class="street-chip${matched ? ' matched' : ''}">${escapeHtml(st)}</span>`;
+          }).join('')}
+          ${hiddenCount > 0 ? `<button type="button" class="street-more-btn" data-expand-route="${escapeHtml(route.id)}">+${hiddenCount} more streets</button>` : ''}
+        </div>
+      ` : `<div style="font-size:12px; color:var(--text-muted);">Tap "Show on Map" to view the full GPX road corridor.</div>`;
+
+      const cardClasses = [
+        'route-card-v2',
+        isSelected ? 'is-selected' : '',
+        (today || live) ? 'is-tonight' : '',
+        postponed ? 'is-postponed' : ''
+      ].filter(Boolean).join(' ');
+
+      return `
+        <article class="${cardClasses}" data-route-card="${escapeHtml(route.id)}">
+          <div class="route-card-top">
+            <div class="date-calendar-Leaf tabular">
+              <div class="date-leaf-month">${escapeHtml(monthStr)}</div>
+              <div class="date-leaf-day brand-font">${escapeHtml(dayStr)}</div>
+              <div class="date-leaf-dow">${escapeHtml(dowStr)}</div>
+            </div>
+            <div class="route-head-info">
+              <div class="route-status-row">
+                ${statusBadge}
+                ${allStreets.length > 0 ? `<span class="r-badge tabular">${allStreets.length} Streets</span>` : ''}
+              </div>
+              <h3 class="route-name-title">${escapeHtml(route.name)}</h3>
+              <div class="route-time-line tabular">
+                <span><i class="fa-regular fa-clock" style="color:var(--primary);"></i> ${escapeHtml(route.start_time || '18:00')} – ${escapeHtml(route.end_time || '20:30')}</span>
+              </div>
+            </div>
+          </div>
+
+          ${postponed && route.postponed_note ? `<div style="font-size:12px; color:#fcd34d; background:rgba(245,158,11,0.12); padding:8px 10px; border-radius:9px;">${escapeHtml(route.postponed_note)}</div>` : ''}
+          ${sponsorHtml}
+          ${streetsHtml}
+
+          <div class="route-card-actions">
+            <button type="button" class="r-action-btn" data-map-route="${escapeHtml(route.id)}">
+              <i class="fa-solid fa-map-location-dot" style="color:var(--primary);"></i>
+              <span>Show on Radar</span>
+            </button>
+            <button type="button" class="r-action-btn" data-notify-route="${escapeHtml(route.id)}">
+              <i class="fa-solid fa-bell"></i>
+              <span>Alert Me</span>
+            </button>
+            <button type="button" class="r-action-btn icon-only" data-ics-route="${escapeHtml(route.id)}" title="Add route night to phone calendar" aria-label="Add to calendar">
+              <i class="fa-regular fa-calendar-plus"></i>
+            </button>
+          </div>
+        </article>
+      `;
+    }).join('');
+
+    // Wire Route Card Interactions
+    grid.querySelectorAll('[data-expand-route]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const rId = btn.getAttribute('data-expand-route');
+        state.expandedRouteStreets.add(rId);
+        renderRoutesGrid();
+      });
+    });
+
+    grid.querySelectorAll('[data-map-route]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectRouteAndFocus(btn.getAttribute('data-map-route'), true);
+      });
+    });
+
+    grid.querySelectorAll('[data-notify-route]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openDoorstepAlertModal({ routeId: btn.getAttribute('data-notify-route') });
+      });
+    });
+
+    grid.querySelectorAll('[data-ics-route]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const r = state.routes.find(x => String(x.id) === String(btn.getAttribute('data-ics-route')));
+        if (r) downloadRouteIcs(r);
+      });
+    });
+  }
+
+  function renderFundraisingAndImpact() {
+    const table = state.payload?.table || {};
+    const currency = table.currency || '£';
+    const internalRaised = Number(table.total_raised || 0);
+    const externalRaised = Number(table.external_raised_total || 0);
+    const giftAidBonus = Number(state.payload?.gift_aid?.giftAid || 0);
+    const totalRaised = internalRaised + externalRaised + giftAidBonus;
+    const goal = Number(table.fundraising_goal || 5000);
+
+    const kicker = document.getElementById('fundraiser-kicker');
+    const bigAmt = document.getElementById('fundraiser-big-amount');
+    const goalLbl = document.getElementById('fundraiser-goal-label');
+    const bar = document.getElementById('fundraiser-bar');
+    const subnote = document.getElementById('fundraiser-subnote');
+
+    if (totalRaised > 0) {
+      const pct = goal > 0 ? Math.min(100, Math.max(6, Math.round((totalRaised / goal) * 100))) : 100;
+      if (kicker) kicker.innerHTML = `<i class="fa-solid fa-fire"></i> Live Community Total (${pct}% of Goal)`;
+      if (bigAmt) bigAmt.textContent = `${currency}${totalRaised.toLocaleString('en-GB', { minimumFractionDigits: totalRaised % 1 ? 2 : 0, maximumFractionDigits: 2 })}`;
+      if (goalLbl) goalLbl.textContent = `Target: ${currency}${goal.toLocaleString('en-GB')}`;
+      if (bar) bar.style.width = `${pct}%`;
+      if (subnote) {
+        const count = Number(state.payload?.donation_count || 0);
+        subnote.textContent = count > 0
+          ? `Supported by ${count} generous doorstep & online donations${giftAidBonus > 0 ? ` (including ${currency}${giftAidBonus.toFixed(2)} HMRC Gift Aid)` : ''}!`
+          : 'Every penny goes directly to local community charities and good causes.';
+      }
+    } else {
+      // Pre-Season Launch Mode: Inspiring & purposeful instead of an empty £0 bar
+      if (kicker) kicker.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> ${new Date().getFullYear()} Community Appeal Target`;
+      if (bigAmt) bigAmt.textContent = `${currency}${goal.toLocaleString('en-GB')}`;
+      if (goalLbl) goalLbl.textContent = '100% Volunteer-Run • Zero Admin Cut';
+      if (bar) bar.style.width = '12%';
+      if (subnote) subnote.textContent = 'Be among the first supporters of this year’s sleigh appeal — every £1 becomes £1.25 with free HMRC Gift Aid!';
+    }
+
+    const charityEl = document.getElementById('impact-charity-name');
+    if (charityEl) {
+      const cName = table.charity_name || table.sleigh_display_name || 'our Round Table';
+      const cNum = table.charity_number ? ` (Registered Charity #${table.charity_number})` : '';
+      charityEl.textContent = `${cName}${cNum}`;
+    }
+
+    // Beneficiaries & Approved Public Grants + Charity Partners
+    const chipsWrap = document.getElementById('beneficiary-chips');
+    if (chipsWrap) {
+      const names = new Set();
+      (state.payload?.approved_grants || []).forEach(g => {
+        const n = String(g.org_name || g.organisation_name || '').trim();
+        if (n) names.add(n);
+      });
+      (state.payload?.partners || []).forEach(p => {
+        if (/charity|rescue|mind|hospice|food|trust/i.test(String(p.role || '') + ' ' + String(p.name || ''))) {
+          if (p.name) names.add(String(p.name).trim());
+        }
+      });
+
+      if (names.size > 0) {
+        chipsWrap.innerHTML = Array.from(names).map(n => `
+          <span class="beneficiary-chip"><i class="fa-solid fa-heart" style="color:var(--primary);"></i> ${escapeHtml(n)}</span>
+        `).join('');
+      } else {
+        chipsWrap.innerHTML = `
+          <span class="beneficiary-chip"><i class="fa-solid fa-school" style="color:var(--primary);"></i> Local Schools &amp; Youth Clubs</span>
+          <span class="beneficiary-chip"><i class="fa-solid fa-basket-shopping" style="color:var(--primary);"></i> Community Food Banks</span>
+          <span class="beneficiary-chip"><i class="fa-solid fa-hand-holding-heart" style="color:var(--primary);"></i> Grassroots Charities</span>
+        `;
+      }
+    }
+
+    const grantBtn = document.getElementById('open-grant-btn');
+    if (grantBtn) {
+      grantBtn.style.display = table.enable_grant_nominations === false ? 'none' : 'inline-flex';
+    }
+
+    updateGiftAidCalculator(state.selectedTierAmount);
+  }
+
+  function updateGiftAidCalculator(amt) {
+    state.selectedTierAmount = Number(amt) || 5;
+    document.querySelectorAll('.tier-pill').forEach(btn => {
+      btn.classList.toggle('active', Number(btn.getAttribute('data-amt')) === state.selectedTierAmount);
+    });
+    const bonus = state.selectedTierAmount * 0.25;
+    const total = state.selectedTierAmount + bonus;
+    const baseEl = document.getElementById('calc-base');
+    const bonusEl = document.getElementById('calc-bonus');
+    const totalEl = document.getElementById('calc-total');
+    if (baseEl) baseEl.textContent = `£${state.selectedTierAmount.toFixed(2)}`;
+    if (bonusEl) bonusEl.textContent = `£${bonus.toFixed(2)}`;
+    if (totalEl) totalEl.textContent = `£${total.toFixed(2)}`;
+
+    const modalAmt = document.getElementById('v2-ga-amount');
+    if (modalAmt) modalAmt.value = String(state.selectedTierAmount);
+  }
+
+  function renderArcadeGrid() {
+    const grid = document.getElementById('arcade-grid');
+    if (!grid) return;
+    const table = state.payload?.table || {};
+
+    const featuredIds = [table.public_slot_1, table.public_slot_2]
+      .map(s => String(s || '').trim())
+      .filter(s => s && ARCADE_CATALOG[s]);
+
+    const defaultOrder = ['letter', 'elf_cam', 'santa_bot', 'bingo', 'nice_list', 'magic_mailbox', 'colouring', 'door_hanger'];
+    const orderedIds = Array.from(new Set([...featuredIds, ...defaultOrder]))
+      .filter(id => {
+        if (id === 'magic_mailbox' && table.enable_magic_mailbox === false) return false;
+        return Boolean(ARCADE_CATALOG[id]);
+      })
+      .slice(0, 8);
+
+    grid.innerHTML = orderedIds.map(id => {
+      const item = ARCADE_CATALOG[id];
+      const isFeatured = featuredIds.includes(id);
+      return `
+        <button type="button" class="arcade-tile${isFeatured ? ' is-featured' : ''}" data-arcade-id="${escapeHtml(item.id)}">
+          <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+            <div class="arcade-icon-box">${item.icon}</div>
+            ${isFeatured ? '<span class="r-badge tonight">Featured</span>' : ''}
+          </div>
+          <div>
+            <div class="arcade-kicker">${escapeHtml(item.kicker)}</div>
+            <h3 class="arcade-title">${escapeHtml(item.title)}</h3>
+          </div>
+          <p class="arcade-desc">${escapeHtml(item.desc)}</p>
+          <span class="arcade-launch-cta">Launch Experience &#8594;</span>
+        </button>
+      `;
+    }).join('');
+
+    grid.querySelectorAll('[data-arcade-id]').forEach(tile => {
+      tile.addEventListener('click', () => {
+        const item = ARCADE_CATALOG[tile.getAttribute('data-arcade-id')];
+        if (item) openTheaterModal(item);
+      });
+    });
+  }
+
+  async function loadAndRenderMemoryWall() {
+    const grid = document.getElementById('memory-wall-grid');
+    if (!grid) return;
+
+    let items = [];
+    try {
+      const res = await fetch(`${API_ORIGIN}/api/memory-book?table=${encodeURIComponent(state.slug)}`);
+      const data = await res.json();
+      if (Array.isArray(data?.items)) items = data.items;
+    } catch (e) {}
+
+    const uploadCardHtml = `
+      <div class="memory-upload-tile" id="inline-memory-upload-tile" role="button" tabindex="0">
+        <div style="font-size:34px;">📸</div>
+        <h3 style="font-size:17px; color:#fff;">Add Your Sleigh Photo</h3>
+        <p style="font-size:12.5px; color:var(--text-secondary); max-width:240px;">
+          Spotted Santa tonight? Tap to upload your pavement photo to our community memory wall!
+        </p>
+        <span class="mini-action-pill">Upload Photo</span>
+      </div>
+    `;
+
+    const photosHtml = items.slice(0, 7).map(item => {
+      const dateStr = item.created_at ? new Date(item.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+      return `
+        <div class="polaroid-card" data-full-img="${escapeHtml(item.media_url)}" data-caption="${escapeHtml(item.caption || 'Spotted Santa!')}">
+          <div class="polaroid-img-wrap">
+            <img src="${escapeHtml(item.media_url)}" alt="${escapeHtml(item.caption || 'Santa Sleigh Memory')}" loading="lazy">
+          </div>
+          <div class="polaroid-caption">${escapeHtml(item.caption || 'Spotted Santa!')}</div>
+          ${dateStr ? `<div class="polaroid-date">${escapeHtml(dateStr)}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+
+    grid.innerHTML = photosHtml + uploadCardHtml;
+
+    document.getElementById('inline-memory-upload-tile')?.addEventListener('click', () => openModal('photo-modal'));
+
+    grid.querySelectorAll('.polaroid-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const imgUrl = card.getAttribute('data-full-img');
+        if (imgUrl) window.open(imgUrl, '_blank', 'noopener');
+      });
+    });
+  }
+
+  function renderPartnersPedestal() {
+    const section = document.getElementById('partners');
+    const grid = document.getElementById('partners-pedestal-grid');
+    if (!section || !grid) return;
+
+    const merged = [];
+    const seen = new Set();
+
+    const addPartner = (name, logo, url, role) => {
+      const cleanName = String(name || '').trim();
+      if (!cleanName && !logo) return;
+      const key = (cleanName || logo).toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      merged.push({ name: cleanName || 'Community Partner', logo: logo || '', url: url || '', role: role || 'Official Partner' });
+    };
+
+    (state.payload?.partners || []).forEach(p => {
+      addPartner(p.name, p.logo || p.logo_url, p.url || p.link, p.role || 'Official Partner');
+    });
+
+    // Also include route-level corporate sponsors so they get full recognition
+    state.routes.forEach(r => {
+      getRouteSponsors(r).forEach(sp => {
+        addPartner(sp.name, sp.logo, sp.url, `${r.name} Sponsor`);
+      });
+    });
+
+    if (merged.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+
+    section.style.display = 'block';
+    grid.innerHTML = merged.map(p => {
+      const tag = p.url ? 'a' : 'div';
+      const attrs = p.url ? `href="${escapeHtml(p.url)}" target="_blank" rel="noopener noreferrer"` : '';
+      return `
+        <${tag} ${attrs} class="partner-pedestal-card">
+          ${p.logo ? `<div class="partner-logo-stage"><img src="${escapeHtml(p.logo)}" alt="${escapeHtml(p.name)}" loading="lazy"></div>` : ''}
+          <span class="partner-role-pill">${escapeHtml(p.role)}</span>
+          <div class="partner-name">${escapeHtml(p.name)}</div>
+        </${tag}>
+      `;
+    }).join('');
+  }
+
+  async function loadAndStartCheerTicker() {
+    try {
+      const res = await fetch(`${API_ORIGIN}/api/messages?table=${encodeURIComponent(state.slug)}`);
+      const data = await res.json();
+      state.cheerMessages = Array.isArray(data?.messages) ? data.messages : [];
+    } catch (e) {
+      state.cheerMessages = [];
+    }
+
+    const tickerEl = document.getElementById('cheer-ticker-text');
+    if (!tickerEl) return;
+
+    const fallbackCheers = [
+      'Wave to Santa and our volunteer elves when the sleigh passes your street!',
+      '100% of every coin and contactless tap goes back to local community causes!',
+      'Tip: Tap "Pin Alert" on the radar to get an email when Santa is 250m away!'
+    ];
+
+    const pool = state.cheerMessages.length > 0
+      ? state.cheerMessages.map(m => `"${m.message}" — ${m.author_name || 'Local Supporter'}`)
+      : fallbackCheers;
+
+    tickerEl.textContent = pool[0];
+    if (pool.length > 1) {
+      setInterval(() => {
+        state.cheerIndex = (state.cheerIndex + 1) % pool.length;
+        tickerEl.textContent = pool[state.cheerIndex];
+      }, 6500);
+    }
+  }
+
+  // --- Background Media & Sleigh Jingles ---
+  function applyBackgroundAndMusic() {
+    const table = state.payload?.table || {};
+    const mediaLayer = document.getElementById('sky-media-layer');
+    if (mediaLayer) {
+      if (table.background_mode === 'image' && table.background_url) {
+        mediaLayer.innerHTML = `<img src="${escapeHtml(table.background_url)}" alt="">`;
+      } else {
+        const vidUrl = table.background_video_url || '/media/santa.mp4';
+        mediaLayer.innerHTML = `<video autoplay loop muted playsinline webkit-playsinline disablePictureInPicture src="${escapeHtml(vidUrl)}"></video>`;
+      }
+    }
+
+    const musicBtn = document.getElementById('music-toggle-btn');
+    if (state.audioEl) {
+      state.audioEl.pause();
+      state.audioEl = null;
+      state.isMusicPlaying = false;
+    }
+
+    if (table.music_mode && table.music_mode !== 'none' && table.music_custom_url) {
+      if (musicBtn) musicBtn.style.display = 'inline-flex';
+      state.audioEl = new Audio(table.music_custom_url);
+      state.audioEl.loop = table.music_loop !== false;
+      state.audioEl.volume = Math.min(1, Math.max(0.05, Number(table.music_volume ?? 0.45)));
+    } else if (musicBtn) {
+      musicBtn.style.display = 'none';
+    }
+  }
+
+  // --- Modals & Form Submissions ---
+  function openModal(id) {
+    document.getElementById(id)?.classList.add('open');
+  }
+
+  function closeModal(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('open');
+    if (id === 'theater-modal') {
+      const ifr = document.getElementById('theater-iframe');
+      if (ifr) ifr.src = 'about:blank';
+    }
+  }
+
+  function openTheaterModal(item) {
+    const titleEl = document.getElementById('theater-title');
+    const iconEl = document.getElementById('theater-icon');
+    const fsLink = document.getElementById('theater-fs-link');
+    const ifr = document.getElementById('theater-iframe');
+
+    const targetUrl = `${item.path}?table=${encodeURIComponent(state.slug)}`;
+    if (titleEl) titleEl.textContent = item.title;
+    if (iconEl) iconEl.textContent = item.icon;
+    if (fsLink) fsLink.href = buildSubdomainToolUrl(item.path);
+    if (ifr) ifr.src = targetUrl;
+    openModal('theater-modal');
+  }
+
+  function openDonateFlow() {
+    const table = state.payload?.table || {};
+    const donateUrl = table.donate_url || table.justgiving_url || '';
+    if (table.enable_gift_aid !== false) {
+      openModal('giftaid-modal');
+    } else if (donateUrl) {
+      window.open(donateUrl, '_blank', 'noopener');
+    } else {
+      openModal('giftaid-modal');
+    }
+  }
+
+  function openDoorstepAlertModal(opts = {}) {
+    const routeSel = document.getElementById('v2-alert-route');
+    const statusEl = document.getElementById('v2-alert-coords-status');
+    const pcInput = document.getElementById('v2-alert-postcode');
+
+    if (routeSel) {
+      routeSel.innerHTML = `<option value="">Any Nearby Sleigh Route (250m Radius)</option>` +
+        state.routes.map(r => `<option value="${escapeHtml(r.id)}">${escapeHtml(r.name)} — ${escapeHtml(formatFriendlyDate(r.date))}</option>`).join('');
+      if (opts.routeId) routeSel.value = String(opts.routeId);
+    }
+
+    if (opts.lat && opts.lng) {
+      state.alertCoords = { lat: opts.lat, lng: opts.lng };
+      if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.textContent = `✓ Exact doorstep coordinates locked (${opts.lat.toFixed(4)}, ${opts.lng.toFixed(4)})`;
+      }
+      if (pcInput && opts.label) pcInput.value = opts.label;
+    } else {
+      state.alertCoords = null;
+      if (statusEl) statusEl.style.display = 'none';
+      if (pcInput && opts.label) pcInput.value = opts.label;
+    }
+
+    openModal('alert-modal');
+  }
+
+  // --- Master Table Loader ---
+  async function loadTableExperience(targetSlug, usePrefetched = false) {
+    state.slug = targetSlug || DEFAULT_RICH_TABLE;
+    state.selectedRouteId = null;
+    state.expandedRouteStreets.clear();
+    state.simTickIndex = 0;
+
+    // Highlight active Test Lab button
+    document.querySelectorAll('[data-table]').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-table') === state.slug);
+    });
+    const allSelect = document.getElementById('lab-all-tables');
+    if (allSelect) allSelect.value = state.slug;
+
+    try {
+      let data = null;
+      if (usePrefetched && window.__sleighPrefetchedData && window.__sleighPrefetchedData?.table?.slug === state.slug) {
+        data = window.__sleighPrefetchedData;
+      } else {
+        const res = await fetch(`${API_ORIGIN}/api/payload?table=${encodeURIComponent(state.slug)}`);
+        data = await res.json();
+      }
+
+      state.payload = data || {};
+      state.routes = Array.isArray(data?.routes) ? data.routes : [];
+
+      applyBrandTheme(data?.table || {});
+      applyBackgroundAndMusic();
+      rebuildStreetSearchIndex();
+      renderHeaderAndHero();
+      renderHeroMetrics();
+      renderRoutesGrid();
+      renderFundraisingAndImpact();
+      renderArcadeGrid();
+      renderPartnersPedestal();
+
+      // Parallel non-blocking loads: GPX tracks, Memory Wall, Live Cheer, View counter
+      loadAllRoutesGpxAndRenderMap(true);
+      loadAndRenderMemoryWall();
+      loadAndStartCheerTicker();
+      fetch(`${API_ORIGIN}/api/track-view?table=${encodeURIComponent(state.slug)}`, { method: 'POST' }).catch(() => {});
+    } catch (err) {
+      console.error('Failed to load sleigh experience:', err);
+    }
+  }
+
+  async function populateTestLabTablesDropdown() {
+    const sel = document.getElementById('lab-all-tables');
+    if (!sel) return;
+    try {
+      const res = await fetch(`${API_ORIGIN}/api/public/tables`);
+      const data = await res.json();
+      if (Array.isArray(data?.tables)) {
+        sel.innerHTML = `<option value="">Switch Live Table (${data.tables.length})...</option>` +
+          data.tables.map(t => `<option value="${escapeHtml(t.slug)}">${escapeHtml(t.town_name || t.slug)}</option>`).join('');
+        sel.value = state.slug;
+      }
+    } catch (e) {}
+  }
+
+  // --- Subtle 60fps Winter Snowfall ---
+  function initSnowCanvas() {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const canvas = document.getElementById('snow-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let w = (canvas.width = window.innerWidth);
+    let h = (canvas.height = window.innerHeight);
+
+    window.addEventListener('resize', () => {
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = window.innerHeight;
+    });
+
+    const flakes = Array.from({ length: 48 }, () => ({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      r: Math.random() * 2.1 + 0.7,
+      vy: Math.random() * 0.65 + 0.25,
+      vx: (Math.random() - 0.5) * 0.35,
+      o: Math.random() * 0.55 + 0.2
+    }));
+
+    function draw() {
+      ctx.clearRect(0, 0, w, h);
+      flakes.forEach(f => {
+        f.y += f.vy;
+        f.x += f.vx;
+        if (f.y > h) { f.y = -5; f.x = Math.random() * w; }
+        if (f.x > w) f.x = 0;
+        if (f.x < 0) f.x = w;
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,255,255,${f.o})`;
+        ctx.fill();
+      });
+      requestAnimationFrame(draw);
+    }
+    requestAnimationFrame(draw);
+  }
+
+  // --- Wire DOM Events ---
+  function bindEvents() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('clean') === '1') {
+      const lab = document.getElementById('test-lab-bar');
+      if (lab) lab.style.display = 'none';
+    }
+
+    // Test Lab Table Switcher
+    document.querySelectorAll('[data-table]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const nextSlug = btn.getAttribute('data-table');
+        const u = new URL(window.location.href);
+        u.searchParams.set('table', nextSlug);
+        window.history.replaceState({}, '', u.toString());
+        loadTableExperience(nextSlug, false);
+      });
+    });
+
+    document.getElementById('lab-all-tables')?.addEventListener('change', (e) => {
+      const nextSlug = e.target.value;
+      if (!nextSlug) return;
+      const u = new URL(window.location.href);
+      u.searchParams.set('table', nextSlug);
+      window.history.replaceState({}, '', u.toString());
+      loadTableExperience(nextSlug, false);
+    });
+
+    // Test Lab Simulation Toggles
+    document.querySelectorAll('[data-sim]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.simMode = btn.getAttribute('data-sim') || 'auto';
+        document.querySelectorAll('[data-sim]').forEach(b => b.classList.toggle('active', b === btn));
+        renderHeaderAndHero();
+        renderRoutesGrid();
+        renderMapLayers(state.simMode === 'live');
+      });
+    });
+
+    document.getElementById('lab-hide-btn')?.addEventListener('click', () => {
+      const lab = document.getElementById('test-lab-bar');
+      if (lab) lab.style.display = 'none';
+    });
+
+    // Street Search & Near Me GPS
+    const searchInput = document.getElementById('street-search-input');
+    searchInput?.addEventListener('input', (e) => handleHeroStreetSearch(e.target.value));
+    searchInput?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const val = searchInput.value.trim();
+        if (val) geocodeAndShowNearest(val);
+      }
+    });
+
+    document.getElementById('street-search-clear')?.addEventListener('click', () => {
+      if (searchInput) searchInput.value = '';
+      handleHeroStreetSearch('');
+    });
+
+    document.getElementById('use-gps-btn')?.addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        alert('Geolocation is not supported by your browser — type your postcode instead!');
+        return;
+      }
+      const btn = document.getElementById('use-gps-btn');
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Locating...</span>';
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          btn.innerHTML = orig;
+          showNearestRoutesForCoordinates(pos.coords.latitude, pos.coords.longitude, 'My Current GPS Location');
+        },
+        () => {
+          btn.innerHTML = orig;
+          openDoorstepAlertModal({});
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    });
+
+    // Map Controls
+    document.getElementById('map-all-routes-btn')?.addEventListener('click', () => {
+      selectRouteAndFocus(null, false);
+    });
+
+    document.getElementById('map-pin-house-btn')?.addEventListener('click', (e) => {
+      state.pinHouseMode = !state.pinHouseMode;
+      e.currentTarget.classList.toggle('active', state.pinHouseMode);
+      const hudDetail = document.getElementById('hud-telemetry-detail');
+      if (state.pinHouseMode && hudDetail) {
+        hudDetail.textContent = '📍 Tap your house directly on the map to set a 250m email alert!';
+      } else {
+        updateLiveSleighMarkerAndHud();
+      }
+    });
+
+    // Route Filter Tabs & Inline Search
+    document.querySelectorAll('[data-rfilter]').forEach(tab => {
+      tab.addEventListener('click', () => {
+        state.routeFilterTab = tab.getAttribute('data-rfilter') || 'upcoming';
+        document.querySelectorAll('[data-rfilter]').forEach(t => t.classList.toggle('active', t === tab));
+        renderRoutesGrid();
+      });
+    });
+
+    document.getElementById('routes-filter-input')?.addEventListener('input', (e) => {
+      state.routeFilterQuery = e.target.value;
+      renderRoutesGrid();
+    });
+
+    // Gift Aid Tier Calculator Pills
+    document.querySelectorAll('.tier-pill').forEach(btn => {
+      btn.addEventListener('click', () => updateGiftAidCalculator(btn.getAttribute('data-amt')));
+    });
+
+    // Donate, Alert, Grant, Cheer, Photo Triggers
+    ['header-donate-btn', 'hero-donate-cta', 'impact-donate-btn', 'mobile-dock-donate'].forEach(id => {
+      document.getElementById(id)?.addEventListener('click', openDonateFlow);
+    });
+
+    document.getElementById('hero-alert-cta')?.addEventListener('click', () => openDoorstepAlertModal({}));
+    document.getElementById('open-grant-btn')?.addEventListener('click', () => openModal('grant-modal'));
+    document.getElementById('open-cheer-btn')?.addEventListener('click', () => openModal('cheer-modal'));
+    document.getElementById('open-photo-upload-btn')?.addEventListener('click', () => openModal('photo-modal'));
+
+    document.getElementById('hero-share-cta')?.addEventListener('click', async () => {
+      const shareUrl = window.location.href;
+      const title = document.title;
+      if (navigator.share) {
+        try { await navigator.share({ title, url: shareUrl }); return; } catch (e) {}
+      }
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Sleigh tracker link copied to clipboard!');
+      } catch (e) {}
+    });
+
+    // Music Toggle
+    document.getElementById('music-toggle-btn')?.addEventListener('click', () => {
+      if (!state.audioEl) return;
+      const lbl = document.getElementById('music-btn-label');
+      if (state.isMusicPlaying) {
+        state.audioEl.pause();
+        state.isMusicPlaying = false;
+        if (lbl) lbl.textContent = 'Jingles';
+      } else {
+        state.audioEl.play().then(() => {
+          state.isMusicPlaying = true;
+          if (lbl) lbl.textContent = 'Playing';
+        }).catch(() => {});
+      }
+    });
+
+    // Modal Closers
+    document.querySelectorAll('[data-close]').forEach(btn => {
+      btn.addEventListener('click', () => closeModal(btn.getAttribute('data-close')));
+    });
+    document.querySelectorAll('.modal-backdrop-v2').forEach(backdrop => {
+      backdrop.addEventListener('click', (e) => {
+        if (e.target === backdrop) closeModal(backdrop.id);
+      });
+    });
+
+    // Form 1: +25% Gift Aid Pre-Checkout
+    document.getElementById('v2-ga-skip')?.addEventListener('click', () => {
+      const url = state.payload?.table?.donate_url || state.payload?.table?.justgiving_url || '';
+      closeModal('giftaid-modal');
+      if (url) window.open(url, '_blank', 'noopener');
+    });
+
+    document.getElementById('v2-giftaid-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('v2-ga-submit');
+      btn.disabled = true;
+      btn.textContent = 'Recording HMRC Gift Aid...';
+
+      const body = {
+        table_slug: state.slug,
+        firstName: document.getElementById('v2-ga-first').value.trim(),
+        lastName: document.getElementById('v2-ga-last').value.trim(),
+        address1: document.getElementById('v2-ga-address').value.trim(),
+        postcode: document.getElementById('v2-ga-postcode').value.trim().toUpperCase(),
+        amount: parseFloat(document.getElementById('v2-ga-amount').value) || 5,
+        email: document.getElementById('v2-ga-email').value.trim()
+      };
+
+      try {
+        const res = await fetch(`${API_ORIGIN}/api/gift-aid?table=${encodeURIComponent(state.slug)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.ok === false) {
+          alert(data.error || 'Please check your Gift Aid details and try again.');
+        } else {
+          closeModal('giftaid-modal');
+          const donateUrl = state.payload?.table?.donate_url || state.payload?.table?.justgiving_url || '';
+          if (donateUrl) {
+            window.open(donateUrl, '_blank', 'noopener');
+          } else {
+            alert('Thank you! Your +25% HMRC Gift Aid declaration has been recorded.');
+          }
+        }
+      } catch (err) {
+        alert('Network error — please try again.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i><span>Save +25% Gift Aid &amp; Continue to Donate &#8594;</span>';
+      }
+    });
+
+    // Form 2: Doorstep 250m Proximity Email Alert
+    document.getElementById('v2-alert-gps-btn')?.addEventListener('click', () => {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition((pos) => {
+        state.alertCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        const st = document.getElementById('v2-alert-coords-status');
+        if (st) {
+          st.style.display = 'block';
+          st.textContent = `✓ GPS coordinates locked (${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)})`;
+        }
+      });
+    });
+
+    document.getElementById('v2-alert-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('v2-alert-submit');
+      const email = document.getElementById('v2-alert-email').value.trim();
+      const pc = document.getElementById('v2-alert-postcode').value.trim();
+      const routeId = document.getElementById('v2-alert-route').value || null;
+
+      btn.disabled = true;
+      btn.textContent = 'Activating Doorstep Alert...';
+
+      try {
+        let coords = state.alertCoords;
+        if (!coords && pc) {
+          const town = extractTownName(state.payload?.table, state.slug);
+          const q = isLikelyUkPostcode(pc) ? pc : `${pc}, ${town}, UK`;
+          const gRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=gb&limit=1&q=${encodeURIComponent(q)}`);
+          const gData = await gRes.json();
+          if (Array.isArray(gData) && gData[0]) {
+            coords = { lat: parseFloat(gData[0].lat), lng: parseFloat(gData[0].lon) };
+          }
+        }
+        if (!coords) {
+          alert('Please enter a valid UK postcode or tap "Use GPS" so we know when Santa is 250m from your home!');
+          btn.disabled = false;
+          btn.textContent = 'Activate My Free Doorstep Alert';
+          return;
+        }
+
+        const res = await fetch(`${API_ORIGIN}/api/subscribe?table=${encodeURIComponent(state.slug)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            table: state.slug,
+            lat: coords.lat,
+            lng: coords.lng,
+            email,
+            route_id: routeId
+          })
+        });
+        const data = await res.json();
+        if (!res.ok || data.ok === false) {
+          alert(data.error || 'Could not register alert — please try again.');
+        } else {
+          closeModal('alert-modal');
+          alert('🔔 Doorstep Alert Activated! We will email you when Santa departs and when his sleigh approaches within 250m.');
+        }
+      } catch (err) {
+        alert('Network error — please try again.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i><span>Activate My Free Doorstep Alert</span>';
+      }
+    });
+
+    // Form 3: Local Cause Grant Nomination
+    document.getElementById('v2-grant-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('v2-gr-submit');
+      btn.disabled = true;
+      btn.textContent = 'Submitting Nomination...';
+
+      try {
+        const res = await fetch(`${API_ORIGIN}/api/grants?table=${encodeURIComponent(state.slug)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            table: state.slug,
+            org_name: document.getElementById('v2-gr-org').value.trim(),
+            contact_name: document.getElementById('v2-gr-name').value.trim(),
+            contact_email: document.getElementById('v2-gr-email').value.trim(),
+            contact_phone: document.getElementById('v2-gr-phone').value.trim(),
+            amount_requested: parseFloat(document.getElementById('v2-gr-amount').value) || 0,
+            cause_summary: document.getElementById('v2-gr-summary').value.trim()
+          })
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          alert(data.error || 'Could not submit nomination.');
+        } else {
+          closeModal('grant-modal');
+          e.target.reset();
+          alert(data.message || 'Thank you! Your local cause nomination has been sent to the Round Table committee.');
+        }
+      } catch (err) {
+        alert('Network error — please try again.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check"></i><span>Submit Local Cause Nomination</span>';
+      }
+    });
+
+    // Form 4: Live Community Cheer
+    document.getElementById('v2-cheer-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('v2-cheer-submit');
+      btn.disabled = true;
+      btn.textContent = 'Sending Cheer...';
+
+      try {
+        const res = await fetch(`${API_ORIGIN}/api/messages?table=${encodeURIComponent(state.slug)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            authorName: document.getElementById('v2-cheer-author').value.trim() || 'Local Family',
+            message: document.getElementById('v2-cheer-msg').value.trim()
+          })
+        });
+        const data = await res.json();
+        if (!res.ok || data.ok === false) {
+          alert(data.error || 'Could not post cheer right now.');
+        } else {
+          closeModal('cheer-modal');
+          e.target.reset();
+          loadAndStartCheerTicker();
+          alert('🎄 Festive cheer sent to Santa & the elves!');
+        }
+      } catch (err) {
+        alert('Network error — please try again.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i><span>Send Festive Cheer</span>';
+      }
+    });
+
+    // Form 5: Memory Wall Photo Upload (Client-side compressed JPEG -> POST /api/memory-book)
+    document.getElementById('v2-photo-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fileInput = document.getElementById('v2-photo-file');
+      const file = fileInput?.files?.[0];
+      if (!file) return;
+
+      const btn = document.getElementById('v2-photo-submit');
+      btn.disabled = true;
+      btn.textContent = 'Optimising & Uploading...';
+
+      try {
+        const imageData = await compressImageToDataUrl(file, 1280, 0.82);
+        const res = await fetch(`${API_ORIGIN}/api/memory-book?table=${encodeURIComponent(state.slug)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageData,
+            caption: document.getElementById('v2-photo-caption').value.trim() || 'Spotted Santa!'
+          })
+        });
+        const data = await res.json();
+        if (!res.ok || data.ok === false) {
+          alert(data.error || 'Could not upload photo right now.');
+        } else {
+          closeModal('photo-modal');
+          e.target.reset();
+          loadAndRenderMemoryWall();
+          alert('📸 Thank you! Your photo has been submitted to the Digital Memory Book!');
+        }
+      } catch (err) {
+        alert('Could not process photo — please try another image.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i><span>Upload to Memory Book</span>';
+      }
+    });
+
+    // Open Gift Aid checkout automatically if ?donate=1
+    if (params.get('donate') === '1') {
+      setTimeout(openDonateFlow, 600);
+    }
+  }
+
+  function compressImageToDataUrl(file, maxDim = 1280, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = reject;
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            if (width >= height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const c = document.createElement('canvas');
+          c.width = width;
+          c.height = height;
+          c.getContext('2d').drawImage(img, 0, 0, width, height);
+          resolve(c.toDataURL('image/jpeg', quality));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // --- Bootstrap ---
+  document.addEventListener('DOMContentLoaded', () => {
+    initSnowCanvas();
+    bindEvents();
+    populateTestLabTablesDropdown();
+    loadTableExperience(state.slug, true);
+  });
+})();
