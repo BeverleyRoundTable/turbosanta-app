@@ -15,6 +15,7 @@
   <link rel="icon" type="image/png" href="/icons/RTBI_Santa.png">
   <link rel="apple-touch-icon" href="/icons/RTBI_Santa.png">
   <link rel="preload" href="/site/Eurostile_Extended_2_Bold.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" as="image" href="/icons/site_background.png">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,12 +28,7 @@
 
   <!-- Ambient Winter Night Sky & Optional Video/Image Layer -->
   <div class="sky-backdrop" id="sky-backdrop">
-    <div class="sky-media-layer" id="sky-media-layer">
-      <video id="sky-video" autoplay loop muted playsinline webkit-playsinline disablePictureInPicture>
-        <source src="/media/santa.mp4" type="video/mp4">
-        <source src="/media/santa.webm" type="video/webm">
-      </video>
-    </div>
+    <div class="sky-media-layer" id="sky-media-layer"></div>
   </div>
   <canvas id="snow-canvas" aria-hidden="true"></canvas>
 

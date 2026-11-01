@@ -287,6 +287,16 @@
       .replace(/'/g, '&#39;');
   }
 
+  function safeUrl(u) {
+    if (!u) return '';
+    const s = String(u).trim();
+    if (s.startsWith('data:image/') || s.startsWith('blob:') || s.startsWith('/')) return s;
+    try {
+      const x = new URL(s, location.href);
+      return (x.protocol === 'https:' || x.protocol === 'http:') ? x.href : '';
+    } catch (e) { return ''; }
+  }
+
   function parseHexRgb(v) {
     if (typeof v !== 'string') return null;
     const hex = /^#([0-9a-f]{3,8})$/i.exec(v.trim());
@@ -1389,13 +1399,76 @@
   // --- Background Media & Sleigh Jingles ---
   function applyBackgroundAndMusic() {
     const table = state.payload?.table || {};
+    const skyBackdrop = document.getElementById('sky-backdrop');
     const mediaLayer = document.getElementById('sky-media-layer');
-    if (mediaLayer) {
-      if (table.background_mode === 'image' && table.background_url) {
-        mediaLayer.innerHTML = `<img src="${escapeHtml(table.background_url)}" alt="">`;
-      } else {
-        const vidUrl = table.background_video_url || '/media/santa.mp4';
-        mediaLayer.innerHTML = `<video autoplay loop muted playsinline webkit-playsinline disablePictureInPicture src="${escapeHtml(vidUrl)}"></video>`;
+
+    const slug = state.slug || 'beverley';
+    const storedBgMode = localStorage.getItem(`turbosanta_${slug}_bg_mode`);
+    const storedVideoUrl = localStorage.getItem(`turbosanta_${slug}_bg_video_url`) || localStorage.getItem(`turbosanta_${slug}_bg_video`);
+
+    const apiMode = String(table.background_mode || table.bg_mode || '').trim().toLowerCase();
+    const localMode = String(storedBgMode || '').trim().toLowerCase();
+    const customVideo = String(
+      table.background_video_url ||
+      table.bg_video_url ||
+      table.bg_video ||
+      table.video_url ||
+      storedVideoUrl ||
+      ''
+    ).trim();
+
+    // Mode determination matching Turnkey Admin portal:
+    // 'image' (default) -> Static Image (custom uploaded image if set, else default /icons/site_background.png)
+    // 'video' | 'default_video' -> Default Video loop
+    // 'custom_video' | 'custom' -> Custom Video loop
+    const bgMode = (apiMode !== '') ? apiMode : (localMode || 'image');
+    const isCustomVideo = (bgMode === 'custom_video' || bgMode === 'custom-video' || bgMode === 'custom') && !!customVideo;
+    const isDefaultVideo = bgMode === 'video' || bgMode === 'default_video' || bgMode === 'default-video' || ((bgMode === 'custom_video' || bgMode === 'custom') && !customVideo);
+    const isVideo = isCustomVideo || isDefaultVideo;
+
+    if (isVideo) {
+      // VIDEO MODE: Clear static background image on backdrop, mount video in media layer
+      if (skyBackdrop) {
+        skyBackdrop.classList.remove('has-image');
+        skyBackdrop.style.backgroundImage = '';
+      }
+      if (mediaLayer) {
+        const defaultVideoUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.origin.includes('pages.dev'))
+          ? '/media/santa.mp4'
+          : 'https://turbosanta-app.pages.dev/media/santa.mp4';
+        const vidUrl = isCustomVideo ? customVideo : defaultVideoUrl;
+
+        mediaLayer.style.display = 'block';
+        mediaLayer.innerHTML = `<video id="sky-video" autoplay loop muted playsinline webkit-playsinline disablePictureInPicture src="${escapeHtml(vidUrl)}"></video>`;
+
+        const vidEl = mediaLayer.querySelector('video');
+        if (vidEl) {
+          vidEl.defaultMuted = true;
+          vidEl.muted = true;
+          vidEl.play().catch(() => {});
+          vidEl.addEventListener('error', () => {
+            if (vidEl.src && !vidEl.src.includes('turbosanta-app.pages.dev') && vidEl.src.endsWith('/media/santa.mp4')) {
+              vidEl.src = 'https://turbosanta-app.pages.dev/media/santa.mp4';
+              vidEl.load();
+              vidEl.play().catch(() => {});
+            }
+          });
+        }
+      }
+    } else {
+      // STATIC IMAGE MODE (Default):
+      // Respect custom uploaded image or fall back to default /icons/site_background.png
+      const bgImg = safeUrl(table.background_url) || '/icons/site_background.png';
+      if (skyBackdrop) {
+        skyBackdrop.classList.add('has-image');
+        skyBackdrop.style.backgroundImage = `linear-gradient(180deg, rgba(8, 12, 20, 0.65) 0%, rgba(8, 12, 20, 0.86) 50%, rgba(6, 9, 15, 0.98) 100%), url("${bgImg.replace(/"/g, '%22')}")`;
+        skyBackdrop.style.backgroundSize = 'cover';
+        skyBackdrop.style.backgroundPosition = 'center';
+        skyBackdrop.style.backgroundRepeat = 'no-repeat';
+      }
+      if (mediaLayer) {
+        mediaLayer.style.display = 'none';
+        mediaLayer.innerHTML = '';
       }
     }
 
