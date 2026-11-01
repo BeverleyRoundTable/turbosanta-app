@@ -1,7 +1,10 @@
+import React, { useState, useEffect } from 'react';
+import { X, Shield, Copy, Check, RefreshCw, Sparkles, Send } from 'lucide-react';
+import { getAdminAuthToken } from '../services/auth';
 
 function generateClientFallbackBriefing({ route, tableData, currentTableSlug }) {
   const table = tableData?.table || {};
-  const town = (table.sleigh_display_name || table.name || currentTableSlug || 'Round Table').replace(/round table/i, '').trim();
+  const town = (table.sleigh_display_name || table.name || currentTableSlug || 'Round Table').replace(/round table/gi, '').replace(/santa sleigh/gi, '').trim();
   const sleighName = table.sleigh_display_name || table.name || `${town} Round Table Santa Sleigh`;
   const routeName = route?.name || "Tonight's Sleigh Route";
   const dateStr = route?.date || new Date().toISOString().split('T')[0];
@@ -42,9 +45,7 @@ ${streetsStr ? `- **Key Streets:** ${streetsStr}` : '- Residential roads and ave
 - Smile, wave, DO MORE, stay safe, and let's make it a magical night! 🎅✨`;
 }
 
-import React, { useState, useEffect } from 'react';
-import { X, Shield, Copy, Check, RefreshCw, Sparkles, Send } from 'lucide-react';
-import { getAdminAuthToken } from '../services/auth';
+
 
 export default function CrewBriefingAiModal({
   isOpen,

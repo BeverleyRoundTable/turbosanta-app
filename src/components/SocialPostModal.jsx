@@ -1,7 +1,10 @@
+import React, { useState, useEffect } from 'react';
+import { X, Sparkles, Copy, Check, Share2, MessageCircle, Newspaper, RefreshCw } from 'lucide-react';
+import { getAdminAuthToken } from '../services/auth';
 
 function generateClientFallbackPosts({ route, tableData, currentTableSlug }) {
   const table = tableData?.table || {};
-  const town = (table.sleigh_display_name || table.name || currentTableSlug || 'Round Table').replace(/round table/i, '').trim();
+  const town = (table.sleigh_display_name || table.name || currentTableSlug || 'Round Table').replace(/round table/gi, '').replace(/santa sleigh/gi, '').trim();
   const sleighName = table.sleigh_display_name || table.name || `${town} Round Table Santa Sleigh`;
   const routeName = route?.name || "Tonight's Sleigh Route";
   const dateStr = route?.date || new Date().toISOString().split('T')[0];
@@ -24,10 +27,10 @@ function generateClientFallbackPosts({ route, tableData, currentTableSlug }) {
   const cleanTown = (town || 'Local').replace(/[^a-zA-Z0-9]/g, '');
 
   const raisedStr = raisedNum > 0
-    ? `🪙 Tonight's Collections: Thanks to your amazing generosity, tonight we collected £${raisedNum.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} in bucket and card donations!`
+    ? `🪙 Tonight's Collections: Thanks to your amazing generosity, tonight we collected £${raisedNum.toLocaleString('en-GB', { minimumFractionDigits: (raisedNum % 1 !== 0 ? 2 : 0), maximumFractionDigits: 2 })} in bucket and card donations!`
     : `🪙 Every single penny dropped into our buckets and donated online stays 100% local.`;
   const totalStr = (totalNum > 0 && totalNum > raisedNum)
-    ? ` That brings our season running total to £${totalNum.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}! ❤️`
+    ? ` That brings our season running total to £${totalNum.toLocaleString('en-GB', { minimumFractionDigits: (raisedNum % 1 !== 0 ? 2 : 0), maximumFractionDigits: 2 })}! ❤️`
     : '';
 
   const facebook_instagram = `🎅✨ WHAT A MAGICAL NIGHT! ✨🛷
@@ -50,18 +53,16 @@ ${sponsor ? `\n🤝 Route Sponsor Shout-Out:\nSpecial thanks to ${sponsor} for t
 
 Huge thank you to everyone who stepped up to marshal, collect, and drive tonight! 👏✨
 
-${streetsStr ? `📍 *Streets covered:* ${streetsStr}\n` : ''}${raisedNum > 0 ? `🪙 *Tonight's bucket & contactless total:* £${raisedNum.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}!\n` : ''}${totalNum > 0 && totalNum > raisedNum ? `🌟 *Season running total:* £${totalNum.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}!\n` : ''}
+${streetsStr ? `📍 *Streets covered:* ${streetsStr}\n` : ''}${raisedNum > 0 ? `🪙 *Tonight's bucket & contactless total:* £${raisedNum.toLocaleString('en-GB', { minimumFractionDigits: (raisedNum % 1 !== 0 ? 2 : 0), maximumFractionDigits: 2 })}!\n` : ''}${totalNum > 0 && totalNum > raisedNum ? `🌟 *Season running total:* £${totalNum.toLocaleString('en-GB', { minimumFractionDigits: (raisedNum % 1 !== 0 ? 2 : 0), maximumFractionDigits: 2 })}!\n` : ''}
 You kept the children safe, kept the carols playing, and brought huge smiles to so many families across ${town}. Get home safe, warm up, and thank you for being amazing volunteers! 💪🔥`;
 
   const pressSnippetStreets = streetsStr ? streetsStr.split(',').slice(0, 5).join(', ') : town;
-  const press_snippet = `The ${sleighName} completed another successful festive community tour on ${routeName}, visiting families across ${pressSnippetStreets}. Generous local residents contributed ${raisedNum > 0 ? `£${raisedNum.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}` : 'vital funds'} to the volunteer collectors, with all proceeds directly benefiting ${charityText}. Full route schedules, live GPS tracking, and online donation options are available at ${donateUrl}.`;
+  const press_snippet = `The ${sleighName} completed another successful festive community tour on ${routeName}, visiting families across ${pressSnippetStreets}. Generous local residents contributed ${raisedNum > 0 ? `£${raisedNum.toLocaleString('en-GB', { minimumFractionDigits: (raisedNum % 1 !== 0 ? 2 : 0), maximumFractionDigits: 2 })}` : 'vital funds'} to the volunteer collectors, with all proceeds directly benefiting ${charityText}. Full route schedules, live GPS tracking, and online donation options are available at ${donateUrl}.`;
 
   return { facebook_instagram, whatsapp_crew, press_snippet };
 }
 
-import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Copy, Check, Share2, MessageCircle, Newspaper, RefreshCw } from 'lucide-react';
-import { getAdminAuthToken } from '../services/auth';
+
 
 export default function SocialPostModal({
   isOpen,
