@@ -2043,8 +2043,16 @@ body {
   display: none;
 }
 
+.faq-card summary i {
+  transition: transform 0.25s ease;
+}
+
 .faq-card[open] {
   border-color: rgba(var(--primary-rgb), 0.4);
+}
+
+.faq-card[open] summary i {
+  transform: rotate(180deg);
 }
 
 .faq-answer {
