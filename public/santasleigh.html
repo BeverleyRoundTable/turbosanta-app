@@ -2495,7 +2495,13 @@
                 if (node.id === 'hero-title') {
                     const rtMatch = whitePart.match(/^(.*?)\s+(Round Table)$/i);
                     if (rtMatch) {
-                        const townSpan = el('span', 'hero-title-town', rtMatch[1]);
+                        let townName = rtMatch[1];
+                        townName = townName.replace(/([a-z]{2,})and([a-z]{2,})/gi, (match, p1, p2) => {
+                            const w1 = p1.charAt(0).toUpperCase() + p1.slice(1).toLowerCase();
+                            const w2 = p2.charAt(0).toUpperCase() + p2.slice(1).toLowerCase();
+                            return `${w1} and ${w2}`;
+                        });
+                        const townSpan = el('span', 'hero-title-town', townName);
                         townSpan.style.display = 'inline-block';
                         node.appendChild(townSpan);
                         node.appendChild(document.createTextNode(' '));
@@ -2528,7 +2534,12 @@
         }
 
         function renderBranding(settings, headlineSponsor, partners) {
-            const siteName = String(settings.sleigh_display_name || 'Santa Sleigh');
+            let siteName = String(settings.sleigh_display_name || 'Santa Sleigh');
+            siteName = siteName.replace(/([a-z]{2,})and([a-z]{2,})/gi, (match, p1, p2) => {
+                const w1 = p1.charAt(0).toUpperCase() + p1.slice(1).toLowerCase();
+                const w2 = p2.charAt(0).toUpperCase() + p2.slice(1).toLowerCase();
+                return `${w1} and ${w2}`;
+            });
             document.title = siteName;
             $('footer-name').textContent = siteName;
 

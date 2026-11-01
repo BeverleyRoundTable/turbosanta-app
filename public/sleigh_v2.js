@@ -335,17 +335,36 @@
 
   function extractTownName(table, slug) {
     const raw = table?.sleigh_display_name || table?.name || slug || 'Community';
-    const cleaned = raw
+    let cleaned = raw
       .replace(/round\s*table/gi, '')
       .replace(/santa'?s?\s*sleigh/gi, '')
       .replace(/\b\d+\b/g, '')
       .replace(/[-_]+/g, ' ')
       .trim();
-    if (cleaned) return cleaned;
-    return String(slug || 'Community')
-      .split(/[-_]+/)
-      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(' ');
+    if (!cleaned) cleaned = String(slug || 'Community');
+
+    const overrides = {
+      'knowleanddorridge': 'Knowle and Dorridge',
+      'knowle-and-dorridge': 'Knowle and Dorridge',
+      'knowle-dorridge': 'Knowle and Dorridge',
+      'isleofwight': 'Isle of Wight',
+      'meltonmowbray': 'Melton Mowbray'
+    };
+    const lowerKey = cleaned.toLowerCase().replace(/[-_\s]+/g, '');
+    if (overrides[lowerKey]) return overrides[lowerKey];
+
+    // Generic 'and' detector: splits compound words containing 'and' e.g. knowleanddorridge -> Knowle and Dorridge
+    cleaned = cleaned.replace(/([a-z]{2,})and([a-z]{2,})/gi, (match, p1, p2) => {
+      const w1 = p1.charAt(0).toUpperCase() + p1.slice(1).toLowerCase();
+      const w2 = p2.charAt(0).toUpperCase() + p2.slice(1).toLowerCase();
+      return `${w1} and ${w2}`;
+    });
+
+    return cleaned
+      .split(/[-_\s]+/)
+      .filter(Boolean)
+      .map((w, idx) => (idx > 0 && w.toLowerCase() === 'and') ? 'and' : (w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()))
+      .join(' ') || 'Community';
   }
 
   function parseLocalRouteDate(dateStr) {
@@ -680,7 +699,12 @@
   function renderHeaderAndHero() {
     const table = state.payload?.table || {};
     const town = extractTownName(table, state.slug);
-    const displayName = table.sleigh_display_name || table.name || `${town} Round Table Santa Sleigh`;
+    let displayName = table.sleigh_display_name || table.name || `${town} Round Table Santa Sleigh`;
+    displayName = displayName.replace(/([a-z]{2,})and([a-z]{2,})/gi, (match, p1, p2) => {
+      const w1 = p1.charAt(0).toUpperCase() + p1.slice(1).toLowerCase();
+      const w2 = p2.charAt(0).toUpperCase() + p2.slice(1).toLowerCase();
+      return `${w1} and ${w2}`;
+    });
 
     document.title = `${displayName} — Live Radar & Street Schedule`;
     const logoEl = document.getElementById('header-logo');
