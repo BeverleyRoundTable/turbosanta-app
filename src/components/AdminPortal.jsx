@@ -1951,7 +1951,7 @@ ${tableName} Organizers`
           contact_email: session?.email || 'committee@roundtable.org.uk',
           amount_requested: parseFloat(newCauseAmount) || 0,
           amount_awarded: parseFloat(newCauseAmount) || 0,
-          cause_summary: newCauseSummary.trim() || 'Supported by Round Table Santa Sleigh',
+          cause_summary: newCauseSummary.trim(),
           approved_public: 1,
           status: 'approved'
         })
@@ -4863,9 +4863,11 @@ ${tableName} Organizers`
                             </span>
                           )}
                         </div>
-                        <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                          {g.cause_summary}
-                        </div>
+                        {g.cause_summary && !/^supported by/i.test(g.cause_summary.trim()) && (
+                          <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                            {g.cause_summary}
+                          </div>
+                        )}
                         {g.contact_email && (
                           <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', opacity: 0.75 }}>
                             Contact: {g.contact_name || 'N/A'} ({g.contact_email}{g.contact_phone ? ` • ${g.contact_phone}` : ''})

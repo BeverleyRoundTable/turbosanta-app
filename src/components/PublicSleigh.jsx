@@ -1537,8 +1537,8 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                     >
                       <div style={{ flex: 1, minWidth: '180px' }}>
                         <strong style={{ color: '#FFFFFF', fontSize: '14px', display: 'block' }}>{g.org_name || g.organisation_name || g.name || g.title || 'Local Cause'}</strong>
-                        {g.cause_summary && (
-                          <span style={{ color: 'var(--text-muted)', fontSize: '12px', lineHeight: 1.4 }}>{g.cause_summary}</span>
+                        {g.cause_summary && !/^supported by/i.test(g.cause_summary.trim()) && (
+                          <span style={{ color: 'var(--text-muted)', fontSize: '12px', lineHeight: 1.4, display: 'block', marginTop: '2px' }}>{g.cause_summary}</span>
                         )}
                       </div>
                       {(Number(g.amount_awarded) > 0 || Number(g.amount_requested) > 0) && (

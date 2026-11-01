@@ -3090,9 +3090,10 @@
                             titleRow.appendChild(amt);
                         }
                         item.appendChild(titleRow);
-                        if (g.cause_summary) {
+                        const isGenericCause = !g.cause_summary || /^supported by/i.test(String(g.cause_summary).trim());
+                        if (g.cause_summary && !isGenericCause) {
                             const sum = el('div', '', g.cause_summary);
-                            sum.style.cssText = 'font-size: 12px; color: var(--text-muted); line-height: 1.4;';
+                            sum.style.cssText = 'font-size: 12px; color: var(--text-muted); line-height: 1.4; margin-top: 2px;';
                             item.appendChild(sum);
                         }
                         grantsGrid.appendChild(item);
