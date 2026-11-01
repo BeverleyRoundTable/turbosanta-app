@@ -102,6 +102,8 @@ export default function App() {
     '/guide': '/guide.html',
     '/hub': '/hub.html',
     '/embed': '/embed.html',
+    '/v1': '/santasleigh.html',
+    '/santasleigh': '/santasleigh.html',
     '/v2': '/sleigh_v2.html',
     '/sleigh_v2': '/sleigh_v2.html',
     '/v3': '/sleigh_v3.html',
@@ -285,6 +287,11 @@ export default function App() {
   }
 
   // 4. PUBLIC SLEIGH TRACKER VIEW ({town}.roundtablesantasleigh.co.uk or /?table={town})
+  if (activeTableSlug && viewMode !== 'admin') {
+    window.location.replace(`/sleigh_v2.html?table=${encodeURIComponent(activeTableSlug)}`);
+    return <FullPageLoader label="Opening Santa Sleigh Tracker..." />;
+  }
+
   return (
     <Suspense fallback={<FullPageLoader />}>
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>

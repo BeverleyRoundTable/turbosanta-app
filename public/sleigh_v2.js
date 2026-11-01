@@ -1741,9 +1741,10 @@
   // --- Wire DOM Events ---
   function bindEvents() {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('clean') === '1') {
-      const lab = document.getElementById('test-lab-bar');
-      if (lab) lab.style.display = 'none';
+    const showLab = params.get('lab') === '1' || params.get('demo') === '1' || params.get('preview') === '1' || window.location.pathname.startsWith('/v2') || window.location.pathname.startsWith('/sleigh_v2');
+    const lab = document.getElementById('test-lab-bar');
+    if (lab) {
+      lab.style.display = (showLab && params.get('clean') !== '1') ? 'block' : 'none';
     }
 
     // Test Lab Table Switcher
