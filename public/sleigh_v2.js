@@ -1062,9 +1062,10 @@
     const grid = document.getElementById('memory-wall-grid');
     if (!grid) return;
 
+    const activeSlug = state.payload?.table?.slug || state.slug;
     let items = [];
     try {
-      const res = await fetch(`${API_ORIGIN}/api/memory-book?table=${encodeURIComponent(state.slug)}`);
+      const res = await fetch(`${API_ORIGIN}/api/memory-book?table=${encodeURIComponent(activeSlug)}`);
       const data = await res.json();
       if (Array.isArray(data?.items)) items = data.items;
     } catch (e) {}
@@ -1308,6 +1309,11 @@
 
       state.payload = data || {};
       state.routes = Array.isArray(data?.routes) ? data.routes : [];
+
+      // CRITICAL: Synchronize state.slug with canonical table slug from database if normalized
+      if (data?.table?.slug) {
+        state.slug = data.table.slug;
+      }
 
       applyBrandTheme(data?.table || {});
       applyBackgroundAndMusic();
