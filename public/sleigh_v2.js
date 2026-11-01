@@ -1410,7 +1410,8 @@
   // --- Background Media & Sleigh Jingles ---
   function applyBackgroundAndMusic() {
     const table = state.payload?.table || {};
-    const skyBackdrop = document.getElementById('sky-backdrop');
+    const bgLayer = document.getElementById('sky-bg-layer');
+    const bgOverlay = document.getElementById('sky-bg-overlay');
     const mediaLayer = document.getElementById('sky-media-layer');
 
     const slug = state.slug || 'beverley';
@@ -1438,10 +1439,13 @@
     const isVideo = isCustomVideo || isDefaultVideo;
 
     if (isVideo) {
-      // VIDEO MODE: Clear static background image on backdrop, mount video in media layer
-      if (skyBackdrop) {
-        skyBackdrop.classList.remove('has-image');
-        skyBackdrop.style.backgroundImage = '';
+      // 1. VIDEO MODE (e.g. Stockton, Abergavenny, Isle of Wight, Lichfield):
+      if (bgLayer) {
+        bgLayer.style.display = 'none';
+        bgLayer.style.backgroundImage = 'none';
+      }
+      if (bgOverlay) {
+        bgOverlay.style.background = 'radial-gradient(ellipse 80% 50% at 18% -10%, rgba(var(--primary-rgb), 0.16), transparent 65%), radial-gradient(ellipse 65% 45% at 85% 8%, rgba(var(--accent-rgb), 0.12), transparent 60%), radial-gradient(ellipse 90% 60% at 50% 100%, rgba(16, 24, 40, 0.9), transparent 70%), var(--bg-obsidian)';
       }
       if (mediaLayer) {
         const defaultVideoUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.origin.includes('pages.dev'))
@@ -1467,15 +1471,15 @@
         }
       }
     } else {
-      // STATIC IMAGE MODE (Default):
-      // Respect custom uploaded image or fall back to default /icons/site_background.png
+      // 2. STATIC IMAGE MODE (Default):
+      // Respect custom uploaded image (e.g. Beverley, Chepstow) or fall back to default /icons/site_background.png
       const bgImg = safeUrl(table.background_url) || '/icons/site_background.png';
-      if (skyBackdrop) {
-        skyBackdrop.classList.add('has-image');
-        skyBackdrop.style.backgroundImage = `linear-gradient(180deg, rgba(8, 12, 20, 0.65) 0%, rgba(8, 12, 20, 0.86) 50%, rgba(6, 9, 15, 0.98) 100%), url("${bgImg.replace(/"/g, '%22')}")`;
-        skyBackdrop.style.backgroundSize = 'cover';
-        skyBackdrop.style.backgroundPosition = 'center';
-        skyBackdrop.style.backgroundRepeat = 'no-repeat';
+      if (bgLayer) {
+        bgLayer.style.display = 'block';
+        bgLayer.style.backgroundImage = `url("${bgImg.replace(/"/g, '%22')}")`;
+      }
+      if (bgOverlay) {
+        bgOverlay.style.background = 'linear-gradient(180deg, rgba(8, 12, 20, 0.45) 0%, rgba(8, 12, 20, 0.72) 50%, rgba(6, 9, 15, 0.94) 100%)';
       }
       if (mediaLayer) {
         mediaLayer.style.display = 'none';
