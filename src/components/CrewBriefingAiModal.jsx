@@ -1,3 +1,47 @@
+
+function generateClientFallbackBriefing({ route, tableData, currentTableSlug }) {
+  const table = tableData?.table || {};
+  const town = (table.sleigh_display_name || table.name || currentTableSlug || 'Round Table').replace(/round table/i, '').trim();
+  const sleighName = table.sleigh_display_name || table.name || `${town} Round Table Santa Sleigh`;
+  const routeName = route?.name || "Tonight's Sleigh Route";
+  const dateStr = route?.date || new Date().toISOString().split('T')[0];
+  const musterPoint = route?.muster_point || table.default_muster_point || "Muster Area";
+  const musterTime = route?.muster_time || table.default_muster_time || "17:45";
+  const startTime = route?.start_time || "18:00";
+  const sponsor = route?.sponsor_name || table.headline_sponsor_name || '';
+
+  const routeStreets = (Array.isArray(route?.streets) && route.streets.length > 0)
+    ? route.streets
+    : (tableData?.streets || []).filter(s => String(s.route_id) === String(route?.id));
+  const streetsStr = routeStreets.map(s => typeof s === 'string' ? s : (s.street_name || s.name || '')).filter(Boolean).join(', ');
+
+  return `### 🛷 ${sleighName} — Volunteer Crew Briefing
+**Route:** ${routeName} | **Date:** ${dateStr}
+**Muster:** ${musterTime} at ${musterPoint} | **Rollout:** ${startTime} promptly
+${sponsor ? `**Route Sponsor:** ${sponsor}\n` : ''}
+---
+
+### 1. 🛷 Route & Schedule Overview
+- Tonight's route covers: **${routeName}**
+${streetsStr ? `- **Key Streets:** ${streetsStr}` : '- Residential roads and avenues as marked on the live navigator.'}
+- Rollout commences at **${startTime}**. Please ensure you are signed in and geared up by **${musterTime}**.
+
+### 2. ⚠️ Safety & Marshaling Protocols
+- **2-Metre Safety Bubble:** Maintain a strict 2m exclusion zone around the sleigh and towing vehicle. No member of the public or child should ever approach the tow-hitch or wheels.
+- **Children on Pavements:** Excited children often dart out from driveways. Marshals on foot must actively guide children and families to stay safely on the pavement.
+- **Crossing Roads:** Only cross at safe, well-lit junctions with clear sightlines. Always step out together and never cross directly in front of approaching traffic.
+- **Sleigh Pacing:** Sleigh speed is capped at walking pace (approx 2–3 mph). Keep visual contact with the driver at all times.
+
+### 3. 🦺 Gear, Visibility & Bucket Handling
+- **High-Vis Fastened:** All marshals must wear an approved, high-visibility vest fastened at the front.
+- **Warm & Dry:** Layers, sturdy waterproof boots, and warm gloves are essential.
+- **Bucket Security:** Keep collection buckets sealed and securely tethered to your wrist. Direct any contactless donors to the tap-to-donate readers or the QR codes on the sleigh.
+
+### 4. 🎄 Volunteer Spirit & Community Impact
+- Thank you for volunteering your time tonight! Round Table Santa Sleighs bring immense joy to thousands of children and raise crucial funds for local community causes.
+- Smile, wave, DO MORE, stay safe, and let's make it a magical night! 🎅✨`;
+}
+
 import React, { useState, useEffect } from 'react';
 import { X, Shield, Copy, Check, RefreshCw, Sparkles, Send } from 'lucide-react';
 import { getAdminAuthToken } from '../services/auth';
@@ -24,15 +68,25 @@ export default function CrewBriefingAiModal({
     const tableSlug = currentTableSlug || session?.tableId || session?.tableSlug || 'beverley';
     const token = session?.googleCredential || session?.token || getAdminAuthToken(tableSlug);
 
+    const routeStreets = (Array.isArray(route?.streets) && route.streets.length > 0)
+      ? route.streets
+      : (tableData?.streets || []).filter(s => String(s.route_id) === String(route?.id));
+    const streetNames = routeStreets
+      .map(s => (typeof s === 'string' ? s : (s.street_name || s.name || '')))
+      .filter(Boolean)
+      .join(', ');
+
     const payload = {
       secret: token,
+      routeId: route?.id,
       routeName: route?.name || "Upcoming Sleigh Route",
       date: route?.date || new Date().toISOString().split('T')[0],
       musterPoint: route?.muster_point || table?.default_muster_point || "Muster point",
       musterTime: route?.muster_time || table?.default_muster_time || "17:45",
       startTime: route?.start_time || "18:00",
-      streets: Array.isArray(route?.streets) ? route.streets.map(s => s.street_name || s).join(', ') : '',
-      sponsor: route?.sponsor_name || table?.headline_sponsor_name || ''
+      streets: streetNames,
+      sponsor: route?.sponsor_name || table?.headline_sponsor_name || '',
+      sponsors: route?.sponsor_name || table?.headline_sponsor_name || ''
     };
 
     try {
@@ -48,10 +102,12 @@ export default function CrewBriefingAiModal({
       if (data.ok && data.briefing) {
         setBriefing(data.briefing);
       } else {
-        setError(data.error || 'Failed to generate tactical crew briefing');
+        const fallback = generateClientFallbackBriefing({ route, tableData, currentTableSlug });
+        setBriefing(fallback);
       }
     } catch (err) {
-      setError('Connection error: ' + err.message);
+      const fallback = generateClientFallbackBriefing({ route, tableData, currentTableSlug });
+      setBriefing(fallback);
     } finally {
       setLoading(false);
     }

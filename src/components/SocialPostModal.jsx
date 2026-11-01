@@ -1,3 +1,64 @@
+
+function generateClientFallbackPosts({ route, tableData, currentTableSlug }) {
+  const table = tableData?.table || {};
+  const town = (table.sleigh_display_name || table.name || currentTableSlug || 'Round Table').replace(/round table/i, '').trim();
+  const sleighName = table.sleigh_display_name || table.name || `${town} Round Table Santa Sleigh`;
+  const routeName = route?.name || "Tonight's Sleigh Route";
+  const dateStr = route?.date || new Date().toISOString().split('T')[0];
+  const raisedNum = parseFloat(String(route?.cash_raised !== undefined ? route.cash_raised : (tableData?.total_raised || '0')).replace(/[^0-9.]/g, '')) || 0;
+  const totalNum = parseFloat(String(tableData?.total_raised || tableData?.donations?.total || '0').replace(/[^0-9.]/g, '')) || 0;
+
+  const routeStreets = (Array.isArray(route?.streets) && route.streets.length > 0)
+    ? route.streets
+    : (tableData?.streets || []).filter(s => String(s.route_id) === String(route?.id));
+  const streetsStr = routeStreets.map(s => typeof s === 'string' ? s : (s.street_name || s.name || '')).filter(Boolean).join(', ');
+
+  const grants = Array.isArray(tableData?.grants) ? tableData.grants : [];
+  const charityNames = grants.map(g => g.org_name || g.organisation_name || g.name).filter(Boolean);
+  const charityText = charityNames.length > 0
+    ? charityNames.slice(0, 3).join(', ')
+    : (table.charity_name || 'local community causes and foodbanks');
+
+  const sponsor = route?.sponsor_name || table.headline_sponsor_name || '';
+  const donateUrl = table.donate_url || (typeof window !== 'undefined' ? window.location.origin : '');
+  const cleanTown = (town || 'Local').replace(/[^a-zA-Z0-9]/g, '');
+
+  const raisedStr = raisedNum > 0
+    ? `🪙 Tonight's Collections: Thanks to your amazing generosity, tonight we collected £${raisedNum.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} in bucket and card donations!`
+    : `🪙 Every single penny dropped into our buckets and donated online stays 100% local.`;
+  const totalStr = (totalNum > 0 && totalNum > raisedNum)
+    ? ` That brings our season running total to £${totalNum.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}! ❤️`
+    : '';
+
+  const facebook_instagram = `🎅✨ WHAT A MAGICAL NIGHT! ✨🛷
+
+Tonight, Santa and our volunteer elves toured ${routeName}${dateStr ? ` (${dateStr})` : ''}! 🌟
+
+A massive, heartfelt THANK YOU to every family, child, and resident who came to their doors and windows, braved the cold, cheered Santa on, and donated! You made tonight truly unforgettable.
+${streetsStr ? `\n📍 Streets & Stops Visited:\n${streetsStr}\n` : ''}
+${raisedStr}${totalStr}
+${charityText ? `\n❤️ Where Your Donations Go:\nAll funds raised directly support ${charityText} across our local community.\n` : ''}
+${sponsor ? `\n🤝 Route Sponsor Shout-Out:\nSpecial thanks to ${sponsor} for their generous support of tonight's sleigh!\n` : ''}
+👏 A huge shoutout to our volunteer marshals, collectors, and sleigh drivers who braved the evening chill to keep Santa moving safely and bring smiles to everyone.
+
+📍 Live Sleigh Tracker & Online Donations:
+👉 ${donateUrl}
+
+#RoundTable #SantaSleigh #${cleanTown}RoundTable #CommunitySpirit #LocalCauses #DoMore #Christmas2026`;
+
+  const whatsapp_crew = `🎅🛷 *TEAM SANTA WRAP-UP — ${routeName.toUpperCase()}* 🎄
+
+Huge thank you to everyone who stepped up to marshal, collect, and drive tonight! 👏✨
+
+${streetsStr ? `📍 *Streets covered:* ${streetsStr}\n` : ''}${raisedNum > 0 ? `🪙 *Tonight's bucket & contactless total:* £${raisedNum.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}!\n` : ''}${totalNum > 0 && totalNum > raisedNum ? `🌟 *Season running total:* £${totalNum.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}!\n` : ''}
+You kept the children safe, kept the carols playing, and brought huge smiles to so many families across ${town}. Get home safe, warm up, and thank you for being amazing volunteers! 💪🔥`;
+
+  const pressSnippetStreets = streetsStr ? streetsStr.split(',').slice(0, 5).join(', ') : town;
+  const press_snippet = `The ${sleighName} completed another successful festive community tour on ${routeName}, visiting families across ${pressSnippetStreets}. Generous local residents contributed ${raisedNum > 0 ? `£${raisedNum.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}` : 'vital funds'} to the volunteer collectors, with all proceeds directly benefiting ${charityText}. Full route schedules, live GPS tracking, and online donation options are available at ${donateUrl}.`;
+
+  return { facebook_instagram, whatsapp_crew, press_snippet };
+}
+
 import React, { useState, useEffect } from 'react';
 import { X, Sparkles, Copy, Check, Share2, MessageCircle, Newspaper, RefreshCw } from 'lucide-react';
 import { getAdminAuthToken } from '../services/auth';
@@ -29,14 +90,24 @@ export default function SocialPostModal({
     const tableSlug = currentTableSlug || session?.tableId || session?.tableSlug || 'beverley';
     const token = session?.googleCredential || session?.token || getAdminAuthToken(tableSlug);
 
+    const routeStreets = (Array.isArray(route?.streets) && route.streets.length > 0)
+      ? route.streets
+      : (tableData?.streets || []).filter(s => String(s.route_id) === String(route?.id));
+    const streetNames = routeStreets
+      .map(s => (typeof s === 'string' ? s : (s.street_name || s.name || '')))
+      .filter(Boolean)
+      .join(', ');
+
     const payload = {
       secret: token,
+      routeId: route?.id,
       routeName: route?.name || "Tonight's Sleigh Tour",
       date: route?.date || new Date().toISOString().split('T')[0],
       raised: route?.cash_raised !== undefined ? route.cash_raised : (tableData?.total_raised || tableData?.donations?.total || '0'),
       totalRaised: tableData?.total_raised || tableData?.donations?.total || '0',
       distance: route?.distance_km ? `${route.distance_km} km` : '',
-      streets: Array.isArray(route?.streets) ? route.streets.map(s => s.street_name || s).join(', ') : '',
+      streets: streetNames,
+      sponsor: route?.sponsor_name || table?.headline_sponsor_name || '',
       sponsors: route?.sponsor_name || table?.headline_sponsor_name || '',
       donateUrl: table?.donate_url || ''
     };
@@ -51,17 +122,21 @@ export default function SocialPostModal({
         body: JSON.stringify(payload)
       });
       const data = await res.json();
-      if (data.ok && data.posts) {
+      if (data.ok && data.posts && (data.posts.facebook_instagram || data.posts.whatsapp_crew)) {
         setPosts({
           facebook_instagram: data.posts.facebook_instagram || '',
           whatsapp_crew: data.posts.whatsapp_crew || '',
           press_snippet: data.posts.press_snippet || ''
         });
       } else {
-        setError(data.error || 'Failed to generate social media post');
+        // Smoothly fall back to client template generator
+        const fallback = generateClientFallbackPosts({ route, tableData, currentTableSlug });
+        setPosts(fallback);
       }
     } catch (err) {
-      setError('Connection error: ' + err.message);
+      // Smoothly fall back to client template generator on network failure
+      const fallback = generateClientFallbackPosts({ route, tableData, currentTableSlug });
+      setPosts(fallback);
     } finally {
       setLoading(false);
     }

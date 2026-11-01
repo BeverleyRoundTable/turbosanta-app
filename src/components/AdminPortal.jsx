@@ -3623,7 +3623,8 @@ ${tableName} Organizers`
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      setSelectedAiBriefingRoute(r);
+                                      const routeStreets = (tableData?.streets || []).filter(s => String(s.route_id) === String(r?.id));
+                                      setSelectedAiBriefingRoute({ ...r, streets: routeStreets });
                                       setIsAiBriefingModalOpen(true);
                                     }}
                                     className="btn-secondary"
@@ -3646,7 +3647,8 @@ ${tableName} Organizers`
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      setSelectedSocialRoute(r);
+                                      const routeStreets = (tableData?.streets || []).filter(s => String(s.route_id) === String(r?.id));
+                                      setSelectedSocialRoute({ ...r, streets: routeStreets });
                                       setIsSocialPostModalOpen(true);
                                     }}
                                     className="btn-secondary"
@@ -3877,7 +3879,8 @@ ${tableName} Organizers`
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      setSelectedAiBriefingRoute(r);
+                                      const routeStreets = (tableData?.streets || []).filter(s => String(s.route_id) === String(r?.id));
+                                      setSelectedAiBriefingRoute({ ...r, streets: routeStreets });
                                       setIsAiBriefingModalOpen(true);
                                     }}
                                     className="btn-secondary"
@@ -3900,7 +3903,8 @@ ${tableName} Organizers`
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      setSelectedSocialRoute(r);
+                                      const routeStreets = (tableData?.streets || []).filter(s => String(s.route_id) === String(r?.id));
+                                      setSelectedSocialRoute({ ...r, streets: routeStreets });
                                       setIsSocialPostModalOpen(true);
                                     }}
                                     className="btn-secondary"
@@ -6275,7 +6279,8 @@ ${tableName} Organizers`
                         type="button"
                         disabled={!activeRoute}
                         onClick={() => {
-                          setSelectedAiBriefingRoute(activeRoute);
+                          const activeRouteStreets = (tableData?.streets || []).filter(s => String(s.route_id) === String(activeRoute?.id));
+                          setSelectedAiBriefingRoute({ ...activeRoute, streets: activeRouteStreets });
                           setIsAiBriefingModalOpen(true);
                         }}
                         className="btn-secondary"
@@ -6299,7 +6304,8 @@ ${tableName} Organizers`
                         type="button"
                         disabled={!activeRoute}
                         onClick={() => {
-                          setSelectedSocialRoute(activeRoute);
+                          const activeRouteStreets = (tableData?.streets || []).filter(s => String(s.route_id) === String(activeRoute?.id));
+                          setSelectedSocialRoute({ ...activeRoute, streets: activeRouteStreets });
                           setIsSocialPostModalOpen(true);
                         }}
                         className="btn-secondary"
