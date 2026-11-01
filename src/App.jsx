@@ -105,9 +105,7 @@ export default function App() {
     '/v1': '/santasleigh.html',
     '/santasleigh': '/santasleigh.html',
     '/v2': '/sleigh_v2.html',
-    '/sleigh_v2': '/sleigh_v2.html',
-    '/v3': '/sleigh_v3.html',
-    '/sleigh_v3': '/sleigh_v3.html'
+    '/sleigh_v2': '/sleigh_v2.html'
   };
 
   // Admin Authentication State
