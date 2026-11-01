@@ -114,22 +114,13 @@
     payload: null,
     routes: [],
     streetsByRoute: new Map(), // routeId -> [streetName]
-    allStreetRecords: [],      // [{ street, route, waypoint }]
-    gpxCache: new Map(),       // gpxUrl -> { points: [[lat,lng]], waypoints: [{name,lat,lng}] }
+    allStreetRecords: [],      // [{ street, route, lat, lng }]
     selectedRouteId: null,
     expandedRouteStreets: new Set(),
     routeFilterTab: 'upcoming',
     routeFilterQuery: '',
     selectedTierAmount: 5,
-    pinHouseMode: false,
     alertCoords: null,
-    map: null,
-    routeLayerGroup: null,
-    waypointLayerGroup: null,
-    sleighMarker: null,
-    housePinMarker: null,
-    simTimer: null,
-    simTickIndex: 0,
     countdownTimer: null,
     cheerMessages: [],
     cheerIndex: 0,
@@ -301,335 +292,137 @@
     return `${cleanPath}${sep}table=${encodeURIComponent(state.slug)}`;
   }
 
-  // --- Leaflet Interactive GPX Radar ---
-  function initLeafletMap() {
-    if (state.map || typeof L === 'undefined') return;
-    state.map = L.map('v2-leaflet-map', {
-      zoomControl: false,
-      scrollWheelZoom: false,
-      attributionControl: true
-    }).setView([54.52, -1.31], 12);
-
-    L.control.zoom({ position: 'topright' }).addTo(state.map);
-
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
-      subdomains: 'abcd',
-      maxZoom: 19
-    }).addTo(state.map);
-
-    state.routeLayerGroup = L.layerGroup().addTo(state.map);
-    state.waypointLayerGroup = L.layerGroup().addTo(state.map);
-
-    state.map.on('click', (e) => {
-      if (!state.pinHouseMode) return;
-      handleMapHousePinDrop(e.latlng.lat, e.latlng.lng);
-    });
+  // --- Embedded Live Widgets: Genuine Tracker Radar & Spatial Address Lookup ---
+  function prettyTrackerUrl(slug) {
+    const s = slug || state.slug;
+    const host = (window.location.hostname || '').toLowerCase();
+    const domain = 'roundtablesantasleigh.co.uk';
+    if (host.endsWith('.' + domain)) {
+      return `${window.location.protocol}//${s}.${domain}/tracker`;
+    }
+    return `/tracker.html?table=${encodeURIComponent(s)}`;
   }
 
-  async function fetchAndParseGpx(gpxUrl) {
-    if (!gpxUrl) return null;
-    if (state.gpxCache.has(gpxUrl)) return state.gpxCache.get(gpxUrl);
+  function prettyAddressesUrl(slug) {
+    const s = slug || state.slug;
+    const host = (window.location.hostname || '').toLowerCase();
+    const domain = 'roundtablesantasleigh.co.uk';
+    if (host.endsWith('.' + domain)) {
+      return `${window.location.protocol}//${s}.${domain}/address`;
+    }
+    return `/address.html?table=${encodeURIComponent(s)}`;
+  }
 
-    try {
-      const res = await fetch(gpxUrl);
-      if (!res.ok) return null;
-      const xmlText = await res.text();
-      const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
+  function frameUrl(page, api, slug) {
+    const s = slug || state.slug;
+    const file = page.endsWith('.html') ? page : `${page}.html`;
+    let url = `/${file}?table=${encodeURIComponent(s)}`;
+    if (api) {
+      url = `/${file}?api=${encodeURIComponent(api)}&proxy=${encodeURIComponent('https://turbosanta-api.beverley247.workers.dev/?target=' + encodeURIComponent(api))}`;
+    }
+    if (file === 'tracker.html') {
+      if (state.simMode === 'live') {
+        url += '&demo=1';
+      }
+      const shareBase = prettyTrackerUrl(s);
+      if (shareBase) url += '&shareBase=' + encodeURIComponent(shareBase);
+    } else if (file === 'address.html') {
+      const shareBase = prettyAddressesUrl(s);
+      if (shareBase) url += '&shareBase=' + encodeURIComponent(shareBase);
+    }
+    return url;
+  }
 
-      const points = [];
-      let ptNodes = doc.querySelectorAll('trkpt');
-      if (!ptNodes || ptNodes.length === 0) ptNodes = doc.querySelectorAll('rtept');
-      ptNodes.forEach(pt => {
-        const lat = parseFloat(pt.getAttribute('lat'));
-        const lon = parseFloat(pt.getAttribute('lon'));
-        if (!isNaN(lat) && !isNaN(lon)) points.push([lat, lon]);
-      });
+  function renderFrames(slug) {
+    const s = slug || state.slug;
+    const trackerIframe = document.getElementById('tracker-iframe');
+    const addressIframe = document.getElementById('address-iframe');
+    const fsLink = document.getElementById('tracker-fullscreen');
 
-      const waypoints = [];
-      doc.querySelectorAll('wpt').forEach(w => {
-        const lat = parseFloat(w.getAttribute('lat'));
-        const lon = parseFloat(w.getAttribute('lon'));
-        const nameEl = w.querySelector('name');
-        const name = nameEl ? nameEl.textContent.trim() : '';
-        if (!isNaN(lat) && !isNaN(lon) && name) {
-          waypoints.push({ name, lat, lng: lon });
+    const trackerUrl = frameUrl('tracker.html', null, s);
+    const addressUrl = frameUrl('address.html', null, s);
+
+    if (trackerIframe && trackerIframe.getAttribute('src') !== trackerUrl) {
+      trackerIframe.src = trackerUrl;
+    }
+    if (addressIframe && addressIframe.getAttribute('src') !== addressUrl) {
+      addressIframe.src = addressUrl;
+    }
+    if (fsLink) {
+      fsLink.href = prettyTrackerUrl(s);
+    }
+  }
+
+  let frameMessageBound = false;
+  function bindFrameMessages() {
+    if (frameMessageBound) return;
+    frameMessageBound = true;
+
+    window.addEventListener('message', (e) => {
+      if (!e.data || typeof e.data !== 'object') return;
+
+      // 1. Forward confirmed house pin from address-iframe to tracker-iframe
+      if (e.data.type === 'turbosanta-pin-saved' && e.data.pin) {
+        const trackerIframe = document.getElementById('tracker-iframe');
+        if (trackerIframe && trackerIframe.contentWindow) {
+          try {
+            trackerIframe.contentWindow.postMessage(e.data, '*');
+          } catch (_) {}
         }
-      });
-
-      if (points.length === 0 && waypoints.length > 1) {
-        waypoints.forEach(w => points.push([w.lat, w.lng]));
-      }
-
-      const parsed = { points, waypoints };
-      state.gpxCache.set(gpxUrl, parsed);
-      return parsed;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  async function loadAllRoutesGpxAndRenderMap(fitAll = true) {
-    initLeafletMap();
-    if (!state.map) return;
-
-    const routesWithGpx = state.routes.filter(r => r.gpx_url);
-    const subtitleEl = document.getElementById('radar-subtitle');
-    if (subtitleEl) {
-      subtitleEl.textContent = routesWithGpx.length > 0
-        ? `Loading ${routesWithGpx.length} GPX route corridors...`
-        : 'Interactive town sleigh radar';
-    }
-
-    await Promise.all(routesWithGpx.map(r => fetchAndParseGpx(r.gpx_url)));
-
-    // Enrich street search index with named GPX waypoints not already in route_streets
-    rebuildStreetSearchIndex();
-    renderHeroMetrics();
-    renderMapLayers(fitAll);
-  }
-
-  function renderMapLayers(fitBounds = false) {
-    if (!state.map || !state.routeLayerGroup) return;
-    state.routeLayerGroup.clearLayers();
-    state.waypointLayerGroup.clearLayers();
-
-    const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#FBAF33';
-    const allBoundsPoints = [];
-    const selectedBoundsPoints = [];
-
-    state.routes.forEach((route, idx) => {
-      const gpx = route.gpx_url ? state.gpxCache.get(route.gpx_url) : null;
-      if (!gpx || gpx.points.length < 2) return;
-
-      const isSelected = state.selectedRouteId && String(route.id) === String(state.selectedRouteId);
-      const isLive = isRouteLive(route, idx);
-
-      gpx.points.forEach(p => {
-        allBoundsPoints.push(p);
-        if (isSelected) selectedBoundsPoints.push(p);
-      });
-
-      if (isSelected || isLive) {
-        const lineColor = isLive ? '#10b981' : primaryColor;
-        // Outer neon halo
-        L.polyline(gpx.points, {
-          color: lineColor,
-          weight: 10,
-          opacity: 0.26,
-          lineCap: 'round'
-        }).addTo(state.routeLayerGroup);
-
-        // Core crisp track
-        const activePoly = L.polyline(gpx.points, {
-          color: lineColor,
-          weight: 4,
-          opacity: 1,
-          lineCap: 'round'
-        }).addTo(state.routeLayerGroup);
-
-        activePoly.bindPopup(`<strong>${escapeHtml(route.name)}</strong><br>${escapeHtml(formatFriendlyDate(route.date))} &bull; ${escapeHtml(route.start_time || '18:00')}`);
-
-        // Start & Finish pins
-        const startPt = gpx.points[0];
-        const endPt = gpx.points[gpx.points.length - 1];
-        L.circleMarker(startPt, {
-          radius: 7,
-          fillColor: '#10b981',
-          color: '#ffffff',
-          weight: 2,
-          fillOpacity: 1
-        }).bindPopup(`<strong>Start:</strong> ${escapeHtml(route.name)} (${escapeHtml(route.start_time || '18:00')})`).addTo(state.waypointLayerGroup);
-
-        L.circleMarker(endPt, {
-          radius: 7,
-          fillColor: '#ef4444',
-          color: '#ffffff',
-          weight: 2,
-          fillOpacity: 1
-        }).bindPopup(`<strong>Finish:</strong> ${escapeHtml(route.name)} (${escapeHtml(route.end_time || '20:30')})`).addTo(state.waypointLayerGroup);
-
-        // Named street waypoints along selected route
-        gpx.waypoints.slice(0, 40).forEach(w => {
-          L.circleMarker([w.lat, w.lng], {
-            radius: 4.5,
-            fillColor: primaryColor,
-            color: '#090a0d',
-            weight: 1.5,
-            fillOpacity: 0.95
-          }).bindPopup(`<strong>${escapeHtml(w.name)}</strong><br><span style="font-size:12px;opacity:0.8;">${escapeHtml(route.name)}</span>`).addTo(state.waypointLayerGroup);
-        });
-      } else {
-        // Subtle background thread for all other town routes
-        const bgPoly = L.polyline(gpx.points, {
-          color: primaryColor,
-          weight: 2.5,
-          opacity: state.selectedRouteId ? 0.32 : 0.68
-        }).addTo(state.routeLayerGroup);
-
-        bgPoly.on('click', () => selectRouteAndFocus(route.id, true));
-        bgPoly.bindTooltip(`${route.name} (${formatFriendlyDate(route.date)})`, { sticky: true });
-      }
-    });
-
-    const subtitleEl = document.getElementById('radar-subtitle');
-    const selectedRoute = state.routes.find(r => String(r.id) === String(state.selectedRouteId));
-    if (subtitleEl) {
-      if (selectedRoute) {
-        subtitleEl.textContent = `${selectedRoute.name} • ${formatFriendlyDate(selectedRoute.date)} (${selectedRoute.start_time || '18:00'}–${selectedRoute.end_time || '20:30'})`;
-      } else {
-        const gpxLoadedCount = state.routes.filter(r => r.gpx_url && state.gpxCache.get(r.gpx_url)?.points?.length > 1).length;
-        subtitleEl.textContent = gpxLoadedCount > 0
-          ? `Showing all ${gpxLoadedCount} GPX sleigh routes — tap any route to inspect`
-          : 'Live GPS Sleigh Telemetry';
-      }
-    }
-
-    if (fitBounds) {
-      const pts = selectedBoundsPoints.length > 1 ? selectedBoundsPoints : allBoundsPoints;
-      if (pts.length > 1) {
-        state.map.fitBounds(L.latLngBounds(pts), { padding: [32, 32], maxZoom: 15 });
-      }
-    }
-
-    updateLiveSleighMarkerAndHud();
-  }
-
-  function updateLiveSleighMarkerAndHud() {
-    if (!state.map) return;
-    clearInterval(state.simTimer);
-
-    const hudRoad = document.getElementById('hud-road-name');
-    const hudDetail = document.getElementById('hud-telemetry-detail');
-    const radarDot = document.getElementById('radar-dot');
-
-    // 1. Simulated Live Night Mode (glides smoothly along Route #1 or selected route GPX)
-    if (state.simMode === 'live') {
-      const targetRoute = state.routes.find(r => String(r.id) === String(state.selectedRouteId)) || state.routes[0];
-      const gpx = targetRoute?.gpx_url ? state.gpxCache.get(targetRoute.gpx_url) : null;
-      if (radarDot) radarDot.classList.add('live');
-
-      if (gpx && gpx.points.length > 1) {
-        const step = () => {
-          state.simTickIndex = (state.simTickIndex + 1) % gpx.points.length;
-          const pt = gpx.points[state.simTickIndex];
-          placeSleighMarker(pt[0], pt[1], targetRoute.name);
-
-          // Find closest named waypoint or street
-          const nearWpt = findNearestWaypointName(pt[0], pt[1], gpx.waypoints, targetRoute);
-          const pct = Math.round((state.simTickIndex / gpx.points.length) * 100);
-          if (hudRoad) hudRoad.textContent = `LIVE: ${nearWpt}`;
-          if (hudDetail) hudDetail.textContent = `${targetRoute.name} • 4 mph • ${pct}% along route`;
-        };
-        step();
-        state.simTimer = setInterval(step, 1400);
         return;
       }
-    }
 
-    // 2. Real Live GPS Telemetry from API
-    const live = state.payload?.live_sleigh;
-    if (live && live.is_fresh && live.lat && live.lng) {
-      if (radarDot) radarDot.classList.add('live');
-      placeSleighMarker(live.lat, live.lng, live.road_name || 'Santa Live');
-      if (hudRoad) hudRoad.textContent = live.road_name || 'Santa is Live on Route!';
-      if (hudDetail) hudDetail.textContent = `Live GPS • ${Math.round(live.speed || 0)} mph • Updated ${live.age_sec || 0}s ago`;
-      return;
-    }
-
-    // 3. Resting / Route Inspection State
-    if (radarDot) radarDot.classList.remove('live');
-    if (state.sleighMarker) {
-      state.map.removeLayer(state.sleighMarker);
-      state.sleighMarker = null;
-    }
-    const sel = state.routes.find(r => String(r.id) === String(state.selectedRouteId));
-    if (sel) {
-      const streets = state.streetsByRoute.get(String(sel.id)) || [];
-      if (hudRoad) hudRoad.textContent = sel.name;
-      if (hudDetail) hudDetail.textContent = `${formatFriendlyDate(sel.date)} • ${sel.start_time || '18:00'}–${sel.end_time || '20:30'} • ${streets.length} streets`;
-    } else {
-      const next = findNextUpcomingRoute();
-      if (next) {
-        if (hudRoad) hudRoad.textContent = `Next Outing: ${next.name}`;
-        if (hudDetail) hudDetail.textContent = `${formatFriendlyDate(next.date)} at ${next.start_time || '18:00'} • Tap any route to zoom`;
-      } else {
-        if (hudRoad) hudRoad.textContent = 'Sleigh Resting in Workshop';
-        if (hudDetail) hudDetail.textContent = 'Check routes below or register for doorstep alerts';
-      }
-    }
-  }
-
-  function placeSleighMarker(lat, lng, label) {
-    if (!state.map) return;
-    const icon = L.divIcon({
-      className: '',
-      html: '<div class="sleigh-map-marker" title="Santa Live Position">🎅</div>',
-      iconSize: [44, 44],
-      iconAnchor: [22, 22]
-    });
-    if (!state.sleighMarker) {
-      state.sleighMarker = L.marker([lat, lng], { icon, zIndexOffset: 1000 }).addTo(state.map);
-    } else {
-      state.sleighMarker.setLatLng([lat, lng]);
-    }
-    state.sleighMarker.bindTooltip(label || 'Santa Sleigh Live', { direction: 'top' });
-  }
-
-  function findNearestWaypointName(lat, lng, waypoints, route) {
-    if (waypoints && waypoints.length > 0) {
-      let best = waypoints[0];
-      let bestDist = Infinity;
-      waypoints.forEach(w => {
-        const d = haversineMeters(lat, lng, w.lat, w.lng);
-        if (d < bestDist) {
-          bestDist = d;
-          best = w;
+      // 2. Smoothly scroll to routes/streets when requested by iframe button
+      if (e.data.type === 'turbosanta-scroll-to-routes') {
+        const target = document.getElementById('streets') || document.getElementById('routes');
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-      });
-      return best.name.replace(/\s*-\s*(START|END|FINISH)$/i, '');
-    }
-    const streets = state.streetsByRoute.get(String(route?.id)) || [];
-    return streets[0] || route?.name || 'Active Sleigh Route';
+        return;
+      }
+
+      // 3. Dynamic auto-resizing of iframes based on their content height
+      const rawH = e.data.height || e.data.addressLookupHeight || e.data.frameHeight;
+      if (typeof rawH === 'number' && rawH > 60) {
+        const targetH = Math.min(Math.max(Math.round(rawH), 320), 1200);
+        const iframes = document.querySelectorAll('iframe');
+        for (let i = 0; i < iframes.length; i++) {
+          if (iframes[i].contentWindow === e.source) {
+            const currentH = parseInt(iframes[i].style.height, 10) || iframes[i].offsetHeight || 0;
+            if (Math.abs(currentH - targetH) < 16) break;
+            iframes[i].style.height = targetH + 'px';
+            iframes[i].setAttribute('height', targetH);
+            break;
+          }
+        }
+      }
+    });
   }
 
   function selectRouteAndFocus(routeId, scrollMapIntoView = false) {
     state.selectedRouteId = routeId ? String(routeId) : null;
-    const allBtn = document.getElementById('map-all-routes-btn');
-    if (allBtn) allBtn.classList.toggle('active', !state.selectedRouteId);
-
-    renderMapLayers(true);
-    renderRoutesGrid();
+    const cards = document.querySelectorAll('[data-route-card]');
+    cards.forEach(c => {
+      const match = routeId && c.getAttribute('data-route-card') === String(routeId);
+      c.classList.toggle('is-selected', Boolean(match));
+    });
 
     if (scrollMapIntoView) {
-      document.getElementById('radar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const trackerSec = document.getElementById('tracker');
+      if (trackerSec) {
+        trackerSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
-  }
 
-  // --- Street & Postcode Search + Haversine Proximity ---
-  function haversineMeters(lat1, lon1, lat2, lon2) {
-    const R = 6371000;
-    const toRad = d => (d * Math.PI) / 180;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a = Math.sin(dLat / 2) ** 2 +
-              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-    return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  }
-
-  function findClosestRoutesToPoint(lat, lng) {
-    const scored = [];
-    state.routes.forEach(r => {
-      const gpx = r.gpx_url ? state.gpxCache.get(r.gpx_url) : null;
-      if (!gpx || gpx.points.length === 0) return;
-      let minMeters = Infinity;
-      gpx.points.forEach(pt => {
-        const d = haversineMeters(lat, lng, pt[0], pt[1]);
-        if (d < minMeters) minMeters = d;
-      });
-      scored.push({ route: r, distanceMeters: Math.round(minMeters) });
-    });
-    return scored.sort((a, b) => a.distanceMeters - b.distanceMeters);
+    const trackerIframe = document.getElementById('tracker-iframe');
+    if (trackerIframe && trackerIframe.contentWindow && routeId) {
+      try {
+        trackerIframe.contentWindow.postMessage({
+          type: 'turbosanta-select-route',
+          routeId: String(routeId)
+        }, '*');
+      } catch (_) {}
+    }
   }
 
   function rebuildStreetSearchIndex() {
@@ -653,216 +446,10 @@
         }
       }
     });
-
-    // Also include named GPX waypoints so every GPX stop is searchable
-    state.routes.forEach(route => {
-      const rId = String(route.id);
-      if (!state.streetsByRoute.has(rId)) state.streetsByRoute.set(rId, []);
-      const arr = state.streetsByRoute.get(rId);
-      const gpx = route.gpx_url ? state.gpxCache.get(route.gpx_url) : null;
-      if (gpx && gpx.waypoints.length > 0) {
-        gpx.waypoints.forEach(w => {
-          const clean = w.name.replace(/\s*-\s*(START|END|FINISH)$/i, '').trim();
-          if (!clean) return;
-          if (!arr.some(ex => ex.toLowerCase() === clean.toLowerCase())) {
-            arr.push(clean);
-            state.allStreetRecords.push({ street: clean, route, lat: w.lat, lng: w.lng });
-          } else {
-            const rec = state.allStreetRecords.find(x => x.route.id === route.id && x.street.toLowerCase() === clean.toLowerCase());
-            if (rec && !rec.lat) {
-              rec.lat = w.lat;
-              rec.lng = w.lng;
-            }
-          }
-        });
-      }
-    });
-
-    const totalEl = document.getElementById('finder-street-total');
-    if (totalEl) {
-      totalEl.textContent = state.allStreetRecords.length > 0
-        ? `${state.allStreetRecords.length} streets indexed`
-        : `${state.routes.length} routes scheduled`;
-    }
   }
 
   function isLikelyUkPostcode(q) {
-    return /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i.test(q.trim());
-  }
-
-  async function handleHeroStreetSearch(query) {
-    const popover = document.getElementById('finder-results-popover');
-    const clearBtn = document.getElementById('street-search-clear');
-    const q = String(query || '').trim();
-
-    if (clearBtn) clearBtn.style.display = q ? 'block' : 'none';
-    if (!popover) return;
-
-    if (!q) {
-      popover.classList.remove('open');
-      popover.innerHTML = '';
-      return;
-    }
-
-    popover.classList.add('open');
-    const lower = q.toLowerCase();
-
-    const matches = state.allStreetRecords.filter(rec =>
-      rec.street.toLowerCase().includes(lower) ||
-      String(rec.route.name || '').toLowerCase().includes(lower)
-    ).slice(0, 12);
-
-    if (matches.length > 0) {
-      popover.innerHTML = matches.map((m, idx) => `
-        <div class="finder-result-item" data-match-idx="${idx}">
-          <div class="finder-res-main">
-            <div class="finder-res-street">${escapeHtml(m.street)}</div>
-            <div class="finder-res-meta">
-              <strong style="color:var(--primary);">${escapeHtml(m.route.name)}</strong> &bull;
-              ${escapeHtml(formatFriendlyDate(m.route.date))} (${escapeHtml(m.route.start_time || '18:00')}–${escapeHtml(m.route.end_time || '20:30')})
-            </div>
-          </div>
-          <div class="finder-res-actions">
-            <button type="button" class="mini-action-pill" data-fly-route="${escapeHtml(m.route.id)}" data-lat="${m.lat || ''}" data-lng="${m.lng || ''}">Map</button>
-            <button type="button" class="mini-action-pill" data-alert-route="${escapeHtml(m.route.id)}" data-lat="${m.lat || ''}" data-lng="${m.lng || ''}" data-street="${escapeHtml(m.street)}">&#128276; Alert</button>
-          </div>
-        </div>
-      `).join('');
-      bindFinderResultButtons(popover);
-      return;
-    }
-
-    // If looks like a UK postcode or address with no direct street match, offer instant geocoding
-    if (isLikelyUkPostcode(q) || q.length >= 4) {
-      popover.innerHTML = `
-        <div style="padding:10px 12px; font-size:13px; color:var(--text-secondary); display:flex; align-items:center; justify-content:space-between; gap:10px;">
-          <span>No exact street named "<strong>${escapeHtml(q)}</strong>" — check closest GPX route by postcode/map?</span>
-          <button type="button" id="geocode-lookup-btn" class="mini-action-pill">Find Closest Route &#8594;</button>
-        </div>
-      `;
-      document.getElementById('geocode-lookup-btn')?.addEventListener('click', () => geocodeAndShowNearest(q));
-    }
-  }
-
-  function bindFinderResultButtons(container) {
-    container.querySelectorAll('[data-fly-route]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const rId = btn.getAttribute('data-fly-route');
-        const lat = parseFloat(btn.getAttribute('data-lat'));
-        const lng = parseFloat(btn.getAttribute('data-lng'));
-        selectRouteAndFocus(rId, false);
-        if (!isNaN(lat) && !isNaN(lng) && state.map) {
-          state.map.setView([lat, lng], 16, { animate: true });
-        }
-      });
-    });
-
-    container.querySelectorAll('[data-alert-route]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const rId = btn.getAttribute('data-alert-route');
-        const lat = parseFloat(btn.getAttribute('data-lat'));
-        const lng = parseFloat(btn.getAttribute('data-lng'));
-        const street = btn.getAttribute('data-street') || '';
-        openDoorstepAlertModal({
-          routeId: rId,
-          lat: !isNaN(lat) ? lat : null,
-          lng: !isNaN(lng) ? lng : null,
-          label: street
-        });
-      });
-    });
-
-    container.querySelectorAll('.finder-result-item').forEach(row => {
-      row.addEventListener('click', () => {
-        const flyBtn = row.querySelector('[data-fly-route]');
-        if (flyBtn) flyBtn.click();
-      });
-    });
-  }
-
-  async function geocodeAndShowNearest(query) {
-    const popover = document.getElementById('finder-results-popover');
-    if (!popover) return;
-    popover.classList.add('open');
-    popover.innerHTML = `<div style="padding:12px; font-size:13px; color:var(--text-secondary);">Locating <strong>${escapeHtml(query)}</strong> against GPX corridors...</div>`;
-
-    try {
-      const town = extractTownName(state.payload?.table, state.slug);
-      const qFull = isLikelyUkPostcode(query) ? query : `${query}, ${town}, UK`;
-      const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=gb&limit=1&q=${encodeURIComponent(qFull)}`;
-      const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-      const items = await res.json();
-      if (!Array.isArray(items) || items.length === 0) {
-        popover.innerHTML = `<div style="padding:12px; font-size:13px; color:#fca5a5;">Could not locate that postcode/address. Try searching a nearby main road name!</div>`;
-        return;
-      }
-      const lat = parseFloat(items[0].lat);
-      const lng = parseFloat(items[0].lon);
-      showNearestRoutesForCoordinates(lat, lng, query.toUpperCase());
-    } catch (e) {
-      popover.innerHTML = `<div style="padding:12px; font-size:13px; color:#fca5a5;">Location lookup unavailable right now — browse routes below.</div>`;
-    }
-  }
-
-  function showNearestRoutesForCoordinates(lat, lng, label) {
-    const popover = document.getElementById('finder-results-popover');
-    if (!popover) return;
-    popover.classList.add('open');
-
-    if (state.map) {
-      if (state.housePinMarker) state.map.removeLayer(state.housePinMarker);
-      state.housePinMarker = L.circleMarker([lat, lng], {
-        radius: 8,
-        fillColor: '#38bdf8',
-        color: '#ffffff',
-        weight: 2.5,
-        fillOpacity: 1
-      }).addTo(state.map).bindPopup(`<strong>Your Pin:</strong> ${escapeHtml(label || 'Your Location')}`).openPopup();
-    }
-
-    const nearest = findClosestRoutesToPoint(lat, lng).slice(0, 3);
-    if (nearest.length === 0) {
-      openDoorstepAlertModal({ lat, lng, label });
-      return;
-    }
-
-    selectRouteAndFocus(nearest[0].route.id, false);
-    if (state.map) state.map.setView([lat, lng], 15, { animate: true });
-
-    popover.innerHTML = nearest.map(item => {
-      const distStr = item.distanceMeters < 1000
-        ? `${item.distanceMeters}m from sleigh track`
-        : `${(item.distanceMeters / 1000).toFixed(1)}km away`;
-      return `
-        <div class="finder-result-item">
-          <div class="finder-res-main">
-            <div class="finder-res-street">${escapeHtml(item.route.name)} <span style="color:#6ee7b7; font-size:12px;">(${distStr})</span></div>
-            <div class="finder-res-meta">${escapeHtml(formatFriendlyDate(item.route.date))} &bull; ${escapeHtml(item.route.start_time || '18:00')}–${escapeHtml(item.route.end_time || '20:30')}</div>
-          </div>
-          <div class="finder-res-actions">
-            <button type="button" class="mini-action-pill" data-fly-route="${escapeHtml(item.route.id)}" data-lat="${lat}" data-lng="${lng}">Zoom</button>
-            <button type="button" class="mini-action-pill" data-alert-route="${escapeHtml(item.route.id)}" data-lat="${lat}" data-lng="${lng}" data-street="${escapeHtml(label || 'My Home')}">&#128276; 250m Alert</button>
-          </div>
-        </div>
-      `;
-    }).join('');
-    bindFinderResultButtons(popover);
-  }
-
-  function handleMapHousePinDrop(lat, lng) {
-    state.pinHouseMode = false;
-    document.getElementById('map-pin-house-btn')?.classList.remove('active');
-    const nearest = findClosestRoutesToPoint(lat, lng);
-    const bestRouteId = nearest[0]?.route?.id || '';
-    const dist = nearest[0] ? ` (${nearest[0].distanceMeters}m from ${nearest[0].route.name})` : '';
-    openDoorstepAlertModal({
-      routeId: bestRouteId,
-      lat,
-      lng,
-      label: `Pinned Home${dist}`
-    });
+    return /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i.test(String(q || '').trim());
   }
 
   // --- Date & Calendar Formatting ---
@@ -992,8 +579,8 @@
     }
 
     // Fullscreen tracker & crew links
-    const fsLink = document.getElementById('map-fullscreen-link');
-    if (fsLink) fsLink.href = buildSubdomainToolUrl('/tracker');
+    const fsLink = document.getElementById('tracker-fullscreen');
+    if (fsLink) fsLink.href = prettyTrackerUrl(state.slug);
     const crewLink = document.getElementById('volunteer-crew-link');
     if (crewLink) crewLink.href = buildSubdomainToolUrl('/crew');
     const gaOnlyLink = document.getElementById('impact-giftaid-only-btn');
@@ -1622,6 +1209,8 @@
     });
     const allSelect = document.getElementById('lab-all-tables');
     if (allSelect) allSelect.value = state.slug;
+    const compareLink = document.getElementById('lab-compare-v1');
+    if (compareLink) compareLink.href = `/santasleigh.html?table=${encodeURIComponent(state.slug)}`;
 
     try {
       let data = null;
@@ -1646,7 +1235,7 @@
       renderPartnersPedestal();
 
       // Parallel non-blocking loads: GPX tracks, Memory Wall, Live Cheer, View counter
-      loadAllRoutesGpxAndRenderMap(true);
+      renderFrames(state.slug);
       loadAndRenderMemoryWall();
       loadAndStartCheerTicker();
       fetch(`${API_ORIGIN}/api/track-view?table=${encodeURIComponent(state.slug)}`, { method: 'POST' }).catch(() => {});
@@ -1745,66 +1334,13 @@
         document.querySelectorAll('[data-sim]').forEach(b => b.classList.toggle('active', b === btn));
         renderHeaderAndHero();
         renderRoutesGrid();
-        renderMapLayers(state.simMode === 'live');
+        renderFrames(state.slug);
       });
     });
 
     document.getElementById('lab-hide-btn')?.addEventListener('click', () => {
       const lab = document.getElementById('test-lab-bar');
       if (lab) lab.style.display = 'none';
-    });
-
-    // Street Search & Near Me GPS
-    const searchInput = document.getElementById('street-search-input');
-    searchInput?.addEventListener('input', (e) => handleHeroStreetSearch(e.target.value));
-    searchInput?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        const val = searchInput.value.trim();
-        if (val) geocodeAndShowNearest(val);
-      }
-    });
-
-    document.getElementById('street-search-clear')?.addEventListener('click', () => {
-      if (searchInput) searchInput.value = '';
-      handleHeroStreetSearch('');
-    });
-
-    document.getElementById('use-gps-btn')?.addEventListener('click', () => {
-      if (!navigator.geolocation) {
-        alert('Geolocation is not supported by your browser — type your postcode instead!');
-        return;
-      }
-      const btn = document.getElementById('use-gps-btn');
-      const orig = btn.innerHTML;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Locating...</span>';
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          btn.innerHTML = orig;
-          showNearestRoutesForCoordinates(pos.coords.latitude, pos.coords.longitude, 'My Current GPS Location');
-        },
-        () => {
-          btn.innerHTML = orig;
-          openDoorstepAlertModal({});
-        },
-        { enableHighAccuracy: true, timeout: 8000 }
-      );
-    });
-
-    // Map Controls
-    document.getElementById('map-all-routes-btn')?.addEventListener('click', () => {
-      selectRouteAndFocus(null, false);
-    });
-
-    document.getElementById('map-pin-house-btn')?.addEventListener('click', (e) => {
-      state.pinHouseMode = !state.pinHouseMode;
-      e.currentTarget.classList.toggle('active', state.pinHouseMode);
-      const hudDetail = document.getElementById('hud-telemetry-detail');
-      if (state.pinHouseMode && hudDetail) {
-        hudDetail.textContent = '📍 Tap your house directly on the map to set a 250m email alert!';
-      } else {
-        updateLiveSleighMarkerAndHud();
-      }
     });
 
     // Route Filter Tabs & Inline Search
@@ -2137,6 +1673,7 @@
   // --- Bootstrap ---
   document.addEventListener('DOMContentLoaded', () => {
     initSnowCanvas();
+    bindFrameMessages();
     bindEvents();
     populateTestLabTablesDropdown();
     loadTableExperience(state.slug, true);

@@ -21,7 +21,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="/sleigh_v2.css">
 </head>
 <body>
@@ -78,8 +77,9 @@
       </a>
 
       <nav class="desktop-nav" aria-label="Primary sections">
-        <a href="#radar">Live Radar</a>
-        <a href="#routes">Routes &amp; Streets</a>
+        <a href="#tracker">Live Radar</a>
+        <a href="#streets">Find My Street</a>
+        <a href="#routes">Route Schedule</a>
         <a href="#impact">Local Impact</a>
         <a href="#magic">Family Zone</a>
         <a href="#memories">Memory Wall</a>
@@ -100,59 +100,50 @@
   </header>
 
   <main id="top">
-    <!-- SPLIT-STAGE HERO + NATIVE MULTI-ROUTE GPX RADAR -->
-    <section class="hero-stage" id="radar">
-      <div class="container hero-grid">
-
-        <!-- Left Column: Story, Status, Instant Street Search & Metrics -->
-        <div class="hero-copy-card">
-          <div style="display:flex; flex-direction:column; gap:16px;">
-            <div class="status-pill-row">
-              <div class="live-status-badge" id="hero-status-badge">
-                <span class="pulse-dot"></span>
-                <span id="hero-status-text">Connecting to Sleigh Radar...</span>
-              </div>
-              <div class="countdown-chip tabular" id="hero-countdown-chip" style="display:none;">
-                <i class="fa-regular fa-clock" style="color:var(--primary);"></i>
-                <span id="hero-countdown-text"></span>
-              </div>
+    <!-- HERO COMMAND STAGE -->
+    <section class="hero-stage" id="hero">
+      <div class="container hero-container">
+        <div class="hero-card">
+          <div class="status-pill-row">
+            <div class="live-status-badge" id="hero-status-badge">
+              <span class="pulse-dot"></span>
+              <span id="hero-status-text">Connecting to Sleigh Radar...</span>
             </div>
-
-            <h1 class="hero-headline" id="hero-headline">
-              Bringing Christmas Magic Across <span class="hl" id="hero-town-hl">Our Community</span>
-            </h1>
-
-            <p class="hero-subcopy" id="hero-subcopy">
-              Search your street in seconds, watch Santa's sleigh glide live across our neighbourhood routes, and help our Round Table volunteers raise vital funds — 100% stays in our local community.
-            </p>
+            <div class="countdown-chip tabular" id="hero-countdown-chip" style="display:none;">
+              <i class="fa-regular fa-clock" style="color:var(--primary);"></i>
+              <span id="hero-countdown-text"></span>
+            </div>
           </div>
 
-          <!-- Instant Zero-Iframe Street, Postcode & GPS Doorstep Finder -->
-          <div class="street-finder-box">
-            <div class="finder-label">
-              <span><i class="fa-solid fa-magnifying-glass-location"></i> When Is Santa On My Street?</span>
-              <span class="finder-count tabular" id="finder-street-total">Scanning streets...</span>
-            </div>
-            <div class="finder-input-row">
-              <div class="finder-input-wrap">
-                <i class="fa-solid fa-magnifying-glass finder-icon"></i>
-                <input
-                  type="text"
-                  id="street-search-input"
-                  class="finder-input"
-                  placeholder="Type your street name or UK postcode..."
-                  autocomplete="off"
-                >
-                <button type="button" id="street-search-clear" class="finder-clear-btn" aria-label="Clear search">
-                  <i class="fa-solid fa-circle-xmark"></i>
-                </button>
-              </div>
-              <button type="button" id="use-gps-btn" class="finder-gps-btn" title="Find nearest sleigh route to my location">
-                <i class="fa-solid fa-location-crosshairs"></i>
-                <span>Near Me</span>
-              </button>
-            </div>
-            <div class="finder-results-popover" id="finder-results-popover" role="region" aria-live="polite"></div>
+          <h1 class="hero-headline" id="hero-headline">
+            Bringing Christmas Magic Across <span class="hl" id="hero-town-hl">Our Community</span>
+          </h1>
+
+          <p class="hero-subcopy" id="hero-subcopy">
+            Follow Santa live on his journey, check when he is visiting your street, and help our Round Table volunteers raise vital funds for the local community this Christmas!
+          </p>
+
+          <div class="hero-cta-row">
+            <a href="#tracker" class="btn-brand">
+              <i class="fa-solid fa-satellite-dish"></i>
+              <span>Watch Live Tracker</span>
+            </a>
+            <a href="#streets" class="btn-glass">
+              <i class="fa-solid fa-magnifying-glass-location" style="color:var(--primary);"></i>
+              <span>Find My Street</span>
+            </a>
+            <button type="button" id="hero-donate-cta" class="btn-glass">
+              <i class="fa-solid fa-hand-holding-heart" style="color:var(--primary);"></i>
+              <span>Donate (+25% Gift Aid)</span>
+            </button>
+            <button type="button" id="hero-alert-cta" class="btn-glass">
+              <i class="fa-solid fa-bell" style="color:var(--primary);"></i>
+              <span>Doorstep Alert</span>
+            </button>
+            <button type="button" id="hero-share-cta" class="btn-glass" aria-label="Share sleigh tracker">
+              <i class="fa-solid fa-share-nodes"></i>
+              <span>Share</span>
+            </button>
           </div>
 
           <!-- Live Town Route Coverage Metrics -->
@@ -170,72 +161,69 @@
               <div class="hero-metric-lbl">To Local Causes</div>
             </div>
           </div>
+        </div>
+      </div>
+    </section>
 
-          <div class="hero-cta-row">
-            <button type="button" id="hero-donate-cta" class="btn-brand">
-              <i class="fa-solid fa-hand-holding-heart"></i>
-              <span>Donate Online (+25% Gift Aid)</span>
-            </button>
-            <button type="button" id="hero-alert-cta" class="btn-glass">
-              <i class="fa-solid fa-bell" style="color:var(--primary);"></i>
-              <span>Get Doorstep Alert</span>
-            </button>
-            <button type="button" id="hero-share-cta" class="btn-glass" aria-label="Share sleigh tracker">
-              <i class="fa-solid fa-share-nodes"></i>
-              <span>Share</span>
-            </button>
+    <!-- LIVE SLEIGH RADAR SECTION -->
+    <section class="page-section" id="tracker">
+      <div class="container">
+        <div class="section-head text-center">
+          <div>
+            <div class="section-eyebrow"><i class="fa-solid fa-satellite-dish"></i> Live GPS Radar</div>
+            <h2 class="section-title">LIVE <span class="hl">SLEIGH RADAR</span></h2>
+            <p class="section-subtitle">Watch Santa's sleigh move in real-time as he visits the streets! Follow his exact turn-by-turn position and listen for the bells.</p>
           </div>
         </div>
 
-        <!-- Right Column: Native Interactive Multi-Route GPX Radar -->
-        <div class="radar-stage-card">
-          <div class="radar-top-bar">
-            <div class="radar-title-group">
-              <span class="radar-indicator" id="radar-dot"></span>
-              <div>
-                <div class="radar-heading brand-font" id="radar-title">Interactive Sleigh Radar</div>
-                <div class="radar-sub" id="radar-subtitle">Loading GPX route network...</div>
-              </div>
+        <div class="iframe-container tracker-frame-container">
+          <div class="iframe-chrome">
+            <div class="iframe-chrome-left">
+              <span class="chrome-pulse" aria-hidden="true"></span>
+              <span>Sleigh Radar Feed</span>
             </div>
-            <div class="radar-controls">
-              <button type="button" id="map-all-routes-btn" class="radar-ctrl-btn active">
-                <i class="fa-solid fa-layer-group"></i> All Routes
-              </button>
-              <button type="button" id="map-pin-house-btn" class="radar-ctrl-btn" title="Click your home on the map for a 250m email alert">
-                <i class="fa-solid fa-bell"></i> Pin Alert
-              </button>
-              <a id="map-fullscreen-link" href="/tracker" target="_blank" rel="noopener" class="radar-ctrl-btn">
-                <i class="fa-solid fa-expand"></i> 3D Sat-Nav
+            <div class="iframe-chrome-actions">
+              <a href="#streets" class="radar-ctrl-btn">
+                <i class="fa-solid fa-magnifying-glass"></i> <span>Find Street</span>
+              </a>
+              <a href="#routes" class="radar-ctrl-btn">
+                <i class="fa-solid fa-route"></i> <span>All Routes</span>
+              </a>
+              <a id="tracker-fullscreen" href="/tracker" target="_blank" rel="noopener" class="radar-ctrl-btn">
+                <i class="fa-solid fa-up-right-from-square"></i> <span>Fullscreen 3D</span>
               </a>
             </div>
           </div>
+          <iframe id="tracker-iframe" height="650" title="Santa Sleigh Live Tracker" allow="geolocation; screen-wake-lock" scrolling="no"></iframe>
 
-          <div class="radar-map-viewport">
-            <div id="v2-leaflet-map" aria-label="Interactive Santa Sleigh GPX Route Map"></div>
-
-            <div class="map-hud-overlay">
-              <div class="map-telemetry-card">
-                <div class="sleigh-avatar-badge" id="hud-sleigh-emoji">&#127877;</div>
-                <div class="telemetry-meta">
-                  <div class="telemetry-road" id="hud-road-name">Lapland Sleigh Workshop</div>
-                  <div class="telemetry-detail tabular" id="hud-telemetry-detail">Tap any glowing route to inspect streets &amp; stops</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Live Moderated Community Cheer Strip -->
+          <!-- Live Cheer Ticker beneath radar -->
           <div class="radar-cheer-bar">
             <div class="cheer-ticker-wrap">
               <span class="cheer-tag"><i class="fa-solid fa-wand-magic-sparkles"></i> Live Cheer</span>
               <span class="cheer-text" id="cheer-ticker-text">Wave to Santa and our volunteer elves when we pass your street!</span>
             </div>
             <button type="button" id="open-cheer-btn" class="mini-action-pill">
-              &#128075; Send Cheer
+              👋 Send Cheer
             </button>
           </div>
         </div>
+      </div>
+    </section>
 
+    <!-- SPATIAL STREET FINDER & ADDRESS LOOKUP SECTION -->
+    <section class="page-section" id="streets">
+      <div class="container">
+        <div class="section-head text-center">
+          <div>
+            <div class="section-eyebrow"><i class="fa-solid fa-magnifying-glass-location"></i> Street Finder &amp; Dates</div>
+            <h2 class="section-title">FIND YOUR <span class="hl">STREET &amp; POSTCODE</span></h2>
+            <p class="section-subtitle">Find out exactly when Santa is coming to your neighbourhood.</p>
+          </div>
+        </div>
+
+        <div class="iframe-container address-frame-container">
+          <iframe id="address-iframe" height="500" title="Address Lookup" scrolling="no" loading="lazy" allow="geolocation"></iframe>
+        </div>
       </div>
     </section>
 
@@ -485,17 +473,17 @@
 
   <!-- Mobile Sticky Glass Thumb Dock -->
   <nav class="mobile-thumb-dock" aria-label="Quick mobile actions">
-    <a href="#radar" class="dock-item">
+    <a href="#tracker" class="dock-item">
       <i class="fa-solid fa-satellite-dish"></i>
-      <span>Live Map</span>
+      <span>Radar</span>
+    </a>
+    <a href="#streets" class="dock-item">
+      <i class="fa-solid fa-magnifying-glass-location"></i>
+      <span>Find Street</span>
     </a>
     <a href="#routes" class="dock-item">
       <i class="fa-solid fa-route"></i>
-      <span>My Street</span>
-    </a>
-    <a href="#magic" class="dock-item">
-      <i class="fa-solid fa-wand-magic-sparkles"></i>
-      <span>Kids Fun</span>
+      <span>Schedule</span>
     </a>
     <button type="button" id="mobile-dock-donate" class="dock-item dock-donate">
       <i class="fa-solid fa-heart"></i>
@@ -679,7 +667,6 @@
     </div>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="/sleigh_v2.js"></script>
 </body>
 </html>
