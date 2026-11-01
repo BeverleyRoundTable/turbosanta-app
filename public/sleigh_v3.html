@@ -1886,15 +1886,15 @@
             box-shadow: 0 28px 70px -15px rgba(0, 0, 0, 0.85), 0 0 32px rgba(var(--primary-rgb), 0.22) !important;
         }
 
-        /* --- Crisp White Logo Pedestals --- */
+        /* --- Community Partner Logo Box (Transparent Background for White Text Logos) --- */
         .partner-card-logo-box {
-            background: #ffffff !important;
+            background: transparent !important;
             border-radius: 12px !important;
             padding: 8px 14px !important;
             display: inline-flex !important;
             align-items: center !important;
             justify-content: center !important;
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25) !important;
+            box-shadow: none !important;
             max-width: 120px !important;
             max-height: 58px !important;
             flex-shrink: 0 !important;
@@ -1904,6 +1904,7 @@
             max-width: 104px !important;
             object-fit: contain !important;
             display: block !important;
+            filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.35));
         }
         .sponsor-card {
             background: #ffffff !important;

@@ -284,23 +284,63 @@
   }
 
   function getRouteSponsors(route) {
+    if (!route) return [];
     const list = [];
-    if (Array.isArray(route.sponsors)) {
+    if (Array.isArray(route.sponsors) && route.sponsors.length > 0) {
       route.sponsors.forEach(s => {
-        if (s && (s.name || s.logo_url || s.sponsor_logo)) {
+        if (s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url)) {
           list.push({
-            name: s.name || s.sponsor_name || 'Route Sponsor',
-            logo: s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '',
-            url: s.link || s.sponsor_link || s.url || ''
+            name: (s.name || s.sponsor_name || 'Route Sponsor').trim(),
+            logo: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
+            url: (s.link || s.sponsor_link || s.url || '').trim()
           });
         }
       });
+      if (list.length > 0) return list;
     }
-    if (list.length === 0 && (route.sponsor_name || route.sponsor_logo_url || route.sponsor_logo)) {
+    if (route.sponsors_json) {
+      try {
+        const parsed = typeof route.sponsors_json === 'string' ? JSON.parse(route.sponsors_json) : route.sponsors_json;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          parsed.forEach(s => {
+            if (s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url)) {
+              list.push({
+                name: (s.name || s.sponsor_name || 'Route Sponsor').trim(),
+                logo: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
+                url: (s.link || s.sponsor_link || s.url || '').trim()
+              });
+            }
+          });
+          if (list.length > 0) return list;
+        }
+      } catch (e) {}
+    }
+    if (route.notes) {
+      try {
+        const match = route.notes.match(/<!--\s*SPONSORS_DATA:\s*(\[.*?\])\s*-->/s) ||
+                      route.notes.match(/\[SPONSORS_JSON:\s*(\[.*?\])\s*\]/s);
+        if (match && match[1]) {
+          const parsed = JSON.parse(match[1]);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            parsed.forEach(s => {
+              if (s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url)) {
+                list.push({
+                  name: (s.name || s.sponsor_name || 'Route Sponsor').trim(),
+                  logo: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
+                  url: (s.link || s.sponsor_link || s.url || '').trim()
+                });
+              }
+            });
+            if (list.length > 0) return list;
+          }
+        }
+      } catch (e) {}
+    }
+    if (route.sponsor_name || route.sponsor_logo_url || route.sponsor_logo) {
       list.push({
-        name: route.sponsor_name || 'Official Route Sponsor',
-        logo: route.sponsor_logo_url || route.sponsor_logo || '',
-        url: route.sponsor_link || ''
+        name: (route.sponsor_name || 'Official Route Sponsor').trim(),
+        logo: (route.sponsor_logo_url || route.sponsor_logo || '').trim(),
+        url: (route.sponsor_link || '').trim()
       });
     }
     return list;
@@ -749,16 +789,19 @@
       else if (completed) statusBadge = `<span class="r-badge completed">✓ Visited</span>`;
 
       const sponsors = getRouteSponsors(route);
-      const primarySponsor = sponsors[0] || null;
-      const sponsorHtml = primarySponsor ? `
-        <${primarySponsor.url ? `a href="${escapeHtml(primarySponsor.url)}" target="_blank" rel="noopener noreferrer"` : 'div'} class="route-sponsor-strip">
-          ${primarySponsor.logo ? `<div class="sponsor-logo-pedestal"><img src="${escapeHtml(primarySponsor.logo)}" alt="${escapeHtml(primarySponsor.name)}" loading="lazy"></div>` : ''}
-          <div class="sponsor-strip-meta">
-            <div class="sponsor-strip-kicker">Night Sponsored By</div>
-            <div class="sponsor-strip-name">${escapeHtml(sponsors.map(s => s.name).join(' • '))}</div>
-          </div>
-          ${primarySponsor.url ? '<i class="fa-solid fa-arrow-up-right-from-square" style="font-size:11px; color:var(--text-muted);"></i>' : ''}
-        </${primarySponsor.url ? 'a' : 'div'}>
+      const sponsorHtml = sponsors.length > 0 ? `
+        <div class="route-sponsors-list">
+          ${sponsors.map(sp => `
+            <${sp.url ? `a href="${escapeHtml(sp.url)}" target="_blank" rel="noopener noreferrer"` : 'div'} class="route-sponsor-strip">
+              ${sp.logo ? `<div class="sponsor-logo-pedestal"><img src="${escapeHtml(sp.logo)}" alt="${escapeHtml(sp.name)}" loading="lazy"></div>` : ''}
+              <div class="sponsor-strip-meta">
+                <div class="sponsor-strip-kicker">Night Sponsored By</div>
+                <div class="sponsor-strip-name">${escapeHtml(sp.name)}</div>
+              </div>
+              ${sp.url ? '<i class="fa-solid fa-arrow-up-right-from-square" style="font-size:11px; color:var(--text-muted); margin-left:auto;"></i>' : ''}
+            </${sp.url ? 'a' : 'div'}>
+          `).join('')}
+        </div>
       ` : '';
 
       const allStreets = state.streetsByRoute.get(String(route.id)) || [];
