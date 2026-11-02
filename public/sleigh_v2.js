@@ -351,6 +351,9 @@
   }
 
   function extractTownName(table, slug) {
+    if (table?.town_alias && typeof table.town_alias === 'string' && table.town_alias.trim()) {
+      return table.town_alias.trim();
+    }
     const raw = table?.sleigh_display_name || table?.name || slug || 'Community';
     let cleaned = raw
       .replace(/round\s*table/gi, '')

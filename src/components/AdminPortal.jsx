@@ -171,7 +171,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
 
   const currentTableSlug = session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley';
   const cleanTown = formatTownNameFromSlug(currentTableSlug);
-  const standardSleighDisplayName = tableData?.table?.sleigh_display_name || `${cleanTown} Round Table Santa Sleigh`;
+  const initialTownAlias = tableData?.table?.town_alias || (currentTableSlug === 'mold' ? 'Mold and Buckley' : '');
+  const initialSleighDisplayName = tableData?.table?.sleigh_display_name || (initialTownAlias ? `${initialTownAlias} Round Table Santa Sleigh` : `${cleanTown} Round Table Santa Sleigh`);
   const isMasterAdmin = currentTableSlug === 'beverley' || session?.tableId === 'beverley' || isNationalAdmin(session?.email);
   const isBeverley = session?.email === 'beverley247@roundtable.org.uk' || (session?.email && session.email.includes('beverley')) || session?.tableSlug === 'beverley';
   const isNationalRestricted = (session?.isNationalAdmin || session?.role === 'national_admin' || isNationalAdmin(session?.email)) && !isBeverley;
@@ -1136,7 +1137,9 @@ ${tableName} Organizers`
 
   // Settings State
   const [formData, setFormData] = useState({
-    sleigh_display_name: standardSleighDisplayName,
+    town_alias: initialTownAlias,
+    subdomain_aliases: tableData?.table?.subdomain_aliases || (currentTableSlug === 'mold' ? 'moldandbuckley, mold-and-buckley' : ''),
+    sleigh_display_name: initialSleighDisplayName,
     admin_email: tableData?.table?.admin_email || session?.email || '',
     table_number: tableData?.table?.table_number || session?.tableNumber || '',
     fundraising_goal: tableData?.table?.fundraising_goal || 8000,
@@ -1218,6 +1221,12 @@ ${tableName} Organizers`
     custom_css_acknowledged: Boolean(tableData?.table?.custom_css)
   });
 
+  const activeTownAlias = (formData?.town_alias !== undefined && formData?.town_alias !== null)
+    ? String(formData.town_alias)
+    : (tableData?.table?.town_alias || (currentTableSlug === 'mold' ? 'Mold and Buckley' : ''));
+  const effectiveTownName = activeTownAlias.trim() || cleanTown;
+  const standardSleighDisplayName = `${effectiveTownName} Round Table Santa Sleigh`;
+
   const [showAdvancedCss, setShowAdvancedCss] = useState(Boolean(tableData?.table?.custom_css));
 
   // Gmail Workspace Connection & Proximity Engine States
@@ -1259,6 +1268,8 @@ ${tableName} Organizers`
       }
       setFormData(prev => ({
         ...prev,
+        town_alias: tableData.table.town_alias !== undefined ? (tableData.table.town_alias || '') : (prev.town_alias || ''),
+        subdomain_aliases: tableData.table.subdomain_aliases !== undefined ? (tableData.table.subdomain_aliases || '') : (prev.subdomain_aliases || ''),
         sleigh_display_name: standardSleighDisplayName,
         admin_email: tableData.table.admin_email || prev.admin_email || session?.email || '',
         table_number: tableData.table.table_number || prev.table_number || session?.tableNumber || '',
@@ -7289,74 +7300,169 @@ ${tableName} Organizers`
             </p>
 
             <div style={{ display: 'grid', gap: '20px', maxWidth: '100%' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '16px', maxWidth: '100%' }}>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
-                    <label style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>Sleigh Display Name</span>
-                      <span style={{ fontSize: '11px', background: 'rgba(251, 175, 51, 0.15)', color: '#FBAF33', border: '1px solid rgba(251, 175, 51, 0.3)', borderRadius: '4px', padding: '1px 6px', fontWeight: 600 }}>
-                        🔒 Brand Standard Locked
-                      </span>
-                    </label>
+              {/* Civic Area & Subdomain Aliases Setting */}
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '12px',
+                padding: 'clamp(14px, 3vw, 20px)',
+                boxSizing: 'border-box'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '18px' }}>🏷️</span>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '15px', color: '#fff' }}>Official Table Name &amp; Area Aliases</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Configure your civic area name to override single-town Google Workspace email slugs</div>
+                    </div>
                   </div>
-                  <input
-                    type="text"
-                    value={standardSleighDisplayName}
-                    readOnly
-                    disabled
-                    style={{
-                      width: '100%',
-                      maxWidth: '100%',
-                      boxSizing: 'border-box',
-                      background: 'rgba(255, 255, 255, 0.04)',
-                      border: '1px solid rgba(255, 255, 255, 0.12)',
-                      borderRadius: '8px',
-                      padding: '10px 14px',
-                      color: 'rgba(255, 255, 255, 0.85)',
-                      fontSize: '15px',
-                      fontWeight: 600,
-                      cursor: 'not-allowed',
-                      userSelect: 'all'
-                    }}
-                  />
-                  <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                    Protected by Round Table Brand Guidelines. Automatically standardised as <strong>[Town] Round Table Santa Sleigh</strong>.
-                  </p>
+                  {formData.town_alias?.trim() ? (
+                    <span style={{ fontSize: '11px', background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: '4px', padding: '3px 8px', fontWeight: 600 }}>
+                      ✓ Custom Area Alias Active
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: '11px', background: 'rgba(255, 255, 255, 0.08)', color: 'var(--text-muted)', border: '1px solid rgba(255, 255, 255, 0.12)', borderRadius: '4px', padding: '3px 8px' }}>
+                      Automated from Email ({cleanTown})
+                    </span>
+                  )}
                 </div>
 
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
-                    <label style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>Registered Table Admin</span>
-                      <span style={{ fontSize: '11px', background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: '4px', padding: '1px 6px', fontWeight: 600 }}>
-                        ✓ Google Workspace Verified
-                      </span>
-                    </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '16px' }}>
+                  {/* Town / Area Alias Input */}
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <label style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500 }}>
+                        Town / Area Name Alias
+                      </label>
+                      {formData.town_alias?.trim() && (
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, town_alias: '' }))}
+                          style={{ background: 'none', border: 'none', color: '#FBAF33', fontSize: '11px', cursor: 'pointer', padding: 0 }}
+                        >
+                          Reset to {cleanTown}
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      value={formData.town_alias || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, town_alias: e.target.value }))}
+                      placeholder={`e.g. ${cleanTown} (or Mold and Buckley, Knowle & Dorridge)`}
+                      style={{
+                        width: '100%',
+                        maxWidth: '100%',
+                        boxSizing: 'border-box',
+                        background: '#0d0d0b',
+                        border: '1px solid var(--border)',
+                        borderRadius: '8px',
+                        padding: '10px 14px',
+                        color: '#fff',
+                        fontSize: '15px'
+                      }}
+                    />
+                    <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                      Overrides the single-town name extracted from your Google account. Shown on your public tracker, hero, donor receipts &amp; notifications.
+                    </p>
                   </div>
+
+                  {/* Resulting Brand Standard Sleigh Display Name */}
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <label style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>Resulting Sleigh Display Name</span>
+                        <span style={{ fontSize: '11px', background: 'rgba(251, 175, 51, 0.15)', color: '#FBAF33', border: '1px solid rgba(251, 175, 51, 0.3)', borderRadius: '4px', padding: '1px 6px', fontWeight: 600 }}>
+                          🔒 RTBI Brand Standard
+                        </span>
+                      </label>
+                    </div>
+                    <input
+                      type="text"
+                      value={standardSleighDisplayName}
+                      readOnly
+                      disabled
+                      style={{
+                        width: '100%',
+                        maxWidth: '100%',
+                        boxSizing: 'border-box',
+                        background: 'rgba(255, 255, 255, 0.04)',
+                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                        borderRadius: '8px',
+                        padding: '10px 14px',
+                        color: 'rgba(255, 255, 255, 0.85)',
+                        fontSize: '15px',
+                        fontWeight: 600,
+                        cursor: 'not-allowed',
+                        userSelect: 'all'
+                      }}
+                    />
+                    <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                      Standardised per Round Table Brand Guidelines as <strong>[Town/Area] Round Table Santa Sleigh</strong>.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Subdomain / URL Aliases Input */}
+                <div style={{ marginTop: '14px', minWidth: 0 }}>
+                  <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 500 }}>
+                    Alternative Subdomain / URL Aliases <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>(Optional, comma-separated)</span>
+                  </label>
                   <input
                     type="text"
-                    value={tableData?.table?.admin_email || session?.email || `${currentTableSlug}@roundtable.org.uk`}
-                    readOnly
-                    disabled
+                    value={formData.subdomain_aliases || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, subdomain_aliases: e.target.value }))}
+                    placeholder="e.g. moldandbuckley, mold-and-buckley"
                     style={{
                       width: '100%',
                       maxWidth: '100%',
                       boxSizing: 'border-box',
-                      background: 'rgba(255, 255, 255, 0.04)',
-                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      background: '#0d0d0b',
+                      border: '1px solid var(--border)',
                       borderRadius: '8px',
                       padding: '10px 14px',
-                      color: 'rgba(255, 255, 255, 0.85)',
-                      fontSize: '15px',
-                      fontWeight: 600,
-                      cursor: 'not-allowed',
-                      userSelect: 'all'
+                      color: '#fff',
+                      fontSize: '14px'
                     }}
                   />
-                  <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                    Bound to your official Google account in Cloudflare D1{tableData?.table?.table_number ? ` (Table #${tableData.table.table_number})` : ''}.
-                  </p>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px', lineHeight: '1.4' }}>
+                    Alternative web addresses (without <code>.roundtablesantasleigh.co.uk</code>) that automatically 301-redirect to your official tracker <code>https://{currentTableSlug}.roundtablesantasleigh.co.uk</code>.
+                  </div>
                 </div>
+              </div>
+
+              {/* Registered Table Admin Card */}
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
+                  <label style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>Registered Table Admin</span>
+                    <span style={{ fontSize: '11px', background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: '4px', padding: '1px 6px', fontWeight: 600 }}>
+                      ✓ Google Workspace Verified
+                    </span>
+                  </label>
+                </div>
+                <input
+                  type="text"
+                  value={tableData?.table?.admin_email || session?.email || `${currentTableSlug}@roundtable.org.uk`}
+                  readOnly
+                  disabled
+                  style={{
+                    width: '100%',
+                    maxWidth: '100%',
+                    boxSizing: 'border-box',
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: 'rgba(255, 255, 255, 0.85)',
+                    fontSize: '15px',
+                    fontWeight: 600,
+                    cursor: 'not-allowed',
+                    userSelect: 'all'
+                  }}
+                />
+                <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                  Bound to your official Google account in Cloudflare D1{tableData?.table?.table_number ? ` (Table #${tableData.table.table_number})` : ''}.
+                </p>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '16px', maxWidth: '100%' }}>
@@ -11037,6 +11143,8 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                       const payload = {
                         sleigh_display_name: standardSleighDisplayName,
                         name: standardSleighDisplayName,
+                        town_alias: (formData.town_alias !== undefined && formData.town_alias !== null) ? formData.town_alias.trim() : null,
+                        subdomain_aliases: (formData.subdomain_aliases !== undefined && formData.subdomain_aliases !== null) ? formData.subdomain_aliases.trim() : null,
                         admin_email: session?.email || formData.admin_email || undefined,
                         table_number: session?.tableNumber || formData.table_number || (session?.email ? session.email.split('@')[0].match(/\d+/)?.[0] : undefined),
                         fundraising_goal: parsedGoal,
@@ -11132,6 +11240,19 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                         setSaveStatus('Settings successfully saved to database!');
                         setHasUserChangedBgMode(false);
                         setHasUserChangedPartners(false);
+                        if (typeof onUpdateTableData === 'function') {
+                          onUpdateTableData(prev => ({
+                            ...prev,
+                            table: {
+                              ...(prev?.table || {}),
+                              ...payload
+                            },
+                            settings: {
+                              ...(prev?.settings || {}),
+                              ...payload
+                            }
+                          }));
+                        }
                       } else {
                         const errMsg = res?.error || 'Database save failed';
                         setSaveStatus(`Error saving: ${errMsg}`);
