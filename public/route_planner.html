@@ -362,7 +362,7 @@
           <div class="stat"><div class="stat-value primary" id="statDist">—</div><div class="stat-label">Distance</div></div>
           <div class="stat"><div class="stat-value" id="statWaypoints">—</div><div class="stat-label">Waypoints</div></div>
           <div class="stat"><div class="stat-value" id="statStops">0</div><div class="stat-label">Planned Stops</div></div>
-          <div class="stat"><div class="stat-value primary" id="statTime">—</div><div class="stat-label">Est. Time</div></div>
+          <div class="stat"><div class="stat-value primary" id="statTime">—</div><div class="stat-label">Est. Time <span id="statTimeEndPreview" style="font-weight:600; color:var(--primary); text-transform:none; margin-left:2px;"></span></div></div>
           <div class="stat"><div class="stat-value" id="statDense">—</div><div class="stat-label">Export Points</div></div>
         </div>
         <div class="speed-row">
@@ -1331,16 +1331,70 @@ function updateStats() {
 
 const speedSlider = document.getElementById('speedSlider');
 const speedVal = document.getElementById('speedVal');
+
+try {
+  const prefSpeed = parseFloat(localStorage.getItem('turbosanta_route_speed'));
+  if (prefSpeed && !isNaN(prefSpeed)) {
+    speedSlider.value = prefSpeed;
+    if (speedVal) speedVal.textContent = `${prefSpeed} mph`;
+  }
+} catch (e) {}
+
+function addMinutesToTime(timeStr, mins) {
+  if (!timeStr || typeof timeStr !== 'string' || !timeStr.includes(':')) timeStr = '18:00';
+  const parts = timeStr.split(':');
+  let h = parseInt(parts[0], 10) || 18;
+  let m = parseInt(parts[1], 10) || 0;
+  let totalMins = h * 60 + m + Math.round(mins);
+  totalMins = ((totalMins % (24 * 60)) + (24 * 60)) % (24 * 60);
+  const newH = Math.floor(totalMins / 60);
+  const newM = totalMins % 60;
+  return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
+}
+
+function getSelectedRouteStartTime() {
+  const select = document.getElementById('targetRouteSelect');
+  const val = select ? select.value : '';
+  if (val === '__NEW__') {
+    return document.getElementById('newRouteTimeInput')?.value || '18:00';
+  }
+  if (val && Array.isArray(allTableRoutes)) {
+    const r = allTableRoutes.find(x => x.id === val);
+    if (r && r.start_time) return r.start_time;
+  }
+  return '18:00';
+}
+
 speedSlider.addEventListener('input', () => {
-  speedVal.textContent = `${speedSlider.value} mph`;
+  const speed = parseFloat(speedSlider.value) || 3.0;
+  if (speedVal) speedVal.textContent = `${speed} mph`;
+  try {
+    localStorage.setItem('turbosanta_route_speed', String(speed));
+  } catch (e) {}
+
+  const select = document.getElementById('targetRouteSelect');
+  const selectedId = select ? select.value : '';
+  if (selectedId && selectedId !== '__NEW__' && Array.isArray(allTableRoutes)) {
+    const r = allTableRoutes.find(x => x.id === selectedId);
+    if (r) r.sleigh_speed = speed;
+  }
+
   const pts = getActivePoints();
   if (pts.length > 1) updateTime(calcDist(pts) * 0.621371);
 });
 document.getElementById('densitySelect').addEventListener('change', updateStats);
 
 function updateTime(distMi) {
-  const mins = Math.round((distMi / parseFloat(speedSlider.value)) * 60);
+  const speed = parseFloat(speedSlider.value) || 3.0;
+  const mins = Math.round((distMi / speed) * 60);
   document.getElementById('statTime').textContent = mins < 60 ? `${mins} min` : `${Math.floor(mins/60)}h ${mins%60}m`;
+
+  const startTime = getSelectedRouteStartTime();
+  const endTime = addMinutesToTime(startTime, mins);
+  const endPreviewEl = document.getElementById('statTimeEndPreview');
+  if (endPreviewEl) {
+    endPreviewEl.textContent = `(${startTime} - ${endTime})`;
+  }
 }
 
 function haversine(lat1, lon1, lat2, lon2) {
@@ -1662,12 +1716,22 @@ function onTargetRouteChanged() {
     return;
   }
 
+  // Restore the route's saved sleigh speed to the slider
+  const rSpeed = (route.sleigh_speed !== undefined && route.sleigh_speed !== null && !isNaN(Number(route.sleigh_speed)))
+    ? Number(route.sleigh_speed)
+    : (parseFloat(localStorage.getItem('turbosanta_route_speed')) || 3.0);
+  if (speedSlider) speedSlider.value = rSpeed;
+  if (speedVal) speedVal.textContent = `${rSpeed} mph`;
+  const activePts = getActivePoints();
+  if (activePts.length > 1) updateTime(calcDist(activePts) * 0.621371);
+
   if (infoEl && metaEl) {
     infoEl.style.display = 'block';
     const hasGpx = Boolean(route.gpx_url || route.gpxUrl);
     metaEl.innerHTML = `
       <div style="color:#fff; font-weight:700;">${route.name}</div>
       <div>Date: <strong>${route.date || 'Unscheduled'}</strong> · Time: <strong>${route.start_time || '18:00'} - ${route.end_time || '20:30'}</strong></div>
+      <div style="margin-top:2px; font-size:11.5px; color:var(--text-dim);">Sleigh Parade Speed: <strong>${rSpeed} mph</strong></div>
       <div style="margin-top:4px; color:${hasGpx ? 'var(--green)' : 'var(--primary)'}; font-weight:600;">
         ${hasGpx ? '✓ Existing GPX track currently attached' : '⚠️ No GPX track attached yet'}
       </div>
@@ -1686,6 +1750,13 @@ async function loadSelectedRouteGpx() {
 
   const route = allTableRoutes.find(r => r.id === val);
   window.currentLoadedRoute = route;
+  if (route) {
+    const routeSpeed = (route.sleigh_speed !== undefined && route.sleigh_speed !== null && !isNaN(Number(route.sleigh_speed)))
+      ? Number(route.sleigh_speed)
+      : (parseFloat(localStorage.getItem('turbosanta_route_speed')) || 3.0);
+    if (speedSlider) speedSlider.value = routeSpeed;
+    if (speedVal) speedVal.textContent = `${routeSpeed} mph`;
+  }
   const gpxUrl = route?.gpx_url || route?.gpxUrl;
   if (!gpxUrl) {
     alert("This route does not have an existing GPX track to load.");
@@ -1744,6 +1815,9 @@ async function attachGpxToSelectedRoute() {
     let targetRoute = null;
     const isNew = selectedId === '__NEW__';
 
+    const chosenSpeed = parseFloat(speedSlider.value) || 3.0;
+    const estMins = Math.round((parseFloat(distMi) / chosenSpeed) * 60);
+
     if (isNew) {
       const newName = (document.getElementById('newRouteNameInput')?.value || '').trim();
       if (!newName) {
@@ -1755,13 +1829,15 @@ async function attachGpxToSelectedRoute() {
       const newTime = document.getElementById('newRouteTimeInput')?.value || '18:00';
       const cleanRouteSlug = newName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
       const newRouteId = cleanRouteSlug ? `${tableParam}_${cleanRouteSlug}` : `${tableParam}_route_${Date.now()}`;
+      const calculatedEndTime = addMinutesToTime(newTime, estMins);
       targetRoute = {
         id: newRouteId,
         table_id: tableParam,
         name: newName,
         date: newDate,
         start_time: newTime,
-        end_time: '20:30',
+        end_time: calculatedEndTime,
+        sleigh_speed: chosenSpeed,
         status: 'Scheduled',
         meeting_point: '',
         muster_time: ''
@@ -1774,6 +1850,10 @@ async function attachGpxToSelectedRoute() {
         return;
       }
       targetRoute = JSON.parse(JSON.stringify(existing));
+      targetRoute.sleigh_speed = chosenSpeed;
+      if (targetRoute.start_time && estMins > 0) {
+        targetRoute.end_time = addMinutesToTime(targetRoute.start_time, estMins);
+      }
     }
 
     const density = parseInt(document.getElementById('densitySelect')?.value || '10');
@@ -1895,6 +1975,9 @@ ${trkpts}
       tableSlug: tableParam,
       routeId: targetRoute.id,
       route: targetRoute,
+      sleighSpeed: chosenSpeed,
+      endTime: targetRoute.end_time,
+      durationMins: estMins,
       gpxUrl: gpxUrl,
       fileName: fileName,
       streets: streetsPayload,
@@ -1914,7 +1997,7 @@ ${trkpts}
       bc.close();
     } catch(bcErr) {}
 
-    showTackSuccessModal(targetRoute, dense.length, distMi, plannedStops.length, streetsPayload.length);
+    showTackSuccessModal(targetRoute, dense.length, distMi, plannedStops.length, streetsPayload.length, chosenSpeed, estMins);
 
   } catch(err) {
     console.error("Tack route failed:", err);
@@ -1927,7 +2010,7 @@ ${trkpts}
   }
 }
 
-function showTackSuccessModal(route, pointsCount, distMi, stopsCount, streetsCount) {
+function showTackSuccessModal(route, pointsCount, distMi, stopsCount, streetsCount, speed = 3, estMins = 0) {
   const modal = document.getElementById('tackSuccessModal');
   const details = document.getElementById('tackSuccessDetails');
   const adminBtn = document.getElementById('tackSuccessAdminBtn');
@@ -1936,12 +2019,17 @@ function showTackSuccessModal(route, pointsCount, distMi, stopsCount, streetsCou
     adminBtn.href = `/admin.html?table=${encodeURIComponent(tableParam)}`;
   }
 
+  const durationStr = estMins > 0
+    ? (estMins < 60 ? `${estMins} min` : `${Math.floor(estMins / 60)}h ${estMins % 60}m`)
+    : '';
+
   if (details) {
     details.innerHTML = `
       <div style="font-size:16px; font-weight:700; color:var(--primary); margin-bottom:8px;">${route.name}</div>
       <div>Successfully saved to Cloudflare D1 &amp; R2!</div>
-      <div style="margin-top:10px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:10px; font-size:12px;">
+      <div style="margin-top:10px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:10px; font-size:12px; line-height:1.6;">
         <strong>${distMi} miles</strong> · <strong>${pointsCount.toLocaleString()} track points</strong><br>
+        <strong>Speed: ${route.sleigh_speed || speed} mph</strong> · <strong>Run Time: ${route.start_time || '18:00'} – ${route.end_time || '20:30'}</strong>${durationStr ? ` (${durationStr})` : ''}<br>
         ${stopsCount} planned stop${stopsCount !== 1 ? 's' : ''} · ${streetsCount} street timetable entry${streetsCount !== 1 ? 'es' : ''}
       </div>
       <div style="margin-top:10px; color:var(--text-muted); font-size:11px;">
@@ -1979,9 +2067,16 @@ async function loadExistingRoutes() {
     const initialRouteId = params.get("routeId");
     populateRouteSelect(initialRouteId);
 
-    // If initial route has GPX and nothing uploaded, auto-load it onto the map
+    // If initial route is loaded, restore its saved speed
     if (initialRouteId) {
       const targetRoute = allTableRoutes.find(r => r.id === initialRouteId);
+      if (targetRoute) {
+        const initSpeed = (targetRoute.sleigh_speed !== undefined && targetRoute.sleigh_speed !== null && !isNaN(Number(targetRoute.sleigh_speed)))
+          ? Number(targetRoute.sleigh_speed)
+          : (parseFloat(localStorage.getItem('turbosanta_route_speed')) || 3.0);
+        if (speedSlider) speedSlider.value = initSpeed;
+        if (speedVal) speedVal.textContent = `${initSpeed} mph`;
+      }
       if (targetRoute && (targetRoute.gpx_url || targetRoute.gpxUrl)) {
         await loadSelectedRouteGpx();
       } else if (targetRoute) {

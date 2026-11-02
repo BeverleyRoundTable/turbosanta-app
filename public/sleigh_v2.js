@@ -21,6 +21,13 @@
     return true;
   }
 
+  function isVolunteerCrewEnabled(tbl = state.payload?.table) {
+    if (!tbl) return true;
+    const val = tbl.enable_volunteer_crew;
+    if (val === false || val === 0 || val === '0' || val === 'false') return false;
+    return true;
+  }
+
   const PUBLIC_FEATURE_CATALOG = {
     bingo: {
       id: 'bingo',
@@ -1149,6 +1156,13 @@
       grantWrap.style.display = isGrantsActive ? 'block' : 'none';
     } else if (grantBtn) {
       grantBtn.style.display = isGrantsActive ? 'flex' : 'none';
+    }
+
+    // Toggle Volunteer Crew Card based on table setting
+    const crewCard = document.getElementById('volunteer-crew-card');
+    const isCrewActive = isVolunteerCrewEnabled(table);
+    if (crewCard) {
+      crewCard.style.display = isCrewActive ? 'block' : 'none';
     }
 
     // Toggle Gift Aid Calculator and Buttons based on table setting

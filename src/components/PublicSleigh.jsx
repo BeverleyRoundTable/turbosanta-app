@@ -1433,57 +1433,59 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
           </div>
 
           {/* Volunteer Banner */}
-          <div style={{
-            background: 'linear-gradient(135deg, rgba(29,29,26,0.95) 0%, rgba(0,0,0,0.98) 100%)',
-            border: '1px solid var(--primary)',
-            borderRadius: '16px',
-            padding: '30px 24px',
-            marginTop: '24px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
-            gap: '16px',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.4)',
-            maxWidth: '520px',
-            margin: '24px auto 0',
-            boxSizing: 'border-box',
-            width: '100%'
-          }}>
-            <div>
-              <h3 className="brand-font" style={{ color: 'var(--primary)', fontSize: '22px', marginBottom: '8px' }}>
-                Help Keep The Sleigh Moving!
-              </h3>
-              <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-                We need drivers, navigators, and bucket collectors. Volunteer as an elf this year!
-              </p>
+          {(tableData?.table?.enable_volunteer_crew !== false) && (
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(29,29,26,0.95) 0%, rgba(0,0,0,0.98) 100%)',
+              border: '1px solid var(--primary)',
+              borderRadius: '16px',
+              padding: '30px 24px',
+              marginTop: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              gap: '16px',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.4)',
+              maxWidth: '520px',
+              margin: '24px auto 0',
+              boxSizing: 'border-box',
+              width: '100%'
+            }}>
+              <div>
+                <h3 className="brand-font" style={{ color: 'var(--primary)', fontSize: '22px', marginBottom: '8px' }}>
+                  Help Keep The Sleigh Moving!
+                </h3>
+                <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                  We need drivers, navigators, and bucket collectors. Volunteer as an elf this year!
+                </p>
+              </div>
+              <a
+                href={crewFullUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="brand-font"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '12px 28px',
+                  background: 'transparent',
+                  color: 'var(--primary)',
+                  border: '2px solid var(--primary)',
+                  fontSize: '15px',
+                  textDecoration: 'none',
+                  borderRadius: '8px',
+                  textTransform: 'uppercase',
+                  fontWeight: 700,
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Volunteer Now &rarr;
+              </a>
             </div>
-            <a
-              href={crewFullUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="brand-font"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '12px 28px',
-                background: 'transparent',
-                color: 'var(--primary)',
-                border: '2px solid var(--primary)',
-                fontSize: '15px',
-                textDecoration: 'none',
-                borderRadius: '8px',
-                textTransform: 'uppercase',
-                fontWeight: 700,
-                whiteSpace: 'nowrap',
-                transition: 'all 0.2s'
-              }}
-            >
-              Volunteer Now &rarr;
-            </a>
-          </div>
+          )}
 
           {/* Where Your Donations Go & Local Cause Grant Nominations */}
           {(approvedGrants.length > 0 || enableGrantNominations) && (

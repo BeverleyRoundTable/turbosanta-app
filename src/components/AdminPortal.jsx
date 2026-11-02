@@ -1154,6 +1154,7 @@ ${tableName} Organizers`
     accent_color: tableData?.table?.accent_color || '#FBAF33',
     enable_gift_aid: tableData?.table?.enable_gift_aid || false,
     enable_grant_nominations: tableData?.table?.enable_grant_nominations !== undefined ? Boolean(tableData.table.enable_grant_nominations) : true,
+    enable_volunteer_crew: tableData?.table?.enable_volunteer_crew !== undefined ? Boolean(tableData.table.enable_volunteer_crew) : true,
     music_mode: tableData?.table?.music_mode || 'none',
     music_title: tableData?.table?.music_title || '',
     music_custom_url: tableData?.table?.music_custom_url || '',
@@ -1289,6 +1290,7 @@ ${tableName} Organizers`
         accent_color: tableData.table.accent_color || prev.accent_color || '#FBAF33',
         enable_gift_aid: tableData.table.enable_gift_aid !== undefined ? Boolean(tableData.table.enable_gift_aid) : prev.enable_gift_aid,
         enable_grant_nominations: tableData.table.enable_grant_nominations !== undefined ? Boolean(tableData.table.enable_grant_nominations) : (prev.enable_grant_nominations !== undefined ? prev.enable_grant_nominations : true),
+        enable_volunteer_crew: tableData.table.enable_volunteer_crew !== undefined ? Boolean(tableData.table.enable_volunteer_crew) : (prev.enable_volunteer_crew !== undefined ? prev.enable_volunteer_crew : true),
         music_mode: tableData.table.music_mode !== undefined ? tableData.table.music_mode : (prev.music_mode || 'none'),
         music_title: tableData.table.music_title !== undefined ? tableData.table.music_title : (prev.music_title || ''),
         music_custom_url: tableData.table.music_custom_url !== undefined ? tableData.table.music_custom_url : (prev.music_custom_url || ''),
@@ -6587,6 +6589,51 @@ ${tableName} Organizers`
                         <ExternalLink size={13} />
                         <span>Open Sign-Up Page</span>
                       </a>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const nextVal = formData.enable_volunteer_crew === false ? true : false;
+                          setFormData(prev => ({ ...prev, enable_volunteer_crew: nextVal }));
+                          if (onUpdateTableData) {
+                            onUpdateTableData(prev => ({
+                              ...prev,
+                              table: { ...prev.table, enable_volunteer_crew: nextVal }
+                            }));
+                          }
+                          const tableSlug = currentTableSlug || session?.tableSlug || session?.tableId || 'beverley';
+                          setSaveStatus('Updating volunteer crew toggle...');
+                          const res = await saveTableSettings(tableSlug, { enable_volunteer_crew: nextVal });
+                          if (res && res.ok) {
+                            setSaveStatus(`Volunteer Crew Hub ${nextVal ? 'Visible' : 'Hidden'} on public site!`);
+                          } else {
+                            setSaveStatus(`Volunteer Crew Hub ${nextVal ? 'Visible' : 'Hidden'} locally.`);
+                          }
+                          setTimeout(() => setSaveStatus(''), 3000);
+                        }}
+                        style={{
+                          padding: '8px 12px',
+                          fontSize: '12px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          borderRadius: '6px',
+                          border: formData.enable_volunteer_crew !== false ? '1px solid #22c55e' : '1px solid rgba(239, 68, 68, 0.4)',
+                          background: formData.enable_volunteer_crew !== false ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                          color: formData.enable_volunteer_crew !== false ? '#86efac' : '#fca5a5'
+                        }}
+                        title={formData.enable_volunteer_crew !== false ? "Click to hide crew sign-up on public site" : "Click to show crew sign-up on public site"}
+                      >
+                        <span style={{
+                          width: '7px',
+                          height: '7px',
+                          borderRadius: '50%',
+                          background: formData.enable_volunteer_crew !== false ? '#22c55e' : '#ef4444',
+                          display: 'inline-block'
+                        }}></span>
+                        <span>{formData.enable_volunteer_crew !== false ? 'Public Site: VISIBLE' : 'Public Site: HIDDEN'}</span>
+                      </button>
                     </div>
                   </div>
 
@@ -9228,6 +9275,73 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                 </p>
               </div>
 
+              {/* VOLUNTEER & CREW HUB PUBLIC TOGGLE */}
+              <div style={{
+                background: '#0d0d0b',
+                border: '1px solid var(--border)',
+                borderRadius: '12px',
+                padding: 'clamp(14px, 3vw, 22px)',
+                maxWidth: '100%',
+                boxSizing: 'border-box'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Users size={18} color="var(--primary)" />
+                    <strong style={{ fontSize: '15px', color: '#fff' }}>
+                      Volunteer Crew &amp; Elf Sign-Up Card (Public Turnkey Site)
+                    </strong>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const nextVal = formData.enable_volunteer_crew === false ? true : false;
+                      setFormData(prev => ({ ...prev, enable_volunteer_crew: nextVal }));
+                      if (onUpdateTableData) {
+                        onUpdateTableData(prev => ({
+                          ...prev,
+                          table: { ...prev.table, enable_volunteer_crew: nextVal }
+                        }));
+                      }
+                      const tableSlug = currentTableSlug || session?.tableSlug || session?.tableId || 'beverley';
+                      setSaveStatus('Updating volunteer crew toggle...');
+                      const res = await saveTableSettings(tableSlug, { enable_volunteer_crew: nextVal });
+                      if (res && res.ok) {
+                        setSaveStatus(`Volunteer Crew Hub ${nextVal ? 'Visible' : 'Hidden'} on public site!`);
+                      } else {
+                        setSaveStatus(`Volunteer Crew Hub ${nextVal ? 'Visible' : 'Hidden'} locally.`);
+                      }
+                      setTimeout(() => setSaveStatus(''), 3000);
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '7px 14px',
+                      borderRadius: '8px',
+                      fontWeight: 700,
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      border: formData.enable_volunteer_crew !== false ? '1px solid #22c55e' : '1px solid rgba(239, 68, 68, 0.4)',
+                      background: formData.enable_volunteer_crew !== false ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                      color: formData.enable_volunteer_crew !== false ? '#86efac' : '#fca5a5'
+                    }}
+                    title={formData.enable_volunteer_crew !== false ? "Click to hide volunteer crew card on public site" : "Click to show volunteer crew card on public site"}
+                  >
+                    <span style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: formData.enable_volunteer_crew !== false ? '#22c55e' : '#ef4444',
+                      display: 'inline-block'
+                    }}></span>
+                    {formData.enable_volunteer_crew !== false ? 'Crew Hub: VISIBLE ON SITE' : 'Crew Hub: HIDDEN FROM PUBLIC'}
+                  </button>
+                </div>
+                <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0, lineHeight: 1.5 }}>
+                  Show or hide the "Join Our Sleigh Crew / Volunteer as an Elf Tonight" card and sign-up links on your public turnkey website. If turned off, the card is hidden from public visitors, but existing registered volunteers can still be viewed and managed in your <strong>Volunteers</strong> tab.
+                </p>
+              </div>
+
               {/* FESTIVE BACKGROUND MUSIC & SLEIGH JINGLES */}
               <div style={{
                 background: '#0d0d0b',
@@ -11161,6 +11275,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                         accent_color: formData.accent_color || (formData.primary_color === '#D31C1C' ? '#FBAF33' : '#D31C1C'),
                         enable_gift_aid: formData.enable_gift_aid,
                         enable_grant_nominations: formData.enable_grant_nominations !== false ? 1 : 0,
+                        enable_volunteer_crew: formData.enable_volunteer_crew !== false ? 1 : 0,
                         music_mode: formData.music_mode || 'none',
                         music_title: formData.music_title || '',
                         music_custom_url: formData.music_custom_url || null,

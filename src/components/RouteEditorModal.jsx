@@ -92,6 +92,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
     date: route?.date || new Date().toISOString().slice(0, 10),
     start_time: initialStartTime,
     end_time: route?.end_time || '20:30',
+    sleigh_speed: (route?.sleigh_speed !== undefined && route?.sleigh_speed !== null && !isNaN(Number(route.sleigh_speed))) ? Number(route.sleigh_speed) : 3.0,
     meeting_point: resolveInitialMeetingPoint(initialMeta.meeting_point, defaultMusterPoint),
     muster_time: resolveInitialMusterTime(initialMeta.muster_time, initialStartTime, defaultMusterTime),
     gpx_url: route?.gpx_url || route?.gpxUrl || '',
@@ -133,6 +134,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
       date: route?.date || new Date().toISOString().slice(0, 10),
       start_time: rStart,
       end_time: route?.end_time || '20:30',
+      sleigh_speed: (route?.sleigh_speed !== undefined && route?.sleigh_speed !== null && !isNaN(Number(route.sleigh_speed))) ? Number(route.sleigh_speed) : 3.0,
       meeting_point: resolveInitialMeetingPoint(meta.meeting_point, defaultMusterPoint),
       muster_time: resolveInitialMusterTime(meta.muster_time, rStart, defaultMusterTime),
       gpx_url: route?.gpx_url || route?.gpxUrl || '',
@@ -165,6 +167,8 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
         gpx_url: data.gpxUrl || prev.gpx_url,
         gpx_file_name: data.fileName || prev.gpx_file_name || 'route_planner.gpx',
         planned_stops: data.stops || prev.planned_stops || [],
+        sleigh_speed: (data.sleighSpeed !== undefined && data.sleighSpeed !== null && !isNaN(Number(data.sleighSpeed))) ? Number(data.sleighSpeed) : (prev.sleigh_speed || 3.0),
+        end_time: data.endTime || prev.end_time,
         streetsText: data.detectedStreets && data.detectedStreets.length > 0
           ? data.detectedStreets.join(', ')
           : prev.streetsText
@@ -561,6 +565,33 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                   type="time"
                   value={formData.end_time}
                   onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+                  style={{
+                    width: '100%',
+                    background: '#0d0d0b',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#fff',
+                    fontSize: '15px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
+                  Sleigh Pace (MPH)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="10"
+                  step="0.5"
+                  value={formData.sleigh_speed !== undefined ? formData.sleigh_speed : 3}
+                  onChange={(e) => {
+                    const sp = parseFloat(e.target.value) || 3;
+                    setFormData(prev => ({ ...prev, sleigh_speed: sp }));
+                  }}
                   style={{
                     width: '100%',
                     background: '#0d0d0b',
