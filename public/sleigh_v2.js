@@ -434,12 +434,18 @@
   function getRouteSponsors(route) {
     if (!route) return [];
     const list = [];
+    const sanitizeLogo = (l) => {
+      if (!l || typeof l !== 'string') return '';
+      const c = l.trim();
+      return c.startsWith('blob:') ? '' : c;
+    };
     if (Array.isArray(route.sponsors) && route.sponsors.length > 0) {
       route.sponsors.forEach(s => {
         if (s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url)) {
+          const l = sanitizeLogo(s.logo_url) || sanitizeLogo(s.sponsor_logo_url) || sanitizeLogo(s.sponsor_logo) || '';
           list.push({
             name: (s.name || s.sponsor_name || 'Route Sponsor').trim(),
-            logo: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
+            logo: l,
             url: (s.link || s.sponsor_link || s.url || '').trim()
           });
         }
@@ -452,9 +458,10 @@
         if (Array.isArray(parsed) && parsed.length > 0) {
           parsed.forEach(s => {
             if (s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url)) {
+              const l = sanitizeLogo(s.logo_url) || sanitizeLogo(s.sponsor_logo_url) || sanitizeLogo(s.sponsor_logo) || '';
               list.push({
                 name: (s.name || s.sponsor_name || 'Route Sponsor').trim(),
-                logo: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
+                logo: l,
                 url: (s.link || s.sponsor_link || s.url || '').trim()
               });
             }
@@ -472,9 +479,10 @@
           if (Array.isArray(parsed) && parsed.length > 0) {
             parsed.forEach(s => {
               if (s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url)) {
+                const l = sanitizeLogo(s.logo_url) || sanitizeLogo(s.sponsor_logo_url) || sanitizeLogo(s.sponsor_logo) || '';
                 list.push({
                   name: (s.name || s.sponsor_name || 'Route Sponsor').trim(),
-                  logo: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
+                  logo: l,
                   url: (s.link || s.sponsor_link || s.url || '').trim()
                 });
               }
@@ -485,9 +493,10 @@
       } catch (e) {}
     }
     if (route.sponsor_name || route.sponsor_logo_url || route.sponsor_logo) {
+      const l = sanitizeLogo(route.sponsor_logo_url) || sanitizeLogo(route.sponsor_logo) || '';
       list.push({
         name: (route.sponsor_name || 'Official Route Sponsor').trim(),
-        logo: (route.sponsor_logo_url || route.sponsor_logo || '').trim(),
+        logo: l,
         url: (route.sponsor_link || '').trim()
       });
     }
@@ -1388,7 +1397,7 @@
     });
   }
 
-  // --- Smart Adaptive Logo Contrast Engine ---
+  // --- Unified White Pods Contrast Engine ---
   function adaptLogoContrast(img) {
     if (!img || !img.naturalWidth) return;
     try {
@@ -1409,14 +1418,11 @@
       }
       if (visibleCount > 0) {
         const avg = totalLum / visibleCount;
-        const stage = img.closest('.partner-logo-stage, .hero-partner-logo-stage');
-        if (!stage) return;
-        if (avg < 130) {
-          stage.classList.remove('stage-dark-pod');
-          stage.classList.add('stage-light-pod');
+        // If image is predominantly white/light (e.g. Abacus Financial Options white text), invert to crisp solid black for white pod
+        if (avg > 175) {
+          img.classList.add('logo-invert-for-white-pod');
         } else {
-          stage.classList.remove('stage-light-pod');
-          stage.classList.add('stage-dark-pod');
+          img.classList.remove('logo-invert-for-white-pod');
         }
       }
     } catch (e) {
