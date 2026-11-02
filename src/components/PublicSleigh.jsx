@@ -1163,26 +1163,36 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                       }}
                     >
                       {pLogo && (
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          background: 'transparent',
-                          borderRadius: isMulti ? '8px' : '10px',
-                          overflow: 'hidden',
-                          flexShrink: 0,
-                          padding: isSingle ? '8px 14px' : (isMulti ? '4px 8px' : '6px 12px'),
-                          boxShadow: 'none'
-                        }}>
+                        <div
+                          className="hero-partner-logo-stage"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            borderRadius: isMulti ? '8px' : '10px',
+                            overflow: 'hidden',
+                            flexShrink: 0,
+                            padding: isSingle ? '8px 14px' : (isMulti ? '4px 8px' : '6px 12px'),
+                            boxShadow: 'none',
+                            transition: 'background 0.25s ease'
+                          }}
+                        >
                           <img
                             src={pLogo}
                             alt={pName ? `${pName} logo` : 'Partner logo'}
+                            crossOrigin="anonymous"
+                            onLoad={(e) => {
+                              if (typeof window !== 'undefined' && typeof window.adaptLogoContrast === 'function') {
+                                window.adaptLogoContrast(e.target);
+                              }
+                            }}
                             style={{
                               display: 'block',
                               objectFit: 'contain',
                               height: isSingle ? '75px' : (isMulti ? '44px' : '60px'),
                               maxWidth: isSingle ? '240px' : (isMulti ? '120px' : '175px'),
-                              filter: 'drop-shadow(0 0 1px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 6px rgba(255, 255, 255, 0.35)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5))'
+                              filter: 'none'
                             }}
                             loading="lazy"
                           />

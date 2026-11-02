@@ -2006,7 +2006,8 @@ body {
   border-color: rgba(var(--primary-rgb), 0.5);
 }
 
-.partner-logo-stage {
+.partner-logo-stage,
+.hero-partner-logo-stage {
   width: 100%;
   height: 86px;
   background: rgba(255, 255, 255, 0.04);
@@ -2019,32 +2020,56 @@ body {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-  transition: background 0.2s ease, border-color 0.2s ease;
+  transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
-.partner-logo-stage img {
+.partner-logo-stage img,
+.hero-partner-logo-stage img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  /* Dual-rim luminous halo: 1px crisp outline + soft ambient lift for dark logos on dark mode */
-  filter: 
-    drop-shadow(0 0 1px rgba(255, 255, 255, 0.95))
-    drop-shadow(0 0 6px rgba(255, 255, 255, 0.35))
-    drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
-  transition: filter 0.2s ease, transform 0.2s ease;
+  filter: none;
+  transition: transform 0.2s ease, filter 0.2s ease;
 }
 
-.partner-pedestal-card:hover .partner-logo-stage {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(var(--primary-rgb), 0.35);
+/* SMART ADAPTIVE PLINTH: Dark Logos (e.g. Charlton Electrical, Smart Home, Shappen) */
+.partner-logo-stage.stage-light-pod,
+.hero-partner-logo-stage.stage-light-pod {
+  background: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.95) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
+}
+
+.partner-logo-stage.stage-light-pod img,
+.hero-partner-logo-stage.stage-light-pod img {
+  filter: none !important;
+}
+
+/* SMART ADAPTIVE PLINTH: Light / White Logos (e.g. Abacus Financial Options) */
+.partner-logo-stage.stage-dark-pod,
+.hero-partner-logo-stage.stage-dark-pod {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25) !important;
+}
+
+.partner-logo-stage.stage-dark-pod img,
+.hero-partner-logo-stage.stage-dark-pod img {
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.35)) !important;
+}
+
+.partner-pedestal-card:hover .partner-logo-stage.stage-light-pod {
+  border-color: #FBAF33 !important;
+  box-shadow: 0 6px 20px rgba(251, 175, 51, 0.35) !important;
+}
+
+.partner-pedestal-card:hover .partner-logo-stage.stage-dark-pod {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(var(--primary-rgb), 0.45) !important;
 }
 
 .partner-pedestal-card:hover .partner-logo-stage img {
-  filter: 
-    drop-shadow(0 0 1.5px rgba(255, 255, 255, 1))
-    drop-shadow(0 0 8px rgba(255, 255, 255, 0.5))
-    drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
-  transform: scale(1.02);
+  transform: scale(1.03);
 }
 
 .partner-role-pill {
