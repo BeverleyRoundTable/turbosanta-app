@@ -83,11 +83,36 @@ function formatRouteDateWithWeekday(dateStr) {
 
 function formatTownNameFromSlug(slug) {
   if (!slug) return 'Round Table';
-  const clean = String(slug).replace(/[-_]?(table|sleigh|\d+)$/gi, '');
+  let clean = String(slug).replace(/[-_]?(table|sleigh|\d+)$/gi, '').toLowerCase().trim();
+  const overrides = {
+    'isleofwight': 'Isle of Wight',
+    'isle-of-wight': 'Isle of Wight',
+    'iow': 'Isle of Wight',
+    'knowleanddorridge': 'Knowle and Dorridge',
+    'knowle-and-dorridge': 'Knowle and Dorridge',
+    'knowle-dorridge': 'Knowle and Dorridge',
+    'meltonmowbray': 'Melton Mowbray',
+    'melton-mowbray': 'Melton Mowbray',
+    'westonsupermare': 'Weston-super-Mare',
+    'weston-super-mare': 'Weston-super-Mare',
+    'newcastleupontyne': 'Newcastle upon Tyne',
+    'newcastle-upon-tyne': 'Newcastle upon Tyne',
+    'stratforduponavon': 'Stratford-upon-Avon',
+    'stratford-upon-avon': 'Stratford-upon-Avon',
+    'darlington': 'Darlington',
+    'darlingtonbondgate': 'Darlington',
+    'darlington-bondgate': 'Darlington',
+    'mold': 'Mold and Buckley',
+    'moldandbuckley': 'Mold and Buckley',
+    'mold-and-buckley': 'Mold and Buckley',
+    'mold-buckley': 'Mold and Buckley'
+  };
+  if (overrides[clean]) return overrides[clean];
+  clean = clean.replace(/([a-z]{2,})and([a-z]{2,})/gi, '$1 and $2');
   return clean
-    .split(/[-_]+/)
+    .split(/[-_\s]+/)
     .filter(Boolean)
-    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .map((w, idx) => (idx > 0 && w.toLowerCase() === 'and') ? 'and' : (w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()))
     .join(' ') || 'Round Table';
 }
 
@@ -146,7 +171,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
 
   const currentTableSlug = session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley';
   const cleanTown = formatTownNameFromSlug(currentTableSlug);
-  const standardSleighDisplayName = `${cleanTown} Round Table Santa Sleigh`;
+  const standardSleighDisplayName = tableData?.table?.sleigh_display_name || `${cleanTown} Round Table Santa Sleigh`;
   const isMasterAdmin = currentTableSlug === 'beverley' || session?.tableId === 'beverley' || isNationalAdmin(session?.email);
   const isBeverley = session?.email === 'beverley247@roundtable.org.uk' || (session?.email && session.email.includes('beverley')) || session?.tableSlug === 'beverley';
   const isNationalRestricted = (session?.isNationalAdmin || session?.role === 'national_admin' || isNationalAdmin(session?.email)) && !isBeverley;

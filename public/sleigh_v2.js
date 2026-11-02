@@ -365,7 +365,9 @@
       'knowle-and-dorridge': 'Knowle and Dorridge',
       'knowle-dorridge': 'Knowle and Dorridge',
       'isleofwight': 'Isle of Wight',
-      'meltonmowbray': 'Melton Mowbray'
+      'meltonmowbray': 'Melton Mowbray',
+      'mold': 'Mold and Buckley',
+      'moldandbuckley': 'Mold and Buckley'
     };
     const lowerKey = cleaned.toLowerCase().replace(/[-_\s]+/g, '');
     if (overrides[lowerKey]) return overrides[lowerKey];
