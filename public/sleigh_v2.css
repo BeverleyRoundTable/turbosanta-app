@@ -2009,20 +2009,42 @@ body {
 .partner-logo-stage {
   width: 100%;
   height: 86px;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 13px;
   padding: 8px 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .partner-logo-stage img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.35));
+  /* Dual-rim luminous halo: 1px crisp outline + soft ambient lift for dark logos on dark mode */
+  filter: 
+    drop-shadow(0 0 1px rgba(255, 255, 255, 0.95))
+    drop-shadow(0 0 6px rgba(255, 255, 255, 0.35))
+    drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+.partner-pedestal-card:hover .partner-logo-stage {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(var(--primary-rgb), 0.35);
+}
+
+.partner-pedestal-card:hover .partner-logo-stage img {
+  filter: 
+    drop-shadow(0 0 1.5px rgba(255, 255, 255, 1))
+    drop-shadow(0 0 8px rgba(255, 255, 255, 0.5))
+    drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
+  transform: scale(1.02);
 }
 
 .partner-role-pill {

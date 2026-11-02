@@ -1181,7 +1181,8 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                               display: 'block',
                               objectFit: 'contain',
                               height: isSingle ? '75px' : (isMulti ? '44px' : '60px'),
-                              maxWidth: isSingle ? '240px' : (isMulti ? '120px' : '175px')
+                              maxWidth: isSingle ? '240px' : (isMulti ? '120px' : '175px'),
+                              filter: 'drop-shadow(0 0 1px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 6px rgba(255, 255, 255, 0.35)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5))'
                             }}
                             loading="lazy"
                           />
