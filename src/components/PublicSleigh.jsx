@@ -1181,12 +1181,6 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                           <img
                             src={pLogo}
                             alt={pName ? `${pName} logo` : 'Partner logo'}
-                            crossOrigin="anonymous"
-                            onLoad={(e) => {
-                              if (typeof window !== 'undefined' && typeof window.adaptLogoContrast === 'function') {
-                                window.adaptLogoContrast(e.target);
-                              }
-                            }}
                             style={{
                               display: 'block',
                               objectFit: 'contain',

@@ -2032,11 +2032,7 @@ body {
   transition: transform 0.2s ease;
 }
 
-/* For white/light-only logos (e.g. Abacus Financial Options), automatically convert to solid black on white pod */
-.partner-logo-stage img.logo-invert-for-white-pod,
-.hero-partner-logo-stage img.logo-invert-for-white-pod {
-  filter: brightness(0) !important;
-}
+
 
 .partner-pedestal-card:hover .partner-logo-stage {
   border-color: #FBAF33 !important;

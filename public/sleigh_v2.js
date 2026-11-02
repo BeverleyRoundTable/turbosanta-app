@@ -1382,52 +1382,18 @@
       const attrs = p.url ? `href="${escapeHtml(p.url)}" target="_blank" rel="noopener noreferrer"` : '';
       return `
         <${tag} ${attrs} class="partner-pedestal-card">
-          ${p.logo ? `<div class="partner-logo-stage"><img src="${escapeHtml(p.logo)}" alt="${escapeHtml(p.name)}" crossorigin="anonymous" loading="lazy" onload="window.adaptLogoContrast && window.adaptLogoContrast(this)"></div>` : ''}
+          ${p.logo ? `<div class="partner-logo-stage"><img src="${escapeHtml(p.logo)}" alt="${escapeHtml(p.name)}" loading="lazy"></div>` : ''}
           <span class="partner-role-pill">${escapeHtml(p.role)}</span>
           <div class="partner-name">${escapeHtml(p.name)}</div>
         </${tag}>
       `;
     }).join('');
 
-    // Trigger contrast check for cached images immediately
-    grid.querySelectorAll('.partner-logo-stage img').forEach(img => {
-      if (img.complete && img.naturalWidth) {
-        adaptLogoContrast(img);
-      }
-    });
   }
 
-  // --- Unified White Pods Contrast Engine ---
+  // --- Unified White Pods Engine (legacy no-op fallback) ---
   function adaptLogoContrast(img) {
-    if (!img || !img.naturalWidth) return;
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = 24;
-      canvas.height = 24;
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      ctx.drawImage(img, 0, 0, 24, 24);
-      const data = ctx.getImageData(0, 0, 24, 24).data;
-      let totalLum = 0;
-      let visibleCount = 0;
-      for (let i = 0; i < data.length; i += 4) {
-        const a = data[i + 3];
-        if (a > 35) {
-          totalLum += (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
-          visibleCount++;
-        }
-      }
-      if (visibleCount > 0) {
-        const avg = totalLum / visibleCount;
-        // If image is predominantly white/light (e.g. Abacus Financial Options white text), invert to crisp solid black for white pod
-        if (avg > 175) {
-          img.classList.add('logo-invert-for-white-pod');
-        } else {
-          img.classList.remove('logo-invert-for-white-pod');
-        }
-      }
-    } catch (e) {
-      // Fallback silently if canvas is tainted by third-party CORS
-    }
+    // Pre-calibrated assets are delivered directly for white pods
   }
   window.adaptLogoContrast = adaptLogoContrast;
 
