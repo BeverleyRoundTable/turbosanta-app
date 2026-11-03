@@ -776,6 +776,11 @@
         }
 
         applyDeepLink();
+
+        if (pendingFocusRoute) {
+          selectRouteFromParent(pendingFocusRoute.routeId, pendingFocusRoute.routeName);
+          pendingFocusRoute = null;
+        }
       }
     } catch (err) {
       console.error("Failed to fetch route data:", err);
@@ -1472,6 +1477,38 @@
     const height = document.documentElement.scrollHeight;
     parent.postMessage({ addressLookupHeight: height }, "*");
   }
+
+  let pendingFocusRoute = null;
+
+  function selectRouteFromParent(routeId, routeName) {
+    if (!routesData || routesData.length === 0) {
+      pendingFocusRoute = { routeId, routeName };
+      return;
+    }
+    const targetId = routeId ? String(routeId) : null;
+    const targetName = routeName ? String(routeName).trim().toLowerCase() : null;
+
+    const found = routesData.find(r => 
+      (targetId && String(r.id) === targetId) ||
+      (targetName && r.routeName && r.routeName.trim().toLowerCase() === targetName)
+    );
+
+    if (found) {
+      showRouteMatches([found], '');
+      focusRoute(found.routeName);
+      const card = document.querySelector(`.addr-route-card[data-route-name="${CSS.escape(found.routeName)}"]`);
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  }
+
+  window.addEventListener("message", (e) => {
+    if (!e.data || typeof e.data !== "object") return;
+    if (e.data.type === "turbosanta-focus-route" || e.data.type === "turbosanta-select-route") {
+      selectRouteFromParent(e.data.routeId, e.data.routeName);
+    }
+  });
 
   window.onload = () => {
     initMap();

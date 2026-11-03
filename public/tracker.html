@@ -4149,6 +4149,29 @@
                   applyConfirmedUserPin(p.lat, p.lng, { persist: true, refreshEta: true });
                 }
               }
+              if (e.data.type === "turbosanta-select-route" && e.data.routeId) {
+                const rId = String(e.data.routeId);
+                const routes = AppState.vars.latestApiData?.routes || apiData?.routes || [];
+                const target = routes.find(r => String(r.id) === rId);
+                if (target) {
+                  AppState.vars.activeRoute = target;
+                  const gUrl = target.gpxUrl || target.gpx_url;
+                  if (gUrl) {
+                    loadGpxRoute(gUrl).then(() => {
+                      if (AppState.flags.gpxLoaded && AppState.gpxRoute && AppState.gpxRoute.length > 0) {
+                        const allLatLngs = AppState.gpxRoute.map(p => [p.lat, p.lng]);
+                        if (AppState.dynamicRouteRemainingGlow) AppState.dynamicRouteRemainingGlow.setLatLngs(allLatLngs);
+                        if (AppState.dynamicRouteRemainingMain) AppState.dynamicRouteRemainingMain.setLatLngs(allLatLngs);
+                        if (AppState.dynamicRoutePastGlow) AppState.dynamicRoutePastGlow.setLatLngs([]);
+                        if (AppState.dynamicRoutePastMain) AppState.dynamicRoutePastMain.setLatLngs([]);
+                        if (AppState.map) {
+                          try { AppState.map.fitBounds(allLatLngs, { padding: [40, 40] }); } catch(e){}
+                        }
+                      }
+                    });
+                  }
+                }
+              }
             });
 
             window.addEventListener("storage", (e) => {

@@ -627,7 +627,7 @@
     });
   }
 
-  function selectRouteAndFocus(routeId, scrollMapIntoView = false) {
+  function selectRouteAndFocus(routeId, scrollMapIntoView = false, forceLive = false) {
     state.selectedRouteId = routeId ? String(routeId) : null;
     const cards = document.querySelectorAll('[data-route-card]');
     cards.forEach(c => {
@@ -635,19 +635,41 @@
       c.classList.toggle('is-selected', Boolean(match));
     });
 
+    const routeObj = state.routes.find(r => String(r.id) === String(routeId));
+    const isLive = forceLive || (routeObj && isRouteLive(routeObj, 0));
+
     if (scrollMapIntoView) {
-      const trackerSec = document.getElementById('tracker');
-      if (trackerSec) {
-        trackerSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const targetSec = isLive
+        ? (document.getElementById('tracker') || document.getElementById('streets'))
+        : (document.getElementById('streets') || document.getElementById('tracker'));
+
+      if (targetSec) {
+        targetSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
 
+    const routeName = routeObj ? (routeObj.name || routeObj.routeName || '') : '';
+
+    // 1. Tell address-iframe (Route & Street Map with GPX) to zoom to this route
+    const addressIframe = document.getElementById('address-iframe');
+    if (addressIframe && addressIframe.contentWindow && routeId) {
+      try {
+        addressIframe.contentWindow.postMessage({
+          type: 'turbosanta-focus-route',
+          routeId: String(routeId),
+          routeName: routeName
+        }, '*');
+      } catch (_) {}
+    }
+
+    // 2. Tell tracker-iframe (Live GPS Radar) to select this route
     const trackerIframe = document.getElementById('tracker-iframe');
     if (trackerIframe && trackerIframe.contentWindow && routeId) {
       try {
         trackerIframe.contentWindow.postMessage({
           type: 'turbosanta-select-route',
-          routeId: String(routeId)
+          routeId: String(routeId),
+          routeName: routeName
         }, '*');
       } catch (_) {}
     }
@@ -1025,9 +1047,9 @@
           ${streetsHtml}
 
           <div class="route-card-actions">
-            <button type="button" class="r-action-btn" data-map-route="${escapeHtml(route.id)}">
-              <i class="fa-solid fa-map-location-dot" style="color:var(--primary);"></i>
-              <span>Show on Radar</span>
+            <button type="button" class="r-action-btn" data-map-route="${escapeHtml(route.id)}" data-is-live="${live ? '1' : '0'}">
+              <i class="fa-solid ${live ? 'fa-satellite-dish' : 'fa-map-location-dot'}" style="color:${live ? '#ef4444' : 'var(--primary)'};"></i>
+              <span>${live ? 'Track Live' : 'Show on Map'}</span>
             </button>
             <button type="button" class="r-action-btn" data-notify-route="${escapeHtml(route.id)}">
               <i class="fa-solid fa-bell"></i>
@@ -1042,6 +1064,14 @@
     }).join('');
 
     // Wire Route Card Interactions
+    grid.querySelectorAll('[data-route-card]').forEach(card => {
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('button') || e.target.closest('a')) return;
+        const rId = card.getAttribute('data-route-card');
+        if (rId) selectRouteAndFocus(rId, true);
+      });
+    });
+
     grid.querySelectorAll('[data-expand-route]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1054,7 +1084,9 @@
     grid.querySelectorAll('[data-map-route]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        selectRouteAndFocus(btn.getAttribute('data-map-route'), true);
+        const rId = btn.getAttribute('data-map-route');
+        const isLive = btn.getAttribute('data-is-live') === '1';
+        selectRouteAndFocus(rId, true, isLive);
       });
     });
 
