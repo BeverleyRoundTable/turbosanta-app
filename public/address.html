@@ -606,7 +606,11 @@
 
   function initMap() {
     // Initialized to Marchesi House (Round Table HQ) as the national fallback
-    map = L.map('lookup-map').setView([52.4708, -1.9207], 15);
+    map = L.map('lookup-map', {
+      wheelPxPerZoomLevel: 120,
+      zoomDelta: 1,
+      wheelDebounceTime: 60
+    }).setView([52.4708, -1.9207], 15);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap',

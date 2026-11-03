@@ -2761,7 +2761,10 @@ async function renderRoutesOnMap() {
 function initMap() {
   if (natMap) return;
   natMap = L.map('nationalMap', {
-    scrollWheelZoom: true
+    scrollWheelZoom: true,
+    wheelPxPerZoomLevel: 120,
+    zoomDelta: 1,
+    wheelDebounceTime: 60
   }).setView([53.8, -1.8], 6);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {

@@ -978,11 +978,35 @@
       const completed = isRouteCompleted(route, origIdx);
       const isSelected = String(state.selectedRouteId) === String(route.id);
 
+      const isStaticRoute = route.route_type === 'static' || route.is_static === 1 || route.is_static === '1' || route.is_static === true;
+      let staticInfo = null;
+      if (route.static_stop_name || route.static_stop_time) {
+        staticInfo = { name: route.static_stop_name || '', time: route.static_stop_time || '' };
+      } else if (route.notes) {
+        const m = route.notes.match(/<!--\s*ROUTE_META:\s*({.*?})\s*-->/s);
+        if (m && m[1]) {
+          try {
+            const p = JSON.parse(m[1]);
+            if (p.static_stop_name || p.static_stop_time) {
+              staticInfo = { name: p.static_stop_name || '', time: p.static_stop_time || '' };
+            }
+          } catch(e) {}
+        }
+      }
+
       let statusBadge = `<span class="r-badge">Scheduled</span>`;
       if (live) statusBadge = `<span class="r-badge live">● Live On Street</span>`;
       else if (postponed) statusBadge = `<span class="r-badge postponed">🌧️ Postponed</span>`;
       else if (today) statusBadge = `<span class="r-badge tonight">✨ Tonight</span>`;
       else if (completed) statusBadge = `<span class="r-badge completed">✓ Visited</span>`;
+      else if (isStaticRoute) statusBadge = `<span class="r-badge static" style="background:rgba(168,85,247,0.18); color:#c084fc; border:1px solid rgba(168,85,247,0.4);">🎪 Static Appearance</span>`;
+
+      const staticBannerHtml = staticInfo ? `
+        <div style="font-size:12px; background:rgba(251,175,51,0.08); border:1px solid rgba(251,175,51,0.25); border-radius:8px; padding:6px 10px; color:#fde047; display:flex; align-items:center; gap:6px;">
+          <i class="fa-solid fa-store" style="color:var(--primary); font-size:11px;"></i>
+          <span><strong>Pre-Route Static:</strong> ${escapeHtml(staticInfo.time ? staticInfo.time + ' · ' : '')}${escapeHtml(staticInfo.name)}</span>
+        </div>
+      ` : '';
 
       const sponsors = getRouteSponsors(route);
       const sponsorHtml = sponsors.length > 0 ? `
@@ -1012,6 +1036,11 @@
             return `<span class="street-chip${matched ? ' matched' : ''}">${escapeHtml(st)}</span>`;
           }).join('')}
           ${hiddenCount > 0 ? `<button type="button" class="street-more-btn" data-expand-route="${escapeHtml(route.id)}">+${hiddenCount} more streets</button>` : ''}
+        </div>
+      ` : isStaticRoute ? `
+        <div style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
+          <i class="fa-solid fa-location-dot" style="color:var(--primary);"></i>
+          <span>Stationary Santa appearance / grotto visit · Meet Santa in person!</span>
         </div>
       ` : `<div style="font-size:12px; color:var(--text-muted);">Tap "Show on Map" to view the full GPX road corridor.</div>`;
 
@@ -1043,6 +1072,7 @@
           </div>
 
           ${postponed && route.postponed_note ? `<div style="font-size:12px; color:#fcd34d; background:rgba(245,158,11,0.12); padding:8px 10px; border-radius:9px;">${escapeHtml(route.postponed_note)}</div>` : ''}
+          ${staticBannerHtml}
           ${sponsorHtml}
           ${streetsHtml}
 

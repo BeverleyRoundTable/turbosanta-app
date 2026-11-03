@@ -69,6 +69,10 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
   const extractRouteMeta = (r) => {
     let meeting_point = r?.muster_point || r?.meeting_point || '';
     let muster_time = r?.muster_time || '';
+    let route_type = r?.route_type || (r?.is_static ? 'static' : 'tour');
+    let static_stop_name = r?.static_stop_name || '';
+    let static_stop_time = r?.static_stop_time || '';
+
     if (r?.notes) {
       const m = r.notes.match(/<!--\s*ROUTE_META:\s*({.*?})\s*-->/s);
       if (m && m[1]) {
@@ -76,10 +80,13 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
           const parsed = JSON.parse(m[1]);
           if (!meeting_point && (parsed.muster_point || parsed.meeting_point)) meeting_point = parsed.muster_point || parsed.meeting_point;
           if (!muster_time && parsed.muster_time) muster_time = parsed.muster_time;
+          if (parsed.route_type) route_type = parsed.route_type;
+          if (parsed.static_stop_name) static_stop_name = parsed.static_stop_name;
+          if (parsed.static_stop_time) static_stop_time = parsed.static_stop_time;
         } catch(e) {}
       }
     }
-    return { meeting_point, muster_time };
+    return { meeting_point, muster_time, route_type, static_stop_name, static_stop_time };
   };
 
   const initialMeta = extractRouteMeta(route);
@@ -90,6 +97,9 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
     id: route?.id || `route_${Date.now()}`,
     name: route?.name || '',
     date: route?.date || new Date().toISOString().slice(0, 10),
+    route_type: initialMeta.route_type,
+    static_stop_name: initialMeta.static_stop_name,
+    static_stop_time: initialMeta.static_stop_time,
     start_time: initialStartTime,
     end_time: route?.end_time || '20:30',
     sleigh_speed: (route?.sleigh_speed !== undefined && route?.sleigh_speed !== null && !isNaN(Number(route.sleigh_speed))) ? Number(route.sleigh_speed) : 3.0,
@@ -132,6 +142,9 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
       id: route?.id || `route_${Date.now()}`,
       name: route?.name || '',
       date: route?.date || new Date().toISOString().slice(0, 10),
+      route_type: meta.route_type,
+      static_stop_name: meta.static_stop_name,
+      static_stop_time: meta.static_stop_time,
       start_time: rStart,
       end_time: route?.end_time || '20:30',
       sleigh_speed: (route?.sleigh_speed !== undefined && route?.sleigh_speed !== null && !isNaN(Number(route.sleigh_speed))) ? Number(route.sleigh_speed) : 3.0,
@@ -366,9 +379,13 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
 
     const routeMeta = {
       meeting_point: (formData.meeting_point || '').trim(),
-      muster_time: (formData.muster_time || '').trim()
+      muster_time: (formData.muster_time || '').trim(),
+      route_type: formData.route_type || 'tour',
+      is_static: formData.route_type === 'static' ? 1 : 0,
+      static_stop_name: (formData.static_stop_name || '').trim(),
+      static_stop_time: (formData.static_stop_time || '').trim()
     };
-    const hasMeta = Boolean(routeMeta.meeting_point || routeMeta.muster_time);
+    const hasMeta = Boolean(routeMeta.meeting_point || routeMeta.muster_time || routeMeta.static_stop_name || routeMeta.route_type === 'static');
 
     let finalNotes = existingNotes;
     if (validSponsors.length > 0) {
@@ -385,6 +402,10 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
     const updatedRoute = {
       ...formData,
       id: targetId,
+      route_type: routeMeta.route_type,
+      is_static: routeMeta.is_static,
+      static_stop_name: routeMeta.static_stop_name,
+      static_stop_time: routeMeta.static_stop_time,
       muster_point: routeMeta.meeting_point,
       meeting_point: routeMeta.meeting_point,
       muster_time: routeMeta.muster_time,
@@ -506,6 +527,106 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                 }}
               />
             </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
+                Route Type
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, route_type: 'tour' }))}
+                  style={{
+                    background: formData.route_type !== 'static' ? 'rgba(251, 175, 51, 0.15)' : '#0d0d0b',
+                    border: `1px solid ${formData.route_type !== 'static' ? 'var(--primary)' : 'var(--border)'}`,
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    color: formData.route_type !== 'static' ? '#fff' : 'var(--text-muted)',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  🚗 Street Touring Run
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, route_type: 'static' }))}
+                  style={{
+                    background: formData.route_type === 'static' ? 'rgba(168, 85, 247, 0.18)' : '#0d0d0b',
+                    border: `1px solid ${formData.route_type === 'static' ? '#c084fc' : 'var(--border)'}`,
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    color: formData.route_type === 'static' ? '#fff' : 'var(--text-muted)',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  🎪 Static Appearance / Grotto
+                </button>
+              </div>
+            </div>
+
+            {formData.route_type !== 'static' && (
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                padding: '12px 14px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '12px', color: '#fff', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>🎪 Pre-Route Static Stop (Optional)</span>
+                  </label>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    For static appearance earlier that day (e.g. 15 mins before street run)
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
+                  <input
+                    type="text"
+                    value={formData.static_stop_name || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, static_stop_name: e.target.value }))}
+                    placeholder="Location (e.g. Tesco Superstore Grotto / Woolpack Pub)"
+                    style={{
+                      width: '100%',
+                      background: '#0d0d0b',
+                      border: '1px solid var(--border)',
+                      borderRadius: '6px',
+                      padding: '8px 10px',
+                      color: '#fff',
+                      fontSize: '13px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <input
+                    type="text"
+                    value={formData.static_stop_time || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, static_stop_time: e.target.value }))}
+                    placeholder="Time (e.g. 16:30 – 17:30)"
+                    style={{
+                      width: '100%',
+                      background: '#0d0d0b',
+                      border: '1px solid var(--border)',
+                      borderRadius: '6px',
+                      padding: '8px 10px',
+                      color: '#fff',
+                      fontSize: '13px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
+            )}
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '14px' }}>
               <div>
@@ -936,6 +1057,40 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                           outline: 'none'
                         }}
                       />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '3px', background: '#0e0e0c', border: '1px solid var(--border)', borderRadius: '6px', padding: '2px 5px' }} title="Crowd attendance tally for this stop">
+                        <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>👥</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = [...formData.planned_stops];
+                            const cur = updated[sIdx].tally || 0;
+                            updated[sIdx] = { ...updated[sIdx], tally: Math.max(0, cur - 1) };
+                            setFormData(prev => ({ ...prev, planned_stops: updated }));
+                          }}
+                          style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', padding: '0 2px', fontSize: '11px', fontWeight: 700 }}
+                        >-</button>
+                        <input
+                          type="number"
+                          min="0"
+                          value={stop.tally || 0}
+                          onChange={(e) => {
+                            const updated = [...formData.planned_stops];
+                            updated[sIdx] = { ...updated[sIdx], tally: Math.max(0, parseInt(e.target.value, 10) || 0) };
+                            setFormData(prev => ({ ...prev, planned_stops: updated }));
+                          }}
+                          style={{ width: '38px', background: 'transparent', border: 'none', color: 'var(--primary)', textAlign: 'center', fontSize: '11px', fontWeight: 700, outline: 'none' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = [...formData.planned_stops];
+                            const cur = updated[sIdx].tally || 0;
+                            updated[sIdx] = { ...updated[sIdx], tally: cur + 1 };
+                            setFormData(prev => ({ ...prev, planned_stops: updated }));
+                          }}
+                          style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', padding: '0 2px', fontSize: '11px', fontWeight: 700 }}
+                        >+</button>
+                      </div>
                       <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
                         {Number(stop.lat).toFixed(4)}, {Number(stop.lng).toFixed(4)}
                       </span>

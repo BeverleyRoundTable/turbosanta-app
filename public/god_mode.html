@@ -1436,7 +1436,13 @@ function initMap() {
   const startZoom = 15;
 
   // Added preferCanvas: true right here 👇
-  STATE.map = L.map('godMap', { zoomControl: true, preferCanvas: true }).setView([startLat, startLng], startZoom);
+  STATE.map = L.map('godMap', {
+    zoomControl: true,
+    preferCanvas: true,
+    wheelPxPerZoomLevel: 120,
+    zoomDelta: 1,
+    wheelDebounceTime: 60
+  }).setView([startLat, startLng], startZoom);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,

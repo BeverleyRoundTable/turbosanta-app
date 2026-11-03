@@ -3459,6 +3459,24 @@
                     card.appendChild(pNote);
                 }
 
+                let staticInfo = null;
+                if (route.static_stop_name || route.static_stop_time) {
+                    staticInfo = { name: route.static_stop_name || '', time: route.static_stop_time || '' };
+                } else if (route.notes) {
+                    const m = route.notes.match(/<!--\s*ROUTE_META:\s*({.*?})\s*-->/s);
+                    if (m && m[1]) {
+                        try {
+                            const p = JSON.parse(m[1]);
+                            if (p.static_stop_name || p.static_stop_time) staticInfo = { name: p.static_stop_name || '', time: p.static_stop_time || '' };
+                        } catch(e) {}
+                    }
+                }
+                if (staticInfo) {
+                    const sNote = el('div', '', `🎪 Static Appearance: ${staticInfo.time ? staticInfo.time + ' · ' : ''}${staticInfo.name}`);
+                    sNote.style.cssText = 'font-size: 12px; color: #fde047; background: rgba(251, 175, 51, 0.1); border: 1px solid rgba(251, 175, 51, 0.3); padding: 6px 10px; border-radius: 8px; margin: 4px 0 8px 0; font-weight: 600;';
+                    card.appendChild(sNote);
+                }
+
                 const streetsPreview = createRouteStreetsPreview(route.streets, route.routeName, dateText, time, 5);
                 card.appendChild(streetsPreview);
 
@@ -3564,6 +3582,24 @@
                 const pNote = el('div', '', `🌧️ ${route.postponed_note}`);
                 pNote.style.cssText = 'font-size: 13px; color: #fde68a; background: rgba(245, 158, 11, 0.14); border: 1px solid rgba(245, 158, 11, 0.35); padding: 10px 14px; border-radius: 10px; margin-bottom: 12px; font-weight: 600;';
                 routeInfo.appendChild(pNote);
+            }
+
+            let todayStaticInfo = null;
+            if (route.static_stop_name || route.static_stop_time) {
+                todayStaticInfo = { name: route.static_stop_name || '', time: route.static_stop_time || '' };
+            } else if (route.notes) {
+                const m = route.notes.match(/<!--\s*ROUTE_META:\s*({.*?})\s*-->/s);
+                if (m && m[1]) {
+                    try {
+                        const p = JSON.parse(m[1]);
+                        if (p.static_stop_name || p.static_stop_time) todayStaticInfo = { name: p.static_stop_name || '', time: p.static_stop_time || '' };
+                    } catch(e) {}
+                }
+            }
+            if (todayStaticInfo) {
+                const sNote = el('div', '', `🎪 Static Appearance: ${todayStaticInfo.time ? todayStaticInfo.time + ' · ' : ''}${todayStaticInfo.name}`);
+                sNote.style.cssText = 'font-size: 13px; color: #fde047; background: rgba(251, 175, 51, 0.12); border: 1px solid rgba(251, 175, 51, 0.35); padding: 8px 12px; border-radius: 10px; margin-bottom: 12px; font-weight: 600;';
+                routeInfo.appendChild(sNote);
             }
 
             const streetsPreview = createRouteStreetsPreview(route.streets, route.routeName, dateText, time, 6);

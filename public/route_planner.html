@@ -350,8 +350,9 @@
           <button class="profile-btn" data-profile="bike" onclick="setActiveToolProfile(this)" title="Snaps to cycleways and quiet roads">🚴 Cycling</button>
         </div>
         <div class="wp-list" id="wpList"></div>
-        <div class="btn-row" style="justify-content: center;">
-          <button class="btn btn-dim btn-sm" onclick="undoWaypoint()">↩ Undo</button>
+        <div class="btn-row" style="justify-content: center; gap: 6px;">
+          <button id="btnUndoWp" class="btn btn-dim btn-sm" onclick="undo()" title="Undo (Ctrl+Z)" disabled>↩ Undo</button>
+          <button id="btnRedoWp" class="btn btn-dim btn-sm" onclick="redo()" title="Redo (Ctrl+Y)" disabled>↪ Redo</button>
           <button class="btn btn-red btn-sm" onclick="clearAllWaypoints()">✕ Clear All</button>
         </div>
       </div>
@@ -478,6 +479,10 @@
 
     <div class="map-area">
       <div id="map"></div>
+      <div class="map-floating-tools" id="mapFloatingTools" style="position:absolute; top:20px; left:20px; z-index:1000; display:flex; gap:6px;">
+        <button id="floatUndoBtn" class="btn btn-dim btn-sm" onclick="undo()" title="Undo (Ctrl+Z)" disabled style="background:rgba(18,18,18,0.85); backdrop-filter:blur(6px); border:1px solid var(--border); box-shadow:0 4px 12px rgba(0,0,0,0.5); padding:6px 12px; font-weight:700;">↩ Undo</button>
+        <button id="floatRedoBtn" class="btn btn-dim btn-sm" onclick="redo()" title="Redo (Ctrl+Y)" disabled style="background:rgba(18,18,18,0.85); backdrop-filter:blur(6px); border:1px solid var(--border); box-shadow:0 4px 12px rgba(0,0,0,0.5); padding:6px 12px; font-weight:700;">↪ Redo</button>
+      </div>
       <div class="map-toast" id="mapToast">Click the map to place waypoints</div>
       <div class="routing-spinner" id="routingSpinner"><div class="mini-spin"></div>Snapping to roads…</div>
       <div class="map-legend" id="mapLegend" style="display:none">
@@ -491,13 +496,21 @@
 
 <!-- Tack Success Confirmation Modal -->
 <div id="tackSuccessModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(6px); z-index:99999; align-items:center; justify-content:center; padding:20px;">
-  <div style="background:var(--surface); border:1px solid var(--border-primary); border-radius:16px; max-width:440px; width:100%; padding:28px 24px; text-align:center; box-shadow:0 12px 40px rgba(0,0,0,0.8); box-sizing:border-box;">
+  <div style="background:var(--surface); border:1px solid var(--border-primary); border-radius:16px; max-width:460px; width:100%; padding:28px 24px; text-align:center; box-shadow:0 12px 40px rgba(0,0,0,0.8); box-sizing:border-box;">
     <div style="font-size:44px; margin-bottom:12px;">🎉</div>
-    <h2 style="font-family:'Eurostile', 'Open Sans', sans-serif; font-size:22px; color:#fff; margin:0 0 8px 0; letter-spacing:1px;">GPX TACKED DIRECTLY TO ROUTE!</h2>
+    <h2 style="font-family:'Eurostile', 'Open Sans', sans-serif; font-size:22px; color:#fff; margin:0 0 8px 0; letter-spacing:1px;">ROUTE SAVED TO TURBOSANTA!</h2>
     <div id="tackSuccessDetails" style="font-size:13px; color:var(--text-dim); line-height:1.6; margin-bottom:20px;"></div>
+    
     <div style="display:flex; flex-direction:column; gap:10px;">
-      <a id="tackSuccessAdminBtn" href="/admin.html" class="btn btn-green" style="text-decoration:none; padding:12px; font-size:13px;">← Return to Admin Portal</a>
-      <button class="btn btn-dim btn-sm" onclick="closeTackModal()" style="width:100%;">Keep Working in Planner</button>
+      <button class="btn btn-primary" onclick="closeTackModal()" style="width:100%; padding:12px; font-size:13px; font-weight:700;">
+        ✏️ Keep Working on This Route
+      </button>
+      <button class="btn btn-green" onclick="startNewRouteFromModal()" style="width:100%; padding:12px; font-size:13px; font-weight:700;">
+        ➕ Clear Canvas &amp; Start Next Route
+      </button>
+      <a id="tackSuccessAdminBtn" href="/admin.html" class="btn btn-dim" style="text-decoration:none; padding:12px; font-size:13px; text-align:center;">
+        ← Return to Admin Portal
+      </a>
     </div>
   </div>
 </div>
@@ -547,13 +560,123 @@ const routingServers = {
   bike: 'https://routing.openstreetmap.de/routed-bike/route/v1/driving'
 };
 
-const map = L.map('map', { zoomControl: true, preferCanvas: true }).setView([52.4708, -1.9207], 15);
+const map = L.map('map', {
+  zoomControl: true,
+  preferCanvas: true,
+  wheelPxPerZoomLevel: 120,
+  zoomDelta: 1,
+  wheelDebounceTime: 60
+}).setView([52.4708, -1.9207], 15);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap', maxZoom: 19
 }).addTo(map);
 stopsLayer.addTo(map);
 
 setTimeout(() => { map.invalidateSize(); }, 200);
+
+// History Stack for full Undo / Redo support (including intermediate inserts, drags, right-click deletions)
+const undoStack = [];
+const redoStack = [];
+let isApplyingHistory = false;
+
+function pushState() {
+  if (isApplyingHistory) return;
+  redoStack.length = 0; // Clear redo on new user action
+  undoStack.push({
+    waypoints: JSON.parse(JSON.stringify(waypoints)),
+    plannedStops: JSON.parse(JSON.stringify(window.plannedStops || []))
+  });
+  if (undoStack.length > 50) undoStack.shift();
+  updateUndoRedoButtons();
+}
+
+async function undo() {
+  if (undoStack.length === 0) return;
+  isApplyingHistory = true;
+  try {
+    redoStack.push({
+      waypoints: JSON.parse(JSON.stringify(waypoints)),
+      plannedStops: JSON.parse(JSON.stringify(window.plannedStops || []))
+    });
+    const prevState = undoStack.pop();
+    await restoreHistoryState(prevState);
+    showToast("↩ Undone");
+  } finally {
+    isApplyingHistory = false;
+    updateUndoRedoButtons();
+  }
+}
+
+async function redo() {
+  if (redoStack.length === 0) return;
+  isApplyingHistory = true;
+  try {
+    undoStack.push({
+      waypoints: JSON.parse(JSON.stringify(waypoints)),
+      plannedStops: JSON.parse(JSON.stringify(window.plannedStops || []))
+    });
+    const nextState = redoStack.pop();
+    await restoreHistoryState(nextState);
+    showToast("↪ Redone");
+  } finally {
+    isApplyingHistory = false;
+    updateUndoRedoButtons();
+  }
+}
+
+async function restoreHistoryState(state) {
+  waypoints = JSON.parse(JSON.stringify(state.waypoints || []));
+  window.plannedStops = JSON.parse(JSON.stringify(state.plannedStops || []));
+  rebuildWaypointMarkers();
+  renderPlannedStops();
+  updateWpUI();
+  if (waypoints.length >= 2) {
+    await routeAllWaypoints();
+  } else {
+    clearSnappedRoute();
+  }
+  updateStats();
+}
+
+function updateUndoRedoButtons() {
+  const undoBtns = [document.getElementById('btnUndoWp'), document.getElementById('floatUndoBtn')];
+  const redoBtns = [document.getElementById('btnRedoWp'), document.getElementById('floatRedoBtn')];
+  undoBtns.forEach(b => { if (b) b.disabled = undoStack.length === 0; });
+  redoBtns.forEach(b => { if (b) b.disabled = redoStack.length === 0; });
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('mapToast');
+  if (toast) {
+    toast.textContent = msg;
+    toast.style.display = 'block';
+    clearTimeout(window._toastTimer);
+    window._toastTimer = setTimeout(() => {
+      if (mode === 'place') {
+        toast.textContent = window.isAddingStop ? '📍 Click anywhere along the route to place a Planned Stop' : 'Click map to place waypoints, or click line to insert';
+      } else {
+        toast.style.display = 'none';
+      }
+    }, 2800);
+  }
+}
+
+window.addEventListener('keydown', e => {
+  const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+    e.preventDefault();
+    if (e.shiftKey) {
+      redo();
+    } else {
+      undo();
+    }
+  } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
+    e.preventDefault();
+    redo();
+  }
+});
 
 function setMode(m) {
   mode = m;
@@ -579,10 +702,12 @@ function setActiveToolProfile(btn) {
 
 map.on('click', async e => {
   if (window.isAddingStop) {
+    pushState();
     addStopAtLatLng(e.latlng.lat, e.latlng.lng);
     return;
   }
   if (mode !== 'place') return;
+  pushState();
   const { lat, lng } = e.latlng;
   addWaypointMarker(lat, lng);
   waypoints.push({
@@ -728,13 +853,14 @@ function createStopMarker(stop, index) {
     })
   });
 
-  marker.bindTooltip(`Stop #${index + 1}: ${stop.name || 'Planned Stop'}`, {
+  const tallyStr = (stop.tally && stop.tally > 0) ? ` · 👥 ${stop.tally}` : '';
+  marker.bindTooltip(`Stop #${index + 1}: ${stop.name || 'Planned Stop'}${tallyStr}`, {
     direction: 'top',
     offset: [0, -14]
   });
 
   const popupContent = document.createElement('div');
-  popupContent.style.minWidth = '220px';
+  popupContent.style.minWidth = '230px';
   popupContent.style.color = '#111';
   popupContent.style.fontFamily = '-apple-system, BlinkMacSystemFont, sans-serif';
   popupContent.innerHTML = `
@@ -744,6 +870,16 @@ function createStopMarker(stop, index) {
     <div style="margin-bottom:8px;">
       <label style="display:block; font-size:11px; font-weight:700; color:#555; margin-bottom:3px;">Stop Name / Landmark:</label>
       <input type="text" id="popupStopInput_${index}" value="${(stop.name || '').replace(/"/g, '&quot;')}" placeholder="e.g. The Red Lion Pub (18:30)" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #ccc; border-radius:6px; font-size:12px; font-weight:600; outline:none;">
+    </div>
+    <div style="margin-bottom:10px;">
+      <label style="display:block; font-size:11px; font-weight:700; color:#555; margin-bottom:3px;">👥 Attendance / Crowd Tally:</label>
+      <div style="display:flex; align-items:center; gap:5px;">
+        <button type="button" id="popupTallySub5_${index}" style="background:#f3f4f6; border:1px solid #d1d5db; border-radius:4px; padding:3px 7px; font-size:11px; font-weight:700; cursor:pointer;">-5</button>
+        <button type="button" id="popupTallySub1_${index}" style="background:#f3f4f6; border:1px solid #d1d5db; border-radius:4px; padding:3px 7px; font-size:11px; font-weight:700; cursor:pointer;">-1</button>
+        <input type="number" min="0" id="popupStopTally_${index}" value="${stop.tally || 0}" style="width:54px; text-align:center; padding:4px; border:1px solid #ccc; border-radius:4px; font-size:12px; font-weight:700;">
+        <button type="button" id="popupTallyAdd1_${index}" style="background:#f3f4f6; border:1px solid #d1d5db; border-radius:4px; padding:3px 7px; font-size:11px; font-weight:700; cursor:pointer;">+1</button>
+        <button type="button" id="popupTallyAdd5_${index}" style="background:#f3f4f6; border:1px solid #d1d5db; border-radius:4px; padding:3px 7px; font-size:11px; font-weight:700; color:#b45309; cursor:pointer;">+5</button>
+      </div>
     </div>
     <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #eee; padding-top:6px;">
       <span style="font-size:10px; color:#777;">Drag pin to move</span>
@@ -761,12 +897,31 @@ function createStopMarker(stop, index) {
         updatePlannedStopName(index, e.target.value);
       };
     }
+    const tallyInput = document.getElementById(`popupStopTally_${index}`);
+    if (tallyInput) {
+      tallyInput.oninput = (e) => {
+        updateStopTally(index, e.target.value);
+      };
+    }
+    const bSub5 = document.getElementById(`popupTallySub5_${index}`);
+    if (bSub5) bSub5.onclick = () => adjustStopTally(index, -5);
+    const bSub1 = document.getElementById(`popupTallySub1_${index}`);
+    if (bSub1) bSub1.onclick = () => adjustStopTally(index, -1);
+    const bAdd1 = document.getElementById(`popupTallyAdd1_${index}`);
+    if (bAdd1) bAdd1.onclick = () => adjustStopTally(index, 1);
+    const bAdd5 = document.getElementById(`popupTallyAdd5_${index}`);
+    if (bAdd5) bAdd5.onclick = () => adjustStopTally(index, 5);
+
     const delBtn = document.getElementById(`popupStopDel_${index}`);
     if (delBtn) {
       delBtn.onclick = () => {
         deletePlannedStop(index);
       };
     }
+  });
+
+  marker.on('dragstart', () => {
+    pushState();
   });
 
   marker.on('dragend', () => {
@@ -779,6 +934,33 @@ function createStopMarker(stop, index) {
 
   return marker;
 }
+
+window.updateStopTally = function(index, val) {
+  if (window.plannedStops[index]) {
+    window.plannedStops[index].tally = Math.max(0, parseInt(val, 10) || 0);
+    const marker = window.stopMarkerInstances[index];
+    if (marker) {
+      const tallyStr = window.plannedStops[index].tally > 0 ? ` · 👥 ${window.plannedStops[index].tally}` : '';
+      marker.setTooltipContent(`Stop #${index + 1}: ${window.plannedStops[index].name || 'Planned Stop'}${tallyStr}`);
+    }
+    renderPlannedStopsList();
+  }
+};
+
+window.adjustStopTally = function(index, delta) {
+  if (window.plannedStops[index]) {
+    const cur = window.plannedStops[index].tally || 0;
+    window.plannedStops[index].tally = Math.max(0, cur + delta);
+    const marker = window.stopMarkerInstances[index];
+    if (marker) {
+      const tallyStr = window.plannedStops[index].tally > 0 ? ` · 👥 ${window.plannedStops[index].tally}` : '';
+      marker.setTooltipContent(`Stop #${index + 1}: ${window.plannedStops[index].name || 'Planned Stop'}${tallyStr}`);
+    }
+    const popupInput = document.getElementById(`popupStopTally_${index}`);
+    if (popupInput) popupInput.value = window.plannedStops[index].tally;
+    renderPlannedStopsList();
+  }
+};
 
 function renderPlannedStopsList() {
   const container = document.getElementById('stopsListContainer');
@@ -795,14 +977,27 @@ function renderPlannedStopsList() {
 
   container.innerHTML = window.plannedStops.map((stop, i) => {
     const safeName = (stop.name || `Stop ${i + 1}`).replace(/"/g, '&quot;');
+    const tally = stop.tally || 0;
     return `
-      <div class="stop-item" id="stopItem_${i}">
-        <div class="stop-badge">${i + 1}</div>
-        <input type="text" class="stop-name-input" value="${safeName}" placeholder="Stop ${i + 1} Name..."
-               oninput="updatePlannedStopName(${i}, this.value)"
-               onchange="updatePlannedStopName(${i}, this.value)">
-        <button class="stop-btn-icon" onclick="panToPlannedStop(${i})" title="Center on Map">🎯</button>
-        <button class="stop-btn-icon stop-btn-del" onclick="deletePlannedStop(${i})" title="Delete Stop">🗑️</button>
+      <div class="stop-item" id="stopItem_${i}" style="display:flex; flex-direction:column; gap:6px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:8px 10px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div class="stop-badge">${i + 1}</div>
+          <input type="text" class="stop-name-input" value="${safeName}" placeholder="Stop ${i + 1} Name..."
+                 oninput="updatePlannedStopName(${i}, this.value)"
+                 onchange="updatePlannedStopName(${i}, this.value)" style="flex:1;">
+          <button class="stop-btn-icon" onclick="panToPlannedStop(${i})" title="Center on Map">🎯</button>
+          <button class="stop-btn-icon stop-btn-del" onclick="deletePlannedStop(${i})" title="Delete Stop">🗑️</button>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; padding-left:28px; font-size:11px; color:var(--text-muted);">
+          <span>👥 Crowd Tally:</span>
+          <div style="display:flex; align-items:center; gap:4px;">
+            <button type="button" class="btn btn-dim btn-sm" onclick="adjustStopTally(${i}, -5)" style="padding:2px 6px; font-size:10px;">-5</button>
+            <button type="button" class="btn btn-dim btn-sm" onclick="adjustStopTally(${i}, -1)" style="padding:2px 6px; font-size:10px;">-1</button>
+            <input type="number" min="0" value="${tally}" onchange="updateStopTally(${i}, this.value)" style="width:46px; text-align:center; background:#111; border:1px solid var(--border); border-radius:4px; color:#fff; font-size:11px; font-weight:700; padding:2px;">
+            <button type="button" class="btn btn-dim btn-sm" onclick="adjustStopTally(${i}, 1)" style="padding:2px 6px; font-size:10px;">+1</button>
+            <button type="button" class="btn btn-dim btn-sm" onclick="adjustStopTally(${i}, 5)" style="padding:2px 6px; font-size:10px; color:var(--primary);">+5</button>
+          </div>
+        </div>
       </div>
     `;
   }).join('');
@@ -823,7 +1018,8 @@ function updatePlannedStopName(index, newName) {
     window.plannedStops[index].name = newName;
     const marker = window.stopMarkerInstances[index];
     if (marker) {
-      marker.setTooltipContent(`Stop #${index + 1}: ${newName || 'Planned Stop'}`);
+      const tallyStr = (window.plannedStops[index].tally && window.plannedStops[index].tally > 0) ? ` · 👥 ${window.plannedStops[index].tally}` : '';
+      marker.setTooltipContent(`Stop #${index + 1}: ${newName || 'Planned Stop'}${tallyStr}`);
       const popupInput = document.getElementById(`popupStopInput_${index}`);
       if (popupInput && popupInput.value !== newName) {
         popupInput.value = newName;
@@ -833,17 +1029,21 @@ function updatePlannedStopName(index, newName) {
 }
 
 function deletePlannedStop(index) {
+  pushState();
   window.plannedStops.splice(index, 1);
   renderPlannedStops();
   updateStats();
+  showToast(`Stop removed (Ctrl+Z to restore)`);
 }
 
 function clearAllPlannedStops() {
   if (!window.plannedStops || window.plannedStops.length === 0) return;
   if (!confirm("Remove all planned stops from this route?")) return;
+  pushState();
   window.plannedStops = [];
   renderPlannedStops();
   updateStats();
+  showToast(`All stops removed (Ctrl+Z to restore)`);
 }
 
 function toggleAddStopMode(forceState = null) {
@@ -949,6 +1149,15 @@ function sampleRoutePoints(pts, maxCount = 35) {
   return result;
 }
 
+function rebuildWaypointMarkers() {
+  waypointMarkers.forEach(m => map.removeLayer(m));
+  waypointMarkers = [];
+  waypoints.forEach((w, i) => {
+    addWaypointMarker(w.lat, w.lng);
+    updateMarkerVisual(i);
+  });
+}
+
 function addWaypointMarker(lat, lng) {
   const idx = waypointMarkers.length;
   const isFirst = idx === 0;
@@ -966,6 +1175,10 @@ function addWaypointMarker(lat, lng) {
 
   marker.bindTooltip(`Waypoint ${idx + 1}`, { direction: 'top', offset: [0, -8] });
 
+  marker.on('dragstart', () => {
+    pushState();
+  });
+
   marker.on('dragend', async () => {
     const pos = marker.getLatLng();
     const i = waypointMarkers.indexOf(marker);
@@ -982,13 +1195,9 @@ function addWaypointMarker(lat, lng) {
     L.DomEvent.preventDefault(e);
     const i = waypointMarkers.indexOf(marker);
     if (i >= 0) {
-      map.removeLayer(marker);
-      waypointMarkers.splice(i, 1);
-      waypoints.splice(i, 1);
-      updateWpUI();
-      if (waypoints.length >= 2) await routeAllWaypoints();
-      else clearSnappedRoute();
-      updateStats();
+      pushState();
+      await deleteWaypointAt(i);
+      showToast(`Removed Waypoint ${i + 1} (Ctrl+Z or Undo to restore)`);
     }
   });
 
@@ -996,22 +1205,30 @@ function addWaypointMarker(lat, lng) {
 }
 
 function undoWaypoint() {
-  if (waypointMarkers.length === 0) return;
-  const m = waypointMarkers.pop();
-  map.removeLayer(m);
-  waypoints.pop();
-  updateWpUI();
-  if (waypoints.length >= 2) routeAllWaypoints();
-  else clearSnappedRoute();
-  updateStats();
+  undo();
+}
+
+async function deleteWaypointAt(i) {
+  if (i >= 0 && i < waypoints.length) {
+    if (waypointMarkers[i]) map.removeLayer(waypointMarkers[i]);
+    waypointMarkers.splice(i, 1);
+    waypoints.splice(i, 1);
+    rebuildWaypointMarkers();
+    updateWpUI();
+    if (waypoints.length >= 2) await routeAllWaypoints();
+    else clearSnappedRoute();
+    updateStats();
+  }
 }
 
 function clearAllWaypoints() {
+  if (waypoints.length > 0) pushState();
   waypointMarkers.forEach(m => map.removeLayer(m));
   waypointMarkers = [];
   waypoints = [];
   detectedStreets = [];
   legCache.clear();
+  window.legGeometries = [];
   document.getElementById('streetList').innerHTML = '';
   document.getElementById('streetCountLabel').textContent = '0';
   document.getElementById('streetActions').style.display = 'none';
@@ -1020,22 +1237,57 @@ function clearAllWaypoints() {
   clearSnappedRoute();
   updateWpUI();
   updateStats();
+  showToast("Canvas cleared (Ctrl+Z to undo)");
 }
 
 window.deleteWpIndex = async function(i) {
-  if (i >= 0 && i < waypointMarkers.length) {
-    map.removeLayer(waypointMarkers[i]);
-    waypointMarkers.splice(i, 1);
-    waypoints.splice(i, 1);
-    updateWpUI();
-    if (waypoints.length >= 2) await routeAllWaypoints();
-    else clearSnappedRoute();
-    updateStats();
-  }
+  pushState();
+  await deleteWaypointAt(i);
+  showToast(`Removed Waypoint ${i + 1} (Ctrl+Z to restore)`);
 };
 
 function getLegCacheKey(from, to, mode) {
   return `${from.lat.toFixed(6)},${from.lng.toFixed(6)}->${to.lat.toFixed(6)},${to.lng.toFixed(6)}@${mode}`;
+}
+
+function distToSegmentSq(p, a, b) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) {
+    const px = p.x - a.x;
+    const py = p.y - a.y;
+    return px * px + py * py;
+  }
+  let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  const projX = a.x + t * dx;
+  const projY = a.y + t * dy;
+  const diffX = p.x - projX;
+  const diffY = p.y - projY;
+  return diffX * diffX + diffY * diffY;
+}
+
+function findClosestLegIndex(latlng) {
+  if (waypoints.length < 2) return -1;
+  const p = map.latLngToLayerPoint(latlng);
+  let bestDistSq = Infinity;
+  let bestLegIdx = -1;
+
+  const legList = (window.legGeometries && window.legGeometries.length) ? window.legGeometries : [];
+  for (let i = 0; i < waypoints.length - 1; i++) {
+    const coords = legList[i] || [[waypoints[i].lat, waypoints[i].lng], [waypoints[i + 1].lat, waypoints[i + 1].lng]];
+    for (let j = 0; j < coords.length - 1; j++) {
+      const a = map.latLngToLayerPoint(coords[j]);
+      const b = map.latLngToLayerPoint(coords[j + 1]);
+      const dSq = distToSegmentSq(p, a, b);
+      if (dSq < bestDistSq) {
+        bestDistSq = dSq;
+        bestLegIdx = i;
+      }
+    }
+  }
+  return bestLegIdx;
 }
 
 async function routeAllWaypoints() {
@@ -1050,6 +1302,7 @@ async function routeAllWaypoints() {
     let combinedGeometry = [];
     let discoveredStreets = [];
     const seenStreets = new Set();
+    window.legGeometries = [];
 
     for (let i = 0; i < waypoints.length - 1; i++) {
       const from = waypoints[i];
@@ -1058,6 +1311,8 @@ async function routeAllWaypoints() {
 
       // 1. Direct Straight-Line Mode
       if (legMode === 'direct') {
+        const seg = [[from.lat, from.lng], [to.lat, to.lng]];
+        window.legGeometries[i] = seg;
         if (combinedGeometry.length === 0) combinedGeometry.push([from.lat, from.lng]);
         combinedGeometry.push([to.lat, to.lng]);
         continue;
@@ -1067,6 +1322,7 @@ async function routeAllWaypoints() {
       const key = getLegCacheKey(from, to, legMode);
       if (legCache.has(key)) {
         const cached = legCache.get(key);
+        window.legGeometries[i] = cached.coords;
         if (combinedGeometry.length === 0) {
           combinedGeometry.push(...cached.coords);
         } else {
@@ -1091,6 +1347,7 @@ async function routeAllWaypoints() {
 
         if (data.code === 'Ok' && data.routes && data.routes[0]) {
           const segCoords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+          window.legGeometries[i] = segCoords;
           const legStreets = [];
 
           (data.routes[0].legs || []).forEach(leg => {
@@ -1114,11 +1371,13 @@ async function routeAllWaypoints() {
           }
         } else {
           const fallback = [[from.lat, from.lng], [to.lat, to.lng]];
+          window.legGeometries[i] = fallback;
           if (combinedGeometry.length === 0) combinedGeometry.push(...fallback);
           else combinedGeometry.push(fallback[1]);
         }
       } catch (e) {
         const fallback = [[from.lat, from.lng], [to.lat, to.lng]];
+        window.legGeometries[i] = fallback;
         if (combinedGeometry.length === 0) combinedGeometry.push(...fallback);
         else combinedGeometry.push(fallback[1]);
       }
@@ -1151,18 +1410,65 @@ async function routeAllWaypoints() {
   }
 }
 
+let snappedHitLayer = null;
+
 function drawSnappedRoute() {
   if (snappedLayer) map.removeLayer(snappedLayer);
+  if (snappedHitLayer) map.removeLayer(snappedHitLayer);
   if (snappedGeometry.length < 2) return;
 
   snappedLayer = L.polyline(snappedGeometry, {
     color: '#D31C1C', weight: 4, opacity: 0.9
   }).addTo(map);
 
-  snappedLayer.on('click', e => {
+  // Invisible hit layer with 18px click tolerance for easy point insertion on line
+  snappedHitLayer = L.polyline(snappedGeometry, {
+    weight: 18, opacity: 0
+  }).addTo(map);
+
+  const handleRouteLineClick = async e => {
+    L.DomEvent.stopPropagation(e);
     if (window.isAddingStop) {
-      L.DomEvent.stopPropagation(e);
+      pushState();
       addStopAtLatLng(e.latlng.lat, e.latlng.lng);
+      return;
+    }
+    if (mode === 'place') {
+      const legIdx = findClosestLegIndex(e.latlng);
+      if (legIdx >= 0 && legIdx < waypoints.length) {
+        pushState();
+        const prevWp = waypoints[legIdx];
+        const newWp = {
+          lat: e.latlng.lat,
+          lng: e.latlng.lng,
+          isStop: false,
+          stopName: '',
+          nextMode: (prevWp && prevWp.nextMode) || activeClickProfile
+        };
+        waypoints.splice(legIdx + 1, 0, newWp);
+        rebuildWaypointMarkers();
+        updateWpUI();
+        await routeAllWaypoints();
+        updateStats();
+        showToast(`✓ Inserted Waypoint ${legIdx + 2} on route line`);
+      }
+    }
+  };
+
+  snappedLayer.on('click', handleRouteLineClick);
+  snappedHitLayer.on('click', handleRouteLineClick);
+
+  snappedHitLayer.on('mouseover', () => {
+    if (mode === 'place' && !window.isAddingStop) {
+      map.getContainer().style.cursor = 'copy';
+      if (snappedLayer) snappedLayer.setStyle({ color: '#f59e0b', weight: 6 });
+    }
+  });
+
+  snappedHitLayer.on('mouseout', () => {
+    if (mode === 'place' && !window.isAddingStop) {
+      map.getContainer().style.cursor = 'crosshair';
+      if (snappedLayer) snappedLayer.setStyle({ color: '#D31C1C', weight: 4 });
     }
   });
 
@@ -1171,7 +1477,9 @@ function drawSnappedRoute() {
 
 function clearSnappedRoute() {
   if (snappedLayer) { map.removeLayer(snappedLayer); snappedLayer = null; }
+  if (snappedHitLayer) { map.removeLayer(snappedHitLayer); snappedHitLayer = null; }
   snappedGeometry = [];
+  window.legGeometries = [];
   document.getElementById('statsSection').style.display = 'none';
   document.getElementById('streetsSection').style.display = 'none';
   const tackEl = document.getElementById('tackSection');
@@ -2047,6 +2355,35 @@ function showTackSuccessModal(route, pointsCount, distMi, stopsCount, streetsCou
 function closeTackModal() {
   const modal = document.getElementById('tackSuccessModal');
   if (modal) modal.style.display = 'none';
+}
+
+function startNewRouteFromModal() {
+  closeTackModal();
+  clearAllWaypoints();
+  if (uploadLayer) { map.removeLayer(uploadLayer); uploadLayer = null; }
+  uploadedPoints = [];
+  snappedGeometry = [];
+  window.plannedStops = [];
+  renderPlannedStops();
+  clearSnappedRoute();
+
+  const select = document.getElementById('targetRouteSelect');
+  if (select) {
+    select.value = '__NEW__';
+  }
+  const newName = document.getElementById('newRouteName');
+  if (newName) {
+    newName.value = '';
+    newName.style.display = 'block';
+    newName.focus();
+  }
+  const newDate = document.getElementById('newRouteDate');
+  if (newDate) {
+    newDate.value = '';
+    newDate.style.display = 'block';
+  }
+  setMode('place');
+  showToast('✨ Clean canvas ready! Click the map to plot your next route');
 }
 
 async function loadExistingRoutes() {

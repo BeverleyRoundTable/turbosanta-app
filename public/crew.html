@@ -375,6 +375,17 @@
           <div id="crewContainer"></div>
         </div>
 
+                <div class="panel" id="stopsPanel" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3 style="margin:0;">🛑 Stops &amp; Crowd Tally</h3>
+            <span id="stopsCountHeader" style="font-size:12px; color:var(--text-dim); font-weight:700;"></span>
+          </div>
+          <p style="font-size:13px; color:var(--text-dim); margin-bottom:16px;">
+            Tap to record how many people / children are waiting at each stop along the route!
+          </p>
+          <div id="crewStopsContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
+        </div>
+
         <div class="panel" style="border-color: var(--border-primary); background: rgba(var(--primary-rgb), 0.03);">
           <h3 style="color: var(--primary);">End of Route</h3>
           <p style="font-size: 14px; color: var(--text-dim); margin-bottom: 24px; line-height: 1.6;">
@@ -522,6 +533,7 @@ async function init() {
     updateCrewAlertBanner(alertMsg);
     setInterval(pollCrewAlert, 15000);
 
+    window.allRoutes = data.routes;
     populateRouteDropdowns(data.routes);
 
     // Populate roles from API (dynamic from Settings Column U)
@@ -785,6 +797,7 @@ async function loadRouteData() {
 
     renderChecklist(routeName, checklistPayload.tasks || [], checklistPayload.data || {});
     renderCrew(Array.isArray(volData) ? volData : (volData.volunteers || []));
+    renderCrewStops(routeName);
   } catch (e) {
     document.getElementById('checklistContainer').innerHTML = `<p style="color:var(--red); font-family:'Open Sans',monospace; font-size:12px;">Error loading data.</p>`;
     document.getElementById('crewContainer').innerHTML = ``;
@@ -977,6 +990,65 @@ async function closeRoute() {
   }
 }
   
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function renderCrewStops(routeName) {
+  const panel = document.getElementById('stopsPanel');
+  const container = document.getElementById('crewStopsContainer');
+  const countHeader = document.getElementById('stopsCountHeader');
+  if (!panel || !container) return;
+
+  const r = (window.allRoutes || []).find(rt => (rt.routeName || rt.name) === routeName);
+  const stops = (r && Array.isArray(r.planned_stops)) ? r.planned_stops : [];
+
+  if (stops.length === 0) {
+    panel.style.display = 'none';
+    return;
+  }
+
+  panel.style.display = 'block';
+  if (countHeader) countHeader.textContent = `${stops.length} Stops`;
+
+  container.innerHTML = stops.map((stop, idx) => {
+    const savedTally = parseInt(localStorage.getItem(`turbosanta_tally_${stop.id || idx}`), 10);
+    const count = !isNaN(savedTally) ? savedTally : (stop.tally || 0);
+    return `
+      <div style="background:var(--surface-2); border:1px solid var(--border); border-left:4px solid var(--primary); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="background:#D31C1C; color:#fff; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800;">${idx + 1}</span>
+            <strong style="color:#fff; font-size:15px;">${escapeHtml(stop.name || `Stop ${idx + 1}`)}</strong>
+          </div>
+          <span style="font-size:18px; font-weight:800; color:var(--primary); font-family:monospace;" id="tallyDisplay_${idx}">${count}</span>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:6px;">
+          <button type="button" class="btn" onclick="stepCrewTally(${idx}, -5)" style="padding:10px 4px; font-size:13px; font-weight:700; background:var(--surface-3); color:#fff; border:1px solid var(--border);">-5</button>
+          <button type="button" class="btn" onclick="stepCrewTally(${idx}, -1)" style="padding:10px 4px; font-size:13px; font-weight:700; background:var(--surface-3); color:#fff; border:1px solid var(--border);">-1</button>
+          <button type="button" class="btn" onclick="stepCrewTally(${idx}, 1)" style="padding:10px 4px; font-size:13px; font-weight:700; background:var(--primary); color:var(--on-primary);">+1</button>
+          <button type="button" class="btn" onclick="stepCrewTally(${idx}, 5)" style="padding:10px 4px; font-size:13px; font-weight:700; background:var(--primary); color:var(--on-primary); font-weight:800;">+5</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.stepCrewTally = function(stopIdx, delta) {
+  const routeName = document.getElementById('opsRouteSelect').value;
+  const r = (window.allRoutes || []).find(rt => (rt.routeName || rt.name) === routeName);
+  if (!r || !r.planned_stops || !r.planned_stops[stopIdx]) return;
+  const stop = r.planned_stops[stopIdx];
+  const cur = parseInt(localStorage.getItem(`turbosanta_tally_${stop.id || stopIdx}`), 10) || stop.tally || 0;
+  const next = Math.max(0, cur + delta);
+  stop.tally = next;
+  localStorage.setItem(`turbosanta_tally_${stop.id || stopIdx}`, String(next));
+  const disp = document.getElementById(`tallyDisplay_${stopIdx}`);
+  if (disp) disp.textContent = next;
+};
+
 </script>
 </body>
 </html>

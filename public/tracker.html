@@ -3781,7 +3781,10 @@
             rotate: !!AppState.flags.isDriver,
             touchRotate: false,
             shiftKeyRotate: false,
-            rotateControl: false
+            rotateControl: false,
+            wheelPxPerZoomLevel: 120,
+            zoomDelta: 1,
+            wheelDebounceTime: 60
           }).setView(AppConfig.LOCATIONS.LAPLAND, AppState.flags.isKiosk ? 6 : 5);
           
           // Automatically disable auto-follow if a spectator manually pans the map
