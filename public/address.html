@@ -537,7 +537,11 @@
 
   function broadcastPinToTracker(pinData) {
     try {
-      localStorage.setItem("SANTA_NOTIFY_POINT", JSON.stringify(pinData));
+      if (pinData && pinData.subscribed) {
+        localStorage.setItem("SANTA_NOTIFY_POINT", JSON.stringify(pinData));
+      } else {
+        localStorage.removeItem("SANTA_NOTIFY_POINT");
+      }
       sessionStorage.setItem("SANTA_NOTIFY_POINT", JSON.stringify(pinData));
     } catch (e) {}
     try {
@@ -949,6 +953,33 @@
     renderResults(matchedRoutes);
   }
 
+  function clearPinAndResetMap() {
+    if (userPin) {
+      map.removeLayer(userPin);
+      userPin = null;
+    }
+    currentPinCoords = null;
+    currentStreet = '';
+    streetInputEl.value = '';
+    closeSuggest();
+
+    try {
+      localStorage.removeItem("SANTA_NOTIFY_POINT");
+      sessionStorage.removeItem("SANTA_NOTIFY_POINT");
+    } catch (e) {}
+
+    const resultsDiv = document.getElementById('results');
+    if (resultsDiv) resultsDiv.innerHTML = "";
+    sendHeight();
+
+    if (routesData && routesData.length > 0) {
+      const validLayers = routesData.filter(r => r.mapLayer).map(r => r.mapLayer);
+      if (validLayers.length > 0) {
+        map.fitBounds(L.featureGroup(validLayers).getBounds(), { padding: [30, 30] });
+      }
+    }
+  }
+
   function renderResults(matches) {
     const resultsDiv = document.getElementById('results');
     resultsDiv.innerHTML = "";
@@ -958,7 +989,16 @@
         <div class="addr-no-results">
           No routes found close to this location.
           <br><small style="font-size: 13px; color: var(--text-dim); font-weight: 500;">Try dropping the pin slightly closer to the main road.</small>
+          <div style="margin-top: 14px;">
+            <button type="button" id="clearPinBtn" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.22); color: #fff; padding: 7px 16px; border-radius: 999px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+              ✕ Clear Pin &amp; Show All Routes
+            </button>
+          </div>
         </div>`;
+      const clr = document.getElementById('clearPinBtn');
+      if (clr) clr.onclick = clearPinAndResetMap;
+      sendHeight();
+      return;
     } else {
       // If user dropped a pin on the map, render the Doorstep Email Alert signup connected to D1 & Live Tracker (if emails enabled)
       const urlHideSignup = new URLSearchParams(window.location.search).get("hide_signup") === "1" || new URLSearchParams(window.location.search).get("no_signup") === "1";
@@ -984,6 +1024,10 @@
                     Your house pin is saved! Enter your email below and we will automatically email you as soon as Santa comes within <strong style="color: #fff;">${notifyRadiusMeters}m</strong> of your pin on <strong style="color: var(--primary);">${esc(routeNamesList)}</strong> — plus the Live Tracker will show your real-time doorstep ETA.
                   </p>
                 </div>
+                <button type="button" id="clearPinHeaderBtn" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.18); color: var(--text-dim); font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;">
+                  ✕ Clear Pin
+                </button>
+              </div>
               </div>
               <form id="doorstepAlertForm" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px;" onsubmit="return false;">
                 <input
@@ -1216,6 +1260,11 @@
       });
     }
 
+    const clearHdrBtn = document.getElementById('clearPinHeaderBtn');
+    if (clearHdrBtn) {
+      clearHdrBtn.addEventListener('click', clearPinAndResetMap);
+    }
+
     document.querySelectorAll('.addr-route-card').forEach(card => {
       card.addEventListener('click', function() {
         focusRoute(this.getAttribute('data-route-name'));
@@ -1355,13 +1404,22 @@
     }
 
     if (!routeParam && !streetParam) {
-      // Restore previously saved house pin for this table if present
+      // Restore previously saved house pin ONLY IF the user actually saved a notification subscription
       try {
+        const savedEmail = localStorage.getItem("SANTA_NOTIFY_EMAIL") || "";
         const savedPinRaw = localStorage.getItem("SANTA_NOTIFY_POINT");
         if (savedPinRaw) {
           const savedPin = JSON.parse(savedPinRaw);
-          if (savedPin && typeof savedPin.lat === 'number' && typeof savedPin.lng === 'number' && (!savedPin.table || savedPin.table === tableSlug)) {
+          const hasSavedSubscription = Boolean(
+            savedPin && 
+            savedPin.subscribed && 
+            ((savedPin.email && savedPin.email.includes('@')) || (savedEmail && savedEmail.includes('@')))
+          );
+          if (hasSavedSubscription && typeof savedPin.lat === 'number' && typeof savedPin.lng === 'number' && (!savedPin.table || savedPin.table === tableSlug)) {
             processCoordinates(savedPin.lat, savedPin.lng, { skipZoom: true });
+          } else {
+            // Clean up unconfirmed / dummy pin from localStorage so it never persists across reloads
+            localStorage.removeItem("SANTA_NOTIFY_POINT");
           }
         }
       } catch (e) {}

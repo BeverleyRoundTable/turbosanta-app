@@ -4100,12 +4100,20 @@
             
             if (!pinSource) {
               try {
-                const localPinRaw = localStorage.getItem("SANTA_NOTIFY_POINT") || sessionStorage.getItem("SANTA_NOTIFY_POINT");
+                const savedEmail = localStorage.getItem("SANTA_NOTIFY_EMAIL") || "";
+                const localPinRaw = localStorage.getItem("SANTA_NOTIFY_POINT");
                 if (localPinRaw) {
                   const parsed = JSON.parse(localPinRaw);
-                  if (parsed && Utils.validPos(parsed.lat, parsed.lng) && (!parsed.table || !AppState.vars.tableSlug || parsed.table === AppState.vars.tableSlug)) {
+                  const isRealSubscription = Boolean(
+                    parsed && 
+                    parsed.subscribed && 
+                    ((parsed.email && parsed.email.includes('@')) || (savedEmail && savedEmail.includes('@')))
+                  );
+                  if (isRealSubscription && Utils.validPos(parsed.lat, parsed.lng) && (!parsed.table || !AppState.vars.tableSlug || parsed.table === AppState.vars.tableSlug)) {
                     pinSource = { lat: parsed.lat, lng: parsed.lng };
                     isDeepLink = false;
+                  } else {
+                    localStorage.removeItem("SANTA_NOTIFY_POINT");
                   }
                 }
               } catch (e) {}
