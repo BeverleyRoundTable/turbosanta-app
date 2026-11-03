@@ -1658,16 +1658,23 @@
     openModal('theater-modal');
   }
 
-  function openDonateFlow() {
+  function openDonateFlow(opts = {}) {
     const table = state.payload?.table || {};
     const donateUrl = table.donate_url || table.justgiving_url || '';
-    if (isGiftAidEnabled(table)) {
-      openModal('giftaid-modal');
-    } else if (donateUrl) {
-      window.open(donateUrl, '_blank', 'noopener');
-    } else {
-      alert('Online donation details will be announced soon. Thank you for supporting our Santa Sleigh appeal!');
+    const isDirect = Boolean(opts && opts.direct);
+
+    // If direct navigation CTA (header nav / hero / mobile dock) or Gift Aid is disabled, go direct to the campaign
+    if (isDirect || !isGiftAidEnabled(table)) {
+      if (donateUrl) {
+        window.open(donateUrl, '_blank', 'noopener');
+      } else {
+        alert('Online donation details will be announced soon. Thank you for supporting our Santa Sleigh appeal!');
+      }
+      return;
     }
+
+    // Otherwise, if Gift Aid is enabled and clicking from the +25% boost calculator, open the Gift Aid declaration modal
+    openModal('giftaid-modal');
   }
 
   function openDoorstepAlertModal(opts = {}) {
@@ -1869,10 +1876,13 @@
       btn.addEventListener('click', () => updateGiftAidCalculator(btn.getAttribute('data-amt')));
     });
 
-    // Donate, Alert, Grant, Cheer, Photo Triggers
-    ['header-donate-btn', 'hero-donate-cta', 'impact-donate-btn', 'mobile-dock-donate'].forEach(id => {
-      document.getElementById(id)?.addEventListener('click', openDonateFlow);
+    // Donate Triggers: Header, Hero, and Mobile Dock go direct to live campaign
+    ['header-donate-btn', 'hero-donate-cta', 'mobile-dock-donate'].forEach(id => {
+      document.getElementById(id)?.addEventListener('click', () => openDonateFlow({ direct: true }));
     });
+
+    // Impact / Thermometer Donate Trigger: Opens +25% Gift Aid modal if Gift Aid is ON, or direct if OFF
+    document.getElementById('impact-donate-btn')?.addEventListener('click', () => openDonateFlow({ direct: false }));
 
     document.getElementById('hero-alert-cta')?.addEventListener('click', () => openDoorstepAlertModal({}));
     document.getElementById('open-grant-btn')?.addEventListener('click', () => openModal('grant-modal'));
