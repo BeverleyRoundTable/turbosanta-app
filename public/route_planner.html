@@ -479,9 +479,9 @@
 
     <div class="map-area">
       <div id="map"></div>
-      <div class="map-floating-tools" id="mapFloatingTools" style="position:absolute; top:20px; left:20px; z-index:1000; display:flex; gap:6px;">
-        <button id="floatUndoBtn" class="btn btn-dim btn-sm" onclick="undo()" title="Undo (Ctrl+Z)" disabled style="background:rgba(18,18,18,0.85); backdrop-filter:blur(6px); border:1px solid var(--border); box-shadow:0 4px 12px rgba(0,0,0,0.5); padding:6px 12px; font-weight:700;">↩ Undo</button>
-        <button id="floatRedoBtn" class="btn btn-dim btn-sm" onclick="redo()" title="Redo (Ctrl+Y)" disabled style="background:rgba(18,18,18,0.85); backdrop-filter:blur(6px); border:1px solid var(--border); box-shadow:0 4px 12px rgba(0,0,0,0.5); padding:6px 12px; font-weight:700;">↪ Redo</button>
+      <div class="map-floating-tools" id="mapFloatingTools" style="position:absolute; top:10px; left:56px; z-index:1000; display:flex; gap:6px;">
+        <button id="floatUndoBtn" class="btn btn-dim btn-sm" onclick="undo()" title="Undo last action (Ctrl+Z)" disabled style="background:rgba(18,18,18,0.9); backdrop-filter:blur(6px); border:1px solid var(--border); box-shadow:0 2px 8px rgba(0,0,0,0.6); padding:5px 12px; font-weight:700; height:30px; display:inline-flex; align-items:center; gap:4px;">↩ Undo</button>
+        <button id="floatRedoBtn" class="btn btn-dim btn-sm" onclick="redo()" title="Redo action (Ctrl+Y)" disabled style="background:rgba(18,18,18,0.9); backdrop-filter:blur(6px); border:1px solid var(--border); box-shadow:0 2px 8px rgba(0,0,0,0.6); padding:5px 12px; font-weight:700; height:30px; display:inline-flex; align-items:center; gap:4px;">↪ Redo</button>
       </div>
       <div class="map-toast" id="mapToast">Click the map to place waypoints</div>
       <div class="routing-spinner" id="routingSpinner"><div class="mini-spin"></div>Snapping to roads…</div>
@@ -816,10 +816,11 @@ function renderPlannedStops() {
 
 function updatePlannedStopsCountBadge() {
   const count = window.plannedStops ? window.plannedStops.length : 0;
+  const totalDwell = (window.plannedStops || []).reduce((sum, s) => sum + (parseInt(s.allocated_mins, 10) || 0), 0);
   const countLabel = document.getElementById('stopsCountLabel');
-  if (countLabel) countLabel.textContent = count;
+  if (countLabel) countLabel.textContent = totalDwell > 0 ? `${count} (${totalDwell}m)` : count;
   const statStops = document.getElementById('statStops');
-  if (statStops) statStops.textContent = count;
+  if (statStops) statStops.textContent = totalDwell > 0 ? `${count} (${totalDwell}m)` : count;
 }
 
 function createStopMarker(stop, index) {
@@ -854,13 +855,15 @@ function createStopMarker(stop, index) {
   });
 
   const tallyStr = (stop.tally && stop.tally > 0) ? ` · 👥 ${stop.tally}` : '';
-  marker.bindTooltip(`Stop #${index + 1}: ${stop.name || 'Planned Stop'}${tallyStr}`, {
+  const dwellMins = (stop.allocated_mins !== undefined && stop.allocated_mins !== null) ? stop.allocated_mins : 5;
+  const dwellStr = dwellMins > 0 ? ` · ⏱️ ${dwellMins}m stop` : '';
+  marker.bindTooltip(`Stop #${index + 1}: ${stop.name || 'Planned Stop'}${dwellStr}${tallyStr}`, {
     direction: 'top',
     offset: [0, -14]
   });
 
   const popupContent = document.createElement('div');
-  popupContent.style.minWidth = '230px';
+  popupContent.style.minWidth = '240px';
   popupContent.style.color = '#111';
   popupContent.style.fontFamily = '-apple-system, BlinkMacSystemFont, sans-serif';
   popupContent.innerHTML = `
@@ -871,12 +874,23 @@ function createStopMarker(stop, index) {
       <label style="display:block; font-size:11px; font-weight:700; color:#555; margin-bottom:3px;">Stop Name / Landmark:</label>
       <input type="text" id="popupStopInput_${index}" value="${(stop.name || '').replace(/"/g, '&quot;')}" placeholder="e.g. The Red Lion Pub (18:30)" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #ccc; border-radius:6px; font-size:12px; font-weight:600; outline:none;">
     </div>
+    <div style="margin-bottom:8px;">
+      <label style="display:block; font-size:11px; font-weight:700; color:#555; margin-bottom:3px;">⏱️ Allocated Stop Time (Added to approx time):</label>
+      <div style="display:flex; align-items:center; gap:5px;">
+        <button type="button" id="popupDwellSub5_${index}" style="background:#f3f4f6; border:1px solid #d1d5db; border-radius:4px; padding:3px 7px; font-size:11px; font-weight:700; cursor:pointer;">-5m</button>
+        <button type="button" id="popupDwellSub1_${index}" style="background:#f3f4f6; border:1px solid #d1d5db; border-radius:4px; padding:3px 7px; font-size:11px; font-weight:700; cursor:pointer;">-1m</button>
+        <input type="number" min="0" max="180" id="popupStopAllocated_${index}" value="${dwellMins}" style="width:48px; text-align:center; padding:4px; border:1px solid #ccc; border-radius:4px; font-size:12px; font-weight:700; color:#0284c7;">
+        <span style="font-size:11px; color:#555; font-weight:600;">mins</span>
+        <button type="button" id="popupDwellAdd1_${index}" style="background:#f3f4f6; border:1px solid #d1d5db; border-radius:4px; padding:3px 7px; font-size:11px; font-weight:700; cursor:pointer;">+1m</button>
+        <button type="button" id="popupDwellAdd5_${index}" style="background:#f3f4f6; border:1px solid #d1d5db; border-radius:4px; padding:3px 7px; font-size:11px; font-weight:700; color:#0284c7; cursor:pointer;">+5m</button>
+      </div>
+    </div>
     <div style="margin-bottom:10px;">
       <label style="display:block; font-size:11px; font-weight:700; color:#555; margin-bottom:3px;">👥 Attendance / Crowd Tally:</label>
       <div style="display:flex; align-items:center; gap:5px;">
         <button type="button" id="popupTallySub5_${index}" style="background:#f3f4f6; border:1px solid #d1d5db; border-radius:4px; padding:3px 7px; font-size:11px; font-weight:700; cursor:pointer;">-5</button>
         <button type="button" id="popupTallySub1_${index}" style="background:#f3f4f6; border:1px solid #d1d5db; border-radius:4px; padding:3px 7px; font-size:11px; font-weight:700; cursor:pointer;">-1</button>
-        <input type="number" min="0" id="popupStopTally_${index}" value="${stop.tally || 0}" style="width:54px; text-align:center; padding:4px; border:1px solid #ccc; border-radius:4px; font-size:12px; font-weight:700;">
+        <input type="number" min="0" id="popupStopTally_${index}" value="${stop.tally || 0}" style="width:48px; text-align:center; padding:4px; border:1px solid #ccc; border-radius:4px; font-size:12px; font-weight:700;">
         <button type="button" id="popupTallyAdd1_${index}" style="background:#f3f4f6; border:1px solid #d1d5db; border-radius:4px; padding:3px 7px; font-size:11px; font-weight:700; cursor:pointer;">+1</button>
         <button type="button" id="popupTallyAdd5_${index}" style="background:#f3f4f6; border:1px solid #d1d5db; border-radius:4px; padding:3px 7px; font-size:11px; font-weight:700; color:#b45309; cursor:pointer;">+5</button>
       </div>
@@ -897,6 +911,21 @@ function createStopMarker(stop, index) {
         updatePlannedStopName(index, e.target.value);
       };
     }
+    const allocInput = document.getElementById(`popupStopAllocated_${index}`);
+    if (allocInput) {
+      allocInput.oninput = (e) => {
+        updateStopAllocatedTime(index, e.target.value);
+      };
+    }
+    const bDwellSub5 = document.getElementById(`popupDwellSub5_${index}`);
+    if (bDwellSub5) bDwellSub5.onclick = () => adjustStopAllocatedTime(index, -5);
+    const bDwellSub1 = document.getElementById(`popupDwellSub1_${index}`);
+    if (bDwellSub1) bDwellSub1.onclick = () => adjustStopAllocatedTime(index, -1);
+    const bDwellAdd1 = document.getElementById(`popupDwellAdd1_${index}`);
+    if (bDwellAdd1) bDwellAdd1.onclick = () => adjustStopAllocatedTime(index, 1);
+    const bDwellAdd5 = document.getElementById(`popupDwellAdd5_${index}`);
+    if (bDwellAdd5) bDwellAdd5.onclick = () => adjustStopAllocatedTime(index, 5);
+
     const tallyInput = document.getElementById(`popupStopTally_${index}`);
     if (tallyInput) {
       tallyInput.oninput = (e) => {
@@ -935,13 +964,48 @@ function createStopMarker(stop, index) {
   return marker;
 }
 
+window.updateStopAllocatedTime = function(index, val) {
+  if (window.plannedStops[index]) {
+    window.plannedStops[index].allocated_mins = Math.max(0, parseInt(val, 10) || 0);
+    const marker = window.stopMarkerInstances[index];
+    if (marker) {
+      const tallyStr = (window.plannedStops[index].tally && window.plannedStops[index].tally > 0) ? ` · 👥 ${window.plannedStops[index].tally}` : '';
+      const dwellMins = window.plannedStops[index].allocated_mins;
+      const dwellStr = dwellMins > 0 ? ` · ⏱️ ${dwellMins}m stop` : '';
+      marker.setTooltipContent(`Stop #${index + 1}: ${window.plannedStops[index].name || 'Planned Stop'}${dwellStr}${tallyStr}`);
+    }
+    renderPlannedStopsList();
+    updateStats();
+  }
+};
+
+window.adjustStopAllocatedTime = function(index, delta) {
+  if (window.plannedStops[index]) {
+    const cur = (window.plannedStops[index].allocated_mins !== undefined && window.plannedStops[index].allocated_mins !== null) ? window.plannedStops[index].allocated_mins : 5;
+    window.plannedStops[index].allocated_mins = Math.max(0, cur + delta);
+    const marker = window.stopMarkerInstances[index];
+    if (marker) {
+      const tallyStr = (window.plannedStops[index].tally && window.plannedStops[index].tally > 0) ? ` · 👥 ${window.plannedStops[index].tally}` : '';
+      const dwellMins = window.plannedStops[index].allocated_mins;
+      const dwellStr = dwellMins > 0 ? ` · ⏱️ ${dwellMins}m stop` : '';
+      marker.setTooltipContent(`Stop #${index + 1}: ${window.plannedStops[index].name || 'Planned Stop'}${dwellStr}${tallyStr}`);
+    }
+    const popupInput = document.getElementById(`popupStopAllocated_${index}`);
+    if (popupInput) popupInput.value = window.plannedStops[index].allocated_mins;
+    renderPlannedStopsList();
+    updateStats();
+  }
+};
+
 window.updateStopTally = function(index, val) {
   if (window.plannedStops[index]) {
     window.plannedStops[index].tally = Math.max(0, parseInt(val, 10) || 0);
     const marker = window.stopMarkerInstances[index];
     if (marker) {
       const tallyStr = window.plannedStops[index].tally > 0 ? ` · 👥 ${window.plannedStops[index].tally}` : '';
-      marker.setTooltipContent(`Stop #${index + 1}: ${window.plannedStops[index].name || 'Planned Stop'}${tallyStr}`);
+      const dwellMins = (window.plannedStops[index].allocated_mins !== undefined) ? window.plannedStops[index].allocated_mins : 5;
+      const dwellStr = dwellMins > 0 ? ` · ⏱️ ${dwellMins}m stop` : '';
+      marker.setTooltipContent(`Stop #${index + 1}: ${window.plannedStops[index].name || 'Planned Stop'}${dwellStr}${tallyStr}`);
     }
     renderPlannedStopsList();
   }
@@ -954,7 +1018,9 @@ window.adjustStopTally = function(index, delta) {
     const marker = window.stopMarkerInstances[index];
     if (marker) {
       const tallyStr = window.plannedStops[index].tally > 0 ? ` · 👥 ${window.plannedStops[index].tally}` : '';
-      marker.setTooltipContent(`Stop #${index + 1}: ${window.plannedStops[index].name || 'Planned Stop'}${tallyStr}`);
+      const dwellMins = (window.plannedStops[index].allocated_mins !== undefined) ? window.plannedStops[index].allocated_mins : 5;
+      const dwellStr = dwellMins > 0 ? ` · ⏱️ ${dwellMins}m stop` : '';
+      marker.setTooltipContent(`Stop #${index + 1}: ${window.plannedStops[index].name || 'Planned Stop'}${dwellStr}${tallyStr}`);
     }
     const popupInput = document.getElementById(`popupStopTally_${index}`);
     if (popupInput) popupInput.value = window.plannedStops[index].tally;
@@ -978,6 +1044,7 @@ function renderPlannedStopsList() {
   container.innerHTML = window.plannedStops.map((stop, i) => {
     const safeName = (stop.name || `Stop ${i + 1}`).replace(/"/g, '&quot;');
     const tally = stop.tally || 0;
+    const allocated = (stop.allocated_mins !== undefined && stop.allocated_mins !== null) ? stop.allocated_mins : 5;
     return `
       <div class="stop-item" id="stopItem_${i}" style="display:flex; flex-direction:column; gap:6px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:8px 10px;">
         <div style="display:flex; align-items:center; gap:8px;">
@@ -988,14 +1055,20 @@ function renderPlannedStopsList() {
           <button class="stop-btn-icon" onclick="panToPlannedStop(${i})" title="Center on Map">🎯</button>
           <button class="stop-btn-icon stop-btn-del" onclick="deletePlannedStop(${i})" title="Delete Stop">🗑️</button>
         </div>
-        <div style="display:flex; align-items:center; justify-content:space-between; padding-left:28px; font-size:11px; color:var(--text-muted);">
-          <span>👥 Crowd Tally:</span>
-          <div style="display:flex; align-items:center; gap:4px;">
-            <button type="button" class="btn btn-dim btn-sm" onclick="adjustStopTally(${i}, -5)" style="padding:2px 6px; font-size:10px;">-5</button>
-            <button type="button" class="btn btn-dim btn-sm" onclick="adjustStopTally(${i}, -1)" style="padding:2px 6px; font-size:10px;">-1</button>
-            <input type="number" min="0" value="${tally}" onchange="updateStopTally(${i}, this.value)" style="width:46px; text-align:center; background:#111; border:1px solid var(--border); border-radius:4px; color:#fff; font-size:11px; font-weight:700; padding:2px;">
-            <button type="button" class="btn btn-dim btn-sm" onclick="adjustStopTally(${i}, 1)" style="padding:2px 6px; font-size:10px;">+1</button>
-            <button type="button" class="btn btn-dim btn-sm" onclick="adjustStopTally(${i}, 5)" style="padding:2px 6px; font-size:10px; color:var(--primary);">+5</button>
+        <div style="display:flex; align-items:center; justify-content:space-between; padding-left:28px; font-size:11px; color:var(--text-muted); flex-wrap:wrap; gap:6px;">
+          <div style="display:flex; align-items:center; gap:4px;" title="Allocated stop dwell time added to route duration">
+            <span>⏱️ Dwell:</span>
+            <button type="button" class="btn btn-dim btn-sm" onclick="adjustStopAllocatedTime(${i}, -5)" style="padding:2px 5px; font-size:10px;">-5m</button>
+            <input type="number" min="0" max="180" value="${allocated}" onchange="updateStopAllocatedTime(${i}, this.value)" style="width:36px; text-align:center; background:#111; border:1px solid var(--border); border-radius:4px; color:#38bdf8; font-size:11px; font-weight:700; padding:2px;">
+            <span style="font-size:10px; color:#38bdf8; font-weight:600;">m</span>
+            <button type="button" class="btn btn-dim btn-sm" onclick="adjustStopAllocatedTime(${i}, 5)" style="padding:2px 5px; font-size:10px; color:#38bdf8;">+5m</button>
+          </div>
+          <div style="display:flex; align-items:center; gap:4px;" title="Crowd attendance tally">
+            <span>👥 Tally:</span>
+            <button type="button" class="btn btn-dim btn-sm" onclick="adjustStopTally(${i}, -1)" style="padding:2px 5px; font-size:10px;">-</button>
+            <input type="number" min="0" value="${tally}" onchange="updateStopTally(${i}, this.value)" style="width:38px; text-align:center; background:#111; border:1px solid var(--border); border-radius:4px; color:#fff; font-size:11px; font-weight:700; padding:2px;">
+            <button type="button" class="btn btn-dim btn-sm" onclick="adjustStopTally(${i}, 1)" style="padding:2px 5px; font-size:10px;">+</button>
+            <button type="button" class="btn btn-dim btn-sm" onclick="adjustStopTally(${i}, 5)" style="padding:2px 5px; font-size:10px; color:var(--primary);">+5</button>
           </div>
         </div>
       </div>
@@ -1085,7 +1158,9 @@ function addStopAtLatLng(lat, lng) {
     id: `stop_${Date.now()}_${stopIndex + 1}`,
     name: defaultName,
     lat: lat,
-    lng: lng
+    lng: lng,
+    tally: 0,
+    allocated_mins: 5
   };
   window.plannedStops.push(newStop);
   renderPlannedStops();
@@ -1528,7 +1603,7 @@ function parseGPX(text, name, size) {
     const nameNode = w.querySelector('name');
     const stopName = nameNode ? nameNode.textContent.trim() : `Stop ${i + 1}`;
     if (!isNaN(lat) && !isNaN(lon)) {
-      window.plannedStops.push({ id: `stop_${i + 1}`, lat, lng: lon, name: stopName });
+      window.plannedStops.push({ id: `stop_${i + 1}`, lat, lng: lon, name: stopName, allocated_mins: 5, tally: 0 });
     }
   });
 
@@ -1538,7 +1613,9 @@ function parseGPX(text, name, size) {
       id: s.id || `stop_${i + 1}`,
       lat: parseFloat(s.lat),
       lng: parseFloat(s.lng || s.lon),
-      name: s.name || `Stop ${i + 1}`
+      name: s.name || `Stop ${i + 1}`,
+      allocated_mins: (s.allocated_mins !== undefined && s.allocated_mins !== null) ? Number(s.allocated_mins) : 5,
+      tally: Number(s.tally || 0)
     }));
   }
 
@@ -1694,14 +1771,23 @@ document.getElementById('densitySelect').addEventListener('change', updateStats)
 
 function updateTime(distMi) {
   const speed = parseFloat(speedSlider.value) || 3.0;
-  const mins = Math.round((distMi / speed) * 60);
-  document.getElementById('statTime').textContent = mins < 60 ? `${mins} min` : `${Math.floor(mins/60)}h ${mins%60}m`;
+  const driveMins = Math.round((distMi / speed) * 60);
+  const dwellMins = (window.plannedStops || []).reduce((sum, s) => sum + (parseInt(s.allocated_mins, 10) || 0), 0);
+  const totalMins = driveMins + dwellMins;
+
+  const timeStr = totalMins < 60 ? `${totalMins} min` : `${Math.floor(totalMins/60)}h ${totalMins%60}m`;
+  const statEl = document.getElementById('statTime');
+  if (statEl) {
+    statEl.textContent = timeStr;
+    statEl.title = dwellMins > 0 ? `Total: ${timeStr} (Drive: ${driveMins}m, Stops Dwell: ${dwellMins}m)` : `Estimated drive time: ${timeStr}`;
+  }
 
   const startTime = getSelectedRouteStartTime();
-  const endTime = addMinutesToTime(startTime, mins);
+  const endTime = addMinutesToTime(startTime, totalMins);
   const endPreviewEl = document.getElementById('statTimeEndPreview');
   if (endPreviewEl) {
-    endPreviewEl.textContent = `(${startTime} - ${endTime})`;
+    const dwellNote = dwellMins > 0 ? ` incl. ${dwellMins}m stops` : '';
+    endPreviewEl.textContent = `(${startTime} - ${endTime}${dwellNote})`;
   }
 }
 
@@ -2127,7 +2213,9 @@ async function attachGpxToSelectedRoute() {
     const isNew = selectedId === '__NEW__';
 
     const chosenSpeed = parseFloat(speedSlider.value) || 3.0;
-    const estMins = Math.round((parseFloat(distMi) / chosenSpeed) * 60);
+    const driveMins = Math.round((parseFloat(distMi) / chosenSpeed) * 60);
+    const dwellMins = (window.plannedStops || []).reduce((sum, s) => sum + (parseInt(s.allocated_mins, 10) || 0), 0);
+    const estMins = driveMins + dwellMins;
 
     if (isNew) {
       const newName = (document.getElementById('newRouteNameInput')?.value || '').trim();
@@ -2177,15 +2265,33 @@ async function attachGpxToSelectedRoute() {
     if (Array.isArray(window.plannedStops) && window.plannedStops.length > 0) {
       window.plannedStops.forEach((st, i) => {
         const stopName = st.name || `Stop ${i + 1}`;
+        const stopAlloc = (st.allocated_mins !== undefined && st.allocated_mins !== null) ? Number(st.allocated_mins) : 5;
+        const stopTally = Number(st.tally || 0);
         wptTags += `  <wpt lat="${Number(st.lat).toFixed(7)}" lon="${Number(st.lng).toFixed(7)}">\n    <name>${escXml(stopName)}</name>\n  </wpt>\n`;
-        plannedStops.push({ id: st.id || `stop_${i + 1}`, lat: Number(st.lat), lng: Number(st.lng), name: stopName });
+        plannedStops.push({
+          id: st.id || `stop_${i + 1}`,
+          lat: Number(st.lat),
+          lng: Number(st.lng),
+          name: stopName,
+          allocated_mins: stopAlloc,
+          tally: stopTally
+        });
       });
     } else {
       waypoints.forEach((w, i) => {
         if (w.isStop) {
           const stopName = w.stopName || `Stop ${i + 1}`;
+          const stopAlloc = (w.allocated_mins !== undefined && w.allocated_mins !== null) ? Number(w.allocated_mins) : 5;
+          const stopTally = Number(w.tally || 0);
           wptTags += `  <wpt lat="${w.lat.toFixed(7)}" lon="${w.lng.toFixed(7)}">\n    <name>${escXml(stopName)}</name>\n  </wpt>\n`;
-          plannedStops.push({ id: `stop_${i + 1}`, lat: w.lat, lng: w.lng, name: stopName });
+          plannedStops.push({
+            id: `stop_${i + 1}`,
+            lat: w.lat,
+            lng: w.lng,
+            name: stopName,
+            allocated_mins: stopAlloc,
+            tally: stopTally
+          });
         }
       });
     }
@@ -2306,7 +2412,7 @@ ${trkpts}
       bc.close();
     } catch(bcErr) {}
 
-    showTackSuccessModal(targetRoute, dense.length, distMi, plannedStops.length, streetsPayload.length, chosenSpeed, estMins);
+    showTackSuccessModal(targetRoute, dense.length, distMi, plannedStops.length, streetsPayload.length, chosenSpeed, estMins, driveMins, dwellMins);
 
   } catch(err) {
     console.error("Tack route failed:", err);
@@ -2319,7 +2425,7 @@ ${trkpts}
   }
 }
 
-function showTackSuccessModal(route, pointsCount, distMi, stopsCount, streetsCount, speed = 3, estMins = 0) {
+function showTackSuccessModal(route, pointsCount, distMi, stopsCount, streetsCount, speed = 3, estMins = 0, driveMins = 0, dwellMins = 0) {
   const modal = document.getElementById('tackSuccessModal');
   const details = document.getElementById('tackSuccessDetails');
   const adminBtn = document.getElementById('tackSuccessAdminBtn');
@@ -2332,6 +2438,10 @@ function showTackSuccessModal(route, pointsCount, distMi, stopsCount, streetsCou
     ? (estMins < 60 ? `${estMins} min` : `${Math.floor(estMins / 60)}h ${estMins % 60}m`)
     : '';
 
+  const dwellBreakdown = (dwellMins > 0 && stopsCount > 0)
+    ? `<div style="font-size:11px; color:#38bdf8; margin-top:2px;">⏱️ Duration breakdown: Drive ${driveMins}m + ${dwellMins}m allocated dwell across ${stopsCount} stop${stopsCount !== 1 ? 's' : ''}</div>`
+    : '';
+
   if (details) {
     details.innerHTML = `
       <div style="font-size:16px; font-weight:700; color:var(--primary); margin-bottom:8px;">${route.name}</div>
@@ -2340,6 +2450,7 @@ function showTackSuccessModal(route, pointsCount, distMi, stopsCount, streetsCou
         <strong>${distMi} miles</strong> · <strong>${pointsCount.toLocaleString()} track points</strong><br>
         <strong>Speed: ${route.sleigh_speed || speed} mph</strong> · <strong>Run Time: ${route.start_time || '18:00'} – ${route.end_time || '20:30'}</strong>${durationStr ? ` (${durationStr})` : ''}<br>
         ${stopsCount} planned stop${stopsCount !== 1 ? 's' : ''} · ${streetsCount} street timetable entry${streetsCount !== 1 ? 'es' : ''}
+        ${dwellBreakdown}
       </div>
       <div style="margin-top:10px; color:var(--text-muted); font-size:11px;">
         Admin Portal and Route Editor windows have been updated live.

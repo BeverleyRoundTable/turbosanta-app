@@ -1011,17 +1011,21 @@ function renderCrewStops(routeName) {
   }
 
   panel.style.display = 'block';
-  if (countHeader) countHeader.textContent = `${stops.length} Stops`;
+  const totalDwell = stops.reduce((sum, s) => sum + (parseInt(s.allocated_mins, 10) || 0), 0);
+  if (countHeader) countHeader.textContent = totalDwell > 0 ? `${stops.length} Stops (${totalDwell}m dwell)` : `${stops.length} Stops`;
 
   container.innerHTML = stops.map((stop, idx) => {
     const savedTally = parseInt(localStorage.getItem(`turbosanta_tally_${stop.id || idx}`), 10);
     const count = !isNaN(savedTally) ? savedTally : (stop.tally || 0);
+    const dwell = (stop.allocated_mins !== undefined && stop.allocated_mins !== null) ? stop.allocated_mins : 5;
+    const dwellBadge = dwell > 0 ? `<span style="font-size:11px; background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.3); border-radius:12px; padding:2px 8px; font-weight:700;">⏱️ ${dwell}m dwell</span>` : '';
     return `
       <div style="background:var(--surface-2); border:1px solid var(--border); border-left:4px solid var(--primary); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:8px;">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div style="display:flex; align-items:center; gap:8px;">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
             <span style="background:#D31C1C; color:#fff; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800;">${idx + 1}</span>
             <strong style="color:#fff; font-size:15px;">${escapeHtml(stop.name || `Stop ${idx + 1}`)}</strong>
+            ${dwellBadge}
           </div>
           <span style="font-size:18px; font-weight:800; color:var(--primary); font-family:monospace;" id="tallyDisplay_${idx}">${count}</span>
         </div>

@@ -248,7 +248,9 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
             id: `stop_${idx + 1}`,
             lat,
             lng,
-            name: stopNameNode ? stopNameNode.textContent.trim() : `Planned Stop ${idx + 1}`
+            name: stopNameNode ? stopNameNode.textContent.trim() : `Planned Stop ${idx + 1}`,
+            allocated_mins: 5,
+            tally: 0
           };
         });
 
@@ -983,6 +985,11 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', color: '#fff', fontWeight: 600, margin: 0 }}>
                     🛑 Planned Stops ({formData.planned_stops?.length || 0})
+                    {formData.planned_stops && formData.planned_stops.length > 0 && (
+                      <span style={{ marginLeft: '8px', fontSize: '11px', color: '#38bdf8', fontWeight: 700 }}>
+                        ⏱️ {(formData.planned_stops || []).reduce((sum, s) => sum + (parseInt(s.allocated_mins, 10) || 0), 0)}m total dwell
+                      </span>
+                    )}
                   </label>
                   <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                     Actual stopping points (pubs, schools, greens). Shown as interactive pins on the public tracker.
@@ -1057,6 +1064,45 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                           outline: 'none'
                         }}
                       />
+                      {/* Stop Dwell Time Stepper */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '3px', background: '#0e0e0c', border: '1px solid var(--border)', borderRadius: '6px', padding: '2px 5px' }} title="Allocated stop dwell time added to route duration">
+                        <span style={{ fontSize: '10px', color: '#38bdf8' }}>⏱️</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = [...formData.planned_stops];
+                            const cur = (updated[sIdx].allocated_mins !== undefined && updated[sIdx].allocated_mins !== null) ? Number(updated[sIdx].allocated_mins) : 5;
+                            updated[sIdx] = { ...updated[sIdx], allocated_mins: Math.max(0, cur - 5) };
+                            setFormData(prev => ({ ...prev, planned_stops: updated }));
+                          }}
+                          style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', padding: '0 2px', fontSize: '10px', fontWeight: 700 }}
+                        >-5m</button>
+                        <input
+                          type="number"
+                          min="0"
+                          max="180"
+                          value={(stop.allocated_mins !== undefined && stop.allocated_mins !== null) ? stop.allocated_mins : 5}
+                          onChange={(e) => {
+                            const updated = [...formData.planned_stops];
+                            updated[sIdx] = { ...updated[sIdx], allocated_mins: Math.max(0, parseInt(e.target.value, 10) || 0) };
+                            setFormData(prev => ({ ...prev, planned_stops: updated }));
+                          }}
+                          style={{ width: '32px', background: 'transparent', border: 'none', color: '#38bdf8', textAlign: 'center', fontSize: '11px', fontWeight: 700, outline: 'none' }}
+                        />
+                        <span style={{ fontSize: '10px', color: '#38bdf8', fontWeight: 600 }}>m</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = [...formData.planned_stops];
+                            const cur = (updated[sIdx].allocated_mins !== undefined && updated[sIdx].allocated_mins !== null) ? Number(updated[sIdx].allocated_mins) : 5;
+                            updated[sIdx] = { ...updated[sIdx], allocated_mins: cur + 5 };
+                            setFormData(prev => ({ ...prev, planned_stops: updated }));
+                          }}
+                          style={{ background: 'transparent', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: '0 2px', fontSize: '10px', fontWeight: 700 }}
+                        >+5m</button>
+                      </div>
+
+                      {/* Crowd attendance tally */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '3px', background: '#0e0e0c', border: '1px solid var(--border)', borderRadius: '6px', padding: '2px 5px' }} title="Crowd attendance tally for this stop">
                         <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>👥</span>
                         <button
