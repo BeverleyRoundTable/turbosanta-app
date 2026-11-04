@@ -1869,11 +1869,19 @@ ${tableName} Organizers`
       guide: 'In your Donorbox Dashboard > Account > API & Zapier > Webhooks, add the Webhook URL above and enable the "Donation Created" event.'
     },
     {
+      id: 'square',
+      name: 'Square',
+      tag: 'Native Square Webhooks',
+      badgeColor: '#006aff',
+      description: 'Stream instant donations from Square Reader contactless card taps, Square Terminal, Stand, or Square Online checkout.',
+      guide: 'In your Square Developer Dashboard (developer.squareup.com) > Webhooks > Add Webhook, paste the Webhook URL above and subscribe to payment.updated and payment.created.'
+    },
+    {
       id: 'custom',
       name: 'Custom / Zapier / Make',
       tag: 'Automations & Custom Code',
       badgeColor: '#a855f7',
-      description: 'Post any standard JSON payload from Zapier, Make, Square, GoCardless, or your own software.',
+      description: 'Post any standard JSON payload from Zapier, Make, GoCardless, or your own software.',
       guide: 'Send an HTTP POST request with JSON {"amount": 10.00, "donorName": "Jane"} to the Webhook URL above.'
     }
   ];
@@ -2285,7 +2293,20 @@ ${tableName} Organizers`
         data: {
           amount: amt * 100,
           contact: { firstName: donor },
-          object: { amount_total: amt * 100, customer_details: { name: donor } }
+          object: {
+            amount_total: amt * 100,
+            customer_details: { name: donor },
+            payment: {
+              id: 'sq_test_' + Date.now(),
+              status: 'COMPLETED',
+              total_money: { amount: amt * 100, currency: 'GBP' },
+              card_details: {
+                entry_method: 'CONTACTLESS',
+                card: { cardholder_name: donor, card_brand: 'VISA' }
+              },
+              note: 'High Street Santa Route'
+            }
+          }
         }
       };
 
