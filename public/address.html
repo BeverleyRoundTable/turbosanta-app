@@ -816,9 +816,9 @@
             })).filter(st => !isNaN(st.lat) && !isNaN(st.lng));
           }
 
-          // Build stopping points layer for this route
+          // Build stopping points layer for this route (L.featureGroup ensures getBounds works)
           if (route.planned_stops && route.planned_stops.length > 0) {
-            route.stopsLayer = L.layerGroup();
+            route.stopsLayer = L.featureGroup();
             route.planned_stops.forEach((stop, i) => {
               const marker = createPlannedStopMarker(stop, i, route);
               route.stopsLayer.addLayer(marker);
@@ -873,9 +873,20 @@
         buildStreetIndex();
 
         // 📍 Dynamically center and scale map to fit all loaded API routes
-        if (loadedLayers.length > 0) {
-          const featureGroup = L.featureGroup(loadedLayers);
-          map.fitBounds(featureGroup.getBounds(), { padding: [30, 30] });
+        const validBoundsLayers = loadedLayers.filter(l => l && typeof l.getBounds === 'function');
+        if (validBoundsLayers.length > 0) {
+          try {
+            const featureGroup = L.featureGroup(validBoundsLayers);
+            const b = featureGroup.getBounds();
+            if (b && typeof b.isValid === 'function' && b.isValid()) {
+              map.fitBounds(b, { padding: [30, 30] });
+            } else {
+              map.setView([52.4708, -1.9207], 13);
+            }
+          } catch (bErr) {
+            console.warn("FitBounds failed:", bErr);
+            map.setView([52.4708, -1.9207], 13);
+          }
         } else {
           // Fallback to Round Table HQ (Marchesi House)
           map.setView([52.4708, -1.9207], 13);
@@ -1638,10 +1649,20 @@
 
       // Collect layers for bounds fitting (polyline + stops if any)
       const layersToFit = [selectedRoute.mapLayer];
-      if (selectedRoute.stopsLayer && selectedRoute.stopsLayer.getLayers().length > 0) {
+      if (selectedRoute.stopsLayer && typeof selectedRoute.stopsLayer.getLayers === 'function' && selectedRoute.stopsLayer.getLayers().length > 0) {
         layersToFit.push(selectedRoute.stopsLayer);
       }
-      map.flyToBounds(L.featureGroup(layersToFit).getBounds(), { padding: [40, 40], duration: 1.2 });
+      const validLayersToFit = layersToFit.filter(l => l && typeof l.getBounds === 'function');
+      if (validLayersToFit.length > 0) {
+        try {
+          const b = L.featureGroup(validLayersToFit).getBounds();
+          if (b && typeof b.isValid === 'function' && b.isValid()) {
+            map.flyToBounds(b, { padding: [40, 40], duration: 1.2 });
+          }
+        } catch(e) {
+          console.warn("FlyToBounds failed:", e);
+        }
+      }
     }
   }
 
