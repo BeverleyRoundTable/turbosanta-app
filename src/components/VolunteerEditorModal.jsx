@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, UserCheck, Shield, Phone, Mail, Building, MapPin, CheckCircle2, AlertCircle } from 'lucide-react';
+import { X, UserCheck, Shield, Phone, Mail, Building, MapPin, CheckCircle2, AlertCircle, CheckSquare, Square, Calendar } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { updateVolunteer } from '../services/api';
+import { updateVolunteer, bulkRegisterVolunteers } from '../services/api';
 
 const STANDARD_ROLES = [
   { id: 'Driver', label: '🚗 Driver (Tow Car / Sleigh Driver)', badgeColor: '#3b82f6' },
@@ -29,6 +29,8 @@ export default function VolunteerEditorModal({
   const [selectedRole, setSelectedRole] = useState('Collections');
   const [customRoleText, setCustomRoleText] = useState('');
   const [selectedRouteName, setSelectedRouteName] = useState('');
+  const [routeMode, setRouteMode] = useState('single'); // 'single' | 'multiple'
+  const [selectedRouteIds, setSelectedRouteIds] = useState([]);
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [organisation, setOrganisation] = useState('');
@@ -39,6 +41,7 @@ export default function VolunteerEditorModal({
   useEffect(() => {
     if (isOpen) {
       if (volunteer) {
+        setRouteMode('single');
         setName(volunteer.name || volunteer['Volunteer Name'] || '');
         const currentRole = volunteer.role || volunteer['Role'] || 'Collections';
         const matched = STANDARD_ROLES.find(r => r.id.toLowerCase() === currentRole.toLowerCase() || currentRole.toLowerCase().includes(r.id.toLowerCase()));
@@ -54,6 +57,8 @@ export default function VolunteerEditorModal({
         setEmail(volunteer.email || volunteer['Email'] || '');
         setOrganisation(volunteer.organisation || volunteer['Organisation'] || '');
       } else {
+        setRouteMode('single');
+        setSelectedRouteIds(routes.map(r => r.id || r.name));
         setName('');
         setSelectedRole('Collections');
         setCustomRoleText('');
@@ -69,6 +74,20 @@ export default function VolunteerEditorModal({
 
   if (!isOpen) return null;
 
+  const toggleRouteId = (rId) => {
+    setSelectedRouteIds(prev =>
+      prev.includes(rId) ? prev.filter(id => id !== rId) : [...prev, rId]
+    );
+  };
+
+  const selectAllRoutes = () => {
+    setSelectedRouteIds(routes.map(r => r.id || r.name));
+  };
+
+  const deselectAllRoutes = () => {
+    setSelectedRouteIds([]);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const cleanName = name.trim();
@@ -79,9 +98,6 @@ export default function VolunteerEditorModal({
     }
 
     const effectiveRole = selectedRole === 'custom' ? (customRoleText.trim() || 'General Elf') : selectedRole;
-    const cleanRouteName = selectedRouteName.trim() || 'General Helper';
-    const matchedRoute = routes.find(r => r.name === cleanRouteName || r.id === cleanRouteName);
-    const routeId = matchedRoute ? matchedRoute.id : (volunteer?.route_id || null);
 
     setIsSubmitting(true);
     setStatusMsg('');
@@ -89,6 +105,10 @@ export default function VolunteerEditorModal({
 
     try {
       if (isEditing) {
+        const cleanRouteName = selectedRouteName.trim() || 'General Helper';
+        const matchedRoute = routes.find(r => r.name === cleanRouteName || r.id === cleanRouteName);
+        const routeId = matchedRoute ? matchedRoute.id : (volunteer?.route_id || null);
+
         const payload = {
           id: volunteer.id,
           name: cleanName,
@@ -115,8 +135,40 @@ export default function VolunteerEditorModal({
           }, false);
         }
         onClose();
+      } else if (routeMode === 'multiple') {
+        if (selectedRouteIds.length === 0) {
+          throw new Error('Please select at least one route night.');
+        }
+
+        const targetRoutes = routes
+          .filter(r => selectedRouteIds.includes(r.id || r.name))
+          .map(r => ({ id: r.id, name: r.name }));
+
+        const payload = {
+          name: cleanName,
+          role: effectiveRole,
+          routes: targetRoutes,
+          phone: phone.trim(),
+          email: email.trim().toLowerCase(),
+          organisation: organisation.trim()
+        };
+
+        const res = await bulkRegisterVolunteers(tableSlug, payload, token);
+        if (!res || !res.ok) {
+          throw new Error(res?.error || 'Failed to register volunteer across routes');
+        }
+
+        confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+        if (onSaved) {
+          onSaved(payload, true);
+        }
+        onClose();
       } else {
-        // Create new volunteer via POST /api/volunteers
+        const cleanRouteName = selectedRouteName.trim() || 'General Helper';
+        const matchedRoute = routes.find(r => r.name === cleanRouteName || r.id === cleanRouteName);
+        const routeId = matchedRoute ? matchedRoute.id : null;
+
+        // Create new single volunteer
         const payload = {
           name: cleanName,
           role: effectiveRole,
@@ -127,14 +179,9 @@ export default function VolunteerEditorModal({
           organisation: organisation.trim()
         };
 
-        const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/volunteers?table=${encodeURIComponent(tableSlug)}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || data.error) {
-          throw new Error(data.error || 'Failed to register volunteer');
+        const res = await bulkRegisterVolunteers(tableSlug, payload, token);
+        if (!res || !res.ok) {
+          throw new Error(res?.error || 'Failed to register volunteer');
         }
 
         confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
@@ -291,30 +338,143 @@ export default function VolunteerEditorModal({
 
           {/* Assigned Route Night */}
           <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>
-              Assigned Route Night *
-            </label>
-            <select
-              value={selectedRouteName}
-              onChange={(e) => setSelectedRouteName(e.target.value)}
-              style={{
-                width: '100%',
-                boxSizing: 'border-box',
-                background: '#0d0d0b',
-                border: '1px solid var(--border)',
-                borderRadius: '8px',
-                padding: '10px 14px',
-                color: '#fff',
-                fontSize: '14px'
-              }}
-            >
-              <option value="General Helper">🌟 General Volunteer / Sleigh Operations</option>
-              {routes.map(r => (
-                <option key={r.id || r.name} value={r.name}>
-                  {r.name} {r.date ? `(${r.date})` : ''}
-                </option>
-              ))}
-            </select>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                Assigned Route Night *
+              </label>
+              {!isEditing && routes.length > 1 && (
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setRouteMode('single')}
+                    style={{
+                      fontSize: '11px',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      background: routeMode === 'single' ? 'var(--primary)' : 'rgba(255,255,255,0.06)',
+                      color: routeMode === 'single' ? '#000' : 'var(--text-muted)',
+                      fontWeight: routeMode === 'single' ? 700 : 400,
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Single Route
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRouteMode('multiple');
+                      if (selectedRouteIds.length === 0) {
+                        setSelectedRouteIds(routes.map(r => r.id || r.name));
+                      }
+                    }}
+                    style={{
+                      fontSize: '11px',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      background: routeMode === 'multiple' ? '#f59e0b' : 'rgba(255,255,255,0.06)',
+                      color: routeMode === 'multiple' ? '#000' : 'var(--text-muted)',
+                      fontWeight: routeMode === 'multiple' ? 700 : 400,
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Multiple Routes (Multi-Run)
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {routeMode === 'single' || isEditing ? (
+              <select
+                value={selectedRouteName}
+                onChange={(e) => setSelectedRouteName(e.target.value)}
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  background: '#0d0d0b',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  color: '#fff',
+                  fontSize: '14px'
+                }}
+              >
+                <option value="General Helper">🌟 General Volunteer / Sleigh Operations</option>
+                {routes.map(r => (
+                  <option key={r.id || r.name} value={r.name}>
+                    {r.name} {r.date ? `(${r.date})` : ''}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '11.5px', color: '#86efac', fontWeight: 600 }}>
+                    ✓ Selected for {selectedRouteIds.length} of {routes.length} routes
+                  </span>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    <button
+                      type="button"
+                      onClick={selectAllRoutes}
+                      style={{ fontSize: '11px', padding: '2px 6px', background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                    >
+                      Select All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={deselectAllRoutes}
+                      style={{ fontSize: '11px', padding: '2px 6px', background: 'rgba(239,68,68,0.15)', color: '#fca5a5', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+                <div style={{
+                  maxHeight: '160px',
+                  overflowY: 'auto',
+                  background: '#0d0d0b',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  padding: '6px'
+                }}>
+                  {routes.map(r => {
+                    const key = r.id || r.name;
+                    const isChecked = selectedRouteIds.includes(key);
+                    return (
+                      <label
+                        key={key}
+                        onClick={() => toggleRouteId(key)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '6px 8px',
+                          borderRadius: '6px',
+                          background: isChecked ? 'rgba(245, 158, 11, 0.08)' : 'transparent',
+                          cursor: 'pointer',
+                          userSelect: 'none'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {isChecked ? (
+                            <CheckSquare size={15} color="#f59e0b" style={{ flexShrink: 0 }} />
+                          ) : (
+                            <Square size={15} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+                          )}
+                          <span style={{ fontSize: '12.5px', color: isChecked ? '#fff' : 'var(--text-muted)' }}>
+                            {r.name}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                          {r.date || ''}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Contact Details (Phone & Email) */}

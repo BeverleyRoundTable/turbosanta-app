@@ -23,6 +23,7 @@ import CashBucketModal from './CashBucketModal';
 import PrintRouteSheetModal from './PrintRouteSheetModal';
 import VolunteerEmailModal from './VolunteerEmailModal';
 import VolunteerEditorModal from './VolunteerEditorModal';
+import BulkCrewAssignModal from './BulkCrewAssignModal';
 import AdminAssistantModal from './AdminAssistantModal';
 import SocialPostModal from './SocialPostModal';
 import CrewBriefingAiModal from './CrewBriefingAiModal';
@@ -273,6 +274,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   const [emailModalInitialRoute, setEmailModalInitialRoute] = useState('all');
   const [isVolunteerEditorOpen, setIsVolunteerEditorOpen] = useState(false);
   const [editingVolunteer, setEditingVolunteer] = useState(null);
+  const [isBulkCrewModalOpen, setIsBulkCrewModalOpen] = useState(false);
 
   // Automated 2-Hour Crew Briefings State
   const [isBriefingDispatching, setIsBriefingDispatching] = useState(false);
@@ -7066,6 +7068,29 @@ ${tableName} Organizers`
                         <span>Add Volunteer</span>
                       </button>
 
+                      {/* Bulk Crew Multi-Run Sign Up */}
+                      <button
+                        type="button"
+                        onClick={() => setIsBulkCrewModalOpen(true)}
+                        style={{
+                          padding: '8px 14px',
+                          fontSize: '12px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                          color: '#000',
+                          fontWeight: 700,
+                          borderRadius: '6px',
+                          border: 'none',
+                          cursor: 'pointer'
+                        }}
+                        title="Sign up a list of Table members or crew across multiple routes at once"
+                      >
+                        <Users size={14} />
+                        <span>⚡ Bulk Crew Multi-Run</span>
+                      </button>
+
                       {/* Email All (Free Bcc) */}
                       <button
                         type="button"
@@ -13469,6 +13494,21 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
         tableSlug={currentTableSlug}
         token={session?.googleCredential || session?.token || getAdminAuthToken(currentTableSlug)}
         onSaved={handleVolunteerSaved}
+      />
+
+      {/* Bulk Crew & Member Multi-Run Roster Modal */}
+      <BulkCrewAssignModal
+        isOpen={isBulkCrewModalOpen}
+        onClose={() => setIsBulkCrewModalOpen(false)}
+        routes={tableData?.routes || []}
+        tableSlug={currentTableSlug}
+        tableName={tableData?.table?.name || 'Round Table'}
+        token={session?.googleCredential || session?.token || getAdminAuthToken(currentTableSlug)}
+        onSaved={() => {
+          fetchVolunteersList();
+          setSaveStatus('⚡ Bulk crew successfully assigned across selected routes!');
+          setTimeout(() => setSaveStatus(''), 4000);
+        }}
       />
 
       {/* TurboSanta Operations Co-Pilot AI Chatbot Modal */}

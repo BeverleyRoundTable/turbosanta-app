@@ -819,6 +819,29 @@ export async function deleteVolunteer(tableSlug = "beverley", volunteerId, expli
 }
 
 // ==============================================================
+// 👥 BULK CREW MULTI-RUN ROSTER REGISTRATION (D1)
+// ==============================================================
+export async function bulkRegisterVolunteers(tableSlug = "beverley", payload, explicitSecret = null) {
+  try {
+    const slug = (tableSlug || "beverley").toLowerCase().trim();
+    const token = explicitSecret || getAdminAuthToken(slug);
+
+    const res = await fetch(`${API_BASE}/api/volunteers?table=${encodeURIComponent(slug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
+      method: "POST",
+      headers: getAuthHeaders(token, slug),
+      body: JSON.stringify({ ...payload, secret: token })
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  } catch (err) {
+    console.error("bulkRegisterVolunteers error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
+// ==============================================================
 // 🤖 AUTOMATED 2-HOUR CREW BRIEFINGS (STATUS & MANUAL TRIGGER)
 // ==============================================================
 export async function triggerAutomatedCrewBriefings(tableSlug = "beverley", { routeId, dryRun = false, testEmail = null } = {}, explicitSecret = null) {

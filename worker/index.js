@@ -4863,54 +4863,180 @@ export default {
     // 📝 11. VOLUNTEER REGISTRATION (POST /api/volunteers)
     // ==============================================================
     if (path === "/api/volunteers" && request.method === "POST") {
-      const rl = await checkRateLimit(request, `volunteer_reg:${slug}`, 15, 300, env, ctx);
-      if (!rl.allowed) {
-        return jsonResponse({ error: `Too many registration requests. Please wait ${rl.retrySec}s before trying again.` }, 429, { "Retry-After": String(rl.retrySec) });
+      const authHeader = request.headers.get("Authorization") || "";
+      const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+      let body = {};
+      try { body = await request.json(); } catch(e) { body = {}; }
+
+      const secret = body.secret || url.searchParams.get("secret") || bearerToken || effectiveAuthToken;
+      const isAdmin = Boolean(secret && await isAuthorized(secret, slug));
+
+      if (!isAdmin) {
+        const rl = await checkRateLimit(request, `volunteer_reg:${slug}`, 15, 300, env, ctx);
+        if (!rl.allowed) {
+          return jsonResponse({ error: `Too many registration requests. Please wait ${rl.retrySec}s before trying again.` }, 429, { "Retry-After": String(rl.retrySec) });
+        }
       }
-      const body = await request.json();
-      const { routeId, route_id, routeName, name, role, phone, email, organisation } = body;
 
-      if (!name) return jsonResponse({ error: "Name is required" }, 400);
+      // Fetch table routes to resolve route_id <-> route_name dynamically
+      const allRoutes = await env.DB.prepare(
+        "SELECT id, name FROM routes WHERE table_id = ? OR table_id = ?"
+      ).bind(table.id, table.slug).all().then(r => r.results || []).catch(() => []);
+      const routeMapById = new Map(allRoutes.map(r => [String(r.id), r.name]));
+      const routeMapByName = new Map(allRoutes.map(r => [String(r.name).toLowerCase().trim(), r.id]));
 
-      // Resolve route_id: if not provided or doesn't exist, lookup by name and table.id
-      let finalRouteId = routeId || route_id || null;
-      if (!finalRouteId && routeName && routeName !== "General Volunteer / Sleigh Operations" && routeName !== "General Helper") {
-        const routeRow = await env.DB.prepare(
-          "SELECT id FROM routes WHERE table_id = ? AND (id = ? OR name = ?)"
-        ).bind(table.id, routeName, routeName).first().catch(() => null);
-        if (routeRow) finalRouteId = routeRow.id;
+      const resolveRoute = (r) => {
+        if (!r) return { id: null, name: "General Helper" };
+        if (typeof r === "string") {
+          const trimmed = r.trim();
+          if (routeMapById.has(trimmed)) {
+            return { id: trimmed, name: routeMapById.get(trimmed) };
+          }
+          const lower = trimmed.toLowerCase();
+          if (routeMapByName.has(lower)) {
+            return { id: routeMapByName.get(lower), name: trimmed };
+          }
+          return { id: null, name: trimmed };
+        }
+        let rId = r.id || r.routeId || r.route_id || null;
+        let rName = r.name || r.routeName || r.route_name || null;
+        if (rId && !rName && routeMapById.has(String(rId))) {
+          rName = routeMapById.get(String(rId));
+        } else if (rName && !rId && routeMapByName.has(String(rName).toLowerCase().trim())) {
+          rId = routeMapByName.get(String(rName).toLowerCase().trim());
+        }
+        return { id: rId || null, name: rName || "General Helper" };
+      };
+
+      const itemsToInsert = [];
+
+      // Pattern 1: Matrix Assignment (multiple members across multiple routes)
+      if (Array.isArray(body.names) && body.names.length > 0) {
+        const targetRoutes = (Array.isArray(body.routes) && body.routes.length > 0)
+          ? body.routes
+          : [body.routeName || body.route_name || "General Helper"];
+        for (const rawName of body.names) {
+          const cleanName = String(rawName || "").trim();
+          if (!cleanName) continue;
+          for (const rt of targetRoutes) {
+            const resolved = resolveRoute(rt);
+            itemsToInsert.push({
+              name: cleanName,
+              route_id: resolved.id,
+              route_name: resolved.name,
+              role: body.role || "Bucket Collector",
+              phone: body.phone || "",
+              email: body.email || "",
+              organisation: body.organisation || ""
+            });
+          }
+        }
+      }
+      // Pattern 2: Array of volunteers: { volunteers: [ { name, routes/routeId, ... } ] }
+      else if (Array.isArray(body.volunteers) && body.volunteers.length > 0) {
+        for (const v of body.volunteers) {
+          const cleanName = String(v.name || "").trim();
+          if (!cleanName) continue;
+          const targetRoutes = (Array.isArray(v.routes) && v.routes.length > 0)
+            ? v.routes
+            : [v.routeId || v.route_id || v.routeName || v.route_name || "General Helper"];
+          for (const rt of targetRoutes) {
+            const resolved = resolveRoute(rt);
+            itemsToInsert.push({
+              name: cleanName,
+              route_id: resolved.id,
+              route_name: resolved.name,
+              role: v.role || body.role || "Bucket Collector",
+              phone: v.phone || body.phone || "",
+              email: v.email || body.email || "",
+              organisation: v.organisation || body.organisation || ""
+            });
+          }
+        }
+      }
+      // Pattern 3: Single volunteer across multiple routes: { name, routes: [ ... ], role, ... }
+      else if (body.name && Array.isArray(body.routes) && body.routes.length > 0) {
+        const cleanName = String(body.name || "").trim();
+        for (const rt of body.routes) {
+          const resolved = resolveRoute(rt);
+          itemsToInsert.push({
+            name: cleanName,
+            route_id: resolved.id,
+            route_name: resolved.name,
+            role: body.role || "Bucket Collector",
+            phone: body.phone || "",
+            email: body.email || "",
+            organisation: body.organisation || ""
+          });
+        }
+      }
+      // Pattern 4: Classic single volunteer: { name, routeId, routeName, role, ... }
+      else if (body.name) {
+        const cleanName = String(body.name || "").trim();
+        const resolved = resolveRoute({
+          id: body.routeId || body.route_id,
+          name: body.routeName || body.route_name
+        });
+        itemsToInsert.push({
+          name: cleanName,
+          route_id: resolved.id,
+          route_name: resolved.name,
+          role: body.role || "Bucket Collector",
+          phone: body.phone || "",
+          email: body.email || "",
+          organisation: body.organisation || ""
+        });
+      }
+
+      if (itemsToInsert.length === 0) {
+        return jsonResponse({ error: "No valid volunteer names or route assignments provided." }, 400);
       }
 
       try {
-        await env.DB.prepare(`
+        const statements = itemsToInsert.map(item => env.DB.prepare(`
           INSERT INTO volunteers (table_id, route_id, route_name, name, role, phone, email, organisation, checked_in)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
         `).bind(
           table.id,
-          finalRouteId,
-          routeName || "General Helper",
-          name.trim(),
-          role || "Bucket Collector",
-          phone || "",
-          email || "",
-          organisation || ""
-        ).run();
+          item.route_id,
+          item.route_name,
+          item.name,
+          item.role,
+          item.phone,
+          item.email,
+          item.organisation
+        ));
+
+        for (let i = 0; i < statements.length; i += 100) {
+          const chunk = statements.slice(i, i + 100);
+          await env.DB.batch(chunk);
+        }
       } catch (err) {
-        await env.DB.prepare(`
+        const fallbackStatements = itemsToInsert.map(item => env.DB.prepare(`
           INSERT INTO volunteers (table_id, route_id, name, role, phone, email, organisation, checked_in)
           VALUES (?, ?, ?, ?, ?, ?, ?, 0)
         `).bind(
           table.id,
-          finalRouteId,
-          name.trim(),
-          role || "Bucket Collector",
-          phone || "",
-          email || "",
-          organisation || ""
-        ).run();
+          item.route_id,
+          item.name,
+          item.role,
+          item.phone,
+          item.email,
+          item.organisation
+        ));
+        for (let i = 0; i < fallbackStatements.length; i += 100) {
+          const chunk = fallbackStatements.slice(i, i + 100);
+          await env.DB.batch(chunk);
+        }
       }
 
-      return jsonResponse({ ok: true, message: "Registered successfully" });
+      return jsonResponse({
+        ok: true,
+        count: itemsToInsert.length,
+        message: itemsToInsert.length === 1
+          ? "Registered volunteer successfully"
+          : `Successfully assigned ${itemsToInsert.length} crew volunteer slot(s)`
+      });
     }
 
     // ==============================================================
