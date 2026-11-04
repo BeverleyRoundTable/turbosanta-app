@@ -72,6 +72,8 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
     let route_type = r?.route_type || (r?.is_static ? 'static' : 'tour');
     let static_stop_name = r?.static_stop_name || '';
     let static_stop_time = r?.static_stop_time || '';
+    let lead_marshal = r?.lead_marshal || '';
+    let tow_driver = r?.tow_driver || '';
 
     if (r?.notes) {
       const m = r.notes.match(/<!--\s*ROUTE_META:\s*({.*?})\s*-->/s);
@@ -83,10 +85,12 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
           if (parsed.route_type) route_type = parsed.route_type;
           if (parsed.static_stop_name) static_stop_name = parsed.static_stop_name;
           if (parsed.static_stop_time) static_stop_time = parsed.static_stop_time;
+          if (!lead_marshal && parsed.lead_marshal) lead_marshal = parsed.lead_marshal;
+          if (!tow_driver && parsed.tow_driver) tow_driver = parsed.tow_driver;
         } catch(e) {}
       }
     }
-    return { meeting_point, muster_time, route_type, static_stop_name, static_stop_time };
+    return { meeting_point, muster_time, route_type, static_stop_name, static_stop_time, lead_marshal, tow_driver };
   };
 
   const initialMeta = extractRouteMeta(route);
@@ -385,9 +389,11 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
       route_type: formData.route_type || 'tour',
       is_static: formData.route_type === 'static' ? 1 : 0,
       static_stop_name: (formData.static_stop_name || '').trim(),
-      static_stop_time: (formData.static_stop_time || '').trim()
+      static_stop_time: (formData.static_stop_time || '').trim(),
+      lead_marshal: (formData.lead_marshal || initialMeta.lead_marshal || route?.lead_marshal || '').trim(),
+      tow_driver: (formData.tow_driver || initialMeta.tow_driver || route?.tow_driver || '').trim()
     };
-    const hasMeta = Boolean(routeMeta.meeting_point || routeMeta.muster_time || routeMeta.static_stop_name || routeMeta.route_type === 'static');
+    const hasMeta = Boolean(routeMeta.meeting_point || routeMeta.muster_time || routeMeta.static_stop_name || routeMeta.route_type === 'static' || routeMeta.lead_marshal || routeMeta.tow_driver);
 
     let finalNotes = existingNotes;
     if (validSponsors.length > 0) {
@@ -411,6 +417,8 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
       muster_point: routeMeta.meeting_point,
       meeting_point: routeMeta.meeting_point,
       muster_time: routeMeta.muster_time,
+      lead_marshal: routeMeta.lead_marshal,
+      tow_driver: routeMeta.tow_driver,
       streets: streetsArray,
       notes: finalNotes,
       sponsors: validSponsors,

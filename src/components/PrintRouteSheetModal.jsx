@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Printer, Share2, Copy, Check, Phone, Shield, Clock, MapPin, AlertTriangle } from 'lucide-react';
+import { X, Printer, Share2, Copy, Check, Phone, Shield, Clock, MapPin, AlertTriangle, Save } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function PrintRouteSheetModal({
@@ -10,7 +10,8 @@ export default function PrintRouteSheetModal({
   volunteers = [],
   table = {},
   tableName = 'Round Table',
-  tableSlug = 'beverley'
+  tableSlug = 'beverley',
+  onSaveRoute
 }) {
   // Helper to extract or calculate default muster time (15 mins before start time)
   const calculateDefaultMuster = (startTime) => {
@@ -31,6 +32,23 @@ export default function PrintRouteSheetModal({
   const getInitialMeta = (r) => {
     let point = r?.muster_point || r?.meeting_point || '';
     let muster = r?.muster_time || '';
+    let lead = r?.lead_marshal || '';
+    let driver = r?.tow_driver || '';
+
+    // Check localStorage cache first
+    try {
+      if (r?.id && typeof window !== 'undefined') {
+        const cached = localStorage.getItem(`turbosanta_manifest_${r.id}`);
+        if (cached) {
+          const parsedCache = JSON.parse(cached);
+          if (!lead && parsedCache.leadMarshal) lead = parsedCache.leadMarshal;
+          if (!driver && parsedCache.towDriver) driver = parsedCache.towDriver;
+          if (!point && parsedCache.meetingLocation) point = parsedCache.meetingLocation;
+          if (!muster && parsedCache.musterTime) muster = parsedCache.musterTime;
+        }
+      }
+    } catch(e) {}
+
     if (r?.notes) {
       const match = r.notes.match(/<!--\s*ROUTE_META:\s*({.*?})\s*-->/s);
       if (match && match[1]) {
@@ -38,21 +56,28 @@ export default function PrintRouteSheetModal({
           const parsed = JSON.parse(match[1]);
           if (!point && (parsed.muster_point || parsed.meeting_point)) point = parsed.muster_point || parsed.meeting_point;
           if (!muster && parsed.muster_time) muster = parsed.muster_time;
+          if (!lead && parsed.lead_marshal) lead = parsed.lead_marshal;
+          if (!driver && parsed.tow_driver) driver = parsed.tow_driver;
         } catch(e) {}
       }
     }
     return {
       meetingLocation: point || table?.default_muster_point || 'Depot / Pavilion Car Park',
-      musterTime: muster || table?.default_muster_time || calculateDefaultMuster(r?.start_time)
+      musterTime: muster || table?.default_muster_time || calculateDefaultMuster(r?.start_time),
+      leadMarshal: lead || '',
+      towDriver: driver || ''
     };
   };
 
   const initialMeta = getInitialMeta(route);
-  const [leadMarshal, setLeadMarshal] = useState('');
-  const [towDriver, setTowDriver] = useState('');
+  const [leadMarshal, setLeadMarshal] = useState(initialMeta.leadMarshal || '');
+  const [towDriver, setTowDriver] = useState(initialMeta.towDriver || '');
   const [meetingLocation, setMeetingLocation] = useState(initialMeta.meetingLocation);
   const [musterTime, setMusterTime] = useState(initialMeta.musterTime);
   const [isCopied, setIsCopied] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   useEffect(() => {
     if (!isOpen || !route) return;
@@ -60,24 +85,113 @@ export default function PrintRouteSheetModal({
     setMeetingLocation(meta.meetingLocation);
     setMusterTime(meta.musterTime);
 
-    const rName = String(route.name || '').trim().toLowerCase();
-    const routeVols = (volunteers || []).filter(v => {
-      const vr = String(v.route_name || v.RouteName || '').trim().toLowerCase();
-      return !rName || vr === rName || vr.includes(rName) || rName.includes(vr);
-    });
-    const pool = routeVols.length > 0 ? routeVols : (volunteers || []);
-    const formatVol = (v) => {
-      if (!v) return '';
-      const name = String(v.name || v['Volunteer Name'] || '').trim();
-      const phone = String(v.phone || v['Phone'] || '').trim();
-      if (name && phone) return `${name} (${phone})`;
-      return name || phone || '';
-    };
-    const marshalVol = pool.find(v => /marshal|lead|head|organi[sz]er|coordinator|chair/i.test(String(v.role || v.Role || '')));
-    const driverVol = pool.find(v => /driver|tow|vehicle|tractor/i.test(String(v.role || v.Role || '')));
-    setLeadMarshal(formatVol(marshalVol));
-    setTowDriver(formatVol(driverVol));
+    let finalLead = meta.leadMarshal;
+    let finalDriver = meta.towDriver;
+
+    // Only look in volunteer roster if not already filled or saved
+    if (!finalLead || !finalDriver) {
+      const rName = String(route.name || '').trim().toLowerCase();
+      const routeVols = (volunteers || []).filter(v => {
+        const vr = String(v.route_name || v.RouteName || '').trim().toLowerCase();
+        return !rName || vr === rName || vr.includes(rName) || rName.includes(vr);
+      });
+      const pool = routeVols.length > 0 ? routeVols : (volunteers || []);
+      const formatVol = (v) => {
+        if (!v) return '';
+        const name = String(v.name || v['Volunteer Name'] || '').trim();
+        const phone = String(v.phone || v['Phone'] || '').trim();
+        if (name && phone) return `${name} (${phone})`;
+        return name || phone || '';
+      };
+      if (!finalLead) {
+        const marshalVol = pool.find(v => /marshal|lead|head|organi[sz]er|coordinator|chair/i.test(String(v.role || v.Role || '')));
+        if (marshalVol) finalLead = formatVol(marshalVol);
+      }
+      if (!finalDriver) {
+        const driverVol = pool.find(v => /driver|tow|vehicle|tractor/i.test(String(v.role || v.Role || '')));
+        if (driverVol) finalDriver = formatVol(driverVol);
+      }
+    }
+
+    setLeadMarshal(finalLead);
+    setTowDriver(finalDriver);
+    setHasUnsavedChanges(false);
   }, [isOpen, route?.id, route?.name, volunteers]);
+
+  const handleSaveManifestDetails = async (showFeedback = true) => {
+    if (!route) return;
+    setIsSaving(true);
+
+    try {
+      // 1. Cache locally for instant availability
+      if (typeof window !== 'undefined' && route.id) {
+        try {
+          localStorage.setItem(`turbosanta_manifest_${route.id}`, JSON.stringify({
+            leadMarshal,
+            towDriver,
+            meetingLocation,
+            musterTime
+          }));
+        } catch(e) {}
+      }
+
+      // 2. Parse existing ROUTE_META to preserve flags
+      let existingMeta = {};
+      if (route.notes) {
+        const m = route.notes.match(/<!--\s*ROUTE_META:\s*({.*?})\s*-->/s);
+        if (m && m[1]) {
+          try {
+            existingMeta = JSON.parse(m[1]);
+          } catch(e) {}
+        }
+      }
+
+      const updatedMeta = {
+        ...existingMeta,
+        lead_marshal: (leadMarshal || '').trim(),
+        tow_driver: (towDriver || '').trim(),
+        meeting_point: (meetingLocation || '').trim(),
+        muster_point: (meetingLocation || '').trim(),
+        muster_time: (musterTime || '').trim()
+      };
+
+      // Clean notes from previous ROUTE_META tag
+      const cleanNotes = (route.notes || '')
+        .replace(/<!--\s*ROUTE_META:.*?-->/gs, '')
+        .trim();
+
+      const finalNotes = cleanNotes
+        ? `${cleanNotes}\n<!-- ROUTE_META:${JSON.stringify(updatedMeta)} -->`
+        : `<!-- ROUTE_META:${JSON.stringify(updatedMeta)} -->`;
+
+      const updatedRoute = {
+        ...route,
+        lead_marshal: updatedMeta.lead_marshal,
+        tow_driver: updatedMeta.tow_driver,
+        muster_point: updatedMeta.muster_point,
+        meeting_point: updatedMeta.meeting_point,
+        muster_time: updatedMeta.muster_time,
+        notes: finalNotes
+      };
+
+      if (typeof onSaveRoute === 'function') {
+        await onSaveRoute(updatedRoute, streets);
+      }
+
+      setHasUnsavedChanges(false);
+      if (showFeedback) {
+        setSaveSuccess(true);
+        try {
+          confetti({ particleCount: 25, spread: 35, origin: { y: 0.2 } });
+        } catch(e) {}
+        setTimeout(() => setSaveSuccess(false), 3500);
+      }
+    } catch (err) {
+      console.error('Error saving manifest details:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   if (!isOpen || !route) return null;
 
@@ -110,6 +224,7 @@ export default function PrintRouteSheetModal({
   } catch (e) {}
 
   const handlePrint = () => {
+    handleSaveManifestDetails(false).catch(() => {});
     const printArea = document.getElementById('route-sheet-print-area');
     if (!printArea) {
       window.print();
@@ -328,6 +443,7 @@ export default function PrintRouteSheetModal({
   };
 
   const handleCopyWhatsApp = () => {
+    handleSaveManifestDetails(false).catch(() => {});
     let msg = `🎅 *${(tableName || 'ROUND TABLE').toUpperCase()} SANTA SLEIGH — TONIGHT'S RUN!* 🎅\n\n`;
     msg += `📅 *Date:* ${dateFormatted}\n`;
     msg += `📍 *Route:* ${route.name}\n`;
@@ -558,6 +674,32 @@ export default function PrintRouteSheetModal({
           <div className="sheet-modal-actions" style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
             <button
               type="button"
+              onClick={() => handleSaveManifestDetails(true)}
+              disabled={isSaving}
+              className="btn-success"
+              style={{
+                padding: '8px 16px',
+                fontSize: '13px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: saveSuccess ? '#16a34a' : (hasUnsavedChanges ? '#2563eb' : 'linear-gradient(135deg, #10b981, #059669)'),
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: 700,
+                cursor: isSaving ? 'not-allowed' : 'pointer',
+                boxShadow: hasUnsavedChanges ? '0 0 12px rgba(37, 99, 235, 0.4)' : '0 2px 8px rgba(16, 185, 129, 0.3)',
+                transition: 'all 0.2s ease'
+              }}
+              title="Save Contact Details & Meeting Info to Route database"
+            >
+              {saveSuccess ? <Check size={16} /> : isSaving ? <Clock size={16} className="animate-spin" /> : <Save size={16} />}
+              <span>{saveSuccess ? 'Saved to Route!' : isSaving ? 'Saving...' : 'Save Details'}</span>
+            </button>
+
+            <button
+              type="button"
               onClick={handleCopyWhatsApp}
               className="btn-secondary"
               style={{ padding: '8px 14px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(34, 197, 94, 0.12)', borderColor: '#22c55e', color: '#86efac' }}
@@ -605,7 +747,10 @@ export default function PrintRouteSheetModal({
               type="text"
               value={leadMarshal}
               placeholder="e.g. Dave - 07700 900123"
-              onChange={(e) => setLeadMarshal(e.target.value)}
+              onChange={(e) => {
+                setLeadMarshal(e.target.value);
+                setHasUnsavedChanges(true);
+              }}
               style={{ width: '100%', background: '#151513', border: '1px solid var(--border)', borderRadius: '6px', padding: '6px 10px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
             />
           </div>
@@ -617,7 +762,10 @@ export default function PrintRouteSheetModal({
               type="text"
               value={towDriver}
               placeholder="e.g. Mark - 07700 900456"
-              onChange={(e) => setTowDriver(e.target.value)}
+              onChange={(e) => {
+                setTowDriver(e.target.value);
+                setHasUnsavedChanges(true);
+              }}
               style={{ width: '100%', background: '#151513', border: '1px solid var(--border)', borderRadius: '6px', padding: '6px 10px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
             />
           </div>
@@ -628,7 +776,10 @@ export default function PrintRouteSheetModal({
             <input
               type="text"
               value={meetingLocation}
-              onChange={(e) => setMeetingLocation(e.target.value)}
+              onChange={(e) => {
+                setMeetingLocation(e.target.value);
+                setHasUnsavedChanges(true);
+              }}
               style={{ width: '100%', background: '#151513', border: '1px solid var(--border)', borderRadius: '6px', padding: '6px 10px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
             />
           </div>
@@ -639,9 +790,66 @@ export default function PrintRouteSheetModal({
             <input
               type="time"
               value={musterTime}
-              onChange={(e) => setMusterTime(e.target.value)}
+              onChange={(e) => {
+                setMusterTime(e.target.value);
+                setHasUnsavedChanges(true);
+              }}
               style={{ width: '100%', background: '#151513', border: '1px solid var(--border)', borderRadius: '6px', padding: '6px 10px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
             />
+          </div>
+
+          <div style={{
+            gridColumn: '1 / -1',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginTop: '4px',
+            paddingTop: '10px',
+            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+            flexWrap: 'wrap',
+            gap: '10px'
+          }}>
+            <div style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {hasUnsavedChanges ? (
+                <>
+                  <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6', boxShadow: '0 0 6px #3b82f6' }} />
+                  <span style={{ color: '#93c5fd', fontWeight: 600 }}>Unsaved contact details — click Save to persist to route & database.</span>
+                </>
+              ) : saveSuccess ? (
+                <>
+                  <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px #22c55e' }} />
+                  <span style={{ color: '#86efac', fontWeight: 600 }}>✓ Contact details successfully saved to route database.</span>
+                </>
+              ) : (
+                <>
+                  <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#6b7280' }} />
+                  <span style={{ color: 'var(--text-muted)' }}>Changes automatically update the preview below and auto-save on print/share.</span>
+                </>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => handleSaveManifestDetails(true)}
+              disabled={isSaving}
+              style={{
+                padding: '6px 14px',
+                fontSize: '12px',
+                fontWeight: 700,
+                background: saveSuccess ? '#16a34a' : (hasUnsavedChanges ? '#2563eb' : 'rgba(255,255,255,0.1)'),
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: isSaving ? 'not-allowed' : 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {saveSuccess ? <Check size={14} /> : isSaving ? <Clock size={14} /> : <Save size={14} />}
+              <span>{saveSuccess ? 'Saved!' : isSaving ? 'Saving...' : 'Save to Route'}</span>
+            </button>
           </div>
         </div>
 

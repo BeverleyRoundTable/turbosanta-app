@@ -2335,6 +2335,8 @@ ${tableName} Organizers`
   const handleSaveRoute = async (savedRoute, streetsArray) => {
     setSaveStatus(`Saving route "${savedRoute.name}" to database...`);
 
+    const safeStreets = Array.isArray(streetsArray) ? streetsArray : (savedRoute.streets || []);
+
     // 1. Optimistically update local React state
     if (onUpdateTableData) {
       onUpdateTableData(prev => {
@@ -2355,9 +2357,11 @@ ${tableName} Organizers`
           return (a.name || '').localeCompare(b.name || '');
         });
 
-        // Replace streets for this route
+        // Replace streets for this route if streets were provided
         const otherStreets = (prev.streets || []).filter(s => s.route_id !== savedRoute.id);
-        const newStreets = [...otherStreets, ...streetsArray];
+        const newStreets = safeStreets.length > 0
+          ? [...otherStreets, ...safeStreets]
+          : (prev.streets || []);
 
         return {
           ...prev,
@@ -2367,9 +2371,13 @@ ${tableName} Organizers`
       });
     }
 
+    if (sheetRoute && savedRoute.id === sheetRoute.id) {
+      setSheetRoute(savedRoute);
+    }
+
     // 2. Persist to Cloudflare D1
     const authSecret = session?.token || session?.googleCredential || getAdminAuthToken(currentTableSlug);
-    const res = await saveRoute(currentTableSlug, savedRoute, streetsArray, authSecret);
+    const res = await saveRoute(currentTableSlug, savedRoute, safeStreets, authSecret);
     if (res.ok) {
       setSaveStatus(`✓ Route "${savedRoute.name}" saved to D1 database!`);
     } else {
@@ -13023,6 +13031,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
         table={tableData?.table || formData}
         tableName={tableData?.table?.name || session?.tableName || 'Round Table'}
         tableSlug={currentTableSlug}
+        onSaveRoute={handleSaveRoute}
       />
 
 
