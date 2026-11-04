@@ -609,10 +609,11 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
     try {
       v.load();
     } catch (e) {}
+    let onTouch = null;
     const playPromise = v.play();
     if (playPromise !== undefined) {
       playPromise.catch(() => {
-        const onTouch = () => {
+        onTouch = () => {
           v.defaultMuted = true;
           v.muted = true;
           v.play().catch(() => {});
@@ -623,6 +624,12 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
         window.addEventListener('click', onTouch, { passive: true });
       });
     }
+    return () => {
+      if (onTouch) {
+        window.removeEventListener('touchstart', onTouch);
+        window.removeEventListener('click', onTouch);
+      }
+    };
   }, [isVideoEnabled, prefersReducedMotion, videoMp4]);
 
   // Pause ambient hero video when user scrolls down past hero to save GPU & battery

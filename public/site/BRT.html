@@ -409,13 +409,13 @@ caches your custom fonts for a year, drastically speeding up load times:
         // Fetch and Render Gallery Polaroids with instant Cache
 async function fetchGallery() {
     const CACHE_KEY = 'brt_gallery_cache';
-    const cached = sessionStorage.getItem(CACHE_KEY);
-    
-    // 1. Render instantly from cache if available
-    if (cached) {
-        const data = JSON.parse(cached);
-        applyGalleryImages(data);
-    }
+    try {
+        const cached = sessionStorage.getItem(CACHE_KEY);
+        if (cached) {
+            const data = JSON.parse(cached);
+            applyGalleryImages(data);
+        }
+    } catch (e) {}
 
     // 2. Fetch fresh data in background
     try {

@@ -5,7 +5,7 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react()],
   build: {
-    chunkSizeWarningLimit: 600,
+    chunkSizeWarningLimit: 800,
     rollupOptions: {
       output: {
         manualChunks(id) {
@@ -13,6 +13,7 @@ export default defineConfig({
             if (id.includes('xlsx')) return 'vendor-xlsx';
             if (id.includes('leaflet')) return 'vendor-leaflet';
             if (id.includes('lucide-react')) return 'vendor-icons';
+            if (id.includes('react-dom') || id.includes('/react/')) return 'vendor-react';
           }
         }
       }

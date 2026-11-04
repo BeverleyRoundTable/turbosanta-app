@@ -38,12 +38,20 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
 
   // Monitor Battery
   useEffect(() => {
+    let batteryObj = null;
+    const onLevelChange = () => {
+      if (batteryObj) setBatteryLevel(Math.round(batteryObj.level * 100));
+    };
     if ('getBattery' in navigator) {
       navigator.getBattery().then(batt => {
+        batteryObj = batt;
         setBatteryLevel(Math.round(batt.level * 100));
-        batt.addEventListener('levelchange', () => setBatteryLevel(Math.round(batt.level * 100)));
+        batt.addEventListener('levelchange', onLevelChange);
       }).catch(() => {});
     }
+    return () => {
+      if (batteryObj) batteryObj.removeEventListener('levelchange', onLevelChange);
+    };
   }, []);
 
   // Poll active Crew Alert from Lead Elf / Admin Portal
