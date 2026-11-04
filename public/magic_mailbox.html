@@ -660,17 +660,26 @@ function blobToBase64(blob) {
 
 (function() {
   if (window.self === window.top) return;
+  if (window.TurboSantaEmbed && typeof window.TurboSantaEmbed.notifyHeight === 'function') {
+    window.addEventListener('load', () => window.TurboSantaEmbed.notifyHeight());
+    return;
+  }
+  document.documentElement.style.minHeight = '0';
+  document.documentElement.style.height = 'auto';
+  document.body.style.minHeight = '0';
+  document.body.style.height = 'auto';
   let lastH = 0;
   const sendHeight = () => {
-    const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
-    if (h > 100 && Math.abs(h - lastH) > 4) {
+    const root = document.querySelector('.app, main, .container, .card') || document.body;
+    const h = Math.ceil(root.offsetHeight + 32);
+    if (h > 100 && Math.abs(h - lastH) >= 16) {
       lastH = h;
-      window.parent.postMessage({ type: 'turbosanta-resize', height: h + 16 }, '*');
+      window.parent.postMessage({ type: 'turbosanta-resize', height: h }, '*');
     }
   };
   window.addEventListener('load', sendHeight);
-  if (window.ResizeObserver) new ResizeObserver(sendHeight).observe(document.body);
-  setInterval(sendHeight, 1000);
+  const target = document.querySelector('.app, main, .container, .card') || document.body;
+  if (window.ResizeObserver && target) new ResizeObserver(sendHeight).observe(target);
 })();
 </script>
 </body>

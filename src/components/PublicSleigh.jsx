@@ -653,7 +653,8 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
     const handleMessage = (e) => {
       const h = e.data && Number(e.data.addressLookupHeight);
       if (Number.isFinite(h) && h >= 100 && h <= 5000) {
-        setAddressFrameHeight(Math.round(h));
+        const nextH = Math.round(h);
+        setAddressFrameHeight(prev => (Math.abs(prev - nextH) <= 20 ? prev : nextH));
       }
     };
     window.addEventListener('message', handleMessage);

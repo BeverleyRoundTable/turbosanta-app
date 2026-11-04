@@ -2000,14 +2000,17 @@
     }
   }
 
+  let lastSentAddrHeight = 0;
+  let lastAddrWidth = window.innerWidth;
+
   function sendHeight() {
     const root = document.getElementById('address-root');
-    const height = Math.max(
-      document.documentElement.scrollHeight,
-      document.body.scrollHeight,
-      root ? root.scrollHeight : 0
-    );
-    parent.postMessage({ addressLookupHeight: height }, "*");
+    if (!root) return;
+    const height = Math.ceil(root.offsetHeight + 84);
+    if (height > 100 && Math.abs(height - lastSentAddrHeight) >= 12) {
+      lastSentAddrHeight = height;
+      parent.postMessage({ addressLookupHeight: height }, "*");
+    }
   }
 
   let pendingFocusRoute = null;
@@ -2050,7 +2053,16 @@
 
   const observer = new MutationObserver(sendHeight);
   observer.observe(document.body, { childList: true, subtree: true });
-  window.addEventListener("resize", sendHeight);
+  if (window.ResizeObserver) {
+    const rootEl = document.getElementById('address-root');
+    if (rootEl) new ResizeObserver(sendHeight).observe(rootEl);
+  }
+  window.addEventListener("resize", () => {
+    if (window.innerWidth !== lastAddrWidth) {
+      lastAddrWidth = window.innerWidth;
+      sendHeight();
+    }
+  });
 
 </script>
 </body>

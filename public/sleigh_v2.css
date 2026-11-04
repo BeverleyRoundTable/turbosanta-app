@@ -932,7 +932,7 @@ body {
   display: block;
   background: transparent;
   overflow: hidden;
-  transition: height 0.2s ease;
+  overflow-anchor: none;
 }
 
 .iframe-container iframe {
@@ -940,6 +940,7 @@ body {
   border: none;
   display: block;
   background: transparent;
+  overflow-anchor: none;
 }
 
 #tracker-iframe {
@@ -959,7 +960,7 @@ body {
 #address-iframe {
   height: 520px;
   min-height: 440px;
-  transition: height 0.25s ease;
+  overflow-anchor: none;
 }
 
 /* --- RIGHT STAGE: NATIVE INTERACTIVE GPX RADAR CARD --- */

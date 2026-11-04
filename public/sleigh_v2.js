@@ -617,7 +617,7 @@
         for (let i = 0; i < iframes.length; i++) {
           if (iframes[i].contentWindow === e.source) {
             const currentH = parseInt(iframes[i].style.height, 10) || iframes[i].offsetHeight || 0;
-            if (Math.abs(currentH - targetH) < 16) break;
+            if (Math.abs(currentH - targetH) <= 20) break;
             iframes[i].style.height = targetH + 'px';
             iframes[i].setAttribute('height', targetH);
             break;

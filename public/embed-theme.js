@@ -260,44 +260,48 @@
   }
 
   var lastSentHeight = 0;
-  function getActualContentHeight() {
-    if (!document.body) return 0;
-    var container = document.querySelector(
-      '.chat-wrapper, .santa-checker, .cert-generator, .reindeer-station, ' +
+  function getContentRoot() {
+    if (!document.body) return null;
+    return document.querySelector(
+      '.app, #address-root, .chat-wrapper, .santa-checker, .cert-generator, .reindeer-station, ' +
       '.frame-wrapper, .studio-wrapper, .snowman-wrapper, .spot-wrapper, ' +
       '.countdown-container, .bingo-wrap, .door-hanger-wrap, .elf-cam-wrap, ' +
-      '.card, main, #app, .container'
+      'main, #app, .container, .wrapper, .card'
     );
+  }
+
+  function getActualContentHeight() {
+    if (!document.body) return 0;
+    var container = getContentRoot();
     if (container) {
-      var rect = container.getBoundingClientRect();
       var cStyle = window.getComputedStyle(container);
       var mt = parseFloat(cStyle.marginTop) || 0;
       var mb = parseFloat(cStyle.marginBottom) || 0;
       var bs = window.getComputedStyle(document.body);
       var pt = parseFloat(bs.paddingTop) || 0;
       var pb = parseFloat(bs.paddingBottom) || 0;
-      return Math.ceil(rect.height + mt + mb + pt + pb + 16);
+      return Math.ceil(container.offsetHeight + mt + mb + pt + pb + 16);
     }
     var children = document.body.children;
     var maxBottom = 0;
     for (var i = 0; i < children.length; i++) {
       var el = children[i];
-      if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE' || el.tagName === 'NOSCRIPT') continue;
+      if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE' || el.tagName === 'NOSCRIPT' || el.tagName === 'CANVAS') continue;
       if (el.offsetParent === null && el.offsetWidth === 0 && el.offsetHeight === 0) continue;
-      var r = el.getBoundingClientRect();
-      if (r.bottom > maxBottom) maxBottom = r.bottom;
+      var bottom = el.offsetTop + el.offsetHeight;
+      if (bottom > maxBottom) maxBottom = bottom;
     }
-    if (maxBottom > 50) return Math.ceil(maxBottom + 20);
-    return document.body.scrollHeight;
+    if (maxBottom > 50) return Math.ceil(maxBottom + 24);
+    return document.body.offsetHeight;
   }
 
   function notifyParentHeight() {
     if (!document.body || window.parent === window) return;
     var currentHeight = getActualContentHeight();
     if (!currentHeight || currentHeight < 60) return;
-    currentHeight = Math.min(currentHeight, 1050);
+    currentHeight = Math.min(currentHeight, 1400);
 
-    if (Math.abs(currentHeight - lastSentHeight) >= 12) {
+    if (Math.abs(currentHeight - lastSentHeight) >= 16) {
       lastSentHeight = currentHeight;
       window.parent.postMessage({
         type: "turbosanta-resize",
@@ -305,6 +309,12 @@
         path: window.location.pathname
       }, "*");
     }
+  }
+
+  function bindContentResizeObserver() {
+    if (!window.ResizeObserver || !document.body) return;
+    var target = getContentRoot() || document.body;
+    new ResizeObserver(notifyParentHeight).observe(target);
   }
 
   window.addEventListener("load", function () {
@@ -318,29 +328,21 @@
     document.addEventListener("DOMContentLoaded", function () {
       cleanEmojis();
       notifyParentHeight();
+      bindContentResizeObserver();
     });
   } else {
     cleanEmojis();
     notifyParentHeight();
-  }
-
-  if (window.ResizeObserver && document.body) {
-    new ResizeObserver(notifyParentHeight).observe(document.body);
-  } else {
-    document.addEventListener("DOMContentLoaded", function () {
-      if (window.ResizeObserver && document.body) {
-        new ResizeObserver(notifyParentHeight).observe(document.body);
-      }
-    });
+    bindContentResizeObserver();
   }
 
   if (window.MutationObserver) {
     var mo = new MutationObserver(function () {
       cleanEmojis();
-      notifyParentHeight();
+      if (!window.ResizeObserver) notifyParentHeight();
     });
     document.addEventListener("DOMContentLoaded", function () {
-      mo.observe(document.body, { childList: true, subtree: true, attributes: true });
+      mo.observe(document.body, { childList: true, subtree: true });
     });
   }
 
