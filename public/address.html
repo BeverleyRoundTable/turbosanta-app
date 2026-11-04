@@ -1217,8 +1217,16 @@
           map.addLayer(r.stopsLayer);
         }
       });
-      if (validLayers.length > 0) {
-        map.fitBounds(L.featureGroup(validLayers).getBounds(), { padding: [30, 30] });
+      const validBoundsLayers = validLayers.filter(l => l && typeof l.getBounds === 'function');
+      if (validBoundsLayers.length > 0) {
+        try {
+          const b = L.featureGroup(validBoundsLayers).getBounds();
+          if (b && typeof b.isValid === 'function' && b.isValid()) {
+            map.fitBounds(b, { padding: [30, 30] });
+          }
+        } catch(e) {
+          console.warn("Reset bounds failed:", e);
+        }
       }
     }
   }
