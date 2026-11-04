@@ -225,6 +225,25 @@
       color: var(--primary);
     }
 
+    /* ── PLANNED STOPS BADGES & CHIPS ── */
+    .addr-stop-badge {
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+    .addr-stop-badge:hover {
+      transform: translate(-14px, -14px) scale(1.22) !important;
+      border-color: #ffffff !important;
+      box-shadow: 0 6px 20px rgba(251, 175, 51, 0.8), 0 0 0 3px rgba(211, 28, 28, 0.5) !important;
+    }
+    .addr-stop-chip {
+      transition: all 0.18s ease;
+    }
+    .addr-stop-chip:hover {
+      background: rgba(211, 28, 28, 0.35) !important;
+      border-color: #ffffff !important;
+      transform: translateY(-1.5px);
+      box-shadow: 0 3px 10px rgba(251, 175, 51, 0.35);
+    }
+
     .addr-no-results {
       text-align: center;
       margin-top: 32px;
@@ -743,6 +762,15 @@
           const spList = extractRouteSponsors(r);
           const stTime = r.start_time || r['Start Time'] || r.startTime || '';
           const edTime = r.end_time || r['End Time'] || r.endTime || '';
+          let rawStops = [];
+          if (Array.isArray(r.planned_stops)) {
+            rawStops = r.planned_stops;
+          } else if (typeof r.planned_stops === 'string' && r.planned_stops.trim()) {
+            try { rawStops = JSON.parse(r.planned_stops); } catch(e) {}
+          } else if (Array.isArray(r.stops)) {
+            rawStops = r.stops;
+          }
+
           return {
             ...r,
             routeName: r.name || r.routeName || 'Santa Route',
@@ -752,15 +780,14 @@
             end_time: edTime,
             streets: r.streets || (routeStreets.length ? routeStreets.join(', ') : ''),
             gpxUrl: r.gpxUrl || r.gpx_url || '',
-            sponsors: spList
+            sponsors: spList,
+            planned_stops: rawStops
           };
         });
         const loadedLayers = [];
 
         // Colour is fixed by position in the API list, so one failed GPX never shifts the others
         routesData.forEach((route, index) => { route.color = routeColour(index); });
-
-        buildStreetIndex();
 
         await Promise.all(routesData.map(async (route, index) => {
           if (route.gpxUrl) {
@@ -769,9 +796,36 @@
               if (!gpxRes.ok) throw new Error("HTTP " + gpxRes.status);
               const gpxXml = await gpxRes.text();
               route.geoJSON = parseGPXToLineString(gpxXml);
+
+              // If route has no planned_stops from D1, extract any <wpt> tags from GPX
+              if (!route.planned_stops || route.planned_stops.length === 0) {
+                route.planned_stops = parseGPXWaypoints(gpxXml);
+              }
             } catch (e) { console.error("GPX load failed for", route.routeName, route.gpxUrl, e); }
           }
           // No hardcoded fallback — only genuine GPX tracks are mapped
+
+          // Normalize and filter valid planned stops
+          if (Array.isArray(route.planned_stops)) {
+            route.planned_stops = route.planned_stops.map((st, i) => ({
+              id: st.id || `stop_${i + 1}`,
+              lat: Number(st.lat),
+              lng: Number(st.lng !== undefined ? st.lng : st.lon),
+              name: st.name ? String(st.name).trim() : `Stop ${i + 1}`,
+              allocated_mins: (st.allocated_mins !== undefined && st.allocated_mins !== null) ? Number(st.allocated_mins) : (st.dwellMins || 0)
+            })).filter(st => !isNaN(st.lat) && !isNaN(st.lng));
+          }
+
+          // Build stopping points layer for this route
+          if (route.planned_stops && route.planned_stops.length > 0) {
+            route.stopsLayer = L.layerGroup();
+            route.planned_stops.forEach((stop, i) => {
+              const marker = createPlannedStopMarker(stop, i, route);
+              route.stopsLayer.addLayer(marker);
+            });
+            route.stopsLayer.addTo(map);
+            loadedLayers.push(route.stopsLayer);
+          }
 
           if (route.geoJSON) {
             route.mapLayer = L.geoJSON(route.geoJSON, {
@@ -814,6 +868,9 @@
             }
           }
         }));
+
+        // Build search index after GPX & stops are parsed
+        buildStreetIndex();
 
         // 📍 Dynamically center and scale map to fit all loaded API routes
         if (loadedLayers.length > 0) {
@@ -888,6 +945,123 @@
     }
     return null;
   }
+
+  function parseGPXWaypoints(xmlStr) {
+    if (!xmlStr || typeof xmlStr !== 'string') return [];
+    const stops = [];
+    try {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlStr, "text/xml");
+      const hasError = xmlDoc.getElementsByTagName("parsererror").length > 0;
+      if (!hasError) {
+        const wpts = xmlDoc.getElementsByTagName("wpt");
+        for (let i = 0; i < wpts.length; i++) {
+          const lat = parseFloat(wpts[i].getAttribute("lat"));
+          const lon = parseFloat(wpts[i].getAttribute("lon"));
+          const nameEl = wpts[i].getElementsByTagName("name")[0];
+          const name = nameEl ? nameEl.textContent.trim() : `Stop ${i + 1}`;
+          if (!isNaN(lat) && !isNaN(lon)) {
+            stops.push({ lat, lng: lon, name, id: `wpt_${i + 1}`, allocated_mins: 5 });
+          }
+        }
+      }
+    } catch(e) {
+      console.warn("DOMParser waypoints failed:", e);
+    }
+    if (stops.length === 0) {
+      const wptRegex = /<wpt\s+[^>]*?(?:lat=["']([^"']+)["'][^>]*?lon=["']([^"']+)["']|lon=["']([^"']+)["'][^>]*?lat=["']([^"']+)["'])[^>]*>(?:[\s\S]*?<name>([\s\S]*?)<\/name>)?[\s\S]*?<\/wpt>/gi;
+      let match;
+      let i = 1;
+      while ((match = wptRegex.exec(xmlStr)) !== null) {
+        const lat = parseFloat(match[1] !== undefined ? match[1] : match[4]);
+        const lon = parseFloat(match[2] !== undefined ? match[2] : match[3]);
+        const name = match[5] ? match[5].replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim() : `Stop ${i}`;
+        if (!isNaN(lat) && !isNaN(lon)) {
+          stops.push({ lat, lng: lon, name, id: `wpt_${i}`, allocated_mins: 5 });
+          i++;
+        }
+      }
+    }
+    return stops;
+  }
+
+  function createPlannedStopMarker(stop, index, route) {
+    const marker = L.marker([stop.lat, stop.lng], {
+      zIndexOffset: 3000 + index,
+      icon: L.divIcon({
+        className: 'addr-stop-icon-wrapper',
+        html: `
+          <div class="addr-stop-badge" style="
+            background: #D31C1C;
+            border: 2.5px solid #FBAF33;
+            color: #ffffff;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 12px;
+            font-family: 'Eurostile', 'Open Sans', -apple-system, sans-serif;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.7), 0 0 0 2px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transform: translate(-14px, -14px);
+          ">
+            ${index + 1}
+          </div>
+        `,
+        iconSize: [0, 0]
+      })
+    });
+
+    const dwellStr = stop.allocated_mins > 0 ? ` · ⏱️ ${stop.allocated_mins}m stop` : '';
+    marker.bindTooltip(`🛑 Stop #${index + 1}: ${esc(stop.name || 'Planned Stop')}${dwellStr}`, {
+      direction: 'top',
+      offset: [0, -16]
+    });
+
+    const popupHtml = `
+      <div style="font-family: 'Open Sans', -apple-system, sans-serif; min-width: 210px; color: #111; padding: 2px;">
+        <div style="font-weight: 900; font-size: 13px; color: #D31C1C; margin-bottom: 3px; display: flex; align-items: center; gap: 5px;">
+          <span>🛑 Planned Stop #${index + 1}</span>
+        </div>
+        <div style="font-size: 14px; font-weight: 800; color: #111; margin-bottom: 4px; line-height: 1.3;">
+          ${esc(stop.name || `Stop ${index + 1}`)}
+        </div>
+        ${stop.allocated_mins > 0 ? `
+          <div style="display: inline-flex; align-items: center; gap: 4px; background: rgba(251, 175, 51, 0.2); border: 1px solid rgba(251, 175, 51, 0.6); color: #854d0e; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; margin-bottom: 6px;">
+            ⏱️ Sleigh Stop: approx ${stop.allocated_mins} mins
+          </div>
+        ` : ''}
+        <div style="font-size: 11.5px; color: #666; border-top: 1px solid #eee; padding-top: 5px; margin-top: 4px;">
+          Route: <strong style="color: #111;">${esc(route.routeName)}</strong>
+        </div>
+      </div>
+    `;
+    marker.bindPopup(popupHtml);
+
+    marker.on('click', () => {
+      focusRoute(route.routeName);
+    });
+
+    return marker;
+  }
+
+  window.zoomToStop = function(lat, lng, stopName, stopNum) {
+    if (!map) return;
+    map.flyTo([lat, lng], 17, { duration: 1.0 });
+    routesData.forEach(r => {
+      if (r.stopsLayer) {
+        r.stopsLayer.eachLayer(layer => {
+          const ll = layer.getLatLng();
+          if (Math.abs(ll.lat - lat) < 0.0001 && Math.abs(ll.lng - lng) < 0.0001) {
+            setTimeout(() => layer.openPopup(), 650);
+          }
+        });
+      }
+    });
+  };
 
   document.getElementById('locateBtn').addEventListener('click', () => {
     const btn = document.getElementById('locateBtn');
@@ -1003,6 +1177,10 @@
       map.removeLayer(userPin);
       userPin = null;
     }
+    if (selectedRouteDecoration) {
+      try { map.removeLayer(selectedRouteDecoration); } catch(e) {}
+      selectedRouteDecoration = null;
+    }
     currentPinCoords = null;
     currentStreet = '';
     streetInputEl.value = '';
@@ -1018,7 +1196,16 @@
     sendHeight();
 
     if (routesData && routesData.length > 0) {
-      const validLayers = routesData.filter(r => r.mapLayer).map(r => r.mapLayer);
+      const validLayers = [];
+      routesData.forEach(r => {
+        if (r.mapLayer) {
+          r.mapLayer.setStyle({ color: r.color || PRIMARY, weight: 4, opacity: 0.85 });
+          validLayers.push(r.mapLayer);
+        }
+        if (r.stopsLayer && !map.hasLayer(r.stopsLayer)) {
+          map.addLayer(r.stopsLayer);
+        }
+      });
       if (validLayers.length > 0) {
         map.fitBounds(L.featureGroup(validLayers).getBounds(), { padding: [30, 30] });
       }
@@ -1144,6 +1331,24 @@
           locationLine = `📍 Santa visits <span style="color: var(--text);">${esc(currentStreet)}</span> on this route.`;
         }
 
+        // Closest planned stop if user dropped pin
+        if (route.planned_stops && route.planned_stops.length > 0 && currentPinCoords) {
+          let minDist = Infinity;
+          let closestStop = null;
+          let closestIdx = -1;
+          route.planned_stops.forEach((st, idx) => {
+            const d = map.distance([currentPinCoords.lat, currentPinCoords.lng], [st.lat, st.lng]);
+            if (d < minDist) {
+              minDist = d;
+              closestStop = st;
+              closestIdx = idx;
+            }
+          });
+          if (closestStop && minDist <= 1500) {
+            locationLine += `<br><span style="display:inline-block; margin-top:5px; color:#86efac; font-weight:700;">🛑 Nearest Planned Stop: #${closestIdx + 1} ${esc(closestStop.name)} (approx ${Math.round(minDist)}m away${closestStop.allocated_mins ? ` · ${closestStop.allocated_mins}m stop` : ''})</span>`;
+          }
+        }
+
         // Today emphasis banner with extra text info
         const todayBanner = isToday ? `
           <div style="background: rgba(251, 175, 51, 0.15); border: 1px solid var(--primary); border-radius: 8px; padding: 10px 14px; margin-top: 10px; display: flex; align-items: center; gap: 10px;">
@@ -1151,6 +1356,36 @@
             <span style="font-size: 13px; font-weight: 700; color: #fff;">🎅 Santa is on this route TONIGHT! Track him live from ${formatRouteClockDisplay(route.start_time || route['Start Time'])}</span>
           </div>
         ` : '';
+
+        // Planned Stops chip bar
+        let stopsHtml = '';
+        if (route.planned_stops && route.planned_stops.length > 0) {
+          stopsHtml = `
+            <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px;">
+                <div style="display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px;">
+                  <span>🛑 Planned Stops (${route.planned_stops.length})</span>
+                </div>
+                <span style="font-size: 11px; color: var(--text-dim);">Tap stop to highlight on map</span>
+              </div>
+              <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                ${route.planned_stops.map((st, idx) => `
+                  <button
+                    type="button"
+                    class="addr-stop-chip"
+                    onclick="event.stopPropagation(); zoomToStop(${st.lat}, ${st.lng}, '${esc(st.name)}', ${idx + 1})"
+                    style="background: rgba(211, 28, 28, 0.15); border: 1px solid rgba(251, 175, 51, 0.5); color: #fff; border-radius: 999px; padding: 4px 10px; font-size: 11.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;"
+                    title="Tap to view Stop #${idx + 1} (${esc(st.name)}) on map"
+                  >
+                    <span style="background: #D31C1C; color: #fff; width: 17px; height: 17px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900;">${idx + 1}</span>
+                    <span>${esc(st.name)}</span>
+                    ${st.allocated_mins > 0 ? `<span style="color: var(--primary); font-size: 10.5px;">(${st.allocated_mins}m)</span>` : ''}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }
 
         const sponsors = (Array.isArray(route.sponsors) && route.sponsors.length > 0)
           ? route.sponsors
@@ -1217,6 +1452,7 @@
             <p class="addr-route-date">${formattedDate} (Starts at approx ${formatRouteClockDisplay(route.start_time || route['Start Time'])})</p>
             ${todayBanner}
             ${locationLine ? `<p style="margin: 12px 0 0; font-size: 13px; font-weight: 600; color: var(--text-dim);">${locationLine}</p>` : ''}
+            ${stopsHtml}
             ${sponsorHtml}
             <div class="addr-btn-row">
               <button type="button" class="addr-btn addr-btn-primary addr-share-btn">📤 Share</button>
@@ -1342,6 +1578,14 @@
       if (r.mapLayer) {
         r.mapLayer.setStyle({ color: r.color || PRIMARY, weight: 4, opacity: 0.75 });
       }
+      if (r.stopsLayer) {
+        if (r.routeName === targetRouteName) {
+          if (!map.hasLayer(r.stopsLayer)) map.addLayer(r.stopsLayer);
+          try { r.stopsLayer.bringToFront(); } catch(e) {}
+        } else {
+          if (map.hasLayer(r.stopsLayer)) map.removeLayer(r.stopsLayer);
+        }
+      }
     });
 
     const selectedRoute = routesData.find(r => r.routeName === targetRouteName);
@@ -1351,6 +1595,10 @@
 
       if (selectedRoute.arrowLayer) {
         try { selectedRoute.arrowLayer.bringToFront(); } catch(e) {}
+      }
+
+      if (selectedRoute.stopsLayer) {
+        try { selectedRoute.stopsLayer.bringToFront(); } catch(e) {}
       }
 
       // Add Start & Finish markers to the focused route
@@ -1388,7 +1636,12 @@
         selectedRouteDecoration.addTo(map);
       }
 
-      map.flyToBounds(selectedRoute.mapLayer.getBounds(), { padding: [40, 40], duration: 1.2 });
+      // Collect layers for bounds fitting (polyline + stops if any)
+      const layersToFit = [selectedRoute.mapLayer];
+      if (selectedRoute.stopsLayer && selectedRoute.stopsLayer.getLayers().length > 0) {
+        layersToFit.push(selectedRoute.stopsLayer);
+      }
+      map.flyToBounds(L.featureGroup(layersToFit).getBounds(), { padding: [40, 40], duration: 1.2 });
     }
   }
 
@@ -1402,7 +1655,19 @@
     streetIndex = [];
     routesData.forEach(route => {
       String(route.streets || '').split(',').map(s => s.trim()).filter(Boolean)
-        .forEach(street => streetIndex.push({ street, route }));
+        .forEach(street => streetIndex.push({ street, rawName: street, route, isStop: false }));
+
+      (route.planned_stops || []).forEach((st, idx) => {
+        if (st.name) {
+          streetIndex.push({
+            street: `🛑 Stop #${idx + 1}: ${st.name}`,
+            rawName: st.name,
+            route,
+            isStop: true,
+            stop: st
+          });
+        }
+      });
     });
   }
 
@@ -1412,7 +1677,7 @@
     const q = query.trim().toLowerCase();
     if (q.length < 2) { closeSuggest(); return; }
 
-    const matches = streetIndex.filter(e => e.street.toLowerCase().includes(q));
+    const matches = streetIndex.filter(e => e.street.toLowerCase().includes(q) || (e.rawName && e.rawName.toLowerCase().includes(q)));
 
     if (matches.length === 0) {
       streetSuggest.innerHTML = '<div class="addr-suggest-empty">No streets found — try a different spelling</div>';
@@ -1444,10 +1709,15 @@
 
   function selectStreet(entry) {
     if (!entry) return;
-    streetInputEl.value = entry.street;
+    streetInputEl.value = entry.rawName || entry.street;
     streetInputEl.blur();
     closeSuggest();
-    showRouteMatches([entry.route], entry.street);
+    showRouteMatches([entry.route], entry.rawName || entry.street);
+    if (entry.isStop && entry.stop) {
+      setTimeout(() => {
+        zoomToStop(entry.stop.lat, entry.stop.lng, entry.stop.name, entry.stop.id);
+      }, 500);
+    }
   }
 
   // Cards for a street / shared-link lookup (no pin, so no distance)
