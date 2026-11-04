@@ -21,6 +21,16 @@
   <!-- Turf.js for Lightning-Fast Client-Side Spatial Math -->
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
+  <!-- Leaflet Polyline Decorator for directional route arrows -->
+  <script src="/leaflet.polylineDecorator.min.js"></script>
+  <script>
+    if (!window.L || !L.polylineDecorator) {
+      var decScript = document.createElement('script');
+      decScript.src = 'https://cdn.jsdelivr.net/npm/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.min.js';
+      document.head.appendChild(decScript);
+    }
+  </script>
+
   <style>
     @font-face {
       font-family: 'Eurostile';
@@ -767,10 +777,41 @@
             route.mapLayer = L.geoJSON(route.geoJSON, {
               color: route.color,
               weight: 4, 
-              opacity: 0.75
+              opacity: 0.85
             }).addTo(map);
 
             loadedLayers.push(route.mapLayer);
+
+            const coords = route.geoJSON.geometry && route.geoJSON.geometry.coordinates;
+            if (coords && coords.length >= 2) {
+              const latlngs = coords.map(c => [c[1], c[0]]);
+              if (window.L && typeof L.polylineDecorator === 'function') {
+                try {
+                  route.arrowLayer = L.polylineDecorator(latlngs, {
+                    patterns: [
+                      {
+                        offset: 35,
+                        repeat: 90,
+                        symbol: L.Symbol.arrowHead({
+                          pixelSize: 10,
+                          headAngle: 55,
+                          polygon: true,
+                          pathOptions: {
+                            stroke: true,
+                            color: '#111827',
+                            weight: 1.2,
+                            fillColor: '#ffffff',
+                            fillOpacity: 0.95
+                          }
+                        })
+                      }
+                    ]
+                  }).addTo(map);
+                } catch (err) {
+                  console.warn("Could not draw direction arrows on route:", route.routeName, err);
+                }
+              }
+            }
           }
         }));
 
@@ -1289,7 +1330,14 @@
     sendHeight();
   }
 
+  let selectedRouteDecoration = null;
+
   function focusRoute(targetRouteName) {
+    if (selectedRouteDecoration) {
+      try { map.removeLayer(selectedRouteDecoration); } catch(e) {}
+      selectedRouteDecoration = null;
+    }
+
     routesData.forEach(r => {
       if (r.mapLayer) {
         r.mapLayer.setStyle({ color: r.color || PRIMARY, weight: 4, opacity: 0.75 });
@@ -1300,6 +1348,45 @@
     if (selectedRoute && selectedRoute.mapLayer) {
       selectedRoute.mapLayer.setStyle({ color: selectedRoute.color || PRIMARY, weight: 8, opacity: 1 });
       selectedRoute.mapLayer.bringToFront();
+
+      if (selectedRoute.arrowLayer) {
+        try { selectedRoute.arrowLayer.bringToFront(); } catch(e) {}
+      }
+
+      // Add Start & Finish markers to the focused route
+      const coords = selectedRoute.geoJSON && selectedRoute.geoJSON.geometry && selectedRoute.geoJSON.geometry.coordinates;
+      if (coords && coords.length >= 2) {
+        const s = coords[0];
+        const e = coords[coords.length - 1];
+        const sLat = s[1], sLng = s[0];
+        const eLat = e[1], eLng = e[0];
+        const dist = map.distance([sLat, sLng], [eLat, eLng]);
+        const isLoop = dist < 35;
+
+        selectedRouteDecoration = L.layerGroup();
+        if (isLoop) {
+          const loopIcon = L.divIcon({
+            className: 'addr-route-terminal',
+            html: `<div style="background:#2563eb; color:#fff; font-family:'Open Sans',sans-serif; font-size:10px; font-weight:800; padding:2px 7px; border-radius:10px; border:1.5px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,0.5); white-space:nowrap; transform:translate(-50%,-120%); pointer-events:none;">🔄 Start &amp; Finish</div>`,
+            iconSize: [0, 0]
+          });
+          L.marker([sLat, sLng], { icon: loopIcon, interactive: false, zIndexOffset: 999 }).addTo(selectedRouteDecoration);
+        } else {
+          const sIcon = L.divIcon({
+            className: 'addr-route-terminal',
+            html: `<div style="background:#16a34a; color:#fff; font-family:'Open Sans',sans-serif; font-size:10px; font-weight:800; padding:2px 7px; border-radius:10px; border:1.5px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,0.5); white-space:nowrap; transform:translate(-50%,-120%); pointer-events:none;">🟢 Start</div>`,
+            iconSize: [0, 0]
+          });
+          const eIcon = L.divIcon({
+            className: 'addr-route-terminal',
+            html: `<div style="background:#dc2626; color:#fff; font-family:'Open Sans',sans-serif; font-size:10px; font-weight:800; padding:2px 7px; border-radius:10px; border:1.5px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,0.5); white-space:nowrap; transform:translate(-50%,-120%); pointer-events:none;">🏁 Finish</div>`,
+            iconSize: [0, 0]
+          });
+          L.marker([sLat, sLng], { icon: sIcon, interactive: false, zIndexOffset: 999 }).addTo(selectedRouteDecoration);
+          L.marker([eLat, eLng], { icon: eIcon, interactive: false, zIndexOffset: 999 }).addTo(selectedRouteDecoration);
+        }
+        selectedRouteDecoration.addTo(map);
+      }
 
       map.flyToBounds(selectedRoute.mapLayer.getBounds(), { padding: [40, 40], duration: 1.2 });
     }
