@@ -1764,8 +1764,8 @@ ${tableName} Organizers`
       name: 'Zeffy',
       tag: '100% Free / Zero Fees',
       badgeColor: '#22c55e',
-      description: 'Connect your 0%-fee Zeffy donation form and stream live donation alerts via Zapier or Make.',
-      guide: 'Zeffy connects to external webhooks via Zapier or Make.com. In your Zeffy Dashboard > Integrations > Zapier, select the "New Donation in Zeffy" trigger and add a "Webhooks by Zapier (POST)" action pointing to your TurboSanta Webhook URL above (passing amount and donor_name).'
+      description: 'Zeffy sends webhook alerts when someone donates via your online donation form.',
+      guide: 'In your Zeffy account > Settings > Integrations > Webhooks, add your Webhook URL and select "Donation Succeeded".'
     },
     {
       id: 'cash',
