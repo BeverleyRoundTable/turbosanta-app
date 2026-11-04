@@ -13,6 +13,14 @@
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="/leaflet.polylineDecorator.min.js"></script>
+<script>
+  if (!window.L || !L.polylineDecorator) {
+    var decScript = document.createElement('script');
+    decScript.src = 'https://cdn.jsdelivr.net/npm/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.min.js';
+    document.head.appendChild(decScript);
+  }
+</script>
 
 <style>
   @font-face {
@@ -482,6 +490,9 @@
       <div class="map-floating-tools" id="mapFloatingTools" style="position:absolute; top:10px; left:56px; z-index:1000; display:flex; gap:6px;">
         <button id="floatUndoBtn" class="btn btn-dim btn-sm" onclick="undo()" title="Undo last action (Ctrl+Z)" disabled style="background:rgba(18,18,18,0.9); backdrop-filter:blur(6px); border:1px solid var(--border); box-shadow:0 2px 8px rgba(0,0,0,0.6); padding:5px 12px; font-weight:700; height:30px; display:inline-flex; align-items:center; gap:4px;">↩ Undo</button>
         <button id="floatRedoBtn" class="btn btn-dim btn-sm" onclick="redo()" title="Redo action (Ctrl+Y)" disabled style="background:rgba(18,18,18,0.9); backdrop-filter:blur(6px); border:1px solid var(--border); box-shadow:0 2px 8px rgba(0,0,0,0.6); padding:5px 12px; font-weight:700; height:30px; display:inline-flex; align-items:center; gap:4px;">↪ Redo</button>
+        <button id="floatArrowsBtn" class="btn btn-dim btn-sm" onclick="toggleRouteArrows()" title="Toggle forward route direction arrows" style="background:rgba(18,18,18,0.9); backdrop-filter:blur(6px); border:1px solid var(--primary); color:#ffffff; box-shadow:0 2px 8px rgba(0,0,0,0.6); padding:5px 12px; font-weight:700; height:30px; display:inline-flex; align-items:center; gap:5px;">
+          <span>➡️</span> <span id="arrowsLabel">Arrows: ON</span>
+        </button>
       </div>
       <div class="map-toast" id="mapToast">Click the map to place waypoints</div>
       <div class="routing-spinner" id="routingSpinner"><div class="mini-spin"></div>Snapping to roads…</div>
@@ -546,6 +557,9 @@ const legCache = new Map();
 
 let snappedLayer = null;
 let uploadLayer = null;
+let routeArrowsLayer = null;
+let startFinishLayer = L.layerGroup();
+let showRouteArrows = true;
 let waypointMarkers = [];
 let existingRouteLayers = [];
 let stopsLayer = L.layerGroup();
@@ -571,6 +585,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap', maxZoom: 19
 }).addTo(map);
 stopsLayer.addTo(map);
+startFinishLayer.addTo(map);
 
 setTimeout(() => { map.invalidateSize(); }, 200);
 
@@ -1548,11 +1563,13 @@ function drawSnappedRoute() {
   });
 
   updateStats();
+  updateRouteArrows();
 }
 
 function clearSnappedRoute() {
   if (snappedLayer) { map.removeLayer(snappedLayer); snappedLayer = null; }
   if (snappedHitLayer) { map.removeLayer(snappedHitLayer); snappedHitLayer = null; }
+  clearRouteArrows();
   snappedGeometry = [];
   window.legGeometries = [];
   document.getElementById('statsSection').style.display = 'none';
@@ -1560,6 +1577,133 @@ function clearSnappedRoute() {
   const tackEl = document.getElementById('tackSection');
   if (tackEl) tackEl.style.display = 'none';
   document.getElementById('mapLegend').style.display = 'none';
+}
+
+function toggleRouteArrows() {
+  showRouteArrows = !showRouteArrows;
+  const btn = document.getElementById('floatArrowsBtn');
+  const label = document.getElementById('arrowsLabel');
+  if (btn && label) {
+    if (showRouteArrows) {
+      btn.style.color = '#ffffff';
+      btn.style.borderColor = 'var(--primary)';
+      label.textContent = 'Arrows: ON';
+    } else {
+      btn.style.color = 'var(--text-muted)';
+      btn.style.borderColor = 'var(--border)';
+      label.textContent = 'Arrows: OFF';
+    }
+  }
+  if (!showRouteArrows) {
+    clearRouteArrows();
+  } else {
+    updateRouteArrows();
+  }
+}
+
+function clearRouteArrows() {
+  if (routeArrowsLayer) {
+    try { map.removeLayer(routeArrowsLayer); } catch(e) {}
+    routeArrowsLayer = null;
+  }
+  if (startFinishLayer) {
+    startFinishLayer.clearLayers();
+  }
+}
+
+function updateRouteArrows() {
+  clearRouteArrows();
+  if (!showRouteArrows) return;
+
+  const targetLayer = snappedLayer || uploadLayer;
+  if (!targetLayer) return;
+
+  const latlngs = targetLayer.getLatLngs ? targetLayer.getLatLngs() : null;
+  if (!latlngs || latlngs.length < 2) return;
+
+  // Flatten if nested
+  const flatPoints = (Array.isArray(latlngs[0]) && typeof latlngs[0][0] === 'object')
+    ? latlngs.flat()
+    : latlngs;
+
+  if (flatPoints.length < 2) return;
+
+  // 1. Draw forward-pointing directional chevron arrows along the polyline
+  if (window.L && typeof L.polylineDecorator === 'function') {
+    try {
+      routeArrowsLayer = L.polylineDecorator(targetLayer, {
+        patterns: [
+          {
+            offset: 30,
+            repeat: 85,
+            symbol: L.Symbol.arrowHead({
+              pixelSize: 11,
+              headAngle: 55,
+              polygon: true,
+              pathOptions: {
+                stroke: true,
+                color: '#111827',
+                weight: 1.5,
+                fillColor: '#ffffff',
+                fillOpacity: 0.95
+              }
+            })
+          }
+        ]
+      }).addTo(map);
+    } catch (err) {
+      console.warn('PolylineDecorator render error:', err);
+    }
+  } else {
+    // Retry if script is still loading asynchronously
+    setTimeout(updateRouteArrows, 250);
+  }
+
+  // 2. Add Start & Finish Badges
+  try {
+    const startPt = flatPoints[0];
+    const endPt = flatPoints[flatPoints.length - 1];
+
+    const getLat = p => (p.lat !== undefined ? p.lat : p[0]);
+    const getLng = p => (p.lng !== undefined ? p.lng : p[1]);
+
+    const sLat = getLat(startPt);
+    const sLng = getLng(startPt);
+    const eLat = getLat(endPt);
+    const eLng = getLng(endPt);
+
+    const distStartEnd = map.distance([sLat, sLng], [eLat, eLng]);
+    const isLoop = distStartEnd < 35; // Start and finish within 35m
+
+    if (isLoop) {
+      const loopIcon = L.divIcon({
+        className: 'route-terminal-badge',
+        html: `<div style="background:#2563eb; color:#fff; font-family:'Open Sans',sans-serif; font-size:10.5px; font-weight:800; padding:3px 9px; border-radius:12px; border:2px solid #fff; box-shadow:0 3px 10px rgba(0,0,0,0.6); white-space:nowrap; transform:translate(-50%,-120%); pointer-events:none;">🔄 Start &amp; Finish</div>`,
+        iconSize: [0, 0]
+      });
+      L.marker([sLat, sLng], { icon: loopIcon, interactive: false, zIndexOffset: 950 }).addTo(startFinishLayer);
+    } else {
+      const startIcon = L.divIcon({
+        className: 'route-terminal-badge',
+        html: `<div style="background:#16a34a; color:#fff; font-family:'Open Sans',sans-serif; font-size:10.5px; font-weight:800; padding:3px 9px; border-radius:12px; border:2px solid #fff; box-shadow:0 3px 10px rgba(0,0,0,0.6); white-space:nowrap; transform:translate(-50%,-120%); pointer-events:none;">🟢 Start</div>`,
+        iconSize: [0, 0]
+      });
+      const finishIcon = L.divIcon({
+        className: 'route-terminal-badge',
+        html: `<div style="background:#dc2626; color:#fff; font-family:'Open Sans',sans-serif; font-size:10.5px; font-weight:800; padding:3px 9px; border-radius:12px; border:2px solid #fff; box-shadow:0 3px 10px rgba(0,0,0,0.6); white-space:nowrap; transform:translate(-50%,-120%); pointer-events:none;">🏁 Finish</div>`,
+        iconSize: [0, 0]
+      });
+
+      L.marker([sLat, sLng], { icon: startIcon, interactive: false, zIndexOffset: 950 }).addTo(startFinishLayer);
+      L.marker([eLat, eLng], { icon: finishIcon, interactive: false, zIndexOffset: 950 }).addTo(startFinishLayer);
+    }
+
+    if (!map.hasLayer(startFinishLayer)) {
+      startFinishLayer.addTo(map);
+    }
+  } catch (err) {
+    console.warn('Start/finish badges error:', err);
+  }
 }
 
 const dropzone = document.getElementById('dropzone');
@@ -1645,12 +1789,14 @@ function parseGPX(text, name, size) {
   if (upAct) upAct.style.display = 'block';
 
   updateStats();
+  updateRouteArrows();
   detectStreets();
 }
 
 function clearUpload() {
   abortGeocode();
   if (uploadLayer) { map.removeLayer(uploadLayer); uploadLayer = null; }
+  clearRouteArrows();
   uploadedPoints = [];
   if (stopsLayer) stopsLayer.clearLayers();
   window.plannedStops = [];
