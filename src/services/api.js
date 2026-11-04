@@ -357,7 +357,7 @@ export async function saveTableSettings(tableSlug = "beverley", settings = {}, e
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error || `HTTP ${res.status}`);
+      throw new Error(errData.message || errData.error || `HTTP ${res.status}`);
     }
     return await res.json();
   } catch (err) {
@@ -457,7 +457,7 @@ export async function askAdminAssistant(tableSlug = "beverley", { message, histo
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error || `HTTP ${res.status}`);
+      throw new Error(errData.message || errData.error || `HTTP ${res.status}`);
     }
     return await res.json();
   } catch (err) {
@@ -504,7 +504,7 @@ export async function saveRoute(tableSlug = "beverley", route = {}, streets = []
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error || `HTTP ${res.status}`);
+      throw new Error(errData.message || errData.error || `HTTP ${res.status}`);
     }
     return await res.json();
   } catch (err) {
@@ -525,7 +525,7 @@ export async function deleteRoute(tableSlug = "beverley", routeId = "", explicit
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error || `HTTP ${res.status}`);
+      throw new Error(errData.message || errData.error || `HTTP ${res.status}`);
     }
     return await res.json();
   } catch (err) {
@@ -544,7 +544,7 @@ export async function recordCashDonation(tableSlug = "beverley", cashData = {}, 
     });
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error || `HTTP ${res.status}`);
+      throw new Error(errData.message || errData.error || `HTTP ${res.status}`);
     }
     return await res.json();
   } catch (err) {
@@ -627,7 +627,7 @@ export async function exportGiftAidCsv(tableSlug = "beverley", statusFilter = "A
     });
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error || `HTTP ${res.status}`);
+      throw new Error(errData.message || errData.error || `HTTP ${res.status}`);
     }
     return await res.json();
   } catch (err) {
