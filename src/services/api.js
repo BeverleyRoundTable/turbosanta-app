@@ -776,6 +776,49 @@ export async function sendVolunteerBroadcastEmail(tableSlug = "beverley", { rout
 }
 
 // ==============================================================
+// 👥 VOLUNTEER AMENDMENT & DELETION (D1)
+// ==============================================================
+export async function updateVolunteer(tableSlug = "beverley", volunteerData, explicitSecret = null) {
+  try {
+    const slug = (tableSlug || "beverley").toLowerCase().trim();
+    const token = explicitSecret || getAdminAuthToken(slug);
+
+    const res = await fetch(`${API_BASE}/api/volunteers?table=${encodeURIComponent(slug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
+      method: "PUT",
+      headers: getAuthHeaders(token, slug),
+      body: JSON.stringify({ ...volunteerData, secret: token })
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  } catch (err) {
+    console.error("updateVolunteer error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
+export async function deleteVolunteer(tableSlug = "beverley", volunteerId, explicitSecret = null) {
+  try {
+    const slug = (tableSlug || "beverley").toLowerCase().trim();
+    const token = explicitSecret || getAdminAuthToken(slug);
+
+    const res = await fetch(`${API_BASE}/api/volunteers?table=${encodeURIComponent(slug)}&id=${encodeURIComponent(volunteerId)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(token, slug),
+      body: JSON.stringify({ id: volunteerId, secret: token })
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  } catch (err) {
+    console.error("deleteVolunteer error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
+// ==============================================================
 // 🤖 AUTOMATED 2-HOUR CREW BRIEFINGS (STATUS & MANUAL TRIGGER)
 // ==============================================================
 export async function triggerAutomatedCrewBriefings(tableSlug = "beverley", { routeId, dryRun = false, testEmail = null } = {}, explicitSecret = null) {

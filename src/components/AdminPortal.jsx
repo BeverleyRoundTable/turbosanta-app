@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { logoutAdmin, isNationalAdmin, getAdminAuthToken } from '../services/auth';
-import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, saveRoute, deleteRoute, connectTableGmail, disconnectTableGmail, testTableGmailAlert, fetchSubscribers, clearSubscribers, triggerAutomatedCrewBriefings, fetchAutomatedCrewBriefingStatus, uploadAssetToR2, fetchGiftAidSummary, updateGiftAidStatus, exportGiftAidCsv } from '../services/api';
+import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, saveRoute, deleteRoute, connectTableGmail, disconnectTableGmail, testTableGmailAlert, fetchSubscribers, clearSubscribers, triggerAutomatedCrewBriefings, fetchAutomatedCrewBriefingStatus, uploadAssetToR2, fetchGiftAidSummary, updateGiftAidStatus, exportGiftAidCsv, updateVolunteer, deleteVolunteer } from '../services/api';
 import { extractRouteSponsors } from '../utils/sponsors';
 import DropzoneUpload from './DropzoneUpload';
 import RouteEditorModal from './RouteEditorModal';
@@ -22,6 +22,7 @@ import KnowledgeBase from './KnowledgeBase';
 import CashBucketModal from './CashBucketModal';
 import PrintRouteSheetModal from './PrintRouteSheetModal';
 import VolunteerEmailModal from './VolunteerEmailModal';
+import VolunteerEditorModal from './VolunteerEditorModal';
 import AdminAssistantModal from './AdminAssistantModal';
 import SocialPostModal from './SocialPostModal';
 import CrewBriefingAiModal from './CrewBriefingAiModal';
@@ -270,6 +271,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   const [volunteerCopiedType, setVolunteerCopiedType] = useState(null); // 'emails' | 'phones'
   const [isVolunteerEmailModalOpen, setIsVolunteerEmailModalOpen] = useState(false);
   const [emailModalInitialRoute, setEmailModalInitialRoute] = useState('all');
+  const [isVolunteerEditorOpen, setIsVolunteerEditorOpen] = useState(false);
+  const [editingVolunteer, setEditingVolunteer] = useState(null);
 
   // Automated 2-Hour Crew Briefings State
   const [isBriefingDispatching, setIsBriefingDispatching] = useState(false);
@@ -586,6 +589,48 @@ ${tableName} Organizers`
     URL.revokeObjectURL(url);
     setSaveStatus(`📥 Exported ${volList.length} volunteer(s) to CSV spreadsheet!`);
     setTimeout(() => setSaveStatus(''), 3000);
+  };
+
+  const handleOpenVolunteerEditor = (vol = null) => {
+    setEditingVolunteer(vol);
+    setIsVolunteerEditorOpen(true);
+  };
+
+  const handleDeleteVolunteer = async (vol) => {
+    if (!vol || !vol.id) return;
+    const volName = getVolName(vol) || 'this volunteer';
+    if (!window.confirm(`Are you sure you want to remove "${volName}" from the roster? This cannot be undone.`)) {
+      return;
+    }
+
+    const slug = currentTableSlug || session?.tableSlug || session?.tableId || 'beverley';
+    const secret = session?.googleCredential || session?.token || getAdminAuthToken(slug);
+
+    try {
+      setSaveStatus(`Removing ${volName}...`);
+      const res = await deleteVolunteer(slug, vol.id, secret);
+      if (res && res.ok) {
+        setVolunteers(prev => prev.filter(v => (v.id || v) !== vol.id));
+        setSaveStatus(`✅ Removed ${volName} from crew roster.`);
+        setTimeout(() => setSaveStatus(''), 3000);
+      } else {
+        alert(`Failed to delete volunteer: ${res?.error || 'Unknown error'}`);
+        setSaveStatus('');
+      }
+    } catch (err) {
+      console.error("Error deleting volunteer:", err);
+      alert(`Error deleting volunteer: ${err.message}`);
+      setSaveStatus('');
+    }
+  };
+
+  const handleVolunteerSaved = (savedVol, isNew) => {
+    if (isNew) {
+      setVolunteers(prev => [savedVol, ...prev]);
+    } else {
+      setVolunteers(prev => prev.map(v => (v.id === savedVol.id ? { ...v, ...savedVol } : v)));
+    }
+    fetchVolunteersList();
   };
 
   // 1-Tap WhatsApp Crew Run Sheet & Safety Briefing Generator (Tool 2)
@@ -6914,6 +6959,29 @@ ${tableName} Organizers`
                       paddingTop: '8px',
                       borderTop: '1px solid rgba(255, 255, 255, 0.06)'
                     }}>
+                      {/* Add Volunteer Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleOpenVolunteerEditor(null)}
+                        style={{
+                          padding: '8px 14px',
+                          fontSize: '12px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          background: '#22c55e',
+                          color: '#000',
+                          fontWeight: 700,
+                          borderRadius: '6px',
+                          border: 'none',
+                          cursor: 'pointer'
+                        }}
+                        title="Manually add a new volunteer or elf to the roster"
+                      >
+                        <Plus size={14} />
+                        <span>Add Volunteer</span>
+                      </button>
+
                       {/* Email All (Free Bcc) */}
                       <button
                         type="button"
@@ -7021,16 +7089,27 @@ ${tableName} Organizers`
                           : 'Try selecting "All Routes" or clearing your search query.'}
                       </p>
                       {volunteers.length === 0 && (
-                        <a
-                          href={`https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/crew`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn-primary"
-                          style={{ padding: '8px 16px', fontSize: '12px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                        >
-                          <ExternalLink size={14} />
-                          <span>Preview Crew Sign-Up Form</span>
-                        </a>
+                        <div style={{ display: 'inline-flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenVolunteerEditor(null)}
+                            className="btn-primary"
+                            style={{ padding: '8px 16px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                          >
+                            <Plus size={14} />
+                            <span>Add Volunteer</span>
+                          </button>
+                          <a
+                            href={`https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/crew`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-secondary"
+                            style={{ padding: '8px 16px', fontSize: '12px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                          >
+                            <ExternalLink size={14} />
+                            <span>Preview Crew Sign-Up Form</span>
+                          </a>
+                        </div>
                       )}
                     </div>
                   ) : (
@@ -7196,6 +7275,54 @@ ${tableName} Organizers`
                                         <span>Email</span>
                                       </a>
                                     ) : null}
+
+                                    {/* Edit Volunteer */}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenVolunteerEditor(vol)}
+                                      style={{
+                                        background: 'rgba(251, 175, 51, 0.15)',
+                                        color: 'var(--primary)',
+                                        border: '1px solid rgba(251, 175, 51, 0.4)',
+                                        padding: '6px 9px',
+                                        borderRadius: '6px',
+                                        fontSize: '11px',
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        transition: 'background 0.15s'
+                                      }}
+                                      title={`Edit ${name}'s role, route assignment, or contact info`}
+                                    >
+                                      <Edit3 size={12} />
+                                      <span>Edit</span>
+                                    </button>
+
+                                    {/* Delete Volunteer */}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteVolunteer(vol)}
+                                      style={{
+                                        background: 'rgba(239, 68, 68, 0.12)',
+                                        color: '#fca5a5',
+                                        border: '1px solid rgba(239, 68, 68, 0.35)',
+                                        padding: '6px 8px',
+                                        borderRadius: '6px',
+                                        fontSize: '11px',
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        transition: 'background 0.15s'
+                                      }}
+                                      title={`Remove ${name} from volunteer roster`}
+                                    >
+                                      <Trash2 size={12} />
+                                      <span>Delete</span>
+                                    </button>
                                   </div>
                                 </td>
                               </tr>
@@ -13244,6 +13371,20 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
           setSaveStatus('📧 Broadcast successfully dispatched to volunteers via Google Workspace Gmail BCC!');
           setTimeout(() => setSaveStatus(''), 5000);
         }}
+      />
+
+      {/* Volunteer Crew Editor & Adder Modal */}
+      <VolunteerEditorModal
+        isOpen={isVolunteerEditorOpen}
+        onClose={() => {
+          setIsVolunteerEditorOpen(false);
+          setEditingVolunteer(null);
+        }}
+        volunteer={editingVolunteer}
+        routes={tableData?.routes || []}
+        tableSlug={currentTableSlug}
+        token={session?.googleCredential || session?.token || getAdminAuthToken(currentTableSlug)}
+        onSaved={handleVolunteerSaved}
       />
 
       {/* TurboSanta Operations Co-Pilot AI Chatbot Modal */}
