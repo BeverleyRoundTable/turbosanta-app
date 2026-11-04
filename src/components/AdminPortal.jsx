@@ -1810,7 +1810,8 @@ ${tableName} Organizers`
       tag: '100% Free / Zero Fees',
       badgeColor: '#22c55e',
       description: 'Zeffy sends webhook alerts when someone donates via your online donation form.',
-      guide: 'In your Zeffy account > Settings > Integrations > Webhooks, add your Webhook URL and select "Donation Succeeded".'
+      guide: 'In your Zeffy account > Settings > Integrations > Webhooks, add your Webhook URL and select "Donation Succeeded".',
+      testMethod: 'In Zeffy > Settings > Integrations > Webhooks (or via Zapier connected to Zeffy), click "Send Test" / make a £1.00 live test donation on your Zeffy form, then refresh this page to see it appear in Active Campaign Totals below (you can delete the test row afterwards).'
     },
     {
       id: 'cash',
@@ -1818,7 +1819,8 @@ ${tableName} Organizers`
       tag: 'Nightly Bucket Reconciler',
       badgeColor: '#f59e0b',
       description: 'Log verified street bucket cash and coin counts to unite offline and online fundraising.',
-      guide: 'Click "Log Cash Bucket Tally" to enter tonight’s physical coin/cash collection verified by dual counters.'
+      guide: 'Click "Log Cash Bucket Tally" to enter tonight’s physical coin/cash collection verified by dual counters.',
+      testMethod: 'Use the Nightly Cash & Coin Bucket Reconciler form above to log a test tally directly into your ledger.'
     },
     {
       id: 'stripe',
@@ -1826,7 +1828,8 @@ ${tableName} Organizers`
       tag: 'Native Stripe Webhooks',
       badgeColor: '#6366f1',
       description: 'Stripe triggers instant real-time webhooks on Checkout sessions, Payment Links, Apple Pay & Google Pay.',
-      guide: 'In your Stripe Dashboard > Developers > Webhooks > Add endpoint, paste your full Webhook URL above (which includes your ?secret= token) and select checkout.session.completed and payment_intent.succeeded.'
+      guide: 'In your Stripe Dashboard > Developers > Webhooks > Add endpoint, paste your full Webhook URL above (which includes your ?secret= token) and select checkout.session.completed and payment_intent.succeeded.',
+      testMethod: 'In your Stripe Dashboard > Developers > Webhooks > click your TurboSanta endpoint > click "Send test webhook" (or use Workbench / make a £1 payment link test) and verify that Stripe shows HTTP 200 OK.'
     },
     {
       id: 'sumup',
@@ -1834,7 +1837,8 @@ ${tableName} Organizers`
       tag: 'API Key Auto-Sync',
       badgeColor: '#0ea5e9',
       description: 'Automatically sync physical SumUp Air / Solo / 3G street card reader taps & QR links via your SumUp Secret Key.',
-      guide: 'Physical SumUp card readers do not send outgoing webhooks! Instead, in your SumUp Dashboard (me.sumup.com) > Profile icon (top-right) > For Developers > API Keys, create a Secret Key (sup_sk_...) and paste it in the SumUp API Key box above. TurboSanta will automatically poll your SumUp transaction history and add every card tap to your live sleigh total!'
+      guide: 'Physical SumUp card readers do not send outgoing webhooks! Instead, in your SumUp Dashboard (me.sumup.com) > Profile icon (top-right) > For Developers > API Keys, create a Secret Key (sup_sk_...) and paste it in the SumUp API Key box above. TurboSanta will automatically poll your SumUp transaction history and add every card tap to your live sleigh total!',
+      testMethod: 'Click the blue "🔄 Save & Sync SumUp Now" button in the SumUp API Key box above! That directly connects to api.sumup.com/v0.1/me using your sup_sk_... key and verifies your live SumUp merchant account.'
     },
     {
       id: 'justgiving',
@@ -1842,7 +1846,8 @@ ${tableName} Organizers`
       tag: 'Zero-Code URL Auto-Sync',
       badgeColor: '#ec4899',
       description: 'Sync your public JustGiving campaign page total automatically every 10 minutes with zero developer setup.',
-      guide: 'Standard JustGiving fundraising pages do not require manual webhooks! Simply paste your public JustGiving Campaign URL in the Auto-Sync box above and click "Save & Sync Now".'
+      guide: 'Standard JustGiving fundraising pages do not require manual webhooks! Simply paste your public JustGiving Campaign URL in the Auto-Sync box above and click "Save & Sync Now".',
+      testMethod: 'Click the pink "🔄 Save & Sync JustGiving Now" button in the JustGiving Auto-Sync box above! That fetches your live public JustGiving campaign page and pulls your real total raised.'
     },
     {
       id: 'tickettailor',
@@ -1850,7 +1855,8 @@ ${tableName} Organizers`
       tag: 'API Key + Webhook Sync',
       badgeColor: '#10b981',
       description: 'Sync completed Ticket Tailor orders & sleigh bookings via API key (sk_...) or real-time order webhooks.',
-      guide: 'Option 1 (Recommended): Paste your Ticket Tailor API key (sk_...) in the Auto-Sync box above. Option 2 (Instant Webhooks): Paste the Webhook URL above in Ticket Tailor > Settings > Webhooks and select order.created / order.completed.'
+      guide: 'Option 1 (Recommended): Paste your Ticket Tailor API key (sk_...) in the Auto-Sync box above. Option 2 (Instant Webhooks): Paste the Webhook URL above in Ticket Tailor > Settings > Webhooks and select order.created / order.completed.',
+      testMethod: 'For Option 1 (API Key): Click "🔄 Save & Sync Ticket Tailor" above to test your sk_... key against api.tickettailor.com. For Option 2 (Webhooks): In Ticket Tailor > Settings > Webhooks, click "Test" next to your TurboSanta URL and verify it returns 200 OK.'
     },
     {
       id: 'paypal',
@@ -1858,7 +1864,8 @@ ${tableName} Organizers`
       tag: 'Native PayPal Webhooks',
       badgeColor: '#eab308',
       description: 'Capture PayPal QR code, Checkout, and Donate button payments using PayPal Developer Webhooks.',
-      guide: 'In developer.paypal.com > My Apps & Credentials > Webhooks > Add Webhook, paste the full Webhook URL above and subscribe to PAYMENT.CAPTURE.COMPLETED.'
+      guide: 'In developer.paypal.com > My Apps & Credentials > Webhooks > Add Webhook, paste the full Webhook URL above and subscribe to PAYMENT.CAPTURE.COMPLETED.',
+      testMethod: 'In developer.paypal.com > Tools > Webhook Simulator, paste your TurboSanta Webhook URL above, choose event type "PAYMENT.CAPTURE.COMPLETED", and click "Send Test".'
     },
     {
       id: 'donorbox',
@@ -1866,7 +1873,8 @@ ${tableName} Organizers`
       tag: 'Native Donorbox Webhooks',
       badgeColor: '#2563eb',
       description: 'Capture online gifts and recurring pledges instantly when supporters donate via your Donorbox form or widget.',
-      guide: 'In your Donorbox Dashboard > Account > API & Zapier > Webhooks, add the Webhook URL above and enable the "Donation Created" event.'
+      guide: 'In your Donorbox Dashboard > Account > API & Zapier > Webhooks, add the Webhook URL above and enable the "Donation Created" event.',
+      testMethod: 'In Donorbox > Account > API & Zapier > Webhooks, click "Send Test Webhook" next to your TurboSanta URL and check that Donorbox reports 200 OK.'
     },
     {
       id: 'square',
@@ -1874,7 +1882,8 @@ ${tableName} Organizers`
       tag: 'Native Square Webhooks',
       badgeColor: '#006aff',
       description: 'Stream instant donations from Square Reader contactless card taps, Square Terminal, Stand, or Square Online checkout.',
-      guide: 'In your Square Developer Dashboard (developer.squareup.com) > Webhooks > Add Webhook, paste the Webhook URL above and subscribe to payment.updated and payment.created.'
+      guide: 'In your Square Developer Dashboard (developer.squareup.com) > Webhooks > Add Webhook, paste the Webhook URL above and subscribe to payment.updated and payment.created.',
+      testMethod: 'In your Square Developer Dashboard (developer.squareup.com) > Webhooks > Subscriptions > click your TurboSanta subscription > click "More (⋯) > Test event", select "payment.updated", and click "Send" — Square will push a real £1.00 test event to TurboSanta and return 200 OK! (Or tap a £1.00 live payment on your Square Reader).'
     },
     {
       id: 'custom',
@@ -1882,7 +1891,8 @@ ${tableName} Organizers`
       tag: 'Automations & Custom Code',
       badgeColor: '#a855f7',
       description: 'Post any standard JSON payload from Zapier, Make, GoCardless, or your own software.',
-      guide: 'Send an HTTP POST request with JSON {"amount": 10.00, "donorName": "Jane"} to the Webhook URL above.'
+      guide: 'Send an HTTP POST request with JSON {"amount": 10.00, "donorName": "Jane"} to the Webhook URL above.',
+      testMethod: 'In Zapier or Make, run a "Test Step" POSTing {"amount": 10.00, "donorName": "Test Donor"} to your Webhook URL above (without &dry_run=true) and verify it appears in the Live Donation Breakdown below.'
     }
   ];
 
@@ -2323,14 +2333,22 @@ ${tableName} Organizers`
         throw new Error(data.error || `HTTP ${res.status}`);
       }
 
-      // Confetti celebration!
-      confetti({
-        particleCount: 50,
-        spread: 60,
-        origin: { y: 0.7 }
-      });
+      const realCount = Number(data.real_events_received || 0);
+      const lastRealAt = data.last_real_event_at;
+      const apiConfigured = data.api_configured;
 
-      setWebhookTestMessage(`✅ Verified! Webhook endpoint successfully received & parsed £${amt.toFixed(2)} for ${provider.toUpperCase()}. (Dry-Run: verified successfully without adding fake records to your database).`);
+      if (apiConfigured === false && realCount === 0) {
+        setWebhookTestMessage(`⚠️ Local Receiver Online (parsed simulated £${amt.toFixed(2)}), BUT no ${provider.toUpperCase()} API Key / URL is saved for this table yet! This dry-run only tests TurboSanta's internal parser from your browser. To test your real ${provider.toUpperCase()} account, paste your key/URL in the Auto-Sync box above and click "Save & Sync".`);
+      } else if (realCount > 0) {
+        confetti({
+          particleCount: 50,
+          spread: 60,
+          origin: { y: 0.7 }
+        });
+        setWebhookTestMessage(`✅ TurboSanta Receiver Verified (parsed £${amt.toFixed(2)}) — AND 🟢 ${realCount} real ${provider.toUpperCase()} payment event(s) have been received by your table${lastRealAt ? ` (last received: ${lastRealAt} UTC)` : ''}!`);
+      } else {
+        setWebhookTestMessage(`ℹ️ TurboSanta Receiver Online (parsed simulated £${amt.toFixed(2)} from your browser). ⚠️ Note: 0 real webhooks have arrived from ${provider.toUpperCase()} yet — this simulator only tests TurboSanta's URL & parser, NOT your ${provider.toUpperCase()} account. Follow "Step 2: Direct Provider → TurboSanta Test" above to verify your real ${provider.toUpperCase()} link.`);
+      }
     } catch (e) {
       setWebhookTestMessage(`❌ Test ping failed: ${e.message}`);
     } finally {
@@ -4692,7 +4710,7 @@ ${tableName} Organizers`
                     border: '1px solid rgba(255, 255, 255, 0.08)',
                     borderRadius: '10px',
                     padding: '16px',
-                    marginBottom: '24px',
+                    marginBottom: '16px',
                     display: 'flex',
                     gap: '12px',
                     alignItems: 'flex-start'
@@ -4700,7 +4718,7 @@ ${tableName} Organizers`
                     <Zap size={20} color="var(--primary)" style={{ flexShrink: 0, marginTop: '2px' }} />
                     <div style={{ fontSize: '13px', lineHeight: 1.5 }}>
                       <strong style={{ color: '#fff', display: 'block', marginBottom: '4px' }}>
-                        How to connect {currentProvider.name}:
+                        Step 1: How to Connect {currentProvider.name}:
                       </strong>
                       <span style={{ color: 'var(--text-muted)' }}>
                         {currentProvider.guide}
@@ -4708,26 +4726,66 @@ ${tableName} Organizers`
                     </div>
                   </div>
 
-                  {/* Live Webhook Simulator / Test Ping */}
+                  {/* Direct End-to-End Test Method & Live Status */}
+                  {(() => {
+                    const providerBreakdown = (tableData?.donation_breakdown || tableData?.table?.donation_breakdown || [])
+                      .find(item => String(item.source || '').toLowerCase() === String(currentProvider.id).toLowerCase());
+                    const realEventsCount = Number(providerBreakdown?.count || 0);
+                    const realTotalAmount = Number(providerBreakdown?.total || 0);
+
+                    return (
+                      <div style={{
+                        background: realEventsCount > 0 ? 'rgba(34, 197, 94, 0.08)' : 'rgba(245, 158, 11, 0.07)',
+                        border: `1px solid ${realEventsCount > 0 ? 'rgba(34, 197, 94, 0.35)' : 'rgba(245, 158, 11, 0.35)'}`,
+                        borderRadius: '10px',
+                        padding: '16px',
+                        marginBottom: '20px'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+                          <strong style={{ fontSize: '13.5px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span>Step 2: Direct End-to-End Test ({currentProvider.name} &rarr; TurboSanta)</span>
+                          </strong>
+                          <span style={{
+                            fontSize: '11.5px',
+                            fontWeight: 700,
+                            padding: '3px 10px',
+                            borderRadius: '999px',
+                            background: realEventsCount > 0 ? 'rgba(34, 197, 94, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                            color: realEventsCount > 0 ? '#86efac' : '#fde68a',
+                            border: `1px solid ${realEventsCount > 0 ? '#22c55e' : '#f59e0b'}`
+                          }}>
+                            {realEventsCount > 0
+                              ? `🟢 Verified Live: ${realEventsCount} real event${realEventsCount === 1 ? '' : 's'} (£${realTotalAmount.toFixed(2)})`
+                              : `⚪ 0 live events received from ${currentProvider.name} yet`}
+                          </span>
+                        </div>
+                        <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.55 }}>
+                          {currentProvider.testMethod}
+                        </p>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Local Receiver Simulator / Dry-Run Ping */}
                   <div style={{
                     background: '#151513',
                     border: '1px solid var(--border)',
                     borderRadius: '10px',
                     padding: '20px'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                       <Send size={16} color="var(--primary)" />
                       <strong style={{ fontSize: '15px', color: '#fff' }}>
-                        Test Your {currentProvider.name} Webhook Live
+                        Local Receiver Simulator (Tests TurboSanta URL &amp; Parser Only)
                       </strong>
                     </div>
-                    <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-                      Send a simulated donation to verify that incoming payments successfully increment your table's total raised figure.
+                    <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginBottom: '16px', lineHeight: 1.5 }}>
+                      Sends a simulated {currentProvider.name} JSON payload from your browser to your TurboSanta endpoint in <code>dry_run</code> mode. Note: Because webhooks are one-way pushes from {currentProvider.name} &rarr; TurboSanta, this local simulator verifies that TurboSanta&apos;s receiver is online, while <strong>Step 2 above</strong> verifies your external {currentProvider.name} account.
                     </p>
 
                     <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '14px' }}>
                       <div style={{ width: '130px' }}>
-                        <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Test Amount (£)</label>
+                        <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Simulated Amount (£)</label>
                         <input
                           type="number"
                           step="0.5"
@@ -4745,7 +4803,7 @@ ${tableName} Organizers`
                         />
                       </div>
                       <div style={{ flex: 1, minWidth: '180px' }}>
-                        <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Test Donor Name</label>
+                        <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Simulated Donor Name</label>
                         <input
                           type="text"
                           value={testDonorName}
@@ -4769,23 +4827,28 @@ ${tableName} Organizers`
                         style={{ marginTop: '18px', padding: '9px 20px', background: 'var(--primary)' }}
                       >
                         <Send size={15} />
-                        <span>{isSendingTestWebhook ? 'Sending...' : 'Send Test Webhook'}</span>
+                        <span>{isSendingTestWebhook ? 'Simulating...' : 'Simulate Receiver Payload (Dry-Run)'}</span>
                       </button>
                     </div>
 
-                    {webhookTestMessage && (
-                      <div style={{
-                        padding: '10px 14px',
-                        borderRadius: '6px',
-                        background: 'rgba(34, 197, 94, 0.12)',
-                        border: '1px solid #22c55e',
-                        color: '#86efac',
-                        fontSize: '13px',
-                        fontWeight: 600
-                      }}>
-                        {webhookTestMessage}
-                      </div>
-                    )}
+                    {webhookTestMessage && (() => {
+                      const isErr = webhookTestMessage.startsWith('❌');
+                      const isWarn = webhookTestMessage.startsWith('⚠️') || webhookTestMessage.startsWith('ℹ️');
+                      return (
+                        <div style={{
+                          padding: '10px 14px',
+                          borderRadius: '6px',
+                          background: isErr ? 'rgba(239, 68, 68, 0.12)' : (isWarn ? 'rgba(245, 158, 11, 0.12)' : 'rgba(34, 197, 94, 0.12)'),
+                          border: `1px solid ${isErr ? '#ef4444' : (isWarn ? '#f59e0b' : '#22c55e')}`,
+                          color: isErr ? '#fca5a5' : (isWarn ? '#fde68a' : '#86efac'),
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          lineHeight: 1.5
+                        }}>
+                          {webhookTestMessage}
+                        </div>
+                      );
+                    })()}
                   </div>
                   </>
                 )}
