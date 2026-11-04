@@ -370,6 +370,86 @@
         font-size: 24px; /* Scales down route titles for narrow screens */
       }
     }
+
+    /* ── DOORSTEP ALERT BOX & MOBILE CONTAINMENT ── */
+    .addr-alert-box {
+      background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.16) 0%, rgba(20, 20, 18, 0.96) 100%);
+      border: 2px solid var(--primary);
+      border-radius: 16px;
+      padding: 18px 16px;
+      margin-bottom: 18px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+      box-sizing: border-box;
+      width: 100%;
+      overflow: hidden;
+    }
+    .addr-alert-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 14px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    @media (min-width: 580px) {
+      .addr-alert-form {
+        flex-direction: row;
+      }
+    }
+    .addr-alert-input {
+      flex: 1 1 auto;
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      box-sizing: border-box;
+    }
+    .addr-alert-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary-glow);
+    }
+    .addr-alert-btn {
+      min-height: 44px;
+      padding: 11px 16px;
+      border-radius: 10px;
+      border: none;
+      background: var(--primary);
+      color: var(--on-primary);
+      font-family: 'Eurostile', sans-serif;
+      font-size: 13.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-sizing: border-box;
+      white-space: normal;
+      text-align: center;
+      word-break: break-word;
+      flex-shrink: 0;
+      transition: filter 0.15s ease, transform 0.1s ease;
+    }
+    .addr-alert-btn:hover {
+      filter: brightness(1.1);
+    }
+    .addr-alert-btn:active {
+      transform: scale(0.98);
+    }
+    @media (max-width: 579px) {
+      .addr-alert-btn {
+        width: 100%;
+      }
+    }
     
   </style>
 </head>
@@ -1262,51 +1342,50 @@
 
         if (isSignupActive) {
           resultsDiv.innerHTML += `
-            <div id="doorstepAlertBox" style="background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.16) 0%, rgba(20, 20, 18, 0.96) 100%); border: 2px solid var(--primary); border-radius: 16px; padding: 20px; margin-bottom: 18px; box-shadow: 0 12px 30px rgba(0,0,0,0.45);">
+            <div id="doorstepAlertBox" class="addr-alert-box">
               <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
-                <div>
+                <div style="flex: 1 1 200px;">
                   <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(34, 197, 94, 0.16); border: 1px solid rgba(34, 197, 94, 0.45); color: #86efac; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
                     <span>📍 Pin Linked to Live Tracker ETA</span>
                   </div>
-                  <h4 style="margin: 0 0 6px; font-family: 'Eurostile', sans-serif; font-size: 20px; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">
+                  <h4 style="margin: 0 0 6px; font-family: 'Eurostile', sans-serif; font-size: 19px; color: #fff; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.25;">
                     🔔 Get a Doorstep Email Alert
                   </h4>
                   <p style="margin: 0; font-size: 13px; color: var(--text-dim); line-height: 1.45;">
                     Your house pin is saved! Enter your email below and we will automatically email you as soon as Santa comes within <strong style="color: #fff;">${notifyRadiusMeters}m</strong> of your pin on <strong style="color: var(--primary);">${esc(routeNamesList)}</strong> — plus the Live Tracker will show your real-time doorstep ETA.
                   </p>
                 </div>
-                <button type="button" id="clearPinHeaderBtn" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.18); color: var(--text-dim); font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;">
+                <button type="button" id="clearPinHeaderBtn" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.18); color: var(--text-dim); font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s; white-space: nowrap;">
                   ✕ Clear Pin
                 </button>
               </div>
-              </div>
-              <form id="doorstepAlertForm" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px;" onsubmit="return false;">
+              <form id="doorstepAlertForm" class="addr-alert-form" onsubmit="return false;">
                 <input
                   type="email"
                   id="doorstepEmailInput"
+                  class="addr-alert-input"
                   value="${esc(savedEmail)}"
                   placeholder="Enter your email address for doorstep alerts..."
                   required
-                  style="flex: 1 1 220px; min-height: 44px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); background: rgba(0,0,0,0.55); color: #fff; font-size: 14px; font-family: inherit; outline: none;"
                 />
                 <button
                   type="submit"
                   id="doorstepAlertSubmitBtn"
-                  style="min-height: 44px; padding: 10px 20px; border-radius: 10px; border: none; background: var(--primary); color: var(--on-primary); font-family: 'Eurostile', sans-serif; font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; cursor: pointer; white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,0.35);"
+                  class="addr-alert-btn"
                 >
-                  🔔 Alert Me When Santa Is Near
+                  <span>🔔</span> <span>Alert Me When Santa Is Near</span>
                 </button>
               </form>
-              <div id="doorstepAlertFeedback" style="display: none; margin-top: 12px; font-size: 13px; font-weight: 700; padding: 10px 14px; border-radius: 10px;"></div>
+              <div id="doorstepAlertFeedback" style="display: none; margin-top: 12px; font-size: 13px; font-weight: 700; padding: 10px 14px; border-radius: 10px; word-break: break-word; box-sizing: border-box;"></div>
             </div>
           `;
         } else {
           resultsDiv.innerHTML += `
-            <div id="doorstepAlertBox" style="background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.16) 0%, rgba(20, 20, 18, 0.96) 100%); border: 2px solid var(--primary); border-radius: 16px; padding: 20px; margin-bottom: 18px; box-shadow: 0 12px 30px rgba(0,0,0,0.45);">
+            <div id="doorstepAlertBox" class="addr-alert-box">
               <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(34, 197, 94, 0.16); border: 1px solid rgba(34, 197, 94, 0.45); color: #86efac; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
                 <span>📍 Pin Linked to Live Tracker</span>
               </div>
-              <h4 style="margin: 0 0 6px; font-family: 'Eurostile', sans-serif; font-size: 20px; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">
+              <h4 style="margin: 0 0 6px; font-family: 'Eurostile', sans-serif; font-size: 19px; color: #fff; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.25;">
                 House Pin Active
               </h4>
               <p style="margin: 0; font-size: 13px; color: var(--text-dim); line-height: 1.45;">
@@ -1922,7 +2001,12 @@
   }
 
   function sendHeight() {
-    const height = document.documentElement.scrollHeight;
+    const root = document.getElementById('address-root');
+    const height = Math.max(
+      document.documentElement.scrollHeight,
+      document.body.scrollHeight,
+      root ? root.scrollHeight : 0
+    );
     parent.postMessage({ addressLookupHeight: height }, "*");
   }
 

@@ -612,7 +612,7 @@
       // 3. Dynamic auto-resizing of iframes based on their content height
       const rawH = e.data.height || e.data.frameHeight || e.data.routesHeight || e.data.letterHeight || e.data.niceListHeight || e.data.santasBeenHeight || e.data.snowmanFrameHeight || e.data.addressLookupHeight;
       if (typeof rawH === 'number' && rawH > 60) {
-        const targetH = Math.min(Math.max(Math.round(rawH), 320), 1200);
+        const targetH = Math.min(Math.max(Math.round(rawH), 320), 2400);
         const iframes = document.querySelectorAll('iframe');
         for (let i = 0; i < iframes.length; i++) {
           if (iframes[i].contentWindow === e.source) {
