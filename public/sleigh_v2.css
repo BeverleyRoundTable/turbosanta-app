@@ -1980,6 +1980,150 @@ body {
   border-color: var(--primary);
 }
 
+/* --- SUPPORTED CHARITY APPEALS & STREET DRIVES --- */
+.appeals-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 20px;
+}
+
+.appeal-card {
+  background: var(--surface-glass);
+  border: 1px solid rgba(251, 175, 51, 0.25);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+.appeal-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(251, 175, 51, 0.55);
+  box-shadow: 0 12px 36px rgba(251, 175, 51, 0.15);
+}
+
+.appeal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.appeal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(251, 175, 51, 0.15);
+  color: var(--primary);
+  border: 1px solid rgba(251, 175, 51, 0.35);
+}
+
+.appeal-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  margin: 8px 0 0 0;
+  line-height: 1.3;
+}
+
+.appeal-logo-stage {
+  width: 90px;
+  height: 60px;
+  flex-shrink: 0;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.appeal-logo-stage img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.appeal-desc {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.appeal-conditions-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.appeal-conditions-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #fbbf24;
+}
+
+.appeal-conditions-content {
+  font-size: 13px;
+  color: #e2e8f0;
+  line-height: 1.55;
+  white-space: pre-line;
+}
+
+.appeal-handover-box {
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: #86efac;
+  line-height: 1.45;
+}
+
+.appeal-link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  border: 1px solid var(--border-subtle);
+  transition: all 0.2s ease;
+  margin-top: auto;
+}
+
+.appeal-link-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(251, 175, 51, 0.5);
+  color: var(--primary);
+}
+
 /* --- UNIFIED PARTNERS & SPONSORS PEDESTAL --- */
 .partners-pedestal-grid {
   display: grid;

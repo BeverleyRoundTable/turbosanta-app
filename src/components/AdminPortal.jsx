@@ -5,7 +5,7 @@ import {
   Users, Plus, Trash2, Edit3, Smartphone, Code, Copy,
   MapPin, Bell, Activity, MessageSquare, Check, X, BookOpen, FileSpreadsheet,
   Camera, Video, Image as ImageIcon, FolderDown, Eye, EyeOff, Sparkles, Filter,
-  CreditCard, Key, Zap, RefreshCw, Send, Link2,
+  CreditCard, Key, Zap, RefreshCw, Send, Link2, Gift,
   BarChart3, TrendingUp, Award, Printer, PieChart, Receipt,
   Mail, HardDrive, AlertTriangle, Database, FileText, Coins, Share2, QrCode, ArrowUpDown, Volume2, VolumeX, Music, Play, Pause, UploadCloud,
   Phone, MessageCircle, UserCheck, Search, Clock, Bot, CheckCircle, Navigation, ChevronLeft, ChevronRight
@@ -1234,6 +1234,17 @@ ${tableName} Organizers`
       }
       return [];
     })(),
+    supported_appeals: (() => {
+      let raw = tableData?.table?.supported_appeals || tableData?.supported_appeals;
+      if (!raw && tableData?.table?.supported_appeals_json) {
+        try {
+          raw = typeof tableData.table.supported_appeals_json === 'string'
+            ? JSON.parse(tableData.table.supported_appeals_json)
+            : tableData.table.supported_appeals_json;
+        } catch (e) {}
+      }
+      return Array.isArray(raw) ? raw : [];
+    })(),
     gemini_model: tableData?.table?.gemini_model || localStorage.getItem('turbosanta_global_gemini_model') || 'auto',
     enable_colouring: Boolean(tableData?.table?.enable_colouring),
     elevenlabs_agent_id: tableData?.table?.elevenlabs_agent_id || (currentTableSlug === 'beverley' ? 'agent_4401kxaqcqygfb4940wnc4a9haeh' : (currentTableSlug === 'abergavenny' ? 'agent_2101m5d5sktze0rb4mchkhaz1aqj' : '')),
@@ -1370,6 +1381,17 @@ ${tableName} Organizers`
             }];
           }
           return prev.partners || [];
+        })(),
+        supported_appeals: (() => {
+          let raw = tableData.table.supported_appeals || tableData.supported_appeals;
+          if (!raw && tableData.table.supported_appeals_json) {
+            try {
+              raw = typeof tableData.table.supported_appeals_json === 'string'
+                ? JSON.parse(tableData.table.supported_appeals_json)
+                : tableData.table.supported_appeals_json;
+            } catch (e) {}
+          }
+          return Array.isArray(raw) ? raw : (prev.supported_appeals || []);
         })(),
         gemini_model: tableData.table.gemini_model || prev.gemini_model || 'auto',
         enable_colouring: tableData.table.enable_colouring !== undefined ? Boolean(tableData.table.enable_colouring) : prev.enable_colouring,
@@ -1579,6 +1601,64 @@ ${tableName} Organizers`
         headline_sponsor_logo: lead.logo || ''
       };
     });
+  };
+
+  // Supported Charity Appeals (Food Bank, Mission Christmas, Toy & Coat Drives)
+  const handleAddAppeal = (templateType = 'custom') => {
+    let newAppeal = {
+      name: '',
+      badge: 'Special Charity Appeal',
+      description: '',
+      conditions: '',
+      handover: 'Hand directly to our collector elves as the sleigh visits your street!',
+      url: '',
+      logo: ''
+    };
+
+    if (templateType === 'foodbank') {
+      newAppeal = {
+        name: 'Local Food Bank Collection',
+        badge: '🥫 Food Bank Collection',
+        description: 'Our volunteer sleigh elves are collecting non-perishable food along every street route to help local families in need this Christmas.',
+        conditions: `• In-date unopened tinned meat, fish, soup & vegetables\n• Dried pasta, rice, noodles, and breakfast cereal\n• Long-life UHT milk, fruit juice, tea & coffee\n• Toiletries, hygiene items, and baby nappies\n⚠️ Please: No out-of-date food, glass jars, open packets, or fresh produce.`,
+        handover: 'Bring your items out to the pavement and hand them directly to our high-vis collector elves as Santa passes your house!',
+        url: '',
+        logo: ''
+      };
+    } else if (templateType === 'mission_christmas') {
+      newAppeal = {
+        name: 'Cash for Kids - Mission Christmas',
+        badge: '🎁 Mission Christmas Toy Appeal',
+        description: 'We are proud to support Cash for Kids Mission Christmas, collecting new gifts so disadvantaged children wake up with a present on Christmas Day.',
+        conditions: `• Must be brand new, unused, and in original packaging\n• Suitable for babies, children, or teenagers (ages 0–18)\n⚠️ CRITICAL: Must be UNWRAPPED so charity elves can verify safety and match gifts to the right child!`,
+        handover: 'Hand your new, unwrapped gift directly to our collector elves walking with the sleigh trailer.',
+        url: 'https://cashforkids.org.uk/mission',
+        logo: ''
+      };
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      supported_appeals: [...(prev.supported_appeals || []), newAppeal]
+    }));
+  };
+
+  const handleUpdateAppeal = (index, field, value) => {
+    setFormData(prev => {
+      const nextAppeals = [...(prev.supported_appeals || [])];
+      nextAppeals[index] = { ...nextAppeals[index], [field]: value };
+      return {
+        ...prev,
+        supported_appeals: nextAppeals
+      };
+    });
+  };
+
+  const handleRemoveAppeal = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      supported_appeals: (prev.supported_appeals || []).filter((_, i) => i !== index)
+    }));
   };
 
   // Live Proximity Alerts & Google Workspace Gmail Handlers
@@ -8828,6 +8908,237 @@ ${tableName} Organizers`
                 )}
               </div>
 
+              {/* SUPPORTED CHARITY APPEALS & STREET DRIVES (FOOD BANK, MISSION CHRISTMAS, TOY & COAT APPEALS) */}
+              <div style={{
+                background: '#0d0d0b',
+                border: '1px solid rgba(251, 175, 51, 0.35)',
+                borderRadius: '12px',
+                padding: 'clamp(14px, 3vw, 20px)',
+                maxWidth: '100%',
+                boxSizing: 'border-box'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Gift size={20} color="var(--primary)" />
+                    <strong style={{ fontSize: '16px', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Supported Charity Appeals &amp; Street Collections
+                    </strong>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleAddAppeal('foodbank')}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background: 'rgba(34, 197, 94, 0.15)',
+                        color: '#86efac',
+                        border: '1px solid rgba(34, 197, 94, 0.4)',
+                        borderRadius: '6px',
+                        padding: '6px 10px',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                      title="Add a pre-filled Local Food Bank street collection appeal"
+                    >
+                      <Plus size={13} /> 🥫 Add Food Bank
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAddAppeal('mission_christmas')}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background: 'rgba(59, 130, 246, 0.15)',
+                        color: '#93c5fd',
+                        border: '1px solid rgba(59, 130, 246, 0.4)',
+                        borderRadius: '6px',
+                        padding: '6px 10px',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                      title="Add a pre-filled Cash for Kids Mission Christmas toy appeal"
+                    >
+                      <Plus size={13} /> 🎁 Add Mission Christmas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAddAppeal('custom')}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background: 'rgba(255, 255, 255, 0.08)',
+                        color: '#fff',
+                        border: '1px solid rgba(255, 255, 255, 0.15)',
+                        borderRadius: '6px',
+                        padding: '6px 10px',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                      title="Add custom charitable drive"
+                    >
+                      <Plus size={13} /> Custom Appeal
+                    </button>
+                  </div>
+                </div>
+
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px', lineHeight: 1.55 }}>
+                  Push the fact that your sleigh tour is supporting other charities (e.g. collecting food for a local <strong>Food Bank</strong>, toys for <strong>Cash for Kids Mission Christmas</strong>, winter coats, or pet supplies). Each appeal gets a dedicated card on your public site with your exact <strong>conditions, accepted items, and handover instructions</strong> so residents know what to bring out to the kerbside!
+                </p>
+
+                {(!formData.supported_appeals || formData.supported_appeals.length === 0) ? (
+                  <div style={{
+                    padding: '24px 16px',
+                    textAlign: 'center',
+                    background: '#161614',
+                    border: '1px dashed rgba(255, 255, 255, 0.15)',
+                    borderRadius: '8px',
+                    color: 'var(--text-muted)',
+                    fontSize: '13px'
+                  }}>
+                    <p style={{ margin: '0 0 12px 0' }}>No physical charity drives currently configured. Use the 1-click preset buttons above to add a <strong>Food Bank Collection</strong> or <strong>Cash for Kids Mission Christmas Toy Appeal</strong>.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {formData.supported_appeals.map((appeal, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          background: '#161614',
+                          border: '1px solid rgba(251, 175, 51, 0.3)',
+                          borderRadius: '10px',
+                          padding: '16px',
+                          position: 'relative'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{
+                              background: 'rgba(251, 175, 51, 0.15)',
+                              color: 'var(--primary)',
+                              fontSize: '11px',
+                              fontWeight: 800,
+                              textTransform: 'uppercase',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              letterSpacing: '0.5px'
+                            }}>
+                              Appeal #{idx + 1}: {appeal.name || 'Untitled Appeal'}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveAppeal(idx)}
+                            aria-label={`Remove appeal ${idx + 1}`}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              background: 'transparent',
+                              border: '1px solid rgba(239, 68, 68, 0.4)',
+                              color: '#ef4444',
+                              borderRadius: '6px',
+                              padding: '4px 8px',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <Trash2 size={13} /> Remove
+                          </button>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '12px', marginBottom: '12px' }}>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Charity / Appeal Name *</label>
+                            <input
+                              type="text"
+                              value={appeal.name || ''}
+                              onChange={(e) => handleUpdateAppeal(idx, 'name', e.target.value)}
+                              placeholder="e.g. Beverley Food Bank or Cash for Kids"
+                              style={{ width: '100%', boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '13px' }}
+                            />
+                          </div>
+
+                          <div>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Category Badge</label>
+                            <input
+                              type="text"
+                              value={appeal.badge || ''}
+                              onChange={(e) => handleUpdateAppeal(idx, 'badge', e.target.value)}
+                              placeholder="e.g. 🥫 Food Bank Collection or 🎁 Toy Appeal"
+                              style={{ width: '100%', boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '13px' }}
+                            />
+                          </div>
+
+                          <div>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Website / Wishlist Link</label>
+                            <input
+                              type="url"
+                              value={appeal.url || ''}
+                              onChange={(e) => handleUpdateAppeal(idx, 'url', e.target.value)}
+                              placeholder="https://cashforkids.org.uk"
+                              style={{ width: '100%', boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '13px' }}
+                            />
+                          </div>
+                        </div>
+
+                        <div style={{ marginBottom: '12px' }}>
+                          <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Appeal Explanation / Why We Are Supporting Them</label>
+                          <input
+                            type="text"
+                            value={appeal.description || ''}
+                            onChange={(e) => handleUpdateAppeal(idx, 'description', e.target.value)}
+                            placeholder="e.g. Our volunteer elves are collecting non-perishable food along every route to deliver to local families in need."
+                            style={{ width: '100%', boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '13px' }}
+                          />
+                        </div>
+
+                        <div style={{ marginBottom: '12px' }}>
+                          <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#fbbf24', textTransform: 'uppercase', marginBottom: '4px' }}>
+                            📋 Conditions, Guidelines &amp; What Can / Cannot Be Donated *
+                          </label>
+                          <textarea
+                            rows={3}
+                            value={appeal.conditions || ''}
+                            onChange={(e) => handleUpdateAppeal(idx, 'conditions', e.target.value)}
+                            placeholder="e.g.&#10;• Brand new and unused toys/gifts for ages 0–18&#10;⚠️ CRITICAL: Must be UNWRAPPED so charity elves can verify safety and match age groups!"
+                            style={{ width: '100%', boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '12.5px', fontFamily: 'inherit', lineHeight: 1.5 }}
+                          />
+                        </div>
+
+                        <div style={{ marginBottom: '12px' }}>
+                          <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#86efac', textTransform: 'uppercase', marginBottom: '4px' }}>
+                            🦺 How to Donate on the Route (Handover Instructions)
+                          </label>
+                          <input
+                            type="text"
+                            value={appeal.handover || ''}
+                            onChange={(e) => handleUpdateAppeal(idx, 'handover', e.target.value)}
+                            placeholder="e.g. Bring your donations out to the pavement and hand them directly to our high-vis elves walking with the sleigh!"
+                            style={{ width: '100%', boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '13px' }}
+                          />
+                        </div>
+
+                        <DropzoneUpload
+                          label={`Appeal #${idx + 1} Logo / Badge (.png, .svg, .jpg)`}
+                          currentImage={appeal.logo}
+                          tableSlug={currentTableSlug}
+                          onImageSelected={(url) => handleUpdateAppeal(idx, 'logo', url)}
+                          helperText="Upload transparent charity or appeal logo (optional)."
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* PUBLIC SITE MODULAR FEATURE SLOTS & AI VOICE (MAX 2 SLOTS) */}
               <div style={{
                 background: '#0d0d0b',
@@ -11692,6 +12003,8 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                       const validPartners = (formData.partners || []).filter(p => p && (p.name || p.logo || p.url));
                       const partnersJson = validPartners.length > 0 ? JSON.stringify(validPartners) : null;
                       const leadPartner = validPartners[0] || {};
+                      const validAppeals = (formData.supported_appeals || []).filter(a => a && (a.name || a.charity_name));
+                      const supportedAppealsJson = validAppeals.length > 0 ? JSON.stringify(validAppeals) : null;
                       const parsedGoal = (formData.fundraising_goal === '' || formData.fundraising_goal === undefined || formData.fundraising_goal === null) ? 0 : Number(formData.fundraising_goal);
                       const payload = {
                         sleigh_display_name: standardSleighDisplayName,
@@ -11724,6 +12037,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                         charity_name: formData.charity_name,
                         charity_number: formData.charity_number,
                         partners_json: partnersJson,
+                        supported_appeals_json: supportedAppealsJson,
                         headline_sponsor_name: leadPartner.name || formData.headline_sponsor_name || null,
                         headline_sponsor_logo: leadPartner.logo || formData.headline_sponsor_logo || null,
                         headline_sponsor_url: leadPartner.url || formData.headline_sponsor_url || null,
@@ -11774,11 +12088,14 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                           expenses: Number(formData.expenses || 0),
                           expenses_json: formData.expenses_json || null,
                           partners: validPartners,
+                          supported_appeals: validAppeals,
                           table: {
                             ...prev.table,
                             ...payload,
                             partners: validPartners,
                             partners_json: partnersJson,
+                            supported_appeals: validAppeals,
+                            supported_appeals_json: supportedAppealsJson,
                             notify_email_enabled: formData.notify_email_enabled,
                             notify_radius_meters: formData.notify_radius_meters,
                             pass_buffer_meters: formData.pass_buffer_meters,

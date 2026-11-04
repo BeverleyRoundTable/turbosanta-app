@@ -259,6 +259,7 @@ async function ensureSchemaOnce(env) {
       "ALTER TABLE tables ADD COLUMN notify_passed_subject TEXT",
       "ALTER TABLE tables ADD COLUMN notify_passed_msg TEXT",
       "ALTER TABLE tables ADD COLUMN partners_json TEXT",
+      "ALTER TABLE tables ADD COLUMN supported_appeals_json TEXT",
       "ALTER TABLE tables ADD COLUMN justgiving_url TEXT",
       "ALTER TABLE tables ADD COLUMN tickettailor_api_key TEXT",
       "ALTER TABLE tables ADD COLUMN tickettailor_event_id TEXT",
@@ -1517,6 +1518,16 @@ export default {
           }
           return [];
         })(),
+        supported_appeals_json: table.supported_appeals_json || null,
+        supported_appeals: (() => {
+          if (table.supported_appeals_json) {
+            try {
+              const a = typeof table.supported_appeals_json === 'string' ? JSON.parse(table.supported_appeals_json) : table.supported_appeals_json;
+              if (Array.isArray(a)) return a.filter(item => item && item.name);
+            } catch (e) {}
+          }
+          return [];
+        })(),
         gemini_model: table.gemini_model || "auto",
         enable_colouring: Boolean(table.public_slot_1 === 'colouring' || table.public_slot_2 === 'colouring'),
         public_slot_1: (table.public_slot_1 !== undefined && table.public_slot_1 !== null)
@@ -1739,6 +1750,8 @@ export default {
         settings: tableConfig,
         partners: tableConfig.partners,
         partners_json: tableConfig.partners_json,
+        supported_appeals: tableConfig.supported_appeals || [],
+        supported_appeals_json: tableConfig.supported_appeals_json || null,
         expenses: Number(table.expenses || 0),
         expenses_json: tableConfig.expenses_json,
         routes: formattedRoutes,
@@ -2664,6 +2677,7 @@ export default {
       setIfProvided("headline_sponsor_url");
       setIfProvided("headline_sponsor_tagline");
       setIfProvided("partners_json", "partners_json", v => typeof v === 'string' ? v : JSON.stringify(v));
+      setIfProvided("supported_appeals_json", "supported_appeals_json", v => typeof v === 'string' ? v : JSON.stringify(v));
       setIfProvided("gemini_model");
       setIfProvided("enable_colouring", "enable_colouring", v => v ? 1 : 0);
       setIfProvided("public_slot_1");

@@ -1419,6 +1419,85 @@
     });
   }
 
+  function renderCharityAppeals() {
+    const section = document.getElementById('charity-appeals');
+    const grid = document.getElementById('appeals-cards-grid');
+    if (!section || !grid) return;
+
+    let rawAppeals = state.payload?.supported_appeals;
+    if (!rawAppeals && state.payload?.table?.supported_appeals) {
+      rawAppeals = state.payload.table.supported_appeals;
+    }
+    if (!rawAppeals && state.payload?.table?.supported_appeals_json) {
+      try {
+        rawAppeals = typeof state.payload.table.supported_appeals_json === 'string'
+          ? JSON.parse(state.payload.table.supported_appeals_json)
+          : state.payload.table.supported_appeals_json;
+      } catch (e) {}
+    }
+
+    const appeals = Array.isArray(rawAppeals)
+      ? rawAppeals.filter(a => a && (a.name || a.charity_name))
+      : [];
+
+    if (appeals.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+
+    section.style.display = 'block';
+    grid.innerHTML = appeals.map(a => {
+      const name = a.name || a.charity_name || 'Special Charity Appeal';
+      const badge = a.badge || a.category || 'Supported Appeal';
+      const desc = a.description || a.desc || '';
+      const conditions = a.conditions || a.accepted_items || '';
+      const handover = a.handover || a.how_to_donate || '';
+      const url = a.url || a.link || '';
+      const logo = a.logo || a.logo_url || '';
+
+      const logoHtml = logo
+        ? `<div class="appeal-logo-stage"><img src="${escapeHtml(logo)}" alt="${escapeHtml(name)}" loading="lazy"></div>`
+        : '';
+      const conditionsHtml = conditions
+        ? `<div class="appeal-conditions-box">
+            <div class="appeal-conditions-header">
+              <i class="fa-solid fa-clipboard-check"></i>
+              <span>Conditions &amp; What We Can Accept:</span>
+            </div>
+            <div class="appeal-conditions-content">${escapeHtml(conditions)}</div>
+          </div>`
+        : '';
+      const handoverHtml = handover
+        ? `<div class="appeal-handover-box">
+            <i class="fa-solid fa-hand-holding-heart" style="font-size:16px; flex-shrink:0;"></i>
+            <span><strong>How to Donate on Route:</strong> ${escapeHtml(handover)}</span>
+          </div>`
+        : '';
+      const linkHtml = url
+        ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="appeal-link-btn">
+            <span>Learn More About ${escapeHtml(name)}</span>
+            <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:11px;"></i>
+          </a>`
+        : '';
+
+      return `
+        <div class="appeal-card">
+          <div class="appeal-header">
+            <div>
+              <span class="appeal-badge"><i class="fa-solid fa-heart"></i> ${escapeHtml(badge)}</span>
+              <h3 class="appeal-title">${escapeHtml(name)}</h3>
+            </div>
+            ${logoHtml}
+          </div>
+          ${desc ? `<p class="appeal-desc">${escapeHtml(desc)}</p>` : ''}
+          ${conditionsHtml}
+          ${handoverHtml}
+          ${linkHtml}
+        </div>
+      `;
+    }).join('');
+  }
+
   function renderPartnersPedestal() {
     const section = document.getElementById('partners');
     const grid = document.getElementById('partners-pedestal-grid');
@@ -1775,6 +1854,7 @@
       renderRoutesGrid();
       renderFundraisingAndImpact();
       renderModularSlots();
+      renderCharityAppeals();
       renderPartnersPedestal();
 
       // Parallel non-blocking loads: GPX tracks, Memory Wall, Live Cheer, View counter

@@ -875,6 +875,17 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
     return [];
   }, [tableData, table]);
 
+  const supportedAppeals = useMemo(() => {
+    let raw = tableData?.supported_appeals;
+    if (!raw && table?.supported_appeals) raw = table.supported_appeals;
+    if (!raw && table?.supported_appeals_json) {
+      try {
+        raw = typeof table.supported_appeals_json === 'string' ? JSON.parse(table.supported_appeals_json) : table.supported_appeals_json;
+      } catch (e) {}
+    }
+    return Array.isArray(raw) ? raw.filter(a => a && a.name) : [];
+  }, [tableData, table]);
+
   return (
     <div style={{
       fontFamily: "'Open Sans', sans-serif",
@@ -1859,6 +1870,164 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
           </div>
         </section>
 
+
+        {/* 4.5 Supported Charity Appeals & Street Drives (Food Bank, Mission Christmas, etc.) */}
+        {supportedAppeals.length > 0 && (
+          <section id="charity-appeals" style={{ padding: '60px 20px', maxWidth: '1000px', margin: '0 auto', textAlign: 'center' }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '11px',
+              fontWeight: 800,
+              letterSpacing: '1.8px',
+              textTransform: 'uppercase',
+              color: 'var(--primary)',
+              marginBottom: '10px'
+            }}>
+              <span style={{ display: 'inline-block', width: '20px', height: '1px', background: 'linear-gradient(90deg, transparent, var(--primary))' }} />
+              GIVING BACK TOGETHER
+              <span style={{ display: 'inline-block', width: '20px', height: '1px', background: 'linear-gradient(90deg, var(--primary), transparent)' }} />
+            </div>
+            <h2 className="brand-font" style={{ fontSize: '38px', margin: '0 0 10px 0', color: '#FFFFFF' }}>
+              SUPPORTED CHARITY <span style={{ color: 'var(--primary)' }}>APPEALS</span>
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '15.5px', marginBottom: '32px', maxWidth: '640px', margin: '0 auto 32px auto', lineHeight: 1.55 }}>
+              Along with raising funds, our sleigh tour is collecting physical items on the streets for our official charity partners. Please see conditions and accepted items below:
+            </p>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))',
+              gap: '20px',
+              textAlign: 'left'
+            }}>
+              {supportedAppeals.map((appeal, idx) => {
+                const name = appeal.name || appeal.charity_name || 'Special Appeal';
+                const badge = appeal.badge || appeal.category || 'Supported Appeal';
+                const desc = appeal.description || appeal.desc || '';
+                const conditions = appeal.conditions || appeal.accepted_items || '';
+                const handover = appeal.handover || appeal.how_to_donate || '';
+                const url = appeal.url || appeal.link || '';
+                const logo = appeal.logo || appeal.logo_url || '';
+
+                return (
+                  <div
+                    key={idx}
+                    style={{
+                      background: 'rgba(21, 21, 19, 0.85)',
+                      border: '1px solid rgba(251, 175, 51, 0.25)',
+                      borderRadius: '16px',
+                      padding: '24px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '14px',
+                      boxShadow: '0 8px 30px rgba(0, 0, 0, 0.4)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                      <div>
+                        <span style={{
+                          display: 'inline-block',
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.6px',
+                          padding: '3px 10px',
+                          borderRadius: '999px',
+                          background: 'rgba(251, 175, 51, 0.15)',
+                          color: 'var(--primary)',
+                          border: '1px solid rgba(251, 175, 51, 0.35)',
+                          marginBottom: '6px'
+                        }}>
+                          {badge}
+                        </span>
+                        <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#fff', margin: 0, lineHeight: 1.3 }}>
+                          {name}
+                        </h3>
+                      </div>
+                      {logo && (
+                        <div style={{
+                          width: '80px',
+                          height: '52px',
+                          flexShrink: 0,
+                          background: '#fff',
+                          borderRadius: '8px',
+                          padding: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          <img src={logo} alt={name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                        </div>
+                      )}
+                    </div>
+
+                    {desc && (
+                      <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
+                        {desc}
+                      </p>
+                    )}
+
+                    {conditions && (
+                      <div style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        borderRadius: '8px',
+                        padding: '12px 14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px'
+                      }}>
+                        <div style={{ fontSize: '11.5px', fontWeight: 700, textTransform: 'uppercase', color: '#fbbf24' }}>
+                          📋 Conditions &amp; What We Can Accept:
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#e2e8f0', lineHeight: 1.55, whiteSpace: 'pre-line' }}>
+                          {conditions}
+                        </div>
+                      </div>
+                    )}
+
+                    {handover && (
+                      <div style={{
+                        background: 'rgba(34, 197, 94, 0.08)',
+                        border: '1px solid rgba(34, 197, 94, 0.3)',
+                        borderRadius: '8px',
+                        padding: '10px 14px',
+                        fontSize: '12.5px',
+                        color: '#86efac',
+                        lineHeight: 1.45
+                      }}>
+                        <strong>How to Donate on Route:</strong> {handover}
+                      </div>
+                    )}
+
+                    {url && (
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-secondary"
+                        style={{
+                          marginTop: 'auto',
+                          padding: '8px 14px',
+                          fontSize: '12.5px',
+                          textAlign: 'center',
+                          textDecoration: 'none',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <span>Learn More About {name} &rarr;</span>
+                      </a>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* 5. Community Partners (Only if explicitly configured for this table) */}
         {(() => {
