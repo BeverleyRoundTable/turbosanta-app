@@ -1214,6 +1214,7 @@ ${tableName} Organizers`
     justgiving_url: tableData?.table?.justgiving_url || '',
     tickettailor_event_id: tableData?.table?.tickettailor_event_id || '',
     tickettailor_api_key: '',
+    sumup_api_key: '',
     auto_crew_briefing_enabled: tableData?.table?.auto_crew_briefing_enabled !== undefined ? Boolean(tableData.table.auto_crew_briefing_enabled) : true,
     crew_briefing_hours_before: tableData?.table?.crew_briefing_hours_before !== undefined ? Number(tableData.table.crew_briefing_hours_before) : 2,
     default_muster_point: tableData?.table?.default_muster_point || '',
@@ -1763,8 +1764,8 @@ ${tableName} Organizers`
       name: 'Zeffy',
       tag: '100% Free / Zero Fees',
       badgeColor: '#22c55e',
-      description: 'Zeffy sends webhook alerts when someone donates via your online donation form.',
-      guide: 'In your Zeffy account > Settings > Integrations > Webhooks, add your Webhook URL and select "Donation Succeeded".'
+      description: 'Connect your 0%-fee Zeffy donation form and stream live donation alerts via Zapier or Make.',
+      guide: 'Zeffy connects to external webhooks via Zapier or Make.com. In your Zeffy Dashboard > Integrations > Zapier, select the "New Donation in Zeffy" trigger and add a "Webhooks by Zapier (POST)" action pointing to your TurboSanta Webhook URL above (passing amount and donor_name).'
     },
     {
       id: 'cash',
@@ -1777,50 +1778,50 @@ ${tableName} Organizers`
     {
       id: 'stripe',
       name: 'Stripe',
-      tag: 'Card, Apple Pay, Google Pay',
+      tag: 'Native Stripe Webhooks',
       badgeColor: '#6366f1',
-      description: 'Stripe triggers webhooks on checkout sessions or payment link completions.',
-      guide: 'In your Stripe Dashboard > Developers > Webhooks, add endpoint with event checkout.session.completed.'
+      description: 'Stripe triggers instant real-time webhooks on Checkout sessions, Payment Links, Apple Pay & Google Pay.',
+      guide: 'In your Stripe Dashboard > Developers > Webhooks > Add endpoint, paste your full Webhook URL above (which includes your ?secret= token) and select checkout.session.completed and payment_intent.succeeded.'
     },
     {
       id: 'sumup',
       name: 'SumUp',
-      tag: 'Street Bucket Card Readers',
+      tag: 'API Key Auto-Sync',
       badgeColor: '#0ea5e9',
-      description: 'Connect volunteer card readers so card taps in the street immediately increment the live total.',
-      guide: 'In your SumUp Developer portal, configure Transaction Webhook to post successful card payments to this URL.'
+      description: 'Automatically sync physical SumUp Air / Solo / 3G street card reader taps & QR links via your SumUp Secret Key.',
+      guide: 'Physical SumUp card readers do not send outgoing webhooks! Instead, in your SumUp Dashboard (me.sumup.com) > Profile icon (top-right) > For Developers > API Keys, create a Secret Key (sup_sk_...) and paste it in the SumUp API Key box above. TurboSanta will automatically poll your SumUp transaction history and add every card tap to your live sleigh total!'
     },
     {
       id: 'justgiving',
       name: 'JustGiving',
-      tag: 'Auto-Sync + Webhooks',
+      tag: 'Zero-Code URL Auto-Sync',
       badgeColor: '#ec4899',
-      description: 'Sync your JustGiving campaign page total automatically or stream real-time donations.',
-      guide: 'Paste your JustGiving Campaign URL in the Auto-Sync box above for automatic polling, or configure Event Webhooks in JustGiving.'
+      description: 'Sync your public JustGiving campaign page total automatically every 10 minutes with zero developer setup.',
+      guide: 'Standard JustGiving fundraising pages do not require manual webhooks! Simply paste your public JustGiving Campaign URL in the Auto-Sync box above and click "Save & Sync Now".'
     },
     {
       id: 'tickettailor',
       name: 'Ticket Tailor',
-      tag: 'API + Webhook Sync',
+      tag: 'API Key + Webhook Sync',
       badgeColor: '#10b981',
-      description: 'Sync completed Ticket Tailor orders & sleigh bookings via API key or real-time order webhooks.',
-      guide: 'Paste your Ticket Tailor API key (sk_...) in the Auto-Sync box above, or add this Webhook URL in Ticket Tailor > Settings > Webhooks for order.created / order.completed.'
+      description: 'Sync completed Ticket Tailor orders & sleigh bookings via API key (sk_...) or real-time order webhooks.',
+      guide: 'Option 1 (Recommended): Paste your Ticket Tailor API key (sk_...) in the Auto-Sync box above. Option 2 (Instant Webhooks): Paste the Webhook URL above in Ticket Tailor > Settings > Webhooks and select order.created / order.completed.'
     },
     {
       id: 'paypal',
       name: 'PayPal',
-      tag: 'PayPal QR & Buttons',
+      tag: 'Native PayPal Webhooks',
       badgeColor: '#eab308',
-      description: 'Capture PayPal payments and donor names using PayPal Instant Payment Notifications.',
-      guide: 'In your PayPal Developer Dashboard > Webhooks, add webhook for PAYMENT.CAPTURE.COMPLETED.'
+      description: 'Capture PayPal QR code, Checkout, and Donate button payments using PayPal Developer Webhooks.',
+      guide: 'In developer.paypal.com > My Apps & Credentials > Webhooks > Add Webhook, paste the full Webhook URL above and subscribe to PAYMENT.CAPTURE.COMPLETED.'
     },
     {
       id: 'donorbox',
       name: 'Donorbox',
-      tag: 'One-Off & Monthly Gifts',
+      tag: 'Native Donorbox Webhooks',
       badgeColor: '#2563eb',
       description: 'Capture online gifts and recurring pledges instantly when supporters donate via your Donorbox form or widget.',
-      guide: 'In your Donorbox Dashboard > Account / Settings > Webhooks, add this Webhook URL and select "Donation Created".'
+      guide: 'In your Donorbox Dashboard > Account > API & Zapier > Webhooks, add the Webhook URL above and enable the "Donation Created" event.'
     },
     {
       id: 'custom',
@@ -1828,7 +1829,7 @@ ${tableName} Organizers`
       tag: 'Automations & Custom Code',
       badgeColor: '#a855f7',
       description: 'Post any standard JSON payload from Zapier, Make, Square, GoCardless, or your own software.',
-      guide: 'Send an HTTP POST request with JSON {"amount": 10.00, "donorName": "Jane"} to this URL.'
+      guide: 'Send an HTTP POST request with JSON {"amount": 10.00, "donorName": "Jane"} to the Webhook URL above.'
     }
   ];
 
@@ -1961,19 +1962,26 @@ ${tableName} Organizers`
     const slug = currentTableSlug || session?.tableSlug || tableData?.table?.slug || 'beverley';
     const secret = session?.googleCredential || session?.token || getAdminAuthToken(slug);
     setIsSyncingExternal(true);
-    setExternalSyncStatus('Saving campaign credentials & syncing live totals from JustGiving / Ticket Tailor...');
+    setExternalSyncStatus('Saving campaign credentials & syncing live totals from SumUp, JustGiving & Ticket Tailor...');
     try {
       await saveTableSettings(slug, {
         justgiving_url: formData.justgiving_url || null,
         tickettailor_event_id: formData.tickettailor_event_id || null,
-        tickettailor_api_key: formData.tickettailor_api_key && formData.tickettailor_api_key.trim() ? formData.tickettailor_api_key.trim() : undefined
+        tickettailor_api_key: formData.tickettailor_api_key && formData.tickettailor_api_key.trim() ? formData.tickettailor_api_key.trim() : undefined,
+        sumup_api_key: formData.sumup_api_key && formData.sumup_api_key.trim() ? formData.sumup_api_key.trim() : undefined
       });
       const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/fundraising/sync?table=${encodeURIComponent(slug)}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${secret}`
-        }
+        },
+        body: JSON.stringify({
+          justgiving_url: formData.justgiving_url || undefined,
+          tickettailor_event_id: formData.tickettailor_event_id || undefined,
+          tickettailor_api_key: formData.tickettailor_api_key && formData.tickettailor_api_key.trim() ? formData.tickettailor_api_key.trim() : undefined,
+          sumup_api_key: formData.sumup_api_key && formData.sumup_api_key.trim() ? formData.sumup_api_key.trim() : undefined
+        })
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || 'Sync failed');
@@ -1986,6 +1994,8 @@ ${tableName} Organizers`
             tickettailor_event_id: formData.tickettailor_event_id || null,
             tickettailor_connected: Boolean(formData.tickettailor_api_key || prev?.table?.tickettailor_connected || prev?.table?.tickettailor_configured),
             tickettailor_configured: Boolean(formData.tickettailor_api_key || prev?.table?.tickettailor_connected || prev?.table?.tickettailor_configured),
+            sumup_connected: Boolean(formData.sumup_api_key || prev?.table?.sumup_connected || prev?.table?.sumup_configured),
+            sumup_configured: Boolean(formData.sumup_api_key || prev?.table?.sumup_connected || prev?.table?.sumup_configured),
             total_raised: data.total_raised ?? prev?.table?.total_raised,
             external_raised_total: (data.external_raised_total ?? data.external_total) ?? prev?.table?.external_raised_total,
             external_synced_at: data.external_synced_at || data.synced_at || new Date().toISOString()
@@ -1993,9 +2003,12 @@ ${tableName} Organizers`
         }));
       }
       const parts = [];
+      const suVal = data.sumup_amount ?? data.sumup_raised;
+      const suCount = data.sumup_count ?? data.sumup_transactions ?? 0;
       const jgVal = data.jg_amount ?? data.justgiving_raised;
       const ttVal = data.tt_amount ?? data.tickettailor_raised;
       const ttOrders = data.tt_orders ?? data.tickettailor_orders ?? 0;
+      if (suVal !== null && suVal !== undefined) parts.push(`SumUp: £${Number(suVal).toFixed(2)} (${suCount} card taps)`);
       if (jgVal !== null && jgVal !== undefined) parts.push(`JustGiving: £${Number(jgVal).toFixed(2)}`);
       if (ttVal !== null && ttVal !== undefined) parts.push(`Ticket Tailor: £${Number(ttVal).toFixed(2)} (${ttOrders} orders)`);
       if (data.errors && data.errors.length) parts.push(`Warnings: ${data.errors.join('; ')}`);
@@ -4328,6 +4341,165 @@ ${tableName} Organizers`
                     </div>
                   ) : (
                     <>
+                      {/* Dedicated Direct Auto-Sync Card for SumUp / JustGiving / Ticket Tailor */}
+                      {selectedWebhookProvider === 'sumup' && (
+                        <div style={{
+                          background: 'rgba(14, 165, 233, 0.08)',
+                          border: '1px solid rgba(14, 165, 233, 0.45)',
+                          borderRadius: '12px',
+                          padding: '18px 20px',
+                          marginBottom: '22px'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+                            <strong style={{ fontSize: '15px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <Zap size={17} color="#0ea5e9" />
+                              <span>Recommended: SumUp Street Card Reader &amp; QR Auto-Sync</span>
+                              {(tableData?.table?.sumup_connected || tableData?.table?.sumup_configured) && (
+                                <span style={{ color: '#22c55e', fontSize: '12px', fontWeight: 800 }}>✓ Connected</span>
+                              )}
+                            </strong>
+                            <span style={{ fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '999px', background: 'rgba(14, 165, 233, 0.2)', color: '#38bdf8', textTransform: 'uppercase' }}>
+                              Auto-Polls Every 2 Mins
+                            </span>
+                          </div>
+                          <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 12px 0', lineHeight: 1.5 }}>
+                            Physical SumUp card readers (Air, Solo, 3G) do not push outgoing webhooks when tapped in the street. Instead, paste your <strong>SumUp Secret API Key (<code>sup_sk_...</code>)</strong> below and TurboSanta will automatically poll your SumUp transaction history and sync every card tap into your live sleigh total!
+                          </p>
+                          <div style={{ background: '#151513', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '10px 14px', marginBottom: '12px', fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                            <strong style={{ color: '#fff' }}>How to get your SumUp Secret Key in 30 seconds:</strong>
+                            <ol style={{ margin: '4px 0 0 18px', padding: 0 }}>
+                              <li>Log in to your <strong>SumUp Dashboard</strong> (<code>me.sumup.com</code>) and click your <strong>Profile icon (top-right)</strong> &rarr; <strong>For Developers</strong> &rarr; <strong>API Keys</strong>.</li>
+                              <li>Click <strong>Create API Key</strong>, choose <strong>Secret Key</strong>, name it <code>TurboSanta</code>, and copy the key starting with <code>sup_sk_...</code>.</li>
+                              <li>Paste the key below and click <strong>Save &amp; Sync SumUp Now</strong>.</li>
+                            </ol>
+                          </div>
+                          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <input
+                              type="password"
+                              value={formData.sumup_api_key || ''}
+                              onChange={(e) => setFormData(prev => ({ ...prev, sumup_api_key: e.target.value }))}
+                              placeholder={(tableData?.table?.sumup_connected || tableData?.table?.sumup_configured) ? '•••••••• (Saved — enter new sup_sk_ key to replace)' : 'sup_sk_... (SumUp Secret API Key)'}
+                              style={{
+                                flex: '1 1 240px',
+                                background: '#151513',
+                                border: '1px solid var(--border)',
+                                borderRadius: '8px',
+                                padding: '10px 14px',
+                                color: '#fff',
+                                fontSize: '13px',
+                                fontFamily: 'monospace'
+                              }}
+                            />
+                            <button
+                              type="button"
+                              disabled={isSyncingExternal}
+                              onClick={handleSyncExternalFundraising}
+                              className="btn-primary"
+                              style={{ padding: '10px 18px', fontSize: '13px', background: '#0ea5e9', color: '#fff', display: 'inline-flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}
+                            >
+                              <RefreshCw size={15} />
+                              <span>{isSyncingExternal ? 'Syncing SumUp...' : '🔄 Save & Sync SumUp Now'}</span>
+                            </button>
+                          </div>
+                          {externalSyncStatus && (
+                            <div style={{ marginTop: '10px', fontSize: '12px', color: externalSyncStatus.startsWith('❌') ? '#fca5a5' : '#86efac', fontWeight: 600 }}>
+                              {externalSyncStatus}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {selectedWebhookProvider === 'justgiving' && (
+                        <div style={{
+                          background: 'rgba(236, 72, 153, 0.08)',
+                          border: '1px solid rgba(236, 72, 153, 0.45)',
+                          borderRadius: '12px',
+                          padding: '18px 20px',
+                          marginBottom: '22px'
+                        }}>
+                          <strong style={{ fontSize: '15px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                            <Zap size={17} color="#ec4899" />
+                            <span>Recommended: JustGiving Campaign URL Auto-Sync (No Webhooks Required)</span>
+                          </strong>
+                          <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 12px 0', lineHeight: 1.5 }}>
+                            Standard JustGiving charity pages do not require manual webhooks! Paste your public JustGiving Fundraising Page URL below and TurboSanta will automatically sync your live campaign total every 10 minutes.
+                          </p>
+                          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <input
+                              type="url"
+                              value={formData.justgiving_url || ''}
+                              onChange={(e) => setFormData(prev => ({ ...prev, justgiving_url: e.target.value }))}
+                              placeholder="https://www.justgiving.com/page/your-santa-sleigh"
+                              style={{
+                                flex: '1 1 260px',
+                                background: '#151513',
+                                border: '1px solid var(--border)',
+                                borderRadius: '8px',
+                                padding: '10px 14px',
+                                color: '#fff',
+                                fontSize: '13px'
+                              }}
+                            />
+                            <button
+                              type="button"
+                              disabled={isSyncingExternal}
+                              onClick={handleSyncExternalFundraising}
+                              className="btn-primary"
+                              style={{ padding: '10px 18px', fontSize: '13px', background: '#ec4899', color: '#fff', display: 'inline-flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}
+                            >
+                              <RefreshCw size={15} />
+                              <span>{isSyncingExternal ? 'Syncing JustGiving...' : '🔄 Save & Sync JustGiving Now'}</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {selectedWebhookProvider === 'tickettailor' && (
+                        <div style={{
+                          background: 'rgba(16, 185, 129, 0.08)',
+                          border: '1px solid rgba(16, 185, 129, 0.45)',
+                          borderRadius: '12px',
+                          padding: '18px 20px',
+                          marginBottom: '22px'
+                        }}>
+                          <strong style={{ fontSize: '15px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                            <Zap size={17} color="#10b981" />
+                            <span>Option 1: Ticket Tailor API Key Auto-Sync {(tableData?.table?.tickettailor_connected || tableData?.table?.tickettailor_configured) ? '(✓ Connected)' : ''}</span>
+                          </strong>
+                          <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 12px 0', lineHeight: 1.5 }}>
+                            Paste your <code>sk_...</code> API Key from <strong>Ticket Tailor &rarr; Settings &rarr; API</strong> to automatically sync all completed ticket &amp; donation orders, or use the instant Webhook URL below.
+                          </p>
+                          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <input
+                              type="password"
+                              value={formData.tickettailor_api_key || ''}
+                              onChange={(e) => setFormData(prev => ({ ...prev, tickettailor_api_key: e.target.value }))}
+                              placeholder={(tableData?.table?.tickettailor_connected || tableData?.table?.tickettailor_configured) ? '•••••••• (Saved — enter new sk_ key to replace)' : 'sk_... (Ticket Tailor API Key)'}
+                              style={{
+                                flex: '1 1 220px',
+                                background: '#151513',
+                                border: '1px solid var(--border)',
+                                borderRadius: '8px',
+                                padding: '10px 14px',
+                                color: '#fff',
+                                fontSize: '13px',
+                                fontFamily: 'monospace'
+                              }}
+                            />
+                            <button
+                              type="button"
+                              disabled={isSyncingExternal}
+                              onClick={handleSyncExternalFundraising}
+                              className="btn-primary"
+                              style={{ padding: '10px 18px', fontSize: '13px', background: '#10b981', color: '#fff', display: 'inline-flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}
+                            >
+                              <RefreshCw size={15} />
+                              <span>{isSyncingExternal ? 'Syncing...' : '🔄 Save & Sync Ticket Tailor'}</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Webhook Secret Key */}
                       <div style={{ marginBottom: '20px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
@@ -4671,7 +4843,7 @@ ${tableName} Organizers`
               );
             })()}
 
-            {/* ⚡ JUSTGIVING & TICKET TAILOR LIVE CAMPAIGN AUTO-SYNC + BUCKET STICKER PRINT STUDIO */}
+            {/* ⚡ SUMUP, JUSTGIVING & TICKET TAILOR LIVE CAMPAIGN AUTO-SYNC */}
             <div style={{
               background: '#0d0d0b',
               border: '1px solid rgba(251, 175, 51, 0.35)',
@@ -4684,7 +4856,7 @@ ${tableName} Organizers`
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
                     <Zap size={18} color="var(--primary)" />
                     <strong style={{ fontSize: '17px', color: '#fff' }}>
-                      JustGiving &amp; Ticket Tailor Live Auto-Sync
+                      SumUp Card Readers, JustGiving &amp; Ticket Tailor Live Auto-Sync
                     </strong>
                     <span style={{
                       fontSize: '10px',
@@ -4696,16 +4868,39 @@ ${tableName} Organizers`
                       border: '1px solid #10b981',
                       textTransform: 'uppercase'
                     }}>
-                      Auto-Polls Every 10 Mins + Instant Sync
+                      Auto-Polls + Instant Sync
                     </span>
                   </div>
-                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0, maxWidth: '720px', lineHeight: 1.5 }}>
-                    Using <strong>JustGiving</strong> for donations or <strong>Ticket Tailor</strong> for sleigh tickets &amp; donations? Connect either (or both!) below and TurboSanta will automatically sync your live campaign totals into the public fundraising thermometer alongside your physical cash bucket counts.
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0, maxWidth: '760px', lineHeight: 1.5 }}>
+                    Using <strong>SumUp</strong> handheld card readers on the street, <strong>JustGiving</strong> for online donations, or <strong>Ticket Tailor</strong> for sleigh bookings? Connect any combination below and TurboSanta will automatically poll and sync your live totals into the public fundraising thermometer alongside your physical cash bucket counts.
                   </p>
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
+                    SumUp Secret API Key {(tableData?.table?.sumup_connected || tableData?.table?.sumup_configured) ? <span style={{ color: '#22c55e' }}>(✓ Connected)</span> : '(Street Card Readers)'}
+                  </label>
+                  <input
+                    type="password"
+                    value={formData.sumup_api_key || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, sumup_api_key: e.target.value }))}
+                    placeholder={(tableData?.table?.sumup_connected || tableData?.table?.sumup_configured) ? '•••••••• (Saved — enter new sup_sk_ key to replace)' : 'sup_sk_... (SumUp > For Developers > API Keys)'}
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      background: '#151513',
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      padding: '10px 12px',
+                      color: '#fff',
+                      fontSize: '13px',
+                      fontFamily: 'monospace'
+                    }}
+                  />
+                </div>
+
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
                     JustGiving Campaign / Fundraising Page URL
@@ -4784,7 +4979,7 @@ ${tableName} Organizers`
                   style={{ padding: '10px 20px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
                 >
                   <RefreshCw size={15} />
-                  <span>{isSyncingExternal ? 'Syncing Live Totals...' : '🔄 Save & Sync JustGiving / Ticket Tailor Now'}</span>
+                  <span>{isSyncingExternal ? 'Syncing Live Totals...' : '🔄 Save & Sync SumUp / JustGiving / Ticket Tailor Now'}</span>
                 </button>
 
                 {tableData?.table?.external_synced_at && (
