@@ -1646,6 +1646,71 @@
 
   }
 
+  const DEFAULT_FAQS = [
+    {
+      q: "Will you definitely come down my exact street?",
+      a: "Our published routes are a guide, not a guarantee. We are 100% volunteer-run and depend on safe road conditions, weather, and clear access around parked cars. Follow the live GPS radar above or set a 250m Doorstep Alert to see our exact progress!"
+    },
+    {
+      q: "Why didn't the sleigh turn into my cul-de-sac?",
+      a: "The towing vehicle and sleigh trailer are long and cannot safely reverse down tight cul-de-sacs blocked by evening parking. If you live in a tight close, pop out to the main junction corner when you get your approaching alert to wave to Santa!"
+    },
+    {
+      q: "Can children climb onto the sleigh for photos?",
+      a: "For safety and insurance reasons, nobody may climb onto the sleigh during street routes. You are very welcome to take photos with Santa waving from the sleigh while standing safely on the pavement!"
+    },
+    {
+      q: "Do your elves take contactless cards as well as cash?",
+      a: "Yes! Our street collectors carry traditional sealed buckets for coins and notes, QR codes on their lanyards, and contactless tap-to-donate options — or you can donate online right here."
+    }
+  ];
+
+  function renderFaqs() {
+    const section = document.getElementById('faq');
+    const container = document.getElementById('faq-two-col');
+    if (!section || !container) return;
+
+    let faqs = state.payload?.table?.faqs || state.payload?.faqs;
+    if (!faqs && (state.payload?.table?.faqs_json || state.payload?.faqs_json)) {
+      try {
+        const raw = state.payload?.table?.faqs_json || state.payload?.faqs_json;
+        const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        if (Array.isArray(parsed)) faqs = parsed;
+      } catch (_) {}
+    }
+
+    if (faqs === undefined || faqs === null) {
+      faqs = DEFAULT_FAQS;
+    }
+
+    if (!Array.isArray(faqs)) {
+      faqs = DEFAULT_FAQS;
+    }
+
+    const validFaqs = faqs.map(f => ({
+      q: String(f?.q || f?.question || '').trim(),
+      a: String(f?.a || f?.answer || '').trim()
+    })).filter(f => Boolean(f.q));
+
+    if (validFaqs.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+
+    section.style.display = 'block';
+    container.innerHTML = validFaqs.map(f => `
+      <details class="faq-card">
+        <summary>
+          <span>${escapeHtml(f.q)}</span>
+          <i class="fa-solid fa-chevron-down" style="color:var(--primary);"></i>
+        </summary>
+        <div class="faq-answer">
+          ${escapeHtml(f.a)}
+        </div>
+      </details>
+    `).join('');
+  }
+
   // --- Unified White Pods Engine (legacy no-op fallback) ---
   function adaptLogoContrast(img) {
     // Pre-calibrated assets are delivered directly for white pods
@@ -1993,6 +2058,7 @@
       renderModularSlots();
       renderCharityAppeals();
       renderPartnersPedestal();
+      renderFaqs();
 
       // Parallel non-blocking loads: GPX tracks, Memory Wall, Live Cheer, View counter
       renderFrames(state.slug);

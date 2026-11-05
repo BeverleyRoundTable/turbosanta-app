@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Share2, MapPin, ExternalLink, Star, ChevronDown, Music, Volume2, VolumeX, Play, Pause, X } from 'lucide-react';
 import { API_BASE } from '../services/api';
 import { extractRouteSponsors } from '../utils/sponsors';
+import { normalizeFaqs } from '../utils/faqs';
 import RouteStreetsPreview from './RouteStreetsPreview';
 import SnowEffect from './SnowEffect';
 
@@ -2319,79 +2320,60 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
         </section>
 
         {/* 7. FAQ & Safety Section */}
-        <section id="faq" style={{ padding: '60px 20px', maxWidth: '840px', margin: '0 auto', scrollMarginTop: '80px' }}>
-          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-            <h2 className="brand-font" style={{ fontSize: '38px', color: '#FFFFFF', textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>
-              FAQ & <span style={{ color: 'var(--primary)' }}>SAFETY RULES</span>
-            </h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '16px' }}>
-              Important information about the sleigh routes and how to enjoy the magic safely.
-            </p>
-          </div>
+        {(() => {
+          const activeFaqs = normalizeFaqs(table?.faqs || tableData?.table?.faqs || tableData?.faqs || table?.faqs_json || tableData?.table?.faqs_json);
+          if (!activeFaqs || activeFaqs.length === 0) return null;
+          return (
+            <section id="faq" style={{ padding: '60px 20px', maxWidth: '840px', margin: '0 auto', scrollMarginTop: '80px' }}>
+              <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+                <h2 className="brand-font" style={{ fontSize: '38px', color: '#FFFFFF', textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>
+                  FAQ & <span style={{ color: 'var(--primary)' }}>SAFETY RULES</span>
+                </h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '16px' }}>
+                  Important information about the sleigh routes and how to enjoy the magic safely.
+                </p>
+              </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {[
-              {
-                q: "Will you definitely come down my street tonight?",
-                a: "Our routes are a guide, not a guarantee. We are entirely run by volunteers and rely on good weather, clear traffic, and having enough people to safely operate the sleigh. Sometimes we have to cut a route short due to rain, ice, or time restrictions. Please use the live tracker to see exactly where we are!"
-              },
-              {
-                q: "Why didn't you turn down my cul-de-sac?",
-                a: "The Santa Sleigh is very large and difficult to manoeuvre. If there are parked cars blocking a turning circle, or if a cul-de-sac is too tight for us to safely turn around, the driver will make the decision to stay on the main road. If you live down a tight street, please come out to the nearest junction to wave to Santa!"
-              },
-              {
-                q: "Can my children climb onto the sleigh for a photo?",
-                a: "For safety and insurance reasons, no one is allowed on the sleigh while it is moving or during the street collections. You are very welcome to take photos of Santa from the pavement. Please ensure children do not run into the road towards the moving vehicle."
-              },
-              {
-                q: "Where does the donated money go?",
-                a: "Every single penny collected goes directly into our local Round Table charity fund. Throughout the year, we distribute this money to local good causes, community groups, food banks, and individuals in need right here in our town."
-              },
-              {
-                q: "Do you accept card donations?",
-                a: "Yes! Our elves carry contactless card readers alongside their traditional buckets. You can also donate right here on this website using the Donate button at the top of the page."
-              },
-              {
-                q: "Can I volunteer to help?",
-                a: "Absolutely! We are always looking for enthusiastic volunteers to help collect donations, act as safety walkers, or even drive the towing vehicle. Reach out to us via our social media channels below to get involved."
-              }
-            ].map((faq, idx) => (
-              <details
-                key={idx}
-                style={{
-                  background: '#000000',
-                  border: '1px solid var(--border)',
-                  borderRadius: '12px',
-                  overflow: 'hidden',
-                  boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
-                }}
-              >
-                <summary style={{
-                  padding: '18px 22px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  fontSize: '17px',
-                  color: '#FFFFFF'
-                }}>
-                  <span>{faq.q}</span>
-                  <ChevronDown size={20} color="var(--primary)" />
-                </summary>
-                <div style={{
-                  padding: '18px 22px',
-                  borderTop: '1px solid var(--border)',
-                  color: 'var(--text-muted)',
-                  fontSize: '15px',
-                  lineHeight: 1.6
-                }}>
-                  {faq.a}
-                </div>
-              </details>
-            ))}
-          </div>
-        </section>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {activeFaqs.map((faq, idx) => (
+                  <details
+                    key={idx}
+                    style={{
+                      background: '#000000',
+                      border: '1px solid var(--border)',
+                      borderRadius: '12px',
+                      overflow: 'hidden',
+                      boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
+                    }}
+                  >
+                    <summary style={{
+                      padding: '18px 22px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      fontSize: '17px',
+                      color: '#FFFFFF'
+                    }}>
+                      <span>{faq.q}</span>
+                      <ChevronDown size={20} color="var(--primary)" />
+                    </summary>
+                    <div style={{
+                      padding: '18px 22px',
+                      borderTop: '1px solid var(--border)',
+                      color: 'var(--text-muted)',
+                      fontSize: '15px',
+                      lineHeight: 1.6
+                    }}>
+                      {faq.a}
+                    </div>
+                  </details>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
 
         {/* 8. About Us Section */}
         <section id="about" style={{ padding: '60px 20px', maxWidth: '840px', margin: '0 auto', scrollMarginTop: '80px' }}>

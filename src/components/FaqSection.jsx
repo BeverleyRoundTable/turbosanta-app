@@ -1,35 +1,12 @@
 import React, { useState } from 'react';
 import { ChevronDown, ShieldAlert } from 'lucide-react';
+import { normalizeFaqs } from '../utils/faqs';
 
-export default function FaqSection() {
+export default function FaqSection({ faqs: customFaqs = null }) {
   const [openIndex, setOpenIndex] = useState(null);
+  const faqs = normalizeFaqs(customFaqs);
 
-  const faqs = [
-    {
-      q: "Will you definitely come down my street tonight?",
-      a: "Our routes are a guide, not a guarantee. We are entirely run by volunteers and rely on good weather, clear traffic, and having enough people to safely operate the sleigh. Sometimes we have to cut a route short due to rain, ice, or time restrictions. Please use the live tracker above to see exactly where we are!"
-    },
-    {
-      q: "Why didn't you turn down my cul-de-sac?",
-      a: "The Santa Sleigh is very large and difficult to manoeuvre. If there are parked cars blocking a turning circle, or if a cul-de-sac is too tight for us to safely turn around, the driver will make the decision to stay on the main road. If you live down a tight street, please come out to the nearest junction to wave to Santa!"
-    },
-    {
-      q: "Can my children climb onto the sleigh for a photo?",
-      a: "For safety and insurance reasons, no one is allowed on the sleigh while it is moving or during the street collections. You are very welcome to take photos of Santa from the pavement. Please ensure children do not run into the road towards the moving vehicle."
-    },
-    {
-      q: "Where does the donated money go?",
-      a: "Every single penny collected goes directly into our local Round Table charity fund. Throughout the year, we distribute this money to local good causes, community groups, food banks, and individuals in need right here in our town."
-    },
-    {
-      q: "Do you accept card donations?",
-      a: "Yes! Our elves carry contactless card readers alongside their traditional buckets. You can also donate right here on this website using the Donate button at the top of the page."
-    },
-    {
-      q: "Can I volunteer to help?",
-      a: "Absolutely! We are always looking for enthusiastic volunteers to help collect donations, act as safety walkers, or even drive the towing vehicle. Reach out to us via our email or social media channels below to get involved."
-    }
-  ];
+  if (!faqs || faqs.length === 0) return null;
 
   const toggle = (idx) => {
     setOpenIndex(openIndex === idx ? null : idx);

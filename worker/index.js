@@ -313,6 +313,7 @@ async function ensureSchemaOnce(env) {
       "ALTER TABLE season_history ADD COLUMN miles_driven REAL DEFAULT 0",
       "ALTER TABLE tables ADD COLUMN town_alias TEXT",
       "ALTER TABLE tables ADD COLUMN subdomain_aliases TEXT",
+      "ALTER TABLE tables ADD COLUMN faqs_json TEXT",
       "DELETE FROM lessons_learned WHERE id LIKE 'seed_%'",
       "DELETE FROM lesson_upvotes WHERE lesson_id LIKE 'seed_%'"
     ];
@@ -1528,6 +1529,23 @@ export default {
           }
           return [];
         })(),
+        faqs_json: table.faqs_json || null,
+        faqs: (() => {
+          if (table.faqs_json) {
+            try {
+              const f = typeof table.faqs_json === 'string' ? JSON.parse(table.faqs_json) : table.faqs_json;
+              if (Array.isArray(f)) {
+                return f
+                  .map(item => ({
+                    q: item.q || item.question || '',
+                    a: item.a || item.answer || ''
+                  }))
+                  .filter(item => item.q && item.q.trim());
+              }
+            } catch (e) {}
+          }
+          return null;
+        })(),
         gemini_model: table.gemini_model || "auto",
         enable_colouring: Boolean(table.public_slot_1 === 'colouring' || table.public_slot_2 === 'colouring'),
         public_slot_1: (table.public_slot_1 !== undefined && table.public_slot_1 !== null)
@@ -1752,6 +1770,8 @@ export default {
         partners_json: tableConfig.partners_json,
         supported_appeals: tableConfig.supported_appeals || [],
         supported_appeals_json: tableConfig.supported_appeals_json || null,
+        faqs: tableConfig.faqs || null,
+        faqs_json: tableConfig.faqs_json || null,
         expenses: Number(table.expenses || 0),
         expenses_json: tableConfig.expenses_json,
         routes: formattedRoutes,
@@ -2678,6 +2698,7 @@ export default {
       setIfProvided("headline_sponsor_tagline");
       setIfProvided("partners_json", "partners_json", v => typeof v === 'string' ? v : JSON.stringify(v));
       setIfProvided("supported_appeals_json", "supported_appeals_json", v => typeof v === 'string' ? v : JSON.stringify(v));
+      setIfProvided("faqs_json", "faqs_json", v => typeof v === 'string' ? v : JSON.stringify(v));
       setIfProvided("gemini_model");
       setIfProvided("enable_colouring", "enable_colouring", v => v ? 1 : 0);
       setIfProvided("public_slot_1");

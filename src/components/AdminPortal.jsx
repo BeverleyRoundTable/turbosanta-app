@@ -8,12 +8,13 @@ import {
   CreditCard, Key, Zap, RefreshCw, Send, Link2, Gift,
   BarChart3, TrendingUp, Award, Printer, PieChart, Receipt,
   Mail, HardDrive, AlertTriangle, Database, FileText, Coins, Share2, QrCode, ArrowUpDown, Volume2, VolumeX, Music, Play, Pause, UploadCloud,
-  Phone, MessageCircle, UserCheck, Search, Clock, Bot, CheckCircle, Navigation, ChevronLeft, ChevronRight
+  Phone, MessageCircle, UserCheck, Search, Clock, Bot, CheckCircle, Navigation, ChevronLeft, ChevronRight, HelpCircle, ArrowUp, ArrowDown
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { logoutAdmin, isNationalAdmin, getAdminAuthToken } from '../services/auth';
 import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, saveRoute, deleteRoute, connectTableGmail, disconnectTableGmail, testTableGmailAlert, fetchSubscribers, clearSubscribers, triggerAutomatedCrewBriefings, fetchAutomatedCrewBriefingStatus, uploadAssetToR2, fetchGiftAidSummary, updateGiftAidStatus, exportGiftAidCsv, updateVolunteer, deleteVolunteer } from '../services/api';
 import { extractRouteSponsors } from '../utils/sponsors';
+import { DEFAULT_FAQ_PRESETS, FLATBED_FAQ_PRESETS, normalizeFaqs } from '../utils/faqs';
 import DropzoneUpload from './DropzoneUpload';
 import RouteEditorModal from './RouteEditorModal';
 import ExpensesModal from './ExpensesModal';
@@ -1245,6 +1246,18 @@ ${tableName} Organizers`
       }
       return Array.isArray(raw) ? raw : [];
     })(),
+    faqs: (() => {
+      let raw = tableData?.table?.faqs || tableData?.faqs;
+      if (!raw && (tableData?.table?.faqs_json || tableData?.table?.faqs_json)) {
+        try {
+          const parsed = typeof (tableData?.table?.faqs_json || tableData?.table?.faqs_json) === 'string'
+            ? JSON.parse(tableData?.table?.faqs_json || tableData?.table?.faqs_json)
+            : (tableData?.table?.faqs_json || tableData?.table?.faqs_json);
+          if (Array.isArray(parsed)) raw = parsed;
+        } catch (e) {}
+      }
+      return normalizeFaqs(raw);
+    })(),
     gemini_model: tableData?.table?.gemini_model || localStorage.getItem('turbosanta_global_gemini_model') || 'auto',
     enable_colouring: Boolean(tableData?.table?.enable_colouring),
     elevenlabs_agent_id: tableData?.table?.elevenlabs_agent_id || (currentTableSlug === 'beverley' ? 'agent_4401kxaqcqygfb4940wnc4a9haeh' : (currentTableSlug === 'abergavenny' ? 'agent_2101m5d5sktze0rb4mchkhaz1aqj' : '')),
@@ -1305,6 +1318,7 @@ ${tableName} Organizers`
   const [isSavingBg, setIsSavingBg] = useState(false);
   const [bgSaveToast, setBgSaveToast] = useState('');
   const [hasUserChangedPartners, setHasUserChangedPartners] = useState(false);
+  const [hasUserChangedFaqs, setHasUserChangedFaqs] = useState(false);
   const lastLoadedSlugRef = React.useRef(null);
   const hasLoadedFormDataRef = React.useRef(false);
 
@@ -1316,6 +1330,7 @@ ${tableName} Organizers`
       hasLoadedFormDataRef.current = false;
       setHasUserChangedPartners(false);
       setHasUserChangedBgMode(false);
+      setHasUserChangedFaqs(false);
     }
 
     // Only populate formData on first load of this table, or when switching table slugs!
@@ -1392,6 +1407,19 @@ ${tableName} Organizers`
             } catch (e) {}
           }
           return Array.isArray(raw) ? raw : (prev.supported_appeals || []);
+        })(),
+        faqs: (() => {
+          if (hasUserChangedFaqs) return prev.faqs || DEFAULT_FAQ_PRESETS;
+          let raw = tableData.table.faqs || tableData.faqs;
+          if (!raw && (tableData.table.faqs_json || tableData.table.faqs_json)) {
+            try {
+              const parsed = typeof (tableData.table.faqs_json || tableData.table.faqs_json) === 'string'
+                ? JSON.parse(tableData.table.faqs_json || tableData.table.faqs_json)
+                : (tableData.table.faqs_json || tableData.table.faqs_json);
+              if (Array.isArray(parsed)) raw = parsed;
+            } catch (e) {}
+          }
+          return normalizeFaqs(raw);
         })(),
         gemini_model: tableData.table.gemini_model || prev.gemini_model || 'auto',
         enable_colouring: tableData.table.enable_colouring !== undefined ? Boolean(tableData.table.enable_colouring) : prev.enable_colouring,
@@ -1658,6 +1686,64 @@ ${tableName} Organizers`
     setFormData(prev => ({
       ...prev,
       supported_appeals: (prev.supported_appeals || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  // Kerbside Safety & Public FAQ Handlers
+  const handleAddFaq = (preset = null) => {
+    setHasUserChangedFaqs(true);
+    const newFaq = preset || {
+      q: '',
+      a: ''
+    };
+    setFormData(prev => ({
+      ...prev,
+      faqs: [...(prev.faqs || []), newFaq]
+    }));
+  };
+
+  const handleUpdateFaq = (index, field, value) => {
+    setHasUserChangedFaqs(true);
+    setFormData(prev => {
+      const nextFaqs = [...(prev.faqs || [])];
+      nextFaqs[index] = { ...nextFaqs[index], [field]: value };
+      return {
+        ...prev,
+        faqs: nextFaqs
+      };
+    });
+  };
+
+  const handleRemoveFaq = (index) => {
+    setHasUserChangedFaqs(true);
+    setFormData(prev => ({
+      ...prev,
+      faqs: (prev.faqs || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleMoveFaq = (index, direction) => {
+    setHasUserChangedFaqs(true);
+    setFormData(prev => {
+      const list = [...(prev.faqs || [])];
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= list.length) return prev;
+      const temp = list[index];
+      list[index] = list[targetIndex];
+      list[targetIndex] = temp;
+      return {
+        ...prev,
+        faqs: list
+      };
+    });
+  };
+
+  const handleApplyFaqPreset = (type = 'trailer') => {
+    setHasUserChangedFaqs(true);
+    const presetList = type === 'flatbed' ? FLATBED_FAQ_PRESETS : DEFAULT_FAQ_PRESETS;
+    setFormData(prev => ({
+      ...prev,
+      faqs: [...presetList]
     }));
   };
 
@@ -9958,6 +10044,236 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                 )}
               </div>
 
+              {/* KERBSIDE SAFETY & PUBLIC FAQS (GOOD TO KNOW) */}
+              <div style={{
+                background: '#0d0d0b',
+                border: '1px solid rgba(251, 175, 51, 0.35)',
+                borderRadius: '12px',
+                padding: 'clamp(14px, 3vw, 20px)',
+                maxWidth: '100%',
+                boxSizing: 'border-box'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <HelpCircle size={20} color="var(--primary)" />
+                    <strong style={{ fontSize: '16px', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Kerbside Safety &amp; Public FAQs (Good To Know)
+                    </strong>
+                    <span style={{
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      background: 'rgba(251, 175, 51, 0.15)',
+                      color: 'var(--primary)',
+                      border: '1px solid rgba(251, 175, 51, 0.3)'
+                    }}>
+                      {(formData.faqs || []).length} Question{(formData.faqs || []).length === 1 ? '' : 's'}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyFaqPreset('trailer')}
+                      style={{
+                        padding: '6px 11px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        background: 'rgba(59, 130, 246, 0.12)',
+                        color: '#60a5fa',
+                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                        borderRadius: '6px',
+                        cursor: 'pointer'
+                      }}
+                      title="Load standard trailer towing FAQ presets"
+                    >
+                      🚗 Trailer Presets
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyFaqPreset('flatbed')}
+                      style={{
+                        padding: '6px 11px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        background: 'rgba(168, 85, 247, 0.15)',
+                        color: '#c084fc',
+                        border: '1px solid rgba(168, 85, 247, 0.35)',
+                        borderRadius: '6px',
+                        cursor: 'pointer'
+                      }}
+                      title="Load Flatbed Van / Truck sleigh FAQ presets (tailored cul-de-sac & vehicle advice)"
+                    >
+                      🚐 Flatbed Van Presets
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAddFaq()}
+                      style={{
+                        padding: '6px 12px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        background: 'var(--primary)',
+                        color: '#000',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <Plus size={13} /> Add Question
+                    </button>
+                  </div>
+                </div>
+
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px', lineHeight: 1.55 }}>
+                  Customise the questions and answers shown under &ldquo;Good To Know&rdquo; on your public sleigh tracker. You can freely edit questions and answers, reorder them, add custom local guidelines, or switch between <strong>Trailer</strong> and <strong>Flatbed Van</strong> turning advice.
+                </p>
+
+                {(!formData.faqs || formData.faqs.length === 0) ? (
+                  <div style={{
+                    padding: '24px 16px',
+                    textAlign: 'center',
+                    background: '#151513',
+                    border: '1px dashed var(--border)',
+                    borderRadius: '8px',
+                    color: 'var(--text-muted)',
+                    fontSize: '13px'
+                  }}>
+                    <p style={{ margin: '0 0 12px 0' }}>No FAQ questions currently configured. (The FAQ section will be hidden from your public website).</p>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleApplyFaqPreset('trailer')}
+                        className="btn-primary"
+                        style={{ padding: '6px 14px', fontSize: '12px' }}
+                      >
+                        Restore Standard Trailer FAQs
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleApplyFaqPreset('flatbed')}
+                        className="btn-secondary"
+                        style={{ padding: '6px 14px', fontSize: '12px' }}
+                      >
+                        Restore Flatbed Van FAQs
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {formData.faqs.map((faq, idx) => (
+                      <div
+                        key={`faq-${idx}`}
+                        style={{
+                          background: '#151513',
+                          border: '1px solid var(--border)',
+                          borderRadius: '8px',
+                          padding: '14px 16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '10px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            Question #{idx + 1}
+                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleMoveFaq(idx, 'up')}
+                              disabled={idx === 0}
+                              style={{
+                                background: 'transparent',
+                                border: '1px solid var(--border)',
+                                color: idx === 0 ? 'rgba(255,255,255,0.2)' : '#fff',
+                                borderRadius: '4px',
+                                padding: '4px 6px',
+                                cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center'
+                              }}
+                              title="Move question up"
+                            >
+                              <ArrowUp size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleMoveFaq(idx, 'down')}
+                              disabled={idx === formData.faqs.length - 1}
+                              style={{
+                                background: 'transparent',
+                                border: '1px solid var(--border)',
+                                color: idx === formData.faqs.length - 1 ? 'rgba(255,255,255,0.2)' : '#fff',
+                                borderRadius: '4px',
+                                padding: '4px 6px',
+                                cursor: idx === formData.faqs.length - 1 ? 'not-allowed' : 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center'
+                              }}
+                              title="Move question down"
+                            >
+                              <ArrowDown size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveFaq(idx)}
+                              style={{
+                                background: 'rgba(239, 68, 68, 0.15)',
+                                border: '1px solid rgba(239, 68, 68, 0.35)',
+                                color: '#fca5a5',
+                                borderRadius: '4px',
+                                padding: '4px 8px',
+                                cursor: 'pointer',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                marginLeft: '6px'
+                              }}
+                              title="Remove this question"
+                            >
+                              <Trash2 size={12} /> Remove
+                            </button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
+                            Public Question
+                          </label>
+                          <input
+                            type="text"
+                            value={faq.q || ''}
+                            onChange={(e) => handleUpdateFaq(idx, 'q', e.target.value)}
+                            placeholder="e.g. Why didn't the sleigh turn down my cul-de-sac?"
+                            style={{ width: '100%', boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '13px' }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
+                            Answer &amp; Resident Guidance
+                          </label>
+                          <textarea
+                            value={faq.a || ''}
+                            onChange={(e) => handleUpdateFaq(idx, 'a', e.target.value)}
+                            rows={3}
+                            placeholder="Provide clear, friendly safety or route explanation for families..."
+                            style={{ width: '100%', boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '12.5px', fontFamily: 'inherit', lineHeight: 1.5 }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* LOCAL CAUSE NOMINATIONS & COMMUNITY GRANTS */}
               <div style={{
                 background: '#0d0d0b',
@@ -12005,6 +12321,13 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                       const leadPartner = validPartners[0] || {};
                       const validAppeals = (formData.supported_appeals || []).filter(a => a && (a.name || a.charity_name));
                       const supportedAppealsJson = validAppeals.length > 0 ? JSON.stringify(validAppeals) : null;
+                      const validFaqs = (formData.faqs || [])
+                        .map(f => ({
+                          q: String(f?.q || f?.question || '').trim(),
+                          a: String(f?.a || f?.answer || '').trim()
+                        }))
+                        .filter(f => f.q);
+                      const faqsJson = JSON.stringify(validFaqs);
                       const parsedGoal = (formData.fundraising_goal === '' || formData.fundraising_goal === undefined || formData.fundraising_goal === null) ? 0 : Number(formData.fundraising_goal);
                       const payload = {
                         sleigh_display_name: standardSleighDisplayName,
@@ -12038,6 +12361,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                         charity_number: formData.charity_number,
                         partners_json: partnersJson,
                         supported_appeals_json: supportedAppealsJson,
+                        faqs_json: faqsJson,
                         headline_sponsor_name: leadPartner.name || formData.headline_sponsor_name || null,
                         headline_sponsor_logo: leadPartner.logo || formData.headline_sponsor_logo || null,
                         headline_sponsor_url: leadPartner.url || formData.headline_sponsor_url || null,
@@ -12089,6 +12413,8 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                           expenses_json: formData.expenses_json || null,
                           partners: validPartners,
                           supported_appeals: validAppeals,
+                          faqs: validFaqs,
+                          faqs_json: faqsJson,
                           table: {
                             ...prev.table,
                             ...payload,
@@ -12096,6 +12422,8 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                             partners_json: partnersJson,
                             supported_appeals: validAppeals,
                             supported_appeals_json: supportedAppealsJson,
+                            faqs: validFaqs,
+                            faqs_json: faqsJson,
                             notify_email_enabled: formData.notify_email_enabled,
                             notify_radius_meters: formData.notify_radius_meters,
                             pass_buffer_meters: formData.pass_buffer_meters,
@@ -12111,6 +12439,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                         setSaveStatus('Settings successfully saved to database!');
                         setHasUserChangedBgMode(false);
                         setHasUserChangedPartners(false);
+                        setHasUserChangedFaqs(false);
                         if (typeof onUpdateTableData === 'function') {
                           onUpdateTableData(prev => ({
                             ...prev,
