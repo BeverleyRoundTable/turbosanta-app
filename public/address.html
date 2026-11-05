@@ -974,7 +974,15 @@
 
         applyDeepLink();
 
-        if (pendingFocusRoute) {
+        if (pendingFocusStop) {
+          selectRouteFromParent(pendingFocusStop.routeId, pendingFocusStop.routeName);
+          if (typeof window.zoomToStop === "function" && pendingFocusStop.lat !== undefined && pendingFocusStop.lng !== undefined) {
+            setTimeout(() => {
+              window.zoomToStop(Number(pendingFocusStop.lat), Number(pendingFocusStop.lng), pendingFocusStop.name, pendingFocusStop.stopNum);
+            }, 450);
+          }
+          pendingFocusStop = null;
+        } else if (pendingFocusRoute) {
           selectRouteFromParent(pendingFocusRoute.routeId, pendingFocusRoute.routeName);
           pendingFocusRoute = null;
         }
@@ -2014,6 +2022,7 @@
   }
 
   let pendingFocusRoute = null;
+  let pendingFocusStop = null;
 
   function selectRouteFromParent(routeId, routeName) {
     if (!routesData || routesData.length === 0) {
@@ -2042,6 +2051,24 @@
     if (!e.data || typeof e.data !== "object") return;
     if (e.data.type === "turbosanta-focus-route" || e.data.type === "turbosanta-select-route") {
       selectRouteFromParent(e.data.routeId, e.data.routeName);
+    } else if (e.data.type === "turbosanta-focus-stop") {
+      if (!routesData || routesData.length === 0) {
+        pendingFocusStop = {
+          routeId: e.data.routeId,
+          routeName: e.data.routeName,
+          lat: e.data.lat,
+          lng: e.data.lng,
+          name: e.data.name,
+          stopNum: e.data.stopNum
+        };
+        return;
+      }
+      selectRouteFromParent(e.data.routeId, e.data.routeName);
+      if (typeof window.zoomToStop === "function" && e.data.lat !== undefined && e.data.lng !== undefined) {
+        setTimeout(() => {
+          window.zoomToStop(Number(e.data.lat), Number(e.data.lng), e.data.name || 'Planned Stop', e.data.stopNum || 1);
+        }, 400);
+      }
     }
   });
 

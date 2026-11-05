@@ -510,6 +510,37 @@
     return list;
   }
 
+  function getRoutePlannedStops(route) {
+    if (!route) return [];
+    let stops = [];
+    if (Array.isArray(route.planned_stops)) {
+      stops = route.planned_stops;
+    } else if (typeof route.planned_stops === 'string' && route.planned_stops.trim()) {
+      try {
+        const parsed = JSON.parse(route.planned_stops);
+        if (Array.isArray(parsed)) stops = parsed;
+      } catch (_) {}
+    } else if (Array.isArray(route.stops)) {
+      stops = route.stops;
+    } else if (typeof route.stops === 'string' && route.stops.trim()) {
+      try {
+        const parsed = JSON.parse(route.stops);
+        if (Array.isArray(parsed)) stops = parsed;
+      } catch (_) {}
+    }
+    return stops.map((st, i) => {
+      const lat = Number(st.lat);
+      const lng = Number(st.lng !== undefined ? st.lng : st.lon);
+      return {
+        id: st.id || `stop_${i + 1}`,
+        lat: isNaN(lat) ? null : lat,
+        lng: isNaN(lng) ? null : lng,
+        name: st.name ? String(st.name).trim() : `Stop ${i + 1}`,
+        allocated_mins: (st.allocated_mins !== undefined && st.allocated_mins !== null) ? Number(st.allocated_mins) : (Number(st.dwellMins) || 0)
+      };
+    }).filter(st => Boolean(st.name));
+  }
+
   function buildSubdomainToolUrl(toolPath) {
     const host = (window.location.hostname || '').toLowerCase();
     const cleanPath = toolPath.startsWith('/') ? toolPath : `/${toolPath}`;
@@ -948,10 +979,12 @@
       if (!q) return true;
       const streets = state.streetsByRoute.get(String(route.id)) || [];
       const sponsors = getRouteSponsors(route);
+      const plannedStops = getRoutePlannedStops(route);
       return (
         String(route.name || '').toLowerCase().includes(q) ||
         String(route.date || '').toLowerCase().includes(q) ||
         streets.some(s => s.toLowerCase().includes(q)) ||
+        plannedStops.some(st => st.name.toLowerCase().includes(q)) ||
         sponsors.some(sp => sp.name.toLowerCase().includes(q))
       );
     });
@@ -1025,9 +1058,45 @@
       ` : '';
 
       const allStreets = state.streetsByRoute.get(String(route.id)) || [];
+      const plannedStops = getRoutePlannedStops(route);
       const isExpanded = state.expandedRouteStreets.has(String(route.id)) || Boolean(q);
       const previewStreets = isExpanded ? allStreets : allStreets.slice(0, 7);
       const hiddenCount = Math.max(0, allStreets.length - previewStreets.length);
+
+      const stopsHtml = plannedStops.length > 0 ? `
+        <div class="route-planned-stops-wrap">
+          <div class="route-stops-header">
+            <span class="route-stops-kicker">
+              <i class="fa-solid fa-location-dot" style="color:#ef4444;"></i>
+              Planned Stops & Photo Points (${plannedStops.length})
+            </span>
+            <span class="route-stops-hint">Tap stop to fly on map</span>
+          </div>
+          <div class="route-stops-chips">
+            ${plannedStops.map((st, sIdx) => {
+              const matched = q && st.name.toLowerCase().includes(q);
+              const dwellStr = st.allocated_mins > 0 ? `<span class="stop-dwell">(${st.allocated_mins}m)</span>` : '';
+              const hasCoords = st.lat !== null && st.lng !== null;
+              return `
+                <button
+                  type="button"
+                  class="route-stop-chip${matched ? ' matched' : ''}"
+                  data-fly-stop-route="${escapeHtml(route.id)}"
+                  data-stop-lat="${hasCoords ? st.lat : ''}"
+                  data-stop-lng="${hasCoords ? st.lng : ''}"
+                  data-stop-name="${escapeHtml(st.name)}"
+                  data-stop-idx="${sIdx + 1}"
+                  title="Fly map to Stop #${sIdx + 1}: ${escapeHtml(st.name)}"
+                >
+                  <span class="stop-num-badge">${sIdx + 1}</span>
+                  <span class="stop-name-text">${escapeHtml(st.name)}</span>
+                  ${dwellStr}
+                </button>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      ` : '';
 
       const streetsHtml = allStreets.length > 0 ? `
         <div class="route-streets-wrap">
@@ -1063,6 +1132,7 @@
               <div class="route-status-row">
                 ${statusBadge}
                 ${allStreets.length > 0 ? `<span class="r-badge tabular">${allStreets.length} Streets</span>` : ''}
+                ${plannedStops.length > 0 ? `<span class="r-badge tabular r-badge-stops"><i class="fa-solid fa-location-dot"></i> ${plannedStops.length} Planned Stop${plannedStops.length !== 1 ? 's' : ''}</span>` : ''}
               </div>
               <h3 class="route-name-title">${escapeHtml(route.name)}</h3>
               <div class="route-time-line tabular">
@@ -1074,6 +1144,7 @@
           ${postponed && route.postponed_note ? `<div style="font-size:12px; color:#fcd34d; background:rgba(245,158,11,0.12); padding:8px 10px; border-radius:9px;">${escapeHtml(route.postponed_note)}</div>` : ''}
           ${staticBannerHtml}
           ${sponsorHtml}
+          ${stopsHtml}
           ${streetsHtml}
 
           <div class="route-card-actions">
@@ -1099,6 +1170,35 @@
         if (e.target.closest('button') || e.target.closest('a')) return;
         const rId = card.getAttribute('data-route-card');
         if (rId) selectRouteAndFocus(rId, true);
+      });
+    });
+
+    grid.querySelectorAll('[data-fly-stop-route]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const rId = btn.getAttribute('data-fly-stop-route');
+        const lat = parseFloat(btn.getAttribute('data-stop-lat'));
+        const lng = parseFloat(btn.getAttribute('data-stop-lng'));
+        const name = btn.getAttribute('data-stop-name') || '';
+        const stopIdx = parseInt(btn.getAttribute('data-stop-idx'), 10) || 1;
+
+        // 1. Focus route and smoothly scroll to map
+        selectRouteAndFocus(rId, true);
+
+        // 2. Instruct address-iframe map to fly to this stop pin and open popup
+        const addressIframe = document.getElementById('address-iframe');
+        if (addressIframe && addressIframe.contentWindow && !isNaN(lat) && !isNaN(lng)) {
+          try {
+            addressIframe.contentWindow.postMessage({
+              type: 'turbosanta-focus-stop',
+              routeId: String(rId),
+              lat: lat,
+              lng: lng,
+              name: name,
+              stopNum: stopIdx
+            }, '*');
+          } catch (_) {}
+        }
       });
     });
 

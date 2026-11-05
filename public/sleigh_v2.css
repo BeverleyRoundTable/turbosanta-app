@@ -1409,6 +1409,15 @@ body {
   color: #94a3b8;
 }
 
+.r-badge.r-badge-stops {
+  background: rgba(239, 68, 68, 0.16);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .route-name-title {
   font-size: 17px;
   font-weight: 700;
@@ -1488,6 +1497,104 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Planned Stops inside Route Card */
+.route-planned-stops-wrap {
+  margin-top: 10px;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.22);
+  border-radius: var(--radius-md);
+}
+
+.route-stops-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.route-stops-kicker {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #f87171;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.route-stops-hint {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.route-stops-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.route-stop-chip {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 9px 3px 4px;
+  border-radius: var(--radius-pill);
+  background: rgba(211, 28, 28, 0.2);
+  border: 1px solid rgba(251, 175, 51, 0.5);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  font-family: inherit;
+  text-align: left;
+}
+
+.route-stop-chip:hover {
+  background: rgba(211, 28, 28, 0.45);
+  border-color: #ffffff;
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 12px rgba(251, 175, 51, 0.35);
+}
+
+.route-stop-chip.matched {
+  background: rgba(251, 175, 51, 0.35);
+  border-color: var(--primary);
+  box-shadow: 0 0 10px rgba(251, 175, 51, 0.4);
+}
+
+.stop-num-badge {
+  background: #d31c1c;
+  color: #ffffff;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 900;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.stop-name-text {
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stop-dwell {
+  color: var(--primary);
+  font-size: 10.5px;
+  font-weight: 800;
 }
 
 /* Street Pills inside Route Card */

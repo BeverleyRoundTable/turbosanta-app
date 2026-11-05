@@ -1698,6 +1698,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
 
                 <RouteStreetsPreview
                   streets={todayItem.streets}
+                  plannedStops={todayItem.planned_stops}
                   routeName={todayItem.routeName}
                   dateText={todayItem.d ? todayItem.d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : ''}
                   timeText={todayItem.start_time ? `${todayItem.start_time} - ${todayItem.end_time || '20:30'}` : ''}
@@ -1822,6 +1823,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
 
                   <RouteStreetsPreview
                     streets={r.streets}
+                    plannedStops={r.planned_stops}
                     routeName={r.routeName}
                     dateText={r.d ? r.d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : ''}
                     timeText={r.start_time ? `${r.start_time} - ${r.end_time || '20:30'}` : ''}

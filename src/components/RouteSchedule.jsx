@@ -351,6 +351,7 @@ export default function RouteSchedule({ tableData }) {
 
               <RouteStreetsPreview
                 streets={routeStreets.map(s => s.street_name)}
+                plannedStops={r.planned_stops}
                 routeName={r.name}
                 dateText={r.date ? new Date(r.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : ''}
                 timeText={r.start_time ? `${r.start_time} - ${r.end_time || '20:30'}` : ''}

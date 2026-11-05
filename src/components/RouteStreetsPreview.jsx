@@ -50,6 +50,7 @@ function formatStopLabel(name) {
  */
 export default function RouteStreetsPreview({
   streets,
+  plannedStops,
   routeName,
   dateText,
   timeText,
@@ -63,6 +64,25 @@ export default function RouteStreetsPreview({
 
   const allStreets = useMemo(() => parseStreetsList(streets), [streets]);
   const santaStopsCount = useMemo(() => allStreets.filter(isSantaStop).length, [allStreets]);
+
+  const parsedPlannedStops = useMemo(() => {
+    let raw = plannedStops;
+    if (typeof raw === 'string' && raw.trim()) {
+      try { raw = JSON.parse(raw); } catch (_) {}
+    }
+    if (!Array.isArray(raw)) return [];
+    return raw.map((st, i) => {
+      const lat = Number(st.lat);
+      const lng = Number(st.lng !== undefined ? st.lng : st.lon);
+      return {
+        id: st.id || `stop_${i + 1}`,
+        lat: isNaN(lat) ? null : lat,
+        lng: isNaN(lng) ? null : lng,
+        name: st.name ? String(st.name).trim() : `Stop ${i + 1}`,
+        allocated_mins: (st.allocated_mins !== undefined && st.allocated_mins !== null) ? Number(st.allocated_mins) : (Number(st.dwellMins) || 0)
+      };
+    }).filter(st => Boolean(st.name));
+  }, [plannedStops]);
 
   // Lock body scroll and handle Escape key while modal is open
   useEffect(() => {
@@ -463,6 +483,51 @@ export default function RouteStreetsPreview({
 
   return (
     <div style={{ marginTop: '4px', marginBottom: '14px', display: 'flex', flexDirection: 'column' }}>
+      {/* Planned Stops Badges & Chips */}
+      {parsedPlannedStops.length > 0 && (
+        <div style={{ marginBottom: '10px', padding: '8px 10px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '6px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: '#f87171', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              <MapPin size={12} color="#ef4444" /> Planned Stops & Photo Points ({parsedPlannedStops.length})
+            </span>
+            <span style={{ fontSize: '10px', color: 'var(--text-muted, #888)' }}>Tap stop to view on map</span>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+            {parsedPlannedStops.map((st, sIdx) => (
+              <button
+                key={sIdx}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onViewMap) onViewMap();
+                }}
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: '#FFFFFF',
+                  backgroundColor: 'rgba(211, 28, 28, 0.22)',
+                  border: '1px solid rgba(251, 175, 51, 0.5)',
+                  padding: '3px 8px 3px 4px',
+                  borderRadius: '999px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit'
+                }}
+                title={`Stop #${sIdx + 1}: ${st.name}${st.allocated_mins > 0 ? ` (${st.allocated_mins}m dwell)` : ''}`}
+              >
+                <span style={{ backgroundColor: '#D31C1C', color: '#fff', width: '16px', height: '16px', borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 900, flexShrink: 0 }}>
+                  {sIdx + 1}
+                </span>
+                <span>{st.name}</span>
+                {st.allocated_mins > 0 && <span style={{ color: 'var(--primary)', fontSize: '10px', fontWeight: 800 }}>({st.allocated_mins}m)</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Pills Container (Clamped Preview) */}
       <div style={{
         display: 'flex',
