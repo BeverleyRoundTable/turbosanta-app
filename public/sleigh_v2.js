@@ -1839,8 +1839,15 @@
   }
 
   // --- Modals & Form Submissions ---
+  let isPoppingModalState = false;
+
   function openModal(id) {
-    document.getElementById(id)?.classList.add('open');
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.add('open');
+    try {
+      window.history.pushState({ modalOpen: id }, '');
+    } catch (_) {}
   }
 
   function closeModal(id) {
@@ -1851,7 +1858,37 @@
       const ifr = document.getElementById('theater-iframe');
       if (ifr) ifr.src = 'about:blank';
     }
+    if (!isPoppingModalState) {
+      try {
+        if (window.history.state && window.history.state.modalOpen === id) {
+          window.history.back();
+        }
+      } catch (_) {}
+    }
   }
+
+  function closeAllModals() {
+    document.querySelectorAll('.modal-backdrop-v2.open').forEach(m => {
+      m.classList.remove('open');
+      if (m.id === 'theater-modal') {
+        const ifr = document.getElementById('theater-iframe');
+        if (ifr) ifr.src = 'about:blank';
+      }
+    });
+  }
+
+  window.addEventListener('popstate', () => {
+    isPoppingModalState = true;
+    try {
+      closeAllModals();
+    } finally {
+      setTimeout(() => { isPoppingModalState = false; }, 60);
+    }
+  });
+
+  window.openModal = openModal;
+  window.closeModal = closeModal;
+  window.closeAllModals = closeAllModals;
 
   function openTheaterModal(item) {
     const titleEl = document.getElementById('theater-title');
@@ -2127,14 +2164,29 @@
       }
     });
 
-    // Modal Closers
-    document.querySelectorAll('[data-close]').forEach(btn => {
-      btn.addEventListener('click', () => closeModal(btn.getAttribute('data-close')));
-    });
-    document.querySelectorAll('.modal-backdrop-v2').forEach(backdrop => {
-      backdrop.addEventListener('click', (e) => {
-        if (e.target === backdrop) closeModal(backdrop.id);
-      });
+    // Modal Closers - Document-level Click, Touchend & Pointer delegation
+    const handleModalCloseAction = (e) => {
+      const closeBtn = e.target.closest('[data-close], .modal-close-x');
+      if (closeBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const id = closeBtn.getAttribute('data-close') || closeBtn.closest('.modal-backdrop-v2')?.id;
+        if (id) closeModal(id);
+        return;
+      }
+      const backdrop = e.target.closest('.modal-backdrop-v2');
+      if (backdrop && (e.target === backdrop || e.target.classList.contains('modal-backdrop-v2'))) {
+        e.preventDefault();
+        closeModal(backdrop.id);
+      }
+    };
+
+    document.addEventListener('click', handleModalCloseAction);
+    document.addEventListener('touchend', handleModalCloseAction, { passive: false });
+
+    // Escape Key closes active modals
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeAllModals();
     });
 
     // Form 1: +25% Gift Aid Pre-Checkout

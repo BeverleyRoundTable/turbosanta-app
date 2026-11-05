@@ -514,7 +514,7 @@
           <a id="theater-fs-link" href="#" target="_blank" rel="noopener" class="radar-ctrl-btn">
             <span>Full Screen</span> <i class="fa-solid fa-up-right-from-square"></i>
           </a>
-          <button type="button" class="modal-close-x" data-close="theater-modal" aria-label="Close">&#10005;</button>
+          <button type="button" class="modal-close-x" data-close="theater-modal" onclick="closeModal('theater-modal')" aria-label="Close">&#10005;</button>
         </div>
       </div>
       <iframe id="theater-iframe" class="theater-iframe" title="Interactive Festive Experience" allow="microphone; camera; geolocation"></iframe>
@@ -525,14 +525,14 @@
   <div class="modal-backdrop-v2" id="giftaid-modal" role="dialog" aria-modal="true">
     <div class="modal-panel-v2">
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
-        <div>
+        <div style="flex:1; min-width:0;">
           <span class="ga-tag">+25% HMRC Boost</span>
           <h3 style="font-size:22px; margin-top:8px;">BOOST YOUR <span class="hl">DONATION</span></h3>
           <p style="font-size:13px; color:var(--text-secondary); margin-top:4px;">
             UK taxpayer? Confirm your address in 15 seconds so our charity can claim an extra <strong>25p for every £1</strong> from HMRC at zero cost to you!
           </p>
         </div>
-        <button type="button" class="modal-close-x" data-close="giftaid-modal" aria-label="Close">&#10005;</button>
+        <button type="button" class="modal-close-x" data-close="giftaid-modal" onclick="closeModal('giftaid-modal')" aria-label="Close">&#10005;</button>
       </div>
 
       <form id="v2-giftaid-form" class="form-grid-v2">
@@ -567,14 +567,14 @@
   <div class="modal-backdrop-v2" id="alert-modal" role="dialog" aria-modal="true">
     <div class="modal-panel-v2">
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
-        <div>
+        <div style="flex:1; min-width:0;">
           <div class="section-eyebrow"><i class="fa-solid fa-bell"></i> Free GPS Proximity Ping</div>
           <h3 style="font-size:22px;">DOORSTEP <span class="hl">SLEIGH ALERT</span></h3>
           <p style="font-size:13px; color:var(--text-secondary); margin-top:4px;" id="alert-modal-desc">
             Enter your postcode (or use GPS) and email — we'll automatically ping you when Santa sets off and when his sleigh comes within 250 metres of your home!
           </p>
         </div>
-        <button type="button" class="modal-close-x" data-close="alert-modal" aria-label="Close">&#10005;</button>
+        <button type="button" class="modal-close-x" data-close="alert-modal" onclick="closeModal('alert-modal')" aria-label="Close">&#10005;</button>
       </div>
 
       <form id="v2-alert-form" class="form-grid-v2">
@@ -599,14 +599,14 @@
   <div class="modal-backdrop-v2" id="grant-modal" role="dialog" aria-modal="true">
     <div class="modal-panel-v2">
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
-        <div>
+        <div style="flex:1; min-width:0;">
           <div class="section-eyebrow"><i class="fa-solid fa-seedling"></i> Community Service Fund</div>
           <h3 style="font-size:22px;">NOMINATE A <span class="hl">LOCAL CAUSE</span></h3>
           <p style="font-size:13px; color:var(--text-secondary); margin-top:4px;">
             Know a local charity, youth team, school project, or community group that could use funding from this year's sleigh appeal? Tell our committee!
           </p>
         </div>
-        <button type="button" class="modal-close-x" data-close="grant-modal" aria-label="Close">&#10005;</button>
+        <button type="button" class="modal-close-x" data-close="grant-modal" onclick="closeModal('grant-modal')" aria-label="Close">&#10005;</button>
       </div>
 
       <form id="v2-grant-form" class="form-grid-v2">
@@ -632,14 +632,14 @@
   <div class="modal-backdrop-v2" id="cheer-modal" role="dialog" aria-modal="true">
     <div class="modal-panel-v2">
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
-        <div>
+        <div style="flex:1; min-width:0;">
           <div class="section-eyebrow"><i class="fa-solid fa-wand-magic-sparkles"></i> Kerbside Shoutout</div>
           <h3 style="font-size:22px;">WAVE TO <span class="hl">SANTA &amp; ELVES</span></h3>
           <p style="font-size:13px; color:var(--text-secondary); margin-top:4px;">
             Post a festive wave or thank-you message to appear on the live community cheer ticker!
           </p>
         </div>
-        <button type="button" class="modal-close-x" data-close="cheer-modal" aria-label="Close">&#10005;</button>
+        <button type="button" class="modal-close-x" data-close="cheer-modal" onclick="closeModal('cheer-modal')" aria-label="Close">&#10005;</button>
       </div>
 
       <form id="v2-cheer-form" class="form-grid-v2">
@@ -657,14 +657,14 @@
   <div class="modal-backdrop-v2" id="photo-modal" role="dialog" aria-modal="true">
     <div class="modal-panel-v2">
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
-        <div>
+        <div style="flex:1; min-width:0;">
           <div class="section-eyebrow"><i class="fa-solid fa-camera-retro"></i> Digital Memory Book</div>
           <h3 style="font-size:22px;">SHARE YOUR <span class="hl">SLEIGH PHOTO</span></h3>
           <p style="font-size:13px; color:var(--text-secondary); margin-top:4px;">
             Upload a festive photo from tonight's sleigh visit! Photos appear on the wall once verified by our family-friendly safety check.
           </p>
         </div>
-        <button type="button" class="modal-close-x" data-close="photo-modal" aria-label="Close">&#10005;</button>
+        <button type="button" class="modal-close-x" data-close="photo-modal" onclick="closeModal('photo-modal')" aria-label="Close">&#10005;</button>
       </div>
 
       <form id="v2-photo-form" class="form-grid-v2">
