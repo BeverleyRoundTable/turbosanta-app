@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Printer, Share2, Copy, Check, Phone, Shield, Clock, MapPin, AlertTriangle, Save } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -79,8 +79,19 @@ export default function PrintRouteSheetModal({
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
+  const lastRouteIdRef = useRef(null);
+
   useEffect(() => {
-    if (!isOpen || !route) return;
+    if (!isOpen || !route) {
+      lastRouteIdRef.current = null;
+      return;
+    }
+    const currentKey = `${route.id || route.name}`;
+    if (lastRouteIdRef.current === currentKey) {
+      return; // Already initialized for this route session; protect user input from background polling churn
+    }
+    lastRouteIdRef.current = currentKey;
+
     const meta = getInitialMeta(route);
     setMeetingLocation(meta.meetingLocation);
     setMusterTime(meta.musterTime);
@@ -116,7 +127,7 @@ export default function PrintRouteSheetModal({
     setLeadMarshal(finalLead);
     setTowDriver(finalDriver);
     setHasUnsavedChanges(false);
-  }, [isOpen, route?.id, route?.name, volunteers]);
+  }, [isOpen, route?.id, route?.name]);
 
   const handleSaveManifestDetails = async (showFeedback = true) => {
     if (!route) return;

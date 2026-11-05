@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, UserCheck, Shield, Phone, Mail, Building, MapPin, CheckCircle2, AlertCircle, CheckSquare, Square, Calendar } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { updateVolunteer, bulkRegisterVolunteers } from '../services/api';
@@ -38,39 +38,50 @@ export default function VolunteerEditorModal({
   const [statusMsg, setStatusMsg] = useState('');
   const [isError, setIsError] = useState(false);
 
+  const lastOpenedKeyRef = useRef(null);
+
   useEffect(() => {
-    if (isOpen) {
-      if (volunteer) {
-        setRouteMode('single');
-        setName(volunteer.name || volunteer['Volunteer Name'] || '');
-        const currentRole = volunteer.role || volunteer['Role'] || 'Collections';
-        const matched = STANDARD_ROLES.find(r => r.id.toLowerCase() === currentRole.toLowerCase() || currentRole.toLowerCase().includes(r.id.toLowerCase()));
-        if (matched && matched.id !== 'custom') {
-          setSelectedRole(matched.id);
-          setCustomRoleText('');
-        } else {
-          setSelectedRole('custom');
-          setCustomRoleText(currentRole);
-        }
-        setSelectedRouteName(volunteer.route_name || volunteer['RouteName'] || routes[0]?.name || 'General Helper');
-        setPhone(volunteer.phone || volunteer['Phone Number'] || '');
-        setEmail(volunteer.email || volunteer['Email'] || '');
-        setOrganisation(volunteer.organisation || volunteer['Organisation'] || '');
-      } else {
-        setRouteMode('single');
-        setSelectedRouteIds(routes.map(r => r.id || r.name));
-        setName('');
-        setSelectedRole('Collections');
-        setCustomRoleText('');
-        setSelectedRouteName(routes[0]?.name || 'General Helper');
-        setPhone('');
-        setEmail('');
-        setOrganisation('');
-      }
-      setStatusMsg('');
-      setIsError(false);
+    if (!isOpen) {
+      lastOpenedKeyRef.current = null;
+      return;
     }
-  }, [isOpen, volunteer, routes]);
+
+    const currentKey = volunteer ? String(volunteer.id || volunteer['Volunteer Name'] || 'editing') : 'new_volunteer';
+    if (lastOpenedKeyRef.current === currentKey) {
+      return; // Modal is already open and initialized for this session. Shield user input from background polling / prop churn!
+    }
+    lastOpenedKeyRef.current = currentKey;
+
+    if (volunteer) {
+      setRouteMode('single');
+      setName(volunteer.name || volunteer['Volunteer Name'] || '');
+      const currentRole = volunteer.role || volunteer['Role'] || 'Collections';
+      const matched = STANDARD_ROLES.find(r => r.id.toLowerCase() === currentRole.toLowerCase() || currentRole.toLowerCase().includes(r.id.toLowerCase()));
+      if (matched && matched.id !== 'custom') {
+        setSelectedRole(matched.id);
+        setCustomRoleText('');
+      } else {
+        setSelectedRole('custom');
+        setCustomRoleText(currentRole);
+      }
+      setSelectedRouteName(volunteer.route_name || volunteer['RouteName'] || routes[0]?.name || 'General Helper');
+      setPhone(volunteer.phone || volunteer['Phone Number'] || '');
+      setEmail(volunteer.email || volunteer['Email'] || '');
+      setOrganisation(volunteer.organisation || volunteer['Organisation'] || '');
+    } else {
+      setRouteMode('single');
+      setSelectedRouteIds(routes.map(r => r.id || r.name));
+      setName('');
+      setSelectedRole('Collections');
+      setCustomRoleText('');
+      setSelectedRouteName(routes[0]?.name || 'General Helper');
+      setPhone('');
+      setEmail('');
+      setOrganisation('');
+    }
+    setStatusMsg('');
+    setIsError(false);
+  }, [isOpen, volunteer]);
 
   if (!isOpen) return null;
 

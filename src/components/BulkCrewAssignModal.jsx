@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Users, Sparkles, CheckSquare, Square, Calendar, Shield, Building, AlertCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { bulkRegisterVolunteers } from '../services/api';
@@ -32,18 +32,27 @@ export default function BulkCrewAssignModal({
   const [statusMsg, setStatusMsg] = useState('');
   const [isError, setIsError] = useState(false);
 
+  const lastOpenedRef = useRef(false);
+
   useEffect(() => {
-    if (isOpen) {
-      setNamesText('');
-      setSelectedRole('Collections');
-      setCustomRoleText('');
-      setOrganisation(tableName ? `${tableName} Members` : 'Round Table');
-      // Default: select all active routes
-      setSelectedRouteIds(routes.map(r => r.id || r.name));
-      setStatusMsg('');
-      setIsError(false);
+    if (!isOpen) {
+      lastOpenedRef.current = false;
+      return;
     }
-  }, [isOpen, routes, tableName]);
+    if (lastOpenedRef.current) {
+      return; // Already initialized for this session; protect text entries from background polling churn
+    }
+    lastOpenedRef.current = true;
+
+    setNamesText('');
+    setSelectedRole('Collections');
+    setCustomRoleText('');
+    setOrganisation(tableName ? `${tableName} Members` : 'Round Table');
+    // Default: select all active routes
+    setSelectedRouteIds(routes.map(r => r.id || r.name));
+    setStatusMsg('');
+    setIsError(false);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
