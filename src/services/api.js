@@ -954,4 +954,78 @@ export async function fetchPublicTables() {
   }
 }
 
+// ==============================================================
+// 🎫 SUPPORT TICKETS & ISSUE REPORTING
+// ==============================================================
+
+export async function uploadSupportScreenshot(file) {
+  if (!file) throw new Error("No file provided");
+  const res = await fetch(`${API_BASE}/api/support/upload`, {
+    method: "POST",
+    headers: {
+      "Content-Type": file.type || "image/png"
+    },
+    body: file
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Upload failed (HTTP ${res.status})`);
+  }
+  return await res.json();
+}
+
+export async function submitSupportTicket(ticketData) {
+  const res = await fetch(`${API_BASE}/api/support/tickets`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(ticketData)
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.ok) {
+    throw new Error(data.error || `Failed to submit ticket (HTTP ${res.status})`);
+  }
+  return data;
+}
+
+export async function fetchSupportTickets({ table, email, rag, status, search, secret } = {}) {
+  const url = new URL(`${API_BASE}/api/support/tickets`);
+  if (table) url.searchParams.set("table", table);
+  if (email) url.searchParams.set("email", email);
+  if (rag) url.searchParams.set("rag", rag);
+  if (status) url.searchParams.set("status", status);
+  if (search) url.searchParams.set("search", search);
+  if (secret) url.searchParams.set("secret", secret);
+
+  const headers = {};
+  const token = secret || getAdminAuthToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(url.toString(), { headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.ok) {
+    throw new Error(data.error || `Failed to fetch support tickets (HTTP ${res.status})`);
+  }
+  return data;
+}
+
+export async function updateSupportTicket(ticketId, updates, secret) {
+  const payload = { ticket_id: ticketId, ...updates };
+  if (secret) payload.secret = secret;
+
+  const headers = { "Content-Type": "application/json" };
+  const token = secret || getAdminAuthToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE}/api/support/tickets/update`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.ok) {
+    throw new Error(data.error || `Failed to update support ticket (HTTP ${res.status})`);
+  }
+  return data;
+}
+
 

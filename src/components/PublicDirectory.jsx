@@ -903,6 +903,13 @@ export default function PublicDirectory({ session, onNavigateAdmin, onSelectTabl
           >
             Round Table Organiser &amp; Admin Portal (/admin)
           </a>
+          {' • '}
+          <a
+            href="/support"
+            style={{ color: '#FBAF33', textDecoration: 'underline', fontWeight: 600 }}
+          >
+            Report Issue &amp; Support (/support)
+          </a>
         </p>
         <p style={{ margin: 0, fontSize: '11px', color: 'rgba(255, 255, 255, 0.35)' }}>
           Built for voluntary community service. Santa tracking, street routes, and donations are managed by each local Round Table.

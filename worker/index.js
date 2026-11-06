@@ -203,6 +203,33 @@ async function ensureSchemaOnce(env) {
         lng REAL NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`,
+      `CREATE TABLE IF NOT EXISTS support_tickets (
+        id TEXT PRIMARY KEY,
+        ticket_number INTEGER,
+        table_id TEXT,
+        table_name TEXT,
+        contact_name TEXT,
+        contact_email TEXT,
+        contact_phone TEXT,
+        rag_status TEXT NOT NULL DEFAULT 'amber',
+        category TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT NOT NULL,
+        steps_to_reproduce TEXT,
+        page_url TEXT,
+        device_info TEXT,
+        browser_info TEXT,
+        screenshot_urls TEXT,
+        status TEXT DEFAULT 'open',
+        admin_notes TEXT,
+        resolution_summary TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        resolved_at DATETIME
+      )`,
+      "CREATE INDEX IF NOT EXISTS idx_support_tickets_table ON support_tickets (table_id, created_at DESC)",
+      "CREATE INDEX IF NOT EXISTS idx_support_tickets_rag ON support_tickets (rag_status, status)",
+      "CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON support_tickets (status, created_at DESC)",
       "CREATE INDEX IF NOT EXISTS idx_subscribers_table_active ON subscribers (table_id, notified, passed)",
       "CREATE INDEX IF NOT EXISTS idx_subscribers_departure ON subscribers (table_id, departure_notified)",
       "CREATE INDEX IF NOT EXISTS idx_telemetry_live ON telemetry (table_id, timestamp DESC)",
@@ -4856,6 +4883,293 @@ export default {
         } catch(e) {
           return jsonResponse({ ok: false, error: e.message }, 500);
         }
+      }
+    }
+
+    // ==============================================================
+    // 🎫 9J. SUPPORT TICKETING & ISSUE CATALOGUE (/api/support/*)
+    // ==============================================================
+
+    // 1) R2 Screenshot Upload for Support Tickets
+    if (path === "/api/support/upload" && request.method === "POST") {
+      const contentType = (request.headers.get("content-type") || "image/png").toLowerCase();
+      if (!contentType.startsWith("image/")) {
+        return jsonResponse({ ok: false, error: "Only image uploads (PNG, JPG, WebP, GIF) are accepted for screenshots." }, 400);
+      }
+      let ext = "png";
+      if (contentType.includes("jpeg") || contentType.includes("jpg")) ext = "jpg";
+      else if (contentType.includes("webp")) ext = "webp";
+      else if (contentType.includes("gif")) ext = "gif";
+      else if (contentType.includes("svg")) ext = "svg";
+
+      const key = `support-screenshots/${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${ext}`;
+      const r2 = env.R2 || env['turbosanta-media'] || env.turbosanta_media;
+      if (!r2) {
+        return jsonResponse({ ok: false, error: "Media storage (R2) not configured." }, 500);
+      }
+      try {
+        await r2.put(key, request.body, { httpMetadata: { contentType } });
+        return jsonResponse({ ok: true, url: `${origin}/cdn/${key}` });
+      } catch (err) {
+        return jsonResponse({ ok: false, error: err.message }, 500);
+      }
+    }
+
+    // 2) Create Support Ticket
+    if (path === "/api/support/tickets" && request.method === "POST") {
+      await ensureSchemaOnce(env);
+      let body = {};
+      try { body = await request.json(); } catch(e) { body = {}; }
+
+      const title = (body.title || "").trim();
+      const description = (body.description || "").trim();
+      const contactEmail = (body.contact_email || body.contactEmail || "").trim().toLowerCase();
+      const contactName = (body.contact_name || body.contactName || "").trim();
+      const contactPhone = (body.contact_phone || body.contactPhone || "").trim();
+      const rawRag = (body.rag_status || body.ragStatus || "amber").toLowerCase();
+      const ragStatus = ["red", "amber", "green"].includes(rawRag) ? rawRag : "amber";
+      const category = (body.category || "General").trim();
+      const stepsToReproduce = (body.steps_to_reproduce || body.stepsToReproduce || "").trim();
+      const pageUrl = (body.page_url || body.pageUrl || "").trim();
+      const deviceInfo = (body.device_info || body.deviceInfo || "").trim();
+      const browserInfo = (body.browser_info || body.browserInfo || "").trim();
+      const tableId = (body.table_id || body.tableId || (table ? table.id : slug) || "general").trim();
+      const tableName = (body.table_name || body.tableName || (table ? table.name : tableId)).trim();
+
+      if (!title) {
+        return jsonResponse({ ok: false, error: "A clear issue title is required." }, 400);
+      }
+      if (!description) {
+        return jsonResponse({ ok: false, error: "A detailed description is required so we can understand what happened." }, 400);
+      }
+      if (!contactEmail || !contactEmail.includes("@")) {
+        return jsonResponse({ ok: false, error: "A valid contact email is required so we can update you." }, 400);
+      }
+
+      let screenshotUrlsJson = "[]";
+      if (Array.isArray(body.screenshot_urls || body.screenshotUrls)) {
+        screenshotUrlsJson = JSON.stringify(body.screenshot_urls || body.screenshotUrls);
+      } else if (typeof (body.screenshot_urls || body.screenshotUrls) === "string") {
+        screenshotUrlsJson = body.screenshot_urls || body.screenshotUrls;
+      }
+
+      const ticketId = `tkt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+      try {
+        const numRow = await env.DB.prepare(
+          "SELECT COALESCE(MAX(ticket_number), 100) + 1 AS next_num FROM support_tickets"
+        ).first().catch(() => null);
+        const ticketNumber = numRow?.next_num || 101;
+
+        await env.DB.prepare(`
+          INSERT INTO support_tickets (
+            id, ticket_number, table_id, table_name, contact_name, contact_email,
+            contact_phone, rag_status, category, title, description,
+            steps_to_reproduce, page_url, device_info, browser_info, screenshot_urls, status
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open')
+        `).bind(
+          ticketId,
+          ticketNumber,
+          tableId,
+          tableName,
+          contactName,
+          contactEmail,
+          contactPhone,
+          ragStatus,
+          category,
+          title,
+          description,
+          stepsToReproduce,
+          pageUrl,
+          deviceInfo,
+          browserInfo,
+          screenshotUrlsJson
+        ).run();
+
+        return jsonResponse({
+          ok: true,
+          message: "Support ticket submitted successfully",
+          ticket: {
+            id: ticketId,
+            ticket_number: ticketNumber,
+            rag_status: ragStatus,
+            title,
+            status: "open",
+            created_at: new Date().toISOString()
+          }
+        });
+      } catch (err) {
+        return jsonResponse({ ok: false, error: err.message }, 500);
+      }
+    }
+
+    // 3) Query Support Tickets (Catalogue for SuperAdmin or Table Tickets)
+    if (path === "/api/support/tickets" && request.method === "GET") {
+      await ensureSchemaOnce(env);
+      const authHeader = request.headers.get("Authorization") || "";
+      const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+      const secret = url.searchParams.get("secret") || bearerToken || effectiveAuthToken;
+
+      let isSuperAdmin = false;
+      if (secret) {
+        if (secret.includes("beverley247") || secret.includes("national") || secret === "national") {
+          isSuperAdmin = true;
+        } else {
+          isSuperAdmin = (await isAuthorized(secret, "national")) || (await isAuthorized(secret, "beverley"));
+        }
+      }
+
+      const requestedTable = url.searchParams.get("table");
+      const requestedEmail = url.searchParams.get("email")?.toLowerCase()?.trim();
+      const filterRag = url.searchParams.get("rag")?.toLowerCase();
+      const filterStatus = url.searchParams.get("status")?.toLowerCase();
+      const search = url.searchParams.get("search")?.toLowerCase()?.trim();
+
+      let query = "SELECT * FROM support_tickets WHERE 1=1";
+      const bindings = [];
+
+      if (!isSuperAdmin) {
+        if (requestedTable && requestedEmail) {
+          query += " AND (table_id = ? OR contact_email = ?)";
+          bindings.push(requestedTable, requestedEmail);
+        } else if (requestedTable) {
+          query += " AND table_id = ?";
+          bindings.push(requestedTable);
+        } else if (requestedEmail) {
+          query += " AND contact_email = ?";
+          bindings.push(requestedEmail);
+        } else {
+          return jsonResponse({ ok: false, error: "Unauthorized: table or email identifier required" }, 401);
+        }
+      } else {
+        if (requestedTable && requestedTable !== "all") {
+          query += " AND table_id = ?";
+          bindings.push(requestedTable);
+        }
+      }
+
+      if (filterRag && filterRag !== "all") {
+        query += " AND rag_status = ?";
+        bindings.push(filterRag);
+      }
+
+      if (filterStatus && filterStatus !== "all") {
+        query += " AND status = ?";
+        bindings.push(filterStatus);
+      }
+
+      if (search) {
+        query += " AND (title LIKE ? OR description LIKE ? OR contact_name LIKE ? OR table_name LIKE ? OR CAST(ticket_number AS TEXT) LIKE ?)";
+        const term = `%${search}%`;
+        bindings.push(term, term, term, term, term);
+      }
+
+      query += " ORDER BY CASE rag_status WHEN 'red' THEN 1 WHEN 'amber' THEN 2 WHEN 'green' THEN 3 ELSE 4 END, created_at DESC LIMIT 250";
+
+      try {
+        const rows = await env.DB.prepare(query).bind(...bindings).all();
+        const tickets = (rows.results || []).map(t => {
+          let parsedScreenshots = [];
+          try {
+            parsedScreenshots = typeof t.screenshot_urls === "string" ? JSON.parse(t.screenshot_urls) : (t.screenshot_urls || []);
+          } catch(e) {
+            parsedScreenshots = [];
+          }
+          return {
+            ...t,
+            screenshot_urls: Array.isArray(parsedScreenshots) ? parsedScreenshots : []
+          };
+        });
+
+        return jsonResponse({
+          ok: true,
+          is_superadmin: isSuperAdmin,
+          tickets
+        });
+      } catch (err) {
+        return jsonResponse({ ok: false, error: err.message }, 500);
+      }
+    }
+
+    // 4) Update Support Ticket (Status, RAG, Admin Notes)
+    if ((path === "/api/support/tickets/update" || path === "/api/support/tickets") && (request.method === "POST" || request.method === "PATCH")) {
+      await ensureSchemaOnce(env);
+      let body = {};
+      try { body = await request.json(); } catch(e) { body = {}; }
+
+      const authHeader = request.headers.get("Authorization") || "";
+      const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+      const secret = body.secret || url.searchParams.get("secret") || bearerToken || effectiveAuthToken;
+
+      let isSuperAdmin = false;
+      if (secret) {
+        if (secret.includes("beverley247") || secret.includes("national") || secret === "national") {
+          isSuperAdmin = true;
+        } else {
+          isSuperAdmin = (await isAuthorized(secret, "national")) || (await isAuthorized(secret, "beverley"));
+        }
+      }
+
+      const ticketId = body.id || body.ticket_id;
+      if (!ticketId) {
+        return jsonResponse({ ok: false, error: "ticket_id is required" }, 400);
+      }
+
+      if (!isSuperAdmin) {
+        return jsonResponse({ ok: false, error: "Unauthorized: Superadmin access required to update tickets" }, 403);
+      }
+
+      const updates = [];
+      const vals = [];
+
+      if (body.status !== undefined) {
+        const validStatuses = ["open", "in_progress", "scheduled_january", "resolved", "closed"];
+        const s = String(body.status).toLowerCase();
+        if (validStatuses.includes(s)) {
+          updates.push("status = ?");
+          vals.push(s);
+          if (s === "resolved" || s === "closed") {
+            updates.push("resolved_at = CURRENT_TIMESTAMP");
+          } else {
+            updates.push("resolved_at = NULL");
+          }
+        }
+      }
+
+      if (body.rag_status !== undefined) {
+        const r = String(body.rag_status).toLowerCase();
+        if (["red", "amber", "green"].includes(r)) {
+          updates.push("rag_status = ?");
+          vals.push(r);
+        }
+      }
+
+      if (body.admin_notes !== undefined) {
+        updates.push("admin_notes = ?");
+        vals.push(typeof body.admin_notes === "string" ? body.admin_notes.trim() : null);
+      }
+
+      if (body.resolution_summary !== undefined) {
+        updates.push("resolution_summary = ?");
+        vals.push(typeof body.resolution_summary === "string" ? body.resolution_summary.trim() : null);
+      }
+
+      if (updates.length === 0) {
+        return jsonResponse({ ok: false, error: "No fields to update provided." }, 400);
+      }
+
+      updates.push("updated_at = CURRENT_TIMESTAMP");
+      vals.push(ticketId);
+
+      try {
+        await env.DB.prepare(`
+          UPDATE support_tickets SET ${updates.join(", ")}
+          WHERE id = ?
+        `).bind(...vals).run();
+
+        return jsonResponse({ ok: true, message: "Ticket updated successfully" });
+      } catch (err) {
+        return jsonResponse({ ok: false, error: err.message }, 500);
       }
     }
 

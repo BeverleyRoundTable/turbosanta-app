@@ -8,6 +8,7 @@ const LandingPortal = lazy(() => import('./components/LandingPortal'));
 const PublicSleigh = lazy(() => import('./components/PublicSleigh'));
 const AdminLoginModal = lazy(() => import('./components/AdminLoginModal'));
 const AdminPortal = lazy(() => import('./components/AdminPortal'));
+const SupportPortal = lazy(() => import('./components/SupportPortal'));
 
 const FullPageLoader = ({ label = 'Loading Sleigh Radar...' }) => (
   <div style={{
@@ -76,6 +77,14 @@ export default function App() {
   const isGatewayRequested = urlParams.get('view') === 'landing' || urlParams.get('view') === 'gateway' || urlParams.get('landing') === '1';
   const [gatewayRequested, setGatewayRequested] = useState(isGatewayRequested);
   const [isAdminRoute, setIsAdminRoute] = useState(initialAdminParam);
+
+  const initialSupportParam =
+    pathname === '/support' ||
+    pathname.startsWith('/support/') ||
+    urlParams.get('view') === 'support' ||
+    urlParams.get('support') === '1' ||
+    urlParams.get('support') === 'true';
+  const [isSupportRoute, setIsSupportRoute] = useState(initialSupportParam);
 
   const cleanRouteMap = {
     '/tracker': '/tracker.html',
@@ -188,6 +197,31 @@ export default function App() {
   if (cleanRouteMap[pathname]) {
     window.location.replace(`${cleanRouteMap[pathname]}${window.location.search}`);
     return null;
+  }
+
+  // 0. SUPPORT & ISSUE TRACKER PORTAL (/support)
+  if (isSupportRoute) {
+    return (
+      <Suspense fallback={<FullPageLoader label="Loading Turbo Santa Support..." />}>
+        <SupportPortal
+          session={adminSession}
+          onBackToAdmin={() => {
+            setIsSupportRoute(false);
+            setIsAdminRoute(true);
+            setViewMode('admin');
+            const slug = activeTableSlug || adminSession?.tableSlug || 'beverley';
+            window.history.pushState(null, '', `/admin?table=${encodeURIComponent(slug)}`);
+          }}
+          onBackToHome={() => {
+            setIsSupportRoute(false);
+            setIsAdminRoute(false);
+            setActiveTableSlug(null);
+            setViewMode('public');
+            window.history.pushState(null, '', '/');
+          }}
+        />
+      </Suspense>
+    );
   }
 
   // 1. PUBLIC ROOT DIRECTORY VIEW (roundtablesantasleigh.co.uk/)

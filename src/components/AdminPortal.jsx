@@ -8,7 +8,7 @@ import {
   CreditCard, Key, Zap, RefreshCw, Send, Link2, Gift,
   BarChart3, TrendingUp, Award, Printer, PieChart, Receipt,
   Mail, HardDrive, AlertTriangle, Database, FileText, Coins, Share2, QrCode, ArrowUpDown, Volume2, VolumeX, Music, Play, Pause, UploadCloud,
-  Phone, MessageCircle, UserCheck, Search, Clock, Bot, CheckCircle, Navigation, ChevronLeft, ChevronRight, HelpCircle, ArrowUp, ArrowDown
+  Phone, MessageCircle, UserCheck, Search, Clock, Bot, CheckCircle, Navigation, ChevronLeft, ChevronRight, HelpCircle, ArrowUp, ArrowDown, LifeBuoy
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { logoutAdmin, isNationalAdmin, getAdminAuthToken } from '../services/auth';
@@ -3047,6 +3047,29 @@ ${tableName} Organizers`
               <Sparkles size={15} />
               <span>Ask TurboSanta</span>
             </button>
+
+            <a
+              href="/support"
+              className="btn-secondary"
+              style={{
+                padding: '8px 12px',
+                fontSize: '13px',
+                borderColor: 'rgba(239, 68, 68, 0.45)',
+                color: '#fca5a5',
+                background: 'rgba(239, 68, 68, 0.1)',
+                textDecoration: 'none',
+                flexShrink: 0,
+                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontWeight: 700
+              }}
+              title="Report an issue or bug with RAG rating (Red, Amber, Green)"
+            >
+              <LifeBuoy size={15} color="#ef4444" />
+              <span>Report Issue</span>
+            </a>
 
             <a
               href={typeof window !== 'undefined' && window.location.hostname.includes('roundtablesantasleigh.co.uk')
