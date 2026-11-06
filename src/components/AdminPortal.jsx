@@ -14110,8 +14110,22 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
           fontSize: '13px',
           color: 'var(--text-muted)'
         }}>
-          <div>
-            &copy; 2026 TurboSanta Platform &middot; Built voluntarily by Beverley Round Table #247
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            <span>&copy; 2026 TurboSanta Platform &middot; Built voluntarily by Beverley Round Table #247</span>
+            <a
+              href="/support"
+              style={{
+                color: '#f87171',
+                textDecoration: 'underline',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+            >
+              <LifeBuoy size={13} />
+              <span>Report Issue / Support Ticket</span>
+            </a>
           </div>
           <a
             href="https://paymentrequest.natwestpayit.com/reusable-link/2f1fd0ee-360a-4bbd-8e9a-fd07e641970e"

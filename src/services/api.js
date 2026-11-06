@@ -960,11 +960,15 @@ export async function fetchPublicTables() {
 
 export async function uploadSupportScreenshot(file) {
   if (!file) throw new Error("No file provided");
+  const headers = {
+    "Content-Type": file.type || "image/png"
+  };
+  const token = getAdminAuthToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
   const res = await fetch(`${API_BASE}/api/support/upload`, {
     method: "POST",
-    headers: {
-      "Content-Type": file.type || "image/png"
-    },
+    headers,
     body: file
   });
   if (!res.ok) {
@@ -975,9 +979,13 @@ export async function uploadSupportScreenshot(file) {
 }
 
 export async function submitSupportTicket(ticketData) {
+  const headers = { "Content-Type": "application/json" };
+  const token = getAdminAuthToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
   const res = await fetch(`${API_BASE}/api/support/tickets`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(ticketData)
   });
   const data = await res.json().catch(() => ({}));

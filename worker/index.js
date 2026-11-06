@@ -5019,8 +5019,11 @@ export default {
       const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
       const secret = url.searchParams.get("secret") || bearerToken || effectiveAuthToken;
 
+      const tokenEmail = extractTokenEmail(secret);
       let isSuperAdmin = false;
-      if (secret) {
+      if (tokenEmail && isSuperAdminEmail(tokenEmail)) {
+        isSuperAdmin = true;
+      } else if (secret) {
         if (secret.includes("beverley247") || secret.includes("secretary@roundtable.org.uk") || secret.includes("national") || secret === "national") {
           isSuperAdmin = true;
         } else {
@@ -5038,15 +5041,16 @@ export default {
       const bindings = [];
 
       if (!isSuperAdmin) {
-        if (requestedTable && requestedEmail) {
+        const effectiveEmail = requestedEmail || tokenEmail;
+        if (requestedTable && effectiveEmail) {
           query += " AND (table_id = ? OR contact_email = ?)";
-          bindings.push(requestedTable, requestedEmail);
+          bindings.push(requestedTable, effectiveEmail);
         } else if (requestedTable) {
           query += " AND table_id = ?";
           bindings.push(requestedTable);
-        } else if (requestedEmail) {
+        } else if (effectiveEmail) {
           query += " AND contact_email = ?";
-          bindings.push(requestedEmail);
+          bindings.push(effectiveEmail);
         } else {
           return jsonResponse({ ok: false, error: "Unauthorized: table or email identifier required" }, 401);
         }
@@ -5110,8 +5114,11 @@ export default {
       const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
       const secret = body.secret || url.searchParams.get("secret") || bearerToken || effectiveAuthToken;
 
+      const tokenEmail = extractTokenEmail(secret);
       let isSuperAdmin = false;
-      if (secret) {
+      if (tokenEmail && isSuperAdminEmail(tokenEmail)) {
+        isSuperAdmin = true;
+      } else if (secret) {
         if (secret.includes("beverley247") || secret.includes("secretary@roundtable.org.uk") || secret.includes("national") || secret === "national") {
           isSuperAdmin = true;
         } else {
