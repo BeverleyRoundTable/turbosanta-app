@@ -6725,7 +6725,7 @@ ${historyList}
    - Square Webhook & Contactless Sync: Configure webhook in Square Developer Dashboard to \`https://{domain}/api/webhooks/square?table={slug}\` with events \`payment.created\` and \`payment.updated\`. Validated cryptographically via HMAC-SHA256 signature using your Square Webhook Signature Key.
    - Webhook Dry-Run vs Live Simulator: The "Send Test Webhook" button in Admin Portal tests the endpoint URL parser and validation logic without creating fake records in your live table revenue. To verify live webhook delivery, trigger a test payment in Square Developer Dashboard or do a real contactless reader tap.
    - Other Webhooks: Configure provider webhooks to \`https://{domain}/api/webhooks/{provider}?table={slug}\` (e.g. provider = donorbox, zeffy, stripe, sumup, justgiving, paypal). Every incoming transaction automatically increments \`total_raised\` in Cloudflare D1.
-   - Zeffy: 100% free with 0% platform and 0% card fees for charities; ideal for QR codes on volunteer lanyards.
+   - Zeffy: 100% free fundraising software for non-profits — they even cover all card transaction fees so 100% of every donation goes straight to local causes. Highly recommended for QR codes on volunteer lanyards and online donation buttons. Sign up free via our community referral link: https://www.zeffy.com/en-GB/referral?referredByOrganizationId=ff97be69-575e-4672-832f-ae0e25b1e8ed
    - Cash Bucket Tally: Located in the Admin bar ("Cash Bucket Tally"). Organizers count coins & notes after each route and log them directly into the table total.
    - Gift Aid: When enabled, a 25% tax reclaim estimate is automatically calculated and formatted for HMRC claims.
 

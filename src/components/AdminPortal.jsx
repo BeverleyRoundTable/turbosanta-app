@@ -1977,8 +1977,8 @@ ${tableName} Organizers`
       name: 'Zeffy',
       tag: '100% Free / Zero Fees',
       badgeColor: '#22c55e',
-      description: 'Zeffy sends webhook alerts when someone donates via your online donation form.',
-      guide: 'In your Zeffy account > Settings > Integrations > Webhooks, add your Webhook URL and select "Donation Succeeded".',
+      description: 'Zeffy is 100% free with zero platform & zero card transaction fees — 100% of donations reach your Table.',
+      guide: 'In your Zeffy account > Settings > Integrations > Webhooks, add your Webhook URL and select "Donation Succeeded". Don\'t have an account yet? Sign up free with our referral link: https://www.zeffy.com/en-GB/referral?referredByOrganizationId=ff97be69-575e-4672-832f-ae0e25b1e8ed',
       testMethod: 'In Zeffy > Settings > Integrations > Webhooks (or via Zapier connected to Zeffy), click "Send Test" / make a £1.00 live test donation on your Zeffy form, then refresh this page to see it appear in Active Campaign Totals below (you can delete the test row afterwards).'
     },
     {
@@ -4593,6 +4593,55 @@ ${tableName} Organizers`
                     </div>
                   ) : (
                     <>
+                      {/* Dedicated Referral & 0% Fee Recommendation Card for Zeffy */}
+                      {selectedWebhookProvider === 'zeffy' && (
+                        <div style={{
+                          background: 'rgba(34, 197, 94, 0.08)',
+                          border: '1px solid rgba(34, 197, 94, 0.45)',
+                          borderRadius: '12px',
+                          padding: '18px 20px',
+                          marginBottom: '22px'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+                            <strong style={{ fontSize: '15px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <Heart size={17} color="#22c55e" />
+                              <span>Recommended: Zeffy (100% Free for Nonprofits &amp; Charities)</span>
+                            </strong>
+                            <span style={{ fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '999px', background: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', textTransform: 'uppercase' }}>
+                              0% Platform &amp; 0% Card Fees
+                            </span>
+                          </div>
+                          <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 12px 0', lineHeight: 1.5 }}>
+                            Hey! Have you heard about Zeffy? Zeffy is the only 100% free fundraising software for nonprofits — they even cover transaction fees so 100% of every pound reaches your good causes. It’s incredibly easy to use, offers a full suite of fundraising tools, and provides unlimited customer support — all completely free.
+                          </p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                            <a
+                              href="https://www.zeffy.com/en-GB/referral?referredByOrganizationId=ff97be69-575e-4672-832f-ae0e25b1e8ed"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                background: '#22c55e',
+                                color: '#000',
+                                fontWeight: 800,
+                                fontSize: '13px',
+                                padding: '8px 16px',
+                                borderRadius: '8px',
+                                textDecoration: 'none'
+                              }}
+                            >
+                              <span>Use Our Referral Link to Sign Up Free</span>
+                              <ExternalLink size={14} />
+                            </a>
+                            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                              Supports Round Table &amp; unlocks 0% fees
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Dedicated Direct Auto-Sync Card for SumUp / JustGiving / Ticket Tailor */}
                       {selectedWebhookProvider === 'sumup' && (
                         <div style={{

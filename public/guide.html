@@ -765,9 +765,24 @@
         </div>
 
         <div class="grid-3" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 20px 0;">
-          <div class="card">
-            <h3><i class="fa-solid fa-heart" style="color: #2ecc71;"></i> Zeffy (100% Free)</h3>
-            <p>Captures zero-fee online donations. Automatically converts pence to pounds and logs donor names into D1.</p>
+          <div class="card highlight" style="border-left: 4px solid #2ecc71; background: rgba(46, 204, 113, 0.05);">
+            <span class="badge green">Recommended &bull; 0% Fees</span>
+            <h3><i class="fa-solid fa-heart" style="color: #2ecc71;"></i> Zeffy (100% Free for Nonprofits)</h3>
+            <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 8px;">
+              <strong>Looking for zero payment fees?</strong> Zeffy is the only 100% free fundraising software for nonprofits — they even cover all transaction fees so 100% of every pound goes directly to your Round Table and local community causes. It is incredibly easy to use, offers a full suite of fundraising tools, and includes unlimited customer support — all completely free.
+            </p>
+            <div style="background: rgba(46, 204, 113, 0.1); border: 1px solid rgba(46, 204, 113, 0.3); border-radius: 8px; padding: 10px 12px; margin: 10px 0;">
+              <p style="font-size: 12px; color: #fff; margin: 0 0 6px 0; font-weight: 600;">
+                <i class="fa-solid fa-gift" style="color: #2ecc71;"></i> Support Round Table &amp; Sign Up Free:
+              </p>
+              <a href="https://www.zeffy.com/en-GB/referral?referredByOrganizationId=ff97be69-575e-4672-832f-ae0e25b1e8ed" target="_blank" rel="noopener noreferrer" style="color: #2ecc71; font-weight: 700; font-size: 12px; text-decoration: underline; word-break: break-all;">
+                Use our referral link to sign up on Zeffy &rarr;
+              </a>
+            </div>
+            <ul style="font-size: 12px; color: var(--text-muted); margin-left: 18px; line-height: 1.6;">
+              <li><strong>Webhook URL:</strong> <code>https://turbosanta-api.beverley247.workers.dev/api/webhooks/zeffy?table=<span class="active-table-slug">beverley</span></code></li>
+              <li>Auto-converts pence to pounds and logs donor names directly into D1.</li>
+            </ul>
           </div>
           <div class="card highlight" style="border-left: 4px solid #f59e0b;">
             <span class="badge gold">Contactless Reader &amp; E-Commerce</span>
