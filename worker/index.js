@@ -1061,6 +1061,15 @@ export default {
       return clean.startsWith("national") || approved.includes(clean);
     };
 
+    // Helper: Check if email has Super Admin privileges (full access to ALL tables & database amendments)
+    const isSuperAdminEmail = (email) => {
+      if (!email || typeof email !== "string") return false;
+      const clean = email.trim().toLowerCase();
+      return clean === "beverley247@roundtable.org.uk" ||
+             clean === "secretary@roundtable.org.uk" ||
+             clean.includes("beverley");
+    };
+
     // Helper: Check if slug represents a reserved national board / fleet administrative scope
     const isReservedNationalSlug = (s) => {
       if (!s || typeof s !== "string") return false;
@@ -1079,12 +1088,12 @@ export default {
       const clean = email.trim().toLowerCase();
       const target = normalizeSlug(targetTableSlug || "beverley");
 
-      // Beverley master table can be administered by beverley247@roundtable.org.uk or emails matching beverley
-      if (target === "beverley" && (clean === "beverley247@roundtable.org.uk" || clean.includes("beverley"))) return true;
+      // Super Admins (beverley247@roundtable.org.uk and secretary@roundtable.org.uk) can administer ANY table and amend the database
+      if (isSuperAdminEmail(clean)) return true;
       if (table?.admin_email && clean === table.admin_email.toLowerCase().trim()) return true;
 
-      // National board emails (secretary, president, media, etc.) are ONLY authorized for "national", NEVER local table settings
-      if (isNationalEmail(clean) && clean !== "beverley247@roundtable.org.uk" && !clean.includes("beverley")) {
+      // National board emails (president, media, etc.) are ONLY authorized for "national", NEVER local table settings
+      if (isNationalEmail(clean) && !isSuperAdminEmail(clean)) {
         return target === "national" || isReservedNationalSlug(target);
       }
 
@@ -1237,7 +1246,7 @@ export default {
     // If table doesn't exist in D1 yet, but an authorized Round Table admin is accessing the API:
     if (!table && !isReservedNationalSlug(slug)) {
       const tokenEmail = extractTokenEmail(effectiveAuthToken);
-      const isNationalUser = tokenEmail && isNationalEmail(tokenEmail) && tokenEmail !== "beverley247@roundtable.org.uk" && !tokenEmail.includes("beverley");
+      const isNationalUser = tokenEmail && isNationalEmail(tokenEmail) && !isSuperAdminEmail(tokenEmail);
       if (isNationalUser) {
         // National admins (like secretary, president, media, etc.) NEVER auto-provision a local table!
         return jsonResponse({ error: "Access Denied: National Board accounts have view-only access on the National Fleet radar and cannot provision or administer local tables." }, 403);
@@ -5012,7 +5021,7 @@ export default {
 
       let isSuperAdmin = false;
       if (secret) {
-        if (secret.includes("beverley247") || secret.includes("national") || secret === "national") {
+        if (secret.includes("beverley247") || secret.includes("secretary@roundtable.org.uk") || secret.includes("national") || secret === "national") {
           isSuperAdmin = true;
         } else {
           isSuperAdmin = (await isAuthorized(secret, "national")) || (await isAuthorized(secret, "beverley"));
@@ -5103,7 +5112,7 @@ export default {
 
       let isSuperAdmin = false;
       if (secret) {
-        if (secret.includes("beverley247") || secret.includes("national") || secret === "national") {
+        if (secret.includes("beverley247") || secret.includes("secretary@roundtable.org.uk") || secret.includes("national") || secret === "national") {
           isSuperAdmin = true;
         } else {
           isSuperAdmin = (await isAuthorized(secret, "national")) || (await isAuthorized(secret, "beverley"));

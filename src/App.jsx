@@ -1,6 +1,6 @@
 import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { fetchTablePayload, getTableFallback } from './services/api';
-import { getCurrentSession, logoutAdmin, normalizeTableSlug } from './services/auth';
+import { getCurrentSession, logoutAdmin, normalizeTableSlug, isSuperAdminEmail } from './services/auth';
 import { Shield } from 'lucide-react';
 
 const PublicDirectory = lazy(() => import('./components/PublicDirectory'));
@@ -160,8 +160,8 @@ export default function App() {
   useEffect(() => {
     if (isAdminRoute && !gatewayRequested) {
       if (adminSession) {
-        const isBeverley = adminSession.email === 'beverley247@roundtable.org.uk' || adminSession.tableSlug === 'beverley' || (adminSession.email && adminSession.email.includes('beverley'));
-        if (adminSession.isNationalAdmin && !isBeverley) {
+        const isSuperAdmin = isSuperAdminEmail(adminSession.email) || adminSession.tableSlug === 'beverley';
+        if (adminSession.isNationalAdmin && !isSuperAdmin) {
           window.location.href = '/national.html';
           return;
         }
@@ -282,8 +282,8 @@ export default function App() {
               onClose={() => setIsLoginModalOpen(false)}
               onLoginSuccess={(session) => {
                 setAdminSession(session);
-                const isBeverley = session.email === 'beverley247@roundtable.org.uk' || session.tableSlug === 'beverley' || (session.email && session.email.includes('beverley'));
-                if (session.isNationalAdmin && !isBeverley) {
+                const isSuperAdmin = isSuperAdminEmail(session.email) || session.tableSlug === 'beverley';
+                if (session.isNationalAdmin && !isSuperAdmin) {
                   window.location.href = '/national.html';
                   return;
                 }
@@ -348,8 +348,8 @@ export default function App() {
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
               <button
                 onClick={() => {
-                  const isBeverley = adminSession.email === 'beverley247@roundtable.org.uk' || adminSession.tableSlug === 'beverley' || (adminSession.email && adminSession.email.includes('beverley'));
-                  if (adminSession.isNationalAdmin && !isBeverley) {
+                  const isSuperAdmin = isSuperAdminEmail(adminSession.email) || adminSession.tableSlug === 'beverley';
+                  if (adminSession.isNationalAdmin && !isSuperAdmin) {
                     window.location.href = '/national.html';
                     return;
                   }

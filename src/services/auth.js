@@ -29,6 +29,18 @@ export const DEFAULT_NATIONAL_ADMIN_EMAILS = [
   "it@roundtable.org.uk"
 ];
 
+/**
+ * Super Admins have unrestricted permissions across ALL local tables and direct database amendments.
+ * Both beverley247@roundtable.org.uk and secretary@roundtable.org.uk hold Super Admin authority.
+ */
+export function isSuperAdminEmail(email) {
+  if (!email || typeof email !== 'string') return false;
+  const clean = email.trim().toLowerCase();
+  return clean === 'beverley247@roundtable.org.uk' ||
+         clean === 'secretary@roundtable.org.uk' ||
+         clean.includes('beverley');
+}
+
 export const SLUG_ALIASES = {
   "meltonmowbray": "melton-mowbray",
   "melton": "melton-mowbray",
@@ -114,6 +126,19 @@ export function parseTableDetailsFromEmail(email) {
 
   const clean = email.trim().toLowerCase();
   const localPart = clean.split("@")[0];
+
+  // Dedicated Super Admin check for Secretary (full national and table amendment rights)
+  if (clean === "secretary@roundtable.org.uk") {
+    return {
+      slug: "beverley",
+      tableId: "beverley",
+      town: "National",
+      tableNumber: "",
+      tableName: "National Super Admin (Secretary)",
+      isNational: true,
+      isSuperAdmin: true
+    };
+  }
 
   const NATIONAL_ROLES = [
     "national", "rtbi", "admin", "president", "vicepresident",
@@ -254,21 +279,22 @@ export async function verifyMagicLink(email, enteredCode) {
     throw new Error("Invalid verification code. Please check your official Round Table inbox.");
   }
 
-  const isBeverley = cleanEmail === 'beverley247@roundtable.org.uk' || cleanEmail.includes('beverley') || details?.slug === 'beverley';
-  const isGenericNational = isNational && !isBeverley;
+  const isSuperAdmin = isSuperAdminEmail(cleanEmail);
+  const isGenericNational = isNational && !isSuperAdmin;
 
   // Authentication succeeded! Create authenticated session with server-signed token
   const session = {
     email: cleanEmail,
-    tableId: isGenericNational ? null : details.slug,
-    tableSlug: isGenericNational ? null : details.slug,
-    town: isGenericNational ? 'National' : details.town,
-    tableNumber: isGenericNational ? '' : details.tableNumber,
+    tableId: isGenericNational ? null : (details?.slug || 'beverley'),
+    tableSlug: isGenericNational ? null : (details?.slug || 'beverley'),
+    town: isGenericNational ? 'National' : (details?.town || 'Beverley'),
+    tableNumber: isGenericNational ? '' : (details?.tableNumber || ''),
     tableName: isGenericNational 
       ? 'National Fleet Admin' 
-      : details.tableName,
-    role: isNational ? "national_admin" : "table_admin",
+      : (details?.tableName || 'National Super Admin'),
+    role: isSuperAdmin ? "super_admin" : (isNational ? "national_admin" : "table_admin"),
     isNationalAdmin: isNational,
+    isSuperAdmin: isSuperAdmin,
     authenticatedAt: new Date().toISOString(),
     token: signedToken
   };
@@ -338,8 +364,8 @@ export async function loginWithGoogleWorkspace(credential) {
 
   const details = parseTableDetailsFromEmail(cleanEmail);
   const isNational = isNationalAdmin(cleanEmail);
-  const isBeverley = cleanEmail === 'beverley247@roundtable.org.uk' || cleanEmail.includes('beverley') || details?.slug === 'beverley';
-  const isGenericNational = isNational && !isBeverley;
+  const isSuperAdmin = isSuperAdminEmail(cleanEmail);
+  const isGenericNational = isNational && !isSuperAdmin;
 
   let signedSessionToken = credential;
   try {
@@ -418,8 +444,8 @@ export function getCurrentSession() {
         if (parsed.email && isRoundTableEmail(parsed.email)) {
           const details = parseTableDetailsFromEmail(parsed.email);
           const isNational = isNationalAdmin(parsed.email);
-          const isBeverley = parsed.email.toLowerCase().trim() === 'beverley247@roundtable.org.uk' || parsed.email.toLowerCase().includes('beverley') || details?.slug === 'beverley';
-          const isGenericNational = isNational && !isBeverley;
+          const isSuperAdmin = isSuperAdminEmail(parsed.email);
+          const isGenericNational = isNational && !isSuperAdmin;
           if (!isGenericNational && details?.slug) {
             let changed = false;
             if (!parsed.tableId) { parsed.tableId = details.slug; changed = true; }
