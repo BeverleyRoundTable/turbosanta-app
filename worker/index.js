@@ -6,10 +6,10 @@ const GOOGLE_ACCESS_TOKEN_CACHE = new Map();
 async function ensureSchemaOnce(env) {
   if (_schemaVerified) return;
   try {
-    // Fast-path sentinel check: if the latest index already exists in sqlite_master,
+    // Fast-path sentinel check: if the latest schema column (faqs_json) already exists,
     // skip the 90+ DDL/ALTER statements on Worker isolate cold start.
     const hasSentinel = await env.DB.prepare(
-      "SELECT 1 FROM sqlite_master WHERE type='index' AND name='idx_telemetry_route_id'"
+      "SELECT 1 FROM pragma_table_info('tables') WHERE name='faqs_json'"
     ).first().catch(() => null);
     if (hasSentinel) {
       _schemaVerified = true;
