@@ -9582,6 +9582,12 @@ TALKING TO SANTA: Children can talk to Santa Claus live on the Chat page of the 
 
 THE TRACKER: Families can watch the sleigh live on the Tracker page, just like tracking the big Christmas Eve journey. When the sleigh icon is near your street, listen for the music. The Routes page shows where the sleigh is heading each night.
 
+PLANNED STOPS: The sleigh pauses at designated planned stops and community grottos along each route so families have time to gather, see Santa, and take photos. Planned stop locations and dwell timings are clearly marked on the live timetable and route radar map.
+
+CHARITY & FOOD BANK APPEALS: Santa's volunteer elves collect donations for local food banks and Christmas gift appeals (such as toy drives and Mission Christmas) along the sleigh route. Families can hand non-perishable food items or new unwrapped toys safely to the walking elves in high-vis vests.
+
+SAFETY RULES: For safety, everyone must stay on the pavements. Children must never run into the road, touch the moving sleigh, or approach the wheels or towing vehicle. Sweets are handed directly to children by walking elves, never thrown into the road.
+
 FUN AND GAMES: The Fun page has Christmas games to play while waiting for the sleigh, including Sleigh Spotter Bingo.
 
 MEMORIES: Grown-ups can share their photos of the sleigh on the Memories page, or tag ${townName} Round Table on social media, to be part of the community memory book.

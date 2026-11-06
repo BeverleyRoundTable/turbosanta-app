@@ -6231,9 +6231,9 @@ INSTRUCTIONS:
         const sleighDisplayName = targetTable?.sleigh_display_name || targetTable?.name || defaultSleighName;
         const townName = targetSlug.charAt(0).toUpperCase() + targetSlug.slice(1);
 
-        // 2. Fetch routes and scheduled streets from D1
+        // 2. Fetch routes, scheduled streets, and planned stops from D1
         const routesRes = await env.DB.prepare(
-          "SELECT id, name, date, start_time, end_time, muster_point, notes FROM routes WHERE table_id = ? OR table_id = ? ORDER BY date ASC, start_time ASC"
+          "SELECT id, name, date, start_time, end_time, muster_point, notes, planned_stops FROM routes WHERE table_id = ? OR table_id = ? ORDER BY date ASC, start_time ASC"
         ).bind(tableId, targetSlug).all().catch(() => ({ results: [] }));
         const tableRoutes = routesRes.results || [];
 
@@ -6261,14 +6261,32 @@ INSTRUCTIONS:
             const stList = streetsByRoute[r.id] ? ` (Streets: ${streetsByRoute[r.id].join(", ")})` : "";
             const muster = r.muster_point || targetTable?.default_muster_point || "";
             const musterText = muster ? ` [Muster: ${muster}]` : "";
-            return `• Route "${r.name}": Date: ${r.date || "TBD"}, Rollout: ${r.start_time || "18:00"} to ${r.end_time || "20:30"}${musterText}${stList}`;
+            let stopsText = "";
+            if (r.planned_stops) {
+              try {
+                const parsedStops = typeof r.planned_stops === 'string' ? JSON.parse(r.planned_stops) : r.planned_stops;
+                if (Array.isArray(parsedStops) && parsedStops.length > 0) {
+                  stopsText = " [Planned Stops: " + parsedStops.map(s => `${s.name || 'Stop'}${s.allocated_mins ? ` (${s.allocated_mins}m dwell)` : ''}`).join(", ") + "]";
+                }
+              } catch(e) {}
+            }
+            return `• Route "${r.name}": Date: ${r.date || "TBD"}, Rollout: ${r.start_time || "18:00"} to ${r.end_time || "20:30"}${musterText}${stopsText}${stList}`;
           }).join("\n");
         }
 
         let tonightRouteText = "No sleigh run scheduled for tonight.";
         if (tonightRoute) {
           const tStreets = streetsByRoute[tonightRoute.id] ? streetsByRoute[tonightRoute.id].join(", ") : "Check live tracker";
-          tonightRouteText = `TONIGHT'S ROUTE IS ACTIVE! "${tonightRoute.name}", rolling out at ${tonightRoute.start_time || "18:00"}. Streets: ${tStreets}.`;
+          let tStopsText = "";
+          if (tonightRoute.planned_stops) {
+            try {
+              const p = typeof tonightRoute.planned_stops === 'string' ? JSON.parse(tonightRoute.planned_stops) : tonightRoute.planned_stops;
+              if (Array.isArray(p) && p.length > 0) {
+                tStopsText = " Planned stops tonight: " + p.map(s => `${s.name || 'Stop'}${s.allocated_mins ? ` (${s.allocated_mins}m dwell)` : ''}`).join(", ") + ".";
+              }
+            } catch(e) {}
+          }
+          tonightRouteText = `TONIGHT'S ROUTE IS ACTIVE! "${tonightRoute.name}", rolling out at ${tonightRoute.start_time || "18:00"}.${tStopsText} Streets: ${tStreets}.`;
         }
 
         const donSum = await env.DB.prepare("SELECT SUM(amount) as total FROM donations WHERE table_id = ?").bind(targetTable?.id || tableId).first().catch(() => ({ total: 0 }));
@@ -6276,6 +6294,32 @@ INSTRUCTIONS:
         const fundraisingGoal = Number(targetTable?.fundraising_goal || 0);
         const donateUrl = targetTable?.donate_url || targetTable?.justgiving_url || `https://roundtablesantasleigh.co.uk/?table=${encodeURIComponent(targetSlug)}&donate=1`;
         const charityCauses = targetTable?.charity_name || "local community groups, food banks, hospices, and children's projects";
+
+        // Parse Supported Charity Appeals (Food Bank, Mission Christmas / Toy Drives, etc.)
+        let appealsSummary = "";
+        if (targetTable?.supported_appeals_json) {
+          try {
+            const appeals = typeof targetTable.supported_appeals_json === 'string' ? JSON.parse(targetTable.supported_appeals_json) : targetTable.supported_appeals_json;
+            if (Array.isArray(appeals) && appeals.length > 0) {
+              appealsSummary = appeals.map(a => {
+                const items = Array.isArray(a.accepted_items) ? a.accepted_items.join(", ") : (a.accepted_items || "Donations");
+                const kerb = a.instructions || a.kerbside_instructions || "";
+                return `• ${a.name || a.title || 'Charity Appeal'}: Collecting ${items}.${kerb ? ` Handover advice: ${kerb}` : ''}`;
+              }).join("\n");
+            }
+          } catch(e) {}
+        }
+
+        // Parse Custom FAQs (Trailer vs Flatbed Van advice, safety rules, sweets, dogs)
+        let faqsSummary = "";
+        if (targetTable?.faqs_json) {
+          try {
+            const faqs = typeof targetTable.faqs_json === 'string' ? JSON.parse(targetTable.faqs_json) : targetTable.faqs_json;
+            if (Array.isArray(faqs) && faqs.length > 0) {
+              faqsSummary = faqs.map(f => `Q: ${f.question || f.q}\nA: ${f.answer || f.a}`).join("\n\n");
+            }
+          } catch(e) {}
+        }
 
         // 4. Gemini Model Resolution
         let nationalTable = null;
@@ -6317,12 +6361,23 @@ INSTRUCTIONS:
 - Local Round Table Volunteers: ${tableName}
 - Town / Area: ${townName}
 - Tonight's Sleigh Status: ${tonightRouteText}
-- Sleigh Tour Schedule:
+- Sleigh Tour Schedule & Planned Stops:
 ${routesSummary}
 - Fundraising Progress: £${totalRaised.toLocaleString('en-GB')} raised so far${fundraisingGoal ? ` towards a £${fundraisingGoal.toLocaleString('en-GB')} target` : ''} for ${charityCauses}.
 - Donation Link: ${donateUrl}
 - Live GPS Tracking: Families can watch the sleigh glide in real time on this website whenever Santa is out rolling!
 - Volunteer Message: The sleigh is built, driven, and marshalled by dedicated volunteers from ${tableName}. Adults interested in helping tow, collect with buckets, or joining Round Table can sign up on the site.
+${appealsSummary ? `
+🎁 SUPPORTED CHARITY APPEALS & KERBSIDE COLLECTIONS:
+${appealsSummary}
+- When families ask if they can donate food, toys, or winter essentials, warmly confirm that Santa's volunteer elves are actively collecting these items kerbside as the sleigh travels!` : ''}
+${faqsSummary ? `
+🛡️ LOCAL SLEIGH SAFETY & FREQUENTLY ASKED QUESTIONS:
+${faqsSummary}` : `
+🛡️ LOCAL SLEIGH SAFETY & FREQUENTLY ASKED QUESTIONS:
+- Safety: Children must stay safely on pavements and never run towards the moving vehicle or trailer.
+- Sweets: Handed directly by high-vis elves, never thrown into the road.
+- Vehicle turning: Sleigh vehicles cannot turn in tight cul-de-sacs or dead ends for safety.`}
 
 Answer the family's question with thoughtful, jolly festive warmth:`;
 
@@ -6486,7 +6541,7 @@ Answer the family's question with thoughtful, jolly festive warmth:`;
 
         // 2. Fetch routes and street counts from D1
         const routesRes = await env.DB.prepare(
-          "SELECT id, name, date, start_time, end_time, muster_point, status, status_override, sponsor_name, gpx_url, notes FROM routes WHERE table_id = ? OR table_id = ? ORDER BY date ASC, start_time ASC"
+          "SELECT id, name, date, start_time, end_time, muster_point, status, status_override, sponsor_name, gpx_url, notes, planned_stops FROM routes WHERE table_id = ? OR table_id = ? ORDER BY date ASC, start_time ASC"
         ).bind(tableId, targetSlug).all().catch(() => ({ results: [] }));
         const routes = routesRes.results || [];
 
@@ -6551,7 +6606,17 @@ Answer the family's question with thoughtful, jolly festive warmth:`;
               const streetCount = streetMap[r.id] || 0;
               const gpxStatus = r.gpx_url ? 'GPX Attached' : 'No GPX attached';
               const sponsor = r.sponsor_name ? `Sponsor: ${r.sponsor_name}` : 'No sponsor';
-              return `${i+1}. "${r.name}" (${r.date || 'TBD'} ${r.start_time || '18:00'} - ${r.end_time || '20:30'}) | Status: ${r.status || 'Scheduled'} | ${streetCount} streets | ${gpxStatus} | ${sponsor}`;
+              let stopsInfo = '0 planned stops';
+              if (r.planned_stops) {
+                try {
+                  const parsed = typeof r.planned_stops === 'string' ? JSON.parse(r.planned_stops) : r.planned_stops;
+                  if (Array.isArray(parsed) && parsed.length > 0) {
+                    const dwellSum = parsed.reduce((sum, s) => sum + (Number(s.allocated_mins) || 0), 0);
+                    stopsInfo = `${parsed.length} planned stops (${dwellSum}m dwell)`;
+                  }
+                } catch(e) {}
+              }
+              return `${i+1}. "${r.name}" (${r.date || 'TBD'} ${r.start_time || '18:00'} - ${r.end_time || '20:30'}) | Status: ${r.status || 'Scheduled'} | ${streetCount} streets | ${stopsInfo} | ${gpxStatus} | ${sponsor}`;
             }).join("\n")
           : "No routes currently created in database.";
 
@@ -6569,6 +6634,26 @@ Answer the family's question with thoughtful, jolly festive warmth:`;
         const giftAidEnabled = Boolean(targetTable?.enable_gift_aid);
         const expenses = Number(targetTable?.expenses || 0);
 
+        let liveAppealsText = "None configured";
+        if (targetTable?.supported_appeals_json) {
+          try {
+            const appeals = typeof targetTable.supported_appeals_json === 'string' ? JSON.parse(targetTable.supported_appeals_json) : targetTable.supported_appeals_json;
+            if (Array.isArray(appeals) && appeals.length > 0) {
+              liveAppealsText = appeals.map(a => `${a.name || 'Appeal'} (collecting: ${Array.isArray(a.accepted_items) ? a.accepted_items.join(', ') : (a.accepted_items || 'Donations')})`).join("; ");
+            }
+          } catch(e) {}
+        }
+
+        let liveFaqsText = "Default FAQs active";
+        if (targetTable?.faqs_json) {
+          try {
+            const f = typeof targetTable.faqs_json === 'string' ? JSON.parse(targetTable.faqs_json) : targetTable.faqs_json;
+            if (Array.isArray(f) && f.length > 0) {
+              liveFaqsText = `${f.length} custom FAQs configured`;
+            }
+          } catch(e) {}
+        }
+
         // System Prompt with complete TurboSanta system manual and live table grounding
         const systemPrompt = `You are TurboSanta, an expert operations and technical advisor for Round Table Great Britain & Ireland (RTBI) Santa Sleigh organizers.
 Your mission is to help local Table Chairs, Sleigh Marshals, Drivers, and Web Officers configure, run, and troubleshoot their Santa Sleigh operation smoothly and joyfully.
@@ -6581,6 +6666,8 @@ Your mission is to help local Table Chairs, Sleigh Marshals, Drivers, and Web Of
 - Fundraising Progress: £${totalRaised.toLocaleString('en-GB')} raised${goal > 0 ? ` of £${goal.toLocaleString('en-GB')} goal` : ''}
 - Charity Causes: ${targetTable?.charity_name || 'Local good causes'}
 - Public Donation Link: ${donateUrl}
+- Supported Charity Appeals: ${liveAppealsText}
+- Public FAQs Profile: ${liveFaqsText}
 - Gift Aid 25% HMRC Enabled: ${giftAidEnabled ? 'YES' : 'NO'}
 - Itemised Expenses: £${expenses.toLocaleString('en-GB')}
 - Brand Colors: Primary = ${primaryColor}, Accent = ${accentColor}
@@ -6634,8 +6721,10 @@ ${historyList}
    - "Resting in Lapland" Status: If no GPS update is received for more than 15 minutes, the public tracker safely changes status to "Resting in Lapland" to avoid showing stale positions.
 
 4. 💳 DONATIONS, WEBHOOKS & CASH BUCKETS:
-   - Multi-Provider Concurrent Sync: TurboSanta supports Zeffy, Donorbox, SumUp, JustGiving, Stripe, Ticket Tailor, and PayPal running concurrently.
-   - Webhook Endpoints: Configure your provider webhook to \`https://{domain}/api/webhooks/{provider}?table={slug}\` (e.g. provider = donorbox, zeffy, stripe, sumup, justgiving, paypal). Every incoming charge automatically increments \`total_raised\` in Cloudflare D1.
+   - Multi-Provider Concurrent Sync: TurboSanta supports Square, Zeffy, Donorbox, SumUp, JustGiving, Stripe, Ticket Tailor, and PayPal running concurrently.
+   - Square Webhook & Contactless Sync: Configure webhook in Square Developer Dashboard to \`https://{domain}/api/webhooks/square?table={slug}\` with events \`payment.created\` and \`payment.updated\`. Validated cryptographically via HMAC-SHA256 signature using your Square Webhook Signature Key.
+   - Webhook Dry-Run vs Live Simulator: The "Send Test Webhook" button in Admin Portal tests the endpoint URL parser and validation logic without creating fake records in your live table revenue. To verify live webhook delivery, trigger a test payment in Square Developer Dashboard or do a real contactless reader tap.
+   - Other Webhooks: Configure provider webhooks to \`https://{domain}/api/webhooks/{provider}?table={slug}\` (e.g. provider = donorbox, zeffy, stripe, sumup, justgiving, paypal). Every incoming transaction automatically increments \`total_raised\` in Cloudflare D1.
    - Zeffy: 100% free with 0% platform and 0% card fees for charities; ideal for QR codes on volunteer lanyards.
    - Cash Bucket Tally: Located in the Admin bar ("Cash Bucket Tally"). Organizers count coins & notes after each route and log them directly into the table total.
    - Gift Aid: When enabled, a 25% tax reclaim estimate is automatically calculated and formatted for HMRC claims.
@@ -6643,6 +6732,8 @@ ${historyList}
 5. 👥 VOLUNTEER CREW & BRIEFINGS:
    - Volunteer self-registration link: \`/{slug}/volunteer\` (or public site volunteer button).
    - Filter volunteers by route or role (bucket collector, driver, navigator, elf, Santa).
+   - Bulk Volunteer Multi-Run Sign Up: Core committee members and elves can be assigned across multiple route nights simultaneously with 1 click using the "Bulk Assign Multi-Run" tool in Crew Hub.
+   - Polling Protection: Input modals use session ref locks to prevent 5-second background polling refreshes from interrupting or wiping typed input.
    - Volunteer Email Composer: Dispatches route briefings to volunteers via Google Workspace Gmail BCC to preserve privacy and prevent reply-all storms.
 
 6. 🎨 TABLE SETTINGS & BRANDING:
@@ -6693,6 +6784,29 @@ ${historyList}
 
 12. 💡 LESSONS LEARNED & FLEET PLAYBOOK ("/{slug}/knowledge-base"):
     - Interactive knowledge-sharing hub where Round Table organizers share operational lessons, safety tips, and vote on fleet best practices.
+
+15. 🥫 SUPPORTED CHARITY APPEALS & KERBSIDE COLLECTIONS:
+    - Tables can support secondary local partner charities alongside their primary fundraising (e.g. local Food Banks, Cash for Kids Mission Christmas, winter coat drives).
+    - Configured in Admin Portal -> Table Settings -> Supported Charity Appeals.
+    - Each appeal displays a prominent card on the public turnkey site featuring:
+      • Accepted items checklist (e.g. tinned goods, pasta, long-life milk, brand-new unwrapped toys).
+      • Kerbside handover instructions for residents (e.g. hand directly to high-vis walking elves as the sleigh travels).
+      • Direct collection destination and timeline.
+
+16. 🚐 DYNAMIC FAQS & VEHICLE TURNING GUIDANCE:
+    - Tables can fully customize, add, remove, and reorder public FAQs in Admin Portal -> Table Settings -> Sleigh Safety & Route FAQs.
+    - Vehicle Profiles:
+      • "Towable Sleigh Trailer" preset: Explains why the sleigh cannot reverse down dead-ends or tight cul-de-sacs due to trailer jackknife hazards, and highlights the 2-metre exclusion zone around tow hitch and wheels.
+      • "Flatbed Transit / Lorry Van" preset: Explains that while flatbed vans have a tighter turning circle and no trailer hitch, they still avoid narrow cul-de-sacs with parked cars for child safety and road clearance.
+    - Full custom Q&A allows tables to add specific local guidance (e.g. dog safety, photo permissions, sweets distribution).
+
+17. ⏱️ PLANNED STOPS & DWELL TIME CALCULATIONS:
+    - Organizers can designate specific waypoints as Planned Stops (e.g. Community Centres, Pubs, Supermarket grottos) with an allocated dwell time (\`allocated_mins\`, default 5 mins).
+    - Dynamic Route Duration Formula:
+      \`Total Estimated Route Time = Pure Driving Time (calculated at sleigh speed, e.g. 3 mph) + Sum of Stop Dwell Times\`
+      (e.g., 3 stops with 5m dwell adds 15 minutes of dwell time to the route end time).
+    - On the public timetable, planned stops render as interactive numbered badges that fly the map directly to the stop location and display dwell times.
+    - Volunteer Crew Hub includes an attendance tally counter at each stop to record crowd sizes for AGM reporting.
 
 ══════════════════════════════════════════════════════════════════════
 🎯 ANSWERING GUIDELINES:

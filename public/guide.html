@@ -519,10 +519,12 @@
         <ul style="margin: 12px 0 20px 24px; color: var(--text-muted); font-size: 14px; line-height: 2;">
           <li><strong>Live GPS Santa Tracker</strong> — real-time position with "Resting in Lapland" mode, road snapping, and live street ETA banner synced to the resident's dropped pin.</li>
           <li><strong>Tonight's Route Spotlight &amp; Weather Badges</strong> — prominent featured banner with start/end times, multi-sponsor showcase, and automatic <code>🌧️ WEATHER UPDATE — POSTPONED</code> alerts if a route is rain-checked.</li>
-          <li><strong>Spatial Street &amp; Doorstep Pin Lookup</strong> — interactive map showing all season GPX routes in advance so residents can drop a house pin on any upcoming route and subscribe for automated doorstep emails.</li>
-          <li><strong>Donation Thermometer + Pre-Checkout +25% Gift Aid Boost</strong> — animated progress bar synced to JustGiving, Ticket Tailor, card readers, and cash buckets, with a 1-step Gift Aid declaration before forwarding to online checkout.</li>
+          <li><strong>Spatial Street &amp; Doorstep Pin Lookup</strong> — interactive map showing all season GPX routes in advance so residents can drop a house pin on any upcoming route and subscribe for automated doorstep emails (with mobile back-button &amp; large touch target resilience).</li>
+          <li><strong>🥫 Supported Charity Appeals (Food Banks &amp; Toy Drives)</strong> — dedicated collection cards on your turnkey homepage highlighting partner charities (e.g. Local Food Banks, Cash for Kids Mission Christmas, winter coat drives), detailing accepted items checklists and safe kerbside handover instructions.</li>
+          <li><strong>🚐 Customizable FAQs &amp; Vehicle Profiles</strong> — built-in safety FAQs with one-click presets for Towable Sleigh Trailers vs Flatbed Transit/Lorry Vans, turning guidance, dog safety, and sweets advice, with full custom Q&amp;A adding and reordering.</li>
+          <li><strong>Donation Thermometer + Pre-Checkout +25% Gift Aid Boost</strong> — animated progress bar synced to JustGiving, Ticket Tailor, Square, SumUp, Stripe, and cash buckets, with a 1-step Gift Aid declaration before forwarding to online checkout.</li>
           <li><strong>"Where Your Donations Go" &amp; Local Cause Grant Nominations</strong> — public showcase of local causes supported by your Table plus an interactive grant nomination modal (<code>POST /api/grants</code>).</li>
-          <li><strong>2 Selectable Modular Family Slots</strong> — in <strong>Admin Portal &rarr; Settings &rarr; Public Site Feature Slots</strong>, pick any 2 of the 14 family modules (Bingo, Colouring Book, Countdown, Door Hanger, Elf Cam, Letter to Santa, Magic Mailbox, Nice List, Adopt a Reindeer, Santa Frame, Snowman Maker, Spot Santa) to appear directly on your turnkey homepage.</li>
+          <li><strong>2 Selectable Modular Family Slots</strong> — in <strong>Admin Portal &rarr; Settings &rarr; Public Site Feature Slots</strong>, pick any 2 of the 14 family modules (AI Santa Chatbot, Bingo, Colouring Book, Countdown, Door Hanger, Elf Cam, Letter to Santa, Magic Mailbox, Nice List, Adopt a Reindeer, Santa Frame, Snowman Maker, Spot Santa) to appear directly on your turnkey homepage.</li>
           <li><strong>Volunteer Elf Banner &amp; Digital Memory Book</strong> — recruiting link to the SQL Crew Hub plus moderated community photo wall.</li>
         </ul>
       </section>
@@ -632,6 +634,22 @@
             </ul>
             <a href="https://beverley.roundtablesantasleigh.co.uk/route_planner.html" id="linkRoutePlanner" target="_blank" class="btn" style="margin-top: 10px;">Launch Route Planner <i class="fa-solid fa-route"></i></a>
           </div>
+
+          <div class="card highlight" style="grid-column: 1 / -1; border-left: 4px solid #38bdf8; background: rgba(56, 189, 248, 0.05); margin-top: 10px;">
+            <h3><i class="fa-solid fa-clock" style="color: #38bdf8;"></i> 3. Planned Stops &amp; Dynamic Dwell Time Buffers</h3>
+            <p>Routes frequently feature designated pauses at Community Centres, Pubs, or local Grottos where families gather to take photos with Santa:</p>
+            <ul style="font-size: 13px; color: var(--text-muted); margin-left: 20px; line-height: 1.8;">
+              <li><strong>Allocated Dwell Times:</strong> In the Route Editor or GPX Planner, assign an individual dwell duration (e.g. 5, 10, or 15 mins) to each planned stop waypoint.</li>
+              <li><strong>Dynamic Route Duration Calculation:</strong> TurboSanta automatically incorporates dwell times into the calculated route finish time:
+                <div style="background: #000; padding: 8px 14px; border-radius: 6px; font-family: monospace; font-size: 12px; color: #38bdf8; margin: 6px 0;">
+                  Total Route Duration = Pure Driving Time (calculated at sleigh speed, e.g. 3.0 mph) + Sum of Stop Dwell Times
+                </div>
+                For example, a 60-minute drive corridor with 3x 5-minute planned stops is automatically calculated and scheduled as a 75-minute route (e.g. 17:30 &ndash; 18:45), keeping arrival expectations perfectly realistic.
+              </li>
+              <li><strong>Interactive Map Fly-To Chips:</strong> On the public street-by-street schedule, planned stops appear as numbered red badges. Clicking any stop smoothly flies the radar map directly to that stop's exact coordinates.</li>
+              <li><strong>Volunteer Attendance Counters:</strong> On route night, crew members in the Crew Hub have 1-tap crowd tally buttons at each stop to record attendance figures for your AGM Season Wrap.</li>
+            </ul>
+          </div>
         </div>
       </section>
 
@@ -705,6 +723,16 @@
               <li>Close route and log total cash collected.</li>
             </ul>
           </div>
+
+          <div class="card highlight" style="grid-column: 1 / -1; border-left: 4px solid var(--primary); background: rgba(251, 175, 51, 0.05); margin-top: 10px;">
+            <h3><i class="fa-solid fa-user-plus" style="color: var(--primary);"></i> Bulk Volunteer Multi-Run Sign Up &amp; Input Protection</h3>
+            <p>Managing volunteer rosters across 10 to 15 sleigh nights is now fast and frictionless:</p>
+            <ul style="font-size: 13px; color: var(--text-muted); margin-left: 20px; line-height: 1.8;">
+              <li><strong>1-Click Multi-Route Roster:</strong> In the Crew Hub, click <strong>"Bulk Assign Multi-Run"</strong> to select Table members and check off all the routes they are helping on. Instead of submitting volunteer forms 10 separate times, core crew can be assigned to multiple routes in seconds.</li>
+              <li><strong>Role &amp; Contact Autofill:</strong> Assign default roles (Driver, Sleigh Marshal, Bucket Collector) and phone numbers that automatically carry across all selected nights.</li>
+              <li><strong>Polling Input Protection:</strong> Text boxes in the volunteer modal are protected with active session refs, guaranteeing that background 5-second polling refreshes will never clear or interrupt what you are typing.</li>
+            </ul>
+          </div>
         </div>
       </section>
 
@@ -741,9 +769,22 @@
             <h3><i class="fa-solid fa-heart" style="color: #2ecc71;"></i> Zeffy (100% Free)</h3>
             <p>Captures zero-fee online donations. Automatically converts pence to pounds and logs donor names into D1.</p>
           </div>
+          <div class="card highlight" style="border-left: 4px solid #f59e0b;">
+            <span class="badge gold">Contactless Reader &amp; E-Commerce</span>
+            <h3><i class="fa-brands fa-square" style="color: #f59e0b;"></i> Square Webhooks &amp; Readers</h3>
+            <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+              Connect your Square account so street reader taps and online sales instantly credit your live thermometer:
+            </p>
+            <ul style="font-size: 12px; color: var(--text-muted); margin-left: 18px; line-height: 1.7;">
+              <li><strong>Webhook URL:</strong> <code>https://turbosanta-api.beverley247.workers.dev/api/webhooks/square?table=<span class="active-table-slug">beverley</span></code></li>
+              <li><strong>Events:</strong> Subscribe to <code>payment.created</code> and <code>payment.updated</code>.</li>
+              <li><strong>Cryptographic Security:</strong> Paste your Square <strong>Webhook Signature Key</strong> into Table Settings; incoming requests are verified with HMAC-SHA256 signatures.</li>
+              <li><strong>Dry-Run vs Live Simulator:</strong> The "Send Test Webhook" button in Admin runs a dry-run test (verifying that the endpoint parses payloads without injecting fake donations into production revenue). To verify live webhook delivery, trigger a test payment in your Square Developer Dashboard.</li>
+            </ul>
+          </div>
           <div class="card">
-            <h3><i class="fa-brands fa-stripe" style="color: #635bff;"></i> Stripe &amp; Square</h3>
-            <p>Listens for Stripe <code>checkout.session.completed</code> and Square <code>payment.updated</code> contactless reader events.</p>
+            <h3><i class="fa-brands fa-stripe" style="color: #635bff;"></i> Stripe</h3>
+            <p>Listens for Stripe <code>checkout.session.completed</code> events and credit card donations.</p>
           </div>
           <div class="card">
             <h3><i class="fa-solid fa-wifi" style="color: #3b82f6;"></i> SumUp (Street Card Taps)</h3>
@@ -973,6 +1014,32 @@
           <div class="card" style="grid-column: 1 / -1;">
             <h3>🦺 5. Automated Volunteer Marshaling &amp; Tactical Briefing Generator</h3>
             <p>Generates tailored WhatsApp and clipboard safety briefings for volunteer elves before departure, inspecting muster points, street types, cul-de-sacs, main road crossings, and wet weather gear protocols.</p>
+          </div>
+
+          <div class="card highlight" style="border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.04);">
+            <span class="badge red">Child-Safe Persona</span>
+            <h3>🎅 6. Universal "Talk to Santa" AI Chatbot &amp; Voice Hotline</h3>
+            <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+              Children and parents can chat live with Santa on the turnkey site (via text or interactive talking avatar video) or speak over an ElevenLabs voice call hotline:
+            </p>
+            <ul style="font-size: 12px; color: var(--text-muted); margin-left: 18px; line-height: 1.7;">
+              <li><strong>Strict Child Safeguarding:</strong> Zero address prompting, no promises of expensive gifts, and bedtime/kindness encouragement.</li>
+              <li><strong>Local Route &amp; Stop Grounding:</strong> Santa knows tonight's active route, upcoming street dates, and planned stop locations with dwell times.</li>
+              <li><strong>Charity Appeals &amp; FAQs:</strong> Santa is aware of your Table's supported Food Bank and Toy appeals, and explains your vehicle safety rules (staying on pavements, sweets handed directly).</li>
+            </ul>
+          </div>
+
+          <div class="card highlight" style="border-left: 4px solid var(--primary); background: rgba(251, 175, 51, 0.04);">
+            <span class="badge gold">Live Cloudflare D1 Grounded</span>
+            <h3>🤖 7. TurboSanta Admin Assistant Co-Pilot ("Ask TurboSanta")</h3>
+            <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+              An operational AI co-pilot built directly into your Admin Portal to assist Table Chairs and Sleigh Marshals:
+            </p>
+            <ul style="font-size: 12px; color: var(--text-muted); margin-left: 18px; line-height: 1.7;">
+              <li><strong>Real-Time Table State:</strong> Inspects your active routes, scheduled streets, total donations, connected webhooks, and slot settings.</li>
+              <li><strong>Operations &amp; Setup Advice:</strong> Explains how to link GPX routes, set up Square webhooks, configure Food Bank appeals, or switch between Trailer and Flatbed FAQ profiles.</li>
+              <li><strong>UK Legal &amp; Regulatory Guidance:</strong> DVSA trailer towing limits (750kg unbraked / 2m safety zone), council street collection permits, and EPA 1990 street music licensing regulations.</li>
+            </ul>
           </div>
         </div>
 

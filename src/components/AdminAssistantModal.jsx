@@ -54,7 +54,7 @@ export default function AdminAssistantModal({
   const [messages, setMessages] = useState([
     {
       role: 'model',
-      text: `👋 Hello **${tableName}** team! I'm **TurboSanta**, your operations and settings assistant.\n\nI have direct, real-time access to your table's **Cloudflare D1 database** and the full **TurboSanta System Guide**.\n\nAsk me anything about:\n- 🎛️ **Modular Public Slots** (AI Santa Chat, Naughty/Nice Certificate, Reindeer Adoption, etc.)\n- 🗺️ **Routes & GPX** (drawing routes, attaching GPX files directly to timetable)\n- 📍 **Driver Beacon & Sleigh Radar** (why the sleigh is "Resting in Lapland" vs "Live")\n- 💳 **Donations & Webhooks** (Zeffy, Donorbox, SumUp, JustGiving, Cash Buckets, Gift Aid)\n- 👥 **Crew & Volunteers** (dispatching route briefings via Gmail BCC)\n- 🎨 **Branding & Settings** (what every toggle in Table Settings changes)`,
+      text: `👋 Hello **${tableName}** team! I'm **TurboSanta**, your operations, compliance, and technical assistant.\n\nI have direct, real-time access to your table's **Cloudflare D1 database** and the full **TurboSanta System Guide**.\n\nAsk me anything about:\n- 💳 **Square & Card Webhooks** (Square HMAC-SHA256 webhooks, contactless reader sync, dry-run testing)\n- 🥫 **Supported Charity Appeals** (Food Banks, Cash for Kids Mission Christmas, item checklists, kerbside rules)\n- 🚐 **Dynamic FAQs & Vehicle Advice** (Towable Trailer vs Flatbed Van turning radius presets & custom Q&As)\n- ⏱️ **Planned Stops & Dwell Times** (allocating stop minutes, dynamic route duration adjustments, tally counters)\n- 👥 **Crew & Multi-Run Volunteer Roster** (bulk-assigning table members across multiple routes in 1 click)\n- 🎛️ **Modular Public Slots** (AI Santa Chat, Naughty/Nice Certificate, Reindeer Adoption, etc.)\n- 🗺️ **Routes & GPX** (drawing routes, attaching GPX files directly to timetable)\n- 📍 **Driver Beacon & Sleigh Radar** (why the sleigh is "Resting in Lapland" vs "Live")\n- ⚖️ **DVSA Towing & Council Permits** (2m exclusion zones, collection permits, street music laws)`,
       timestamp: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -164,11 +164,14 @@ export default function AdminAssistantModal({
 
   const quickChips = [
     { label: '🔍 Audit My Settings', prompt: 'Please audit my current table settings, routes, and donation setup. Is there anything missing or misconfigured?' },
+    { label: '💳 Square Webhook & Testing', prompt: 'How do I set up Square webhooks for card reader donations, and how does the dry-run test simulator work?' },
+    { label: '🥫 Food Bank & Toy Appeals', prompt: 'How do we set up supported charity appeals for our local Food Bank or Cash for Kids Mission Christmas?' },
+    { label: '🚐 Flatbed vs Trailer FAQs', prompt: 'How do I switch our safety FAQs between Towable Trailer and Flatbed Van presets, or customize Q&A answers?' },
+    { label: '⏱️ Planned Stops & Dwell', prompt: 'How do planned stop dwell times (e.g. 5 mins each) dynamically adjust our total route duration on the timetable?' },
+    { label: '👥 Bulk Multi-Run Crew', prompt: 'How do I sign up our Round Table members for multiple route nights at once using the Bulk Multi-Run tool?' },
     { label: '🌦️ Live Weather & Safety', prompt: 'What is the current weather forecast for our town and our route safety advice?' },
     { label: '⚖️ Towing & Street Permits', prompt: 'What are the UK DVSA trailer towing rules and council street collection permit requirements?' },
-    { label: '🎛️ How Do Slots Work?', prompt: 'How do the 2 modular public slots work on our public site? What happens when I enable or disable them?' },
-    { label: '🗺️ Attach GPX to Route', prompt: 'How do I link a GPX route file created in Route Planner directly to a route in my schedule?' },
-    { label: '💳 Connect Webhooks', prompt: 'How do I connect Zeffy, Donorbox, SumUp, or JustGiving webhooks so donations automatically update our live thermometer?' }
+    { label: '🗺️ Attach GPX to Route', prompt: 'How do I link a GPX route file created in Route Planner directly to a route in my schedule?' }
   ];
 
   // Helper to render markdown-like text
