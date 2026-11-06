@@ -479,7 +479,7 @@
         <div class="btn-row" id="streetActions" style="display:none">
           <button class="btn btn-primary btn-sm" id="btnCopyStreets" style="flex:1;" onclick="copyStreets()">📋 Copy Street Names</button>
           <button class="btn btn-dim btn-sm" id="btnCopyCSV" onclick="copyCSV()">📄 CSV</button>
-          <button class="btn btn-dim btn-sm" onclick="detectStreets()">🔄 Reverse-Geocode All</button>
+          <button class="btn btn-dim btn-sm" onclick="detectStreets(true)" title="Force fresh road-graph street scan">⚡ Re-Scan Streets</button>
         </div>
       </div>
 
@@ -1380,15 +1380,83 @@ function findClosestLegIndex(latlng) {
   return bestLegIdx;
 }
 
+async function fetchSingleLegFromOsrm(from, to, legMode) {
+  const servers = legMode === 'driving'
+    ? [routingServers.driving, 'https://router.project-osrm.org/route/v1/driving']
+    : [routingServers[legMode] || routingServers.driving];
+
+  for (const baseUrl of servers) {
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 5500);
+      try {
+        const res = await fetch(
+          `${baseUrl}/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson&steps=true`,
+          { signal: ctrl.signal }
+        );
+        if (!res.ok) continue;
+        const data = await res.json();
+        if (data.code === 'Ok' && data.routes && data.routes[0]) {
+          const segCoords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+          const legStreets = [];
+          const pushSt = (raw) => {
+            const clean = cleanDetectedRoadName(raw);
+            if (clean) legStreets.push(clean);
+          };
+          if (Array.isArray(data.waypoints) && data.waypoints[0]) {
+            pushSt(data.waypoints[0].name);
+          }
+          (data.routes[0].legs || []).forEach(leg => {
+            (leg.steps || []).forEach(step => pushSt(step.name));
+          });
+          if (Array.isArray(data.waypoints) && data.waypoints[1]) {
+            pushSt(data.waypoints[1].name);
+          }
+          return { coords: segCoords, streets: legStreets };
+        }
+      } finally {
+        clearTimeout(timer);
+      }
+    } catch (_) {}
+  }
+  return null;
+}
+
 async function routeAllWaypoints() {
   if (waypoints.length < 2) return;
   if (routingInProgress) return;
   routingInProgress = true;
 
+  const t0 = performance.now();
   const spinner = document.getElementById('routingSpinner');
   spinner.style.display = 'flex';
 
   try {
+    // 1. Pre-fetch all uncached non-direct legs in parallel waves (up to 6 concurrent legs)
+    const uncachedJobs = [];
+    for (let i = 0; i < waypoints.length - 1; i++) {
+      const from = waypoints[i];
+      const to = waypoints[i + 1];
+      const legMode = from.nextMode || 'driving';
+      if (legMode === 'direct') continue;
+      const key = getLegCacheKey(from, to, legMode);
+      if (!legCache.has(key)) {
+        uncachedJobs.push({ i, from, to, legMode, key });
+      }
+    }
+
+    const LEG_CONCURRENCY = 6;
+    for (let b = 0; b < uncachedJobs.length; b += LEG_CONCURRENCY) {
+      const batch = uncachedJobs.slice(b, b + LEG_CONCURRENCY);
+      await Promise.all(batch.map(async (job) => {
+        const fetched = await fetchSingleLegFromOsrm(job.from, job.to, job.legMode);
+        if (fetched) {
+          legCache.set(job.key, fetched);
+        }
+      }));
+    }
+
+    // 2. Assemble geometry & discovered streets in strict waypoint order
     let combinedGeometry = [];
     let discoveredStreets = [];
     const seenStreets = new Set();
@@ -1399,7 +1467,6 @@ async function routeAllWaypoints() {
       const to = waypoints[i + 1];
       const legMode = from.nextMode || 'driving';
 
-      // 1. Direct Straight-Line Mode
       if (legMode === 'direct') {
         const seg = [[from.lat, from.lng], [to.lat, to.lng]];
         window.legGeometries[i] = seg;
@@ -1408,7 +1475,6 @@ async function routeAllWaypoints() {
         continue;
       }
 
-      // 2. Check local memory cache (prevents rate limits and stops old legs being overridden)
       const key = getLegCacheKey(from, to, legMode);
       if (legCache.has(key)) {
         const cached = legCache.get(key);
@@ -1418,54 +1484,14 @@ async function routeAllWaypoints() {
         } else {
           combinedGeometry.push(...cached.coords.slice(1));
         }
-        (cached.streets || []).forEach(name => {
+        (cached.streets || []).forEach(rawName => {
+          const name = cleanDetectedRoadName(rawName);
           if (name && !seenStreets.has(name.toLowerCase())) {
             seenStreets.add(name.toLowerCase());
             discoveredStreets.push(name);
           }
         });
-        continue;
-      }
-
-      // 3. Fetch newly placed/changed leg from OSRM
-      const baseUrl = routingServers[legMode] || routingServers.driving;
-      const url = `${baseUrl}/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson&steps=true`;
-
-      try {
-        const res = await fetch(url);
-        const data = await res.json();
-
-        if (data.code === 'Ok' && data.routes && data.routes[0]) {
-          const segCoords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
-          window.legGeometries[i] = segCoords;
-          const legStreets = [];
-
-          (data.routes[0].legs || []).forEach(leg => {
-            (leg.steps || []).forEach(step => {
-              const name = (step.name || '').trim();
-              if (name && !seenStreets.has(name.toLowerCase())) {
-                seenStreets.add(name.toLowerCase());
-                discoveredStreets.push(name);
-              }
-              if (name) legStreets.push(name);
-            });
-          });
-
-          // Store in cache so this leg is permanent
-          legCache.set(key, { coords: segCoords, streets: legStreets });
-
-          if (combinedGeometry.length === 0) {
-            combinedGeometry.push(...segCoords);
-          } else {
-            combinedGeometry.push(...segCoords.slice(1));
-          }
-        } else {
-          const fallback = [[from.lat, from.lng], [to.lat, to.lng]];
-          window.legGeometries[i] = fallback;
-          if (combinedGeometry.length === 0) combinedGeometry.push(...fallback);
-          else combinedGeometry.push(fallback[1]);
-        }
-      } catch (e) {
+      } else {
         const fallback = [[from.lat, from.lng], [to.lat, to.lng]];
         window.legGeometries[i] = fallback;
         if (combinedGeometry.length === 0) combinedGeometry.push(...fallback);
@@ -1478,15 +1504,8 @@ async function routeAllWaypoints() {
 
     if (discoveredStreets.length > 0) {
       detectedStreets = discoveredStreets;
-      const streetList = document.getElementById('streetList');
-      streetList.innerHTML = discoveredStreets.map((s, idx) =>
-        `<div class="street-item"><span class="street-num">${idx + 1}</span><span class="street-name">${s}</span></div>`
-      ).join('');
-      document.getElementById('streetCountLabel').textContent = discoveredStreets.length;
-      document.getElementById('streetStatus').textContent = `Done — ${discoveredStreets.length} street${discoveredStreets.length !== 1 ? 's' : ''} detected`;
-      document.getElementById('streetStatus').style.display = 'block';
-      document.getElementById('progressWrap').style.display = 'none';
-      document.getElementById('streetActions').style.display = 'flex';
+      const elapsedSec = ((performance.now() - t0) / 1000).toFixed(2);
+      renderDetectedStreets(`⚡ ${discoveredStreets.length} street${discoveredStreets.length !== 1 ? 's' : ''} detected (${elapsedSec}s)`);
     }
 
     drawSnappedRoute();
@@ -2005,98 +2024,364 @@ ${trkpts}
   URL.revokeObjectURL(a.href);
 }
 
-function abortGeocode() { geocodeAbort = true; setTimeout(() => geocodeAbort = false, 100); }
+let geocodeRunId = 0;
+let activeGeocodeAbortController = null;
+const routeStreetCache = new Map();
+const reverseGridCache = new Map();
+const GENERIC_NON_STREET_NAMES = /^(unnamed|unnamed road|footpath|footway|cycleway|bridleway|path|track|service|service road|parking aisle|driveway|alley|steps|corridor|walkway)$/i;
 
-async function detectStreets() {
+function cleanDetectedRoadName(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return '';
+  if (s.includes(' / ')) return ''; // Filter OSM-DE foot crossing junction concatenations
+  if (GENERIC_NON_STREET_NAMES.test(s)) return '';
+  return s;
+}
+
+function abortGeocode() {
+  geocodeAbort = true;
+  geocodeRunId++;
+  if (activeGeocodeAbortController) {
+    try { activeGeocodeAbortController.abort(); } catch (_) {}
+    activeGeocodeAbortController = null;
+  }
+}
+
+function renderDetectedStreets(statusMessage = null) {
+  const streetList = document.getElementById('streetList');
+  const countLabel = document.getElementById('streetCountLabel');
+  const attachCountEl = document.getElementById('attachStreetsCount');
+  const statusEl = document.getElementById('streetStatus');
+  const progressWrap = document.getElementById('progressWrap');
+  const actionsEl = document.getElementById('streetActions');
+
+  if (streetList) {
+    streetList.innerHTML = detectedStreets.map((s, idx) =>
+      `<div class="street-item" style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+        <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+          <span class="street-num">${idx + 1}</span>
+          <span class="street-name" style="overflow:hidden;text-overflow:ellipsis;">${escXml(s)}</span>
+        </div>
+        <button type="button" onclick="removeDetectedStreet(${idx})" title="Exclude street from list" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px;padding:2px 5px;line-height:1;opacity:0.7;">✕</button>
+      </div>`
+    ).join('');
+  }
+  if (countLabel) countLabel.textContent = detectedStreets.length;
+  if (attachCountEl) attachCountEl.textContent = detectedStreets.length;
+  if (progressWrap) progressWrap.style.display = 'none';
+  if (statusEl && statusMessage) {
+    statusEl.textContent = statusMessage;
+    statusEl.style.display = 'block';
+  }
+  if (actionsEl) {
+    actionsEl.style.display = detectedStreets.length > 0 ? 'flex' : 'none';
+  }
+}
+
+window.removeDetectedStreet = function(idx) {
+  if (idx >= 0 && idx < detectedStreets.length) {
+    detectedStreets.splice(idx, 1);
+    renderDetectedStreets(`${detectedStreets.length} street${detectedStreets.length !== 1 ? 's' : ''} ready`);
+  }
+};
+
+function bearingDeg(lat1, lon1, lat2, lon2) {
+  const rad = Math.PI / 180;
+  const dLon = (lon2 - lon1) * rad;
+  const y = Math.sin(dLon) * Math.cos(lat2 * rad);
+  const x = Math.cos(lat1 * rad) * Math.sin(lat2 * rad) - Math.sin(lat1 * rad) * Math.cos(lat2 * rad) * Math.cos(dLon);
+  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+}
+
+function angleDiffDeg(a, b) {
+  const d = Math.abs(a - b) % 360;
+  return d > 180 ? 360 - d : d;
+}
+
+function sampleRoute(pts, intervalM = 32) {
+  if (!Array.isArray(pts) || pts.length === 0) return [];
+  if (pts.length === 1) return [pts[0]];
+
+  // 1. Strip < 3m stationary GPS jitter
+  const clean = [pts[0]];
+  for (let i = 1; i < pts.length; i++) {
+    const prev = clean[clean.length - 1];
+    if (haversine(prev[0], prev[1], pts[i][0], pts[i][1]) * 1000 >= 3 || i === pts.length - 1) {
+      clean.push(pts[i]);
+    }
+  }
+  if (clean.length < 2) return [pts[0], pts[pts.length - 1]];
+
+  // 2. Turn-aware + distance interval sampling so short closes/cul-de-sacs are always captured
+  const s = [clean[0]];
+  let distAcc = 0;
+  let lastBrg = bearingDeg(clean[0][0], clean[0][1], clean[1][0], clean[1][1]);
+
+  for (let i = 1; i < clean.length - 1; i++) {
+    distAcc += haversine(clean[i - 1][0], clean[i - 1][1], clean[i][0], clean[i][1]) * 1000;
+    const nextBrg = bearingDeg(clean[i][0], clean[i][1], clean[i + 1][0], clean[i + 1][1]);
+    const turn = angleDiffDeg(lastBrg, nextBrg);
+    if (distAcc >= intervalM || (distAcc >= 12 && turn >= 32)) {
+      s.push(clean[i]);
+      distAcc = 0;
+      lastBrg = nextBrg;
+    }
+  }
+  const lastPt = clean[clean.length - 1];
+  const tail = s[s.length - 1];
+  if (tail[0] !== lastPt[0] || tail[1] !== lastPt[1]) s.push(lastPt);
+  return s;
+}
+
+async function fetchOsrmBatchWithTimeout(urls, coordStr, timeoutMs, parentSignal) {
+  for (const base of urls) {
+    if (parentSignal && parentSignal.aborted) return null;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    const onAbort = () => ctrl.abort();
+    if (parentSignal) parentSignal.addEventListener('abort', onAbort, { once: true });
+    try {
+      const res = await fetch(`${base}/${coordStr}?steps=true&overview=false`, { signal: ctrl.signal });
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.code === 'Ok') return json;
+      }
+    } catch (_) {
+    } finally {
+      clearTimeout(timer);
+      if (parentSignal) parentSignal.removeEventListener('abort', onAbort);
+    }
+  }
+  return null;
+}
+
+async function reverseGeocodeCached(lat, lon, parentSignal) {
+  const gridKey = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+  if (reverseGridCache.has(gridKey)) return reverseGridCache.get(gridKey);
+  if (parentSignal && parentSignal.aborted) return '';
+
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 4500);
+  const onAbort = () => ctrl.abort();
+  if (parentSignal) parentSignal.addEventListener('abort', onAbort, { once: true });
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat.toFixed(6)}&lon=${lon.toFixed(6)}&zoom=17&addressdetails=1&countrycodes=gb,ie&email=turbosanta@beverleyroundtable.co.uk`,
+      { headers: { 'Accept-Language': 'en' }, signal: ctrl.signal }
+    );
+    if (!res.ok) return '';
+    const data = await res.json();
+    const addr = data?.address || {};
+    const road = cleanDetectedRoadName(
+      addr.road || addr.residential || addr.pedestrian || addr.footway || addr.cycleway || addr.path || addr.street
+    );
+    if (road) reverseGridCache.set(gridKey, road);
+    return road;
+  } catch (_) {
+    return '';
+  } finally {
+    clearTimeout(timer);
+    if (parentSignal) parentSignal.removeEventListener('abort', onAbort);
+  }
+}
+
+async function detectStreets(forceRefresh = false) {
   const pts = getActivePoints();
   if (pts.length < 2) return;
 
   abortGeocode();
-  await new Promise(r => setTimeout(r, 150));
   geocodeAbort = false;
+  const myRunId = ++geocodeRunId;
+  const runCtrl = new AbortController();
+  activeGeocodeAbortController = runCtrl;
 
+  const t0 = performance.now();
   const status = document.getElementById('streetStatus');
   const progressWrap = document.getElementById('progressWrap');
   const progressBar = document.getElementById('progressBar');
   const streetList = document.getElementById('streetList');
 
-  status.textContent = 'Detecting streets…'; status.style.display = 'block';
-  progressWrap.style.display = 'block'; progressBar.style.width = '0%';
-  streetList.innerHTML = ''; detectedStreets = [];
+  status.textContent = '⚡ Scanning road graph…';
+  status.style.display = 'block';
+  progressWrap.style.display = 'block';
+  progressBar.style.width = '12%';
+  streetList.innerHTML = '';
+  detectedStreets = [];
   document.getElementById('streetActions').style.display = 'none';
 
-  const samples = sampleRoute(pts, 40);
-  const seen = new Set();
+  const samples = sampleRoute(pts, 32);
+  const midSample = samples[Math.floor(samples.length / 2)];
+  const fingerprint = `${samples.length}:${samples[0][0].toFixed(5)},${samples[0][1].toFixed(5)}:${midSample[0].toFixed(5)}:${samples[samples.length - 1][0].toFixed(5)},${samples[samples.length - 1][1].toFixed(5)}`;
 
-  for (let i = 0; i < samples.length; i++) {
-    if (geocodeAbort) return;
-    const pct = Math.round((i / samples.length) * 100);
-    progressBar.style.width = pct + '%';
-    status.textContent = `Detecting… ${pct}% (${detectedStreets.length} found)`;
+  if (!forceRefresh && routeStreetCache.has(fingerprint)) {
+    detectedStreets = [...routeStreetCache.get(fingerprint)];
+    renderDetectedStreets(`⚡ ${detectedStreets.length} street${detectedStreets.length !== 1 ? 's' : ''} detected (instant cache)`);
+    return;
+  }
 
-    let attempts = 0;
-    const maxAttempts = 3;
-    let success = false;
+  // Split samples into overlapping batches of 70 points so URLs stay compact & every intermediate leg is checked
+  const CHUNK_SIZE = 70;
+  const chunks = [];
+  for (let start = 0; start < samples.length; start += (CHUNK_SIZE - 1)) {
+    const slice = samples.slice(start, start + CHUNK_SIZE);
+    if (slice.length >= 2) chunks.push({ startIdx: start, points: slice });
+    if (start + CHUNK_SIZE >= samples.length) break;
+  }
 
-    while (attempts < maxAttempts && !success && !geocodeAbort) {
-      attempts++;
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 8000);
+  const slotStreets = Array.from({ length: samples.length }, () => []);
+  const slotMatched = new Array(samples.length).fill(false);
+  let anyOsrmSuccess = false;
+  let completedChunks = 0;
 
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${samples[i][0]}&lon=${samples[i][1]}&zoom=17&addressdetails=1&countrycodes=gb,ie&email=turbosanta@beverleyroundtable.co.uk`,
-          { headers: { 'Accept-Language': 'en' }, signal: controller.signal }
-        );
-        clearTimeout(timeout);
+  const CAR_URLS = [routingServers.driving, 'https://router.project-osrm.org/route/v1/driving'];
+  const FOOT_URLS = [routingServers.foot];
 
-        if (res.status === 429) {
-          await new Promise(r => setTimeout(r, 2000 * attempts));
-          continue;
+  // Dispatch up to 4 dual-profile batches in parallel (~280 sample points / ~9km per wave)
+  const WAVE_SIZE = 4;
+  for (let w = 0; w < chunks.length; w += WAVE_SIZE) {
+    if (myRunId !== geocodeRunId || runCtrl.signal.aborted) return;
+    const wave = chunks.slice(w, w + WAVE_SIZE);
+
+    await Promise.all(wave.map(async ({ startIdx, points }) => {
+      const coordStr = points.map(p => `${p[1].toFixed(5)},${p[0].toFixed(5)}`).join(';');
+      const [carRes, footRes] = await Promise.all([
+        fetchOsrmBatchWithTimeout(CAR_URLS, coordStr, 5500, runCtrl.signal),
+        fetchOsrmBatchWithTimeout(FOOT_URLS, coordStr, 4500, runCtrl.signal)
+      ]);
+      if (myRunId !== geocodeRunId) return;
+      if (carRes || footRes) anyOsrmSuccess = true;
+
+      const carWps = carRes?.waypoints || [];
+      const footWps = footRes?.waypoints || [];
+      const carLegs = carRes?.routes?.[0]?.legs || [];
+      const footLegs = footRes?.routes?.[0]?.legs || [];
+
+      for (let i = 0; i < points.length; i++) {
+        const gIdx = startIdx + i;
+        const cw = carWps[i];
+        const fw = footWps[i];
+        const cName = cleanDetectedRoadName(cw?.name);
+        const fName = cleanDetectedRoadName(fw?.name);
+        const cDist = cw?.distance ?? Infinity;
+        const fDist = fw?.distance ?? Infinity;
+
+        if (cDist <= 18) {
+          slotMatched[gIdx] = true;
+          if (cName) slotStreets[gIdx].push(cName);
+        } else if (fDist <= 18 && fName) {
+          slotMatched[gIdx] = true;
+          slotStreets[gIdx].push(fName);
+        } else if (cDist <= 26 && cName) {
+          slotMatched[gIdx] = true;
+          slotStreets[gIdx].push(cName);
+        } else if (fDist <= 24 && fName) {
+          slotMatched[gIdx] = true;
+          slotStreets[gIdx].push(fName);
         }
 
-        if (!res.ok) continue;
+        if (i < points.length - 1) {
+          const directDist = haversine(points[i][0], points[i][1], points[i + 1][0], points[i + 1][1]) * 1000;
+          const cLeg = carLegs[i];
+          const fLeg = footLegs[i];
 
-        const data = await res.json();
-        if (data.error) continue;
-
-        const addr = data?.address || {};
-        const road = addr.road || addr.residential || addr.pedestrian || addr.footway || addr.cycleway || addr.path || addr.street;
-        const cleanRoad = road ? road.trim() : '';
-        if (cleanRoad && !seen.has(cleanRoad.toLowerCase())) {
-          seen.add(cleanRoad.toLowerCase());
-          detectedStreets.push(cleanRoad);
-          const div = document.createElement('div');
-          div.className = 'street-item';
-          div.innerHTML = `<span class="street-num">${detectedStreets.length}</span><span class="street-name">${cleanRoad}</span>`;
-          streetList.appendChild(div);
-        }
-        success = true;
-
-      } catch(e) {
-        if (attempts < maxAttempts) {
-          await new Promise(r => setTimeout(r, 1500 * attempts));
+          // Only include leg step names when OSRM stayed on the true GPX corridor (prevents one-way detour phantoms)
+          if (cLeg && cLeg.distance <= directDist * 1.35 + 20) {
+            (cLeg.steps || []).forEach(st => {
+              const n = cleanDetectedRoadName(st.name);
+              if (n) slotStreets[gIdx].push(n);
+            });
+          } else if (cDist > 18 && fLeg && fLeg.distance <= directDist * 1.35 + 20) {
+            (fLeg.steps || []).forEach(st => {
+              const n = cleanDetectedRoadName(st.name);
+              if (n) slotStreets[gIdx].push(n);
+            });
+          }
         }
       }
+
+      completedChunks++;
+      if (myRunId === geocodeRunId) {
+        const pct = Math.min(92, Math.round((completedChunks / chunks.length) * 80) + 12);
+        progressBar.style.width = pct + '%';
+        status.textContent = `⚡ Matching road segments… ${pct}%`;
+      }
+    }));
+  }
+
+  if (myRunId !== geocodeRunId || runCtrl.signal.aborted) return;
+
+  // Targeted gap-fill for brand-new private/unmapped estate stretches (>= 55m unmatched)
+  if (anyOsrmSuccess) {
+    const gapMidpoints = [];
+    let gapStart = -1;
+    let gapDist = 0;
+
+    for (let i = 0; i < samples.length; i++) {
+      if (!slotMatched[i]) {
+        if (gapStart === -1) {
+          gapStart = i;
+          gapDist = 0;
+        } else {
+          gapDist += haversine(samples[i - 1][0], samples[i - 1][1], samples[i][0], samples[i][1]) * 1000;
+        }
+      } else if (gapStart !== -1) {
+        if (gapDist >= 55 || (i - gapStart) >= 3) {
+          gapMidpoints.push(Math.floor((gapStart + i - 1) / 2));
+        }
+        gapStart = -1;
+        gapDist = 0;
+      }
+    }
+    if (gapStart !== -1 && (gapDist >= 55 || (samples.length - gapStart) >= 3)) {
+      gapMidpoints.push(Math.floor((gapStart + samples.length - 1) / 2));
     }
 
-    if (i < samples.length - 1) await new Promise(r => setTimeout(r, 1100));
+    const cappedGaps = gapMidpoints.slice(0, 5);
+    for (let g = 0; g < cappedGaps.length; g++) {
+      if (myRunId !== geocodeRunId || runCtrl.signal.aborted) return;
+      status.textContent = `⚡ Resolving new-build / private close (${g + 1}/${cappedGaps.length})…`;
+      const idx = cappedGaps[g];
+      const road = await reverseGeocodeCached(samples[idx][0], samples[idx][1], runCtrl.signal);
+      if (road) slotStreets[idx].push(road);
+      if (g < cappedGaps.length - 1) await new Promise(r => setTimeout(r, 1050));
+    }
+  } else {
+    // Graceful fallback if OSRM road-graph servers are unreachable
+    const fbSamples = sampleRoute(pts, 75);
+    for (let i = 0; i < fbSamples.length; i++) {
+      if (myRunId !== geocodeRunId || runCtrl.signal.aborted) return;
+      const pct = Math.round(((i + 1) / fbSamples.length) * 95);
+      progressBar.style.width = pct + '%';
+      status.textContent = `Fallback geocoding… ${pct}%`;
+      const road = await reverseGeocodeCached(fbSamples[i][0], fbSamples[i][1], runCtrl.signal);
+      if (road) slotStreets[Math.min(i, slotStreets.length - 1)].push(road);
+      if (i < fbSamples.length - 1) await new Promise(r => setTimeout(r, 1050));
+    }
+  }
+
+  if (myRunId !== geocodeRunId || runCtrl.signal.aborted) return;
+
+  // Flatten slots in exact route traversal order & deduplicate
+  const seen = new Set();
+  const finalStreets = [];
+  for (let i = 0; i < slotStreets.length; i++) {
+    for (const name of slotStreets[i]) {
+      const key = name.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        finalStreets.push(name);
+      }
+    }
+  }
+
+  detectedStreets = finalStreets;
+  if (finalStreets.length > 0) {
+    routeStreetCache.set(fingerprint, [...finalStreets]);
   }
 
   progressBar.style.width = '100%';
-  status.textContent = `Done — ${detectedStreets.length} street${detectedStreets.length !== 1 ? 's' : ''} detected`;
-  document.getElementById('streetCountLabel').textContent = detectedStreets.length;
-  if (detectedStreets.length > 0) document.getElementById('streetActions').style.display = 'flex';
-}
-
-function sampleRoute(pts, intervalM) {
-  const s = [pts[0]]; let a = 0;
-  for (let i = 1; i < pts.length; i++) {
-    a += haversine(pts[i-1][0], pts[i-1][1], pts[i][0], pts[i][1]) * 1000;
-    if (a >= intervalM) { s.push(pts[i]); a = 0; }
-  }
-  if (s[s.length-1] !== pts[pts.length-1]) s.push(pts[pts.length-1]);
-  return s;
+  const elapsedSec = ((performance.now() - t0) / 1000).toFixed(2);
+  renderDetectedStreets(`⚡ ${detectedStreets.length} street${detectedStreets.length !== 1 ? 's' : ''} detected in ${elapsedSec}s`);
 }
 
 function copyStreets() {

@@ -3,6 +3,7 @@ import { X, Calendar, Clock, MapPin, Building2, Save, Trash2, UploadCloud, FileT
 import DropzoneUpload from './DropzoneUpload';
 import { uploadAssetToR2 } from '../services/api';
 import { extractRouteSponsors } from '../utils/sponsors';
+import { detectStreetsFromPoints, detectStreetsFromGpxUrl } from '../utils/streetDetector';
 
 export function slugifyRouteId(tableSlug, name) {
   const cleanTable = String(tableSlug || 'beverley').toLowerCase().trim();
@@ -126,6 +127,8 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
   );
   const [isParsingGpx, setIsParsingGpx] = useState(false);
   const [isGpxDragging, setIsGpxDragging] = useState(false);
+  const [isDetectingStreets, setIsDetectingStreets] = useState(false);
+  const [streetDetectStatus, setStreetDetectStatus] = useState('');
   const lastOpenedRouteKeyRef = useRef(null);
 
   useEffect(() => {
@@ -138,6 +141,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
       return; // RouteEditorModal is already open and initialized for this route session. Shield user edits from background prop churn!
     }
     lastOpenedRouteKeyRef.current = routeKey;
+    setStreetDetectStatus('');
 
     const meta = extractRouteMeta(route);
     setSponsors(extractRouteSponsors(route));
@@ -258,33 +262,50 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
           };
         });
 
-        // 4. Calculate route distance in miles
+        // 4. Calculate route distance in miles & collect track coordinates
         let distKm = 0;
         let lastLat = null, lastLng = null;
+        const trackCoords = [];
         trackNodes.forEach(pt => {
           const lat = parseFloat(pt.getAttribute("lat"));
           const lng = parseFloat(pt.getAttribute("lon"));
-          if (lastLat !== null && lastLng !== null) {
-            const dLat = (lat - lastLat) * Math.PI / 180;
-            const dLng = (lng - lastLng) * Math.PI / 180;
-            const a = Math.sin(dLat / 2) ** 2 + Math.cos(lastLat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
-            distKm += 6371 * 2 * Math.asin(Math.sqrt(a));
+          if (!isNaN(lat) && !isNaN(lng)) {
+            trackCoords.push([lat, lng]);
+            if (lastLat !== null && lastLng !== null) {
+              const dLat = (lat - lastLat) * Math.PI / 180;
+              const dLng = (lng - lastLng) * Math.PI / 180;
+              const a = Math.sin(dLat / 2) ** 2 + Math.cos(lastLat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+              distKm += 6371 * 2 * Math.asin(Math.sqrt(a));
+            }
+            lastLat = lat;
+            lastLng = lng;
           }
-          lastLat = lat;
-          lastLng = lng;
         });
         const distanceMi = (distKm * 0.621371).toFixed(2);
 
-        // 5. Upload GPX to Cloudflare R2 (or fallback to data URI if offline/unconfigured)
-        const r2Url = await uploadAssetToR2(file, tableSlug);
+        // 5. Upload GPX to Cloudflare R2 AND detect streets in parallel (~0.3s)
+        const [r2Url, streetResult] = await Promise.all([
+          uploadAssetToR2(file, tableSlug),
+          trackCoords.length >= 2
+            ? detectStreetsFromPoints(trackCoords).catch(() => ({ streets: [], elapsedMs: 0 }))
+            : Promise.resolve({ streets: [], elapsedMs: 0 })
+        ]);
         const finalGpxUrl = r2Url || `data:application/gpx+xml;base64,${btoa(unescape(encodeURIComponent(text)))}`;
+
+        const autoStreets = streetResult?.streets || [];
+        if (autoStreets.length > 0) {
+          setStreetDetectStatus(`⚡ ${autoStreets.length} streets detected (${(streetResult.elapsedMs / 1000).toFixed(2)}s)`);
+        }
 
         setFormData(prev => ({
           ...prev,
           name: prev.name || gpxName || file.name.replace(/\.gpx$/i, ''),
           gpx_url: finalGpxUrl,
           gpx_file_name: file.name,
-          planned_stops: stops
+          planned_stops: stops,
+          streetsText: (!prev.streetsText || !prev.streetsText.trim()) && autoStreets.length > 0
+            ? autoStreets.join(', ')
+            : prev.streetsText
         }));
 
         setGpxStats({
@@ -302,6 +323,25 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
       }
     };
     reader.readAsText(file);
+  };
+
+  const handleAutoDetectStreets = async () => {
+    if (!formData.gpx_url || isDetectingStreets) return;
+    setIsDetectingStreets(true);
+    setStreetDetectStatus('⚡ Scanning GPX road graph…');
+    try {
+      const res = await detectStreetsFromGpxUrl(formData.gpx_url);
+      if (res.streets && res.streets.length > 0) {
+        setFormData(prev => ({ ...prev, streetsText: res.streets.join(', ') }));
+        setStreetDetectStatus(`⚡ ${res.streets.length} streets detected in ${(res.elapsedMs / 1000).toFixed(2)}s`);
+      } else {
+        setStreetDetectStatus('No named streets detected along this GPX track.');
+      }
+    } catch (err) {
+      setStreetDetectStatus('Could not scan GPX: ' + (err.message || 'Check connection'));
+    } finally {
+      setIsDetectingStreets(false);
+    }
   };
 
   const handleAddSponsor = () => {
@@ -1196,9 +1236,34 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
-                Street Timetable (Comma-separated)
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
+                <label style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600, margin: 0 }}>
+                  Street Timetable (Comma-separated)
+                </label>
+                {formData.gpx_url && (
+                  <button
+                    type="button"
+                    onClick={handleAutoDetectStreets}
+                    disabled={isDetectingStreets}
+                    style={{
+                      fontSize: '11px',
+                      color: isDetectingStreets ? 'var(--text-muted)' : 'var(--primary)',
+                      background: 'rgba(251, 175, 51, 0.1)',
+                      border: '1px solid rgba(251, 175, 51, 0.35)',
+                      borderRadius: '6px',
+                      padding: '4px 10px',
+                      cursor: isDetectingStreets ? 'wait' : 'pointer',
+                      fontWeight: 700,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                    title="Instantly detect all street names along the attached GPX route"
+                  >
+                    <span>{isDetectingStreets ? '⏳ Scanning GPX…' : '⚡ Auto-Detect from GPX'}</span>
+                  </button>
+                )}
+              </div>
               <textarea
                 rows={3}
                 value={formData.streetsText}
@@ -1216,9 +1281,16 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                   lineHeight: '1.5'
                 }}
               />
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
-                Residents can instantly search any of these streets on the public tracker map.
-              </span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px', flexWrap: 'wrap', gap: '6px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  Residents can instantly search any of these streets on the public tracker map.
+                </span>
+                {streetDetectStatus && (
+                  <span style={{ fontSize: '11px', color: '#86efac', fontWeight: 600 }}>
+                    {streetDetectStatus}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
