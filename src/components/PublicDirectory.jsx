@@ -345,6 +345,215 @@ export default function PublicDirectory({ session, onNavigateAdmin, onSelectTabl
         boxSizing: 'border-box',
         flex: 1
       }}>
+        {/* ROUND TABLE RECRUITMENT PUSH: DO MORE WITH YOUR EVENINGS */}
+        <div style={{
+          marginTop: '6px',
+          marginBottom: '36px',
+          background: 'linear-gradient(135deg, rgba(251, 175, 51, 0.09) 0%, rgba(211, 28, 28, 0.06) 50%, rgba(22, 22, 20, 0.98) 100%)',
+          border: '1px solid rgba(251, 175, 51, 0.35)',
+          borderRadius: '24px',
+          padding: 'clamp(24px, 4vw, 38px)',
+          position: 'relative',
+          overflow: 'hidden',
+          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6), 0 0 24px rgba(251, 175, 51, 0.08)'
+        }}>
+          {/* Subtle festive background glow / badge */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: 'rgba(251, 175, 51, 0.15)',
+              border: '1px solid rgba(251, 175, 51, 0.4)',
+              borderRadius: '50px',
+              padding: '5px 14px',
+              fontSize: '11px',
+              fontWeight: 800,
+              color: '#FBAF33',
+              textTransform: 'uppercase',
+              letterSpacing: '0.8px'
+            }}>
+              <Users size={14} />
+              <span>Behind The Sleigh • For Men Aged 18 to 45</span>
+            </div>
+            <div style={{
+              fontSize: '11px',
+              color: 'rgba(255, 255, 255, 0.5)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.6px',
+              fontWeight: 700
+            }}>
+              Round Table Great Britain &amp; Ireland
+            </div>
+          </div>
+
+          <div style={{ maxWidth: '820px' }}>
+            <h2 style={{
+              fontFamily: 'Eurostile, sans-serif',
+              fontSize: 'clamp(22px, 3.5vw, 34px)',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              letterSpacing: '1px',
+              lineHeight: 1.15,
+              margin: '0 0 12px 0',
+              color: '#ffffff'
+            }}>
+              Do More With Your Evenings — <span style={{ color: '#FBAF33' }}>Join Round Table</span>
+            </h2>
+
+            <p style={{
+              fontSize: 'clamp(14px, 1.8vw, 16px)',
+              color: 'rgba(255, 255, 255, 0.8)',
+              lineHeight: 1.6,
+              margin: '0 0 24px 0'
+            }}>
+              The sleigh touring your street tonight doesn&rsquo;t happen by magic — it&rsquo;s planned, towed, and marshalled by young local guys from Round Table. But Christmas is just <em>one</em> month of what we do.
+            </p>
+          </div>
+
+          {/* 3 Pillars: Social, Charity, Wellbeing */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: '16px',
+            marginBottom: '28px'
+          }}>
+            <div style={{
+              backgroundColor: 'rgba(0, 0, 0, 0.35)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '14px',
+              padding: '16px 18px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: '#FBAF33', fontWeight: 700, fontSize: '14px', fontFamily: 'Eurostile, sans-serif' }}>
+                <Sparkles size={16} />
+                <span>UNBEATABLE SOCIAL LIFE</span>
+              </div>
+              <p style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.68)', margin: 0, lineHeight: 1.55 }}>
+                Break out of the work-home-couch routine. From curry nights, comedy clubs, and pub quizzes to go-karting, paddleboarding, and weekends away — make a great group of lifelong mates.
+              </p>
+            </div>
+
+            <div style={{
+              backgroundColor: 'rgba(0, 0, 0, 0.35)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '14px',
+              padding: '16px 18px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: '#2ecc71', fontWeight: 700, fontSize: '14px', fontFamily: 'Eurostile, sans-serif' }}>
+                <Heart size={16} />
+                <span>COMMUNITY &amp; CHARITY</span>
+              </div>
+              <p style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.68)', margin: 0, lineHeight: 1.55 }}>
+                Give back where you live. Alongside the iconic Santa Sleigh, Tables organise beer festivals, firework displays, and food bank collections, raising millions across the UK.
+              </p>
+            </div>
+
+            <div style={{
+              backgroundColor: 'rgba(0, 0, 0, 0.35)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '14px',
+              padding: '16px 18px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: '#60a5fa', fontWeight: 700, fontSize: '14px', fontFamily: 'Eurostile, sans-serif' }}>
+                <Shield size={16} />
+                <span>CAMARADERIE &amp; WELLBEING</span>
+              </div>
+              <p style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.68)', margin: 0, lineHeight: 1.55 }}>
+                Making new mates as an adult can be tough. Round Table gives guys a welcoming space to unwind, blow off steam, share laughs, and build lasting confidence and lifelong friendships.
+              </p>
+            </div>
+          </div>
+
+          {/* CTA BAR */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '16px',
+            paddingTop: '20px',
+            borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+          }}>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff', marginBottom: '2px' }}>
+                Male aged 18 to 45? Try your first night with zero obligation.
+              </div>
+              <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.55)' }}>
+                Come along to an activity or a pint, meet the lads, and see if it’s for you.
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <a
+                href="https://www.roundtable.co.uk/contact"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  backgroundColor: '#FBAF33',
+                  color: '#000000',
+                  fontFamily: 'Eurostile, sans-serif',
+                  fontWeight: 800,
+                  fontSize: '12px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.6px',
+                  padding: '12px 20px',
+                  borderRadius: '10px',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 14px rgba(251, 175, 51, 0.35)',
+                  transition: 'transform 0.15s, background-color 0.15s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#ffc25c';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#FBAF33';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                <span>Find Your Local Table (Get In Touch)</span>
+                <ExternalLink size={14} />
+              </a>
+
+              <a
+                href="https://www.roundtable.co.uk"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                  color: '#ffffff',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  fontFamily: 'Eurostile, sans-serif',
+                  fontWeight: 700,
+                  fontSize: '12px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.6px',
+                  padding: '11px 18px',
+                  borderRadius: '10px',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(251, 175, 51, 0.6)';
+                  e.currentTarget.style.color = '#FBAF33';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                  e.currentTarget.style.color = '#ffffff';
+                }}
+              >
+                <span>About Round Table</span>
+                <ExternalLink size={13} />
+              </a>
+            </div>
+          </div>
+        </div>
+
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -651,214 +860,6 @@ export default function PublicDirectory({ session, onNavigateAdmin, onSelectTabl
             <p style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.6)', margin: 0, lineHeight: 1.55 }}>
               Every Round Table Santa Sleigh is run by local volunteers raising funds for charities and families in your community.
             </p>
-          </div>
-        </div>
-
-        {/* ROUND TABLE RECRUITMENT PUSH: DO MORE WITH YOUR EVENINGS */}
-        <div style={{
-          marginTop: '44px',
-          background: 'linear-gradient(135deg, rgba(251, 175, 51, 0.09) 0%, rgba(211, 28, 28, 0.06) 50%, rgba(22, 22, 20, 0.98) 100%)',
-          border: '1px solid rgba(251, 175, 51, 0.35)',
-          borderRadius: '24px',
-          padding: 'clamp(24px, 4vw, 38px)',
-          position: 'relative',
-          overflow: 'hidden',
-          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6), 0 0 24px rgba(251, 175, 51, 0.08)'
-        }}>
-          {/* Subtle festive background glow / badge */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              backgroundColor: 'rgba(251, 175, 51, 0.15)',
-              border: '1px solid rgba(251, 175, 51, 0.4)',
-              borderRadius: '50px',
-              padding: '5px 14px',
-              fontSize: '11px',
-              fontWeight: 800,
-              color: '#FBAF33',
-              textTransform: 'uppercase',
-              letterSpacing: '0.8px'
-            }}>
-              <Users size={14} />
-              <span>Behind The Sleigh • For Men Aged 18 to 45</span>
-            </div>
-            <div style={{
-              fontSize: '11px',
-              color: 'rgba(255, 255, 255, 0.5)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.6px',
-              fontWeight: 700
-            }}>
-              Round Table Great Britain &amp; Ireland
-            </div>
-          </div>
-
-          <div style={{ maxWidth: '820px' }}>
-            <h2 style={{
-              fontFamily: 'Eurostile, sans-serif',
-              fontSize: 'clamp(22px, 3.5vw, 34px)',
-              fontWeight: 800,
-              textTransform: 'uppercase',
-              letterSpacing: '1px',
-              lineHeight: 1.15,
-              margin: '0 0 12px 0',
-              color: '#ffffff'
-            }}>
-              Do More With Your Evenings — <span style={{ color: '#FBAF33' }}>Join Round Table</span>
-            </h2>
-
-            <p style={{
-              fontSize: 'clamp(14px, 1.8vw, 16px)',
-              color: 'rgba(255, 255, 255, 0.8)',
-              lineHeight: 1.6,
-              margin: '0 0 24px 0'
-            }}>
-              The sleigh touring your street tonight doesn&rsquo;t happen by magic — it&rsquo;s planned, towed, and marshalled by young local guys from Round Table. But Christmas is just <em>one</em> month of what we do.
-            </p>
-          </div>
-
-          {/* 3 Pillars: Social, Charity, Wellbeing */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: '16px',
-            marginBottom: '28px'
-          }}>
-            <div style={{
-              backgroundColor: 'rgba(0, 0, 0, 0.35)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '14px',
-              padding: '16px 18px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: '#FBAF33', fontWeight: 700, fontSize: '14px', fontFamily: 'Eurostile, sans-serif' }}>
-                <Sparkles size={16} />
-                <span>UNBEATABLE SOCIAL LIFE</span>
-              </div>
-              <p style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.68)', margin: 0, lineHeight: 1.55 }}>
-                Break out of the work-home-couch routine. From curry nights, comedy clubs, and pub quizzes to go-karting, paddleboarding, and weekends away — make a great group of lifelong mates.
-              </p>
-            </div>
-
-            <div style={{
-              backgroundColor: 'rgba(0, 0, 0, 0.35)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '14px',
-              padding: '16px 18px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: '#2ecc71', fontWeight: 700, fontSize: '14px', fontFamily: 'Eurostile, sans-serif' }}>
-                <Heart size={16} />
-                <span>COMMUNITY &amp; CHARITY</span>
-              </div>
-              <p style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.68)', margin: 0, lineHeight: 1.55 }}>
-                Give back where you live. Alongside the iconic Santa Sleigh, Tables organise beer festivals, firework displays, and food bank collections, raising millions across the UK.
-              </p>
-            </div>
-
-            <div style={{
-              backgroundColor: 'rgba(0, 0, 0, 0.35)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '14px',
-              padding: '16px 18px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: '#60a5fa', fontWeight: 700, fontSize: '14px', fontFamily: 'Eurostile, sans-serif' }}>
-                <Shield size={16} />
-                <span>CAMARADERIE &amp; WELLBEING</span>
-              </div>
-              <p style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.68)', margin: 0, lineHeight: 1.55 }}>
-                Making new mates as an adult can be tough. Round Table gives guys a welcoming space to unwind, blow off steam, share laughs, and build lasting confidence and lifelong friendships.
-              </p>
-            </div>
-          </div>
-
-          {/* CTA BAR */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '16px',
-            paddingTop: '20px',
-            borderTop: '1px solid rgba(255, 255, 255, 0.1)'
-          }}>
-            <div>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff', marginBottom: '2px' }}>
-                Male aged 18 to 45? Try your first night with zero obligation.
-              </div>
-              <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.55)' }}>
-                Come along to an activity or a pint, meet the lads, and see if it’s for you.
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <a
-                href="https://www.roundtable.co.uk/contact"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  backgroundColor: '#FBAF33',
-                  color: '#000000',
-                  fontFamily: 'Eurostile, sans-serif',
-                  fontWeight: 800,
-                  fontSize: '12px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.6px',
-                  padding: '12px 20px',
-                  borderRadius: '10px',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  boxShadow: '0 4px 14px rgba(251, 175, 51, 0.35)',
-                  transition: 'transform 0.15s, background-color 0.15s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#ffc25c';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#FBAF33';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
-              >
-                <span>Find Your Local Table (Get In Touch)</span>
-                <ExternalLink size={14} />
-              </a>
-
-              <a
-                href="https://www.roundtable.co.uk"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                  color: '#ffffff',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  fontFamily: 'Eurostile, sans-serif',
-                  fontWeight: 700,
-                  fontSize: '12px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.6px',
-                  padding: '11px 18px',
-                  borderRadius: '10px',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(251, 175, 51, 0.6)';
-                  e.currentTarget.style.color = '#FBAF33';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                  e.currentTarget.style.color = '#ffffff';
-                }}
-              >
-                <span>About Round Table</span>
-                <ExternalLink size={13} />
-              </a>
-            </div>
           </div>
         </div>
       </section>
