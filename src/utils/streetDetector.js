@@ -7,8 +7,8 @@
  */
 
 const CAR_SERVERS = [
-  'https://routing.openstreetmap.de/routed-car/route/v1/driving',
-  'https://router.project-osrm.org/route/v1/driving'
+  'https://router.project-osrm.org/route/v1/driving',
+  'https://routing.openstreetmap.de/routed-car/route/v1/driving'
 ];
 const FOOT_SERVER = 'https://routing.openstreetmap.de/routed-foot/route/v1/driving';
 

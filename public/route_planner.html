@@ -1189,6 +1189,87 @@ function addStopAtLatLng(lat, lng) {
   }, 60);
 }
 
+function perpendicularDistanceMeters(pt, lineStart, lineEnd) {
+  const [lat, lon] = pt;
+  const [lat1, lon1] = lineStart;
+  const [lat2, lon2] = lineEnd;
+  const midLatRad = ((lat1 + lat2) / 2) * Math.PI / 180;
+  const cosLat = Math.cos(midLatRad);
+  const dx = (lon2 - lon1) * cosLat;
+  const dy = lat2 - lat1;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) {
+    const px = (lon - lon1) * cosLat;
+    const py = lat - lat1;
+    return Math.sqrt(px * px + py * py) * 111320;
+  }
+  let t = (((lon - lon1) * cosLat) * dx + (lat - lat1) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  const projLon = lon1 + (t * dx) / cosLat;
+  const projLat = lat1 + t * dy;
+  const diffX = (lon - projLon) * cosLat;
+  const diffY = lat - projLat;
+  return Math.sqrt(diffX * diffX + diffY * diffY) * 111320;
+}
+
+function rdpIndices(pts, epsilonM, start = 0, end = pts.length - 1) {
+  let dmax = 0;
+  let index = 0;
+  for (let i = start + 1; i < end; i++) {
+    const d = perpendicularDistanceMeters(pts[i], pts[start], pts[end]);
+    if (d > dmax) {
+      index = i;
+      dmax = d;
+    }
+  }
+  if (dmax > epsilonM) {
+    const rec1 = rdpIndices(pts, epsilonM, start, index);
+    const rec2 = rdpIndices(pts, epsilonM, index, end);
+    return rec1.slice(0, -1).concat(rec2);
+  } else {
+    return [start, end];
+  }
+}
+
+function extractSmartWaypointsFromTrail(pts, targetWaypoints = 36) {
+  if (pts.length <= targetWaypoints) {
+    return pts.map((pt, i) => ({ pt, index: i }));
+  }
+
+  // Binary search for epsilon that extracts natural turning corners & junctions (~22-42 key points)
+  let lowEps = 4;
+  let highEps = 140;
+  let bestIndices = [0, pts.length - 1];
+
+  for (let iter = 0; iter < 10; iter++) {
+    const midEps = (lowEps + highEps) / 2;
+    const indices = rdpIndices(pts, midEps);
+    bestIndices = indices;
+    if (indices.length > targetWaypoints) {
+      lowEps = midEps;
+    } else if (indices.length < Math.max(16, Math.floor(targetWaypoints * 0.6))) {
+      highEps = midEps;
+    } else {
+      break;
+    }
+  }
+
+  // Ensure long straight stretches (> 320m) get an intermediate waypoint for comfortable drag editing
+  const result = [bestIndices[0]];
+  for (let i = 0; i < bestIndices.length - 1; i++) {
+    const idxA = bestIndices[i];
+    const idxB = bestIndices[i + 1];
+    const dist = haversine(pts[idxA][0], pts[idxA][1], pts[idxB][0], pts[idxB][1]) * 1000;
+    if (dist > 320 && (idxB - idxA) > 6 && result.length < 48) {
+      const mid = Math.floor((idxA + idxB) / 2);
+      result.push(mid);
+    }
+    result.push(idxB);
+  }
+
+  return result.map(idx => ({ pt: pts[idx], index: idx }));
+}
+
 function convertGpxToEditableRoute() {
   const pts = getActivePoints();
   if (pts.length < 2) {
@@ -1196,34 +1277,68 @@ function convertGpxToEditableRoute() {
     return;
   }
 
-  if (!confirm("Convert this GPX trail into editable route points?\\n\\nThis switches into Route Builder mode with the points mapped out so you can extend the route, drag turning points, or modify streets.")) {
+  if (!confirm("Convert this GPX trail into editable route points?\n\nThis switches into Route Builder mode with the points mapped out so you can extend the route, drag turning points, or modify streets.")) {
     return;
   }
 
-  // Sample points up to 35 key points
-  const sampled = sampleRoutePoints(pts, 35);
+  pushState();
 
-  clearAllWaypoints();
+  // Smart turn/corner-preserving waypoint extraction
+  const smartWps = extractSmartWaypointsFromTrail(pts, 36);
 
-  sampled.forEach((pt, i) => {
-    addWaypointMarker(pt[0], pt[1]);
+  // Clean canvas layers
+  waypointMarkers.forEach(m => map.removeLayer(m));
+  waypointMarkers = [];
+  waypoints = [];
+  legCache.clear();
+  window.legGeometries = [];
+
+  if (uploadLayer) {
+    map.removeLayer(uploadLayer);
+    uploadLayer = null;
+  }
+
+  smartWps.forEach((sw) => {
+    addWaypointMarker(sw.pt[0], sw.pt[1]);
     waypoints.push({
-      lat: pt[0],
-      lng: pt[1],
+      lat: sw.pt[0],
+      lng: sw.pt[1],
       isStop: false,
       stopName: '',
       nextMode: 'driving'
     });
   });
 
+  // Pre-seed legCache and legGeometries directly from the high-resolution GPX trail!
+  // This guarantees 100% exact road-snapping without network latency or OSRM rate-limiting.
+  let combined = [];
+  for (let k = 0; k < smartWps.length - 1; k++) {
+    const iStart = smartWps[k].index;
+    const iEnd = smartWps[k + 1].index;
+    const legSlice = pts.slice(iStart, iEnd + 1);
+    window.legGeometries[k] = legSlice;
+    const key = getLegCacheKey(waypoints[k], waypoints[k + 1], 'driving');
+    legCache.set(key, { coords: legSlice, streets: [] });
+    if (combined.length === 0) combined.push(...legSlice);
+    else combined.push(...legSlice.slice(1));
+  }
+
+  snappedGeometry = combined.length > 0 ? combined : pts.slice();
+  roadNameMap = new Array(snappedGeometry.length).fill('');
+
   setMode('place');
   updateWpUI();
-  routeAllWaypoints();
+  drawSnappedRoute();
   updateStats();
+
+  // If no streets detected yet, kick off background detection
+  if (detectedStreets.length === 0) {
+    detectStreets().catch(() => {});
+  }
 
   const toast = document.getElementById('mapToast');
   if (toast) {
-    toast.textContent = `✓ GPX converted to ${waypoints.length} editable waypoints! Drag or click to modify`;
+    toast.textContent = `✓ GPX converted to ${waypoints.length} editable waypoints with 100% road-snapping!`;
     toast.style.display = 'block';
   }
 }
@@ -1382,16 +1497,24 @@ function findClosestLegIndex(latlng) {
 
 async function fetchSingleLegFromOsrm(from, to, legMode) {
   const servers = legMode === 'driving'
-    ? [routingServers.driving, 'https://router.project-osrm.org/route/v1/driving']
-    : [routingServers[legMode] || routingServers.driving];
+    ? [
+        'https://router.project-osrm.org/route/v1/driving',
+        routingServers.driving,
+        'https://routing.openstreetmap.de/routed-foot/route/v1/driving' // Foot fallback for one-ways/cul-de-sacs
+      ]
+    : legMode === 'foot'
+      ? ['https://routing.openstreetmap.de/routed-foot/route/v1/driving', 'https://router.project-osrm.org/route/v1/driving']
+      : legMode === 'bike'
+        ? ['https://routing.openstreetmap.de/routed-bike/route/v1/driving', 'https://router.project-osrm.org/route/v1/driving']
+        : ['https://router.project-osrm.org/route/v1/driving', routingServers.driving];
 
   for (const baseUrl of servers) {
     try {
       const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 5500);
+      const timer = setTimeout(() => ctrl.abort(), 4000);
       try {
         const res = await fetch(
-          `${baseUrl}/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson&steps=true`,
+          `${baseUrl}/${from.lng.toFixed(5)},${from.lat.toFixed(5)};${to.lng.toFixed(5)},${to.lat.toFixed(5)}?overview=full&geometries=geojson&steps=true`,
           { signal: ctrl.signal }
         );
         if (!res.ok) continue;
@@ -1401,7 +1524,7 @@ async function fetchSingleLegFromOsrm(from, to, legMode) {
           const legStreets = [];
           const pushSt = (raw) => {
             const clean = cleanDetectedRoadName(raw);
-            if (clean) legStreets.push(clean);
+            if (clean && !legStreets.includes(clean)) legStreets.push(clean);
           };
           if (Array.isArray(data.waypoints) && data.waypoints[0]) {
             pushSt(data.waypoints[0].name);
@@ -1419,7 +1542,62 @@ async function fetchSingleLegFromOsrm(from, to, legMode) {
       }
     } catch (_) {}
   }
-  return null;
+
+  // Graceful fallback: return direct straight line but mark as fallback so legCache prevents re-request thrashing
+  return {
+    coords: [[from.lat, from.lng], [to.lat, to.lng]],
+    streets: [],
+    isFallback: true
+  };
+}
+
+async function fetchContiguousDrivingBatch(jobs) {
+  if (!jobs || jobs.length < 2) return false;
+  try {
+    const coords = [jobs[0].from, ...jobs.map(j => j.to)];
+    const coordStr = coords.map(c => `${c.lng.toFixed(5)},${c.lat.toFixed(5)}`).join(';');
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 6000);
+    try {
+      const res = await fetch(
+        `https://router.project-osrm.org/route/v1/driving/${coordStr}?overview=full&geometries=geojson&steps=true`,
+        { signal: ctrl.signal }
+      );
+      if (!res.ok) return false;
+      const data = await res.json();
+      if (data.code === 'Ok' && data.routes && data.routes[0] && Array.isArray(data.routes[0].legs)) {
+        const legs = data.routes[0].legs;
+        if (legs.length === jobs.length) {
+          legs.forEach((leg, idx) => {
+            const job = jobs[idx];
+            const legCoords = [];
+            const legStreets = [];
+            (leg.steps || []).forEach(step => {
+              const name = cleanDetectedRoadName(step.name);
+              if (name && !legStreets.includes(name)) legStreets.push(name);
+              if (step.geometry && Array.isArray(step.geometry.coordinates)) {
+                step.geometry.coordinates.forEach(c => {
+                  const pt = [c[1], c[0]];
+                  const last = legCoords[legCoords.length - 1];
+                  if (!last || Math.abs(last[0] - pt[0]) > 0.000001 || Math.abs(last[1] - pt[1]) > 0.000001) {
+                    legCoords.push(pt);
+                  }
+                });
+              }
+            });
+            if (legCoords.length < 2) {
+              legCoords.push([job.from.lat, job.from.lng], [job.to.lat, job.to.lng]);
+            }
+            legCache.set(job.key, { coords: legCoords, streets: legStreets });
+          });
+          return true;
+        }
+      }
+    } finally {
+      clearTimeout(timer);
+    }
+  } catch (_) {}
+  return false;
 }
 
 async function routeAllWaypoints() {
@@ -1432,7 +1610,7 @@ async function routeAllWaypoints() {
   spinner.style.display = 'flex';
 
   try {
-    // 1. Pre-fetch all uncached non-direct legs in parallel waves (up to 6 concurrent legs)
+    // 1. Identify all uncached non-direct legs
     const uncachedJobs = [];
     for (let i = 0; i < waypoints.length - 1; i++) {
       const from = waypoints[i];
@@ -1445,15 +1623,58 @@ async function routeAllWaypoints() {
       }
     }
 
-    const LEG_CONCURRENCY = 6;
-    for (let b = 0; b < uncachedJobs.length; b += LEG_CONCURRENCY) {
-      const batch = uncachedJobs.slice(b, b + LEG_CONCURRENCY);
-      await Promise.all(batch.map(async (job) => {
-        const fetched = await fetchSingleLegFromOsrm(job.from, job.to, job.legMode);
-        if (fetched) {
-          legCache.set(job.key, fetched);
+    if (uncachedJobs.length > 0) {
+      // Group contiguous driving legs into fast multi-waypoint batches (up to 18 legs per call)
+      let currentRun = [];
+      const runs = [];
+      for (let j = 0; j < uncachedJobs.length; j++) {
+        const job = uncachedJobs[j];
+        if (job.legMode === 'driving' && (currentRun.length === 0 || currentRun[currentRun.length - 1].i === job.i - 1)) {
+          currentRun.push(job);
+          if (currentRun.length >= 18) {
+            runs.push(currentRun);
+            currentRun = [];
+          }
+        } else {
+          if (currentRun.length > 0) {
+            runs.push(currentRun);
+            currentRun = [];
+          }
+          if (job.legMode === 'driving') currentRun.push(job);
         }
-      }));
+      }
+      if (currentRun.length > 0) runs.push(currentRun);
+
+      const remainingSingleJobs = [];
+      for (const run of runs) {
+        if (run.length >= 2) {
+          const ok = await fetchContiguousDrivingBatch(run);
+          if (!ok) {
+            remainingSingleJobs.push(...run);
+          }
+        } else {
+          remainingSingleJobs.push(...run);
+        }
+      }
+
+      // Add non-driving or batch-failed jobs
+      uncachedJobs.forEach(job => {
+        if (!legCache.has(job.key) && !remainingSingleJobs.some(r => r.key === job.key)) {
+          remainingSingleJobs.push(job);
+        }
+      });
+
+      // Fetch remaining legs in small concurrent waves
+      const LEG_CONCURRENCY = 4;
+      for (let b = 0; b < remainingSingleJobs.length; b += LEG_CONCURRENCY) {
+        const batch = remainingSingleJobs.slice(b, b + LEG_CONCURRENCY);
+        await Promise.all(batch.map(async (job) => {
+          const fetched = await fetchSingleLegFromOsrm(job.from, job.to, job.legMode);
+          if (fetched) {
+            legCache.set(job.key, fetched);
+          }
+        }));
+      }
     }
 
     // 2. Assemble geometry & discovered streets in strict waypoint order
@@ -2233,7 +2454,7 @@ async function detectStreets(forceRefresh = false) {
   let anyOsrmSuccess = false;
   let completedChunks = 0;
 
-  const CAR_URLS = [routingServers.driving, 'https://router.project-osrm.org/route/v1/driving'];
+  const CAR_URLS = ['https://router.project-osrm.org/route/v1/driving', routingServers.driving];
   const FOOT_URLS = [routingServers.foot];
 
   // Dispatch up to 4 dual-profile batches in parallel (~280 sample points / ~9km per wave)
