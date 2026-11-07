@@ -5,8 +5,11 @@ import {
 import { fetchPublicTables } from '../services/api';
 
 export default function PublicDirectory({ session, onNavigateAdmin, onSelectTable }) {
-  const [tables, setTables] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const prefetched = (typeof window !== 'undefined' && Array.isArray(window.__PREFETCHED_PUBLIC_TABLES__) && window.__PREFETCHED_PUBLIC_TABLES__.length > 0)
+    ? window.__PREFETCHED_PUBLIC_TABLES__
+    : null;
+  const [tables, setTables] = useState(prefetched || []);
+  const [loading, setLoading] = useState(!prefetched);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
@@ -33,8 +36,9 @@ export default function PublicDirectory({ session, onNavigateAdmin, onSelectTabl
       const town = (t.town_name || '').toLowerCase();
       const name = (t.sleigh_display_name || '').toLowerCase();
       const slug = (t.slug || '').toLowerCase();
+      const areas = (t.seo_areas || '').toLowerCase();
       const num = t.table_number ? String(t.table_number) : '';
-      return town.includes(q) || name.includes(q) || slug.includes(q) || num.includes(q);
+      return town.includes(q) || name.includes(q) || slug.includes(q) || areas.includes(q) || num.includes(q);
     });
   }, [tables, searchQuery]);
 
@@ -666,6 +670,11 @@ export default function PublicDirectory({ session, onNavigateAdmin, onSelectTabl
                   key={t.slug}
                   href={`https://${t.slug}.roundtablesantasleigh.co.uk/`}
                   onClick={(e) => {
+                    const host = typeof window !== 'undefined' ? window.location.hostname.toLowerCase() : '';
+                    if (host.includes('roundtablesantasleigh.co.uk')) {
+                      // Allow standard browser link navigation & middle-click / new-tab behaviour
+                      return;
+                    }
                     e.preventDefault();
                     handleOpenTown(t);
                   }}

@@ -940,6 +940,10 @@ export async function fetchPublicTables() {
     { slug: "stockton", town_name: "Stockton", sleigh_display_name: "Stockton Round Table Santa Sleigh", logo_url: "https://turbosanta-api.beverley247.workers.dev/cdn/stockton/1792397480202_lll8iv.png", primary_color: "#FBAF33", url: "https://stockton.roundtablesantasleigh.co.uk/" }
   ];
 
+  if (typeof window !== "undefined" && Array.isArray(window.__PREFETCHED_PUBLIC_TABLES__) && window.__PREFETCHED_PUBLIC_TABLES__.length > 0) {
+    return window.__PREFETCHED_PUBLIC_TABLES__;
+  }
+
   try {
     const res = await fetch(`${API_BASE}/api/public/tables`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);

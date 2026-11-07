@@ -6,10 +6,10 @@ const GOOGLE_ACCESS_TOKEN_CACHE = new Map();
 async function ensureSchemaOnce(env) {
   if (_schemaVerified) return;
   try {
-    // Fast-path sentinel check: if the latest schema column (faqs_json) already exists,
+    // Fast-path sentinel check: if the latest schema column (google_site_verification) already exists,
     // skip the 90+ DDL/ALTER statements on Worker isolate cold start.
     const hasSentinel = await env.DB.prepare(
-      "SELECT 1 FROM pragma_table_info('tables') WHERE name='faqs_json'"
+      "SELECT 1 FROM pragma_table_info('tables') WHERE name='google_site_verification'"
     ).first().catch(() => null);
     if (hasSentinel) {
       _schemaVerified = true;
@@ -341,6 +341,11 @@ async function ensureSchemaOnce(env) {
       "ALTER TABLE tables ADD COLUMN town_alias TEXT",
       "ALTER TABLE tables ADD COLUMN subdomain_aliases TEXT",
       "ALTER TABLE tables ADD COLUMN faqs_json TEXT",
+      "ALTER TABLE tables ADD COLUMN seo_title TEXT",
+      "ALTER TABLE tables ADD COLUMN seo_description TEXT",
+      "ALTER TABLE tables ADD COLUMN seo_areas TEXT",
+      "ALTER TABLE tables ADD COLUMN seo_keywords TEXT",
+      "ALTER TABLE tables ADD COLUMN google_site_verification TEXT",
       "DELETE FROM lessons_learned WHERE id LIKE 'seed_%'",
       "DELETE FROM lesson_upvotes WHERE lesson_id LIKE 'seed_%'"
     ];
@@ -1506,6 +1511,11 @@ export default {
         sleigh_display_name: table.sleigh_display_name,
         town_alias: table.town_alias || null,
         subdomain_aliases: table.subdomain_aliases || null,
+        seo_title: table.seo_title || null,
+        seo_description: table.seo_description || null,
+        seo_areas: table.seo_areas || null,
+        seo_keywords: table.seo_keywords || null,
+        google_site_verification: table.google_site_verification || null,
         primary_color: table.primary_color,
         accent_color: table.accent_color,
         currency: table.currency || '£',
@@ -1970,7 +1980,7 @@ export default {
     if (path === "/api/public/tables" && request.method === "GET") {
       await ensureSchemaOnce(env);
       const rawTables = await env.DB.prepare(`
-        SELECT id, slug, name, sleigh_display_name, town_alias, subdomain_aliases, table_number, logo_url, primary_color, accent_color, charity_name
+        SELECT id, slug, name, sleigh_display_name, town_alias, subdomain_aliases, table_number, logo_url, primary_color, accent_color, charity_name, seo_areas, website_url, facebook_url
         FROM tables
         ORDER BY slug ASC
       `).all().catch(() => ({ results: [] }));
@@ -2031,6 +2041,9 @@ export default {
             primary_color: normalizeColor(t.primary_color, "#FBAF33"),
             accent_color: normalizeColor(t.accent_color, "#D31C1C"),
             charity_name: t.charity_name || null,
+            seo_areas: t.seo_areas || null,
+            website_url: t.website_url || null,
+            facebook_url: t.facebook_url || null,
             url: `https://${cleanSlug}.roundtablesantasleigh.co.uk/`
           };
         })
@@ -2291,9 +2304,71 @@ export default {
     // 🗺️ DYNAMIC SITEMAP (GET /api/sitemap.xml or /sitemap.xml)
     // ==============================================================
     if ((path === "/api/sitemap.xml" || path === "/sitemap.xml") && request.method === "GET") {
-      const allTables = await env.DB.prepare("SELECT slug, name FROM tables ORDER BY slug ASC").all().catch(() => ({ results: [] }));
-      const tableRows = (allTables.results || []).filter(t => !isReservedNationalSlug(t.slug));
+      await ensureSchemaOnce(env);
+      const scope = (url.searchParams.get("scope") || "").toLowerCase().trim();
+      const reqTable = (url.searchParams.get("table") || "").toLowerCase().trim().replace(/[^a-z0-9-_]/g, "");
       const today = new Date().toISOString().split("T")[0];
+
+      const escXml = (val) => String(val || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+      const safeComment = (val) => String(val || "").replace(/--+/g, "-").replace(/[<>]/g, "");
+
+      const mapSlotToPath = (slotId) => {
+        if (!slotId || typeof slotId !== "string") return null;
+        const clean = slotId.trim().toLowerCase();
+        if (!clean) return null;
+        if (clean === "colouring") return "/colouring_page";
+        if (clean === "spot_santa") return "/spot_santa_form";
+        const validSlots = new Set([
+          "bingo", "colouring_page", "countdown", "door_hanger", "elf_cam",
+          "letter", "magic_mailbox", "nice_list", "santa_chat", "adopt_reindeer",
+          "santa_frame", "santa_bot", "snowman", "spot_santa_form"
+        ]);
+        return validSlots.has(clean) ? `/${clean}` : null;
+      };
+
+      // Strict Single-Host Town Sitemap (Required by Google Search Central per-subdomain rules)
+      if (scope === "town" && reqTable && !isReservedNationalSlug(reqTable)) {
+        const tRow = await env.DB.prepare(
+          "SELECT slug, name, sleigh_display_name, public_slot_1, public_slot_2, enable_gift_aid FROM tables WHERE slug = ? OR id = ? LIMIT 1"
+        ).bind(reqTable, reqTable).first().catch(() => null);
+        const canonicalSlug = (tRow?.slug || reqTable).toLowerCase().trim();
+        const hostBase = `https://${canonicalSlug}.roundtablesantasleigh.co.uk`;
+
+        let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+        xml += `  <!-- ${safeComment(tRow?.sleigh_display_name || tRow?.name || canonicalSlug)} -->\n`;
+        xml += `  <url><loc>${escXml(`${hostBase}/`)}</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>\n`;
+        xml += `  <url><loc>${escXml(`${hostBase}/tracker`)}</loc><lastmod>${today}</lastmod><changefreq>hourly</changefreq><priority>0.9</priority></url>\n`;
+        xml += `  <url><loc>${escXml(`${hostBase}/address`)}</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>\n`;
+        xml += `  <url><loc>${escXml(`${hostBase}/memory-book`)}</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>\n`;
+        if (tRow?.enable_gift_aid) {
+          xml += `  <url><loc>${escXml(`${hostBase}/giftaid`)}</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>\n`;
+        }
+        const slotPaths = Array.from(new Set([
+          mapSlotToPath(tRow?.public_slot_1),
+          mapSlotToPath(tRow?.public_slot_2)
+        ].filter(Boolean)));
+        for (const sp of slotPaths) {
+          xml += `  <url><loc>${escXml(`${hostBase}${sp}`)}</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>\n`;
+        }
+        xml += `  <url><loc>${escXml(`${hostBase}/privacy`)}</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.4</priority></url>\n`;
+        xml += `</urlset>`;
+
+        return new Response(xml, {
+          headers: {
+            "Content-Type": "application/xml; charset=utf-8",
+            "Cache-Control": "public, max-age=1800, s-maxage=1800",
+            "Access-Control-Allow-Origin": "*"
+          }
+        });
+      }
+
+      const allTables = await env.DB.prepare("SELECT slug, name, sleigh_display_name FROM tables ORDER BY slug ASC").all().catch(() => ({ results: [] }));
+      const tableRows = (allTables.results || []).filter(t => t && t.slug && !isReservedNationalSlug(t.slug));
 
       let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
       xml += `  <!-- National Root -->\n`;
@@ -2302,13 +2377,13 @@ export default {
       xml += `  <url><loc>https://roundtablesantasleigh.co.uk/privacy</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.4</priority></url>\n`;
 
       for (const t of tableRows) {
-        const s = t.slug;
-        xml += `  <!-- ${t.name || s} -->\n`;
-        xml += `  <url><loc>https://${s}.roundtablesantasleigh.co.uk/</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>\n`;
-        xml += `  <url><loc>https://${s}.roundtablesantasleigh.co.uk/tracker</loc><lastmod>${today}</lastmod><changefreq>hourly</changefreq><priority>0.9</priority></url>\n`;
-        xml += `  <url><loc>https://${s}.roundtablesantasleigh.co.uk/address</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>\n`;
-        xml += `  <url><loc>https://${s}.roundtablesantasleigh.co.uk/memory-book</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>\n`;
-        xml += `  <url><loc>https://${s}.roundtablesantasleigh.co.uk/privacy</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.4</priority></url>\n`;
+        const s = String(t.slug).toLowerCase().trim();
+        xml += `  <!-- ${safeComment(t.sleigh_display_name || t.name || s)} -->\n`;
+        xml += `  <url><loc>${escXml(`https://${s}.roundtablesantasleigh.co.uk/`)}</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>\n`;
+        xml += `  <url><loc>${escXml(`https://${s}.roundtablesantasleigh.co.uk/tracker`)}</loc><lastmod>${today}</lastmod><changefreq>hourly</changefreq><priority>0.9</priority></url>\n`;
+        xml += `  <url><loc>${escXml(`https://${s}.roundtablesantasleigh.co.uk/address`)}</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>\n`;
+        xml += `  <url><loc>${escXml(`https://${s}.roundtablesantasleigh.co.uk/memory-book`)}</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>\n`;
+        xml += `  <url><loc>${escXml(`https://${s}.roundtablesantasleigh.co.uk/privacy`)}</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.4</priority></url>\n`;
       }
       xml += `</urlset>`;
 
@@ -2785,6 +2860,18 @@ export default {
       setIfProvided("default_muster_time");
       setIfProvided("custom_css", "custom_css", v => typeof v === 'string' ? v.trim() : null);
       setIfProvided("driver_pin", "driver_pin", v => (typeof v === 'string' && v.trim()) ? v.trim() : null);
+      setIfProvided("seo_title", "seo_title", v => (typeof v === 'string' && v.trim()) ? v.trim().slice(0, 140) : null);
+      setIfProvided("seo_description", "seo_description", v => (typeof v === 'string' && v.trim()) ? v.trim().slice(0, 320) : null);
+      setIfProvided("seo_areas", "seo_areas", v => (typeof v === 'string' && v.trim()) ? v.trim().slice(0, 600) : null);
+      setIfProvided("seo_keywords", "seo_keywords", v => (typeof v === 'string' && v.trim()) ? v.trim().slice(0, 500) : null);
+      setIfProvided("google_site_verification", "google_site_verification", v => {
+        if (typeof v !== 'string') return null;
+        const raw = v.trim();
+        if (!raw) return null;
+        const metaMatch = raw.match(/content\s*=\s*["']([^"']+)["']/i);
+        const code = (metaMatch ? metaMatch[1] : raw).replace(/[<>"']/g, '').trim();
+        return code ? code.slice(0, 128) : null;
+      });
 
       try {
         if (fields.length > 0) {
@@ -2793,6 +2880,27 @@ export default {
             UPDATE tables SET ${fields.join(", ")}
             WHERE id = ? OR slug = ?
           `).bind(...values).run();
+        }
+        // Proactively notify search engines (IndexNow: Bing, Edge, DuckDuckGo, Yahoo, Yandex) in background
+        if (ctx && typeof ctx.waitUntil === 'function' && targetSlug && !isReservedNationalSlug(targetSlug)) {
+          const indexNowKey = "ts8f4d9e2c1b74356890fedcba987654";
+          const townHost = `${targetSlug}.roundtablesantasleigh.co.uk`;
+          ctx.waitUntil(
+            fetch("https://api.indexnow.org/indexnow", {
+              method: "POST",
+              headers: { "Content-Type": "application/json; charset=utf-8" },
+              body: JSON.stringify({
+                host: townHost,
+                key: indexNowKey,
+                keyLocation: `https://${townHost}/${indexNowKey}.txt`,
+                urlList: [
+                  `https://${townHost}/`,
+                  `https://${townHost}/tracker`,
+                  `https://${townHost}/address`
+                ]
+              })
+            }).catch(() => {})
+          );
         }
         return jsonResponse({ ok: true, message: "Settings saved successfully" });
       } catch (err) {

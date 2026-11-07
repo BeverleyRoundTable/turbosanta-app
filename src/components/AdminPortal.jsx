@@ -1187,6 +1187,11 @@ ${tableName} Organizers`
   const [formData, setFormData] = useState({
     town_alias: initialTownAlias,
     subdomain_aliases: tableData?.table?.subdomain_aliases || (currentTableSlug === 'mold' ? 'moldandbuckley, mold-and-buckley' : ''),
+    seo_title: tableData?.table?.seo_title || '',
+    seo_description: tableData?.table?.seo_description || '',
+    seo_areas: tableData?.table?.seo_areas || '',
+    seo_keywords: tableData?.table?.seo_keywords || '',
+    google_site_verification: tableData?.table?.google_site_verification || '',
     sleigh_display_name: initialSleighDisplayName,
     admin_email: tableData?.table?.admin_email || session?.email || '',
     table_number: tableData?.table?.table_number || session?.tableNumber || '',
@@ -1345,6 +1350,11 @@ ${tableName} Organizers`
         ...prev,
         town_alias: tableData.table.town_alias !== undefined ? (tableData.table.town_alias || '') : (prev.town_alias || ''),
         subdomain_aliases: tableData.table.subdomain_aliases !== undefined ? (tableData.table.subdomain_aliases || '') : (prev.subdomain_aliases || ''),
+        seo_title: tableData.table.seo_title !== undefined ? (tableData.table.seo_title || '') : (prev.seo_title || ''),
+        seo_description: tableData.table.seo_description !== undefined ? (tableData.table.seo_description || '') : (prev.seo_description || ''),
+        seo_areas: tableData.table.seo_areas !== undefined ? (tableData.table.seo_areas || '') : (prev.seo_areas || ''),
+        seo_keywords: tableData.table.seo_keywords !== undefined ? (tableData.table.seo_keywords || '') : (prev.seo_keywords || ''),
+        google_site_verification: tableData.table.google_site_verification !== undefined ? (tableData.table.google_site_verification || '') : (prev.google_site_verification || ''),
         sleigh_display_name: standardSleighDisplayName,
         admin_email: tableData.table.admin_email || prev.admin_email || session?.email || '',
         table_number: tableData.table.table_number || prev.table_number || session?.tableNumber || '',
@@ -8154,6 +8164,363 @@ ${tableName} Organizers`
                 </div>
               </div>
 
+              {/* GOOGLE SEARCH (SEO), META TAGS & LOCAL AREA COVERAGE */}
+              {(() => {
+                const seoRoutes = Array.isArray(tableData?.routes) ? tableData.routes : [];
+                let seoSeasonYear = new Date().getFullYear();
+                seoRoutes.forEach(r => {
+                  const ym = String(r?.date || '').match(/^(20\d{2})-/);
+                  if (ym && parseInt(ym[1], 10) >= seoSeasonYear) seoSeasonYear = parseInt(ym[1], 10);
+                });
+
+                const extractAreasFromRoutes = () => {
+                  const seen = new Set([effectiveTownName.toLowerCase().trim()]);
+                  const out = [];
+                  for (const r of seoRoutes) {
+                    if (!r?.name) continue;
+                    for (const seg of String(r.name).split(/\s*(?:,|\/|&|\band\b)\s*/i)) {
+                      const cleaned = seg
+                        .replace(/\b(route|night|tour|evening|sleigh|static|switch\s*on|christmas\s*lights|supermarket|tesco|morrisons|asda|sainsburys?|aldis?|lidls?)\b.*$/i, '')
+                        .replace(/^\s*(route|night)\s*\d+\s*[-:–—]?\s*/i, '')
+                        .replace(/\([^)]*\)/g, '')
+                        .replace(/\s+/g, ' ')
+                        .replace(/^[-:–—,&\s]+|[-:–—,&\s]+$/g, '')
+                        .trim();
+                      if (!cleaned || cleaned.length < 3 || cleaned.length > 44 || /^\d+$/.test(cleaned)) continue;
+                      const k = cleaned.toLowerCase();
+                      if (!seen.has(k)) {
+                        seen.add(k);
+                        out.push(cleaned);
+                      }
+                      if (out.length >= 10) break;
+                    }
+                    if (out.length >= 10) break;
+                  }
+                  return out;
+                };
+
+                const manualAreasList = (formData.seo_areas || '')
+                  .split(/[,;\n|]+/)
+                  .map(s => s.trim())
+                  .filter(Boolean);
+                const previewAreas = (manualAreasList.length > 0 ? manualAreasList : extractAreasFromRoutes()).slice(0, 5).join(', ');
+
+                const defaultSeoTitle = `${effectiveTownName} Santa Sleigh ${seoSeasonYear} — Live Tracker, Routes & Street Times | ${effectiveTownName} Round Table`;
+                const defaultSeoDesc = seoRoutes.length > 0
+                  ? `Official ${effectiveTownName} Round Table Santa Sleigh ${seoSeasonYear} live GPS tracker & street schedule (${seoRoutes.length} route nights${previewAreas ? ` covering ${previewAreas}` : ''}). Check when Father Christmas visits your street, set doorstep alerts & donate locally.`
+                  : `Official ${effectiveTownName} Round Table Santa Sleigh live GPS tracker, December street route dates${previewAreas ? ` (${previewAreas})` : ''}, doorstep alerts, and local community charity appeal.`;
+
+                const activeSerpTitle = (formData.seo_title && formData.seo_title.trim()) ? formData.seo_title.trim() : defaultSeoTitle;
+                const activeSerpDesc = (formData.seo_description && formData.seo_description.trim()) ? formData.seo_description.trim() : defaultSeoDesc;
+                const townSitemapUrl = `https://${currentTableSlug}.roundtablesantasleigh.co.uk/sitemap.xml`;
+
+                return (
+                  <div style={{
+                    background: 'rgba(59, 130, 246, 0.04)',
+                    border: '1px solid rgba(96, 165, 250, 0.28)',
+                    borderRadius: '12px',
+                    padding: 'clamp(14px, 3vw, 20px)',
+                    maxWidth: '100%',
+                    boxSizing: 'border-box'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Search size={18} color="#60a5fa" />
+                        <strong style={{ fontSize: '15px', color: '#fff', fontFamily: 'Eurostile, sans-serif', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Google Search (SEO), Meta Tags &amp; Local Area Coverage
+                        </strong>
+                      </div>
+                      <span style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        background: 'rgba(34, 197, 94, 0.15)',
+                        color: '#4ade80',
+                        border: '1px solid rgba(34, 197, 94, 0.35)'
+                      }}>
+                        ✓ Edge SSR + Schema.org Active
+                      </span>
+                    </div>
+
+                    <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 14px 0', lineHeight: 1.55 }}>
+                      TurboSanta automatically pre-renders your town name, route dates, streets, <strong>Schema.org Event</strong> cards, and a dedicated <code>sitemap.xml</code> at the Cloudflare edge so you rank automatically on Google &amp; Bing. Use the optional fields below to list surrounding villages/suburbs your sleigh covers or customise your Google search snippet.
+                    </p>
+
+                    {/* Live Google Search Result Preview (SERP) */}
+                    <div style={{
+                      background: '#111214',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '10px',
+                      padding: '14px 16px',
+                      marginBottom: '16px'
+                    }}>
+                      <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: 'rgba(255,255,255,0.45)', marginBottom: '8px' }}>
+                        Live Google Search Snippet Preview
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                        <img
+                          src={formData.logo_url || '/icons/RTBI_Santa.png'}
+                          alt=""
+                          style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#000', objectFit: 'contain', border: '1px solid rgba(255,255,255,0.15)' }}
+                        />
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: '13px', color: '#dadce0', fontWeight: 600, lineHeight: 1.2 }}>
+                            {standardSleighDisplayName}
+                          </div>
+                          <div style={{ fontSize: '11.5px', color: '#9aa0a6', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            https://{currentTableSlug}.roundtablesantasleigh.co.uk
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{
+                        fontSize: '17px',
+                        color: '#8ab4f8',
+                        fontWeight: 500,
+                        lineHeight: 1.3,
+                        marginBottom: '4px',
+                        wordBreak: 'break-word'
+                      }}>
+                        {activeSerpTitle}
+                      </div>
+                      <div style={{
+                        fontSize: '13px',
+                        color: '#bdc1c6',
+                        lineHeight: 1.45,
+                        wordBreak: 'break-word'
+                      }}>
+                        {activeSerpDesc}
+                      </div>
+                    </div>
+
+                    {/* Covered Villages, Suburbs & Postcode Prefixes */}
+                    <div style={{ marginBottom: '14px', minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
+                        <label style={{ fontSize: '13px', color: '#fff', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <MapPin size={14} color="#FBAF33" />
+                          <span>Covered Villages, Suburbs &amp; Postcode Areas <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(Recommended for multi-village Tables)</span></span>
+                        </label>
+                        {seoRoutes.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const detected = extractAreasFromRoutes();
+                              if (detected.length === 0) {
+                                alert('No extra village/suburb names detected from your route names yet. Type them separated by commas below!');
+                                return;
+                              }
+                              const existing = (formData.seo_areas || '').split(/[,;]+/).map(s => s.trim()).filter(Boolean);
+                              const merged = Array.from(new Set([...existing, ...detected]));
+                              setFormData(prev => ({ ...prev, seo_areas: merged.join(', ') }));
+                            }}
+                            style={{
+                              background: 'rgba(251, 175, 51, 0.14)',
+                              color: '#FBAF33',
+                              border: '1px solid rgba(251, 175, 51, 0.4)',
+                              borderRadius: '6px',
+                              padding: '4px 10px',
+                              fontSize: '11.5px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px'
+                            }}
+                          >
+                            <Sparkles size={12} />
+                            <span>Auto-Fill from My Routes ({seoRoutes.length})</span>
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        value={formData.seo_areas || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, seo_areas: e.target.value }))}
+                        placeholder={previewAreas ? `Auto-detected: ${previewAreas} (or type villages & postcodes e.g. Mattishall, Toftwood, NR19)` : `e.g. Surrounding villages, suburbs & postcode prefixes (${cleanTown} East, NR19, etc.)`}
+                        style={{
+                          width: '100%',
+                          maxWidth: '100%',
+                          boxSizing: 'border-box',
+                          background: '#0d0d0b',
+                          border: '1px solid var(--border)',
+                          borderRadius: '8px',
+                          padding: '10px 14px',
+                          color: '#fff',
+                          fontSize: '14px'
+                        }}
+                      />
+                      <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '5px', lineHeight: 1.4 }}>
+                        Helps residents find your sleigh when searching Google for neighbouring villages (e.g. <em>&ldquo;[Village] Santa Sleigh&rdquo;</em>) and makes those villages searchable on the national directory.
+                      </div>
+                    </div>
+
+                    {/* Custom SEO Title & Meta Description */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px', marginBottom: '14px' }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', gap: '8px' }}>
+                          <label style={{ fontSize: '12.5px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                            Custom Google Page Title <span style={{ fontWeight: 400 }}>(Optional — leave blank for automatic town title)</span>
+                          </label>
+                          <span style={{ fontSize: '11px', color: (formData.seo_title || '').length > 70 ? '#fbbf24' : 'var(--text-muted)' }}>
+                            {(formData.seo_title || '').length}/70
+                          </span>
+                        </div>
+                        <input
+                          type="text"
+                          maxLength={140}
+                          value={formData.seo_title || ''}
+                          onChange={(e) => setFormData(prev => ({ ...prev, seo_title: e.target.value }))}
+                          placeholder={defaultSeoTitle}
+                          style={{
+                            width: '100%',
+                            maxWidth: '100%',
+                            boxSizing: 'border-box',
+                            background: '#0d0d0b',
+                            border: '1px solid var(--border)',
+                            borderRadius: '8px',
+                            padding: '9px 12px',
+                            color: '#fff',
+                            fontSize: '13.5px'
+                          }}
+                        />
+                      </div>
+
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', gap: '8px' }}>
+                          <label style={{ fontSize: '12.5px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                            Custom Meta Description <span style={{ fontWeight: 400 }}>(Optional — leave blank for automatic route summary)</span>
+                          </label>
+                          <span style={{ fontSize: '11px', color: (formData.seo_description || '').length > 165 ? '#fbbf24' : 'var(--text-muted)' }}>
+                            {(formData.seo_description || '').length}/165
+                          </span>
+                        </div>
+                        <textarea
+                          rows={2}
+                          maxLength={320}
+                          value={formData.seo_description || ''}
+                          onChange={(e) => setFormData(prev => ({ ...prev, seo_description: e.target.value }))}
+                          placeholder={defaultSeoDesc}
+                          style={{
+                            width: '100%',
+                            maxWidth: '100%',
+                            boxSizing: 'border-box',
+                            background: '#0d0d0b',
+                            border: '1px solid var(--border)',
+                            borderRadius: '8px',
+                            padding: '9px 12px',
+                            color: '#fff',
+                            fontSize: '13px',
+                            fontFamily: 'inherit',
+                            resize: 'vertical'
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Additional Meta Keywords + Google Search Console Verification */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: '12px', marginBottom: '14px' }}>
+                      <div style={{ minWidth: 0 }}>
+                        <label style={{ display: 'block', fontSize: '12.5px', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '4px' }}>
+                          Extra Meta Keywords <span style={{ fontWeight: 400 }}>(Optional, comma-separated)</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.seo_keywords || ''}
+                          onChange={(e) => setFormData(prev => ({ ...prev, seo_keywords: e.target.value }))}
+                          placeholder={`${effectiveTownName} Father Christmas, ${effectiveTownName} Christmas Sleigh`}
+                          style={{
+                            width: '100%',
+                            maxWidth: '100%',
+                            boxSizing: 'border-box',
+                            background: '#0d0d0b',
+                            border: '1px solid var(--border)',
+                            borderRadius: '8px',
+                            padding: '9px 12px',
+                            color: '#fff',
+                            fontSize: '13px'
+                          }}
+                        />
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                          Used by Bing/Edge &amp; regional search engines (Google ranks primarily via your Covered Areas &amp; Page Title above).
+                        </div>
+                      </div>
+
+                      <div style={{ minWidth: 0 }}>
+                        <label style={{ display: 'block', fontSize: '12.5px', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '4px' }}>
+                          Google Search Console Verification <span style={{ fontWeight: 400 }}>(Optional)</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.google_site_verification || ''}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            const m = raw.match(/content\s*=\s*["']([^"']+)["']/i);
+                            setFormData(prev => ({ ...prev, google_site_verification: m ? m[1] : raw }));
+                          }}
+                          placeholder="Paste HTML tag or verification code..."
+                          style={{
+                            width: '100%',
+                            maxWidth: '100%',
+                            boxSizing: 'border-box',
+                            background: '#0d0d0b',
+                            border: '1px solid var(--border)',
+                            borderRadius: '8px',
+                            padding: '9px 12px',
+                            color: '#fff',
+                            fontSize: '13px',
+                            fontFamily: 'monospace'
+                          }}
+                        />
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '5px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                            Your Town Sitemap: <code style={{ color: '#93c5fd' }}>/sitemap.xml</code>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard('town_sitemap', townSitemapUrl)}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: copiedKey === 'town_sitemap' ? '#4ade80' : '#60a5fa',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              padding: 0,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            {copiedKey === 'town_sitemap' ? <Check size={12} /> : <Copy size={12} />}
+                            <span>{copiedKey === 'town_sitemap' ? 'Copied Sitemap URL!' : 'Copy Sitemap URL'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 3-Step Jump Google Ranking Box */}
+                    <div style={{
+                      background: 'rgba(251, 175, 51, 0.06)',
+                      border: '1px solid rgba(251, 175, 51, 0.25)',
+                      borderRadius: '8px',
+                      padding: '12px 14px',
+                      fontSize: '12px',
+                      color: 'rgba(255,255,255,0.82)',
+                      lineHeight: 1.55
+                    }}>
+                      <strong style={{ color: '#FBAF33', display: 'block', marginBottom: '4px' }}>
+                        🚀 3 Quick Steps to Jump to #1 on Google for &ldquo;{effectiveTownName} Santa Sleigh&rdquo;:
+                      </strong>
+                      <div>
+                        <strong>1. Link from your Club Website &amp; Facebook Page:</strong> Add <code>https://{currentTableSlug}.roundtablesantasleigh.co.uk</code> to your Round Table website and Facebook Page &ldquo;About / Website&rdquo; button (backlinks from your existing club pages carry 10&times; more Google weight than meta tags).<br />
+                        <strong>2. Fill in Official Links &amp; Social Channels below:</strong> TurboSanta automatically binds your Website &amp; Facebook URLs into Google&apos;s <code>Schema.org</code> Knowledge Graph.<br />
+                        <strong>3. Instant Google Indexing (Optional, 2 mins):</strong> Open <a href="https://search.google.com/search-console" target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textDecoration: 'underline' }}>Google Search Console</a> &rarr; <em>URL Prefix</em> &rarr; enter <code>https://{currentTableSlug}.roundtablesantasleigh.co.uk/</code> &rarr; paste the <em>HTML tag</em> code above &rarr; Save Settings &rarr; click <strong>Request Indexing</strong> &amp; submit <code>sitemap.xml</code>.
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Registered Table Admin Card */}
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
@@ -12412,6 +12779,11 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                         name: standardSleighDisplayName,
                         town_alias: (formData.town_alias !== undefined && formData.town_alias !== null) ? formData.town_alias.trim() : null,
                         subdomain_aliases: (formData.subdomain_aliases !== undefined && formData.subdomain_aliases !== null) ? formData.subdomain_aliases.trim() : null,
+                        seo_title: (formData.seo_title !== undefined && formData.seo_title !== null && String(formData.seo_title).trim()) ? String(formData.seo_title).trim() : null,
+                        seo_description: (formData.seo_description !== undefined && formData.seo_description !== null && String(formData.seo_description).trim()) ? String(formData.seo_description).trim() : null,
+                        seo_areas: (formData.seo_areas !== undefined && formData.seo_areas !== null && String(formData.seo_areas).trim()) ? String(formData.seo_areas).trim() : null,
+                        seo_keywords: (formData.seo_keywords !== undefined && formData.seo_keywords !== null && String(formData.seo_keywords).trim()) ? String(formData.seo_keywords).trim() : null,
+                        google_site_verification: (formData.google_site_verification !== undefined && formData.google_site_verification !== null && String(formData.google_site_verification).trim()) ? String(formData.google_site_verification).trim() : null,
                         admin_email: session?.email || formData.admin_email || undefined,
                         table_number: session?.tableNumber || formData.table_number || (session?.email ? session.email.split('@')[0].match(/\d+/)?.[0] : undefined),
                         fundraising_goal: parsedGoal,

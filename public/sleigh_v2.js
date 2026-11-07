@@ -803,7 +803,16 @@
       return `${w1} and ${w2}`;
     });
 
-    document.title = `${displayName} — Live Radar & Street Schedule`;
+    const customSeoTitle = (table.seo_title && String(table.seo_title).trim()) ? String(table.seo_title).trim() : '';
+    const seasonYear = (() => {
+      let yr = new Date().getFullYear();
+      for (const r of (state.routes || [])) {
+        const m = String(r?.date || '').match(/^(20\d{2})-/);
+        if (m && parseInt(m[1], 10) >= yr) yr = parseInt(m[1], 10);
+      }
+      return yr;
+    })();
+    document.title = customSeoTitle || `${town} Santa Sleigh ${seasonYear} — Live Tracker, Routes & Street Times | ${town} Round Table`;
     const logoEl = document.getElementById('header-logo');
     if (logoEl) {
       logoEl.src = table.logo_url || '/icons/RTBI_Santa.png';

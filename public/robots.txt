@@ -6,6 +6,7 @@ Allow: /
 Allow: /tracker
 Allow: /address
 Allow: /memory-book
+Allow: /giftaid
 Allow: /privacy
 Allow: /knowledge
 Allow: /suggest
@@ -13,6 +14,10 @@ Allow: /letter
 Allow: /snowman
 Allow: /nice_list
 Allow: /spot_santa
+Allow: /api/payload
+Allow: /api/public/
+Allow: /api/live-gps
+Allow: /api/lookup-street
 
 # Disallow internal operations, crew portals, national fleet radar, and telemetry write APIs
 Disallow: /national
@@ -25,7 +30,14 @@ Disallow: /planner
 Disallow: /route-planner
 Disallow: /migrate
 Disallow: /admin
+Disallow: /support
 Disallow: /partner-report
-Disallow: /api/
+Disallow: /santa_studio
+Disallow: /qr_poster
+Disallow: /volunteer_cert
+Disallow: /api/admin/
+Disallow: /api/auth/
+Disallow: /api/telemetry
+Disallow: /api/support/
 
 Sitemap: https://roundtablesantasleigh.co.uk/sitemap.xml
