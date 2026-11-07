@@ -4086,6 +4086,28 @@ ${tableName} Organizers`
                                   </button>
 
                                   <a
+                                    href={`https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/route-video?route=${encodeURIComponent(r.id)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="btn-secondary"
+                                    style={{
+                                      padding: '8px 12px',
+                                      fontSize: '12px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      textDecoration: 'none',
+                                      borderColor: 'rgba(251, 175, 51, 0.45)',
+                                      color: 'var(--primary)',
+                                      background: 'rgba(251, 175, 51, 0.08)'
+                                    }}
+                                    title="Generate top-down tracker MP4 route video with final zoom-out for socials"
+                                  >
+                                    <Video size={14} />
+                                    <span>MP4 Video</span>
+                                  </a>
+
+                                  <a
                                     href={`https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/planner?routeId=${encodeURIComponent(r.id)}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
@@ -4340,6 +4362,28 @@ ${tableName} Organizers`
                                     <Sparkles size={14} />
                                     <span>AI Social</span>
                                   </button>
+
+                                  <a
+                                    href={`https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/route-video?route=${encodeURIComponent(r.id)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="btn-secondary"
+                                    style={{
+                                      padding: '8px 12px',
+                                      fontSize: '12px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      textDecoration: 'none',
+                                      borderColor: 'rgba(251, 175, 51, 0.45)',
+                                      color: 'var(--primary)',
+                                      background: 'rgba(251, 175, 51, 0.08)'
+                                    }}
+                                    title="Generate top-down tracker MP4 route video with final zoom-out for socials"
+                                  >
+                                    <Video size={14} />
+                                    <span>MP4 Video</span>
+                                  </a>
 
                                   <a
                                     href={`https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/planner?routeId=${encodeURIComponent(r.id)}`}
@@ -6496,6 +6540,13 @@ ${tableName} Organizers`
                     title: 'LIVE TRACKER REEL & DEMO SIMULATOR',
                     desc: 'Simulate Santa gliding through your streets, test doorstep arrival ETAs, and record clean, watermark-free screen capture reels for TikTok, Instagram & Facebook.',
                     url: `${townOrigin}/trackerdemo`
+                  },
+                  {
+                    key: 'routevideo',
+                    badge: '08',
+                    title: 'ROUTE MP4 SOCIAL VIDEO GENERATOR',
+                    desc: 'One-click top-down tracker MP4 generator that traverses each scheduled route with your sleigh tracker pin and pans/zooms out at the finish for Facebook, Instagram & WhatsApp.',
+                    url: `${townOrigin}/route-video`
                   },
                   {
                     key: 'memory',

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Copy, Check, Share2, MessageCircle, Newspaper, RefreshCw } from 'lucide-react';
+import { X, Sparkles, Copy, Check, Share2, MessageCircle, Newspaper, RefreshCw, Video } from 'lucide-react';
 import { getAdminAuthToken } from '../services/auth';
 
 function generateClientFallbackPosts({ route, tableData, currentTableSlug }) {
@@ -358,14 +358,38 @@ export default function SocialPostModal({
           gap: '12px',
           flexWrap: 'wrap'
         }}>
-          <button
-            type="button"
-            onClick={onClose}
-            className="btn-secondary"
-            style={{ padding: '8px 18px', fontSize: '13px' }}
-          >
-            Close
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-secondary"
+              style={{ padding: '8px 18px', fontSize: '13px' }}
+            >
+              Close
+            </button>
+
+            <a
+              href={`https://${encodeURIComponent((currentTableSlug || session?.tableSlug || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/route-video${route?.id ? `?route=${encodeURIComponent(route.id)}` : ''}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary"
+              style={{
+                padding: '8px 14px',
+                fontSize: '13px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                textDecoration: 'none',
+                borderColor: 'var(--border-gold)',
+                color: 'var(--primary)',
+                background: 'rgba(251, 175, 51, 0.08)'
+              }}
+              title="Open Top-Down Tracker MP4 Route Video Generator for Socials"
+            >
+              <Video size={15} />
+              <span>Generate Route MP4</span>
+            </a>
+          </div>
 
           <button
             type="button"
