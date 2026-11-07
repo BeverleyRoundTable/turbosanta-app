@@ -815,20 +815,123 @@
     .ws-schedule-item:first-child .ws-schedule-name { color: var(--primary); }
     .ws-schedule-item:first-child .ws-schedule-date { color: var(--primary); }
 
-    @media (max-height: 850px) {
-      #workshopOverlay { padding: 15px 15px; justify-content: center; }
-      .ws-card { padding: 15px 20px; }
-      .ws-title { font-size: 26px; margin-bottom: 4px; }
-      .ws-card > p { display: none; }
-      .ws-countdown { font-size: 20px; padding: 8px; margin: 10px 0; }
-      .ws-schedule { margin-bottom: 12px; }
-      .ws-schedule-title { margin-bottom: 4px; padding-bottom: 4px; }
-      .ws-schedule-item { padding: 3px 0; font-size: 12px; }
-      .ws-item { margin-bottom: 12px; }
-      .ws-bar-wrap { height: 8px; margin-top: 4px; }
-      .ws-status-text { font-size: 10px; margin-top: 2px; }
-      .ws-donate { margin-top: 10px; padding: 10px 16px; }
-      .ws-skip-btn { margin-top: 10px; }
+    .ws-items-group {
+      margin-bottom: 12px;
+    }
+    .ws-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    /* 🚀 EMBEDDED TURNKEY IFRAME & MOBILE COMPACT MODE */
+    /* Prevents mobile captured-scroll traps on turnkey site */
+    body.is-embedded #workshopOverlay,
+    @media (max-width: 680px), (max-height: 850px) {
+      #workshopOverlay {
+        padding: 8px 10px;
+        justify-content: center;
+        align-items: center;
+        overflow-y: hidden !important; /* Zero internal scroll trap */
+        overscroll-behavior-y: contain;
+        touch-action: pan-y;
+      }
+      .ws-card {
+        padding: 12px 14px;
+        max-width: 440px;
+        width: 100%;
+        max-height: 98vh;
+        margin: auto;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      }
+      .ws-title {
+        font-size: 20px;
+        margin-bottom: 2px;
+        letter-spacing: 1px;
+      }
+      .ws-card > p {
+        display: none;
+      }
+      .ws-countdown {
+        font-size: 16px;
+        font-weight: 800;
+        padding: 6px 10px;
+        margin: 6px 0;
+        border-radius: 8px;
+        letter-spacing: 0.5px;
+      }
+      .ws-schedule {
+        margin-bottom: 6px;
+      }
+      .ws-schedule-title {
+        font-size: 9.5px;
+        margin-bottom: 2px;
+        padding-bottom: 2px;
+        letter-spacing: 1px;
+      }
+      .ws-schedule-item {
+        padding: 2px 0;
+        font-size: 11px;
+      }
+      .ws-items-group {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+        margin: 6px 0;
+      }
+      .ws-item {
+        margin-bottom: 0;
+        background: rgba(255, 255, 255, 0.03);
+        padding: 4px 6px;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+      .ws-item-label {
+        font-size: 9px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .ws-item-label span:first-child {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 65px;
+      }
+      .ws-bar-wrap {
+        height: 5px;
+        margin-top: 3px;
+        border-radius: 3px;
+      }
+      .ws-status-text {
+        font-size: 8px;
+        margin-top: 2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .ws-actions {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 6px;
+      }
+      .ws-donate {
+        margin-top: 0;
+        padding: 6px 12px;
+        font-size: 11px;
+        border-radius: 6px;
+      }
+      .ws-skip-btn {
+        margin-top: 0;
+        font-size: 11px;
+        padding: 3px 6px;
+      }
     }
 
     /* 🎬 LIVE TRACKER REEL / DEMO SIMULATOR STYLES */
@@ -1095,31 +1198,109 @@
         <div id="wsScheduleList" class="ws-schedule-list"></div>
       </div>
 
-      <div class="ws-item">
-        <div class="ws-item-label"><span>Sleigh MOT & Waxing</span> <span id="wsMotPct">0%</span></div>
-        <div class="ws-bar-wrap"><div id="wsMotBar" class="ws-bar-fill"></div></div>
-        <div id="wsMotText" class="ws-status-text">Checking runners...</div>
-      </div>
-      
-      <div class="ws-item">
-        <div class="ws-item-label"><span>Reindeer Flight Training</span> <span id="wsDeerPct">0%</span></div>
-        <div class="ws-bar-wrap"><div id="wsDeerBar" class="ws-bar-fill"></div></div>
-        <div id="wsDeerText" class="ws-status-text">Stretching legs...</div>
-      </div>
+      <div class="ws-items-group">
+        <div class="ws-item">
+          <div class="ws-item-label"><span>Sleigh MOT</span> <span id="wsMotPct">0%</span></div>
+          <div class="ws-bar-wrap"><div id="wsMotBar" class="ws-bar-fill"></div></div>
+          <div id="wsMotText" class="ws-status-text">Checking runners...</div>
+        </div>
+        
+        <div class="ws-item">
+          <div class="ws-item-label"><span>Reindeer</span> <span id="wsDeerPct">0%</span></div>
+          <div class="ws-bar-wrap"><div id="wsDeerBar" class="ws-bar-fill"></div></div>
+          <div id="wsDeerText" class="ws-status-text">Stretching legs...</div>
+        </div>
 
-      <div class="ws-item">
-        <div class="ws-item-label"><span>Elf Recruitment</span> <span id="wsElfPct">0%</span></div>
-        <div class="ws-bar-wrap"><div id="wsElfBar" class="ws-bar-fill"></div></div>
-        <div id="wsElfText" class="ws-status-text">Reviewing CVs...</div>
+        <div class="ws-item">
+          <div class="ws-item-label"><span>Elves</span> <span id="wsElfPct">0%</span></div>
+          <div class="ws-bar-wrap"><div id="wsElfBar" class="ws-bar-fill"></div></div>
+          <div id="wsElfText" class="ws-status-text">Reviewing CVs...</div>
+        </div>
       </div>
       
-      <button class="ws-skip-btn" onclick="document.getElementById('workshopOverlay').remove();">Bypass & view map</button>
-      <a id="wsDonate" class="ws-donate" href="#" target="_blank" style="display: none;">Donate to support good causes</a>
+      <div class="ws-actions">
+        <button class="ws-skip-btn" onclick="document.getElementById('workshopOverlay').remove();">Bypass &amp; view map</button>
+        <a id="wsDonate" class="ws-donate" href="#" target="_blank" style="display: none;">Donate to support good causes</a>
+      </div>
     </div>
   </div>
 
   <script>
     document.addEventListener("DOMContentLoaded", () => {
+
+      // ==============================================================
+      // 🚀 TOUCH & SCROLL FORWARDING FOR EMBEDDED TURNKEY IFRAME
+      // Eliminates mobile scroll trap ("captured scroll") on #workshopOverlay
+      // ==============================================================
+      const isEmbedded = window.self !== window.top;
+      if (isEmbedded) {
+        document.body.classList.add('is-embedded');
+      }
+
+      function forwardScrollToParent(deltaY) {
+        if (!isEmbedded || typeof deltaY !== 'number' || Math.abs(deltaY) < 0.5) return;
+        let directSuccess = false;
+        try {
+          if (window.parent && window.parent !== window && window.parent.document) {
+            window.parent.scrollBy({ top: deltaY, behavior: 'auto' });
+            directSuccess = true;
+          }
+        } catch (_) {
+          directSuccess = false;
+        }
+        if (!directSuccess) {
+          try {
+            window.parent.postMessage({ type: 'turbosanta-scroll-parent', deltaY: deltaY }, '*');
+          } catch (_) {}
+        }
+      }
+
+      const wsOverlay = document.getElementById('workshopOverlay');
+      if (wsOverlay) {
+        let touchStartY = 0;
+        let touchStartX = 0;
+        let touchLastY = 0;
+        let isTouchingWs = false;
+
+        wsOverlay.addEventListener('touchstart', (e) => {
+          if (e.touches.length === 1) {
+            touchStartY = e.touches[0].clientY;
+            touchStartX = e.touches[0].clientX;
+            touchLastY = touchStartY;
+            isTouchingWs = true;
+          }
+        }, { passive: true });
+
+        wsOverlay.addEventListener('touchmove', (e) => {
+          if (!isTouchingWs || e.touches.length !== 1) return;
+          const currentY = e.touches[0].clientY;
+          const currentX = e.touches[0].clientX;
+          const deltaY = touchLastY - currentY;
+          const totalDeltaY = Math.abs(currentY - touchStartY);
+          const totalDeltaX = Math.abs(currentX - touchStartX);
+
+          touchLastY = currentY;
+
+          if (isEmbedded && (totalDeltaY > totalDeltaX || Math.abs(deltaY) > 1)) {
+            forwardScrollToParent(deltaY);
+            if (e.cancelable) {
+              e.preventDefault();
+            }
+          }
+        }, { passive: false });
+
+        wsOverlay.addEventListener('touchend', () => { isTouchingWs = false; }, { passive: true });
+        wsOverlay.addEventListener('touchcancel', () => { isTouchingWs = false; }, { passive: true });
+
+        wsOverlay.addEventListener('wheel', (e) => {
+          if (isEmbedded && Math.abs(e.deltaY) > 0) {
+            forwardScrollToParent(e.deltaY);
+            if (e.cancelable) {
+              e.preventDefault();
+            }
+          }
+        }, { passive: false });
+      }
 
       // --- THEME FROM THE API ---
       let PRIMARY_HEX = '#FBAF33';
@@ -1434,7 +1615,8 @@
             if (hasValidDates) {
               scheduleEl.style.display = 'block';
               listEl.innerHTML = '';
-              const toShow = futureRouteObjects.slice(0, 3);
+              const maxRoutes = (window.self !== window.top || window.innerHeight < 750) ? 2 : 3;
+              const toShow = futureRouteObjects.slice(0, maxRoutes);
               for (const r of toShow) {
                 const d = new Date(r.date);
                 const dateStr = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
@@ -1443,10 +1625,10 @@
                 item.innerHTML = `<span class="ws-schedule-date">${dateStr}</span><span class="ws-schedule-name">${r.routeName || 'TBC'}</span>`;
                 listEl.appendChild(item);
               }
-              if (futureRouteObjects.length > 3) {
+              if (futureRouteObjects.length > maxRoutes) {
                 const more = document.createElement('div');
-                more.style.cssText = 'text-align:center; color:var(--text-dim); font-size:11px; margin-top:6px; font-style:italic;';
-                more.textContent = `+ ${futureRouteObjects.length - 3} more routes`;
+                more.style.cssText = 'text-align:center; color:var(--text-dim); font-size:10px; margin-top:4px; font-style:italic;';
+                more.textContent = `+ ${futureRouteObjects.length - maxRoutes} more routes`;
                 listEl.appendChild(more);
               }
             } else {

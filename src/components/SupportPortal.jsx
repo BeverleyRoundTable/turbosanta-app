@@ -3,7 +3,8 @@ import {
   AlertTriangle, CheckCircle2, Clock, LifeBuoy, UploadCloud, Trash2,
   ExternalLink, Shield, Search, Filter, Image as ImageIcon, FileText,
   Smartphone, Monitor, Calendar, ArrowLeft, Copy, Plus, RefreshCw,
-  FileSpreadsheet, Sparkles, X, ChevronDown, ChevronRight, HelpCircle
+  FileSpreadsheet, Sparkles, X, ChevronDown, ChevronRight, HelpCircle,
+  Video
 } from 'lucide-react';
 import {
   submitSupportTicket,
@@ -55,6 +56,11 @@ const CATEGORIES = [
   { id: 'ai_santa', label: '🤖 AI Santa / Magic Mailbox' },
   { id: 'other', label: '❓ Other / General Question' }
 ];
+
+export function isVideoUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  return /\.(mp4|webm|mov|m4v|ogv)($|\?)/i.test(url) || url.includes('/support-videos/');
+}
 
 const STATUS_CONFIG = {
   open: { label: 'Open', color: '#60a5fa', bg: 'rgba(96, 165, 250, 0.15)' },
@@ -207,11 +213,12 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
     return () => window.removeEventListener('paste', handlePaste);
   }, [activeTab]);
 
-  // Image Upload Handler
+  // Screenshot & Video Upload Handler
   const uploadFile = async (file) => {
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) {
-      alert("Screenshot file is larger than 10MB limit. Please compress or take a smaller clip.");
+    const maxMb = 50;
+    if (file.size > maxMb * 1024 * 1024) {
+      alert(`File size exceeds ${maxMb}MB limit. Please compress or take a shorter screen clip.`);
       return;
     }
     setIsUploadingImage(true);
@@ -221,7 +228,7 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
         setScreenshots(prev => [...prev, res.url]);
       }
     } catch (err) {
-      alert(`Screenshot upload failed: ${err.message}`);
+      alert(`Upload failed: ${err.message}`);
     } finally {
       setIsUploadingImage(false);
     }
@@ -1046,23 +1053,34 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
                     color: 'rgba(255, 255, 255, 0.8)',
                     marginBottom: '6px'
                   }}>
-                    Screenshots &amp; Error Photos (Paste with Ctrl+V or upload)
+                    Screenshots &amp; Video Recordings (Paste with Ctrl+V or upload)
                   </label>
 
-                  <div style={{
-                    border: '2px dashed rgba(251, 175, 51, 0.35)',
-                    borderRadius: '12px',
-                    padding: '20px',
-                    textAlign: 'center',
-                    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                    marginBottom: '12px'
-                  }}>
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    onDrop={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (e.dataTransfer.files?.[0]) {
+                        await uploadFile(e.dataTransfer.files[0]);
+                      }
+                    }}
+                    style={{
+                      border: '2px dashed rgba(251, 175, 51, 0.35)',
+                      borderRadius: '12px',
+                      padding: '20px',
+                      textAlign: 'center',
+                      backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                      marginBottom: '12px',
+                      transition: 'border-color 0.2s'
+                    }}
+                  >
                     <UploadCloud size={28} color="#FBAF33" style={{ margin: '0 auto 8px' }} />
                     <div style={{ fontSize: '13px', fontWeight: 600, color: '#ffffff', marginBottom: '4px' }}>
-                      Drag and drop image here, or paste from clipboard (Ctrl+V)
+                      Drag and drop image or video clip here, or paste from clipboard (Ctrl+V)
                     </div>
                     <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.5)', marginBottom: '12px' }}>
-                      PNG, JPG, WebP supported up to 10MB
+                      PNG, JPG, WebP, GIF, MP4, WebM, MOV supported (up to 50MB)
                     </div>
                     <label style={{
                       backgroundColor: 'rgba(251, 175, 51, 0.18)',
@@ -1077,10 +1095,10 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
                       cursor: 'pointer',
                       display: 'inline-block'
                     }}>
-                      <span>{isUploadingImage ? 'Uploading...' : 'Browse Screenshot File'}</span>
+                      <span>{isUploadingImage ? 'Uploading...' : 'Browse Screenshot / Video File'}</span>
                       <input
                         type="file"
-                        accept="image/*"
+                        accept="image/*,video/mp4,video/webm,video/quicktime,video/x-m4v,video/*"
                         onChange={(e) => {
                           if (e.target.files?.[0]) uploadFile(e.target.files[0]);
                         }}
@@ -1096,43 +1114,72 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
                       gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))',
                       gap: '10px'
                     }}>
-                      {screenshots.map((url, i) => (
-                        <div key={i} style={{
-                          position: 'relative',
-                          borderRadius: '8px',
-                          overflow: 'hidden',
-                          border: '1px solid rgba(255, 255, 255, 0.15)',
-                          aspectRatio: '1'
-                        }}>
-                          <img
-                            src={url}
-                            alt={`Upload ${i + 1}`}
-                            onClick={() => setZoomImage(url)}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setScreenshots(prev => prev.filter((_, idx) => idx !== i))}
-                            style={{
-                              position: 'absolute',
-                              top: '4px',
-                              right: '4px',
-                              background: 'rgba(0, 0, 0, 0.75)',
-                              border: 'none',
-                              borderRadius: '50%',
-                              width: '22px',
-                              height: '22px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#ef4444',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                      ))}
+                      {screenshots.map((url, i) => {
+                        const isVid = isVideoUrl(url);
+                        return (
+                          <div key={i} style={{
+                            position: 'relative',
+                            borderRadius: '8px',
+                            overflow: 'hidden',
+                            border: '1px solid rgba(255, 255, 255, 0.15)',
+                            aspectRatio: '1',
+                            backgroundColor: '#0a0a08'
+                          }}>
+                            {isVid ? (
+                              <div
+                                onClick={() => setZoomImage(url)}
+                                style={{ width: '100%', height: '100%', position: 'relative', cursor: 'pointer' }}
+                              >
+                                <video
+                                  src={url}
+                                  muted
+                                  playsInline
+                                  preload="metadata"
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                                <div style={{
+                                  position: 'absolute',
+                                  inset: 0,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  backgroundColor: 'rgba(0, 0, 0, 0.35)'
+                                }}>
+                                  <Video size={24} color="#FBAF33" />
+                                </div>
+                              </div>
+                            ) : (
+                              <img
+                                src={url}
+                                alt={`Upload ${i + 1}`}
+                                onClick={() => setZoomImage(url)}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }}
+                              />
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setScreenshots(prev => prev.filter((_, idx) => idx !== i))}
+                              style={{
+                                position: 'absolute',
+                                top: '4px',
+                                right: '4px',
+                                background: 'rgba(0, 0, 0, 0.75)',
+                                border: 'none',
+                                borderRadius: '50%',
+                                width: '22px',
+                                height: '22px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#ef4444',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -1603,25 +1650,60 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
                         </div>
                       )}
 
-                      {/* Screenshot thumbnails */}
+                      {/* Screenshot & Video thumbnails */}
                       {Array.isArray(ticket.screenshot_urls) && ticket.screenshot_urls.length > 0 && (
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                          {ticket.screenshot_urls.map((imgUrl, i) => (
-                            <img
-                              key={i}
-                              src={imgUrl}
-                              alt="Attachment"
-                              onClick={() => setZoomImage(imgUrl)}
-                              style={{
-                                width: '64px',
-                                height: '64px',
-                                objectFit: 'cover',
-                                borderRadius: '6px',
-                                border: '1px solid rgba(255, 255, 255, 0.2)',
-                                cursor: 'pointer'
-                              }}
-                            />
-                          ))}
+                          {ticket.screenshot_urls.map((attUrl, i) => {
+                            const isVid = isVideoUrl(attUrl);
+                            return (
+                              <div
+                                key={i}
+                                onClick={() => setZoomImage(attUrl)}
+                                style={{
+                                  position: 'relative',
+                                  width: '64px',
+                                  height: '64px',
+                                  borderRadius: '6px',
+                                  overflow: 'hidden',
+                                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                                  cursor: 'pointer',
+                                  backgroundColor: '#0a0a08'
+                                }}
+                              >
+                                {isVid ? (
+                                  <>
+                                    <video
+                                      src={attUrl}
+                                      muted
+                                      playsInline
+                                      preload="metadata"
+                                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    />
+                                    <div style={{
+                                      position: 'absolute',
+                                      inset: 0,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      backgroundColor: 'rgba(0, 0, 0, 0.35)'
+                                    }}>
+                                      <Video size={16} color="#FBAF33" />
+                                    </div>
+                                  </>
+                                ) : (
+                                  <img
+                                    src={attUrl}
+                                    alt="Attachment"
+                                    style={{
+                                      width: '100%',
+                                      height: '100%',
+                                      objectFit: 'cover'
+                                    }}
+                                  />
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
 
@@ -1871,14 +1953,14 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
         </div>
       )}
 
-      {/* ZOOM IMAGE MODAL */}
+      {/* ZOOM IMAGE / VIDEO MODAL */}
       {zoomImage && (
         <div
           onClick={() => setZoomImage(null)}
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.92)',
+            backgroundColor: 'rgba(0, 0, 0, 0.94)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -1887,17 +1969,36 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
             cursor: 'zoom-out'
           }}
         >
-          <img
-            src={zoomImage}
-            alt="Enlarged screenshot"
-            style={{
-              maxWidth: '95vw',
-              maxHeight: '92vh',
-              objectFit: 'contain',
-              borderRadius: '8px',
-              border: '2px solid rgba(255, 255, 255, 0.2)'
-            }}
-          />
+          {isVideoUrl(zoomImage) ? (
+            <video
+              src={zoomImage}
+              controls
+              autoPlay
+              playsInline
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                maxWidth: '95vw',
+                maxHeight: '92vh',
+                borderRadius: '8px',
+                border: '2px solid rgba(255, 255, 255, 0.2)',
+                backgroundColor: '#000000',
+                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8)'
+              }}
+            />
+          ) : (
+            <img
+              src={zoomImage}
+              alt="Enlarged screenshot"
+              style={{
+                maxWidth: '95vw',
+                maxHeight: '92vh',
+                objectFit: 'contain',
+                borderRadius: '8px',
+                border: '2px solid rgba(255, 255, 255, 0.2)',
+                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8)'
+              }}
+            />
+          )}
         </div>
       )}
 

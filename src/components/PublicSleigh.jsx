@@ -558,6 +558,10 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
         }
         return;
       }
+      if (e.data.type === 'turbosanta-scroll-parent' && typeof e.data.deltaY === 'number') {
+        window.scrollBy({ top: e.data.deltaY, behavior: 'auto' });
+        return;
+      }
       if (e.data.type === 'turbosanta-resize' || e.data.height || e.data.frameHeight || e.data.routesHeight || e.data.letterHeight || e.data.niceListHeight || e.data.santasBeenHeight || e.data.snowmanFrameHeight || e.data.addressLookupHeight) {
         const rawH = e.data.height || e.data.frameHeight || e.data.routesHeight || e.data.letterHeight || e.data.niceListHeight || e.data.santasBeenHeight || e.data.snowmanFrameHeight || e.data.addressLookupHeight;
         if (typeof rawH === 'number' && rawH > 60) {

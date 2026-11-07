@@ -4085,6 +4085,12 @@ export default {
             headers.set("Content-Type", "video/mp4");
           } else if (key.endsWith(".webm")) {
             headers.set("Content-Type", "video/webm");
+          } else if (key.endsWith(".mov")) {
+            headers.set("Content-Type", "video/quicktime");
+          } else if (key.endsWith(".m4v")) {
+            headers.set("Content-Type", "video/x-m4v");
+          } else if (key.endsWith(".ogv")) {
+            headers.set("Content-Type", "video/ogg");
           } else if (key.endsWith(".mp3")) {
             headers.set("Content-Type", "audio/mpeg");
           } else if (key.endsWith(".ogg")) {
@@ -4113,6 +4119,12 @@ export default {
           headers.set("Content-Type", "video/mp4");
         } else if (key.endsWith(".webm")) {
           headers.set("Content-Type", "video/webm");
+        } else if (key.endsWith(".mov")) {
+          headers.set("Content-Type", "video/quicktime");
+        } else if (key.endsWith(".m4v")) {
+          headers.set("Content-Type", "video/x-m4v");
+        } else if (key.endsWith(".ogv")) {
+          headers.set("Content-Type", "video/ogg");
         } else if (key.endsWith(".mp3")) {
           headers.set("Content-Type", "audio/mpeg");
         } else if (key.endsWith(".ogg")) {
@@ -4899,19 +4911,28 @@ export default {
     // 🎫 9J. SUPPORT TICKETING & ISSUE CATALOGUE (/api/support/*)
     // ==============================================================
 
-    // 1) R2 Screenshot Upload for Support Tickets
+    // 1) R2 Screenshot & Video Upload for Support Tickets
     if (path === "/api/support/upload" && request.method === "POST") {
       const contentType = (request.headers.get("content-type") || "image/png").toLowerCase();
-      if (!contentType.startsWith("image/")) {
-        return jsonResponse({ ok: false, error: "Only image uploads (PNG, JPG, WebP, GIF) are accepted for screenshots." }, 400);
+      const isImage = contentType.startsWith("image/");
+      const isVideo = contentType.startsWith("video/");
+      if (!isImage && !isVideo) {
+        return jsonResponse({ ok: false, error: "Only image (PNG, JPG, WebP, GIF) and video (MP4, WebM, MOV) uploads are accepted." }, 400);
       }
       let ext = "png";
       if (contentType.includes("jpeg") || contentType.includes("jpg")) ext = "jpg";
       else if (contentType.includes("webp")) ext = "webp";
       else if (contentType.includes("gif")) ext = "gif";
       else if (contentType.includes("svg")) ext = "svg";
+      else if (contentType.includes("mp4")) ext = "mp4";
+      else if (contentType.includes("webm")) ext = "webm";
+      else if (contentType.includes("quicktime")) ext = "mov";
+      else if (contentType.includes("x-m4v")) ext = "m4v";
+      else if (contentType.includes("ogg")) ext = "ogv";
+      else if (isVideo) ext = "mp4";
 
-      const key = `support-screenshots/${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${ext}`;
+      const folder = isVideo ? "support-videos" : "support-screenshots";
+      const key = `${folder}/${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${ext}`;
       const r2 = env.R2 || env['turbosanta-media'] || env.turbosanta_media;
       if (!r2) {
         return jsonResponse({ ok: false, error: "Media storage (R2) not configured." }, 500);

@@ -960,8 +960,20 @@ export async function fetchPublicTables() {
 
 export async function uploadSupportScreenshot(file) {
   if (!file) throw new Error("No file provided");
+  let contentType = file.type || "";
+  if (!contentType) {
+    const name = (file.name || "").toLowerCase();
+    if (name.endsWith(".mp4")) contentType = "video/mp4";
+    else if (name.endsWith(".webm")) contentType = "video/webm";
+    else if (name.endsWith(".mov")) contentType = "video/quicktime";
+    else if (name.endsWith(".m4v")) contentType = "video/x-m4v";
+    else if (name.endsWith(".gif")) contentType = "image/gif";
+    else if (name.endsWith(".webp")) contentType = "image/webp";
+    else if (name.endsWith(".jpg") || name.endsWith(".jpeg")) contentType = "image/jpeg";
+    else contentType = "image/png";
+  }
   const headers = {
-    "Content-Type": file.type || "image/png"
+    "Content-Type": contentType
   };
   const token = getAdminAuthToken();
   if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -977,6 +989,8 @@ export async function uploadSupportScreenshot(file) {
   }
   return await res.json();
 }
+
+export const uploadSupportAttachment = uploadSupportScreenshot;
 
 export async function submitSupportTicket(ticketData) {
   const headers = { "Content-Type": "application/json" };

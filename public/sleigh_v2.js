@@ -640,6 +640,12 @@
         return;
       }
 
+      // 2b. Forward scroll from embedded iframe to parent page (fixes mobile scroll trap)
+      if (e.data.type === 'turbosanta-scroll-parent' && typeof e.data.deltaY === 'number') {
+        window.scrollBy({ top: e.data.deltaY, behavior: 'auto' });
+        return;
+      }
+
       // 3. Dynamic auto-resizing of iframes based on their content height
       const rawH = e.data.height || e.data.frameHeight || e.data.routesHeight || e.data.letterHeight || e.data.niceListHeight || e.data.santasBeenHeight || e.data.snowmanFrameHeight || e.data.addressLookupHeight;
       if (typeof rawH === 'number' && rawH > 60) {
