@@ -847,7 +847,8 @@
         live: '/icons/sleigh_icon.png',
         start: '/icons/start_icon.png',
         end: '/icons/end_icon.png',
-        stop: '/icons/stop_icon.png'
+        stop: '/icons/stop_icon.png',
+        logo: '/icons/RTBI_Santa.png'
       };
 
       const ASPECT_CONFIGS = {
@@ -898,7 +899,8 @@
           live: null,
           start: null,
           end: null,
-          stop: null
+          stop: null,
+          logo: null
         },
 
         // Export state
@@ -989,13 +991,14 @@
       }
 
       async function loadTableIcons(settings) {
-        const [live, start, end, stop] = await Promise.all([
+        const [live, start, end, stop, logo] = await Promise.all([
           loadCorsImage(settings?.sleigh_icon_live, DEFAULT_ICONS.live),
           loadCorsImage(settings?.sleigh_icon_start, DEFAULT_ICONS.start),
           loadCorsImage(settings?.sleigh_icon_end, DEFAULT_ICONS.end),
-          loadCorsImage(settings?.sleigh_icon_stop || settings?.sleigh_icon_start, DEFAULT_ICONS.stop)
+          loadCorsImage(settings?.sleigh_icon_stop || settings?.sleigh_icon_start, DEFAULT_ICONS.stop),
+          loadCorsImage(settings?.logo_url, DEFAULT_ICONS.logo)
         ]);
-        STATE.icons = { live, start, end, stop };
+        STATE.icons = { live, start, end, stop, logo };
       }
 
       // ─────────────────────────────────────────────────────────
@@ -1357,8 +1360,8 @@
 
       function getTimelinePhases() {
         const D = STATE.durationSecs;
-        const introHold = Math.min(0.85, D * 0.032);
-        const outroHold = Math.min(1.6, Math.max(1.0, D * 0.055));
+        const introHold = Math.min(1.5, Math.max(1.0, D * 0.055));
+        const outroHold = Math.min(2.8, Math.max(1.8, D * 0.09));
         const panOutDur = Math.min(4.2, Math.max(2.8, D * 0.16));
         const traverseDur = Math.max(4.0, D - introHold - panOutDur - outroHold);
         return { introHold, traverseDur, panOutDur, outroHold, total: D };
@@ -1715,7 +1718,7 @@
           }
 
           // Bottom Tracker URL Pill
-          if (STATE.footerUrl && STATE.footerUrl.trim()) {
+          if (STATE.footerUrl && STATE.footerUrl.trim() && (!activeSnap.panOutProgress || activeSnap.panOutProgress < 0.2)) {
             const footerLabel = `📍 Track Santa Live: ${STATE.footerUrl.trim()}`;
             ctx.font = `700 ${Math.round(11 * uiScale)}px "Open Sans", sans-serif`;
             const textW = Math.min(cardW - 24 * uiScale, ctx.measureText(footerLabel).width);
@@ -1738,6 +1741,150 @@
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(fitText(ctx, footerLabel, pillW - 18 * uiScale), canvasW / 2, pillY + pillH / 2);
+          }
+
+          // 4b. Intro Title Splash (Smooth fade-out as sleigh takes off from Start Pin)
+          if (activeSnap.t < 1.7 && activeSnap.panOutProgress === 0) {
+            const introAlpha = activeSnap.t <= 1.0 ? 1 : Math.max(0, 1 - (activeSnap.t - 1.0) / 0.6);
+            if (introAlpha > 0.02) {
+              ctx.save();
+              ctx.globalAlpha = introAlpha;
+
+              const splashW = Math.min(canvasW - 40 * uiScale, 360 * uiScale);
+              const splashH = (hasSub ? 104 : 88) * uiScale;
+              const splashX = (canvasW - splashW) / 2;
+              const splashY = topY + cardH + 16 * uiScale;
+
+              ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+              ctx.shadowBlur = 20 * uiScale;
+              ctx.shadowOffsetY = 6 * uiScale;
+              roundRectPath(ctx, splashX, splashY, splashW, splashH, 16 * uiScale);
+              ctx.fillStyle = 'rgba(11, 14, 21, 0.94)';
+              ctx.fill();
+
+              ctx.shadowBlur = 0;
+              ctx.lineWidth = 1.8 * uiScale;
+              ctx.strokeStyle = 'rgba(251, 175, 51, 0.85)';
+              ctx.stroke();
+
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+
+              // Badge
+              ctx.font = `800 ${Math.round(10 * uiScale)}px "Open Sans", sans-serif`;
+              ctx.fillStyle = '#FBAF33';
+              ctx.fillText('🎅 OFFICIAL SANTA SLEIGH TOUR', canvasW / 2, splashY + 20 * uiScale);
+
+              // Route Title (Eurostile Bold)
+              ctx.font = `700 ${Math.round(19 * uiScale)}px Eurostile, "Open Sans", sans-serif`;
+              ctx.fillStyle = '#ffffff';
+              ctx.fillText(
+                fitText(ctx, STATE.routeTitle || 'Santa Sleigh Route', splashW - 28 * uiScale),
+                canvasW / 2,
+                splashY + 44 * uiScale
+              );
+
+              // Sleigh Table Name (Open Sans)
+              ctx.font = `700 ${Math.round(11 * uiScale)}px "Open Sans", sans-serif`;
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.82)';
+              ctx.fillText(
+                fitText(ctx, STATE.sleighTitle || 'Round Table Santa Sleigh', splashW - 28 * uiScale),
+                canvasW / 2,
+                splashY + 68 * uiScale
+              );
+
+              if (hasSub) {
+                ctx.font = `600 ${Math.round(9.5 * uiScale)}px "Open Sans", sans-serif`;
+                ctx.fillStyle = 'rgba(251, 175, 51, 0.95)';
+                ctx.fillText(
+                  fitText(ctx, STATE.routeSubtitle, splashW - 28 * uiScale),
+                  canvasW / 2,
+                  splashY + 88 * uiScale
+                );
+              }
+
+              ctx.restore();
+            }
+          }
+
+          // 4c. Outro Finale Card with Table Logo (Smooth fade-in during Pan & Zoom Out)
+          if (activeSnap.panOutProgress > 0.15) {
+            const outroAlpha = Math.min(1, Math.max(0, (activeSnap.panOutProgress - 0.15) / 0.55));
+            if (outroAlpha > 0.02) {
+              ctx.save();
+              ctx.globalAlpha = outroAlpha;
+
+              const outroW = Math.min(canvasW - 32 * uiScale, 360 * uiScale);
+              const hasLogo = Boolean(STATE.icons.logo);
+              const outroH = (hasLogo ? 122 : 92) * uiScale;
+              const outroX = (canvasW - outroW) / 2;
+              const outroY = canvasH - outroH - 32 * uiScale;
+
+              // Frosted gold-bordered finale card
+              ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
+              ctx.shadowBlur = 24 * uiScale;
+              ctx.shadowOffsetY = 8 * uiScale;
+              roundRectPath(ctx, outroX, outroY, outroW, outroH, 18 * uiScale);
+              ctx.fillStyle = 'rgba(11, 14, 21, 0.95)';
+              ctx.fill();
+
+              ctx.shadowBlur = 0;
+              ctx.lineWidth = 2 * uiScale;
+              ctx.strokeStyle = 'rgba(251, 175, 51, 0.90)';
+              ctx.stroke();
+
+              // Official Round Table / Table Custom Logo
+              let contentStartY = outroY + 16 * uiScale;
+              if (hasLogo) {
+                const logoBox = 44 * uiScale;
+                const logoCenterY = outroY + 28 * uiScale;
+                drawAnchoredImage(ctx, STATE.icons.logo, canvasW / 2, logoCenterY, logoBox, 0.5, 0.5);
+                contentStartY = outroY + 58 * uiScale;
+              }
+
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+
+              // Route Completed Header (Eurostile Bold)
+              ctx.font = `700 ${Math.round(15.5 * uiScale)}px Eurostile, "Open Sans", sans-serif`;
+              ctx.fillStyle = '#ffffff';
+              ctx.fillText(
+                fitText(ctx, `${STATE.routeTitle || 'Route'} • COMPLETED ✨`, outroW - 24 * uiScale),
+                canvasW / 2,
+                contentStartY + 6 * uiScale
+              );
+
+              // Table Name (Open Sans)
+              ctx.font = `800 ${Math.round(10.5 * uiScale)}px "Open Sans", sans-serif`;
+              ctx.fillStyle = '#FBAF33';
+              ctx.fillText(
+                fitText(ctx, (STATE.sleighTitle || 'ROUND TABLE SANTA SLEIGH').toUpperCase(), outroW - 24 * uiScale),
+                canvasW / 2,
+                contentStartY + 24 * uiScale
+              );
+
+              // Live Tracker & Donation CTA Pill
+              if (STATE.footerUrl && STATE.footerUrl.trim()) {
+                const ctaText = `📍 Track Santa Live & Donate: ${STATE.footerUrl.trim()}`;
+                const ctaPillW = outroW - 28 * uiScale;
+                const ctaPillH = 24 * uiScale;
+                const ctaPillX = (canvasW - ctaPillW) / 2;
+                const ctaPillY = contentStartY + 36 * uiScale;
+
+                roundRectPath(ctx, ctaPillX, ctaPillY, ctaPillW, ctaPillH, ctaPillH / 2);
+                ctx.fillStyle = 'rgba(251, 175, 51, 0.16)';
+                ctx.fill();
+                ctx.lineWidth = 1 * uiScale;
+                ctx.strokeStyle = 'rgba(251, 175, 51, 0.55)';
+                ctx.stroke();
+
+                ctx.font = `700 ${Math.round(10 * uiScale)}px "Open Sans", sans-serif`;
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText(fitText(ctx, ctaText, ctaPillW - 12 * uiScale), canvasW / 2, ctaPillY + ctaPillH / 2);
+              }
+
+              ctx.restore();
+            }
           }
 
           ctx.restore();
