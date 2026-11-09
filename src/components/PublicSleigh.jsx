@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Share2, MapPin, ExternalLink, Star, ChevronDown, Music, Volume2, VolumeX, Play, Pause, X, Heart, Building2 } from 'lucide-react';
-import { API_BASE } from '../services/api';
+import { API_BASE, apiFetch } from '../services/api';
 import { extractRouteSponsors, isCharityPartner } from '../utils/sponsors';
 import { normalizeFaqs } from '../utils/faqs';
 import RouteStreetsPreview from './RouteStreetsPreview';
@@ -487,7 +487,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
     setGrantStatusMsg('');
     try {
       const slug = (activeTableSlug || table.slug || 'beverley').toLowerCase().trim();
-      const res = await fetch(`${API_BASE}/api/grants?table=${encodeURIComponent(slug)}`, {
+      const res = await apiFetch(`/api/grants?table=${encodeURIComponent(slug)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

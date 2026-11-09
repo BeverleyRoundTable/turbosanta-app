@@ -2655,14 +2655,56 @@ if (tableParam) {
 }
 
 const legacyApi = params.get("api");
-const WORKER_URL = "https://turbosanta-api.beverley247.workers.dev/";
+const WORKER_URL = (function() {
+  if (typeof window !== 'undefined' && window.location && window.location.hostname.endsWith('roundtablesantasleigh.co.uk')) {
+    return window.location.origin;
+  }
+  return "https://turbosanta-api.beverley247.workers.dev";
+})();
+
+async function resilientFetch(pathOrUrl, options = {}) {
+  const primaryBase = WORKER_URL;
+  const fallbackBase = (primaryBase === window.location.origin)
+    ? "https://turbosanta-api.beverley247.workers.dev"
+    : (window.location.hostname.endsWith('roundtablesantasleigh.co.uk') ? window.location.origin : "");
+
+  let url1 = pathOrUrl;
+  let cleanPath = pathOrUrl;
+
+  if (typeof pathOrUrl === 'string' && (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://'))) {
+    try {
+      const parsed = new URL(pathOrUrl);
+      cleanPath = parsed.pathname + parsed.search;
+      if (primaryBase !== "https://turbosanta-api.beverley247.workers.dev" && parsed.hostname.includes('workers.dev')) {
+        url1 = `${primaryBase}${cleanPath}`;
+      }
+    } catch(e) {}
+  } else {
+    const pathStr = String(pathOrUrl || '');
+    url1 = `${primaryBase}${pathStr.startsWith('/') ? '' : '/'}${pathStr}`;
+    cleanPath = pathStr.startsWith('/') ? pathStr : `/${pathStr}`;
+  }
+
+  try {
+    const res = await fetch(url1, options);
+    return res;
+  } catch (err) {
+    const isNetworkError = err?.name === 'TypeError' || String(err).includes('Failed to fetch') || String(err).includes('NetworkError');
+    if (fallbackBase && isNetworkError) {
+      console.warn(`[resilientFetch] Network error on ${url1} (${err.message}), retrying fallback on ${fallbackBase}...`);
+      const url2 = `${fallbackBase}${cleanPath}`;
+      return await fetch(url2, options);
+    }
+    throw err;
+  }
+}
 
 let DATA_URL = null;
 if (legacyApi) {
   localStorage.setItem("SANTA_API", legacyApi);
-  DATA_URL = `${WORKER_URL}?ttl=30&target=${encodeURIComponent(legacyApi)}`;
+  DATA_URL = `${WORKER_URL}/?ttl=30&target=${encodeURIComponent(legacyApi)}`;
 } else {
-  DATA_URL = `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableParam)}`;
+  DATA_URL = `${WORKER_URL}/api/payload?table=${encodeURIComponent(tableParam)}`;
 }
 
 let allTableRoutes = [];
@@ -2674,7 +2716,7 @@ function normaliseUrl(url) {
   if (u.startsWith('data:') || u.startsWith('blob:')) return u;
   if (/^https?:\/\//i.test(u)) return u;
   if (u.startsWith('//')) return 'https:' + u;
-  if (u.startsWith('/cdn/')) return 'https://turbosanta-api.beverley247.workers.dev' + u;
+  if (u.startsWith('/cdn/')) return `${WORKER_URL}${u}`;
   return 'https://' + u.replace(/^\/+/, '');
 }
 
@@ -2970,7 +3012,7 @@ ${trkpts}
       const uploadTok = getAdminSecret(tableParam);
       const uploadHeaders = { 'Content-Type': 'application/gpx+xml' };
       if (uploadTok) uploadHeaders['Authorization'] = 'Bearer ' + uploadTok;
-      const uploadRes = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/upload?table=${encodeURIComponent(tableParam)}${uploadTok ? `&secret=${encodeURIComponent(uploadTok)}` : ''}`, {
+      const uploadRes = await resilientFetch(`/api/upload?table=${encodeURIComponent(tableParam)}${uploadTok ? `&secret=${encodeURIComponent(uploadTok)}` : ''}`, {
         method: 'POST',
         body: blob,
         headers: uploadHeaders
@@ -3013,7 +3055,7 @@ ${trkpts}
       secret: token
     };
 
-    const saveRes = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/routes?table=${encodeURIComponent(tableParam)}&secret=${encodeURIComponent(token)}`, {
+    const saveRes = await resilientFetch(`/api/routes?table=${encodeURIComponent(tableParam)}&secret=${encodeURIComponent(token)}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -3159,7 +3201,7 @@ async function loadExistingRoutes() {
 
   if (!DATA_URL) return;
   try {
-    const res = await fetch(DATA_URL, { cache: "no-store" });
+    const res = await resilientFetch(DATA_URL, { cache: "no-store" });
     if (!res.ok) return;
     const data = await res.json();
     allTableRoutes = data.routes || [];

@@ -1,7 +1,59 @@
 import { getCurrentSession, getAdminAuthToken } from './auth';
 
+export function getApiBase() {
+  if (typeof window !== 'undefined' && window.location) {
+    const host = window.location.hostname || '';
+    if (host.endsWith('roundtablesantasleigh.co.uk')) {
+      return window.location.origin;
+    }
+  }
+  return "https://turbosanta-api.beverley247.workers.dev";
+}
+
 export const API_BASE = "https://turbosanta-api.beverley247.workers.dev";
 const LOCAL_AGENT_URL = "http://127.0.0.1:8080";
+
+/**
+ * Resilient multi-endpoint fetcher:
+ * - Automatically routes to same-origin on *.roundtablesantasleigh.co.uk to prevent CORS preflight & adblock blocks
+ * - Automatically falls back to workers.dev if same-origin network error occurs
+ */
+export async function apiFetch(endpointOrUrl, options = {}) {
+  const primaryBase = getApiBase();
+  const fallbackBase = (typeof window !== 'undefined' && primaryBase === window.location?.origin)
+    ? "https://turbosanta-api.beverley247.workers.dev"
+    : (typeof window !== 'undefined' && window.location?.hostname?.endsWith('roundtablesantasleigh.co.uk') ? window.location.origin : "");
+
+  let url1 = endpointOrUrl;
+  let cleanPath = endpointOrUrl;
+
+  if (typeof endpointOrUrl === 'string' && (endpointOrUrl.startsWith('http://') || endpointOrUrl.startsWith('https://'))) {
+    try {
+      const parsed = new URL(endpointOrUrl);
+      cleanPath = parsed.pathname + parsed.search;
+      if (primaryBase !== "https://turbosanta-api.beverley247.workers.dev" && parsed.hostname.includes('workers.dev')) {
+        url1 = `${primaryBase}${cleanPath}`;
+      }
+    } catch(e) {}
+  } else {
+    const pathStr = String(endpointOrUrl || '');
+    url1 = `${primaryBase}${pathStr.startsWith('/') ? '' : '/'}${pathStr}`;
+    cleanPath = pathStr.startsWith('/') ? pathStr : `/${pathStr}`;
+  }
+
+  try {
+    const res = await fetch(url1, options);
+    return res;
+  } catch (err) {
+    const isNetworkError = err?.name === 'TypeError' || String(err).includes('Failed to fetch') || String(err).includes('NetworkError');
+    if (fallbackBase && isNetworkError) {
+      console.warn(`[apiFetch] Primary URL failed (${url1}: ${err.message}), trying resilient fallback on ${fallbackBase}...`);
+      const url2 = `${fallbackBase}${cleanPath}`;
+      return await fetch(url2, options);
+    }
+    throw err;
+  }
+}
 
 export function getAuthHeaders(explicitSecret, tableSlug = "beverley") {
   const headers = { "Content-Type": "application/json" };
@@ -197,7 +249,7 @@ export async function fetchTablePayload(tableSlug = "beverley") {
     }
     const secretQuery = token ? `&secret=${encodeURIComponent(token)}&_t=${Date.now()}` : "";
     const fetchOpts = token ? { cache: "no-store", headers } : {};
-    const res = await fetch(`${API_BASE}/api/payload?table=${encodeURIComponent(slug)}${secretQuery}`, fetchOpts);
+    const res = await apiFetch(`${API_BASE}/api/payload?table=${encodeURIComponent(slug)}${secretQuery}`, fetchOpts);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     if (data.error) throw new Error(data.error);
@@ -210,7 +262,7 @@ export async function fetchTablePayload(tableSlug = "beverley") {
 
 export async function fetchLiveGps(tableSlug = "beverley") {
   try {
-    const res = await fetch(`${API_BASE}/api/live-gps?table=${encodeURIComponent(tableSlug)}`);
+    const res = await apiFetch(`${API_BASE}/api/live-gps?table=${encodeURIComponent(tableSlug)}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } catch (err) {
@@ -226,7 +278,7 @@ export async function fetchLiveGps(tableSlug = "beverley") {
 
 export async function lookupStreet(streetName, tableSlug = "beverley") {
   try {
-    const res = await fetch(`${API_BASE}/api/lookup-street?table=${encodeURIComponent(tableSlug)}&street=${encodeURIComponent(streetName)}`);
+    const res = await apiFetch(`${API_BASE}/api/lookup-street?table=${encodeURIComponent(tableSlug)}&street=${encodeURIComponent(streetName)}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } catch (err) {
@@ -261,7 +313,7 @@ export async function uploadAssetToR2(file, tableSlug = "beverley") {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
-    const res = await fetch(`${API_BASE}/api/upload?table=${encodeURIComponent(tableSlug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
+    const res = await apiFetch(`${API_BASE}/api/upload?table=${encodeURIComponent(tableSlug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
       method: "POST",
       body: file,
       headers
@@ -349,7 +401,7 @@ export async function saveTableSettings(tableSlug = "beverley", settings = {}, e
       secret: token
     };
 
-    const res = await fetch(`${API_BASE}/api/table/settings?table=${encodeURIComponent(slug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
+    const res = await apiFetch(`${API_BASE}/api/table/settings?table=${encodeURIComponent(slug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
       method: "POST",
       headers: getAuthHeaders(token, slug),
       body: JSON.stringify(bodyPayload)
@@ -373,7 +425,7 @@ export async function fetchKnowledgeLessons(tableSlug = "beverley", { scope = "a
     if (category && category !== "all") params.set("category", category);
     if (q) params.set("q", q);
 
-    const res = await fetch(`${API_BASE}/api/knowledge-base?${params.toString()}`);
+    const res = await apiFetch(`${API_BASE}/api/knowledge-base?${params.toString()}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } catch (err) {
@@ -384,7 +436,7 @@ export async function fetchKnowledgeLessons(tableSlug = "beverley", { scope = "a
 
 export async function submitKnowledgeLesson(tableSlug = "beverley", lessonData = {}) {
   try {
-    const res = await fetch(`${API_BASE}/api/knowledge-base?table=${encodeURIComponent(tableSlug)}`, {
+    const res = await apiFetch(`${API_BASE}/api/knowledge-base?table=${encodeURIComponent(tableSlug)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(lessonData)
@@ -399,7 +451,7 @@ export async function submitKnowledgeLesson(tableSlug = "beverley", lessonData =
 
 export async function upvoteKnowledgeLesson(tableSlug = "beverley", lessonId) {
   try {
-    const res = await fetch(`${API_BASE}/api/knowledge-base/upvote?table=${encodeURIComponent(tableSlug)}`, {
+    const res = await apiFetch(`${API_BASE}/api/knowledge-base/upvote?table=${encodeURIComponent(tableSlug)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: lessonId, table: tableSlug, toggle: true })
@@ -415,7 +467,7 @@ export async function upvoteKnowledgeLesson(tableSlug = "beverley", lessonId) {
 export async function askFleetAdvisor(tableSlug = "beverley", { question, category = "all", scope = "all", model }) {
   try {
     const selectedModel = model || localStorage.getItem('turbosanta_global_gemini_model') || 'auto';
-    const res = await fetch(`${API_BASE}/api/knowledge-base/ask?table=${encodeURIComponent(tableSlug)}`, {
+    const res = await apiFetch(`${API_BASE}/api/knowledge-base/ask?table=${encodeURIComponent(tableSlug)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question, category, scope, model: selectedModel })
@@ -439,7 +491,7 @@ export async function askAdminAssistant(tableSlug = "beverley", { message, histo
   try {
     const selectedModel = model || localStorage.getItem('turbosanta_global_gemini_model') || 'auto';
     const authHeaders = getAuthHeaders(null, tableSlug);
-    const res = await fetch(`${API_BASE}/api/admin/assistant?table=${encodeURIComponent(tableSlug)}`, {
+    const res = await apiFetch(`${API_BASE}/api/admin/assistant?table=${encodeURIComponent(tableSlug)}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -473,7 +525,7 @@ export async function askAdminAssistant(tableSlug = "beverley", { message, histo
 
 export async function fetchLatestAiModels(tableSlug = "beverley") {
   try {
-    const res = await fetch(`${API_BASE}/api/ai/models?table=${encodeURIComponent(tableSlug)}`);
+    const res = await apiFetch(`${API_BASE}/api/ai/models?table=${encodeURIComponent(tableSlug)}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } catch (err) {
@@ -496,7 +548,7 @@ export async function saveRoute(tableSlug = "beverley", route = {}, streets = []
 
     const bodyPayload = { route, streets, tableSlug: slug, table: slug, secret: token };
 
-    const res = await fetch(`${API_BASE}/api/routes?table=${encodeURIComponent(slug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
+    const res = await apiFetch(`${API_BASE}/api/routes?table=${encodeURIComponent(slug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
       method: "POST",
       headers: getAuthHeaders(token, slug),
       body: JSON.stringify(bodyPayload)
@@ -518,7 +570,7 @@ export async function deleteRoute(tableSlug = "beverley", routeId = "", explicit
     const slug = (tableSlug || "beverley").toLowerCase().trim();
     const token = explicitSecret || getAdminAuthToken(slug);
 
-    const res = await fetch(`${API_BASE}/api/routes?table=${encodeURIComponent(slug)}&id=${encodeURIComponent(routeId)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
+    const res = await apiFetch(`${API_BASE}/api/routes?table=${encodeURIComponent(slug)}&id=${encodeURIComponent(routeId)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
       method: "DELETE",
       headers: getAuthHeaders(token, slug)
     });
@@ -537,7 +589,7 @@ export async function deleteRoute(tableSlug = "beverley", routeId = "", explicit
 export async function recordCashDonation(tableSlug = "beverley", cashData = {}, explicitSecret = null) {
   try {
     const slug = (tableSlug || "beverley").toLowerCase().trim();
-    const res = await fetch(`${API_BASE}/api/donations/cash?table=${encodeURIComponent(slug)}`, {
+    const res = await apiFetch(`${API_BASE}/api/donations/cash?table=${encodeURIComponent(slug)}`, {
       method: "POST",
       headers: getAuthHeaders(explicitSecret, slug),
       body: JSON.stringify(cashData)
@@ -556,7 +608,7 @@ export async function recordCashDonation(tableSlug = "beverley", cashData = {}, 
 export async function fetchCashDonations(tableSlug = "beverley", explicitSecret = null) {
   try {
     const slug = (tableSlug || "beverley").toLowerCase().trim();
-    const res = await fetch(`${API_BASE}/api/donations/cash?table=${encodeURIComponent(slug)}`, {
+    const res = await apiFetch(`${API_BASE}/api/donations/cash?table=${encodeURIComponent(slug)}`, {
       headers: getAuthHeaders(explicitSecret, slug)
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -570,7 +622,7 @@ export async function fetchCashDonations(tableSlug = "beverley", explicitSecret 
 export async function deleteCashDonation(tableSlug = "beverley", donationId = "", explicitSecret = null) {
   try {
     const slug = (tableSlug || "beverley").toLowerCase().trim();
-    const res = await fetch(`${API_BASE}/api/donations/cash?table=${encodeURIComponent(slug)}&id=${encodeURIComponent(donationId)}`, {
+    const res = await apiFetch(`${API_BASE}/api/donations/cash?table=${encodeURIComponent(slug)}&id=${encodeURIComponent(donationId)}`, {
       method: "DELETE",
       headers: getAuthHeaders(explicitSecret, slug)
     });
@@ -589,7 +641,7 @@ export async function deleteCashDonation(tableSlug = "beverley", donationId = ""
 export async function fetchGiftAidSummary(tableSlug = "beverley", explicitSecret = null) {
   try {
     const slug = (tableSlug || "beverley").toLowerCase().trim();
-    const res = await fetch(`${API_BASE}/api/gift-aid/summary?table=${encodeURIComponent(slug)}`, {
+    const res = await apiFetch(`${API_BASE}/api/gift-aid/summary?table=${encodeURIComponent(slug)}`, {
       headers: getAuthHeaders(explicitSecret, slug)
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -603,7 +655,7 @@ export async function fetchGiftAidSummary(tableSlug = "beverley", explicitSecret
 export async function updateGiftAidStatus(tableSlug = "beverley", payload = { mode: "bulkAll", status: "Claimed" }, explicitSecret = null) {
   try {
     const slug = (tableSlug || "beverley").toLowerCase().trim();
-    const res = await fetch(`${API_BASE}/api/gift-aid/status?table=${encodeURIComponent(slug)}`, {
+    const res = await apiFetch(`${API_BASE}/api/gift-aid/status?table=${encodeURIComponent(slug)}`, {
       method: "POST",
       headers: getAuthHeaders(explicitSecret, slug),
       body: JSON.stringify(payload)
@@ -619,7 +671,7 @@ export async function updateGiftAidStatus(tableSlug = "beverley", payload = { mo
 export async function exportGiftAidCsv(tableSlug = "beverley", statusFilter = "All", explicitSecret = null) {
   try {
     const slug = (tableSlug || "beverley").toLowerCase().trim();
-    const res = await fetch(`${API_BASE}/api/gift-aid/export?table=${encodeURIComponent(slug)}&status=${encodeURIComponent(statusFilter)}`, {
+    const res = await apiFetch(`${API_BASE}/api/gift-aid/export?table=${encodeURIComponent(slug)}&status=${encodeURIComponent(statusFilter)}`, {
       headers: {
         ...getAuthHeaders(explicitSecret, slug),
         "Accept": "application/json"
@@ -655,7 +707,7 @@ export async function connectTableGmail(tableSlug = "beverley", code = "", clien
     if (clientId && clientId.trim()) {
       bodyPayload.client_id = clientId.trim();
     }
-    const res = await fetch(`${API_BASE}/api/auth/google-gmail-connect?table=${encodeURIComponent(slug)}`, {
+    const res = await apiFetch(`${API_BASE}/api/auth/google-gmail-connect?table=${encodeURIComponent(slug)}`, {
       method: "POST",
       headers: getAuthHeaders(token, slug),
       body: JSON.stringify(bodyPayload)
@@ -673,7 +725,7 @@ export async function disconnectTableGmail(tableSlug = "beverley", explicitSecre
   try {
     const slug = (tableSlug || "beverley").toLowerCase().trim();
     const token = explicitSecret || getAdminAuthToken(slug);
-    const res = await fetch(`${API_BASE}/api/auth/google-gmail-disconnect?table=${encodeURIComponent(slug)}`, {
+    const res = await apiFetch(`${API_BASE}/api/auth/google-gmail-disconnect?table=${encodeURIComponent(slug)}`, {
       method: "POST",
       headers: getAuthHeaders(token, slug),
       body: JSON.stringify({ tableSlug: slug, secret: token })
@@ -691,7 +743,7 @@ export async function testTableGmailAlert(tableSlug = "beverley", testEmail = ""
   try {
     const slug = (tableSlug || "beverley").toLowerCase().trim();
     const token = explicitSecret || getAdminAuthToken(slug);
-    const res = await fetch(`${API_BASE}/api/auth/google-gmail-test?table=${encodeURIComponent(slug)}`, {
+    const res = await apiFetch(`${API_BASE}/api/auth/google-gmail-test?table=${encodeURIComponent(slug)}`, {
       method: "POST",
       headers: getAuthHeaders(token, slug),
       body: JSON.stringify({
@@ -714,7 +766,7 @@ export async function fetchSubscribers(tableSlug = "beverley", explicitSecret = 
   try {
     const slug = (tableSlug || "beverley").toLowerCase().trim();
     const token = explicitSecret || getAdminAuthToken(slug);
-    const res = await fetch(`${API_BASE}/api/subscribers?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(token)}`, {
+    const res = await apiFetch(`${API_BASE}/api/subscribers?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(token)}`, {
       headers: getAuthHeaders(token, slug)
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -729,7 +781,7 @@ export async function clearSubscribers(tableSlug = "beverley", explicitSecret = 
   try {
     const slug = (tableSlug || "beverley").toLowerCase().trim();
     const token = explicitSecret || getAdminAuthToken(slug);
-    const res = await fetch(`${API_BASE}/api/subscribers?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(token)}`, {
+    const res = await apiFetch(`${API_BASE}/api/subscribers?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(token)}`, {
       method: "DELETE",
       headers: getAuthHeaders(token, slug)
     });
@@ -760,7 +812,7 @@ export async function sendVolunteerBroadcastEmail(tableSlug = "beverley", { rout
       secret: token
     };
 
-    const res = await fetch(`${API_BASE}/api/volunteers/email?table=${encodeURIComponent(slug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
+    const res = await apiFetch(`${API_BASE}/api/volunteers/email?table=${encodeURIComponent(slug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
       method: "POST",
       headers: getAuthHeaders(token, slug),
       body: JSON.stringify(bodyPayload)
@@ -783,7 +835,7 @@ export async function updateVolunteer(tableSlug = "beverley", volunteerData, exp
     const slug = (tableSlug || "beverley").toLowerCase().trim();
     const token = explicitSecret || getAdminAuthToken(slug);
 
-    const res = await fetch(`${API_BASE}/api/volunteers?table=${encodeURIComponent(slug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
+    const res = await apiFetch(`${API_BASE}/api/volunteers?table=${encodeURIComponent(slug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
       method: "PUT",
       headers: getAuthHeaders(token, slug),
       body: JSON.stringify({ ...volunteerData, secret: token })
@@ -803,7 +855,7 @@ export async function deleteVolunteer(tableSlug = "beverley", volunteerId, expli
     const slug = (tableSlug || "beverley").toLowerCase().trim();
     const token = explicitSecret || getAdminAuthToken(slug);
 
-    const res = await fetch(`${API_BASE}/api/volunteers?table=${encodeURIComponent(slug)}&id=${encodeURIComponent(volunteerId)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
+    const res = await apiFetch(`${API_BASE}/api/volunteers?table=${encodeURIComponent(slug)}&id=${encodeURIComponent(volunteerId)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
       method: "DELETE",
       headers: getAuthHeaders(token, slug),
       body: JSON.stringify({ id: volunteerId, secret: token })
@@ -826,7 +878,7 @@ export async function bulkRegisterVolunteers(tableSlug = "beverley", payload, ex
     const slug = (tableSlug || "beverley").toLowerCase().trim();
     const token = explicitSecret || getAdminAuthToken(slug);
 
-    const res = await fetch(`${API_BASE}/api/volunteers?table=${encodeURIComponent(slug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
+    const res = await apiFetch(`${API_BASE}/api/volunteers?table=${encodeURIComponent(slug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
       method: "POST",
       headers: getAuthHeaders(token, slug),
       body: JSON.stringify({ ...payload, secret: token })
@@ -858,7 +910,7 @@ export async function triggerAutomatedCrewBriefings(tableSlug = "beverley", { ro
       secret: token
     };
 
-    const res = await fetch(`${API_BASE}/api/volunteers/auto-briefing?table=${encodeURIComponent(slug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
+    const res = await apiFetch(`${API_BASE}/api/volunteers/auto-briefing?table=${encodeURIComponent(slug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
       method: "POST",
       headers: getAuthHeaders(token, slug),
       body: JSON.stringify(bodyPayload)
@@ -878,7 +930,7 @@ export async function fetchAutomatedCrewBriefingStatus(tableSlug = "beverley", e
     const slug = (tableSlug || "beverley").toLowerCase().trim();
     const token = explicitSecret || getAdminAuthToken(slug);
 
-    const res = await fetch(`${API_BASE}/api/volunteers/auto-briefing?table=${encodeURIComponent(slug)}&dry_run=1${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
+    const res = await apiFetch(`${API_BASE}/api/volunteers/auto-briefing?table=${encodeURIComponent(slug)}&dry_run=1${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
       headers: getAuthHeaders(token, slug)
     });
 
@@ -897,7 +949,7 @@ export async function fetchAutomatedCrewBriefingStatus(tableSlug = "beverley", e
 export async function sendSantaChatMessage(tableSlug = "beverley", message = "", history = []) {
   try {
     const slug = (tableSlug || "beverley").toLowerCase().trim();
-    const res = await fetch(`${API_BASE}/api/chat/santa?table=${encodeURIComponent(slug)}`, {
+    const res = await apiFetch(`${API_BASE}/api/chat/santa?table=${encodeURIComponent(slug)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -945,7 +997,7 @@ export async function fetchPublicTables() {
   }
 
   try {
-    const res = await fetch(`${API_BASE}/api/public/tables`);
+    const res = await apiFetch(`${API_BASE}/api/public/tables`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     if (Array.isArray(data?.tables) && data.tables.length > 0) {
@@ -982,7 +1034,7 @@ export async function uploadSupportScreenshot(file) {
   const token = getAdminAuthToken();
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(`${API_BASE}/api/support/upload`, {
+  const res = await apiFetch(`${API_BASE}/api/support/upload`, {
     method: "POST",
     headers,
     body: file
@@ -1001,7 +1053,7 @@ export async function submitSupportTicket(ticketData) {
   const token = getAdminAuthToken();
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(`${API_BASE}/api/support/tickets`, {
+  const res = await apiFetch(`${API_BASE}/api/support/tickets`, {
     method: "POST",
     headers,
     body: JSON.stringify(ticketData)
@@ -1026,7 +1078,7 @@ export async function fetchSupportTickets({ table, email, rag, status, search, s
   const token = secret || getAdminAuthToken();
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(url.toString(), { headers });
+  const res = await apiFetch(url.toString(), { headers });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.ok) {
     throw new Error(data.error || `Failed to fetch support tickets (HTTP ${res.status})`);
@@ -1042,7 +1094,7 @@ export async function updateSupportTicket(ticketId, updates, secret) {
   const token = secret || getAdminAuthToken();
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(`${API_BASE}/api/support/tickets/update`, {
+  const res = await apiFetch(`${API_BASE}/api/support/tickets/update`, {
     method: "POST",
     headers,
     body: JSON.stringify(payload)

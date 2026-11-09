@@ -3249,7 +3249,12 @@ export default {
             }
           }
         }
-        await env.DB.batch(streetStmts);
+        // Execute street syncing in safe chunks of 50 to strictly respect Cloudflare D1 batch statement limits
+        const D1_BATCH_CHUNK_SIZE = 50;
+        for (let i = 0; i < streetStmts.length; i += D1_BATCH_CHUNK_SIZE) {
+          const chunk = streetStmts.slice(i, i + D1_BATCH_CHUNK_SIZE);
+          await env.DB.batch(chunk);
+        }
 
         return jsonResponse({
           ok: true,
@@ -7755,7 +7760,9 @@ ${historyList}
             `).bind(r.id, tableId, r.name, r.date || "", r.start_time || "18:00", r.end_time || "20:30", r.gpx_url || "", r.sponsor_name || "", spLogo, spLogo, r.sponsor_link || "")
           );
         }
-        await env.DB.batch(routeBatchStmts);
+        for (let i = 0; i < routeBatchStmts.length; i += 50) {
+          await env.DB.batch(routeBatchStmts.slice(i, i + 50));
+        }
       }
 
       // Insert Streets
@@ -7771,7 +7778,9 @@ ${historyList}
           );
         }
         if (streetBatchStmts.length > 0) {
-          await env.DB.batch(streetBatchStmts);
+          for (let i = 0; i < streetBatchStmts.length; i += 50) {
+            await env.DB.batch(streetBatchStmts.slice(i, i + 50));
+          }
         }
       }
 
