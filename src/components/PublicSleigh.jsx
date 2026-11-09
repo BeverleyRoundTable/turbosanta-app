@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { Share2, MapPin, ExternalLink, Star, ChevronDown, Music, Volume2, VolumeX, Play, Pause, X } from 'lucide-react';
+import { Share2, MapPin, ExternalLink, Star, ChevronDown, Music, Volume2, VolumeX, Play, Pause, X, Heart, Building2 } from 'lucide-react';
 import { API_BASE } from '../services/api';
 import { extractRouteSponsors } from '../utils/sponsors';
 import { normalizeFaqs } from '../utils/faqs';
@@ -772,6 +772,11 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
         const routeStreets = r.streets || (rawStreets.filter(s => s.route_id === r.id).map(s => s.street_name).join(', ')) || '';
 
         const routeSponsors = extractRouteSponsors(r);
+        const sortedSponsors = [...routeSponsors].sort((a, b) => {
+          const aIsCharity = a.type === 'charity' ? 1 : 0;
+          const bIsCharity = b.type === 'charity' ? 1 : 0;
+          return bIsCharity - aIsCharity;
+        });
         const startTime = r.start_time || r['Start Time'] || r.startTime || '';
         const endTime = r.end_time || r['End Time'] || r.endTime || '';
 
@@ -783,11 +788,11 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
           end_time: endTime,
           routeName: r.name || r.routeName,
           streets: routeStreets,
-          sponsors: routeSponsors,
-          sponsorName: routeSponsors.map(s => s.name).filter(Boolean).join(' • ') || r.sponsor_name || r.sponsorName,
-          sponsorUrl: routeSponsors[0]?.logo_url || r.sponsor_logo_url || r.sponsorUrl || r.sponsor_logo,
-          sponsorLink: routeSponsors[0]?.link || r.sponsor_link || r.sponsorLink,
-          sponsorDescription: routeSponsors[0]?.description || r.sponsor_description || r.sponsorDescription
+          sponsors: sortedSponsors,
+          sponsorName: sortedSponsors.filter(s => s.type !== 'charity').map(s => s.name).filter(Boolean).join(' • ') || (sortedSponsors[0]?.name || r.sponsor_name || r.sponsorName),
+          sponsorUrl: sortedSponsors[0]?.logo_url || r.sponsor_logo_url || r.sponsorUrl || r.sponsor_logo,
+          sponsorLink: sortedSponsors[0]?.link || r.sponsor_link || r.sponsorLink,
+          sponsorDescription: sortedSponsors[0]?.description || r.sponsor_description || r.sponsorDescription
         };
       })
       .filter(Boolean)
@@ -890,6 +895,61 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
     }
     return Array.isArray(raw) ? raw.filter(a => a && a.name) : [];
   }, [tableData, table]);
+
+  // Aggregated Community Attributions: Charities first, then Official Partners, then Route Sponsors
+  const allCommunityAttributions = useMemo(() => {
+    const rawRoutes = tableData?.routes || [];
+    const seenCharities = new Set();
+    const routeCharities = [];
+    const seenBusinesses = new Set();
+    const routeBusinesses = [];
+
+    rawRoutes.forEach(r => {
+      const sps = extractRouteSponsors(r);
+      sps.forEach(sp => {
+        const cleanName = (sp.name || '').trim().toLowerCase();
+        if (!cleanName) return;
+        if (sp.type === 'charity') {
+          if (!seenCharities.has(cleanName)) {
+            seenCharities.add(cleanName);
+            routeCharities.push({
+              name: sp.name,
+              role: 'Charity Beneficiary',
+              logo: sp.logo_url,
+              url: sp.link,
+              description: sp.description,
+              type: 'charity'
+            });
+          }
+        } else {
+          if (!seenBusinesses.has(cleanName)) {
+            seenBusinesses.add(cleanName);
+            routeBusinesses.push({
+              name: sp.name,
+              role: 'Route Sponsor',
+              logo: sp.logo_url,
+              url: sp.link,
+              description: sp.description,
+              type: 'sponsor'
+            });
+          }
+        }
+      });
+    });
+
+    const officialPartners = (heroPartners || []).map(p => ({
+      ...p,
+      role: p.role || p.tagline || 'Official Headline Partner',
+      type: 'official_partner'
+    }));
+
+    return {
+      charities: routeCharities,
+      officialPartners,
+      routeSponsors: routeBusinesses,
+      totalCount: routeCharities.length + officialPartners.length + routeBusinesses.length
+    };
+  }, [tableData, heroPartners]);
 
   return (
     <div style={{
@@ -1716,66 +1776,135 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                 />
               </div>
 
-              {todayItem.sponsors && todayItem.sponsors.length > 0 && (
-                <div style={{
-                  background: 'rgba(251, 175, 51, 0.06)',
-                  border: '1px solid var(--primary)',
-                  borderRadius: '12px',
-                  padding: '18px',
-                  boxShadow: '0 0 15px rgba(251, 175, 51, 0.15)'
-                }}>
-                  <div
-                    className="brand-font"
-                    style={{ fontSize: '12px', color: 'var(--primary)', textTransform: 'uppercase', fontWeight: 800, marginBottom: '12px', letterSpacing: '1.2px' }}>
-                    ⭐ {todayItem.sponsors.length > 1 ? "TONIGHT'S SPONSORS:" : "TONIGHT'S SPONSOR:"}
-                  </div>
+              {todayItem.sponsors && todayItem.sponsors.length > 0 && (() => {
+                const charities = todayItem.sponsors.filter(s => s.type === 'charity');
+                const businesses = todayItem.sponsors.filter(s => s.type !== 'charity');
+                return (
                   <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: todayItem.sponsors.length > 1 ? 'repeat(auto-fit, minmax(220px, 1fr))' : '1fr',
-                    gap: '14px'
+                    background: 'rgba(251, 175, 51, 0.06)',
+                    border: '1px solid var(--primary)',
+                    borderRadius: '12px',
+                    padding: '18px',
+                    boxShadow: '0 0 15px rgba(251, 175, 51, 0.15)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '16px'
                   }}>
-                    {todayItem.sponsors.map((sp, idx) => (
-                      <div key={idx} style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '8px',
-                        padding: todayItem.sponsors.length > 1 ? '10px' : '0',
-                        background: todayItem.sponsors.length > 1 ? 'rgba(255,255,255,0.03)' : 'transparent',
-                        borderRadius: '8px'
-                      }}>
-                        <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-                          {sp.logo_url && (
-                            <img
-                              src={sp.logo_url}
-                              alt={sp.name}
-                              style={{ width: '56px', height: '56px', objectFit: 'contain', background: '#FFFFFF', borderRadius: '8px', padding: '4px', flexShrink: 0 }}
-                            />
-                          )}
-                          <div>
-                            {sp.link ? (
-                              <a
-                                href={sp.link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: '16px', textDecoration: 'none' }}
-                              >
-                                {sp.name} &rarr;
-                              </a>
-                            ) : (
-                              <strong style={{ color: '#FFFFFF', fontSize: '16px' }}>{sp.name}</strong>
-                            )}
-                          </div>
+                    {/* Charities first */}
+                    {charities.length > 0 && (
+                      <div>
+                        <div
+                          className="brand-font"
+                          style={{ fontSize: '12px', color: '#f472b6', textTransform: 'uppercase', fontWeight: 800, marginBottom: '10px', letterSpacing: '1.2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Heart size={14} /> {charities.length > 1 ? "TONIGHT'S CHARITY BENEFICIARIES:" : "TONIGHT'S CHARITY BENEFICIARY:"}
                         </div>
-                        {sp.description && (
-                          <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                            {sp.description}
-                          </div>
-                        )}
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: charities.length > 1 ? 'repeat(auto-fit, minmax(220px, 1fr))' : '1fr',
+                          gap: '12px'
+                        }}>
+                          {charities.map((sp, idx) => (
+                            <div key={idx} style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '8px',
+                              padding: '10px',
+                              background: 'rgba(244, 114, 182, 0.05)',
+                              border: '1px solid rgba(244, 114, 182, 0.25)',
+                              borderRadius: '8px'
+                            }}>
+                              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                {sp.logo_url && (
+                                  <img
+                                    src={sp.logo_url}
+                                    alt={sp.name}
+                                    style={{ width: '48px', height: '48px', objectFit: 'contain', background: '#FFFFFF', borderRadius: '8px', padding: '4px', flexShrink: 0 }}
+                                  />
+                                )}
+                                <div>
+                                  {sp.link ? (
+                                    <a
+                                      href={sp.link}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: '15px', textDecoration: 'none' }}
+                                    >
+                                      {sp.name} &rarr;
+                                    </a>
+                                  ) : (
+                                    <strong style={{ color: '#FFFFFF', fontSize: '15px' }}>{sp.name}</strong>
+                                  )}
+                                </div>
+                              </div>
+                              {sp.description && (
+                                <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', lineHeight: 1.45 }}>
+                                  {sp.description}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    ))}
+                    )}
+
+                    {/* Route Sponsors next */}
+                    {businesses.length > 0 && (
+                      <div>
+                        <div
+                          className="brand-font"
+                          style={{ fontSize: '12px', color: 'var(--primary)', textTransform: 'uppercase', fontWeight: 800, marginBottom: '10px', letterSpacing: '1.2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Star size={14} fill="currentColor" /> {businesses.length > 1 ? "TONIGHT'S ROUTE SPONSORS:" : "TONIGHT'S ROUTE SPONSOR:"}
+                        </div>
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: businesses.length > 1 ? 'repeat(auto-fit, minmax(220px, 1fr))' : '1fr',
+                          gap: '12px'
+                        }}>
+                          {businesses.map((sp, idx) => (
+                            <div key={idx} style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '8px',
+                              padding: '10px',
+                              background: 'rgba(255,255,255,0.03)',
+                              borderRadius: '8px'
+                            }}>
+                              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                {sp.logo_url && (
+                                  <img
+                                    src={sp.logo_url}
+                                    alt={sp.name}
+                                    style={{ width: '48px', height: '48px', objectFit: 'contain', background: '#FFFFFF', borderRadius: '8px', padding: '4px', flexShrink: 0 }}
+                                  />
+                                )}
+                                <div>
+                                  {sp.link ? (
+                                    <a
+                                      href={sp.link}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: '15px', textDecoration: 'none' }}
+                                    >
+                                      {sp.name} &rarr;
+                                    </a>
+                                  ) : (
+                                    <strong style={{ color: '#FFFFFF', fontSize: '15px' }}>{sp.name}</strong>
+                                  )}
+                                </div>
+                              </div>
+                              {sp.description && (
+                                <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', lineHeight: 1.45 }}>
+                                  {sp.description}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
             );
           })()}
@@ -1840,37 +1969,79 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                     }}
                   />
 
-                  {r.sponsors && r.sponsors.length > 0 && (
-                    <div style={{ marginTop: 'auto', paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
-                      <div
-                        className="brand-font"
-                        style={{ fontSize: '11px', color: 'var(--primary)', textTransform: 'uppercase', fontWeight: 800, marginBottom: '8px', letterSpacing: '1.2px' }}>
-                        SPONSORED BY:
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {r.sponsors.map((sp, sIdx) => (
-                          <div key={sIdx} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                            {sp.logo_url && (
-                              <img
-                                src={sp.logo_url}
-                                alt={sp.name}
-                                style={{ width: '40px', height: '40px', objectFit: 'contain', background: '#FFFFFF', borderRadius: '6px', padding: '3px', flexShrink: 0 }}
-                              />
-                            )}
-                            <div>
-                              {sp.link ? (
-                                <a href={sp.link} target="_blank" rel="noopener noreferrer" style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: '13px', textDecoration: 'none' }}>
-                                  {sp.name} &rarr;
-                                </a>
-                              ) : (
-                                <strong style={{ color: '#FFFFFF', fontSize: '13px' }}>{sp.name}</strong>
-                              )}
+                  {r.sponsors && r.sponsors.length > 0 && (() => {
+                    const charities = r.sponsors.filter(s => s.type === 'charity');
+                    const businesses = r.sponsors.filter(s => s.type !== 'charity');
+                    return (
+                      <div style={{ marginTop: 'auto', paddingTop: '14px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {/* Charities First */}
+                        {charities.length > 0 && (
+                          <div>
+                            <div
+                              className="brand-font"
+                              style={{ fontSize: '11px', color: '#f472b6', textTransform: 'uppercase', fontWeight: 800, marginBottom: '6px', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <Heart size={12} /> CHARITY BENEFICIARY:
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              {charities.map((sp, sIdx) => (
+                                <div key={sIdx} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                  {sp.logo_url && (
+                                    <img
+                                      src={sp.logo_url}
+                                      alt={sp.name}
+                                      style={{ width: '32px', height: '32px', objectFit: 'contain', background: '#FFFFFF', borderRadius: '6px', padding: '2px', flexShrink: 0 }}
+                                    />
+                                  )}
+                                  <div>
+                                    {sp.link ? (
+                                      <a href={sp.link} target="_blank" rel="noopener noreferrer" style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: '13px', textDecoration: 'none' }}>
+                                        {sp.name} &rarr;
+                                      </a>
+                                    ) : (
+                                      <strong style={{ color: '#FFFFFF', fontSize: '13px' }}>{sp.name}</strong>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
                             </div>
                           </div>
-                        ))}
+                        )}
+
+                        {/* Route Sponsors */}
+                        {businesses.length > 0 && (
+                          <div>
+                            <div
+                              className="brand-font"
+                              style={{ fontSize: '11px', color: 'var(--primary)', textTransform: 'uppercase', fontWeight: 800, marginBottom: '6px', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <Star size={12} fill="currentColor" /> SPONSORED BY:
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              {businesses.map((sp, sIdx) => (
+                                <div key={sIdx} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                  {sp.logo_url && (
+                                    <img
+                                      src={sp.logo_url}
+                                      alt={sp.name}
+                                      style={{ width: '32px', height: '32px', objectFit: 'contain', background: '#FFFFFF', borderRadius: '6px', padding: '2px', flexShrink: 0 }}
+                                    />
+                                  )}
+                                  <div>
+                                    {sp.link ? (
+                                      <a href={sp.link} target="_blank" rel="noopener noreferrer" style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: '13px', textDecoration: 'none' }}>
+                                        {sp.name} &rarr;
+                                      </a>
+                                    ) : (
+                                      <strong style={{ color: '#FFFFFF', fontSize: '13px' }}>{sp.name}</strong>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
               );
             })}
@@ -2036,13 +2207,15 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
           </section>
         )}
 
-        {/* 5. Community Partners (Only if explicitly configured for this table) */}
+        {/* 5. Community Partners & Beneficiaries: Charities first, then Official Headline Partners, then Route Sponsors */}
         {(() => {
-          const partners = (heroPartners && heroPartners.length > 0)
-            ? heroPartners
-            : ((table.partners && Array.isArray(table.partners) && table.partners.length > 0) ? table.partners : []);
+          const combinedList = [
+            ...allCommunityAttributions.charities,
+            ...allCommunityAttributions.officialPartners,
+            ...allCommunityAttributions.routeSponsors
+          ];
 
-          if (!partners || partners.length === 0) return null;
+          if (combinedList.length === 0) return null;
 
           return (
             <section id="partners" style={{ padding: '60px 20px', maxWidth: '1000px', margin: '0 auto', textAlign: 'center' }}>
@@ -2058,14 +2231,14 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                 marginBottom: '10px'
               }}>
                 <span style={{ display: 'inline-block', width: '20px', height: '1px', background: 'linear-gradient(90deg, transparent, var(--primary))' }} />
-                LOCAL SUPPORT
+                LOCAL SUPPORT &amp; BENEFICIARIES
                 <span style={{ display: 'inline-block', width: '20px', height: '1px', background: 'linear-gradient(90deg, var(--primary), transparent)' }} />
               </div>
               <h2 className="brand-font" style={{ fontSize: '38px', margin: '0 0 10px 0', color: '#FFFFFF' }}>
                 COMMUNITY <span style={{ color: 'var(--primary)' }}>PARTNERS</span>
               </h2>
               <p style={{ color: 'var(--text-muted)', fontSize: '16px', marginBottom: '32px' }}>
-                Thank you to the generous local organisations keeping the magic rolling.
+                Thank you to our beneficiary causes, headline partners, and local business sponsors keeping Santa rolling.
               </p>
               <div style={{
                 display: 'grid',
@@ -2073,18 +2246,24 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                 gap: '18px',
                 textAlign: 'left'
               }}>
-                {partners.map((p, idx) => {
+                {combinedList.map((p, idx) => {
                   const pLogo = p.logo || p.logo_url || '';
                   const pName = p.name || '';
-                  const pRole = p.role || p.tagline || 'Partner';
+                  const isCharity = p.type === 'charity';
+                  const isOfficial = p.type === 'official_partner';
+                  const pRole = isCharity
+                    ? '❤️ Charity Beneficiary'
+                    : (isOfficial ? `⭐ ${p.role || 'Official Headline Partner'}` : `🏢 ${p.role || 'Route Sponsor'}`);
                   const pUrl = p.url || p.link || p.website || p.website_url || '';
 
                   return (
                     <div
                       key={idx}
                       style={{
-                        background: '#000000',
-                        border: '1px solid var(--border)',
+                        background: isCharity ? 'rgba(244, 114, 182, 0.04)' : '#000000',
+                        border: isCharity
+                          ? '1px solid rgba(244, 114, 182, 0.35)'
+                          : (isOfficial ? '1px solid rgba(251, 175, 51, 0.45)' : '1px solid var(--border)'),
                         borderRadius: '16px',
                         padding: '20px 18px',
                         display: 'flex',
@@ -2095,7 +2274,10 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                         wordWrap: 'break-word',
                         overflowWrap: 'break-word',
                         minWidth: 0,
-                        width: '100%'
+                        width: '100%',
+                        boxShadow: isCharity
+                          ? '0 6px 20px rgba(244, 114, 182, 0.08)'
+                          : (isOfficial ? '0 6px 20px rgba(251, 175, 51, 0.1)' : '0 4px 14px rgba(0,0,0,0.3)')
                       }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '12px', flexWrap: 'wrap', minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
                         {pLogo && (
@@ -2103,9 +2285,9 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            background: 'transparent',
+                            background: '#FFFFFF',
                             borderRadius: '10px',
-                            padding: '4px 6px',
+                            padding: '6px',
                             boxShadow: 'none',
                             flexShrink: 0,
                             maxWidth: '110px',
@@ -2115,16 +2297,16 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                               <a href={pUrl} target="_blank" rel="noopener noreferrer sponsored" style={{ display: 'block', textDecoration: 'none' }}>
                                 <img
                                   src={pLogo}
-                                  alt={pName ? `${pName} logo` : 'Partner logo'}
-                                  style={{ height: '48px', maxWidth: '100px', objectFit: 'contain', display: 'block' }}
+                                  alt={pName ? `${pName} logo` : 'Logo'}
+                                  style={{ height: '40px', maxWidth: '98px', objectFit: 'contain', display: 'block' }}
                                   loading="lazy"
                                 />
                               </a>
                             ) : (
                               <img
                                 src={pLogo}
-                                alt={pName ? `${pName} logo` : 'Partner logo'}
-                                style={{ height: '48px', maxWidth: '100px', objectFit: 'contain', display: 'block' }}
+                                alt={pName ? `${pName} logo` : 'Logo'}
+                                style={{ height: '40px', maxWidth: '98px', objectFit: 'contain', display: 'block' }}
                                 loading="lazy"
                               />
                             )}
@@ -2133,7 +2315,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                         <div style={{ minWidth: 0, flex: 1, overflowWrap: 'break-word', wordBreak: 'break-word' }}>
                           <div
                             className="brand-font"
-                            style={{ color: 'var(--primary)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 800, marginBottom: '4px', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
+                            style={{ color: isCharity ? '#f472b6' : (isOfficial ? 'var(--primary)' : '#86efac'), fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 800, marginBottom: '4px', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
                             {pRole}
                           </div>
                           <h3 className="brand-font" style={{ fontSize: 'clamp(15px, 3.8vw, 19px)', color: '#FFFFFF', margin: 0, lineHeight: 1.25, overflowWrap: 'break-word', wordBreak: 'break-word', hyphens: 'auto' }}>
@@ -2148,7 +2330,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                         </p>
                       )}
                       {pUrl && (
-                        <a href={pUrl} target="_blank" rel="noopener noreferrer sponsored" style={{ display: 'inline-block', color: 'var(--primary)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', textDecoration: 'none', marginTop: 'auto', paddingTop: '6px', overflowWrap: 'break-word', wordBreak: 'break-word', maxWidth: '100%' }}>
+                        <a href={pUrl} target="_blank" rel="noopener noreferrer sponsored" style={{ display: 'inline-block', color: isCharity ? '#f472b6' : 'var(--primary)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', textDecoration: 'none', marginTop: 'auto', paddingTop: '6px', overflowWrap: 'break-word', wordBreak: 'break-word', maxWidth: '100%' }}>
                           Visit {pName} &rarr;
                         </a>
                       )}
