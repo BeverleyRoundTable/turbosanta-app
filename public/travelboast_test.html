@@ -795,9 +795,9 @@
       <div class="zoom-controls">
         <span>Follow Zoom</span>
         <div class="pill-seg">
-          <button type="button" data-zoom="15.7">Wide</button>
-          <button type="button" data-zoom="16.4" class="active">Std</button>
-          <button type="button" data-zoom="17.1">Close</button>
+          <button type="button" data-zoom="14.6">Wide</button>
+          <button type="button" data-zoom="15.3" class="active">Std</button>
+          <button type="button" data-zoom="16.2">Close</button>
         </div>
       </div>
     </footer>
@@ -935,9 +935,11 @@
         try {
           if (map.getLayer('route-remaining-glow')) {
             map.setPaintProperty('route-remaining-glow', 'line-color', effectiveAccent);
+            map.setPaintProperty('route-remaining-glow', 'line-opacity', 0.12);
           }
           if (map.getLayer('route-remaining-main')) {
             map.setPaintProperty('route-remaining-main', 'line-color', prim);
+            map.setPaintProperty('route-remaining-main', 'line-opacity', 0.38);
           }
           if (map.getLayer('route-past-glow')) {
             map.setPaintProperty('route-past-glow', 'line-color', effectiveAccent);
@@ -1001,7 +1003,7 @@
         // Playback & Camera
         aspect: '9:16',
         durationSecs: 25,
-        followZoom: 16.4,
+        followZoom: 15.3,
         includeBanner: true,
         isPlaying: false,
         currentTimeSec: 0,
@@ -1364,7 +1366,7 @@
             data: { type: 'FeatureCollection', features: [] }
           });
 
-          // Remaining route ahead (matches tracker.html: Gold outer glow + Red core)
+          // Remaining route ahead: subtle semi-transparent guide tint so street & road names behind remain clear & readable
           map.addLayer({
             id: 'route-remaining-glow',
             type: 'line',
@@ -1372,9 +1374,9 @@
             layout: { 'line-cap': 'round', 'line-join': 'round' },
             paint: {
               'line-color': '#ffd700',
-              'line-width': ['interpolate', ['linear'], ['zoom'], 12, 6, 15, 9, 17, 13],
-              'line-opacity': 0.45,
-              'line-blur': 3
+              'line-width': ['interpolate', ['linear'], ['zoom'], 12, 5, 15, 8, 17, 11],
+              'line-opacity': 0.12,
+              'line-blur': 2
             }
           });
 
@@ -1385,8 +1387,8 @@
             layout: { 'line-cap': 'round', 'line-join': 'round' },
             paint: {
               'line-color': '#d31c1c',
-              'line-width': ['interpolate', ['linear'], ['zoom'], 12, 3, 15, 4.5, 17, 6.5],
-              'line-opacity': 0.95
+              'line-width': ['interpolate', ['linear'], ['zoom'], 12, 2.5, 15, 3.8, 17, 5.2],
+              'line-opacity': 0.38
             }
           });
 
@@ -1480,11 +1482,12 @@
 
       function getTimelinePhases() {
         const D = STATE.durationSecs;
-        const introHold = Math.min(1.5, Math.max(1.0, D * 0.055));
-        const outroHold = Math.min(2.8, Math.max(1.8, D * 0.09));
-        const panOutDur = Math.min(4.2, Math.max(2.8, D * 0.16));
-        const traverseDur = Math.max(4.0, D - introHold - panOutDur - outroHold);
-        return { introHold, traverseDur, panOutDur, outroHold, total: D };
+        const introHold = Math.min(1.4, Math.max(0.9, D * 0.05));
+        const panOutDur = Math.min(4.5, Math.max(3.4, D * 0.16));
+        const overviewHangDur = Math.min(3.5, Math.max(2.5, D * 0.12));
+        const outroHold = Math.min(3.6, Math.max(2.5, D * 0.13));
+        const traverseDur = Math.max(4.0, D - introHold - panOutDur - overviewHangDur - outroHold);
+        return { introHold, traverseDur, panOutDur, overviewHangDur, outroHold, total: D };
       }
 
       function getOverviewCamera() {
@@ -1495,9 +1498,10 @@
         const w = frame.clientWidth || 380;
         const h = frame.clientHeight || 675;
 
+        // Clean uniform margins to showcase the whole route across the town
         const padding = {
-          top: Math.round(STATE.includeBanner ? h * 0.21 : h * 0.10),
-          bottom: Math.round(STATE.includeBanner ? h * 0.13 : h * 0.10),
+          top: Math.round(h * 0.11),
+          bottom: Math.round(h * 0.11),
           left: Math.round(w * 0.11),
           right: Math.round(w * 0.11)
         };
@@ -1514,7 +1518,7 @@
 
         const c = Array.isArray(cam.center) ? cam.center : [cam.center.lng, cam.center.lat];
         // Guarantee a genuine zoom-out relative to followZoom
-        const z = Math.min(STATE.followZoom - 1.1, Math.max(9.5, cam.zoom ?? 13.5));
+        const z = Math.min(STATE.followZoom - 1.2, Math.max(9.5, cam.zoom ?? 13.2));
         return { center: c, zoom: z };
       }
 
@@ -1526,9 +1530,15 @@
         let phase = 'TRAVERSE';
         let routeProgress = 0;
         let panOutProgress = 0;
+        let overviewHangProgress = 0;
+        let outroProgress = 0;
         let centerLng = STATE.points[0].lng;
         let centerLat = STATE.points[0].lat;
         let zoom = STATE.followZoom;
+
+        const tTraverseEnd = phases.introHold + phases.traverseDur;
+        const tPanOutEnd = tTraverseEnd + phases.panOutDur;
+        const tOverviewEnd = tPanOutEnd + phases.overviewHangDur;
 
         if (t <= phases.introHold) {
           phase = 'START';
@@ -1537,7 +1547,7 @@
           centerLng = samp.camLng;
           centerLat = samp.camLat;
           zoom = STATE.followZoom;
-        } else if (t <= phases.introHold + phases.traverseDur) {
+        } else if (t <= tTraverseEnd) {
           phase = 'TRAVERSE';
           const rawU = (t - phases.introHold) / phases.traverseDur;
           routeProgress = smoothTraverseRamp(rawU);
@@ -1545,10 +1555,10 @@
           centerLng = samp.camLng;
           centerLat = samp.camLat;
           zoom = STATE.followZoom;
-        } else if (t <= phases.introHold + phases.traverseDur + phases.panOutDur) {
+        } else if (t <= tPanOutEnd) {
           phase = 'ZOOM OUT';
           routeProgress = 1;
-          const rawP = (t - phases.introHold - phases.traverseDur) / phases.panOutDur;
+          const rawP = (t - tTraverseEnd) / phases.panOutDur;
           const e = easeInOutCubic(Math.min(1, Math.max(0, rawP)));
           panOutProgress = e;
 
@@ -1565,10 +1575,23 @@
           }
           centerLng = endSamp.camLng + (ov.center[0] - endSamp.camLng) * wCenter;
           centerLat = endSamp.camLat + (ov.center[1] - endSamp.camLat) * wCenter;
-        } else {
+        } else if (t <= tOverviewEnd) {
+          // Camera holds stationary over the entire route across town
           phase = 'OVERVIEW';
           routeProgress = 1;
           panOutProgress = 1;
+          overviewHangProgress = (t - tPanOutEnd) / phases.overviewHangDur;
+          const ov = getOverviewCamera();
+          centerLng = ov.center[0];
+          centerLat = ov.center[1];
+          zoom = ov.zoom;
+        } else {
+          // Final phase: Black Outro slate with table logo and live tracking/donation CTA
+          phase = 'FINALE';
+          routeProgress = 1;
+          panOutProgress = 1;
+          overviewHangProgress = 1;
+          outroProgress = phases.outroHold > 0 ? (t - tOverviewEnd) / phases.outroHold : 1;
           const ov = getOverviewCamera();
           centerLng = ov.center[0];
           centerLat = ov.center[1];
@@ -1581,6 +1604,8 @@
           phase,
           routeProgress,
           panOutProgress,
+          overviewHangProgress,
+          outroProgress,
           sleighSample,
           camera: {
             center: [centerLng, centerLat],
@@ -1955,8 +1980,8 @@
         } // end if (STATE.includeBanner)
 
         // 4c. Outro: Full-Screen Cinematic Black Finale Screen with Centered Logo & CTA
-        if (activeSnap.panOutProgress > 0.30) {
-          const outroAlpha = Math.min(1, Math.max(0, (activeSnap.panOutProgress - 0.30) / 0.50));
+        if (activeSnap.outroProgress > 0) {
+          const outroAlpha = Math.min(1, Math.max(0, activeSnap.outroProgress / 0.22));
           if (outroAlpha > 0.01) {
             ctx.save();
             ctx.globalAlpha = outroAlpha;
@@ -2081,7 +2106,9 @@
         }
 
         // 5. Required subtle OpenStreetMap attribution in bottom-right corner (fades out as black outro appears)
-        const osmAlpha = Math.max(0, 1 - (activeSnap.panOutProgress || 0) / 0.35);
+        const osmAlpha = activeSnap.outroProgress > 0
+          ? Math.max(0, 1 - activeSnap.outroProgress / 0.22)
+          : 1;
         if (osmAlpha > 0.02) {
           ctx.save();
           ctx.globalAlpha = osmAlpha;
@@ -2681,7 +2708,7 @@
           btn.addEventListener('click', () => {
             document.querySelectorAll('[data-zoom]').forEach((b) => b.classList.remove('active'));
             btn.classList.add('active');
-            STATE.followZoom = parseFloat(btn.dataset.zoom) || 16.4;
+            STATE.followZoom = parseFloat(btn.dataset.zoom) || 15.3;
             renderCurrentTimelineState();
           });
         });
