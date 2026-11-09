@@ -1399,6 +1399,21 @@
     const gaOnlyBtn = document.getElementById('impact-giftaid-only-btn');
     if (gaOnlyBtn) gaOnlyBtn.style.display = isGa ? 'inline-flex' : 'none';
 
+    const bypassWrap = document.getElementById('impact-direct-bypass-wrap');
+    const bypassLink = document.getElementById('impact-direct-donate-link');
+    const donateUrl = table.donate_url || table.justgiving_url || '';
+    if (bypassWrap) {
+      bypassWrap.style.display = (isGa && donateUrl) ? 'block' : 'none';
+      if (bypassLink && donateUrl) {
+        const platformName = /zeffy/i.test(donateUrl) ? 'Zeffy' : /justgiving/i.test(donateUrl) ? 'JustGiving' : 'online form';
+        bypassLink.textContent = `Donate directly via ${platformName} (Skip Gift Aid) →`;
+        bypassLink.onclick = (e) => {
+          e.preventDefault();
+          window.open(donateUrl, '_blank', 'noopener');
+        };
+      }
+    }
+
     const donateBtn = document.getElementById('impact-donate-btn');
     if (donateBtn) {
       donateBtn.innerHTML = isGa
