@@ -1903,6 +1903,67 @@
         return out + '…';
       }
 
+      // Dynamically steps down font size so text fits on a single line without truncation
+      function drawFittedSingleLine(ctx, text, x, y, maxWidth, fontWeight, fontFamily, maxPx, minPx) {
+        const s = String(text || '').trim();
+        if (!s) return;
+        let size = maxPx;
+        const floor = Math.max(7, minPx);
+        while (size > floor) {
+          ctx.font = `${fontWeight} ${Math.round(size)}px ${fontFamily}`;
+          if (ctx.measureText(s).width <= maxWidth) break;
+          size -= 0.5;
+        }
+        ctx.font = `${fontWeight} ${Math.round(size)}px ${fontFamily}`;
+        ctx.fillText(fitText(ctx, s, maxWidth), x, y);
+      }
+
+      // Wraps a route title into 1 or 2 balanced lines, auto-scaling font size so nothing is ever cut off
+      function layoutRouteTitleLines(ctx, text, maxWidth, fontFamily, maxPx1Line, minPx1Line, maxPx2Line, minPx2Line) {
+        const s = String(text || 'Santa Sleigh Route').trim();
+        // 1. Try fitting on a single line first if it doesn't require shrinking below minPx1Line
+        for (let sz = maxPx1Line; sz >= minPx1Line; sz -= 0.5) {
+          ctx.font = `700 ${Math.round(sz)}px ${fontFamily}`;
+          if (ctx.measureText(s).width <= maxWidth) {
+            return { fontSize: Math.round(sz), lines: [s] };
+          }
+        }
+
+        // 2. Split into 2 balanced lines by word count/length
+        const words = s.split(/\s+/);
+        if (words.length >= 2) {
+          let bestSplit = 1;
+          let bestDiff = Infinity;
+          for (let i = 1; i < words.length; i++) {
+            const l1 = words.slice(0, i).join(' ');
+            const l2 = words.slice(i).join(' ');
+            const diff = Math.abs(l1.length - l2.length);
+            if (diff < bestDiff) {
+              bestDiff = diff;
+              bestSplit = i;
+            }
+          }
+          const line1 = words.slice(0, bestSplit).join(' ');
+          const line2 = words.slice(bestSplit).join(' ');
+
+          for (let sz = maxPx2Line; sz >= minPx2Line; sz -= 0.5) {
+            ctx.font = `700 ${Math.round(sz)}px ${fontFamily}`;
+            if (ctx.measureText(line1).width <= maxWidth && ctx.measureText(line2).width <= maxWidth) {
+              return { fontSize: Math.round(sz), lines: [line1, line2] };
+            }
+          }
+
+          ctx.font = `700 ${Math.round(minPx2Line)}px ${fontFamily}`;
+          return {
+            fontSize: Math.round(minPx2Line),
+            lines: [fitText(ctx, line1, maxWidth), fitText(ctx, line2, maxWidth)]
+          };
+        }
+
+        ctx.font = `700 ${Math.round(minPx1Line)}px ${fontFamily}`;
+        return { fontSize: Math.round(minPx1Line), lines: [fitText(ctx, s, maxWidth)] };
+      }
+
       function drawTrackerOverlays(ctx, canvasW, canvasH, snap) {
         if (!map || !STATE.points.length) return;
         const activeSnap = snap || evaluateStateAtTime(STATE.currentTimeSec);
@@ -2009,11 +2070,25 @@
           if (topBannerAlpha > 0.02) {
             ctx.save();
             ctx.globalAlpha = topBannerAlpha;
-            const padX = 16 * uiScale;
-            const topY = 16 * uiScale;
+            const padX = 14 * uiScale;
+            const topY = 14 * uiScale;
             const cardW = canvasW - padX * 2;
+            const textMaxW = cardW - 22 * uiScale;
             const hasSub = Boolean(STATE.routeSubtitle && STATE.routeSubtitle.trim());
-            const cardH = (hasSub ? 74 : 58) * uiScale;
+
+            const bannerRouteLayout = layoutRouteTitleLines(
+              ctx,
+              STATE.routeTitle || 'Santa Sleigh Route',
+              textMaxW,
+              'Eurostile, "Open Sans", sans-serif',
+              15.5 * uiScale,
+              12.0 * uiScale,
+              13.5 * uiScale,
+              10.5 * uiScale
+            );
+            const isTwoLineBannerRoute = bannerRouteLayout.lines.length > 1;
+            const extraBannerH = isTwoLineBannerRoute ? 16 * uiScale : 0;
+            const cardH = (hasSub ? 74 : 58) * uiScale + extraBannerH;
 
             // Frosted dark tracker banner card
             ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
@@ -2028,36 +2103,46 @@
             ctx.strokeStyle = hexToRgba(effectiveAccent, 0.65);
             ctx.stroke();
 
-            const textMaxW = cardW - 24 * uiScale;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
 
             // Sleigh Display Name
-            ctx.font = `800 ${Math.round(10.5 * uiScale)}px "Open Sans", sans-serif`;
             ctx.fillStyle = effectiveAccent;
-            ctx.fillText(
-              fitText(ctx, (STATE.sleighTitle || 'ROUND TABLE SANTA SLEIGH').toUpperCase(), textMaxW),
+            drawFittedSingleLine(
+              ctx,
+              (STATE.sleighTitle || 'ROUND TABLE SANTA SLEIGH').toUpperCase(),
               canvasW / 2,
-              topY + 17 * uiScale
+              topY + 16 * uiScale,
+              textMaxW,
+              '800',
+              '"Open Sans", sans-serif',
+              10.5 * uiScale,
+              8.0 * uiScale
             );
 
-            // Route Title
-            ctx.font = `700 ${Math.round(15.5 * uiScale)}px Eurostile, "Open Sans", sans-serif`;
+            // Route Title (1 or 2 lines, never truncated)
+            ctx.font = `700 ${bannerRouteLayout.fontSize}px Eurostile, "Open Sans", sans-serif`;
             ctx.fillStyle = '#ffffff';
-            ctx.fillText(
-              fitText(ctx, STATE.routeTitle || 'Santa Sleigh Route', textMaxW),
-              canvasW / 2,
-              topY + 38 * uiScale
-            );
+            if (isTwoLineBannerRoute) {
+              ctx.fillText(bannerRouteLayout.lines[0], canvasW / 2, topY + 34 * uiScale);
+              ctx.fillText(bannerRouteLayout.lines[1], canvasW / 2, topY + 50 * uiScale);
+            } else {
+              ctx.fillText(bannerRouteLayout.lines[0], canvasW / 2, topY + 38 * uiScale);
+            }
 
             // Date / Time Subtitle (No distance!)
             if (hasSub) {
-              ctx.font = `700 ${Math.round(11 * uiScale)}px "Open Sans", sans-serif`;
               ctx.fillStyle = 'rgba(255, 255, 255, 0.82)';
-              ctx.fillText(
-                fitText(ctx, STATE.routeSubtitle, textMaxW),
+              drawFittedSingleLine(
+                ctx,
+                STATE.routeSubtitle,
                 canvasW / 2,
-                topY + 57 * uiScale
+                topY + 57 * uiScale + extraBannerH,
+                textMaxW,
+                '700',
+                '"Open Sans", sans-serif',
+                11 * uiScale,
+                8.5 * uiScale
               );
             }
 
@@ -2072,12 +2157,20 @@
           if (STATE.footerUrl && STATE.footerUrl.trim() && bottomPillAlpha > 0.02) {
             ctx.save();
             ctx.globalAlpha = bottomPillAlpha;
-            const padX = 16 * uiScale;
-            const cardW = canvasW - padX * 2;
+            const padX = 14 * uiScale;
+            const maxPillW = canvasW - padX * 2;
             const footerLabel = `📍 Track Santa Live: ${STATE.footerUrl.trim()}`;
-            ctx.font = `700 ${Math.round(11 * uiScale)}px "Open Sans", sans-serif`;
-            const textW = Math.min(cardW - 24 * uiScale, ctx.measureText(footerLabel).width);
-            const pillW = textW + 26 * uiScale;
+
+            // Step down font size if needed so the full URL fits without truncation
+            let pillFontSize = 11 * uiScale;
+            while (pillFontSize > 8.5 * uiScale) {
+              ctx.font = `700 ${Math.round(pillFontSize)}px "Open Sans", sans-serif`;
+              if (ctx.measureText(footerLabel).width <= maxPillW - 24 * uiScale) break;
+              pillFontSize -= 0.5;
+            }
+            ctx.font = `700 ${Math.round(pillFontSize)}px "Open Sans", sans-serif`;
+            const textW = Math.min(maxPillW - 22 * uiScale, ctx.measureText(footerLabel).width);
+            const pillW = textW + 24 * uiScale;
             const pillH = 28 * uiScale;
             const pillX = (canvasW - pillW) / 2;
             const pillY = canvasH - pillH - 22 * uiScale;
@@ -2097,7 +2190,7 @@
             ctx.fillStyle = '#ffffff';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(fitText(ctx, footerLabel, pillW - 18 * uiScale), canvasW / 2, pillY + pillH / 2);
+            ctx.fillText(fitText(ctx, footerLabel, pillW - 16 * uiScale), canvasW / 2, pillY + pillH / 2);
             ctx.restore();
           }
         } // end if (STATE.includeBanner)
@@ -2129,8 +2222,8 @@
 
             // 3. Official Table Logo centered
             const logoImg = STATE.icons.logo;
-            const logoSize = isPortrait ? 96 * uiScale : 82 * uiScale;
-            let curY = isPortrait ? canvasH * 0.19 : canvasH * 0.12;
+            const logoSize = isPortrait ? 92 * uiScale : 78 * uiScale;
+            let curY = isPortrait ? canvasH * 0.17 : canvasH * 0.10;
 
             if (logoImg) {
               const logoCenterY = curY + logoSize / 2;
@@ -2146,82 +2239,139 @@
               ctx.stroke();
 
               drawAnchoredImage(ctx, logoImg, canvasW / 2, logoCenterY, logoSize, 0.5, 0.5);
-              curY = logoCenterY + ringRadius + 22 * uiScale;
+              curY = logoCenterY + ringRadius + 20 * uiScale;
             } else {
-              curY += 24 * uiScale;
+              curY += 22 * uiScale;
             }
 
             resetShadow(ctx);
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
 
-            const maxTextW = canvasW - 48 * uiScale;
+            const maxTextW = canvasW - 32 * uiScale;
 
-            // Sleigh Display Name (Uppercase, Open Sans 800)
-            ctx.font = `800 ${Math.round(12.5 * uiScale)}px "Open Sans", sans-serif`;
+            // Sleigh Display Name (Uppercase, auto-scaled so it never truncates)
             ctx.fillStyle = effectiveAccent;
-            ctx.fillText(
-              fitText(ctx, (STATE.sleighTitle || 'ROUND TABLE SANTA SLEIGH').toUpperCase(), maxTextW),
+            drawFittedSingleLine(
+              ctx,
+              (STATE.sleighTitle || 'ROUND TABLE SANTA SLEIGH').toUpperCase(),
               canvasW / 2,
-              curY
+              curY,
+              maxTextW,
+              '800',
+              '"Open Sans", sans-serif',
+              12.5 * uiScale,
+              9.0 * uiScale
             );
-            curY += 28 * uiScale;
+            curY += 26 * uiScale;
 
-            // Route Name (Eurostile 700 / Open Sans)
-            ctx.font = `700 ${Math.round(21 * uiScale)}px Eurostile, "Open Sans", sans-serif`;
-            ctx.fillStyle = '#ffffff';
-            ctx.fillText(
-              fitText(ctx, STATE.routeTitle || 'Santa Sleigh Route', maxTextW),
-              canvasW / 2,
-              curY
+            // Route Name (Eurostile 700 / Open Sans — wraps cleanly onto 1 or 2 lines, never cut off!)
+            const outroRouteLayout = layoutRouteTitleLines(
+              ctx,
+              STATE.routeTitle || 'Santa Sleigh Route',
+              maxTextW,
+              'Eurostile, "Open Sans", sans-serif',
+              21 * uiScale,
+              15.5 * uiScale,
+              18.5 * uiScale,
+              12.5 * uiScale
             );
-            curY += 25 * uiScale;
+            ctx.font = `700 ${outroRouteLayout.fontSize}px Eurostile, "Open Sans", sans-serif`;
+            ctx.fillStyle = '#ffffff';
+            const lineStep = Math.round(outroRouteLayout.fontSize * 1.24);
+            for (let i = 0; i < outroRouteLayout.lines.length; i++) {
+              ctx.fillText(outroRouteLayout.lines[i], canvasW / 2, curY);
+              curY += (i < outroRouteLayout.lines.length - 1) ? lineStep : 24 * uiScale;
+            }
 
             // Route Date / Time Subtitle (NO distance!)
             if (STATE.routeSubtitle && STATE.routeSubtitle.trim()) {
-              ctx.font = `700 ${Math.round(13 * uiScale)}px "Open Sans", sans-serif`;
               ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
-              ctx.fillText(
-                fitText(ctx, `✨ ${STATE.routeSubtitle.trim()} ✨`, maxTextW),
+              drawFittedSingleLine(
+                ctx,
+                `✨ ${STATE.routeSubtitle.trim()} ✨`,
                 canvasW / 2,
-                curY
+                curY,
+                maxTextW,
+                '700',
+                '"Open Sans", sans-serif',
+                13 * uiScale,
+                10 * uiScale
               );
-              curY += 34 * uiScale;
+              curY += 30 * uiScale;
             } else {
-              curY += 18 * uiScale;
+              curY += 16 * uiScale;
             }
 
-            // Live Tracker & Donate CTA Pill
+            // Live Tracker & Donate CTA Card (2-Line Layout: Heading on Line 1, Full Domain Link on Line 2!)
             if (STATE.footerUrl && STATE.footerUrl.trim()) {
-              const ctaText = `📍 Track Santa Live & Donate: ${STATE.footerUrl.trim()}`;
-              ctx.font = `700 ${Math.round(12 * uiScale)}px "Open Sans", sans-serif`;
-              const textW = ctx.measureText(ctaText).width;
-              const pillW = Math.min(maxTextW, textW + 36 * uiScale);
-              const pillH = 38 * uiScale;
+              const ctaHeading = '📍 TRACK SANTA LIVE & DONATE';
+              const ctaUrl = STATE.footerUrl.trim();
+
+              // Measure both lines so the pill width frames the full URL cleanly
+              ctx.font = `800 ${Math.round(10.5 * uiScale)}px "Open Sans", sans-serif`;
+              const headingW = ctx.measureText(ctaHeading).width;
+
+              let urlFontSize = 13.5 * uiScale;
+              while (urlFontSize > 9.5 * uiScale) {
+                ctx.font = `800 ${Math.round(urlFontSize)}px "Open Sans", sans-serif`;
+                if (ctx.measureText(ctaUrl).width <= maxTextW - 28 * uiScale) break;
+                urlFontSize -= 0.5;
+              }
+              ctx.font = `800 ${Math.round(urlFontSize)}px "Open Sans", sans-serif`;
+              const urlW = ctx.measureText(ctaUrl).width;
+
+              const pillW = Math.min(maxTextW, Math.max(headingW, urlW) + 34 * uiScale);
+              const pillH = 54 * uiScale;
               const pillX = (canvasW - pillW) / 2;
               const pillY = curY;
 
-              roundRectPath(ctx, pillX, pillY, pillW, pillH, pillH / 2);
+              ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+              ctx.shadowBlur = 16 * uiScale;
+              ctx.shadowOffsetY = 4 * uiScale;
+              roundRectPath(ctx, pillX, pillY, pillW, pillH, 15 * uiScale);
               ctx.fillStyle = STATE.primaryColor || '#D31C1C';
               ctx.fill();
-              ctx.lineWidth = 1.8 * uiScale;
+
+              resetShadow(ctx);
+              ctx.lineWidth = 2 * uiScale;
               ctx.strokeStyle = effectiveAccent;
               ctx.stroke();
 
-              resetShadow(ctx);
-              ctx.fillStyle = '#ffffff';
-              ctx.fillText(fitText(ctx, ctaText, pillW - 20 * uiScale), canvasW / 2, pillY + pillH / 2);
+              // Line 1: Call-to-action label
+              ctx.font = `800 ${Math.round(10.2 * uiScale)}px "Open Sans", sans-serif`;
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.90)';
+              ctx.fillText(ctaHeading, canvasW / 2, pillY + 18 * uiScale);
 
-              curY += pillH + 26 * uiScale;
+              // Line 2: Full Domain / Donation Link on its own dedicated line!
+              ctx.fillStyle = '#ffffff';
+              drawFittedSingleLine(
+                ctx,
+                ctaUrl,
+                canvasW / 2,
+                pillY + 37 * uiScale,
+                pillW - 20 * uiScale,
+                '800',
+                '"Open Sans", sans-serif',
+                13.5 * uiScale,
+                9.5 * uiScale
+              );
+
+              curY += pillH + 22 * uiScale;
             }
 
             // Festive Charity Tagline
-            ctx.font = `600 ${Math.round(11 * uiScale)}px "Open Sans", sans-serif`;
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
-            ctx.fillText(
-              fitText(ctx, '🎅 Raising vital funds for local charities this Christmas', maxTextW),
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.68)';
+            drawFittedSingleLine(
+              ctx,
+              '🎅 Raising vital funds for local charities this Christmas',
               canvasW / 2,
-              curY
+              curY,
+              maxTextW,
+              '600',
+              '"Open Sans", sans-serif',
+              11 * uiScale,
+              8.5 * uiScale
             );
 
             ctx.restore();
