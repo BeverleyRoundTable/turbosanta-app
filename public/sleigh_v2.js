@@ -419,7 +419,9 @@
     if (state.simMode === 'live' && idx === 0) return true;
     if (state.simMode === 'rain' && idx === 0) return false;
     const st = String(route.status_override || route.status || '').toLowerCase();
-    return st === 'in progress' || st === 'live' || st === 'active';
+    if (st === 'in progress' || st === 'live' || st === 'active') return true;
+    if (isRouteToday(route) && state.payload?.live_sleigh?.is_fresh) return true;
+    return false;
   }
 
   function isRouteToday(route) {
@@ -429,13 +431,40 @@
     return d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth() && d.getDate() === t.getDate();
   }
 
+  function getRouteEndTimestamp(route) {
+    const d = parseLocalRouteDate(route.date);
+    if (!d) return null;
+    const endTimeStr = String(route.end_time || '').trim();
+    let eh = 21, em = 0;
+    if (endTimeStr.includes(':')) {
+      const parts = endTimeStr.split(':').map(n => parseInt(n, 10));
+      if (!isNaN(parts[0])) eh = parts[0];
+      if (!isNaN(parts[1])) em = parts[1];
+    }
+    const endDt = new Date(d.getFullYear(), d.getMonth(), d.getDate(), eh, em, 0);
+    // Add 45-minute grace period after scheduled finish before auto-closing
+    return endDt.getTime() + (45 * 60 * 1000);
+  }
+
   function isRouteCompleted(route, idx) {
     if (isRouteLive(route, idx) || isRoutePostponed(route, idx)) return false;
-    const st = String(route.status || '').toLowerCase();
+    const st = String(route.status_override || route.status || '').toLowerCase();
     if (st === 'completed') return true;
     const d = parseLocalRouteDate(route.date);
     if (!d) return false;
-    return d.getTime() < todayMidnight().getTime();
+
+    // Past calendar day -> always completed
+    if (d.getTime() < todayMidnight().getTime()) return true;
+
+    // Today's route: automatically completes once scheduled end_time (+ 45m grace) has passed and GPS is not transmitting
+    if (isRouteToday(route)) {
+      const graceEnd = getRouteEndTimestamp(route);
+      if (graceEnd && Date.now() > graceEnd) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   function isCharityPartner(entity) {
@@ -791,12 +820,12 @@
   }
 
   function findNextUpcomingRoute() {
-    const nowMid = todayMidnight().getTime();
     const upcoming = state.routes
+      .filter((r, idx) => !isRouteCompleted(r, idx))
       .map(r => ({ r, d: parseLocalRouteDate(r.date) }))
-      .filter(x => x.d && x.d.getTime() >= nowMid)
+      .filter(x => x.d)
       .sort((a, b) => a.d.getTime() - b.d.getTime());
-    return upcoming[0]?.r || state.routes[0] || null;
+    return upcoming[0]?.r || null;
   }
 
   function downloadRouteIcs(route) {
@@ -923,7 +952,7 @@
           : `Next Sleigh Night: ${formatFriendlyDate(nextR.date)} — ${nextR.name}`;
         startNextRouteCountdown(nextR, cdChip, cdText);
       } else {
-        badgeText.textContent = `${town} Sleigh Season Hub`;
+        badgeText.textContent = `${town} Sleigh Tour Completed! 🎅`;
         if (cdChip) cdChip.style.display = 'none';
       }
     }

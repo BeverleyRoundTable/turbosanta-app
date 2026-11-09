@@ -384,6 +384,50 @@
       </div>
 
       <div id="opsContent" style="display:none;">
+        <!-- 1-TAP LIVE SLEIGH QUICK-BAR -->
+        <div class="panel" style="border-color:var(--border-primary); background:rgba(var(--primary-rgb), 0.04);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h3 style="margin:0; color:var(--primary); font-size:16px;">📢 Live Route Quick-Bar</h3>
+            <span id="crewBroadcastStatus" style="font-size:11px; font-weight:800; text-transform:uppercase; color:var(--text-dim); font-family:var(--font-heading, sans-serif);">Ready</span>
+          </div>
+          <p style="font-size:13px; color:var(--text-dim); margin-bottom:14px; line-height:1.5;">
+            Tap to broadcast an instant announcement banner across the public map and resident site.
+          </p>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:10px;">
+            <button type="button" onclick="broadcastCrewStatus('late')" class="btn" style="background:#262624; border:1px solid var(--border); font-size:12px; font-weight:700; padding:12px 4px; color:#fff;">
+              ⏳ 15m Late
+            </button>
+            <button type="button" onclick="broadcastCrewStatus('paused')" class="btn" style="background:#262624; border:1px solid var(--border); font-size:12px; font-weight:700; padding:12px 4px; color:#fff;">
+              🌧️ Paused
+            </button>
+            <button type="button" onclick="broadcastCrewStatus('finished')" class="btn" style="background:#262624; border:1px solid var(--border); font-size:12px; font-weight:700; padding:12px 4px; color:#fff;">
+              🏁 Finished
+            </button>
+          </div>
+          <button type="button" onclick="broadcastCrewStatus('clear')" style="background:none; border:none; color:var(--text-dim); font-size:11px; font-weight:700; cursor:pointer; text-decoration:underline;">
+            Clear Live Announcement Banner
+          </button>
+        </div>
+
+        <!-- DRIVER GPS BEACON CARD -->
+        <div class="panel">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h3 style="margin:0; font-size:16px;">🚗 Driver GPS Beacon</h3>
+            <span style="font-size:11px; font-weight:800; color:var(--green); text-transform:uppercase;">Live Radar</span>
+          </div>
+          <p style="font-size:13px; color:var(--text-dim); margin-bottom:14px; line-height:1.5;">
+            In the tractor or towing vehicle? Launch the Driver Beacon to broadcast Santa's real-time position to residents.
+          </p>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <button type="button" onclick="openDriverBeacon()" class="btn btn-primary" style="font-size:14px;">
+              Launch Driver Beacon 📡
+            </button>
+            <button type="button" onclick="openQR('beacon')" class="btn" style="background:var(--card); border:1px solid var(--border); font-size:13px; color:var(--text-dim);">
+              Show Beacon QR Code to Hand Over 📲
+            </button>
+          </div>
+        </div>
+
         <div class="panel">
           <h3>Pre-Departure Checklist</h3>
           <div id="checklistContainer"></div>
@@ -616,6 +660,12 @@ function openQR(type) {
     url = API ? (base + '?api=' + encodeURIComponent(API)) : `${base}?table=${encodeURIComponent(tableSlug)}`;
     heading = 'GIFT <span>AID</span>';
     subtitle = 'Boost your donation by 25% — scan to declare';
+  } else if (type === 'beacon') {
+    const secret = sessionStorage.getItem('opsSecret') || '';
+    const base = location.origin + '/beacon.html';
+    url = `${base}?table=${encodeURIComponent(tableSlug)}${secret ? '&pin=' + encodeURIComponent(secret) : ''}`;
+    heading = 'DRIVER <span>BEACON</span>';
+    subtitle = 'Scan with phone camera to launch GPS Beacon';
   } else {
     if (!globalDonateUrl) {
       alert("No donation URL is set in your Settings!");
@@ -631,6 +681,57 @@ function openQR(type) {
   document.getElementById('qrHeading').innerHTML = heading;
   document.getElementById('qrSubtitle').textContent = subtitle;
   document.getElementById('qrModal').style.display = 'flex';
+}
+
+function openDriverBeacon() {
+  const secret = sessionStorage.getItem('opsSecret') || '';
+  const url = `${location.origin}/beacon.html?table=${encodeURIComponent(tableSlug)}${secret ? '&pin=' + encodeURIComponent(secret) : ''}`;
+  window.open(url, '_blank');
+}
+
+async function broadcastCrewStatus(type) {
+  const secret = sessionStorage.getItem('opsSecret') || '';
+  const routeSelect = document.getElementById('opsRouteSelect');
+  const routeName = (routeSelect && routeSelect.value) ? routeSelect.value : 'Santa Sleigh';
+  
+  let announcement = '';
+  if (type === 'late') {
+    announcement = `📢 Sleigh Running Late: Santa is running approx 15 minutes behind schedule on ${routeName} due to huge crowds! Still on his way.`;
+  } else if (type === 'paused') {
+    announcement = `🌧️ Sleigh Paused: Santa has temporarily paused on ${routeName} for weather/technical checks. We will resume shortly!`;
+  } else if (type === 'finished') {
+    announcement = `🏁 Route Complete: Santa has finished tonight's route (${routeName}) and is heading back to Lapland! Thank you to everyone who supported us tonight.`;
+  } else if (type === 'clear') {
+    announcement = '';
+  }
+
+  const statusEl = document.getElementById('crewBroadcastStatus');
+  if (statusEl) statusEl.textContent = 'Broadcasting…';
+
+  try {
+    const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/announcement?table=${encodeURIComponent(tableSlug)}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${secret}`
+      },
+      body: JSON.stringify({ announcement })
+    });
+
+    if (res.ok) {
+      if (statusEl) {
+        statusEl.textContent = type === 'clear' ? 'Ready' : `Broadcasted: ${type.toUpperCase()}`;
+        statusEl.style.color = type === 'clear' ? 'var(--text-dim)' : 'var(--green)';
+      }
+      alert(announcement ? '✅ Live announcement broadcasted to public tracker!' : 'Cleared live announcement.');
+    } else {
+      if (statusEl) statusEl.textContent = 'Error ' + res.status;
+      alert(`❌ Failed to broadcast (HTTP ${res.status}). Ensure you unlocked Ops with Table PIN.`);
+    }
+  } catch(err) {
+    if (statusEl) statusEl.textContent = 'Network Error';
+    alert(`❌ Network error: ${err.message}`);
+  }
 }
 
 async function switchTab(btn) {

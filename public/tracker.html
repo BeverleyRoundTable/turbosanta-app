@@ -2682,15 +2682,19 @@
           const isFresh = (data.is_fresh !== undefined)
             ? Boolean(data.is_fresh)
             : Boolean(ts > 0 && age <= AppConfig.API.STALE_MS);
+
+          const lastKnownLat = data.lat || AppState.lastFix?.lat;
+          const lastKnownLng = data.lng || AppState.lastFix?.lng;
+          const isBlackspotHold = !isFresh && age <= (15 * 60 * 1000) && lastKnownLat && lastKnownLng && lastKnownLat !== AppConfig.LOCATIONS.LAPLAND[0];
           
           if (AppState.flags.isKiosk) { 
-            AppState.dom.kioskBanner.classList.toggle("live", isFresh); 
+            AppState.dom.kioskBanner.classList.toggle("live", isFresh || isBlackspotHold); 
             const statusEl = document.getElementById("kioskStatus"); 
-            if (statusEl) statusEl.textContent = isFresh ? "LIVE TRACKING" : "PREPARING IN LAPLAND"; 
-            if (AppState.dom.sponsorBox) AppState.dom.sponsorBox.classList.toggle("visible", isFresh && !!AppState.vars.kioskSponsorReady); 
+            if (statusEl) statusEl.textContent = isFresh ? "LIVE TRACKING" : (isBlackspotHold ? "SIGNAL PAUSED" : "PREPARING IN LAPLAND"); 
+            if (AppState.dom.sponsorBox) AppState.dom.sponsorBox.classList.toggle("visible", (isFresh || isBlackspotHold) && !!AppState.vars.kioskSponsorReady); 
           }
 
-          if (!isFresh) {
+          if (!isFresh && !isBlackspotHold) {
             if (AppState.flags.gpxLoaded && AppState.gpxRoute && AppState.gpxRoute.length > 0) {
               AppState.marker.setLatLng(AppConfig.LOCATIONS.LAPLAND);
               if (AppState.flags.firstFix && AppState.dynamicRouteRemainingMain && !AppState.vars.notifyLatLng) {
@@ -2717,11 +2721,11 @@
             scheduleNextPoll();
             return;
           } else {
-            AppState.vars.staleSince = null;
-            AppState.lastFix = { lat: data.lat, lng: data.lng };
+            AppState.vars.staleSince = isBlackspotHold ? (AppState.vars.staleSince || Date.now()) : null;
+            AppState.lastFix = { lat: lastKnownLat, lng: lastKnownLng };
           }
 
-          let visualPos = { lat: data.lat, lng: data.lng };
+          let visualPos = { lat: lastKnownLat, lng: lastKnownLng };
           if (AppState.flags.gpxLoaded) {
             const snap = snapToGpxIndex(visualPos, AppConfig.GPX);
             if (snap && snap.distance < 50) visualPos = snap.point;
@@ -2919,6 +2923,17 @@
               } 
               AppState.dom.statusBox.textContent = etaText; 
               setDimUI(mins > 45); 
+            } else if (isBlackspotHold) {
+              const minsAgo = Math.max(1, Math.round(age / 60000));
+              const gpxPoint = AppState.gpxRoute?.[AppState.vars.lastSnapIndex];
+              const currentRoad = data.roadName || data.road_name || (gpxPoint?.roadName || "");
+              AppState.dom.statusBox.textContent = currentRoad
+                ? `📡 Signal Paused — Last seen ${minsAgo}m ago on ${currentRoad}`
+                : `📡 Signal Paused — Last seen ${minsAgo}m ago`;
+              AppState.dom.statusDot.className = "status-dot dot-stopped";
+              AppState.dom.statusDot.style.backgroundColor = "#f59e0b";
+              setDimUI(false);
+              document.title = "Signal Paused — TurboSanta";
             } else if (moving) { 
               const gpxPoint = AppState.gpxRoute?.[AppState.vars.lastSnapIndex];
               const gpxDist = gpxPoint ? Utils.haversineMeters({lat: data.lat, lng: data.lng}, gpxPoint) : 999;
