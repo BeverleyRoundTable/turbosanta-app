@@ -970,7 +970,21 @@
     /* 🚀 EMBEDDED TURNKEY IFRAME & MOBILE CLEAN SCALING */
     /* Preserves clean card aspect ratio with balanced padding and zero cutoffs */
     body.is-embedded #workshopOverlay,
-    #workshopOverlay.ws-compact,
+    #workshopOverlay.ws-compact {
+      padding: 10px 12px;
+      justify-content: center;
+      align-items: center;
+      overflow-y: auto;
+    }
+    body.is-embedded .ws-card,
+    #workshopOverlay.ws-compact .ws-card {
+      max-width: 440px;
+      width: 100%;
+      margin: auto;
+      padding: 16px 14px 12px;
+      border-radius: 14px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+    }
     @media (max-width: 680px), (max-height: 850px) {
       #workshopOverlay {
         padding: 10px 12px;
@@ -2087,7 +2101,7 @@
 
       const AppState = {
         map: null, mlMap: null, marker: null, notifyMarker: null, gpxRoute: null, lastFix: null, recentFixes: [], routeFixes: [],
-        flags: { follow: true, firstFix: true, isKiosk: false, isDemo: false, isEmbedded: isEmbedded, gpxLoaded: false, snowActive: false, pageVisible: !document.hidden, awaitingPin: false, browserNotified: sessionStorage.getItem("SANTA_BROWSER_NOTIFIED") === "1", hasPassedSticky: sessionStorage.getItem("SANTA_HAS_PASSED") === "1", celebrationFired: sessionStorage.getItem("SANTA_CELEBRATION_FIRED") === "1", musicEnabled: false, jinglesEnabled: false, beaconActive: false, proximityBellsFired: false },
+        flags: { follow: true, firstFix: true, isKiosk: false, isDemo: false, isEmbedded: isEmbedded, gpxLoaded: false, snowActive: false, pageVisible: !document.hidden, awaitingPin: false, browserNotified: sessionStorage.getItem("SANTA_BROWSER_NOTIFIED") === "1", hasPassedSticky: sessionStorage.getItem("SANTA_HAS_PASSED") === "1", celebrationFired: sessionStorage.getItem("SANTA_CELEBRATION_FIRED") === "1", musicEnabled: false, beaconActive: false, proximityBellsFired: false },
         vars: { apiUrl: null, tableSlug: "", sleighName: "Santa Sleigh", staleSince: null, lastSnapIndex: 0, snowflakes: [], animRaf: null, pendingSubscription: null, notifyLatLng: null, lastVisualPos: null, escapeListener: null, lastElfCamUrl: null, lastSeenMsgTs: Number(sessionStorage.getItem('SANTA_LAST_MSG_TS')) || 0, pollTimer: null, consecutiveErrors: 0, musicUrl: null, currentMapHeading: 0, latestApiData: null, lastSettingsFetch: 0, lastTxTime: 0, lastLeafletRouteIdx: -1, lastMlRouteIdx: -1, userSnapCache: null, etaEmaSec: null },
         dom: { loading: document.getElementById("loadingCover"), statusBox: document.getElementById("statusBox"), followBtn: document.getElementById("followBtn"), recenterBtn: document.getElementById("recenterBtn"), notifyBtn: document.getElementById("notifyBtn"), msgBtn: document.getElementById("msgBtn"), statusDot: document.getElementById("statusDot"), donateLink: document.getElementById("donateLink"), donateBox: document.getElementById("donateBox"), kioskBanner: document.getElementById("kioskBanner"), sponsorBox: document.getElementById("kioskSponsor"), toast: document.getElementById("toast"), snowCanvas: document.getElementById("snow"), shareBtn: document.getElementById("shareBtn"), fireworks: document.getElementById("fireworks") }
       };
@@ -3296,7 +3310,7 @@
           }
 
           const rs = document.getElementById('routeSponsor');
-          if (rs) rs.classList.toggle('visible', !!AppState.vars.sponsorReady && !AppState.flags.isKiosk && !AppState.flags.isDriver);
+          if (rs) rs.classList.toggle('visible', !!AppState.vars.sponsorReady && !AppState.flags.isKiosk && !AppState.flags.isDriver && !AppState.flags.isEmbedded);
           if (window.layoutOverlays) window.layoutOverlays();
 
           // If data is empty or coords aren't valid, handle gracefully
