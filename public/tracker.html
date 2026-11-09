@@ -1310,7 +1310,9 @@
       <input type="range" id="demoScrubber" class="demo-slider" min="0" max="100" value="0" title="Scrub Santa along route">
       <span id="demoProgressPct" style="font-size:10px; opacity:0.8; width:26px;">0%</span>
     </div>
-    <button id="demoPinBtn" class="demo-btn" title="Place demo resident house pin ahead of Santa to show live ETA countdown">🎯 Drop House Pin</button>
+    <button id="demoPinFarBtn" class="demo-btn" title="Place demo resident house pin 1.5km ahead to test non-proximity ETA messages">📍 Pin (1.5km)</button>
+    <button id="demoPinNearBtn" class="demo-btn" title="Place demo resident house pin 400m ahead to test close proximity, snow, and chimes">🎯 Pin (400m)</button>
+    <button id="demoClearPinBtn" class="demo-btn" style="display: none; color: #f87171; border-color: rgba(248,113,113,0.4);" title="Remove house pin to see street progress">❌ Clear Pin</button>
     <button id="demoRecordBtn" class="demo-btn" style="background:#d31c1c; border-color:#d31c1c; font-weight:800;" title="Hide demo toolbar for clean screen recording">🎥 Record Mode</button>
   </div>
   <button id="demoRestoreBtn" class="demo-restore-btn" title="Exit recording mode and restore demo controls">🎬 Exit Record Mode</button>
@@ -2660,6 +2662,14 @@
         }
       };
 
+      function isRestingInLapland(pos) {
+        if (!pos) return true;
+        const lat = (typeof pos.lat === 'number') ? pos.lat : (Array.isArray(pos) ? pos[0] : null);
+        const lng = (typeof pos.lng === 'number') ? pos.lng : (Array.isArray(pos) ? pos[1] : null);
+        if (lat === null || lng === null || isNaN(lat) || isNaN(lng)) return true;
+        return Math.abs(lat - AppConfig.LOCATIONS.LAPLAND[0]) < 0.1 && Math.abs(lng - AppConfig.LOCATIONS.LAPLAND[1]) < 0.1;
+      }
+
       const StreetTracker = {
         currentStreet: '',
         nextStreet: '',
@@ -2972,7 +2982,12 @@
           interactive: true
         }).addTo(AppState.map);
         if (confirmed) {
+          AppState.vars.notifyLatLng = { lat, lng };
+          AppState.vars.userSnapCache = null;
           AppState.notifyMarker.bindTooltip("📍 Your Doorstep Pin", { direction: "top", offset: [0, -34] });
+          if (typeof DemoSimulator !== 'undefined' && typeof DemoSimulator.updatePinButton === 'function') {
+            DemoSimulator.updatePinButton();
+          }
         } else {
           AppState.notifyMarker.bindPopup("Tap this pin again to confirm").openPopup();
           AppState.notifyMarker.once("click", () => {
@@ -2991,12 +3006,13 @@
             const curD = AppState.vars.latestApiData || {};
             const curT = curD.table || curD.settings || {};
             const urlHideSignup = new URLSearchParams(location.search).get("hide_signup") === "1" || new URLSearchParams(location.search).get("no_signup") === "1";
-            const emailDisabled = (curT.notify_email_enabled === 0 || curT.notify_email_enabled === false || urlHideSignup);
+            const emailDisabled = AppState.flags.isDemo || (curT.notify_email_enabled === 0 || curT.notify_email_enabled === false || urlHideSignup);
 
             if (emailDisabled) {
               AppState.dom.statusBox.textContent = "📍 Pin saved for in-browser Santa alerts!";
-              showToast("Your doorstep pin is active! Santa's live ETA will show at the bottom.");
+              showToast("Your doorstep pin is active! Santa's live ETA will show at the top.");
               Utils.toggleFollowControls(true);
+              updateTracker();
             } else {
               document.getElementById("emailModal").style.display = "flex";
               document.getElementById("subEmail").focus();
@@ -3469,6 +3485,7 @@
           }
 
         } catch (e) {
+          console.error("updateTracker error:", e);
           AppState.vars.consecutiveErrors++;
           if (AppState.vars.consecutiveErrors >= 2) {
             setConnectionState("reconnecting");
@@ -3702,9 +3719,17 @@
             };
           }
 
-          const pinBtn = document.getElementById('demoPinBtn');
-          if (pinBtn) {
-            pinBtn.onclick = () => DemoSimulator.dropHousePinAhead(400);
+          const pinFarBtn = document.getElementById('demoPinFarBtn');
+          if (pinFarBtn) {
+            pinFarBtn.onclick = () => DemoSimulator.dropHousePinAhead(1500);
+          }
+          const pinNearBtn = document.getElementById('demoPinNearBtn');
+          if (pinNearBtn) {
+            pinNearBtn.onclick = () => DemoSimulator.dropHousePinAhead(400);
+          }
+          const clearPinBtn = document.getElementById('demoClearPinBtn');
+          if (clearPinBtn) {
+            clearPinBtn.onclick = () => DemoSimulator.clearHousePin();
           }
 
           const recordBtn = document.getElementById('demoRecordBtn');
@@ -3733,13 +3758,33 @@
           if (DemoSimulator.simTimer) clearInterval(DemoSimulator.simTimer);
           DemoSimulator.lastTickTime = performance.now();
           DemoSimulator.simTimer = setInterval(() => DemoSimulator.tick(), 150);
+          DemoSimulator.updatePinButton();
+        },
 
-          // Auto-drop resident house pin ~400m ahead on start so ETA banner immediately renders
-          setTimeout(() => {
-            if (!AppState.vars.notifyLatLng) {
-              DemoSimulator.dropHousePinAhead(450);
-            }
-          }, 1000);
+        updatePinButton() {
+          const clearBtn = document.getElementById('demoClearPinBtn');
+          if (clearBtn) {
+            clearBtn.style.display = AppState.vars.notifyLatLng ? 'inline-block' : 'none';
+          }
+        },
+
+        clearHousePin() {
+          if (AppState.notifyMarker && AppState.map) {
+            AppState.map.removeLayer(AppState.notifyMarker);
+          }
+          AppState.notifyMarker = null;
+          AppState.vars.notifyLatLng = null;
+          AppState.vars.userSnapCache = null;
+          AppState.flags.hasPassedSticky = false;
+          AppState.flags.celebrationFired = false;
+          AppState.flags.browserNotified = false;
+          AppState.flags.proximityBellsFired = false;
+          sessionStorage.removeItem("SANTA_NOTIFY_POINT");
+          sessionStorage.removeItem("SANTA_CELEBRATION_FIRED");
+          sessionStorage.removeItem("SANTA_HAS_PASSED");
+          this.updatePinButton();
+          showToast("📍 House pin removed. Showing live street progression.");
+          updateTracker();
         },
 
         reset(fitMap = false) {
@@ -3749,6 +3794,7 @@
           AppState.flags.celebrationFired = false;
           sessionStorage.removeItem("SANTA_CELEBRATION_FIRED");
           sessionStorage.removeItem("SANTA_HAS_PASSED");
+          this.updatePinButton();
           if (fitMap && AppState.gpxRoute && AppState.map) {
             try {
               AppState.map.fitBounds(AppState.gpxRoute.map(p => [p.lat, p.lng]), { padding: [40, 40] });
@@ -3756,7 +3802,7 @@
           }
         },
 
-        dropHousePinAhead(offsetMeters = 400) {
+        dropHousePinAhead(offsetMeters = 1500) {
           if (!AppState.gpxRoute || AppState.gpxRoute.length < 2) return;
           const total = AppState.gpxRoute[AppState.gpxRoute.length - 1].dist;
           const targetDist = Math.min(total - 10, DemoSimulator.simDist + offsetMeters);
@@ -3772,13 +3818,18 @@
           // Slight offset (approx 12-15 meters) to look like a house beside the pavement
           const houseLat = bestPt.lat + 0.00012;
           const houseLng = bestPt.lng + 0.00012;
+          AppState.vars.notifyLatLng = { lat: houseLat, lng: houseLng };
+          AppState.vars.userSnapCache = null;
           showNotifyMarker(houseLat, houseLng, true);
           AppState.flags.browserNotified = false;
           AppState.flags.hasPassedSticky = false;
           AppState.flags.celebrationFired = false;
+          AppState.flags.proximityBellsFired = false;
           sessionStorage.removeItem("SANTA_CELEBRATION_FIRED");
           sessionStorage.removeItem("SANTA_HAS_PASSED");
-          showToast("📍 Demo House Pin Placed! Watch Santa's ETA count down.");
+          this.updatePinButton();
+          const distLabel = offsetMeters >= 1000 ? `${(offsetMeters / 1000).toFixed(1)}km` : `${offsetMeters}m`;
+          showToast(`📍 Demo House Pin Placed ~${distLabel} ahead! Watch Santa count down.`);
           updateTracker();
         },
 
