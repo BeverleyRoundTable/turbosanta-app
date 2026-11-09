@@ -772,31 +772,30 @@
       overflow-y: auto; overflow-x: hidden;
       overscroll-behavior-y: contain;
       touch-action: pan-y;
-      padding: clamp(14px, 3vh, 32px) clamp(12px, 3vw, 24px);
+      padding: 12px 14px;
       align-items: center;
       justify-content: center;
     }
     .ws-card {
       background: var(--surface);
       border: 1px solid var(--border-primary);
-      border-radius: 16px;
-      max-width: 500px;
+      border-radius: 14px;
+      max-width: 440px;
       width: 100%;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+      box-shadow: 0 10px 32px rgba(0,0,0,0.6);
       position: relative;
       overflow: hidden;
       margin: auto;
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      padding: 24px 24px 20px;
+      padding: 16px 16px 14px;
     }
     .ws-card::before {
       content: '';
       position: absolute;
       top: 0; left: 0; right: 0;
-      height: 4px;
+      height: 3px;
       background: linear-gradient(90deg, var(--red), var(--primary));
       z-index: 10;
     }
@@ -808,11 +807,11 @@
     }
     .ws-title {
       font-family: 'Eurostile', sans-serif;
-      font-size: clamp(22px, 5.5vw, 28px);
+      font-size: clamp(19px, 5vw, 24px);
       font-weight: 900;
       color: #fff;
-      letter-spacing: 1.5px;
-      margin: 0 0 4px 0;
+      letter-spacing: 1.2px;
+      margin: 0 0 3px 0;
       line-height: 1.15;
       text-align: center;
       white-space: nowrap;
@@ -820,21 +819,21 @@
     .ws-title span { color: var(--primary); }
     .ws-subtitle {
       color: var(--text-dim);
-      font-size: 12px;
-      margin: 0 0 10px 0;
+      font-size: 11px;
+      margin: 0 0 8px 0;
       text-align: center;
-      line-height: 1.35;
+      line-height: 1.3;
       max-width: 380px;
     }
     .ws-countdown {
       font-family: 'Open Sans', monospace;
-      font-size: clamp(18px, 5vw, 24px);
+      font-size: clamp(16px, 4.5vw, 20px);
       font-weight: 800;
-      margin: 0 0 12px 0;
+      margin: 0 0 8px 0;
       color: #fff;
       background: var(--surface-2);
-      padding: 10px 18px;
-      border-radius: 12px;
+      padding: 7px 14px;
+      border-radius: 10px;
       border: 1px solid var(--border);
       letter-spacing: 0.5px;
       text-align: center;
@@ -843,18 +842,18 @@
       box-shadow: inset 0 2px 4px rgba(0,0,0,0.25);
     }
     .ws-schedule {
-      margin: 0 0 10px 0;
+      margin: 0 0 8px 0;
       width: 100%;
       text-align: left;
     }
     .ws-schedule-title {
-      font-size: 10.5px;
+      font-size: 9.5px;
       font-weight: 700;
       color: var(--text-dim);
       text-transform: uppercase;
-      letter-spacing: 1.5px;
-      margin-bottom: 5px;
-      padding-bottom: 4px;
+      letter-spacing: 1.2px;
+      margin-bottom: 4px;
+      padding-bottom: 3px;
       border-bottom: 1px solid var(--border);
     }
     .ws-schedule-list { text-align: left; }
@@ -862,13 +861,13 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 4px 0;
+      padding: 3px 0;
       border-bottom: 1px solid var(--border);
-      font-size: 12.5px;
+      font-size: 11.5px;
     }
     .ws-schedule-item:last-child { border-bottom: none; }
     .ws-schedule-date { color: var(--text-dim); font-weight: 700; white-space: nowrap; flex-shrink: 0; }
-    .ws-schedule-name { color: var(--text); font-weight: 800; text-align: right; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-left: 10px; }
+    .ws-schedule-name { color: var(--text); font-weight: 800; text-align: right; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-left: 8px; }
     .ws-schedule-item:first-child .ws-schedule-name { color: var(--primary); }
     .ws-schedule-item:first-child .ws-schedule-date { color: var(--primary); }
 
@@ -876,15 +875,15 @@
     .ws-items-group {
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      margin: 6px 0 10px 0;
+      gap: 6px;
+      margin: 0 0 8px 0;
       width: 100%;
     }
     .ws-item {
-      background: rgba(255, 255, 255, 0.035);
-      padding: 7px 12px;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.03);
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
       text-align: left;
       box-sizing: border-box;
     }
@@ -892,7 +891,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 11px;
+      font-size: 9.5px;
       font-weight: 700;
       color: var(--text-dim);
       text-transform: uppercase;
@@ -901,41 +900,39 @@
     .ws-item-label span:last-child {
       color: var(--primary);
       font-weight: 800;
-      font-size: 12px;
+      font-size: 11px;
     }
     .ws-bar-wrap {
       background: var(--surface-2);
-      border-radius: 6px;
-      height: 7px;
+      border-radius: 4px;
+      height: 5px;
       border: 1px solid var(--border);
       overflow: hidden;
-      margin: 4px 0 3px 0;
+      margin: 3px 0 2px 0;
       position: relative;
     }
     .ws-bar-fill {
       background: linear-gradient(90deg, var(--red), var(--primary));
       height: 100%;
       width: 0%;
-      border-radius: 6px;
+      border-radius: 4px;
       transition: width 1s ease;
     }
     .ws-status-text {
       color: var(--text);
-      font-size: 11px;
+      font-size: 9.5px;
       font-style: italic;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      margin-top: 2px;
     }
 
     .ws-actions {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 8px;
-      margin-top: auto;
-      padding-top: 6px;
+      gap: 5px;
+      margin-top: 4px;
       width: 100%;
     }
     .ws-donate {
@@ -944,15 +941,15 @@
       justify-content: center;
       width: 100%;
       max-width: 320px;
-      padding: 10px 20px;
+      padding: 9px 18px;
       background: var(--primary);
       color: var(--on-primary);
       font-weight: 800;
-      font-size: 13.5px;
-      border-radius: 10px;
+      font-size: 12.5px;
+      border-radius: 8px;
       text-decoration: none;
       transition: background 0.2s, transform 0.1s;
-      box-shadow: 0 4px 16px rgba(var(--primary-rgb), 0.35);
+      box-shadow: 0 4px 14px rgba(var(--primary-rgb), 0.35);
       box-sizing: border-box;
     }
     .ws-donate:hover { filter: brightness(0.92); }
@@ -963,63 +960,31 @@
       color: var(--text-dim);
       text-decoration: underline;
       font-family: inherit;
-      font-size: 12px;
+      font-size: 11px;
       cursor: pointer;
-      padding: 4px 8px;
+      padding: 3px 6px;
       transition: color 0.2s;
     }
     .ws-skip-btn:hover { color: var(--text); }
 
-    /* 🚀 EMBEDDED TURNKEY IFRAME & MOBILE FULL OCCUPATION MODE */
-    /* Seamlessly occupies 100% of the iframe frame without floating gaps or scrolling */
+    /* 🚀 EMBEDDED TURNKEY IFRAME & MOBILE CLEAN SCALING */
+    /* Preserves clean card aspect ratio with balanced padding and zero cutoffs */
     body.is-embedded #workshopOverlay,
-    #workshopOverlay.ws-compact {
-      padding: 16px 18px 14px;
-      justify-content: space-between;
-      align-items: center;
-      background: var(--surface);
-      overflow-y: auto;
-      overflow-x: hidden;
-    }
-    body.is-embedded .ws-card,
-    #workshopOverlay.ws-compact .ws-card {
-      padding: 0;
-      max-width: 100%;
-      width: 100%;
-      height: 100%;
-      max-height: 100%;
-      margin: 0;
-      border: none;
-      border-radius: 0;
-      box-shadow: none;
-      background: transparent;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
+    #workshopOverlay.ws-compact,
     @media (max-width: 680px), (max-height: 850px) {
       #workshopOverlay {
-        padding: 14px 16px 12px;
-        justify-content: space-between;
+        padding: 10px 12px;
+        justify-content: center;
         align-items: center;
-        background: var(--surface);
         overflow-y: auto;
-        overflow-x: hidden;
       }
       .ws-card {
-        padding: 0;
-        max-width: 100%;
+        max-width: 440px;
         width: 100%;
-        height: 100%;
-        max-height: 100%;
-        margin: 0;
-        border: none;
-        border-radius: 0;
-        box-shadow: none;
-        background: transparent;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
+        margin: auto;
+        padding: 16px 14px 12px;
+        border-radius: 14px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
       }
     }
 
