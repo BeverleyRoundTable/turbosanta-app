@@ -2085,7 +2085,7 @@
       const AppConfig = {
         API: { REFRESH_MS: 6000, REFRESH_MAX_MS: 60000, STALE_MS: 5 * 60 * 1000, MOTION_WINDOW_MS: 60 * 1000, MOVE_THRESHOLD_METERS: 8, MIN_FIXES_FOR_ETA: 3, MIN_ETA_WINDOW_MS: 15 * 1000 },
         NOTIFICATIONS: { NEAR_DISTANCE_METERS: 250, PASSED_DISTANCE_OFFSET: 150 },
-        GPX: { AHEAD: 80, BACK: 5, EARLY_EXIT_METERS: 25, TAIL_METERS: 150 },
+        GPX: { AHEAD: 140, BACK: 8, EARLY_EXIT_METERS: 150, TAIL_METERS: 150 },
         SNOW: { ETA_MINUTES_MAX: 15, LEVELS: { LIGHT: 1, HEAVY: 2, BLIZZARD: 3 }, MOBILE_BASE_COUNT: 30, DESKTOP_BASE_COUNT: 60, MULTIPLIERS: [0, 1, 2.5, 5] },
         BATTERY: { LOW: 0.4, CRITICAL: 0.2, FRAME_SKIP: { LOW: 2, CRITICAL: 3 } },
         LOCATIONS: { LAPLAND: [66.5436, 25.8473] },
@@ -2247,7 +2247,38 @@
         }
       }
 
-      function snapToGpxIndex(pos, searchOpts) { if (!AppState.gpxRoute) return null; const { AHEAD, BACK, EARLY_EXIT_METERS } = searchOpts || AppConfig.GPX; const isGlobalSearch = !searchOpts; const start = isGlobalSearch ? 0 : Math.max(0, AppState.vars.lastSnapIndex - BACK); const end = isGlobalSearch ? AppState.gpxRoute.length - 1 : Math.min(AppState.gpxRoute.length - 1, AppState.vars.lastSnapIndex + AHEAD); let bestIndex = isGlobalSearch ? 0 : AppState.vars.lastSnapIndex; let bestDist = Infinity; for (let i = start; i <= end; i++) { const d = Utils.haversineMeters(pos, AppState.gpxRoute[i]); if (d < bestDist) { bestDist = d; bestIndex = i; } if (!isGlobalSearch && i > AppState.vars.lastSnapIndex && d > bestDist + EARLY_EXIT_METERS) break; } if (!isGlobalSearch) AppState.vars.lastSnapIndex = bestIndex; return { point: AppState.gpxRoute[bestIndex], distance: bestDist }; }
+      function snapToGpxIndex(pos, searchOpts) {
+        if (!AppState.gpxRoute || !AppState.gpxRoute.length) return null;
+        const { AHEAD, BACK } = searchOpts || AppConfig.GPX;
+        const isGlobalSearch = !searchOpts;
+        const start = isGlobalSearch ? 0 : Math.max(0, AppState.vars.lastSnapIndex - BACK);
+        const end = isGlobalSearch ? AppState.gpxRoute.length - 1 : Math.min(AppState.gpxRoute.length - 1, AppState.vars.lastSnapIndex + AHEAD);
+        let bestIndex = isGlobalSearch ? 0 : AppState.vars.lastSnapIndex;
+        let bestScore = Infinity;
+        let bestDist = Infinity;
+        for (let i = start; i <= end; i++) {
+          const d = Utils.haversineMeters(pos, AppState.gpxRoute[i]);
+          // Slight forward preference on overlapping cul-de-sac legs so outbound traversal advances cleanly
+          const score = (!isGlobalSearch && i < AppState.vars.lastSnapIndex) ? (d + 8) : d;
+          if (score < bestScore - 0.5) {
+            bestScore = score;
+            bestDist = d;
+            bestIndex = i;
+          }
+        }
+        // If local window missed (e.g. viewer opened map mid-route or after a deep cul-de-sac), recover via full-route search
+        if (!isGlobalSearch && bestDist > 45) {
+          for (let i = 0; i < AppState.gpxRoute.length; i++) {
+            const d = Utils.haversineMeters(pos, AppState.gpxRoute[i]);
+            if (d < bestDist) {
+              bestDist = d;
+              bestIndex = i;
+            }
+          }
+        }
+        if (!isGlobalSearch && bestDist <= 60) AppState.vars.lastSnapIndex = bestIndex;
+        return { point: AppState.gpxRoute[bestIndex], distance: bestDist };
+      }
 
       function gpxPastCoords(idx, lngFirst) {
         const r = AppState.gpxRoute; if (!r || idx < 1) return [];
@@ -2733,6 +2764,8 @@
         currentStreet: '',
         nextStreet: '',
         currentIndex: -1,
+        lastRoadMatchedIdx: -1,
+        lastRoadMatchedSnap: -1,
         allStreets: [],
         activeRouteId: null,
 
@@ -2743,12 +2776,16 @@
             return this.allStreets;
           }
           this.activeRouteId = rId;
+          this.lastRoadMatchedIdx = -1;
+          this.lastRoadMatchedSnap = -1;
           let list = [];
 
-          // 1. From payload streets table
+          // 1. From payload streets table (explicitly sorted by sequence_order then id)
           if (AppState.vars.latestApiData?.streets && Array.isArray(AppState.vars.latestApiData.streets)) {
             const match = AppState.vars.latestApiData.streets
               .filter(s => String(s.route_id) === String(route.id))
+              .slice()
+              .sort((a, b) => (Number(a.sequence_order) || 0) - (Number(b.sequence_order) || 0) || (Number(a.id) || 0) - (Number(b.id) || 0))
               .map(s => (s.street_name || s.name || '').trim())
               .filter(Boolean);
             if (match.length > 0) list = match;
@@ -2776,7 +2813,7 @@
           return list;
         },
 
-        update(snapIdx, visualPos) {
+        update(snapIdx, visualPos, liveRoadName = '') {
           const route = AppState.vars.activeRoute || AppState.vars.todayRoute;
           const tickerEl = document.getElementById('liveStreetTicker');
           if (!tickerEl) return;
@@ -2804,14 +2841,48 @@
             progress = Math.min(1, Math.max(0, currentDist / totalDist));
           }
 
-          let targetIdx = Math.min(Math.floor(progress * streets.length), streets.length - 1);
+          const progressIdx = Math.min(Math.floor(progress * streets.length), streets.length - 1);
+          let targetIdx = progressIdx;
 
-          // If turn-by-turn road name matches a known street, prioritize exact road match
-          if (TurnByTurn.steps && TurnByTurn.cursor >= 0 && TurnByTurn.steps[TurnByTurn.cursor]) {
-            const road = (TurnByTurn.steps[TurnByTurn.cursor].roadName || '').toLowerCase().trim();
-            if (road) {
-              const matchedIdx = streets.findIndex(st => st.toLowerCase().includes(road) || road.includes(st.toLowerCase()));
-              if (matchedIdx !== -1) targetIdx = matchedIdx;
+          // Determine active road name from live GPS reverse-geocoding, GPX point, or Turn-by-Turn
+          const tbtRoad = (TurnByTurn.steps && TurnByTurn.cursor >= 0 && TurnByTurn.steps[TurnByTurn.cursor])
+            ? (TurnByTurn.steps[TurnByTurn.cursor].roadName || '')
+            : '';
+          const gpxRoad = (typeof snapIdx === 'number' && AppState.gpxRoute && AppState.gpxRoute[snapIdx])
+            ? (AppState.gpxRoute[snapIdx].roadName || '')
+            : '';
+          const road = String(liveRoadName || gpxRoad || tbtRoad || '').toLowerCase().trim();
+
+          if (road) {
+            // Find all candidate indices in the ordered street list that match the live road name
+            const candidates = [];
+            for (let i = 0; i < streets.length; i++) {
+              const st = streets[i].toLowerCase().trim();
+              if (st && (st === road || st.includes(road) || road.includes(st))) {
+                candidates.push(i);
+              }
+            }
+            if (candidates.length > 0) {
+              // Pick candidate closest to our GPX route progress (prevents spine road at index 0 from pulling ticker backward mid-route)
+              let bestCand = candidates[0];
+              let bestDiff = Math.abs(bestCand - progressIdx);
+              for (const c of candidates) {
+                const diff = Math.abs(c - progressIdx);
+                if (diff < bestDiff) {
+                  bestDiff = diff;
+                  bestCand = c;
+                }
+              }
+              const maxAllowedDrift = Math.max(2, Math.ceil(streets.length * 0.35));
+              const isSpineReset = (bestCand === 0 && progress > 0.28 && this.lastRoadMatchedIdx > 0);
+              if (!isSpineReset && (!AppState.flags.gpxLoaded || bestDiff <= maxAllowedDrift)) {
+                targetIdx = bestCand;
+                this.lastRoadMatchedIdx = bestCand;
+                this.lastRoadMatchedSnap = (typeof snapIdx === 'number') ? snapIdx : -1;
+              }
+            } else if (this.lastRoadMatchedIdx >= 0 && typeof snapIdx === 'number' && this.lastRoadMatchedSnap >= 0 && Math.abs(snapIdx - this.lastRoadMatchedSnap) <= 15) {
+              // Hold the recently matched street while briefly turning between cul-de-sacs
+              targetIdx = this.lastRoadMatchedIdx;
             }
           }
 
@@ -3433,7 +3504,8 @@
           }
 
           animateMarkerTo(visualPos.lat, visualPos.lng);
-          if (typeof StreetTracker !== 'undefined') StreetTracker.update(AppState.vars.lastSnapIndex, visualPos);
+          const liveRoadForTicker = data.roadName || data.road_name || (AppState.gpxRoute?.[AppState.vars.lastSnapIndex]?.roadName || '');
+          if (typeof StreetTracker !== 'undefined') StreetTracker.update(AppState.vars.lastSnapIndex, visualPos, liveRoadForTicker);
 
           // --- FADING TAIL LOGIC ---
           if (!AppState.tailFixes) AppState.tailFixes = [];
