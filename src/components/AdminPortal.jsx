@@ -1926,6 +1926,183 @@ ${tableName} Organizers`
   const [isSnapshottingSeason, setIsSnapshottingSeason] = useState(false);
   const [copiedAiDebrief, setCopiedAiDebrief] = useState(false);
 
+  const handleExportSeasonInfographic = async (stats, yr) => {
+    const tableSlug = session?.tableId || session?.tableSlug || 'beverley';
+    const tableName = tableData?.table?.name || formData.name || 'Round Table';
+    const primaryColor = tableData?.table?.primary_color || formData.primary_color || '#FBAF33';
+    const isGiftAid = Boolean(tableData?.table?.enable_gift_aid);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 1080;
+    canvas.height = 1350;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Background Gradient (Deep festive luxury charcoal)
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, 1350);
+    bgGrad.addColorStop(0, '#0a0d14');
+    bgGrad.addColorStop(0.5, '#0e121d');
+    bgGrad.addColorStop(1, '#05070a');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, 1080, 1350);
+
+    // Decorative gold border
+    ctx.strokeStyle = primaryColor;
+    ctx.lineWidth = 6;
+    ctx.strokeRect(30, 30, 1020, 1290);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(40, 40, 1000, 1270);
+
+    // Top Pill Badge
+    ctx.fillStyle = 'rgba(251, 175, 51, 0.15)';
+    ctx.beginPath();
+    ctx.roundRect(330, 70, 420, 44, 22);
+    ctx.fill();
+    ctx.strokeStyle = primaryColor;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.fillStyle = primaryColor;
+    ctx.font = '700 16px "DM Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`✨ OFFICIAL ${yr} SEASON IMPACT REPORT ✨`, 540, 98);
+
+    // Table Title
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '900 46px "Eurostile", "Montserrat", sans-serif';
+    ctx.fillText(tableName.toUpperCase(), 540, 175);
+
+    ctx.fillStyle = primaryColor;
+    ctx.font = '800 24px "Eurostile", sans-serif';
+    ctx.fillText('SANTA SLEIGH TOUR', 540, 215);
+
+    // Divider Line
+    const divGrad = ctx.createLinearGradient(150, 0, 930, 0);
+    divGrad.addColorStop(0, 'rgba(251, 175, 51, 0)');
+    divGrad.addColorStop(0.5, primaryColor);
+    divGrad.addColorStop(1, 'rgba(251, 175, 51, 0)');
+    ctx.fillStyle = divGrad;
+    ctx.fillRect(150, 245, 780, 3);
+
+    // Function to draw a metric card
+    const drawCard = (x, y, w, h, icon, title, mainVal, subVal, accentColor) => {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.035)';
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, 20);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.textAlign = 'left';
+      ctx.fillStyle = accentColor;
+      ctx.font = '700 16px "DM Mono", monospace';
+      ctx.fillText(`${icon} ${title.toUpperCase()}`, x + 30, y + 45);
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '900 50px "Eurostile", sans-serif';
+      ctx.fillText(mainVal, x + 30, y + 115);
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+      ctx.font = '500 18px "Open Sans", sans-serif';
+      ctx.fillText(subVal, x + 30, y + 155);
+    };
+
+    // 4 Key Grid Cards (2x2)
+    const raisedStr = `£${Number(stats?.raised || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    const raisedSub = stats?.target ? `${Math.round(((stats.raised || 0) / stats.target) * 100)}% of £${stats.target.toLocaleString()} target` : `${stats?.donationCount || 1} community gifts`;
+    drawCard(70, 280, 455, 195, '💰', 'Total Raised', raisedStr, raisedSub, primaryColor);
+
+    if (isGiftAid && (stats?.giftAid || 0) > 0) {
+      const gaStr = `+£${Number(stats.giftAid).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+      drawCard(555, 280, 455, 195, '🎁', 'HMRC Gift Aid Uplift', gaStr, '25% extra reclaimed for causes', '#22c55e');
+    } else {
+      const netStr = `£${Number(stats?.netRaised || stats?.raised || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+      drawCard(555, 280, 455, 195, '❤️', 'Net Charitable Yield', netStr, '100% directly to local causes', '#22c55e');
+    }
+
+    const routeStr = `${stats?.routes || 0} Routes`;
+    const routeSub = `${stats?.milesDriven || 0} miles · ${stats?.streets || 0} streets visited`;
+    drawCard(70, 505, 455, 195, '🛷', 'Sleigh Coverage', routeStr, routeSub, '#38bdf8');
+
+    const volStr = `${stats?.volunteers || 0} Elves`;
+    const volSub = `~${stats?.volunteerHours || 0} volunteer hours deployed`;
+    drawCard(555, 505, 455, 195, '⚡', 'Volunteer Power', volStr, volSub, '#f472b6');
+
+    // Wide Centerpiece Card: Community Giving
+    ctx.fillStyle = 'rgba(251, 175, 51, 0.06)';
+    ctx.beginPath();
+    ctx.roundRect(70, 730, 940, 220, 22);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(251, 175, 51, 0.35)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = primaryColor;
+    ctx.font = '800 20px "DM Mono", monospace';
+    ctx.fillText('🤝 LOCAL COMMUNITY IMPACT & GOOD CAUSES', 540, 780);
+
+    const causesCount = stats?.causesCount || (stats?.grantsAwarded > 0 ? 1 : 0);
+    const causesText = causesCount > 0 
+      ? `£${Number(stats.grantsAwarded || stats.netRaised || 0).toLocaleString()} Awarded Across ${causesCount} Local Good Causes`
+      : '100% of proceeds fund local community youth, elderly & hardship projects';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '800 32px "Eurostile", sans-serif';
+    ctx.fillText(causesText, 540, 835);
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.font = '500 20px "Open Sans", sans-serif';
+    ctx.fillText('Every single penny raised goes directly back into making a difference in our community.', 540, 885);
+
+    // Channel Velocity & Digital Reach Banner
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+    ctx.beginPath();
+    ctx.roundRect(70, 980, 940, 150, 18);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.font = '700 14px "DM Mono", monospace';
+    ctx.fillText('COLLECTION CHANNELS & COMMUNITY ENGAGEMENT', 105, 1020);
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '700 22px "Open Sans", sans-serif';
+    const digitalPct = stats?.raised > 0 ? Math.round(((stats.digitalRaised || 0) / stats.raised) * 100) : 0;
+    const cashPct = 100 - digitalPct;
+    ctx.fillText(`💳 Digital/Card: ${digitalPct}%   ·   🪙 Cash Buckets: ${cashPct}%   ·   📡 ${stats?.subscribers || 0} Families Tracked Live`, 105, 1065);
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.font = '500 16px "Open Sans", sans-serif';
+    ctx.fillText('Real-time GPS tracking enabled families to step outside right as Santa turned their street.', 105, 1100);
+
+    // Bottom Thank You Slate
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '800 24px "Eurostile", sans-serif';
+    ctx.fillText('THANK YOU TO EVERY RESIDENT, DONOR & VOLUNTEER! 🎅', 540, 1200);
+
+    ctx.fillStyle = primaryColor;
+    ctx.font = '700 18px "DM Mono", monospace';
+    ctx.fillText(`${tableSlug}.roundtablesantasleigh.co.uk`, 540, 1240);
+
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${tableSlug}-season-wrap-${yr}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  };
+
   const handleSnapshotSeason = async () => {
     const tableSlug = session?.tableId || session?.tableSlug || 'beverley';
     const routes = tableData?.routes || [];
@@ -5979,12 +6156,23 @@ ${tableName} Organizers`
                     href={`https://${encodeURIComponent(tableSlug)}.roundtablesantasleigh.co.uk/season-wrap`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn-primary"
-                    style={{ padding: '9px 18px', fontSize: '13px', textDecoration: 'none' }}
+                    className="btn-secondary"
+                    style={{ padding: '9px 16px', fontSize: '13px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                   >
                     <Printer size={15} />
                     <span>Printable Season Wrap (PDF)</span>
                   </a>
+
+                  <button
+                    type="button"
+                    onClick={() => handleExportSeasonInfographic(currentStats, activeSeasonKey)}
+                    className="btn-primary"
+                    style={{ padding: '9px 18px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    title="Export 1080x1350 PNG impact infographic for Facebook and Instagram"
+                  >
+                    <Download size={15} />
+                    <span>Download Season Infographic (PNG)</span>
+                  </button>
                 </div>
               </div>
 
