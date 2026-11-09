@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Calendar, Clock, MapPin, Building2, Save, Trash2, UploadCloud, FileText, CheckCircle2, Navigation, ExternalLink, Sparkles, Plus } from 'lucide-react';
+import { X, Calendar, Clock, MapPin, Building2, Save, Trash2, UploadCloud, FileText, CheckCircle2, Navigation, ExternalLink, Sparkles, Plus, Heart } from 'lucide-react';
 import DropzoneUpload from './DropzoneUpload';
 import { uploadAssetToR2 } from '../services/api';
 import { extractRouteSponsors } from '../utils/sponsors';
@@ -344,10 +344,10 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
     }
   };
 
-  const handleAddSponsor = () => {
+  const handleAddSponsor = (defaultType = 'sponsor') => {
     setSponsors(prev => [
       ...prev,
-      { name: '', link: '', description: '', logo_url: '' }
+      { type: defaultType === 'charity' ? 'charity' : 'sponsor', name: '', link: '', description: '', logo_url: '' }
     ]);
   };
 
@@ -411,6 +411,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
 
     const validSponsors = sponsors
       .map(s => ({
+        type: (s.type || 'sponsor').toLowerCase().trim() === 'charity' ? 'charity' : 'sponsor',
         name: (s.name || '').trim(),
         link: (s.link || '').trim(),
         description: (s.description || '').trim(),
@@ -463,7 +464,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
       notes: finalNotes,
       sponsors: validSponsors,
       sponsors_json: validSponsors.length > 0 ? JSON.stringify(validSponsors) : null,
-      sponsor_name: validSponsors.map(s => s.name).filter(Boolean).join(' • ') || (validSponsors[0]?.name || ''),
+      sponsor_name: validSponsors.filter(s => s.type !== 'charity').map(s => s.name).filter(Boolean).join(' • ') || (validSponsors[0]?.name || ''),
       sponsor_link: validSponsors[0]?.link || '',
       sponsor_description: validSponsors[0]?.description || '',
       sponsor_logo: validSponsors[0]?.logo_url || '',
@@ -1294,7 +1295,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
             </div>
           </div>
 
-          {/* Route Sponsor Section (with Multi-Sponsor Support & Drag & Drop Logo Upload) */}
+          {/* Route Sponsor & Charity Section (with Multi-Sponsor Support & Dropdown Option) */}
           <div style={{
             background: '#0d0d0b',
             border: '1px solid rgba(251, 175, 51, 0.3)',
@@ -1305,29 +1306,56 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
               <h3 className="brand-font" style={{ fontSize: '16px', color: 'var(--primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Building2 size={18} />
-                <span>Route Sponsor Attribution</span>
+                <span>Sponsors & Charity Beneficiaries</span>
                 <span style={{ fontSize: '12px', fontWeight: 'normal', color: sponsors.length ? '#86efac' : 'var(--text-muted)' }}>
-                  {sponsors.length === 0 ? '(0 — Hidden on tracker)' : sponsors.length === 1 ? '(1 sponsor)' : `(${sponsors.length} sponsors)`}
+                  {(() => {
+                    if (sponsors.length === 0) return '(0 — Hidden on tracker)';
+                    const bizCount = sponsors.filter(s => s.type !== 'charity').length;
+                    const charCount = sponsors.filter(s => s.type === 'charity').length;
+                    const parts = [];
+                    if (bizCount > 0) parts.push(`${bizCount} sponsor${bizCount > 1 ? 's' : ''}`);
+                    if (charCount > 0) parts.push(`${charCount} charity${charCount > 1 ? ' charities' : ''}`);
+                    return `(${parts.join(', ')})`;
+                  })()}
                 </span>
               </h3>
 
-              <button
-                type="button"
-                onClick={handleAddSponsor}
-                className="btn-secondary"
-                style={{
-                  padding: '6px 12px',
-                  fontSize: '12px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  borderColor: 'var(--primary)',
-                  color: 'var(--primary)'
-                }}
-              >
-                <Plus size={14} />
-                <span>Add Sponsor</span>
-              </button>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => handleAddSponsor('sponsor')}
+                  className="btn-secondary"
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    borderColor: 'var(--primary)',
+                    color: 'var(--primary)'
+                  }}
+                >
+                  <Plus size={14} />
+                  <span>Add Sponsor</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAddSponsor('charity')}
+                  className="btn-secondary"
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    borderColor: 'rgba(244, 114, 182, 0.6)',
+                    color: '#f472b6'
+                  }}
+                >
+                  <Heart size={13} />
+                  <span>Add Charity</span>
+                </button>
+              </div>
             </div>
 
             {sponsors.length === 0 ? (
@@ -1341,152 +1369,226 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                 fontSize: '13px'
               }}>
                 <p style={{ margin: '0 0 10px 0' }}>
-                  No sponsors assigned to this route. If this night has local business sponsors (or multiple co-sponsors), click below to add them.
+                  No sponsors or beneficiary charities assigned to this route. You can add local businesses sponsoring tonight's route, and/or attribute tonight's collection to a chosen local charity cause.
                 </p>
                 <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>
-                  When left empty, the sponsor section will be completely hidden from the public tracker for this route.
+                  When left empty, the sponsor spotlight will be completely hidden from the public tracker for this route.
                 </p>
-                <button
-                  type="button"
-                  onClick={handleAddSponsor}
-                  className="btn-secondary"
-                  style={{ padding: '6px 14px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <Plus size={14} />
-                  <span>Add Sponsor to Route</span>
-                </button>
+                <div style={{ display: 'inline-flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleAddSponsor('sponsor')}
+                    className="btn-secondary"
+                    style={{ padding: '6px 14px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px', borderColor: 'var(--primary)', color: 'var(--primary)' }}
+                  >
+                    <Plus size={14} />
+                    <span>Add Business Sponsor</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddSponsor('charity')}
+                    className="btn-secondary"
+                    style={{ padding: '6px 14px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px', borderColor: 'rgba(244, 114, 182, 0.6)', color: '#f472b6' }}
+                  >
+                    <Heart size={13} />
+                    <span>Add Charity Beneficiary</span>
+                  </button>
+                </div>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {sponsors.map((sp, idx) => (
-                  <div key={idx} style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: '10px',
-                    padding: '16px'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
-                        Sponsor #{idx + 1}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSponsor(idx)}
-                        className="btn-secondary"
-                        style={{
-                          padding: '4px 8px',
-                          fontSize: '11px',
-                          color: '#fca5a5',
-                          borderColor: 'rgba(239, 68, 68, 0.3)',
+                {sponsors.map((sp, idx) => {
+                  const isCharity = sp.type === 'charity';
+                  return (
+                    <div key={idx} style={{
+                      background: isCharity ? 'rgba(244, 114, 182, 0.04)' : 'rgba(255, 255, 255, 0.03)',
+                      border: isCharity ? '1px solid rgba(244, 114, 182, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '10px',
+                      padding: '16px'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <span style={{
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          color: isCharity ? '#f472b6' : 'var(--primary)',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.8px',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '4px'
-                        }}
-                      >
-                        <Trash2 size={12} />
-                        <span>Remove</span>
-                      </button>
-                    </div>
-
-                    <div style={{ display: 'grid', gap: '12px' }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                            Sponsor Company Name
-                          </label>
-                          <input
-                            type="text"
-                            value={sp.name}
-                            onChange={(e) => handleUpdateSponsor(idx, 'name', e.target.value)}
-                            placeholder="e.g. Acme Plumbing Ltd"
-                            style={{
-                              width: '100%',
-                              background: '#151513',
-                              border: '1px solid var(--border)',
-                              borderRadius: '6px',
-                              padding: '8px 12px',
-                              color: '#fff',
-                              fontSize: '14px',
-                              boxSizing: 'border-box'
-                            }}
-                          />
-                        </div>
-
-                        <div>
-                          <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                            Sponsor Website Link
-                          </label>
-                          <input
-                            type="url"
-                            value={sp.link}
-                            onChange={(e) => handleUpdateSponsor(idx, 'link', e.target.value)}
-                            placeholder="https://example.co.uk"
-                            style={{
-                              width: '100%',
-                              background: '#151513',
-                              border: '1px solid var(--border)',
-                              borderRadius: '6px',
-                              padding: '8px 12px',
-                              color: '#fff',
-                              fontSize: '14px',
-                              boxSizing: 'border-box'
-                            }}
-                          />
-                        </div>
+                          gap: '6px'
+                        }}>
+                          {isCharity ? <Heart size={14} /> : <Building2 size={14} />}
+                          {isCharity ? `Beneficiary Charity #${idx + 1}` : `Business Sponsor #${idx + 1}`}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSponsor(idx)}
+                          className="btn-secondary"
+                          style={{
+                            padding: '4px 8px',
+                            fontSize: '11px',
+                            color: '#fca5a5',
+                            borderColor: 'rgba(239, 68, 68, 0.3)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <Trash2 size={12} />
+                          <span>Remove</span>
+                        </button>
                       </div>
 
-                      <div>
-                        <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                          Sponsor Promotional Note (Displays on Tonight's Spotlight)
-                        </label>
-                        <input
-                          type="text"
-                          value={sp.description}
-                          onChange={(e) => handleUpdateSponsor(idx, 'description', e.target.value)}
-                          placeholder="Proudly keeping Santa on the road for local charities!"
-                          style={{
-                            width: '100%',
-                            background: '#151513',
-                            border: '1px solid var(--border)',
-                            borderRadius: '6px',
-                            padding: '8px 12px',
-                            color: '#fff',
-                            fontSize: '14px',
-                            boxSizing: 'border-box'
-                          }}
+                      <div style={{ display: 'grid', gap: '12px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                          <div>
+                            <label style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              color: isCharity ? '#f472b6' : 'var(--primary)',
+                              marginBottom: '4px'
+                            }}>
+                              Attribution Type
+                            </label>
+                            <select
+                              value={sp.type || 'sponsor'}
+                              onChange={(e) => handleUpdateSponsor(idx, 'type', e.target.value)}
+                              style={{
+                                width: '100%',
+                                background: '#151513',
+                                border: `1px solid ${isCharity ? 'rgba(244, 114, 182, 0.5)' : 'rgba(251, 175, 51, 0.5)'}`,
+                                borderRadius: '6px',
+                                padding: '8px 12px',
+                                color: '#fff',
+                                fontSize: '14px',
+                                boxSizing: 'border-box'
+                              }}
+                            >
+                              <option value="sponsor">🏢 Route Sponsor (Business Partner)</option>
+                              <option value="charity">❤️ Charity Beneficiary (Tonight's Collection Cause)</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                              {isCharity ? 'Charity / Good Cause Name' : 'Sponsor Company Name'}
+                            </label>
+                            <input
+                              type="text"
+                              value={sp.name}
+                              onChange={(e) => handleUpdateSponsor(idx, 'name', e.target.value)}
+                              placeholder={isCharity ? "e.g. Daisy Chain Autism Charity or Foodbank" : "e.g. Acme Plumbing Ltd"}
+                              style={{
+                                width: '100%',
+                                background: '#151513',
+                                border: '1px solid var(--border)',
+                                borderRadius: '6px',
+                                padding: '8px 12px',
+                                color: '#fff',
+                                fontSize: '14px',
+                                boxSizing: 'border-box'
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                              {isCharity ? 'Charity Website or Donate Link' : 'Sponsor Website Link'}
+                            </label>
+                            <input
+                              type="url"
+                              value={sp.link}
+                              onChange={(e) => handleUpdateSponsor(idx, 'link', e.target.value)}
+                              placeholder={isCharity ? "https://daisychainproject.co.uk" : "https://example.co.uk"}
+                              style={{
+                                width: '100%',
+                                background: '#151513',
+                                border: '1px solid var(--border)',
+                                borderRadius: '6px',
+                                padding: '8px 12px',
+                                color: '#fff',
+                                fontSize: '14px',
+                                boxSizing: 'border-box'
+                              }}
+                            />
+                          </div>
+
+                          <div>
+                            <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                              {isCharity ? "Charity Note (Displays on Tonight's Spotlight)" : "Sponsor Note (Displays on Tonight's Spotlight)"}
+                            </label>
+                            <input
+                              type="text"
+                              value={sp.description}
+                              onChange={(e) => handleUpdateSponsor(idx, 'description', e.target.value)}
+                              placeholder={isCharity ? "All bucket and card donations collected on tonight's route support this cause!" : "Proudly keeping Santa on the road for local charities!"}
+                              style={{
+                                width: '100%',
+                                background: '#151513',
+                                border: '1px solid var(--border)',
+                                borderRadius: '6px',
+                                padding: '8px 12px',
+                                color: '#fff',
+                                fontSize: '14px',
+                                boxSizing: 'border-box'
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <DropzoneUpload
+                          label={isCharity ? "Charity Logo (.png)" : "Sponsor Logo (.png)"}
+                          currentImage={sp.logo_url}
+                          tableSlug={tableSlug}
+                          onImageSelected={(url) => handleUpdateSponsor(idx, 'logo_url', url)}
+                          helperText={isCharity ? "Upload charity or good cause transparent logo directly." : "Upload sponsor's transparent logo directly (No GitHub upload required!)."}
                         />
                       </div>
-
-                      <DropzoneUpload
-                        label="Sponsor Logo (.png)"
-                        currentImage={sp.logo_url}
-                        tableSlug={tableSlug}
-                        onImageSelected={(url) => handleUpdateSponsor(idx, 'logo_url', url)}
-                        helperText="Upload sponsor's transparent logo directly (No GitHub upload required!)."
-                      />
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
 
-                <button
-                  type="button"
-                  onClick={handleAddSponsor}
-                  className="btn-secondary"
-                  style={{
-                    padding: '8px 14px',
-                    fontSize: '13px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    borderColor: 'var(--primary)',
-                    color: 'var(--primary)',
-                    marginTop: '4px'
-                  }}
-                >
-                  <Plus size={15} />
-                  <span>Add Another Sponsor</span>
-                </button>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '4px' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleAddSponsor('sponsor')}
+                    className="btn-secondary"
+                    style={{
+                      padding: '8px 14px',
+                      fontSize: '13px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      borderColor: 'var(--primary)',
+                      color: 'var(--primary)'
+                    }}
+                  >
+                    <Plus size={15} />
+                    <span>Add Another Sponsor</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddSponsor('charity')}
+                    className="btn-secondary"
+                    style={{
+                      padding: '8px 14px',
+                      fontSize: '13px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      borderColor: 'rgba(244, 114, 182, 0.6)',
+                      color: '#f472b6'
+                    }}
+                  >
+                    <Heart size={14} />
+                    <span>Add Another Charity</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>

@@ -325,6 +325,10 @@
       display: block;
       filter: drop-shadow(0 1px 2px rgba(0,0,0,0.35));
     }
+    .route-sponsor.is-charity {
+      border-color: rgba(244, 114, 182, 0.45);
+      box-shadow: 0 6px 22px rgba(0,0,0,0.5), 0 0 0 1px rgba(244, 114, 182, 0.2);
+    }
 
     /* Hide where it would clash */
     body.kiosk .route-sponsor,
@@ -1383,10 +1387,15 @@
       // Top-level helper so both normalizeApiData() and initTrackerMap() can call it safely
       function extractRouteSponsors(r) {
         if (!r) return [];
+        function normType(t) {
+          const s = String(t || 'sponsor').toLowerCase().trim();
+          return s === 'charity' ? 'charity' : 'sponsor';
+        }
         if (Array.isArray(r.sponsors) && r.sponsors.length > 0) {
           const valid = r.sponsors
             .filter(s => s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url))
             .map(s => ({
+              type: normType(s.type),
               name: (s.name || s.sponsor_name || '').trim(),
               logo_url: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
               link: (s.link || s.sponsor_link || '').trim(),
@@ -1401,6 +1410,7 @@
               const valid = parsed
                 .filter(s => s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url))
                 .map(s => ({
+                  type: normType(s.type),
                   name: (s.name || s.sponsor_name || '').trim(),
                   logo_url: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
                   link: (s.link || s.sponsor_link || '').trim(),
@@ -1420,6 +1430,7 @@
                 const valid = parsed
                   .filter(s => s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url))
                   .map(s => ({
+                    type: normType(s.type),
                     name: (s.name || s.sponsor_name || '').trim(),
                     logo_url: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
                     link: (s.link || s.sponsor_link || '').trim(),
@@ -1435,6 +1446,7 @@
           const parts = rawName.split(/\s*(?:•|\|)\s*/).filter(Boolean);
           if (parts.length > 1) {
             return parts.map((pName, idx) => ({
+              type: 'sponsor',
               name: pName.trim(),
               logo_url: idx === 0 ? (r.sponsor_logo || r.sponsor_logo_url || r.sponsorLogo || r.sponsorUrl || '').trim() : '',
               link: idx === 0 ? (r.sponsor_link || r.sponsorLink || '').trim() : '',
@@ -1444,6 +1456,7 @@
         }
         if (rawName || r.sponsor_logo || r.sponsor_logo_url || r.sponsorLogo || r.sponsorUrl) {
           return [{
+            type: 'sponsor',
             name: rawName,
             logo_url: (r.sponsor_logo || r.sponsor_logo_url || r.sponsorLogo || r.sponsorUrl || '').trim(),
             link: (r.sponsor_link || r.sponsorLink || '').trim(),
@@ -4050,9 +4063,12 @@
             if (validKioskSponsors.length > 0) {
               let kIdx = 0;
               const renderKioskSponsor = (sp) => {
+                const isCharity = sp.type === 'charity';
+                const prefix = isCharity ? 'Supporting Charity' : 'Proudly sponsored by';
                 AppState.dom.sponsorBox.innerHTML = '';
                 const span = document.createElement('span');
-                span.textContent = validKioskSponsors.length > 1 ? `Proudly sponsored by (${kIdx + 1}/${validKioskSponsors.length})` : 'Proudly sponsored by';
+                span.textContent = validKioskSponsors.length > 1 ? `${prefix} (${kIdx + 1}/${validKioskSponsors.length})` : prefix;
+                if (isCharity) span.style.color = '#f472b6';
                 AppState.dom.sponsorBox.appendChild(span);
                 if (sp.logo_url && Utils.isValidImageUrl(sp.logo_url)) {
                   const img = document.createElement('img');
@@ -4095,14 +4111,22 @@
                 rs.classList.add('sponsor-fading');
 
                 setTimeout(() => {
+                  const isCharity = sp.type === 'charity';
+                  if (isCharity) {
+                    rs.classList.add('is-charity');
+                  } else {
+                    rs.classList.remove('is-charity');
+                  }
+
                   rs.innerHTML = '';
                   const span = document.createElement('span');
-                  span.textContent = 'Sponsored by';
+                  span.textContent = isCharity ? '❤️ Supporting' : 'Sponsored by';
+                  if (isCharity) span.style.color = '#f472b6';
                   rs.appendChild(span);
 
                   if (sp.logo_url && Utils.isValidImageUrl(sp.logo_url)) {
                     const img = document.createElement('img');
-                    img.alt = sp.name ? `${sp.name} logo` : 'Sponsor logo';
+                    img.alt = sp.name ? `${sp.name} logo` : (isCharity ? 'Charity logo' : 'Sponsor logo');
                     img.onerror = () => {
                       img.style.display = 'none';
                       if (!sp.name) {
@@ -4123,7 +4147,10 @@
                     rs.appendChild(strong);
                   }
 
-                  if (sp.name) rs.setAttribute('aria-label', `Tonight's route sponsor: ${sp.name}`);
+                  if (sp.name) {
+                    rs.setAttribute('aria-label', isCharity ? `Tonight's collection supports: ${sp.name}` : `Tonight's route sponsor: ${sp.name}`);
+                    rs.title = sp.description ? `${sp.name} — ${sp.description}` : sp.name;
+                  }
                   if (sp.link) {
                     rs.href = sp.link;
                   } else {

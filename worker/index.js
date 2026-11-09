@@ -1744,6 +1744,7 @@ export default {
           }];
         }
         sponsors = sponsors.map(s => ({
+          type: (s.type || 'sponsor').toLowerCase().trim() === 'charity' ? 'charity' : 'sponsor',
           name: s.name || s.sponsor_name || '',
           logo_url: s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '',
           link: s.link || s.sponsor_link || '',
@@ -3173,6 +3174,7 @@ export default {
         }
 
         sponsorsList = sponsorsList.map(s => ({
+          type: (s.type || 'sponsor').toLowerCase().trim() === 'charity' ? 'charity' : 'sponsor',
           name: (s.name || s.sponsor_name || '').trim(),
           logo_url: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
           link: (s.link || s.sponsor_link || '').trim(),
@@ -3180,8 +3182,8 @@ export default {
         }));
 
         const sponsorsJson = sponsorsList.length > 0 ? JSON.stringify(sponsorsList) : null;
-        const primarySponsor = sponsorsList[0] || {};
-        const sponsorName = sponsorsList.map(s => s.name).filter(Boolean).join(' • ') || (primarySponsor.name || rawSponsorName || "");
+        const primarySponsor = sponsorsList.find(s => s.type !== 'charity') || sponsorsList[0] || {};
+        const sponsorName = sponsorsList.filter(s => s.type !== 'charity').map(s => s.name).filter(Boolean).join(' • ') || (primarySponsor.name || rawSponsorName || "");
         const sponsorLogo = primarySponsor.logo_url || r.sponsor_logo_url || r.sponsor_logo || r.sponsorLogo || "";
         const sponsorLink = primarySponsor.link || r.sponsor_link || r.sponsorLink || "";
         const sponsorDesc = primarySponsor.description || r.sponsor_description || r.sponsorDescription || "";

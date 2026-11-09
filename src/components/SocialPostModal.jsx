@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Sparkles, Copy, Check, Share2, MessageCircle, Newspaper, RefreshCw, Video } from 'lucide-react';
 import { getAdminAuthToken } from '../services/auth';
+import { extractRouteSponsors } from '../utils/sponsors';
 
 function generateClientFallbackPosts({ route, tableData, currentTableSlug }) {
   const table = tableData?.table || {};
@@ -18,11 +19,18 @@ function generateClientFallbackPosts({ route, tableData, currentTableSlug }) {
 
   const grants = Array.isArray(tableData?.grants) ? tableData.grants : [];
   const charityNames = grants.map(g => g.org_name || g.organisation_name || g.name).filter(Boolean);
-  const charityText = charityNames.length > 0
-    ? charityNames.slice(0, 3).join(', ')
-    : (table.charity_name || 'local community causes and foodbanks');
 
-  const sponsor = route?.sponsor_name || table.headline_sponsor_name || '';
+  const allSponsors = extractRouteSponsors(route);
+  const routeCharities = allSponsors.filter(s => s.type === 'charity').map(s => s.name).filter(Boolean);
+  const routeBusinesses = allSponsors.filter(s => s.type !== 'charity').map(s => s.name).filter(Boolean);
+
+  const charityText = routeCharities.length > 0
+    ? `tonight's designated charity partner, ${routeCharities.join(' & ')}`
+    : (charityNames.length > 0
+        ? charityNames.slice(0, 3).join(', ')
+        : (table.charity_name || 'local community causes and foodbanks'));
+
+  const sponsor = routeBusinesses.join(' • ') || route?.sponsor_name || table.headline_sponsor_name || '';
   const donateUrl = table.donate_url || (typeof window !== 'undefined' ? window.location.origin : '');
   const cleanTown = (town || 'Local').replace(/[^a-zA-Z0-9]/g, '');
 

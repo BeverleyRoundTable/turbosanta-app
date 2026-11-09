@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Shield, Copy, Check, RefreshCw, Sparkles, Send } from 'lucide-react';
 import { getAdminAuthToken } from '../services/auth';
+import { extractRouteSponsors } from '../utils/sponsors';
 
 function generateClientFallbackBriefing({ route, tableData, currentTableSlug }) {
   const table = tableData?.table || {};
@@ -11,7 +12,13 @@ function generateClientFallbackBriefing({ route, tableData, currentTableSlug }) 
   const musterPoint = route?.muster_point || table.default_muster_point || "Muster Area";
   const musterTime = route?.muster_time || table.default_muster_time || "17:45";
   const startTime = route?.start_time || "18:00";
-  const sponsor = route?.sponsor_name || table.headline_sponsor_name || '';
+
+  const allSponsors = extractRouteSponsors(route);
+  const routeCharities = allSponsors.filter(s => s.type === 'charity').map(s => s.name).filter(Boolean);
+  const routeBusinesses = allSponsors.filter(s => s.type !== 'charity').map(s => s.name).filter(Boolean);
+
+  const sponsor = routeBusinesses.join(' • ') || route?.sponsor_name || table.headline_sponsor_name || '';
+  const charity = routeCharities.join(' & ') || '';
 
   const routeStreets = (Array.isArray(route?.streets) && route.streets.length > 0)
     ? route.streets
@@ -21,7 +28,7 @@ function generateClientFallbackBriefing({ route, tableData, currentTableSlug }) 
   return `### 🛷 ${sleighName} — Volunteer Crew Briefing
 **Route:** ${routeName} | **Date:** ${dateStr}
 **Muster:** ${musterTime} at ${musterPoint} | **Rollout:** ${startTime} promptly
-${sponsor ? `**Route Sponsor:** ${sponsor}\n` : ''}
+${sponsor ? `**Route Sponsor:** ${sponsor}\n` : ''}${charity ? `**Tonight's Beneficiary Charity:** ${charity}\n` : ''}
 ---
 
 ### 1. 🛷 Route & Schedule Overview

@@ -697,14 +697,20 @@ ${tableName} Organizers`
       msg += `🗺️ *Streets (${streetNames.length}):*\n${streetNames.join(', ')}\n\n`;
     }
 
-    const routeSponsors = Array.isArray(route.sponsors) && route.sponsors.length > 0
-      ? route.sponsors.filter(s => s && s.name)
-      : (route.sponsor_name ? [{ name: route.sponsor_name }] : []);
+    const routeSponsors = extractRouteSponsors(route).filter(s => s && s.name);
+    const businesses = routeSponsors.filter(s => s.type !== 'charity');
+    const charities = routeSponsors.filter(s => s.type === 'charity');
 
-    if (routeSponsors.length === 1) {
-      msg += `⭐ *Tonight's Sponsor:* ${routeSponsors[0].name}\n\n`;
-    } else if (routeSponsors.length > 1) {
-      msg += `⭐ *Tonight's Sponsors:* ${routeSponsors.map(s => s.name).join(', ')}\n\n`;
+    if (businesses.length === 1) {
+      msg += `⭐ *Tonight's Sponsor:* ${businesses[0].name}\n\n`;
+    } else if (businesses.length > 1) {
+      msg += `⭐ *Tonight's Sponsors:* ${businesses.map(s => s.name).join(', ')}\n\n`;
+    }
+
+    if (charities.length === 1) {
+      msg += `❤️ *Tonight's Charity Beneficiary:* ${charities[0].name}\n\n`;
+    } else if (charities.length > 1) {
+      msg += `❤️ *Tonight's Beneficiary Charities:* ${charities.map(s => s.name).join(', ')}\n\n`;
     }
 
     msg += `📱 *Live Public Tracker:* ${trackerUrl}\n`;
@@ -3941,13 +3947,22 @@ ${tableName} Organizers`
                                     <strong>Streets:</strong> {routeStreets.map(s => s.street_name).join(', ') || 'None specified'}
                                   </div>
                                   {(() => {
-                                     const routeSponsors = Array.isArray(r.sponsors) && r.sponsors.length > 0
-                                       ? r.sponsors.filter(s => s && s.name)
-                                       : (r.sponsor_name ? [{ name: r.sponsor_name }] : []);
+                                     const routeSponsors = extractRouteSponsors(r).filter(s => s && s.name);
                                      if (routeSponsors.length === 0) return null;
+                                     const businesses = routeSponsors.filter(s => s.type !== 'charity');
+                                     const charities = routeSponsors.filter(s => s.type === 'charity');
                                      return (
-                                       <div style={{ fontSize: '12px', color: '#86efac', marginTop: '6px' }}>
-                                         ⭐ Sponsored by: <strong>{routeSponsors.map(s => s.name).join(' • ')}</strong>
+                                       <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '6px' }}>
+                                         {businesses.length > 0 && (
+                                           <div style={{ fontSize: '12px', color: '#86efac' }}>
+                                             🏢 Sponsored by: <strong>{businesses.map(s => s.name).join(' • ')}</strong>
+                                           </div>
+                                         )}
+                                         {charities.length > 0 && (
+                                           <div style={{ fontSize: '12px', color: '#f472b6' }}>
+                                             ❤️ Charity Beneficiary: <strong>{charities.map(s => s.name).join(' • ')}</strong>
+                                           </div>
+                                         )}
                                        </div>
                                      );
                                    })()}
@@ -4236,13 +4251,22 @@ ${tableName} Organizers`
                                     <strong>Streets:</strong> {routeStreets.map(s => s.street_name).join(', ') || 'None specified'}
                                   </div>
                                   {(() => {
-                                     const routeSponsors = Array.isArray(r.sponsors) && r.sponsors.length > 0
-                                       ? r.sponsors.filter(s => s && s.name)
-                                       : (r.sponsor_name ? [{ name: r.sponsor_name }] : []);
+                                     const routeSponsors = extractRouteSponsors(r).filter(s => s && s.name);
                                      if (routeSponsors.length === 0) return null;
+                                     const businesses = routeSponsors.filter(s => s.type !== 'charity');
+                                     const charities = routeSponsors.filter(s => s.type === 'charity');
                                      return (
-                                       <div style={{ fontSize: '12px', color: '#86efac', marginTop: '6px' }}>
-                                         ⭐ Sponsored by: <strong>{routeSponsors.map(s => s.name).join(' • ')}</strong>
+                                       <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '6px' }}>
+                                         {businesses.length > 0 && (
+                                           <div style={{ fontSize: '12px', color: '#86efac' }}>
+                                             🏢 Sponsored by: <strong>{businesses.map(s => s.name).join(' • ')}</strong>
+                                           </div>
+                                         )}
+                                         {charities.length > 0 && (
+                                           <div style={{ fontSize: '12px', color: '#f472b6' }}>
+                                             ❤️ Charity Beneficiary: <strong>{charities.map(s => s.name).join(' • ')}</strong>
+                                           </div>
+                                         )}
                                        </div>
                                      );
                                    })()}

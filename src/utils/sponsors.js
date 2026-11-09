@@ -10,11 +10,17 @@
 export function extractRouteSponsors(route) {
   if (!route) return [];
 
+  const normalizeType = (t) => {
+    const clean = String(t || 'sponsor').toLowerCase().trim();
+    return clean === 'charity' ? 'charity' : 'sponsor';
+  };
+
   // 1. Array of sponsors already parsed
   if (Array.isArray(route.sponsors) && route.sponsors.length > 0) {
     const valid = route.sponsors
       .filter(s => s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url))
       .map(s => ({
+        type: normalizeType(s.type),
         name: (s.name || s.sponsor_name || '').trim(),
         logo_url: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
         link: (s.link || s.sponsor_link || '').trim(),
@@ -31,6 +37,7 @@ export function extractRouteSponsors(route) {
         const valid = parsed
           .filter(s => s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url))
           .map(s => ({
+            type: normalizeType(s.type),
             name: (s.name || s.sponsor_name || '').trim(),
             logo_url: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
             link: (s.link || s.sponsor_link || '').trim(),
@@ -52,6 +59,7 @@ export function extractRouteSponsors(route) {
           const valid = parsed
             .filter(s => s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url))
             .map(s => ({
+              type: normalizeType(s.type),
               name: (s.name || s.sponsor_name || '').trim(),
               logo_url: (s.logo_url || s.sponsor_logo_url || s.sponsor_logo || '').trim(),
               link: (s.link || s.sponsor_link || '').trim(),
@@ -69,6 +77,7 @@ export function extractRouteSponsors(route) {
     const parts = rawName.split(/\s*(?:•|\|)\s*/).filter(Boolean);
     if (parts.length > 1) {
       return parts.map((pName, idx) => ({
+        type: 'sponsor',
         name: pName.trim(),
         logo_url: idx === 0 ? (route.sponsor_logo || route.sponsor_logo_url || route.sponsorLogo || '').trim() : '',
         link: idx === 0 ? (route.sponsor_link || route.sponsorLink || '').trim() : '',
@@ -80,6 +89,7 @@ export function extractRouteSponsors(route) {
   // 5. Single legacy sponsor
   if (rawName || route.sponsor_logo || route.sponsor_logo_url || route.sponsorLogo) {
     return [{
+      type: 'sponsor',
       name: rawName,
       logo_url: (route.sponsor_logo || route.sponsor_logo_url || route.sponsorLogo || '').trim(),
       link: (route.sponsor_link || route.sponsorLink || '').trim(),
