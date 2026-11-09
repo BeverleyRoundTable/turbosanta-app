@@ -86,6 +86,7 @@
       --red: #D31C1C;
       
       --ui-bottom-safe: 24px; 
+      --ann-offset: 0px;
       
       --donate-bottom: calc(var(--ui-bottom-safe) + 185px);
       --info-bottom: var(--ui-bottom-safe);
@@ -107,10 +108,10 @@
       overflow: hidden; 
       -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
     }
-    #map { position: absolute; inset: 0; z-index: 100; }
+    #map { position: absolute; top: var(--ann-offset, 0px); left: 0; right: 0; bottom: 0; z-index: 100; }
     body.dim-ui #map { filter: brightness(0.85); transition: filter 600ms ease; }
     /* MapLibre satnav map — only used in driver mode */
-    #mlmap { position: absolute; inset: 0; z-index: 100; display: none; }
+    #mlmap { position: absolute; top: var(--ann-offset, 0px); left: 0; right: 0; bottom: 0; z-index: 100; display: none; }
     body.driver-mode #map { display: none; }
     body.driver-mode #mlmap { display: block; }
     /* Hide MapLibre's default attribution control — we'll add a discreet credit elsewhere */
@@ -125,14 +126,75 @@
 
     .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 
+    /* Dedicated top announcement bar outside the map canvas & tracker pill */
+    .announcement-top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 4500;
+      background: linear-gradient(90deg, rgba(20, 20, 17, 0.98), rgba(32, 27, 18, 0.98));
+      border-bottom: 1.5px solid var(--primary);
+      color: var(--primary);
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.3;
+      text-align: center;
+      letter-spacing: 0.02em;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-sizing: border-box;
+    }
+    .announcement-top-bar.is-user-msg {
+      background: linear-gradient(90deg, rgba(35, 12, 48, 0.98), rgba(50, 18, 68, 0.98));
+      border-bottom-color: #c88bff;
+      color: #e6c2ff;
+    }
+    .announcement-top-bar .ann-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(var(--primary-rgb), 0.16);
+      border: 1px solid rgba(var(--primary-rgb), 0.4);
+      color: var(--primary);
+      font-size: 9.5px;
+      font-weight: 900;
+      padding: 2px 6px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .announcement-top-bar.is-user-msg .ann-badge {
+      background: rgba(200, 139, 255, 0.18);
+      border-color: rgba(200, 139, 255, 0.45);
+      color: #e6c2ff;
+    }
+    .announcement-top-bar .ann-text {
+      font-weight: 800;
+      color: #fff;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-align: left;
+    }
+
+    body.is-embedded #shareBtn { display: none !important; }
+
     .status-popup { 
-      position: absolute; top: 20px; left: 50%; transform: translateX(-50%); 
+      position: absolute; top: calc(var(--ann-offset, 0px) + 14px); left: 50%; transform: translateX(-50%); 
       background: rgba(29, 29, 26, 0.95);
       border: 1px solid var(--border);
-      color: var(--text); padding: 12px 18px; font-size: 1.05em; font-weight: 800; 
+      color: var(--text); padding: 10px 16px; font-size: 1.02em; font-weight: 800; 
       border-radius: 14px;
       max-width: 90%; box-shadow: 0 4px 24px rgba(0,0,0,0.5); 
-      z-index: 4000; text-align: center; transition: all 0.4s ease; line-height: 1.4;
+      z-index: 4000; text-align: center; transition: all 0.4s ease; line-height: 1.35;
       overflow: hidden; 
     }
 
@@ -341,10 +403,45 @@
     /* Mobile & Tablet — avoid collisions with centered status popup and zoom buttons */
     @media (max-width: 640px) {
       .status-popup {
-        top: 10px;
-        font-size: 0.9em;
-        padding: 8px 14px;
-        max-width: calc(100vw - 28px);
+        top: calc(var(--ann-offset, 0px) + 8px);
+        font-size: 0.86em;
+        padding: 6px 12px;
+        border-radius: 10px;
+        max-width: calc(100vw - 88px);
+      }
+      .donate-box {
+        width: auto;
+        max-width: calc(100vw - 24px);
+      }
+      .donate-btn {
+        min-height: 34px;
+        padding: 5px 16px;
+        font-size: 12px;
+        border-radius: 999px;
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+      }
+      .info-popup {
+        width: calc(100vw - 16px);
+        padding: 5px 6px;
+        gap: 4px;
+        row-gap: 4px;
+        border-radius: 11px;
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 8px) !important;
+      }
+      .info-popup .btn,
+      .info-popup #msgBtn,
+      .info-popup #notifyBtn,
+      .info-popup #twitchBtn {
+        flex: 1 1 0;
+        padding: 6px 4px;
+        font-size: 11px;
+        white-space: nowrap;
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+        order: 0;
       }
       .route-sponsor {
         right: auto !important;
@@ -578,46 +675,42 @@
     .kiosk-sponsor img { max-height: 34px; max-width: 160px; object-fit: contain; }
     
     @media(max-height:700px){ 
-      :root{ --ui-bottom-safe: calc(20px + env(safe-area-inset-bottom)); }
-      .donate-box{ width: 85%; max-width: 360px; }
-      .info-popup{ font-size: .8em; padding: 8px 12px; }
-      .status-popup{ font-size: .95em; padding: 12px 16px; } 
+      :root{ --ui-bottom-safe: calc(10px + env(safe-area-inset-bottom)); }
+      .donate-box{ width: auto; max-width: calc(100vw - 24px); }
+      .donate-btn{ min-height: 34px; padding: 5px 16px; font-size: 12px; border-radius: 999px; white-space: nowrap; }
+      .info-popup{ font-size: .8em; padding: 5px 8px; }
+      .status-popup{ font-size: .86em; padding: 6px 12px; } 
     }
     
     @media(max-width: 480px) { 
       .info-popup { 
         width: calc(100vw - 16px); 
-        padding: 8px 6px; 
+        padding: 5px 6px; 
         gap: 4px; 
-        row-gap: 6px;
-        bottom: calc(env(safe-area-inset-bottom, 0px) + 20px) !important; 
+        row-gap: 4px;
+        border-radius: 11px;
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 8px) !important; 
       }
       
-      /* Row 1 — utility buttons compact */
-      .info-popup .btn { 
-        flex: 1 1 calc(25% - 4px); 
-        padding: 8px 2px; 
-        font-size: 0.9em; 
+      /* Keep all tracker buttons on a single compact row on mobile */
+      .info-popup .btn,
+      .info-popup #msgBtn,
+      .info-popup #notifyBtn,
+      .info-popup #twitchBtn { 
+        flex: 1 1 0; 
+        padding: 6px 4px; 
+        font-size: 11px; 
         white-space: nowrap; 
         text-align: center; 
         overflow: hidden; 
         text-overflow: ellipsis; 
         min-width: 0;
+        order: 0;
       }
 
-      /* Row 2 — priority buttons larger, override base min-widths */
-      .info-popup #msgBtn,
-      .info-popup #notifyBtn,
-      .info-popup #twitchBtn {
-        flex: 1 1 calc(33.333% - 4px);
-        padding: 12px 4px;
-        font-size: 0.95em;
-        min-width: 0;
-      }
+      .status-dot { width: 8px; height: 8px; flex: 0 0 8px; margin-right: 1px; }
 
-      .status-dot { width: 10px; flex: 0 0 10px; margin-right: 2px; }
-
-      .toast-box { bottom: calc(env(safe-area-inset-bottom, 0px) + 230px) !important; } 
+      .toast-box { bottom: calc(env(safe-area-inset-bottom, 0px) + 120px) !important; } 
     }
     
     .ios-install-prompt { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px); background: rgba(29, 29, 26, 0.95); border: 1px solid var(--primary); color: #fff; padding: 16px; border-radius: 16px; font-size: 0.9em; font-weight: 700; text-align: center; z-index: 9999; width: 85%; max-width: 340px; box-shadow: 0 8px 32px rgba(0,0,0,0.6); opacity: 0; transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; }
@@ -1289,6 +1382,7 @@
 </head>
 <body>
   <div id="loadingCover"><div id="loadingSpinner"></div></div>
+  <div id="announcementBanner" class="announcement-top-bar" role="region" aria-label="Live Announcement" style="display: none;"></div>
   <div class="status-popup" id="statusBox" role="status" aria-live="polite" aria-atomic="true">Searching for Santa…</div>
 
   <!-- 🛷 WHERE'S SANTA RIGHT NOW — LIVE STREET TICKER PILL -->
@@ -2058,6 +2152,44 @@
       // ⚡ CLOUDFLARE WORKER ENDPOINT
       const WORKER_URL = "https://turbosanta-api.beverley247.workers.dev";
 
+      // Render public & user announcements in the dedicated top banner outside #map and #statusBox
+      function syncAnnouncementBanner(liveMsg, userMsg = '', isUserMsgActive = false) {
+        const banner = document.getElementById('announcementBanner');
+        if (!banner) return;
+        const cleanLive = String(liveMsg || '').trim();
+        const cleanUser = String(userMsg || '').trim();
+        if (cleanLive) {
+          const nextKey = 'live:' + cleanLive;
+          if (banner.dataset.annKey !== nextKey) {
+            banner.dataset.annKey = nextKey;
+            banner.classList.remove('is-user-msg');
+            banner.innerHTML = `<span class="ann-badge">📢 NOTICE</span><span class="ann-text">${Utils.escapeHtml(cleanLive)}</span>`;
+          }
+          if (banner.style.display !== 'flex') {
+            banner.style.display = 'flex';
+          }
+          if (window.layoutOverlays) window.layoutOverlays();
+        } else if (isUserMsgActive && cleanUser) {
+          const nextKey = 'user:' + cleanUser;
+          if (banner.dataset.annKey !== nextKey) {
+            banner.dataset.annKey = nextKey;
+            banner.classList.add('is-user-msg');
+            banner.innerHTML = `<span class="ann-badge">✨ CHEER</span><span class="ann-text">${Utils.escapeHtml(cleanUser)}</span>`;
+          }
+          if (banner.style.display !== 'flex') {
+            banner.style.display = 'flex';
+          }
+          if (window.layoutOverlays) window.layoutOverlays();
+        } else {
+          if (banner.style.display !== 'none') {
+            banner.style.display = 'none';
+            banner.dataset.annKey = '';
+            banner.classList.remove('is-user-msg');
+            if (window.layoutOverlays) window.layoutOverlays();
+          }
+        }
+      }
+
       // Fast announcement polling — only needed for legacy Apps Script endpoints;
       // in D1 mode, updateTracker() already syncs settings & announcements without extra full-payload hits.
       async function fetchFastAnnouncements() {
@@ -2070,15 +2202,8 @@
           const fastTrackUrl = `https://turbosanta-api.beverley247.workers.dev/?ttl=2&target=${encodeURIComponent(targetScript)}`;
           const data = await Utils.loadJSON(fastTrackUrl);
           const liveMsg = data?.settings?.live_announcement || '';
-
-          if (liveMsg && liveMsg.trim() !== "") {
-            AppState.dom.statusBox.textContent = `${liveMsg}`;
-            AppState.dom.statusBox.classList.add("is-announcement");
-            AppState.dom.statusBox.classList.remove("is-user-msg");
-            setDimUI(false);
-          } else if (AppState.dom.statusBox.classList.contains("is-announcement")) {
-            AppState.dom.statusBox.classList.remove("is-announcement");
-          }
+          syncAnnouncementBanner(liveMsg, '', false);
+          AppState.dom.statusBox.classList.remove("is-announcement", "is-user-msg");
         } catch(e) {}
       }
 
@@ -3387,13 +3512,9 @@
           // If data is empty or coords aren't valid, handle gracefully
           if (!data || !Utils.validPos(data.lat, data.lng)) {
             const liveMsg = latestApiData?.table?.live_announcement || latestApiData?.settings?.live_announcement;
-            if (liveMsg && liveMsg.trim() !== "") {
-              AppState.dom.statusBox.textContent = `📢 ${liveMsg}`;
-              AppState.dom.statusBox.classList.add("is-announcement");
-            } else {
-              AppState.dom.statusBox.textContent = getRestingLaplandText();
-              AppState.dom.statusBox.classList.remove("is-announcement", "is-user-msg");
-            }
+            syncAnnouncementBanner(liveMsg, '', false);
+            AppState.dom.statusBox.textContent = getRestingLaplandText();
+            AppState.dom.statusBox.classList.remove("is-announcement", "is-user-msg");
             AppState.dom.statusDot.style.display = "none";
             if (AppState.flags.firstFix) {
               if (AppState.flags.gpxLoaded && AppState.dynamicRouteRemainingMain) {
@@ -3443,13 +3564,9 @@
               }
             }
             const liveMsg = latestApiData?.table?.live_announcement || latestApiData?.settings?.live_announcement;
-            if (liveMsg && liveMsg.trim() !== "") {
-              AppState.dom.statusBox.textContent = `📢 ${liveMsg}`;
-              AppState.dom.statusBox.classList.add("is-announcement");
-            } else {
-              AppState.dom.statusBox.textContent = getRestingLaplandText();
-              AppState.dom.statusBox.classList.remove("is-announcement", "is-user-msg");
-            }
+            syncAnnouncementBanner(liveMsg, '', false);
+            AppState.dom.statusBox.textContent = getRestingLaplandText();
+            AppState.dom.statusBox.classList.remove("is-announcement", "is-user-msg");
             AppState.dom.statusDot.style.display = "none";
             setDimUI(false);
             AppState.flags.firstFix = false;
@@ -3632,83 +3749,75 @@
           const msgBtnEl = AppState.dom.msgBtn;
           if (msgBtnEl) msgBtnEl.style.display = (AppState.vars.todayRoute && isFresh && !AppState.flags.isKiosk) ? "inline-block" : "none";
 
-          const liveMsg = latestApiData.settings?.live_announcement;
-          const userMsg = latestApiData.settings?.user_announcement;
-          const userMsgTs = Number(String(latestApiData.settings?.user_announcement_ts).replace(/\D/g, '')) || 0;
+          const liveMsg = latestApiData.settings?.live_announcement || latestApiData.table?.live_announcement;
+          const userMsg = latestApiData.settings?.user_announcement || latestApiData.table?.user_announcement;
+          const userMsgTs = Number(String(latestApiData.settings?.user_announcement_ts || latestApiData.table?.user_announcement_ts || '').replace(/\D/g, '')) || 0;
           if (userMsg && userMsgTs !== AppState.vars.lastSeenMsgTs) {
             AppState.vars.lastSeenMsgTs = userMsgTs;
             sessionStorage.setItem('SANTA_LAST_MSG_TS', String(userMsgTs));
             const MSG_MAX_AGE_MS = 30 * 60 * 1000;
             if (userMsgTs && (Date.now() - userMsgTs) < MSG_MAX_AGE_MS) AppState.vars.localMsgStartTime = Date.now();
           }
-          const isUserMsgActive = userMsg && AppState.vars.localMsgStartTime && (Date.now() - AppState.vars.localMsgStartTime < 20000);
+          const isUserMsgActive = Boolean(userMsg && AppState.vars.localMsgStartTime && (Date.now() - AppState.vars.localMsgStartTime < 20000));
 
-          if (liveMsg && liveMsg.trim() !== "") {
-            AppState.dom.statusBox.textContent = `${liveMsg}`;
-            AppState.dom.statusBox.classList.add("is-announcement");
-            AppState.dom.statusBox.classList.remove("is-user-msg");
-            setDimUI(false);
-          } else if (isUserMsgActive) {
-            AppState.dom.statusBox.textContent = `${userMsg}`;
-            AppState.dom.statusBox.classList.add("is-user-msg");
-            AppState.dom.statusBox.classList.remove("is-announcement");
-            setDimUI(false);
-          } else {
-            AppState.dom.statusBox.classList.remove("is-announcement", "is-user-msg");
-            if (AppState.flags.hasPassedSticky) { 
-              AppState.dom.statusBox.textContent = "Santa has just been here!"; 
-              setDimUI(false); 
-              document.title = "Passed - TurboSanta";
-            } else if (etaSeconds !== null && !moving) { 
-              AppState.dom.statusBox.textContent = "Santa has stopped nearby!"; 
-              setDimUI(false); 
-              document.title = "Stopped - TurboSanta";
-            } else if (etaSeconds !== null) { 
-              const mins = etaSeconds / 60; 
-              const dueMs = Date.now() + etaSeconds * 1000; 
-              let etaText; 
-              if (mins < 2) { 
-                etaText = "Santa is nearly here!"; 
-                document.title = "(< 2m) TurboSanta";
-              } else if (mins < 12) { 
-                const band = mins < 4 ? "~3" : mins < 7 ? "~5" : "~10"; 
-                etaText = "Santa is " + band + " mins away — about " + formatClock(dueMs) + " at your pin!"; 
-                document.title = `(${band}m) TurboSanta`;
-              } else { 
-                etaText = "Santa\u2019s due near your pin around " + formatClock(roundTo5Min(dueMs)) + "!"; 
-                document.title = `(${Math.ceil(mins)}m) TurboSanta`;
-              } 
-              AppState.dom.statusBox.textContent = etaText; 
-              setDimUI(mins > 45); 
-            } else if (isBlackspotHold) {
-              const minsAgo = Math.max(1, Math.round(age / 60000));
-              const gpxPoint = AppState.gpxRoute?.[AppState.vars.lastSnapIndex];
-              const currentRoad = data.roadName || data.road_name || (gpxPoint?.roadName || "");
-              AppState.dom.statusBox.textContent = currentRoad
-                ? `📡 Signal Paused — Last seen ${minsAgo}m ago on ${currentRoad}`
-                : `📡 Signal Paused — Last seen ${minsAgo}m ago`;
-              AppState.dom.statusDot.className = "status-dot dot-stopped";
-              AppState.dom.statusDot.style.backgroundColor = "#f59e0b";
-              setDimUI(false);
-              document.title = "Signal Paused — TurboSanta";
-            } else if (moving) { 
-              const gpxPoint = AppState.gpxRoute?.[AppState.vars.lastSnapIndex];
-              const gpxDist = gpxPoint ? Utils.haversineMeters({lat: data.lat, lng: data.lng}, gpxPoint) : 999;
-              const currentRoad = data.roadName || data.road_name || (gpxDist < 60 ? gpxPoint.roadName : "");
-              
-              AppState.dom.statusBox.textContent = currentRoad ? `Santa is on ${currentRoad}!` : "Santa is out spreading joy!"; 
-              setDimUI(false); 
-              document.title = "Live — TurboSanta"; 
+          // Render public or cheer announcements in the dedicated top banner outside #map and #statusBox
+          syncAnnouncementBanner(liveMsg, userMsg, isUserMsgActive);
+          AppState.dom.statusBox.classList.remove("is-announcement", "is-user-msg");
+
+          if (AppState.flags.hasPassedSticky) { 
+            AppState.dom.statusBox.textContent = "Santa has just been here!"; 
+            setDimUI(false); 
+            document.title = "Passed - TurboSanta";
+          } else if (etaSeconds !== null && !moving) { 
+            AppState.dom.statusBox.textContent = "Santa has stopped nearby!"; 
+            setDimUI(false); 
+            document.title = "Stopped - TurboSanta";
+          } else if (etaSeconds !== null) { 
+            const mins = etaSeconds / 60; 
+            const dueMs = Date.now() + etaSeconds * 1000; 
+            let etaText; 
+            if (mins < 2) { 
+              etaText = "Santa is nearly here!"; 
+              document.title = "(< 2m) TurboSanta";
+            } else if (mins < 12) { 
+              const band = mins < 4 ? "~3" : mins < 7 ? "~5" : "~10"; 
+              etaText = "Santa is " + band + " mins away — about " + formatClock(dueMs) + " at your pin!"; 
+              document.title = `(${band}m) TurboSanta`;
             } else { 
-              const gpxPoint = AppState.gpxRoute?.[AppState.vars.lastSnapIndex];
-              const gpxDist = gpxPoint ? Utils.haversineMeters({lat: data.lat, lng: data.lng}, gpxPoint) : 999;
-              const currentRoad = data.roadName || data.road_name || (gpxDist < 60 ? gpxPoint.roadName : "");
-              
-              AppState.dom.statusBox.textContent = currentRoad ? `Santa has stopped on ${currentRoad}!` : "Santa has stopped to spread cheer!"; 
-              setDimUI(false); 
-              document.title = "TurboSanta — Tracker"; 
-            }
+              etaText = "Santa\u2019s due near your pin around " + formatClock(roundTo5Min(dueMs)) + "!"; 
+              document.title = `(${Math.ceil(mins)}m) TurboSanta`;
+            } 
+            AppState.dom.statusBox.textContent = etaText; 
+            setDimUI(mins > 45); 
+          } else if (isBlackspotHold) {
+            const minsAgo = Math.max(1, Math.round(age / 60000));
+            const gpxPoint = AppState.gpxRoute?.[AppState.vars.lastSnapIndex];
+            const currentRoad = data.roadName || data.road_name || (gpxPoint?.roadName || "");
+            AppState.dom.statusBox.textContent = currentRoad
+              ? `📡 Signal Paused — Last seen ${minsAgo}m ago on ${currentRoad}`
+              : `📡 Signal Paused — Last seen ${minsAgo}m ago`;
+            AppState.dom.statusDot.className = "status-dot dot-stopped";
+            AppState.dom.statusDot.style.backgroundColor = "#f59e0b";
+            setDimUI(false);
+            document.title = "Signal Paused — TurboSanta";
+          } else if (moving) { 
+            const gpxPoint = AppState.gpxRoute?.[AppState.vars.lastSnapIndex];
+            const gpxDist = gpxPoint ? Utils.haversineMeters({lat: data.lat, lng: data.lng}, gpxPoint) : 999;
+            const currentRoad = data.roadName || data.road_name || (gpxDist < 60 ? gpxPoint.roadName : "");
+            
+            AppState.dom.statusBox.textContent = currentRoad ? `Santa is on ${currentRoad}!` : "Santa is out spreading joy!"; 
+            setDimUI(false); 
+            document.title = "Live — TurboSanta"; 
+          } else { 
+            const gpxPoint = AppState.gpxRoute?.[AppState.vars.lastSnapIndex];
+            const gpxDist = gpxPoint ? Utils.haversineMeters({lat: data.lat, lng: data.lng}, gpxPoint) : 999;
+            const currentRoad = data.roadName || data.road_name || (gpxDist < 60 ? gpxPoint.roadName : "");
+            
+            AppState.dom.statusBox.textContent = currentRoad ? `Santa has stopped on ${currentRoad}!` : "Santa has stopped to spread cheer!"; 
+            setDimUI(false); 
+            document.title = "TurboSanta — Tracker"; 
           }
+          if (window.layoutOverlays) window.layoutOverlays();
 
           if (AppState.vars.notifyLatLng && !AppState.flags.browserNotified && !AppState.flags.hasPassedSticky) {
             const straightDist = Utils.haversineMeters({ lat: data.lat, lng: data.lng }, AppState.vars.notifyLatLng);
@@ -4980,12 +5089,27 @@
             }
           }
 
+          let lastAnnOffset = -1;
           window.layoutOverlays = function() {
+            const annBanner = document.getElementById('announcementBanner');
+            let annHeight = 0;
+            if (annBanner && annBanner.style.display !== 'none') {
+              annHeight = Math.ceil(annBanner.getBoundingClientRect().height || 0);
+            }
+            if (annHeight !== lastAnnOffset) {
+              lastAnnOffset = annHeight;
+              document.documentElement.style.setProperty('--ann-offset', annHeight + 'px');
+              if (AppState.map && typeof AppState.map.invalidateSize === 'function') {
+                requestAnimationFrame(() => AppState.map.invalidateSize({ pan: false }));
+              }
+            }
+
             const nav = document.querySelector('.info-popup');
             if (nav) {
               const nr = nav.getBoundingClientRect();
               if (nr.height > 0) {
-                document.documentElement.style.setProperty('--donate-bottom', (Math.max(0, window.innerHeight - nr.top) + 14) + 'px');
+                const gap = window.innerWidth <= 640 ? 8 : 14;
+                document.documentElement.style.setProperty('--donate-bottom', (Math.max(0, window.innerHeight - nr.top) + gap) + 'px');
               }
             }
             const pill = document.getElementById('routeSponsor');
@@ -4995,11 +5119,11 @@
             if (sb && sb.textContent.trim() !== '') {
               const sbr = sb.getBoundingClientRect();
               if (sbr.height > 0) {
-                let currentTop = sbr.bottom + 8;
+                let currentTop = sbr.bottom + 6;
 
                 if (ticker && ticker.style.display !== 'none') {
                   ticker.style.top = Math.round(currentTop) + 'px';
-                  currentTop = ticker.getBoundingClientRect().bottom + 8;
+                  currentTop = ticker.getBoundingClientRect().bottom + 6;
                 }
 
                 if (pill) {
@@ -5017,7 +5141,7 @@
                     pill.style.right = 'auto';
                     pill.style.transform = 'translateX(-50%)';
                   } else if (fitsBeside) {
-                    pill.style.top = Math.round(Math.max(margin, sbr.top)) + 'px';
+                    pill.style.top = Math.round(Math.max(annHeight + margin, sbr.top)) + 'px';
                     pill.style.left = 'auto';
                     pill.style.right = '12px';
                     pill.style.transform = 'none';
@@ -5031,7 +5155,7 @@
                 }
               }
             } else if (pill) {
-              pill.style.top = '12px';
+              pill.style.top = (annHeight + 12) + 'px';
             }
           };
           if ('ResizeObserver' in window) {
@@ -5039,6 +5163,8 @@
             const navEl = document.querySelector('.info-popup');
             if (navEl) overlayRO.observe(navEl);
             if (AppState.dom.statusBox) overlayRO.observe(AppState.dom.statusBox);
+            const annEl = document.getElementById('announcementBanner');
+            if (annEl) overlayRO.observe(annEl);
             const pillEl = document.getElementById('routeSponsor');
             if (pillEl) overlayRO.observe(pillEl);
             const tickerEl = document.getElementById('liveStreetTicker');
@@ -5053,7 +5179,7 @@
                 
           window.layoutOverlays();
 
-          if (!AppState.flags.isKiosk && !AppState.flags.isDriver) {
+          if (!AppState.flags.isKiosk && !AppState.flags.isDriver && !AppState.flags.isEmbedded) {
             const shareBtn = AppState.dom.shareBtn;
             if (shareBtn) shareBtn.style.display = "inline-block";
             shareBtn.onclick = async () => {
