@@ -337,21 +337,36 @@
     body.dim-ui .route-sponsor.visible { opacity: 0.55; filter: saturate(0.85); }
     body.dim-ui .route-sponsor.visible:hover { opacity: 0.85; }
 
-    /* Mobile — sizing only; vertical position is set by layoutOverlays() against the live status bar */
-    @media (max-width: 480px) {
+    /* Mobile & Tablet — avoid collisions with centered status popup and zoom buttons */
+    @media (max-width: 640px) {
+      .status-popup {
+        top: 10px;
+        font-size: 0.9em;
+        padding: 8px 14px;
+        max-width: calc(100vw - 28px);
+      }
       .route-sponsor {
         right: 10px;
-        padding: 8px 14px 10px;
-        gap: 4px;
+        top: 72px; /* fallback below status-popup before JS measurement */
+        padding: 6px 12px 8px;
+        gap: 3px;
         flex-direction: column;
         align-items: center;
+        max-width: 135px;
       }
       .route-sponsor span {
         display: block;
-        font-size: 9px;
+        font-size: 8px;
         letter-spacing: .08em;
       }
-      .route-sponsor img { max-height: 36px; max-width: 110px; }
+      .route-sponsor strong {
+        font-size: 13px !important;
+        text-align: center;
+      }
+      .route-sponsor img { 
+        max-height: 30px; 
+        max-width: 100px; 
+      }
     }
     
     #magic-container {
@@ -1328,8 +1343,6 @@
     <button class="btn" id="twitchBtn" style="display: none; border-color: var(--primary); color: var(--primary);" aria-label="Toggle sleigh camera feed">Cam: OFF</button>
     <button class="btn" id="msgBtn" style="display: none;" aria-label="Send a message to Santa">Msg Santa</button>
     <button class="btn" id="shareBtn" style="display: none;" aria-label="Share this tracker link with others">Share</button>
-    <button class="btn" id="musicBtn" style="display: none;" aria-label="Play Christmas music">Music: Off</button>
-    <button class="btn" id="soundboardBtn" onclick="toggleSoundboardModal(true)" style="display: none; color: var(--primary); border-color: rgba(251, 175, 51, 0.4);" aria-label="Open Santa Radar & Kids Activities">🔔 Kids Radar</button>
     <div id="toast" class="toast-box" role="alert" aria-live="assertive"></div>
   </nav>
 
@@ -1374,73 +1387,6 @@
       </div>
       <div class="modal-btns">
         <button class="btn-full btn-cancel" id="scheduleCloseBtn">Close</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- SANTA RADAR & KIDS ACTIVITIES MODAL -->
-  <div id="soundboardModal" class="modal-overlay" onclick="if(event.target===this) toggleSoundboardModal(false)">
-    <div class="modal-box" style="max-width: 440px; width: 92%; max-height: 85vh; display: flex; flex-direction: column; padding: 20px; overflow-y: auto;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-size:24px;">🔔</span>
-          <div style="text-align:left;">
-            <div style="font-weight:700; font-size:16px; color:#fff;">Santa Radar &amp; Kids Corner</div>
-            <div style="font-size:11px; color:var(--text-dim);">Listening for the bells on your doorstep</div>
-          </div>
-        </div>
-        <button class="close-btn" onclick="toggleSoundboardModal(false)" style="font-size:26px;">&times;</button>
-      </div>
-
-      <!-- SOUNDBOARD SECTION -->
-      <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px; margin-bottom: 14px;">
-        <div style="font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; text-align: left;">
-          🎵 Soundboard
-        </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-          <button type="button" class="btn" onclick="SantaSoundboard.play('bells')" style="display:flex; align-items:center; justify-content:center; gap:6px; padding:10px 8px; font-size:12px; font-weight:600; border-color:rgba(251,175,51,0.3); background:rgba(251,175,51,0.08);">
-            🔔 Sleigh Bells
-          </button>
-          <button type="button" class="btn" onclick="SantaSoundboard.play('hohoho')" style="display:flex; align-items:center; justify-content:center; gap:6px; padding:10px 8px; font-size:12px; font-weight:600; border-color:rgba(211,28,28,0.3); background:rgba(211,28,28,0.08);">
-            🎅 "HO HO HO!"
-          </button>
-          <button type="button" class="btn" onclick="SantaSoundboard.play('trot')" style="display:flex; align-items:center; justify-content:center; gap:6px; padding:10px 8px; font-size:12px; font-weight:600; border-color:rgba(255,255,255,0.15); background:rgba(255,255,255,0.04);">
-            🦌 Reindeer Trot
-          </button>
-          <button type="button" class="btn" onclick="SantaSoundboard.play('magic')" style="display:flex; align-items:center; justify-content:center; gap:6px; padding:10px 8px; font-size:12px; font-weight:600; border-color:rgba(79,195,247,0.3); background:rgba(79,195,247,0.08);">
-            ✨ Magic Stardust
-          </button>
-        </div>
-      </div>
-
-      <!-- DOORSTEP CHECK-IN SECTION -->
-      <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px; margin-bottom: 14px; text-align: left;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-          <div style="font-size: 12px; font-weight: 700; color: #2cff4e; text-transform: uppercase; letter-spacing: 0.5px;">
-            🚪 Elf Doorstep Check-In
-          </div>
-          <span id="checkInBadge" style="display:none; font-size:10px; background:#2cff4e; color:#000; font-weight:700; padding:2px 6px; border-radius:10px;">CHECKED IN ✅</span>
-        </div>
-        <p style="font-size: 12px; color: var(--text-dim); margin: 0 0 10px; line-height: 1.4;">
-          Are you and the kids waiting at the door or pavement? Let the sleigh know you're ready!
-        </p>
-        <button id="doorstepCheckInBtn" type="button" class="btn" onclick="handleDoorstepCheckIn()" style="width:100%; padding:10px; font-size:13px; font-weight:700; background:linear-gradient(135deg, #1b8a34, #2cff4e); color:#000; border:none; border-radius:8px; cursor:pointer;">
-          🙋 We're on our Doorstep!
-        </button>
-        <div id="checkInFeedback" style="display:none; margin-top:8px; font-size:11px; color:#2cff4e; line-height:1.4;"></div>
-      </div>
-
-      <!-- SANTA SELFIE FRAME SHORTCUT -->
-      <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px; text-align: left;">
-        <div style="font-size: 12px; font-weight: 700; color: #ff6b9d; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">
-          📸 Santa Selfie Camera
-        </div>
-        <p style="font-size: 12px; color: var(--text-dim); margin: 0 0 10px; line-height: 1.4;">
-          Snap festive photos with Santa's sleigh frame and elf hats while waiting!
-        </p>
-        <button type="button" class="btn" onclick="openSelfieFrame()" style="width:100%; padding:10px; font-size:13px; font-weight:700; background:rgba(255,107,157,0.15); border:1px solid #ff6b9d; color:#fff; border-radius:8px; cursor:pointer;">
-          📷 Open Santa Selfie Frame
-        </button>
       </div>
     </div>
   </div>
@@ -2089,9 +2035,9 @@
 
       const AppState = {
         map: null, mlMap: null, marker: null, notifyMarker: null, gpxRoute: null, lastFix: null, recentFixes: [], routeFixes: [],
-        flags: { follow: true, firstFix: true, isKiosk: false, isDemo: false, gpxLoaded: false, snowActive: false, pageVisible: !document.hidden, awaitingPin: false, browserNotified: sessionStorage.getItem("SANTA_BROWSER_NOTIFIED") === "1", hasPassedSticky: sessionStorage.getItem("SANTA_HAS_PASSED") === "1", celebrationFired: sessionStorage.getItem("SANTA_CELEBRATION_FIRED") === "1", musicEnabled: false, beaconActive: false, proximityBellsFired: false },
+        flags: { follow: true, firstFix: true, isKiosk: false, isDemo: false, gpxLoaded: false, snowActive: false, pageVisible: !document.hidden, awaitingPin: false, browserNotified: sessionStorage.getItem("SANTA_BROWSER_NOTIFIED") === "1", hasPassedSticky: sessionStorage.getItem("SANTA_HAS_PASSED") === "1", celebrationFired: sessionStorage.getItem("SANTA_CELEBRATION_FIRED") === "1", musicEnabled: true, beaconActive: false, proximityBellsFired: false },
         vars: { apiUrl: null, tableSlug: "", sleighName: "Santa Sleigh", staleSince: null, lastSnapIndex: 0, snowflakes: [], animRaf: null, pendingSubscription: null, notifyLatLng: null, lastVisualPos: null, escapeListener: null, lastElfCamUrl: null, lastSeenMsgTs: Number(sessionStorage.getItem('SANTA_LAST_MSG_TS')) || 0, pollTimer: null, consecutiveErrors: 0, musicUrl: null, currentMapHeading: 0, latestApiData: null, lastSettingsFetch: 0, lastTxTime: 0, lastLeafletRouteIdx: -1, lastMlRouteIdx: -1, userSnapCache: null, etaEmaSec: null },
-        dom: { loading: document.getElementById("loadingCover"), statusBox: document.getElementById("statusBox"), followBtn: document.getElementById("followBtn"), recenterBtn: document.getElementById("recenterBtn"), notifyBtn: document.getElementById("notifyBtn"), msgBtn: document.getElementById("msgBtn"), statusDot: document.getElementById("statusDot"), donateLink: document.getElementById("donateLink"), donateBox: document.getElementById("donateBox"), kioskBanner: document.getElementById("kioskBanner"), sponsorBox: document.getElementById("kioskSponsor"), toast: document.getElementById("toast"), snowCanvas: document.getElementById("snow"), shareBtn: document.getElementById("shareBtn"), musicBtn: document.getElementById("musicBtn"), soundboardBtn: document.getElementById("soundboardBtn"), fireworks: document.getElementById("fireworks") }
+        dom: { loading: document.getElementById("loadingCover"), statusBox: document.getElementById("statusBox"), followBtn: document.getElementById("followBtn"), recenterBtn: document.getElementById("recenterBtn"), notifyBtn: document.getElementById("notifyBtn"), msgBtn: document.getElementById("msgBtn"), statusDot: document.getElementById("statusDot"), donateLink: document.getElementById("donateLink"), donateBox: document.getElementById("donateBox"), kioskBanner: document.getElementById("kioskBanner"), sponsorBox: document.getElementById("kioskSponsor"), toast: document.getElementById("toast"), snowCanvas: document.getElementById("snow"), shareBtn: document.getElementById("shareBtn"), fireworks: document.getElementById("fireworks") }
       };
 
       function scheduleNextPoll() {
@@ -4411,30 +4357,33 @@
           : "/media/santa_proximity_song.mp3";
         if (!AppState.flags.isKiosk && !AppState.flags.isDriver) {
           AppState.vars.musicUrl = musicUrl;
+          AppState.flags.musicEnabled = true;
           SleighAudio.init(AppState.vars.musicUrl);
-          const musicBtn = AppState.dom.musicBtn;
-          if (musicBtn) {
-            musicBtn.style.display = "inline-block";
-            musicBtn.onclick = () => {
-              AppState.flags.musicEnabled = !AppState.flags.musicEnabled;
-              if (AppState.flags.musicEnabled) {
-                musicBtn.textContent = "Music: On"; musicBtn.classList.add("music-on");
-                musicBtn.setAttribute("aria-label", "Christmas music is playing — tap to mute");
-                SleighAudio.play();
-                if (AppState.flags.snowActive && AppState.currentSnowLevel) {
-                  SleighAudio.setIntensity(AppState.currentSnowLevel);
-                } else {
-                  SleighAudio.setIntensity(0);
-                }
-                showToast("🎵 Christmas music & proximity alerts enabled!");
+
+          const startDefaultMusic = () => {
+            if (AppState.flags.musicEnabled && SleighAudio._audio) {
+              SleighAudio.play();
+              if (AppState.flags.snowActive && AppState.currentSnowLevel) {
+                SleighAudio.setIntensity(AppState.currentSnowLevel);
               } else {
-                musicBtn.textContent = "Music: Off"; musicBtn.classList.remove("music-on");
-                musicBtn.setAttribute("aria-label", "Christmas music is muted — tap to play");
-                SleighAudio.mute();
-                showToast("Christmas music muted");
+                SleighAudio.setIntensity(0);
               }
-            };
-          }
+            }
+          };
+
+          // Try immediate autoplay if browser policy allows
+          startDefaultMusic();
+
+          // And unlock seamlessly on first user interaction if browser blocked initial autoplay
+          const userUnlock = () => {
+            startDefaultMusic();
+            window.removeEventListener('click', userUnlock);
+            window.removeEventListener('touchstart', userUnlock);
+            window.removeEventListener('scroll', userUnlock);
+          };
+          window.addEventListener('click', userUnlock, { once: true, passive: true });
+          window.addEventListener('touchstart', userUnlock, { once: true, passive: true });
+          window.addEventListener('scroll', userUnlock, { once: true, passive: true });
         }
 
         const twitchEnabled = String(settings.enable_twitch || "").toUpperCase() === "TRUE";
@@ -4769,19 +4718,35 @@
             const sb = AppState.dom.statusBox;
             const ticker = document.getElementById('liveStreetTicker');
 
-            if (sb) {
+            if (sb && sb.textContent.trim() !== '') {
               const sbr = sb.getBoundingClientRect();
               if (sbr.height > 0) {
+                let currentTop = sbr.bottom + 8;
+
                 if (ticker && ticker.style.display !== 'none') {
-                  ticker.style.top = Math.round(sbr.bottom + 8) + 'px';
+                  ticker.style.top = Math.round(currentTop) + 'px';
+                  currentTop = ticker.getBoundingClientRect().bottom + 8;
                 }
+
                 if (pill) {
+                  const isMobile = window.innerWidth < 640;
                   const margin = 12;
-                  const fitsBeside = (window.innerWidth - sbr.right - margin * 2) >= pill.offsetWidth;
-                  const topBase = (ticker && ticker.style.display !== 'none') ? ticker.getBoundingClientRect().bottom + 8 : sbr.bottom + 10;
-                  pill.style.top = Math.round(fitsBeside ? Math.max(margin, sbr.top) : topBase) + 'px';
+                  const pillWidth = Math.max(140, pill.offsetWidth || 0);
+                  const spaceOnRight = window.innerWidth - sbr.right - margin;
+                  
+                  // NEVER place beside on mobile screens. Only on desktop with plenty of side clearance
+                  const fitsBeside = !isMobile && (spaceOnRight >= pillWidth + 20);
+
+                  if (fitsBeside) {
+                    pill.style.top = Math.round(Math.max(margin, sbr.top)) + 'px';
+                  } else {
+                    // On mobile or when side space is limited, stack cleanly below statusBox and ticker!
+                    pill.style.top = Math.round(currentTop) + 'px';
+                  }
                 }
               }
+            } else if (pill) {
+              pill.style.top = '12px';
             }
           };
           if ('ResizeObserver' in window) {
@@ -4806,8 +4771,6 @@
           if (!AppState.flags.isKiosk && !AppState.flags.isDriver) {
             const shareBtn = AppState.dom.shareBtn;
             if (shareBtn) shareBtn.style.display = "inline-block";
-            const soundboardBtn = document.getElementById("soundboardBtn");
-            if (soundboardBtn) soundboardBtn.style.display = "inline-block";
             shareBtn.onclick = async () => {
               const params = new URLSearchParams(location.search);
               const shareBase = params.get("shareBase");
@@ -5328,54 +5291,6 @@
             }, 30000);
             fetchFastAnnouncements();
           }
-        };
-
-        window.toggleSoundboardModal = function(open) {
-          const modal = document.getElementById('soundboardModal');
-          if (!modal) return;
-          modal.style.display = open ? 'flex' : 'none';
-          if (open) {
-            SantaSoundboard._getAudioCtx();
-            if (AppState.vars && AppState.vars.escapeListener) {
-              document.removeEventListener("keydown", AppState.vars.escapeListener);
-            }
-            AppState.vars.escapeListener = (e) => {
-              if (e.key === "Escape") window.toggleSoundboardModal(false);
-            };
-            document.addEventListener("keydown", AppState.vars.escapeListener);
-          } else {
-            if (AppState.vars && AppState.vars.escapeListener) {
-              document.removeEventListener("keydown", AppState.vars.escapeListener);
-              AppState.vars.escapeListener = null;
-            }
-          }
-        };
-
-        window.handleDoorstepCheckIn = function() {
-          const badge = document.getElementById('checkInBadge');
-          const btn = document.getElementById('doorstepCheckInBtn');
-          const feedback = document.getElementById('checkInFeedback');
-          if (badge) badge.style.display = 'inline-block';
-          if (btn) {
-            btn.disabled = true;
-            btn.textContent = "✅ Doorstep Ready!";
-            btn.style.opacity = '0.7';
-          }
-          if (feedback) {
-            feedback.style.display = 'block';
-            feedback.innerHTML = "🎉 The Elves have noted your doorstep! Keep your ears open for sleigh bells!";
-          }
-          SantaSoundboard.play('magic');
-          if (typeof Fireworks !== 'undefined') Fireworks.launch();
-          showToast("🎉 Doorstep check-in confirmed! Listen for the bells!");
-          if (navigator.vibrate) {
-            try { navigator.vibrate([150, 100, 150]); } catch (e) {}
-          }
-        };
-
-        window.openSelfieFrame = function() {
-          const table = AppState.vars.tableSlug || 'beverley';
-          window.open(`/santa_frame.html?table=${encodeURIComponent(table)}`, '_blank');
         };
 
         Fireworks.init();
