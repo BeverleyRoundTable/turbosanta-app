@@ -712,6 +712,7 @@
       url = `/${file}?api=${encodeURIComponent(api)}&proxy=${encodeURIComponent('https://turbosanta-api.beverley247.workers.dev/?target=' + encodeURIComponent(api))}`;
     }
     if (file === 'tracker.html') {
+      url += '&embedded=1';
       if (state.simMode === 'live') {
         url += '&demo=1';
       }

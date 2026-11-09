@@ -1440,7 +1440,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
             })()}
             <iframe
               id="tracker-iframe"
-              src={`/tracker.html?table=${encodeURIComponent(activeTableSlug)}`}
+              src={`/tracker.html?table=${encodeURIComponent(activeTableSlug)}&embedded=1`}
               title="Santa Tracker"
               allow="geolocation; screen-wake-lock"
               scrolling="no"
