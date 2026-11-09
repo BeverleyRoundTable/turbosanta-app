@@ -793,11 +793,21 @@
       </div>
 
       <div class="zoom-controls">
-        <span>Follow Zoom</span>
+        <span>Map</span>
+        <div class="pill-seg" title="Map Style (Vector styles render street names on top of the route)">
+          <button type="button" data-mapstyle="clean" class="active">Crisp</button>
+          <button type="button" data-mapstyle="liberty">Rich</button>
+          <button type="button" data-mapstyle="night">Night</button>
+          <button type="button" data-mapstyle="osm">OSM</button>
+        </div>
+      </div>
+
+      <div class="zoom-controls">
+        <span>Zoom</span>
         <div class="pill-seg">
-          <button type="button" data-zoom="14.6">Wide</button>
-          <button type="button" data-zoom="15.3" class="active">Std</button>
-          <button type="button" data-zoom="16.2">Close</button>
+          <button type="button" data-zoom="14.9">Wide</button>
+          <button type="button" data-zoom="15.6" class="active">Std</button>
+          <button type="button" data-zoom="16.3">Close</button>
         </div>
       </div>
     </footer>
@@ -1003,7 +1013,8 @@
         // Playback & Camera
         aspect: '9:16',
         durationSecs: 25,
-        followZoom: 15.3,
+        mapStyle: 'clean',
+        followZoom: 15.6,
         includeBanner: true,
         isPlaying: false,
         currentTimeSec: 0,
@@ -1305,8 +1316,292 @@
         }
       }
 
-      function initMap() {
+      const CLASSIC_OSM_STYLE = {
+        version: 8,
+        sources: {
+          'osm-tracker-tiles': {
+            type: 'raster',
+            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tileSize: 256,
+            maxzoom: 19
+          }
+        },
+        layers: [
+          {
+            id: 'osm-tracker-layer',
+            type: 'raster',
+            source: 'osm-tracker-tiles',
+            minzoom: 0,
+            maxzoom: 22
+          }
+        ]
+      };
+
+      const STYLE_CACHE = {};
+
+      async function buildTravelBoastMapStyle(styleKey = 'clean') {
+        if (styleKey === 'osm') {
+          return JSON.parse(JSON.stringify(CLASSIC_OSM_STYLE));
+        }
+        if (STYLE_CACHE[styleKey]) {
+          return JSON.parse(JSON.stringify(STYLE_CACHE[styleKey]));
+        }
+
+        const endpointMap = {
+          clean: 'https://tiles.openfreemap.org/styles/bright',
+          liberty: 'https://tiles.openfreemap.org/styles/liberty',
+          night: 'https://tiles.openfreemap.org/styles/fiord'
+        };
+        const url = endpointMap[styleKey] || endpointMap.clean;
+        const isNight = styleKey === 'night';
+
+        try {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const style = await res.json();
+
+          // 1. Strip out visual clutter (shopping cart POIs, parking signs, one-way arrows, dashed footpaths)
+          const clutterPrefixes = [
+            'poi_',
+            'road_oneway',
+            'road_one_way',
+            'highway-path',
+            'tunnel-path',
+            'bridge-path',
+            'road_path_pedestrian',
+            'tunnel_path_pedestrian',
+            'bridge_path_pedestrian',
+            'highway-shield',
+            'road_shield',
+            'highway_ref'
+          ];
+
+          style.layers = (style.layers || []).filter((layer) => {
+            return !clutterPrefixes.some((prefix) => layer.id.startsWith(prefix));
+          });
+
+          // 2. Tune geometry & supercharge street name legibility for mobile video
+          for (const layer of style.layers) {
+            layer.paint = layer.paint || {};
+            layer.layout = layer.layout || {};
+
+            if (styleKey === 'clean') {
+              if (layer.id === 'background') {
+                layer.paint['background-color'] = '#f6f5f0';
+              } else if (layer.id === 'park' || layer.id.startsWith('landcover-grass') || layer.id === 'landcover-wood') {
+                layer.paint['fill-color'] = '#d7eed2';
+                layer.paint['fill-opacity'] = 0.78;
+              } else if (layer.id === 'building' || layer.id === 'building-top') {
+                layer.paint['fill-color'] = '#e8e4dc';
+              } else if (layer.id === 'highway-minor' || layer.id === 'bridge-minor') {
+                layer.paint['line-color'] = '#ffffff';
+                layer.paint['line-width'] = ['interpolate', ['exponential', 1.35], ['zoom'], 12, 1.4, 14, 4.6, 16, 9.2, 18, 17];
+              } else if (layer.id === 'highway-minor-casing' || layer.id === 'bridge-minor-casing') {
+                layer.paint['line-color'] = '#cbd5e1';
+                layer.paint['line-width'] = ['interpolate', ['exponential', 1.35], ['zoom'], 12, 2.4, 14, 6.6, 16, 12, 18, 21];
+              }
+            } else if (styleKey === 'liberty') {
+              if (layer.id === 'building-3d') {
+                layer.paint['fill-extrusion-opacity'] = 0.42;
+              }
+            } else if (isNight) {
+              if (layer.id === 'background') {
+                layer.paint['background-color'] = '#090e1a';
+              }
+            }
+
+            // Boost all road & street name labels so they are bold, crisp, and always visible
+            const isRoadName = layer.id.startsWith('highway-name') || layer.id.startsWith('highway_name');
+            if (isRoadName && layer.type === 'symbol') {
+              const isMajor = layer.id.includes('major') || layer.id.includes('motorway');
+              layer.minzoom = isMajor ? 10.5 : 12.0;
+              delete layer.maxzoom;
+
+              layer.layout['text-font'] = ['Noto Sans Bold'];
+              layer.layout['text-transform'] = 'none';
+              layer.layout['symbol-spacing'] = 155;
+              layer.layout['text-max-angle'] = 45;
+              layer.layout['text-padding'] = 1;
+              layer.layout['text-size'] = isMajor
+                ? ['interpolate', ['linear'], ['zoom'], 11.5, 11.5, 13.5, 13.8, 15.5, 16.8, 17, 19.8]
+                : ['interpolate', ['linear'], ['zoom'], 12, 11.2, 13.5, 13.4, 15.5, 16.2, 17, 19.0];
+
+              layer.paint['text-color'] = isNight ? '#f8fafc' : '#0f172a';
+              layer.paint['text-halo-color'] = isNight ? '#090e1a' : '#ffffff';
+              layer.paint['text-halo-width'] = 2.6;
+              layer.paint['text-halo-blur'] = 0.2;
+              layer.paint['text-opacity'] = 1;
+            }
+
+            // Enhance suburb / neighbourhood / town labels
+            const isPlaceLabel = layer.id.startsWith('label_') || layer.id.startsWith('place_');
+            if (isPlaceLabel && layer.type === 'symbol') {
+              layer.layout['text-font'] = ['Noto Sans Bold'];
+              layer.paint['text-color'] = isNight ? '#e2e8f0' : '#1e293b';
+              layer.paint['text-halo-color'] = isNight ? '#090e1a' : '#ffffff';
+              layer.paint['text-halo-width'] = 2.4;
+              layer.paint['text-halo-blur'] = 0.2;
+            }
+          }
+
+          STYLE_CACHE[styleKey] = style;
+          return JSON.parse(JSON.stringify(style));
+        } catch (err) {
+          console.warn('Vector style load fallback to OSM:', err);
+          return JSON.parse(JSON.stringify(CLASSIC_OSM_STYLE));
+        }
+      }
+
+      function getFirstSymbolLayerId() {
+        if (!map || !map.getStyle()) return undefined;
+        const layers = map.getStyle().layers || [];
+        for (const l of layers) {
+          if (l.type === 'symbol' && (
+            l.id.startsWith('highway-name') ||
+            l.id.startsWith('highway_name') ||
+            l.id.startsWith('label_') ||
+            l.id.startsWith('place_') ||
+            l.id.startsWith('water')
+          )) {
+            return l.id;
+          }
+        }
+        return undefined;
+      }
+
+      function ensureRouteSourcesAndLayers() {
+        if (!map) return;
+
+        if (!map.getSource('gpx-route-remaining')) {
+          map.addSource('gpx-route-remaining', {
+            type: 'geojson',
+            data: { type: 'FeatureCollection', features: [] }
+          });
+        }
+        if (!map.getSource('gpx-route-past')) {
+          map.addSource('gpx-route-past', {
+            type: 'geojson',
+            data: { type: 'FeatureCollection', features: [] }
+          });
+        }
+        if (!map.getSource('sleigh-tail')) {
+          map.addSource('sleigh-tail', {
+            type: 'geojson',
+            lineMetrics: true,
+            data: { type: 'FeatureCollection', features: [] }
+          });
+        }
+
+        // Insert route layers BELOW vector street name labels so road names float crisply ON TOP of the route!
+        const beforeLabelId = getFirstSymbolLayerId();
+
+        if (!map.getLayer('route-remaining-glow')) {
+          map.addLayer({
+            id: 'route-remaining-glow',
+            type: 'line',
+            source: 'gpx-route-remaining',
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            paint: {
+              'line-color': '#ffd700',
+              'line-width': ['interpolate', ['linear'], ['zoom'], 12, 5, 15, 8, 17, 11],
+              'line-opacity': 0.14,
+              'line-blur': 2
+            }
+          }, beforeLabelId);
+        }
+
+        if (!map.getLayer('route-remaining-main')) {
+          map.addLayer({
+            id: 'route-remaining-main',
+            type: 'line',
+            source: 'gpx-route-remaining',
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            paint: {
+              'line-color': '#d31c1c',
+              'line-width': ['interpolate', ['linear'], ['zoom'], 12, 2.6, 15, 4.0, 17, 5.5],
+              'line-opacity': 0.38
+            }
+          }, beforeLabelId);
+        }
+
+        if (!map.getLayer('route-past-glow')) {
+          map.addLayer({
+            id: 'route-past-glow',
+            type: 'line',
+            source: 'gpx-route-past',
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            paint: {
+              'line-color': '#ffd700',
+              'line-width': ['interpolate', ['linear'], ['zoom'], 12, 8, 15, 11, 17, 15],
+              'line-opacity': 0.55,
+              'line-blur': 3
+            }
+          }, beforeLabelId);
+        }
+
+        if (!map.getLayer('route-past-casing')) {
+          map.addLayer({
+            id: 'route-past-casing',
+            type: 'line',
+            source: 'gpx-route-past',
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            paint: {
+              'line-color': '#b91c1c',
+              'line-width': ['interpolate', ['linear'], ['zoom'], 12, 5.2, 15, 7.2, 17, 9.6],
+              'line-opacity': 0.90
+            }
+          }, beforeLabelId);
+        }
+
+        if (!map.getLayer('route-past-main')) {
+          map.addLayer({
+            id: 'route-past-main',
+            type: 'line',
+            source: 'gpx-route-past',
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            paint: {
+              'line-color': '#ffd700',
+              'line-width': ['interpolate', ['linear'], ['zoom'], 12, 3.2, 15, 4.8, 17, 6.8],
+              'line-opacity': 0.98
+            }
+          }, beforeLabelId);
+        }
+
+        if (!map.getLayer('sleigh-tail-layer')) {
+          map.addLayer({
+            id: 'sleigh-tail-layer',
+            type: 'line',
+            source: 'sleigh-tail',
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            paint: {
+              'line-width': ['interpolate', ['linear'], ['zoom'], 12, 4.2, 15, 6.8, 17, 9.0],
+              'line-gradient': [
+                'interpolate', ['linear'], ['line-progress'],
+                0, 'rgba(251, 175, 51, 0)',
+                1, '#FBAF33'
+              ]
+            }
+          }, beforeLabelId);
+        }
+
+        updateMapColors(STATE.primaryColor, STATE.accentColor);
+      }
+
+      async function switchMapStyle(styleKey) {
+        STATE.mapStyle = styleKey;
+        if (!map) return;
+        const styleObj = await buildTravelBoastMapStyle(styleKey);
+        map.once('styledata', () => {
+          ensureRouteSourcesAndLayers();
+          renderCurrentTimelineState();
+        });
+        map.setStyle(styleObj);
+      }
+
+      async function initMap() {
         resizeStageToFit();
+
+        const initialStyle = await buildTravelBoastMapStyle(STATE.mapStyle);
 
         map = new maplibregl.Map({
           container: 'map',
@@ -1317,7 +1612,7 @@
           pixelRatio: Math.min(3, Math.max(window.devicePixelRatio || 1, 2.25)),
           attributionControl: false,
           center: [-0.435, 53.842],
-          zoom: 15,
+          zoom: 15.6,
           pitch: 0,
           maxPitch: 0,
           bearing: 0,
@@ -1325,128 +1620,12 @@
           touchPitch: false,
           pitchWithRotate: false,
           keyboard: false,
-          style: {
-            version: 8,
-            sources: {
-              'osm-tracker-tiles': {
-                type: 'raster',
-                tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-                tileSize: 256,
-                maxzoom: 19
-              }
-            },
-            layers: [
-              {
-                id: 'osm-tracker-layer',
-                type: 'raster',
-                source: 'osm-tracker-tiles',
-                minzoom: 0,
-                maxzoom: 22
-              }
-            ]
-          }
+          style: initialStyle
         });
 
         map.on('load', () => {
           mapLoaded = true;
-
-          map.addSource('gpx-route-remaining', {
-            type: 'geojson',
-            data: { type: 'FeatureCollection', features: [] }
-          });
-
-          map.addSource('gpx-route-past', {
-            type: 'geojson',
-            data: { type: 'FeatureCollection', features: [] }
-          });
-
-          map.addSource('sleigh-tail', {
-            type: 'geojson',
-            lineMetrics: true,
-            data: { type: 'FeatureCollection', features: [] }
-          });
-
-          // Remaining route ahead: subtle semi-transparent guide tint so street & road names behind remain clear & readable
-          map.addLayer({
-            id: 'route-remaining-glow',
-            type: 'line',
-            source: 'gpx-route-remaining',
-            layout: { 'line-cap': 'round', 'line-join': 'round' },
-            paint: {
-              'line-color': '#ffd700',
-              'line-width': ['interpolate', ['linear'], ['zoom'], 12, 5, 15, 8, 17, 11],
-              'line-opacity': 0.12,
-              'line-blur': 2
-            }
-          });
-
-          map.addLayer({
-            id: 'route-remaining-main',
-            type: 'line',
-            source: 'gpx-route-remaining',
-            layout: { 'line-cap': 'round', 'line-join': 'round' },
-            paint: {
-              'line-color': '#d31c1c',
-              'line-width': ['interpolate', ['linear'], ['zoom'], 12, 2.5, 15, 3.8, 17, 5.2],
-              'line-opacity': 0.38
-            }
-          });
-
-          // Traversed route behind pin (Gold glow + crisp crimson casing for zoomed-out contrast + bright Gold core)
-          map.addLayer({
-            id: 'route-past-glow',
-            type: 'line',
-            source: 'gpx-route-past',
-            layout: { 'line-cap': 'round', 'line-join': 'round' },
-            paint: {
-              'line-color': '#ffd700',
-              'line-width': ['interpolate', ['linear'], ['zoom'], 12, 7, 15, 10, 17, 14],
-              'line-opacity': 0.5,
-              'line-blur': 3
-            }
-          });
-
-          map.addLayer({
-            id: 'route-past-casing',
-            type: 'line',
-            source: 'gpx-route-past',
-            layout: { 'line-cap': 'round', 'line-join': 'round' },
-            paint: {
-              'line-color': '#b91c1c',
-              'line-width': ['interpolate', ['linear'], ['zoom'], 12, 5, 15, 6.8, 17, 9],
-              'line-opacity': 0.85
-            }
-          });
-
-          map.addLayer({
-            id: 'route-past-main',
-            type: 'line',
-            source: 'gpx-route-past',
-            layout: { 'line-cap': 'round', 'line-join': 'round' },
-            paint: {
-              'line-color': '#ffd700',
-              'line-width': ['interpolate', ['linear'], ['zoom'], 12, 3, 15, 4.5, 17, 6.5],
-              'line-opacity': 0.98
-            }
-          });
-
-          // Live tracker golden motion tail right behind Santa pin
-          map.addLayer({
-            id: 'sleigh-tail-layer',
-            type: 'line',
-            source: 'sleigh-tail',
-            layout: { 'line-cap': 'round', 'line-join': 'round' },
-            paint: {
-              'line-width': ['interpolate', ['linear'], ['zoom'], 12, 4, 15, 6.5, 17, 8.5],
-              'line-gradient': [
-                'interpolate', ['linear'], ['line-progress'],
-                0, 'rgba(251, 175, 51, 0)',
-                1, '#FBAF33'
-              ]
-            }
-          });
-
-          updateMapColors(STATE.primaryColor, STATE.accentColor);
+          ensureRouteSourcesAndLayers();
           loadTablePayload(STATE.tableSlug);
         });
 
@@ -1482,7 +1661,7 @@
 
       function getTimelinePhases() {
         const D = STATE.durationSecs;
-        const introHold = Math.min(1.4, Math.max(0.9, D * 0.05));
+        const introHold = 1.0; // Exact 1.0s pause at Start Pin before traversing
         const panOutDur = Math.min(4.5, Math.max(3.4, D * 0.16));
         const overviewHangDur = Math.min(3.5, Math.max(2.5, D * 0.12));
         const outroHold = Math.min(3.6, Math.max(2.5, D * 0.13));
@@ -1778,20 +1957,35 @@
           drawAnchoredImage(ctx, STATE.icons.end, pEnd.x, pEnd.y, markerSize, 0.5, 1.0);
         }
 
+        const effectiveAccent = getContrastingAccent(STATE.accentColor, '#FBAF33');
+
         // 3. Moving Tracker Pin Icon (matching tracker.html 64x64 anchor [32, 60])
         const sleighCoord = activeSnap.sleighSample;
         if (sleighCoord) {
           const pSleigh = projectToCanvas(sleighCoord.lng, sleighCoord.lat);
           const sleighSize = 62 * uiScale * overviewPinScale;
 
-          // Crisp GPS road contact dot directly beneath tracker pin tip
+          // Animated TravelBoast-style pulse halo & crisp GPS road contact dot beneath tracker pin tip
           ctx.save();
           resetShadow(ctx);
+          const pulsePhase = ((activeSnap.t || 0) * 1.6) % 1;
+          const pulseRadius = (8 + pulsePhase * 22) * uiScale * overviewPinScale;
+          const pulseAlpha = Math.max(0, (1 - pulsePhase) * 0.45 * (1 - (activeSnap.panOutProgress || 0)));
+          if (pulseAlpha > 0.02) {
+            ctx.beginPath();
+            ctx.arc(pSleigh.x, pSleigh.y, pulseRadius, 0, Math.PI * 2);
+            ctx.fillStyle = hexToRgba(effectiveAccent, pulseAlpha * 0.55);
+            ctx.fill();
+            ctx.lineWidth = 2 * uiScale;
+            ctx.strokeStyle = hexToRgba(STATE.primaryColor || '#d31c1c', pulseAlpha);
+            ctx.stroke();
+          }
+
           ctx.beginPath();
-          ctx.arc(pSleigh.x, pSleigh.y, 4.5 * uiScale, 0, Math.PI * 2);
+          ctx.arc(pSleigh.x, pSleigh.y, 4.8 * uiScale, 0, Math.PI * 2);
           ctx.fillStyle = STATE.primaryColor || '#d31c1c';
           ctx.fill();
-          ctx.lineWidth = 2 * uiScale;
+          ctx.lineWidth = 2.2 * uiScale;
           ctx.strokeStyle = '#ffffff';
           ctx.stroke();
           ctx.restore();
@@ -1806,9 +2000,7 @@
 
         ctx.restore();
 
-        const effectiveAccent = getContrastingAccent(STATE.accentColor, '#FBAF33');
-
-        // 4. Optional Social Header & Tracker URL Pill (Active during traversal; fades out smoothly upon zoom out)
+        // 4. Optional Social Header & Tracker URL Pill (Single clean header — no double stacking!)
         if (STATE.includeBanner) {
           const topBannerAlpha = activeSnap.panOutProgress > 0
             ? Math.max(0, 1 - activeSnap.panOutProgress / 0.35)
@@ -1828,7 +2020,7 @@
             ctx.shadowBlur = 14 * uiScale;
             ctx.shadowOffsetY = 4 * uiScale;
             roundRectPath(ctx, padX, topY, cardW, cardH, 13 * uiScale);
-            ctx.fillStyle = 'rgba(13, 16, 23, 0.90)';
+            ctx.fillStyle = 'rgba(13, 16, 23, 0.92)';
             ctx.fill();
 
             resetShadow(ctx);
@@ -1861,7 +2053,7 @@
             // Date / Time Subtitle (No distance!)
             if (hasSub) {
               ctx.font = `700 ${Math.round(11 * uiScale)}px "Open Sans", sans-serif`;
-              ctx.fillStyle = 'rgba(255, 255, 255, 0.80)';
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.82)';
               ctx.fillText(
                 fitText(ctx, STATE.routeSubtitle, textMaxW),
                 canvasW / 2,
@@ -1894,7 +2086,7 @@
             ctx.shadowBlur = 10 * uiScale;
             ctx.shadowOffsetY = 2 * uiScale;
             roundRectPath(ctx, pillX, pillY, pillW, pillH, pillH / 2);
-            ctx.fillStyle = 'rgba(13, 16, 23, 0.88)';
+            ctx.fillStyle = 'rgba(13, 16, 23, 0.90)';
             ctx.fill();
 
             resetShadow(ctx);
@@ -1907,75 +2099,6 @@
             ctx.textBaseline = 'middle';
             ctx.fillText(fitText(ctx, footerLabel, pillW - 18 * uiScale), canvasW / 2, pillY + pillH / 2);
             ctx.restore();
-          }
-
-          // 4b. Intro Title Splash (Smooth fade-out as sleigh takes off from Start Pin)
-          if (activeSnap.t < 1.7 && activeSnap.panOutProgress === 0) {
-            const introAlpha = activeSnap.t <= 1.0 ? 1 : Math.max(0, 1 - (activeSnap.t - 1.0) / 0.6);
-            if (introAlpha > 0.02) {
-              ctx.save();
-              ctx.globalAlpha = introAlpha;
-
-              const padX = 16 * uiScale;
-              const topY = 16 * uiScale;
-              const hasSub = Boolean(STATE.routeSubtitle && STATE.routeSubtitle.trim());
-              const cardH = (hasSub ? 74 : 58) * uiScale;
-
-              const splashW = Math.min(canvasW - 40 * uiScale, 360 * uiScale);
-              const splashH = (hasSub ? 104 : 88) * uiScale;
-              const splashX = (canvasW - splashW) / 2;
-              const splashY = topY + cardH + 16 * uiScale;
-
-              ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
-              ctx.shadowBlur = 20 * uiScale;
-              ctx.shadowOffsetY = 6 * uiScale;
-              roundRectPath(ctx, splashX, splashY, splashW, splashH, 16 * uiScale);
-              ctx.fillStyle = 'rgba(11, 14, 21, 0.94)';
-              ctx.fill();
-
-              resetShadow(ctx);
-              ctx.lineWidth = 1.8 * uiScale;
-              ctx.strokeStyle = hexToRgba(effectiveAccent, 0.85);
-              ctx.stroke();
-
-              ctx.textAlign = 'center';
-              ctx.textBaseline = 'middle';
-
-              // Badge
-              ctx.font = `800 ${Math.round(10 * uiScale)}px "Open Sans", sans-serif`;
-              ctx.fillStyle = effectiveAccent;
-              ctx.fillText('🎅 OFFICIAL SANTA SLEIGH TOUR', canvasW / 2, splashY + 20 * uiScale);
-
-              // Route Title (Eurostile Bold)
-              ctx.font = `700 ${Math.round(19 * uiScale)}px Eurostile, "Open Sans", sans-serif`;
-              ctx.fillStyle = '#ffffff';
-              ctx.fillText(
-                fitText(ctx, STATE.routeTitle || 'Santa Sleigh Route', splashW - 28 * uiScale),
-                canvasW / 2,
-                splashY + 44 * uiScale
-              );
-
-              // Sleigh Table Name (Open Sans)
-              ctx.font = `700 ${Math.round(11 * uiScale)}px "Open Sans", sans-serif`;
-              ctx.fillStyle = 'rgba(255, 255, 255, 0.82)';
-              ctx.fillText(
-                fitText(ctx, STATE.sleighTitle || 'Round Table Santa Sleigh', splashW - 28 * uiScale),
-                canvasW / 2,
-                splashY + 68 * uiScale
-              );
-
-              if (hasSub) {
-                ctx.font = `600 ${Math.round(9.5 * uiScale)}px "Open Sans", sans-serif`;
-                ctx.fillStyle = hexToRgba(effectiveAccent, 0.95);
-                ctx.fillText(
-                  fitText(ctx, STATE.routeSubtitle, splashW - 28 * uiScale),
-                  canvasW / 2,
-                  splashY + 88 * uiScale
-                );
-              }
-
-              ctx.restore();
-            }
           }
         } // end if (STATE.includeBanner)
 
@@ -2116,7 +2239,7 @@
           ctx.font = `600 ${Math.max(8, Math.round(8.5 * uiScale))}px "Open Sans", sans-serif`;
           ctx.textAlign = 'right';
           ctx.textBaseline = 'bottom';
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+          ctx.fillStyle = STATE.mapStyle === 'night' ? 'rgba(255, 255, 255, 0.50)' : 'rgba(0, 0, 0, 0.55)';
           ctx.fillText('© OpenStreetMap', canvasW - 7 * uiScale, canvasH - 4 * uiScale);
           ctx.restore();
         }
@@ -2703,12 +2826,21 @@
           });
         });
 
+        // Map Style Theme Buttons
+        document.querySelectorAll('[data-mapstyle]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            document.querySelectorAll('[data-mapstyle]').forEach((b) => b.classList.remove('active'));
+            btn.classList.add('active');
+            switchMapStyle(btn.dataset.mapstyle || 'clean');
+          });
+        });
+
         // Follow Zoom Buttons
         document.querySelectorAll('[data-zoom]').forEach((btn) => {
           btn.addEventListener('click', () => {
             document.querySelectorAll('[data-zoom]').forEach((b) => b.classList.remove('active'));
             btn.classList.add('active');
-            STATE.followZoom = parseFloat(btn.dataset.zoom) || 15.3;
+            STATE.followZoom = parseFloat(btn.dataset.zoom) || 15.6;
             renderCurrentTimelineState();
           });
         });
