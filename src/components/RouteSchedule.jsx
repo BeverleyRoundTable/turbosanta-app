@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Star, Clock, CheckCircle2, MapPin, Building2, ExternalLink } from 'lucide-react';
+import { Search, Star, Clock, CheckCircle2, MapPin, Building2, ExternalLink, Heart } from 'lucide-react';
 import { extractRouteSponsors } from '../utils/sponsors';
 import RouteStreetsPreview from './RouteStreetsPreview';
 
@@ -375,26 +375,62 @@ export default function RouteSchedule({ tableData }) {
                   gap: '6px',
                   color: 'var(--primary)'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    <Building2 size={14} />
-                    <span>{cardSponsors.length > 1 ? `SPONSORED BY (${cardSponsors.length}):` : 'SPONSORED BY:'}</span>
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-                    {cardSponsors.map((sp, idx) => (
-                      <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: '6px' }}>
-                        {sp.logo_url && (
-                          <img src={sp.logo_url} alt="" style={{ height: '18px', maxWidth: '70px', objectFit: 'contain', background: '#fff', padding: '1px 3px', borderRadius: '3px' }} />
+                  {(() => {
+                    const charities = cardSponsors.filter(s => s.type === 'charity');
+                    const businesses = cardSponsors.filter(s => s.type !== 'charity');
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                        {charities.length > 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '11px', color: '#f472b6', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                              <Heart size={14} />
+                              <span>{charities.length > 1 ? `CHARITY BENEFICIARIES (${charities.length}):` : 'CHARITY BENEFICIARY:'}</span>
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+                              {charities.map((sp, idx) => (
+                                <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(244,114,182,0.08)', border: '1px solid rgba(244,114,182,0.25)', padding: '4px 8px', borderRadius: '6px' }}>
+                                  {sp.logo_url && (
+                                    <img src={sp.logo_url} alt="" style={{ height: '18px', maxWidth: '70px', objectFit: 'contain', background: '#fff', padding: '1px 3px', borderRadius: '3px' }} />
+                                  )}
+                                  {sp.link ? (
+                                    <a href={sp.link} target="_blank" rel="noopener noreferrer sponsored" style={{ color: '#fff', textDecoration: 'none', fontWeight: 600 }}>
+                                      {sp.name} ↗
+                                    </a>
+                                  ) : (
+                                    <strong style={{ color: '#fff' }}>{sp.name}</strong>
+                                  )}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
                         )}
-                        {sp.link ? (
-                          <a href={sp.link} target="_blank" rel="noopener noreferrer sponsored" style={{ color: '#fff', textDecoration: 'none', fontWeight: 600 }}>
-                            {sp.name} ↗
-                          </a>
-                        ) : (
-                          <strong style={{ color: '#fff' }}>{sp.name}</strong>
+                        {businesses.length > 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '11px', color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                              <Building2 size={14} />
+                              <span>{businesses.length > 1 ? `SPONSORED BY (${businesses.length}):` : 'SPONSORED BY:'}</span>
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+                              {businesses.map((sp, idx) => (
+                                <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: '6px' }}>
+                                  {sp.logo_url && (
+                                    <img src={sp.logo_url} alt="" style={{ height: '18px', maxWidth: '70px', objectFit: 'contain', background: '#fff', padding: '1px 3px', borderRadius: '3px' }} />
+                                  )}
+                                  {sp.link ? (
+                                    <a href={sp.link} target="_blank" rel="noopener noreferrer sponsored" style={{ color: '#fff', textDecoration: 'none', fontWeight: 600 }}>
+                                      {sp.name} ↗
+                                    </a>
+                                  ) : (
+                                    <strong style={{ color: '#fff' }}>{sp.name}</strong>
+                                  )}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
                         )}
-                      </span>
-                    ))}
-                  </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>

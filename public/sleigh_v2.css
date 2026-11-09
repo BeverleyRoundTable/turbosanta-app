@@ -1459,6 +1459,16 @@ body {
   background: rgba(255, 255, 255, 0.09);
 }
 
+.route-sponsor-strip.is-charity {
+  border-color: rgba(244, 114, 182, 0.35);
+  background: rgba(244, 114, 182, 0.05);
+}
+
+.route-sponsor-strip.is-charity:hover {
+  border-color: rgba(244, 114, 182, 0.55);
+  background: rgba(244, 114, 182, 0.1);
+}
+
 .sponsor-logo-pedestal {
   width: 36px;
   height: 36px;
@@ -1488,6 +1498,10 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--primary);
+}
+
+.sponsor-strip-kicker.is-charity {
+  color: #f472b6 !important;
 }
 
 .sponsor-strip-name {
@@ -2305,6 +2319,17 @@ body {
   background: rgba(var(--primary-rgb), 0.14);
   padding: 3px 10px;
   border-radius: var(--radius-pill);
+}
+
+.partner-pedestal-card.is-charity {
+  border-color: rgba(244, 114, 182, 0.4) !important;
+  background: rgba(244, 114, 182, 0.04) !important;
+}
+
+.partner-role-pill.is-charity {
+  color: #f472b6 !important;
+  background: rgba(244, 114, 182, 0.16) !important;
+  border: 1px solid rgba(244, 114, 182, 0.35) !important;
 }
 
 .partner-name {

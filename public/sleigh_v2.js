@@ -446,18 +446,33 @@
       const c = l.trim();
       return c.startsWith('blob:') ? '' : c;
     };
+    const normType = (t) => {
+      const s = String(t || 'sponsor').toLowerCase().trim();
+      return s === 'charity' ? 'charity' : 'sponsor';
+    };
+
+    const sortCharitiesFirst = (arr) => {
+      return arr.sort((a, b) => {
+        const aIs = a.type === 'charity' ? 1 : 0;
+        const bIs = b.type === 'charity' ? 1 : 0;
+        return bIs - aIs;
+      });
+    };
+
     if (Array.isArray(route.sponsors) && route.sponsors.length > 0) {
       route.sponsors.forEach(s => {
         if (s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url)) {
           const l = sanitizeLogo(s.logo_url) || sanitizeLogo(s.sponsor_logo_url) || sanitizeLogo(s.sponsor_logo) || '';
           list.push({
-            name: (s.name || s.sponsor_name || 'Route Sponsor').trim(),
+            type: normType(s.type),
+            name: (s.name || s.sponsor_name || 'Route Partner').trim(),
             logo: l,
-            url: (s.link || s.sponsor_link || s.url || '').trim()
+            url: (s.link || s.sponsor_link || s.url || '').trim(),
+            description: (s.description || s.sponsor_description || '').trim()
           });
         }
       });
-      if (list.length > 0) return list;
+      if (list.length > 0) return sortCharitiesFirst(list);
     }
     if (route.sponsors_json) {
       try {
@@ -467,13 +482,15 @@
             if (s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url)) {
               const l = sanitizeLogo(s.logo_url) || sanitizeLogo(s.sponsor_logo_url) || sanitizeLogo(s.sponsor_logo) || '';
               list.push({
-                name: (s.name || s.sponsor_name || 'Route Sponsor').trim(),
+                type: normType(s.type),
+                name: (s.name || s.sponsor_name || 'Route Partner').trim(),
                 logo: l,
-                url: (s.link || s.sponsor_link || s.url || '').trim()
+                url: (s.link || s.sponsor_link || s.url || '').trim(),
+                description: (s.description || s.sponsor_description || '').trim()
               });
             }
           });
-          if (list.length > 0) return list;
+          if (list.length > 0) return sortCharitiesFirst(list);
         }
       } catch (e) {}
     }
@@ -488,13 +505,15 @@
               if (s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url)) {
                 const l = sanitizeLogo(s.logo_url) || sanitizeLogo(s.sponsor_logo_url) || sanitizeLogo(s.sponsor_logo) || '';
                 list.push({
-                  name: (s.name || s.sponsor_name || 'Route Sponsor').trim(),
+                  type: normType(s.type),
+                  name: (s.name || s.sponsor_name || 'Route Partner').trim(),
                   logo: l,
-                  url: (s.link || s.sponsor_link || s.url || '').trim()
+                  url: (s.link || s.sponsor_link || s.url || '').trim(),
+                  description: (s.description || s.sponsor_description || '').trim()
                 });
               }
             });
-            if (list.length > 0) return list;
+            if (list.length > 0) return sortCharitiesFirst(list);
           }
         }
       } catch (e) {}
@@ -502,12 +521,14 @@
     if (route.sponsor_name || route.sponsor_logo_url || route.sponsor_logo) {
       const l = sanitizeLogo(route.sponsor_logo_url) || sanitizeLogo(route.sponsor_logo) || '';
       list.push({
+        type: 'sponsor',
         name: (route.sponsor_name || 'Official Route Sponsor').trim(),
         logo: l,
-        url: (route.sponsor_link || '').trim()
+        url: (route.sponsor_link || '').trim(),
+        description: (route.sponsor_description || '').trim()
       });
     }
-    return list;
+    return sortCharitiesFirst(list);
   }
 
   function getRoutePlannedStops(route) {
@@ -1059,16 +1080,22 @@
       const sponsors = getRouteSponsors(route);
       const sponsorHtml = sponsors.length > 0 ? `
         <div class="route-sponsors-list">
-          ${sponsors.map(sp => `
-            <${sp.url ? `a href="${escapeHtml(sp.url)}" target="_blank" rel="noopener noreferrer"` : 'div'} class="route-sponsor-strip">
-              ${sp.logo ? `<div class="sponsor-logo-pedestal"><img src="${escapeHtml(sp.logo)}" alt="${escapeHtml(sp.name)}" loading="lazy"></div>` : ''}
-              <div class="sponsor-strip-meta">
-                <div class="sponsor-strip-kicker">Night Sponsored By</div>
-                <div class="sponsor-strip-name">${escapeHtml(sp.name)}</div>
-              </div>
-              ${sp.url ? '<i class="fa-solid fa-arrow-up-right-from-square" style="font-size:11px; color:var(--text-muted); margin-left:auto;"></i>' : ''}
-            </${sp.url ? 'a' : 'div'}>
-          `).join('')}
+          ${sponsors.map(sp => {
+            const isCharity = sp.type === 'charity';
+            const kickerText = isCharity ? '❤️ Beneficiary Charity' : 'Night Sponsored By';
+            const stripClass = isCharity ? 'route-sponsor-strip is-charity' : 'route-sponsor-strip';
+            const kickerClass = isCharity ? 'sponsor-strip-kicker is-charity' : 'sponsor-strip-kicker';
+            return `
+              <${sp.url ? `a href="${escapeHtml(sp.url)}" target="_blank" rel="noopener noreferrer"` : 'div'} class="${stripClass}">
+                ${sp.logo ? `<div class="sponsor-logo-pedestal${isCharity ? ' is-charity' : ''}"><img src="${escapeHtml(sp.logo)}" alt="${escapeHtml(sp.name)}" loading="lazy"></div>` : ''}
+                <div class="sponsor-strip-meta">
+                  <div class="${kickerClass}">${kickerText}</div>
+                  <div class="sponsor-strip-name">${escapeHtml(sp.name)}</div>
+                </div>
+                ${sp.url ? '<i class="fa-solid fa-arrow-up-right-from-square" style="font-size:11px; color:var(--text-muted); margin-left:auto;"></i>' : ''}
+              </${sp.url ? 'a' : 'div'}>
+            `;
+          }).join('')}
         </div>
       ` : '';
 
@@ -1618,28 +1645,50 @@
     const grid = document.getElementById('partners-pedestal-grid');
     if (!section || !grid) return;
 
-    const merged = [];
+    const charities = [];
+    const officialPartners = [];
+    const routeSponsors = [];
     const seen = new Set();
 
-    const addPartner = (name, logo, url, role) => {
+    const addAttribution = (targetArr, name, logo, url, role, type) => {
       const cleanName = String(name || '').trim();
       if (!cleanName && !logo) return;
       const key = (cleanName || logo).toLowerCase();
       if (seen.has(key)) return;
       seen.add(key);
-      merged.push({ name: cleanName || 'Community Partner', logo: logo || '', url: url || '', role: role || 'Official Partner' });
+      targetArr.push({
+        name: cleanName || (type === 'charity' ? 'Charity Beneficiary' : 'Community Partner'),
+        logo: logo || '',
+        url: url || '',
+        role: role || (type === 'charity' ? 'Charity Beneficiary' : 'Official Partner'),
+        type: type || 'sponsor'
+      });
     };
 
-    (state.payload?.partners || []).forEach(p => {
-      addPartner(p.name, p.logo || p.logo_url, p.url || p.link, p.role || 'Official Partner');
-    });
-
-    // Also include route-level corporate sponsors so they get full recognition
+    // 1. Beneficiary Charities across all routes (FIRST)
     state.routes.forEach(r => {
       getRouteSponsors(r).forEach(sp => {
-        addPartner(sp.name, sp.logo, sp.url, `${r.name} Sponsor`);
+        if (sp.type === 'charity') {
+          addAttribution(charities, sp.name, sp.logo, sp.url, `❤️ ${r.name || 'Route'} Beneficiary`, 'charity');
+        }
       });
     });
+
+    // 2. Official Table Headline Partners from settings (SECOND)
+    (state.payload?.partners || []).forEach(p => {
+      addAttribution(officialPartners, p.name, p.logo || p.logo_url, p.url || p.link, `⭐ ${p.role || 'Official Partner'}`, 'official_partner');
+    });
+
+    // 3. Route Corporate Business Sponsors across all routes (THIRD)
+    state.routes.forEach(r => {
+      getRouteSponsors(r).forEach(sp => {
+        if (sp.type !== 'charity') {
+          addAttribution(routeSponsors, sp.name, sp.logo, sp.url, `🏢 ${r.name || 'Route'} Sponsor`, 'sponsor');
+        }
+      });
+    });
+
+    const merged = [...charities, ...officialPartners, ...routeSponsors];
 
     if (merged.length === 0) {
       section.style.display = 'none';
@@ -1650,15 +1699,18 @@
     grid.innerHTML = merged.map(p => {
       const tag = p.url ? 'a' : 'div';
       const attrs = p.url ? `href="${escapeHtml(p.url)}" target="_blank" rel="noopener noreferrer"` : '';
+      const isCharity = p.type === 'charity';
+      const isOfficial = p.type === 'official_partner';
+      const cardClass = isCharity ? 'partner-pedestal-card is-charity' : (isOfficial ? 'partner-pedestal-card is-official' : 'partner-pedestal-card');
+      const roleClass = isCharity ? 'partner-role-pill is-charity' : (isOfficial ? 'partner-role-pill is-official' : 'partner-role-pill');
       return `
-        <${tag} ${attrs} class="partner-pedestal-card">
+        <${tag} ${attrs} class="${cardClass}">
           ${p.logo ? `<div class="partner-logo-stage"><img src="${escapeHtml(p.logo)}" alt="${escapeHtml(p.name)}" loading="lazy"></div>` : ''}
-          <span class="partner-role-pill">${escapeHtml(p.role)}</span>
+          <span class="${roleClass}">${escapeHtml(p.role)}</span>
           <div class="partner-name">${escapeHtml(p.name)}</div>
         </${tag}>
       `;
     }).join('');
-
   }
 
   const DEFAULT_FAQS = [
