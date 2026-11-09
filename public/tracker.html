@@ -1349,7 +1349,7 @@
     <button class="btn" id="twitchBtn" style="display: none; border-color: var(--primary); color: var(--primary);" aria-label="Toggle sleigh camera feed">Cam: OFF</button>
     <button class="btn" id="msgBtn" style="display: none;" aria-label="Send a message to Santa">Msg Santa</button>
     <button class="btn" id="shareBtn" style="display: none;" aria-label="Share this tracker link with others">Share</button>
-    <button class="btn" id="musicBtn" style="display: none;" aria-label="Play Christmas music">Music: Off</button>
+    <button class="btn" id="musicBtn" style="display: none;" aria-label="Play Christmas jingles">🎵 Jingles: Off</button>
     <div id="toast" class="toast-box" role="alert" aria-live="assertive"></div>
   </nav>
 
@@ -2042,7 +2042,7 @@
 
       const AppState = {
         map: null, mlMap: null, marker: null, notifyMarker: null, gpxRoute: null, lastFix: null, recentFixes: [], routeFixes: [],
-        flags: { follow: true, firstFix: true, isKiosk: false, isDemo: false, gpxLoaded: false, snowActive: false, pageVisible: !document.hidden, awaitingPin: false, browserNotified: sessionStorage.getItem("SANTA_BROWSER_NOTIFIED") === "1", hasPassedSticky: sessionStorage.getItem("SANTA_HAS_PASSED") === "1", celebrationFired: sessionStorage.getItem("SANTA_CELEBRATION_FIRED") === "1", musicEnabled: false, beaconActive: false, proximityBellsFired: false },
+        flags: { follow: true, firstFix: true, isKiosk: false, isDemo: false, gpxLoaded: false, snowActive: false, pageVisible: !document.hidden, awaitingPin: false, browserNotified: sessionStorage.getItem("SANTA_BROWSER_NOTIFIED") === "1", hasPassedSticky: sessionStorage.getItem("SANTA_HAS_PASSED") === "1", celebrationFired: sessionStorage.getItem("SANTA_CELEBRATION_FIRED") === "1", musicEnabled: false, jinglesEnabled: false, beaconActive: false, proximityBellsFired: false },
         vars: { apiUrl: null, tableSlug: "", sleighName: "Santa Sleigh", staleSince: null, lastSnapIndex: 0, snowflakes: [], animRaf: null, pendingSubscription: null, notifyLatLng: null, lastVisualPos: null, escapeListener: null, lastElfCamUrl: null, lastSeenMsgTs: Number(sessionStorage.getItem('SANTA_LAST_MSG_TS')) || 0, pollTimer: null, consecutiveErrors: 0, musicUrl: null, currentMapHeading: 0, latestApiData: null, lastSettingsFetch: 0, lastTxTime: 0, lastLeafletRouteIdx: -1, lastMlRouteIdx: -1, userSnapCache: null, etaEmaSec: null },
         dom: { loading: document.getElementById("loadingCover"), statusBox: document.getElementById("statusBox"), followBtn: document.getElementById("followBtn"), recenterBtn: document.getElementById("recenterBtn"), notifyBtn: document.getElementById("notifyBtn"), msgBtn: document.getElementById("msgBtn"), statusDot: document.getElementById("statusDot"), donateLink: document.getElementById("donateLink"), donateBox: document.getElementById("donateBox"), kioskBanner: document.getElementById("kioskBanner"), sponsorBox: document.getElementById("kioskSponsor"), toast: document.getElementById("toast"), snowCanvas: document.getElementById("snow"), shareBtn: document.getElementById("shareBtn"), musicBtn: document.getElementById("musicBtn"), fireworks: document.getElementById("fireworks") }
       };
@@ -2862,17 +2862,163 @@
         stop() { this.active = false; if (this.rafId) cancelAnimationFrame(this.rafId); this.particles = []; if (this.ctx) this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height); this.canvas.classList.remove("active"); }
       };
 
-      const SleighAudio = {
-        _audio: null, _targetVol: 0, _rampTimer: null, _loaded: false,
-        init(url) { if (!url || this._audio) return; const a = new Audio(); a.src = url; a.loop = true; a.volume = 0; a.preload = "auto"; a.crossOrigin = "anonymous"; a.addEventListener("canplaythrough", () => { this._loaded = true; }, { once: true }); a.addEventListener("error", () => { this._loaded = false; }); this._audio = a; },
-        play() { if (!this._audio) return; const p = this._audio.play(); if (p && p.catch) p.catch(() => {}); this._startVolumeRamp(); },
-        pause() { if (!this._audio) return; this._audio.pause(); this._stopVolumeRamp(); },
-        setIntensity(level) { if (!AppState.flags.musicEnabled || !this._audio) return; const volMap = { 0: 0.15, 1: 0.35, 2: 0.65, 3: 1.0 }; this._targetVol = volMap[level] ?? 0.15; this._startVolumeRamp(); },
-        arrivalSurge() { if (!this._audio || !AppState.flags.musicEnabled) return; this._targetVol = 1.0; this._audio.volume = 1.0; setTimeout(() => { this._targetVol = 0.25; this._startVolumeRamp(); }, 4000); },
-        _startVolumeRamp() { if (this._rampTimer) return; this._rampTimer = setInterval(() => { if (!this._audio) { this._stopVolumeRamp(); return; } const current = this._audio.volume; const diff = this._targetVol - current; if (Math.abs(diff) < 0.01) { this._audio.volume = this._targetVol; this._stopVolumeRamp(); } else { this._audio.volume = current + diff * 0.15; } }, 50); },
-        _stopVolumeRamp() { if (this._rampTimer) { clearInterval(this._rampTimer); this._rampTimer = null; } },
-        mute() { this._targetVol = 0; if (this._audio) this._audio.volume = 0; this._stopVolumeRamp(); }
+      // 1. General Background Jingles (controlled manually by the Jingles Button)
+      const JinglesAudio = {
+        _audio: null,
+        init(url) {
+          if (!url || this._audio) return;
+          const a = new Audio();
+          a.src = url;
+          a.loop = true;
+          a.volume = 0.35;
+          a.preload = "none";
+          a.crossOrigin = "anonymous";
+          this._audio = a;
+        },
+        play() {
+          if (!this._audio) return;
+          const p = this._audio.play();
+          if (p && p.catch) p.catch(() => {});
+        },
+        pause() {
+          if (this._audio) this._audio.pause();
+        },
+        setDucked(ducked) {
+          if (!this._audio) return;
+          if (ducked) {
+            this._audio.volume = 0;
+          } else if (AppState.flags.jinglesEnabled) {
+            this._audio.volume = 0.35;
+          }
+        }
       };
+
+      // 2. Proximity Music (Always armed & ready to play as Santa nears the dropped resident pin)
+      const ProximityAudio = {
+        _audio: null,
+        _targetVol: 0,
+        _rampTimer: null,
+        _unlocked: false,
+        _isPlaying: false,
+
+        init(url = '/media/santa_proximity_song.mp3') {
+          if (this._audio) return;
+          const a = new Audio();
+          a.src = url;
+          a.loop = true;
+          a.volume = 0;
+          a.preload = "auto";
+          a.crossOrigin = "anonymous";
+          this._audio = a;
+
+          // Unlock audio playback on first resident gesture so browser policy permits arrival audio
+          const unlock = () => {
+            if (this._unlocked) return;
+            this._unlocked = true;
+            a.play().then(() => {
+              if (this._targetVol === 0) {
+                a.pause();
+                a.currentTime = 0;
+              }
+            }).catch(() => {});
+            window.removeEventListener('click', unlock);
+            window.removeEventListener('touchstart', unlock);
+            window.removeEventListener('pointerdown', unlock);
+          };
+          window.addEventListener('click', unlock, { once: true, passive: true });
+          window.addEventListener('touchstart', unlock, { once: true, passive: true });
+          window.addEventListener('pointerdown', unlock, { once: true, passive: true });
+        },
+
+        setIntensity(level) {
+          if (!this._audio) return;
+          // Level 0 = silent/far, Level 1 = 0.25 (15m/1.2km), Level 2 = 0.65 (8m/600m), Level 3 = 1.0 (3m/300m)
+          const volMap = { 0: 0, 1: 0.25, 2: 0.65, 3: 1.0 };
+          this._targetVol = volMap[level] ?? 0;
+
+          if (this._targetVol > 0) {
+            if (!this._isPlaying) {
+              this._isPlaying = true;
+              const p = this._audio.play();
+              if (p && p.catch) p.catch(() => {});
+            }
+            if (typeof JinglesAudio !== 'undefined') JinglesAudio.setDucked(true);
+            this._startVolumeRamp();
+          } else {
+            this._targetVol = 0;
+            this._startVolumeRamp(() => {
+              if (this._audio && this._targetVol === 0) {
+                this._audio.pause();
+                this._audio.currentTime = 0;
+                this._isPlaying = false;
+              }
+              if (typeof JinglesAudio !== 'undefined') JinglesAudio.setDucked(false);
+            });
+          }
+        },
+
+        arrivalSurge() {
+          if (!this._audio) return;
+          this._targetVol = 1.0;
+          this._audio.volume = 1.0;
+          if (!this._isPlaying) {
+            this._isPlaying = true;
+            this._audio.play().catch(() => {});
+          }
+          if (typeof JinglesAudio !== 'undefined') JinglesAudio.setDucked(true);
+
+          // Play arrival peak for 8s, then smoothly taper off
+          setTimeout(() => {
+            this._targetVol = 0;
+            this._startVolumeRamp(() => {
+              if (this._audio && this._targetVol === 0) {
+                this._audio.pause();
+                this._audio.currentTime = 0;
+                this._isPlaying = false;
+              }
+              if (typeof JinglesAudio !== 'undefined') JinglesAudio.setDucked(false);
+            });
+          }, 8000);
+        },
+
+        _startVolumeRamp(onComplete) {
+          if (this._rampTimer) clearInterval(this._rampTimer);
+          this._rampTimer = setInterval(() => {
+            if (!this._audio) {
+              if (this._rampTimer) clearInterval(this._rampTimer);
+              this._rampTimer = null;
+              return;
+            }
+            const current = this._audio.volume;
+            const diff = this._targetVol - current;
+            if (Math.abs(diff) < 0.02) {
+              this._audio.volume = this._targetVol;
+              clearInterval(this._rampTimer);
+              this._rampTimer = null;
+              if (onComplete) onComplete();
+            } else {
+              this._audio.volume = Math.max(0, Math.min(1, current + diff * 0.18));
+            }
+          }, 60);
+        },
+
+        mute() {
+          this._targetVol = 0;
+          if (this._audio) {
+            this._audio.volume = 0;
+            this._audio.pause();
+            this._audio.currentTime = 0;
+          }
+          this._isPlaying = false;
+          if (this._rampTimer) {
+            clearInterval(this._rampTimer);
+            this._rampTimer = null;
+          }
+          if (typeof JinglesAudio !== 'undefined') JinglesAudio.setDucked(false);
+        }
+      };
+
+      const SleighAudio = ProximityAudio;
 
       const SantaSoundboard = {
         _ctx: null,
@@ -4408,32 +4554,33 @@
             WorkshopManager.init(apiData.routes);
         }
 
-        const musicUrl = settings.background_music_url;
-        if (musicUrl && musicUrl.trim() !== "" && !AppState.flags.isKiosk && !AppState.flags.isDriver) {
-          AppState.vars.musicUrl = musicUrl.trim();
-          SleighAudio.init(AppState.vars.musicUrl);
+        // 1. Proximity Doorstep Music: ALWAYS ARMED & READY TO PLAY on pin proximity
+        if (!AppState.flags.isKiosk && !AppState.flags.isDriver) {
+          ProximityAudio.init('/media/santa_proximity_song.mp3');
+        }
+
+        // 2. Table Background Christmas Jingles: played or paused on demand via Jingles button
+        const jinglesUrl = settings.background_music_url;
+        if (jinglesUrl && jinglesUrl.trim() !== "" && !AppState.flags.isKiosk && !AppState.flags.isDriver) {
+          AppState.vars.musicUrl = jinglesUrl.trim();
+          JinglesAudio.init(AppState.vars.musicUrl);
           const musicBtn = AppState.dom.musicBtn;
           if (musicBtn) {
             musicBtn.style.display = "inline-block";
             musicBtn.onclick = () => {
-              AppState.flags.musicEnabled = !AppState.flags.musicEnabled;
-              if (AppState.flags.musicEnabled) {
-                musicBtn.textContent = "Music: On";
+              AppState.flags.jinglesEnabled = !AppState.flags.jinglesEnabled;
+              if (AppState.flags.jinglesEnabled) {
+                musicBtn.textContent = "🎵 Jingles: On";
                 musicBtn.classList.add("music-on");
-                musicBtn.setAttribute("aria-label", "Christmas music is playing — tap to mute");
-                SleighAudio.play();
-                if (AppState.flags.snowActive && AppState.currentSnowLevel) {
-                  SleighAudio.setIntensity(AppState.currentSnowLevel);
-                } else {
-                  SleighAudio.setIntensity(0);
-                }
-                showToast("🎵 Christmas music enabled!");
+                musicBtn.setAttribute("aria-label", "Christmas jingles are playing — tap to mute");
+                JinglesAudio.play();
+                showToast("🎵 Christmas jingles enabled!");
               } else {
-                musicBtn.textContent = "Music: Off";
+                musicBtn.textContent = "🎵 Jingles: Off";
                 musicBtn.classList.remove("music-on");
-                musicBtn.setAttribute("aria-label", "Christmas music is muted — tap to play");
-                SleighAudio.mute();
-                showToast("Christmas music muted");
+                musicBtn.setAttribute("aria-label", "Christmas jingles are muted — tap to play");
+                JinglesAudio.pause();
+                showToast("Christmas jingles muted");
               }
             };
           }
