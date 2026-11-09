@@ -765,24 +765,28 @@
     #workshopOverlay {
       position: fixed; inset: 0; background: var(--dark);
       z-index: 8000; display: none; flex-direction: column;
-      padding: 40px 20px; overflow-y: auto; overflow-x: hidden; text-align: center;
+      padding: clamp(10px, 2.5vh, 24px) clamp(10px, 3vw, 20px);
+      overflow-y: auto; overflow-x: hidden; text-align: center;
+      justify-content: center; align-items: center;
       box-sizing: border-box;
     }
     .ws-card {
       background: var(--surface); border: 1px solid var(--border-primary);
-      padding: 40px; border-radius: 16px; max-width: 500px; width: 100%;
+      padding: clamp(16px, 4vw, 36px); border-radius: 16px; max-width: 500px; width: 100%;
       box-shadow: 0 10px 40px rgba(0,0,0,0.6); position: relative; overflow: hidden;
-      margin: 0 auto;
+      margin: auto;
       flex-shrink: 0;
       box-sizing: border-box;
+      max-height: 98vh;
     }
     .ws-card::before {
       content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
       background: linear-gradient(90deg, var(--red), var(--primary));
     }
     .ws-title {
-      font-family: 'Eurostile', sans-serif; font-size: 42px;
-      color: #fff; letter-spacing: 2px; margin-bottom: 10px; line-height: 1;
+      font-family: 'Eurostile', sans-serif; font-size: clamp(20px, 5.2vw, 34px);
+      color: #fff; letter-spacing: 1px; margin-bottom: 6px; line-height: 1.1;
+      white-space: nowrap;
     }
     .ws-title span { color: var(--primary); }
     .ws-countdown {
@@ -853,12 +857,131 @@
     /* 🚀 EMBEDDED TURNKEY IFRAME & MOBILE COMPACT MODE */
     /* Prevents mobile captured-scroll traps on turnkey site */
     body.is-embedded #workshopOverlay,
+    #workshopOverlay.ws-compact {
+      padding: 8px 10px;
+      justify-content: center;
+      align-items: center;
+      overflow-y: hidden !important;
+      overscroll-behavior-y: contain;
+      touch-action: pan-y;
+    }
+    body.is-embedded .ws-card,
+    #workshopOverlay.ws-compact .ws-card {
+      padding: 12px 14px;
+      max-width: 440px;
+      width: 100%;
+      max-height: 98vh;
+      margin: auto;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+    body.is-embedded .ws-title,
+    #workshopOverlay.ws-compact .ws-title {
+      font-size: clamp(17px, 5vw, 22px);
+      margin-bottom: 2px;
+      letter-spacing: 0.8px;
+      white-space: nowrap;
+    }
+    body.is-embedded .ws-card > p,
+    #workshopOverlay.ws-compact .ws-card > p {
+      display: none;
+    }
+    body.is-embedded .ws-countdown,
+    #workshopOverlay.ws-compact .ws-countdown {
+      font-size: clamp(15px, 4.2vw, 18px);
+      font-weight: 800;
+      padding: 6px 10px;
+      margin: 6px 0;
+      border-radius: 8px;
+      letter-spacing: 0.5px;
+    }
+    body.is-embedded .ws-schedule,
+    #workshopOverlay.ws-compact .ws-schedule {
+      margin-bottom: 6px;
+    }
+    body.is-embedded .ws-schedule-title,
+    #workshopOverlay.ws-compact .ws-schedule-title {
+      font-size: 9.5px;
+      margin-bottom: 2px;
+      padding-bottom: 2px;
+      letter-spacing: 1px;
+    }
+    body.is-embedded .ws-schedule-item,
+    #workshopOverlay.ws-compact .ws-schedule-item {
+      padding: 2px 0;
+      font-size: 11px;
+    }
+    body.is-embedded .ws-items-group,
+    #workshopOverlay.ws-compact .ws-items-group {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin: 6px 0;
+    }
+    body.is-embedded .ws-item,
+    #workshopOverlay.ws-compact .ws-item {
+      margin-bottom: 0;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 4px 6px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    body.is-embedded .ws-item-label,
+    #workshopOverlay.ws-compact .ws-item-label {
+      font-size: 9px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    body.is-embedded .ws-item-label span:first-child,
+    #workshopOverlay.ws-compact .ws-item-label span:first-child {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 65px;
+    }
+    body.is-embedded .ws-bar-wrap,
+    #workshopOverlay.ws-compact .ws-bar-wrap {
+      height: 5px;
+      margin-top: 3px;
+      border-radius: 3px;
+    }
+    body.is-embedded .ws-status-text,
+    #workshopOverlay.ws-compact .ws-status-text {
+      font-size: 8px;
+      margin-top: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    body.is-embedded .ws-actions,
+    #workshopOverlay.ws-compact .ws-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 6px;
+    }
+    body.is-embedded .ws-donate,
+    #workshopOverlay.ws-compact .ws-donate {
+      margin-top: 0;
+      padding: 6px 12px;
+      font-size: 11px;
+      border-radius: 6px;
+    }
+    body.is-embedded .ws-skip-btn,
+    #workshopOverlay.ws-compact .ws-skip-btn {
+      margin-top: 0;
+      font-size: 11px;
+      padding: 3px 6px;
+    }
+
     @media (max-width: 680px), (max-height: 850px) {
       #workshopOverlay {
         padding: 8px 10px;
         justify-content: center;
         align-items: center;
-        overflow-y: hidden !important; /* Zero internal scroll trap */
+        overflow-y: hidden !important;
         overscroll-behavior-y: contain;
         touch-action: pan-y;
       }
@@ -872,15 +995,16 @@
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
       }
       .ws-title {
-        font-size: 20px;
+        font-size: clamp(17px, 5vw, 22px);
         margin-bottom: 2px;
-        letter-spacing: 1px;
+        letter-spacing: 0.8px;
+        white-space: nowrap;
       }
       .ws-card > p {
         display: none;
       }
       .ws-countdown {
-        font-size: 16px;
+        font-size: clamp(15px, 4.2vw, 18px);
         font-weight: 800;
         padding: 6px 10px;
         margin: 6px 0;
@@ -1845,7 +1969,13 @@
             
             if (hasValidDates && daysUntil < 10) return false; 
             
-            document.getElementById('workshopOverlay').style.display = 'flex';
+            const wsOverlay = document.getElementById('workshopOverlay');
+            if (wsOverlay) {
+              wsOverlay.style.display = 'flex';
+              if (window.self !== window.top || window.innerWidth < 768 || window.innerHeight < 850) {
+                wsOverlay.classList.add('ws-compact');
+              }
+            }
             
             const scheduleEl = document.getElementById('wsSchedule');
             const listEl = document.getElementById('wsScheduleList');
