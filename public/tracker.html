@@ -126,7 +126,7 @@
 
     .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 
-    /* Dedicated top announcement bar outside the map canvas & tracker pill */
+    /* Dedicated top announcement bar outside the map canvas & tracker pill — sleek rolling ticker */
     .announcement-top-bar {
       position: fixed;
       top: 0;
@@ -136,18 +136,19 @@
       background: linear-gradient(90deg, rgba(20, 20, 17, 0.98), rgba(32, 27, 18, 0.98));
       border-bottom: 1.5px solid var(--primary);
       color: var(--primary);
-      padding: 6px 12px;
-      font-size: 12px;
+      padding: 0 10px;
+      height: 28px;
+      min-height: 28px;
+      max-height: 28px;
+      font-size: 11.5px;
       font-weight: 800;
-      line-height: 1.3;
-      text-align: center;
-      letter-spacing: 0.02em;
+      line-height: 28px;
       box-shadow: 0 4px 16px rgba(0,0,0,0.45);
       display: none;
       align-items: center;
-      justify-content: center;
-      gap: 8px;
+      gap: 10px;
       box-sizing: border-box;
+      overflow: hidden;
     }
     .announcement-top-bar.is-user-msg {
       background: linear-gradient(90deg, rgba(35, 12, 48, 0.98), rgba(50, 18, 68, 0.98));
@@ -161,28 +162,59 @@
       background: rgba(var(--primary-rgb), 0.16);
       border: 1px solid rgba(var(--primary-rgb), 0.4);
       color: var(--primary);
-      font-size: 9.5px;
+      font-size: 9px;
       font-weight: 900;
-      padding: 2px 6px;
+      padding: 2px 7px;
+      height: 18px;
       border-radius: 999px;
       text-transform: uppercase;
       letter-spacing: 0.06em;
       flex-shrink: 0;
       white-space: nowrap;
+      z-index: 2;
     }
     .announcement-top-bar.is-user-msg .ann-badge {
       background: rgba(200, 139, 255, 0.18);
       border-color: rgba(200, 139, 255, 0.45);
       color: #e6c2ff;
     }
-    .announcement-top-bar .ann-text {
+    .announcement-top-bar .ann-marquee {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      position: relative;
+      display: flex;
+      align-items: center;
+      mask-image: linear-gradient(90deg, transparent 0%, black 14px, black calc(100% - 14px), transparent 100%);
+      -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 14px, black calc(100% - 14px), transparent 100%);
+    }
+    .announcement-top-bar .ann-track {
+      display: inline-flex;
+      align-items: center;
+      white-space: nowrap;
       font-weight: 800;
       color: #fff;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      text-align: left;
+      will-change: transform;
+      animation: annTicker 26s linear infinite;
+    }
+    .announcement-top-bar:hover .ann-track,
+    .announcement-top-bar:active .ann-track {
+      animation-play-state: paused;
+    }
+    .announcement-top-bar .ann-spacer {
+      display: inline-block;
+      margin: 0 28px;
+      color: var(--primary);
+      opacity: 0.65;
+      font-weight: 900;
+    }
+    .announcement-top-bar.is-user-msg .ann-spacer {
+      color: #c88bff;
+    }
+    @keyframes annTicker {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
     }
 
     body.is-embedded #shareBtn { display: none !important; }
@@ -2173,7 +2205,8 @@
           if (banner.dataset.annKey !== nextKey) {
             banner.dataset.annKey = nextKey;
             banner.classList.remove('is-user-msg');
-            banner.innerHTML = `<span class="ann-badge">📢 NOTICE</span><span class="ann-text">${escapeHtml(cleanLive)}</span>`;
+            const safe = escapeHtml(cleanLive);
+            banner.innerHTML = `<span class="ann-badge">📢 NOTICE</span><div class="ann-marquee"><div class="ann-track"><span>${safe}</span><span class="ann-spacer">•</span><span>${safe}</span><span class="ann-spacer">•</span></div></div>`;
           }
           if (banner.style.display !== 'flex') {
             banner.style.display = 'flex';
@@ -2184,7 +2217,8 @@
           if (banner.dataset.annKey !== nextKey) {
             banner.dataset.annKey = nextKey;
             banner.classList.add('is-user-msg');
-            banner.innerHTML = `<span class="ann-badge">✨ CHEER</span><span class="ann-text">${escapeHtml(cleanUser)}</span>`;
+            const safe = escapeHtml(cleanUser);
+            banner.innerHTML = `<span class="ann-badge">✨ CHEER</span><div class="ann-marquee"><div class="ann-track"><span>${safe}</span><span class="ann-spacer">•</span><span>${safe}</span><span class="ann-spacer">•</span></div></div>`;
           }
           if (banner.style.display !== 'flex') {
             banner.style.display = 'flex';
