@@ -743,6 +743,23 @@
           <input type="text" id="inp-footer-url" placeholder="e.g. beverley.roundtablesantasleigh.co.uk" />
         </div>
 
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+          <div class="field-group" style="margin-bottom:0;">
+            <label for="inp-primary-color">Primary Colour</label>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <input type="color" id="inp-primary-color-picker" value="#D31C1C" style="width:28px;height:28px;padding:0;border:none;background:none;cursor:pointer;border-radius:4px;" />
+              <input type="text" id="inp-primary-color" style="font-family:monospace;font-size:11px;" value="#D31C1C" placeholder="#d31c1c" />
+            </div>
+          </div>
+          <div class="field-group" style="margin-bottom:0;">
+            <label for="inp-accent-color">Accent Colour</label>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <input type="color" id="inp-accent-color-picker" value="#FBAF33" style="width:28px;height:28px;padding:0;border:none;background:none;cursor:pointer;border-radius:4px;" />
+              <input type="text" id="inp-accent-color" style="font-family:monospace;font-size:11px;" value="#FBAF33" placeholder="#FBAF33" />
+            </div>
+          </div>
+        </div>
+
         <hr style="border:none;border-top:1px solid var(--border);margin:12px 0;" />
 
         <div class="field-group" style="margin-bottom:0;">
@@ -842,7 +859,107 @@
     (function () {
       'use strict';
 
-      const WORKER_API = 'https://turbosanta-api.beverley247.workers.dev';
+      const WORKER_API = (function() {
+        if (typeof window !== 'undefined' && window.location && window.location.hostname.endsWith('roundtablesantasleigh.co.uk')) {
+          return window.location.origin;
+        }
+        return 'https://turbosanta-api.beverley247.workers.dev';
+      })();
+
+      function hexToRgba(hex, alpha = 1) {
+        if (!hex || typeof hex !== 'string') return `rgba(251, 175, 51, ${alpha})`;
+        let c = hex.replace('#', '').trim();
+        if (c.length === 3) {
+          c = c.split('').map(x => x + x).join('');
+        }
+        const num = parseInt(c, 16);
+        if (isNaN(num)) return `rgba(251, 175, 51, ${alpha})`;
+        const r = (num >> 16) & 255;
+        const g = (num >> 8) & 255;
+        const b = num & 255;
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      }
+
+      function getLuminance(hex) {
+        if (!hex || typeof hex !== 'string') return 0;
+        let c = hex.replace('#', '').trim();
+        if (c.length === 3) c = c.split('').map(x => x + x).join('');
+        const num = parseInt(c, 16);
+        if (isNaN(num)) return 0;
+        const r = ((num >> 16) & 255) / 255;
+        const g = ((num >> 8) & 255) / 255;
+        const b = (num & 255) / 255;
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      }
+
+      function getContrastingAccent(hex, fallback = '#FBAF33') {
+        const lum = getLuminance(hex);
+        return lum < 0.28 ? fallback : hex;
+      }
+
+      function resetShadow(c) {
+        c.shadowColor = 'transparent';
+        c.shadowBlur = 0;
+        c.shadowOffsetX = 0;
+        c.shadowOffsetY = 0;
+      }
+
+      function updateMapColors(primary, accent) {
+        const prim = primary || STATE.primaryColor || '#D31C1C';
+        const acc = accent || STATE.accentColor || '#FBAF33';
+        STATE.primaryColor = prim;
+        STATE.accentColor = acc;
+
+        const effectiveAccent = getContrastingAccent(acc, '#FBAF33');
+
+        // Sync inputs if not currently focused
+        const pInput = $('inp-primary-color');
+        const pPicker = $('inp-primary-color-picker');
+        const aInput = $('inp-accent-color');
+        const aPicker = $('inp-accent-color-picker');
+        if (pInput && document.activeElement !== pInput) pInput.value = prim;
+        if (pPicker && document.activeElement !== pPicker) {
+          if (/^#[0-9a-f]{6}$/i.test(prim)) pPicker.value = prim;
+        }
+        if (aInput && document.activeElement !== aInput) aInput.value = acc;
+        if (aPicker && document.activeElement !== aPicker) {
+          if (/^#[0-9a-f]{6}$/i.test(acc)) aPicker.value = acc;
+        }
+
+        // Update CSS variables for UI styling
+        document.documentElement.style.setProperty('--gold', effectiveAccent);
+        document.documentElement.style.setProperty('--gold-glow', hexToRgba(effectiveAccent, 0.35));
+
+        if (!map || !map.isStyleLoaded()) return;
+
+        try {
+          if (map.getLayer('route-remaining-glow')) {
+            map.setPaintProperty('route-remaining-glow', 'line-color', effectiveAccent);
+          }
+          if (map.getLayer('route-remaining-main')) {
+            map.setPaintProperty('route-remaining-main', 'line-color', prim);
+          }
+          if (map.getLayer('route-past-glow')) {
+            map.setPaintProperty('route-past-glow', 'line-color', effectiveAccent);
+          }
+          if (map.getLayer('route-past-casing')) {
+            map.setPaintProperty('route-past-casing', 'line-color', prim);
+          }
+          if (map.getLayer('route-past-main')) {
+            map.setPaintProperty('route-past-main', 'line-color', effectiveAccent);
+          }
+          if (map.getLayer('sleigh-tail-layer')) {
+            map.setPaintProperty('sleigh-tail-layer', 'line-gradient', [
+              'interpolate', ['linear'], ['line-progress'],
+              0, hexToRgba(effectiveAccent, 0),
+              1, effectiveAccent
+            ]);
+          }
+        } catch (err) {
+          console.warn('Could not update map layer colors:', err);
+        }
+      }
+
       const DEFAULT_ICONS = {
         live: '/icons/sleigh_icon.png',
         start: '/icons/start_icon.png',
@@ -871,6 +988,8 @@
         routes: [],
         activeRouteIndex: -1,
         activeRoute: null,
+        primaryColor: '#D31C1C',
+        accentColor: '#FBAF33',
 
         // Parsed GPX geometry
         points: [],          // [{ lat, lng, dist }]
@@ -1325,6 +1444,7 @@
             }
           });
 
+          updateMapColors(STATE.primaryColor, STATE.accentColor);
           loadTablePayload(STATE.tableSlug);
         });
 
@@ -1641,10 +1761,10 @@
 
           // Crisp GPS road contact dot directly beneath tracker pin tip
           ctx.save();
-          ctx.shadowBlur = 0;
+          resetShadow(ctx);
           ctx.beginPath();
           ctx.arc(pSleigh.x, pSleigh.y, 4.5 * uiScale, 0, Math.PI * 2);
-          ctx.fillStyle = '#d31c1c';
+          ctx.fillStyle = STATE.primaryColor || '#d31c1c';
           ctx.fill();
           ctx.lineWidth = 2 * uiScale;
           ctx.strokeStyle = '#ffffff';
@@ -1661,64 +1781,82 @@
 
         ctx.restore();
 
-        // 4. Optional Social Header & Tracker URL Pill
+        const effectiveAccent = getContrastingAccent(STATE.accentColor, '#FBAF33');
+
+        // 4. Optional Social Header & Tracker URL Pill (Active during traversal; fades out smoothly upon zoom out)
         if (STATE.includeBanner) {
-          ctx.save();
-          const padX = 16 * uiScale;
-          const topY = 16 * uiScale;
-          const cardW = canvasW - padX * 2;
-          const hasSub = Boolean(STATE.routeSubtitle && STATE.routeSubtitle.trim());
-          const cardH = (hasSub ? 74 : 58) * uiScale;
+          const topBannerAlpha = activeSnap.panOutProgress > 0
+            ? Math.max(0, 1 - activeSnap.panOutProgress / 0.35)
+            : 1;
 
-          // Frosted dark tracker banner card
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
-          ctx.shadowBlur = 14 * uiScale;
-          ctx.shadowOffsetY = 4 * uiScale;
-          roundRectPath(ctx, padX, topY, cardW, cardH, 13 * uiScale);
-          ctx.fillStyle = 'rgba(13, 16, 23, 0.90)';
-          ctx.fill();
+          if (topBannerAlpha > 0.02) {
+            ctx.save();
+            ctx.globalAlpha = topBannerAlpha;
+            const padX = 16 * uiScale;
+            const topY = 16 * uiScale;
+            const cardW = canvasW - padX * 2;
+            const hasSub = Boolean(STATE.routeSubtitle && STATE.routeSubtitle.trim());
+            const cardH = (hasSub ? 74 : 58) * uiScale;
 
-          ctx.shadowBlur = 0;
-          ctx.shadowOffsetY = 0;
-          ctx.lineWidth = 1.5 * uiScale;
-          ctx.strokeStyle = 'rgba(251, 175, 51, 0.55)';
-          ctx.stroke();
+            // Frosted dark tracker banner card
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+            ctx.shadowBlur = 14 * uiScale;
+            ctx.shadowOffsetY = 4 * uiScale;
+            roundRectPath(ctx, padX, topY, cardW, cardH, 13 * uiScale);
+            ctx.fillStyle = 'rgba(13, 16, 23, 0.90)';
+            ctx.fill();
 
-          const textMaxW = cardW - 24 * uiScale;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
+            resetShadow(ctx);
+            ctx.lineWidth = 1.5 * uiScale;
+            ctx.strokeStyle = hexToRgba(effectiveAccent, 0.65);
+            ctx.stroke();
 
-          // Sleigh Display Name
-          ctx.font = `800 ${Math.round(10.5 * uiScale)}px "Open Sans", sans-serif`;
-          ctx.fillStyle = '#FBAF33';
-          ctx.fillText(
-            fitText(ctx, (STATE.sleighTitle || 'ROUND TABLE SANTA SLEIGH').toUpperCase(), textMaxW),
-            canvasW / 2,
-            topY + 17 * uiScale
-          );
+            const textMaxW = cardW - 24 * uiScale;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
 
-          // Route Title
-          ctx.font = `700 ${Math.round(15.5 * uiScale)}px Eurostile, "Open Sans", sans-serif`;
-          ctx.fillStyle = '#ffffff';
-          ctx.fillText(
-            fitText(ctx, STATE.routeTitle || 'Santa Sleigh Route', textMaxW),
-            canvasW / 2,
-            topY + 38 * uiScale
-          );
-
-          // Date / Time / Distance Subtitle
-          if (hasSub) {
-            ctx.font = `700 ${Math.round(11 * uiScale)}px "Open Sans", sans-serif`;
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.80)';
+            // Sleigh Display Name
+            ctx.font = `800 ${Math.round(10.5 * uiScale)}px "Open Sans", sans-serif`;
+            ctx.fillStyle = effectiveAccent;
             ctx.fillText(
-              fitText(ctx, STATE.routeSubtitle, textMaxW),
+              fitText(ctx, (STATE.sleighTitle || 'ROUND TABLE SANTA SLEIGH').toUpperCase(), textMaxW),
               canvasW / 2,
-              topY + 57 * uiScale
+              topY + 17 * uiScale
             );
+
+            // Route Title
+            ctx.font = `700 ${Math.round(15.5 * uiScale)}px Eurostile, "Open Sans", sans-serif`;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(
+              fitText(ctx, STATE.routeTitle || 'Santa Sleigh Route', textMaxW),
+              canvasW / 2,
+              topY + 38 * uiScale
+            );
+
+            // Date / Time Subtitle (No distance!)
+            if (hasSub) {
+              ctx.font = `700 ${Math.round(11 * uiScale)}px "Open Sans", sans-serif`;
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.80)';
+              ctx.fillText(
+                fitText(ctx, STATE.routeSubtitle, textMaxW),
+                canvasW / 2,
+                topY + 57 * uiScale
+              );
+            }
+
+            ctx.restore();
           }
 
-          // Bottom Tracker URL Pill
-          if (STATE.footerUrl && STATE.footerUrl.trim() && (!activeSnap.panOutProgress || activeSnap.panOutProgress < 0.2)) {
+          // Bottom Tracker URL Pill (fades out as pan-out begins)
+          const bottomPillAlpha = activeSnap.panOutProgress > 0
+            ? Math.max(0, 1 - activeSnap.panOutProgress / 0.25)
+            : 1;
+
+          if (STATE.footerUrl && STATE.footerUrl.trim() && bottomPillAlpha > 0.02) {
+            ctx.save();
+            ctx.globalAlpha = bottomPillAlpha;
+            const padX = 16 * uiScale;
+            const cardW = canvasW - padX * 2;
             const footerLabel = `📍 Track Santa Live: ${STATE.footerUrl.trim()}`;
             ctx.font = `700 ${Math.round(11 * uiScale)}px "Open Sans", sans-serif`;
             const textW = Math.min(cardW - 24 * uiScale, ctx.measureText(footerLabel).width);
@@ -1729,18 +1867,21 @@
 
             ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
             ctx.shadowBlur = 10 * uiScale;
+            ctx.shadowOffsetY = 2 * uiScale;
             roundRectPath(ctx, pillX, pillY, pillW, pillH, pillH / 2);
             ctx.fillStyle = 'rgba(13, 16, 23, 0.88)';
             ctx.fill();
-            ctx.shadowBlur = 0;
+
+            resetShadow(ctx);
             ctx.lineWidth = 1.2 * uiScale;
-            ctx.strokeStyle = 'rgba(251, 175, 51, 0.45)';
+            ctx.strokeStyle = hexToRgba(effectiveAccent, 0.55);
             ctx.stroke();
 
             ctx.fillStyle = '#ffffff';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(fitText(ctx, footerLabel, pillW - 18 * uiScale), canvasW / 2, pillY + pillH / 2);
+            ctx.restore();
           }
 
           // 4b. Intro Title Splash (Smooth fade-out as sleigh takes off from Start Pin)
@@ -1749,6 +1890,11 @@
             if (introAlpha > 0.02) {
               ctx.save();
               ctx.globalAlpha = introAlpha;
+
+              const padX = 16 * uiScale;
+              const topY = 16 * uiScale;
+              const hasSub = Boolean(STATE.routeSubtitle && STATE.routeSubtitle.trim());
+              const cardH = (hasSub ? 74 : 58) * uiScale;
 
               const splashW = Math.min(canvasW - 40 * uiScale, 360 * uiScale);
               const splashH = (hasSub ? 104 : 88) * uiScale;
@@ -1762,9 +1908,9 @@
               ctx.fillStyle = 'rgba(11, 14, 21, 0.94)';
               ctx.fill();
 
-              ctx.shadowBlur = 0;
+              resetShadow(ctx);
               ctx.lineWidth = 1.8 * uiScale;
-              ctx.strokeStyle = 'rgba(251, 175, 51, 0.85)';
+              ctx.strokeStyle = hexToRgba(effectiveAccent, 0.85);
               ctx.stroke();
 
               ctx.textAlign = 'center';
@@ -1772,7 +1918,7 @@
 
               // Badge
               ctx.font = `800 ${Math.round(10 * uiScale)}px "Open Sans", sans-serif`;
-              ctx.fillStyle = '#FBAF33';
+              ctx.fillStyle = effectiveAccent;
               ctx.fillText('🎅 OFFICIAL SANTA SLEIGH TOUR', canvasW / 2, splashY + 20 * uiScale);
 
               // Route Title (Eurostile Bold)
@@ -1795,7 +1941,7 @@
 
               if (hasSub) {
                 ctx.font = `600 ${Math.round(9.5 * uiScale)}px "Open Sans", sans-serif`;
-                ctx.fillStyle = 'rgba(251, 175, 51, 0.95)';
+                ctx.fillStyle = hexToRgba(effectiveAccent, 0.95);
                 ctx.fillText(
                   fitText(ctx, STATE.routeSubtitle, splashW - 28 * uiScale),
                   canvasW / 2,
@@ -1806,98 +1952,147 @@
               ctx.restore();
             }
           }
+        } // end if (STATE.includeBanner)
 
-          // 4c. Outro Finale Card with Table Logo (Smooth fade-in during Pan & Zoom Out)
-          if (activeSnap.panOutProgress > 0.15) {
-            const outroAlpha = Math.min(1, Math.max(0, (activeSnap.panOutProgress - 0.15) / 0.55));
-            if (outroAlpha > 0.02) {
-              ctx.save();
-              ctx.globalAlpha = outroAlpha;
+        // 4c. Outro: Full-Screen Cinematic Black Finale Screen with Centered Logo & CTA
+        if (activeSnap.panOutProgress > 0.30) {
+          const outroAlpha = Math.min(1, Math.max(0, (activeSnap.panOutProgress - 0.30) / 0.50));
+          if (outroAlpha > 0.01) {
+            ctx.save();
+            ctx.globalAlpha = outroAlpha;
 
-              const outroW = Math.min(canvasW - 32 * uiScale, 360 * uiScale);
-              const hasLogo = Boolean(STATE.icons.logo);
-              const outroH = (hasLogo ? 122 : 92) * uiScale;
-              const outroX = (canvasW - outroW) / 2;
-              const outroY = canvasH - outroH - 32 * uiScale;
+            // 1. Solid deep cinematic black backdrop covering the entire frame
+            resetShadow(ctx);
+            ctx.fillStyle = '#06080c';
+            ctx.fillRect(0, 0, canvasW, canvasH);
 
-              // Frosted gold-bordered finale card
-              ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
-              ctx.shadowBlur = 24 * uiScale;
-              ctx.shadowOffsetY = 8 * uiScale;
-              roundRectPath(ctx, outroX, outroY, outroW, outroH, 18 * uiScale);
-              ctx.fillStyle = 'rgba(11, 14, 21, 0.95)';
+            // 2. Subtle festive radial glow in table accent/primary color
+            const isPortrait = canvasH >= canvasW;
+            const centerY = isPortrait ? canvasH * 0.40 : canvasH * 0.44;
+            const glowGrad = ctx.createRadialGradient(
+              canvasW / 2, centerY, 10 * uiScale,
+              canvasW / 2, centerY, canvasW * 0.60
+            );
+            glowGrad.addColorStop(0, hexToRgba(effectiveAccent, 0.20));
+            glowGrad.addColorStop(0.55, hexToRgba(STATE.primaryColor || '#D31C1C', 0.08));
+            glowGrad.addColorStop(1, 'rgba(6, 8, 12, 0)');
+            ctx.fillStyle = glowGrad;
+            ctx.fillRect(0, 0, canvasW, canvasH);
+
+            // 3. Official Table Logo centered
+            const logoImg = STATE.icons.logo;
+            const logoSize = isPortrait ? 96 * uiScale : 82 * uiScale;
+            let curY = isPortrait ? canvasH * 0.19 : canvasH * 0.12;
+
+            if (logoImg) {
+              const logoCenterY = curY + logoSize / 2;
+              const ringRadius = (logoSize / 2) + 6 * uiScale;
+
+              // Glowing circular pedestal
+              ctx.beginPath();
+              ctx.arc(canvasW / 2, logoCenterY, ringRadius, 0, Math.PI * 2);
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
               ctx.fill();
-
-              ctx.shadowBlur = 0;
-              ctx.lineWidth = 2 * uiScale;
-              ctx.strokeStyle = 'rgba(251, 175, 51, 0.90)';
+              ctx.lineWidth = 2.5 * uiScale;
+              ctx.strokeStyle = effectiveAccent;
               ctx.stroke();
 
-              // Official Round Table / Table Custom Logo
-              let contentStartY = outroY + 16 * uiScale;
-              if (hasLogo) {
-                const logoBox = 44 * uiScale;
-                const logoCenterY = outroY + 28 * uiScale;
-                drawAnchoredImage(ctx, STATE.icons.logo, canvasW / 2, logoCenterY, logoBox, 0.5, 0.5);
-                contentStartY = outroY + 58 * uiScale;
-              }
-
-              ctx.textAlign = 'center';
-              ctx.textBaseline = 'middle';
-
-              // Route Completed Header (Eurostile Bold)
-              ctx.font = `700 ${Math.round(15.5 * uiScale)}px Eurostile, "Open Sans", sans-serif`;
-              ctx.fillStyle = '#ffffff';
-              ctx.fillText(
-                fitText(ctx, `${STATE.routeTitle || 'Route'} • COMPLETED ✨`, outroW - 24 * uiScale),
-                canvasW / 2,
-                contentStartY + 6 * uiScale
-              );
-
-              // Table Name (Open Sans)
-              ctx.font = `800 ${Math.round(10.5 * uiScale)}px "Open Sans", sans-serif`;
-              ctx.fillStyle = '#FBAF33';
-              ctx.fillText(
-                fitText(ctx, (STATE.sleighTitle || 'ROUND TABLE SANTA SLEIGH').toUpperCase(), outroW - 24 * uiScale),
-                canvasW / 2,
-                contentStartY + 24 * uiScale
-              );
-
-              // Live Tracker & Donation CTA Pill
-              if (STATE.footerUrl && STATE.footerUrl.trim()) {
-                const ctaText = `📍 Track Santa Live & Donate: ${STATE.footerUrl.trim()}`;
-                const ctaPillW = outroW - 28 * uiScale;
-                const ctaPillH = 24 * uiScale;
-                const ctaPillX = (canvasW - ctaPillW) / 2;
-                const ctaPillY = contentStartY + 36 * uiScale;
-
-                roundRectPath(ctx, ctaPillX, ctaPillY, ctaPillW, ctaPillH, ctaPillH / 2);
-                ctx.fillStyle = 'rgba(251, 175, 51, 0.16)';
-                ctx.fill();
-                ctx.lineWidth = 1 * uiScale;
-                ctx.strokeStyle = 'rgba(251, 175, 51, 0.55)';
-                ctx.stroke();
-
-                ctx.font = `700 ${Math.round(10 * uiScale)}px "Open Sans", sans-serif`;
-                ctx.fillStyle = '#ffffff';
-                ctx.fillText(fitText(ctx, ctaText, ctaPillW - 12 * uiScale), canvasW / 2, ctaPillY + ctaPillH / 2);
-              }
-
-              ctx.restore();
+              drawAnchoredImage(ctx, logoImg, canvasW / 2, logoCenterY, logoSize, 0.5, 0.5);
+              curY = logoCenterY + ringRadius + 22 * uiScale;
+            } else {
+              curY += 24 * uiScale;
             }
-          }
 
-          ctx.restore();
+            resetShadow(ctx);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            const maxTextW = canvasW - 48 * uiScale;
+
+            // Sleigh Display Name (Uppercase, Open Sans 800)
+            ctx.font = `800 ${Math.round(12.5 * uiScale)}px "Open Sans", sans-serif`;
+            ctx.fillStyle = effectiveAccent;
+            ctx.fillText(
+              fitText(ctx, (STATE.sleighTitle || 'ROUND TABLE SANTA SLEIGH').toUpperCase(), maxTextW),
+              canvasW / 2,
+              curY
+            );
+            curY += 28 * uiScale;
+
+            // Route Name (Eurostile 700 / Open Sans)
+            ctx.font = `700 ${Math.round(21 * uiScale)}px Eurostile, "Open Sans", sans-serif`;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(
+              fitText(ctx, STATE.routeTitle || 'Santa Sleigh Route', maxTextW),
+              canvasW / 2,
+              curY
+            );
+            curY += 25 * uiScale;
+
+            // Route Date / Time Subtitle (NO distance!)
+            if (STATE.routeSubtitle && STATE.routeSubtitle.trim()) {
+              ctx.font = `700 ${Math.round(13 * uiScale)}px "Open Sans", sans-serif`;
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
+              ctx.fillText(
+                fitText(ctx, `✨ ${STATE.routeSubtitle.trim()} ✨`, maxTextW),
+                canvasW / 2,
+                curY
+              );
+              curY += 34 * uiScale;
+            } else {
+              curY += 18 * uiScale;
+            }
+
+            // Live Tracker & Donate CTA Pill
+            if (STATE.footerUrl && STATE.footerUrl.trim()) {
+              const ctaText = `📍 Track Santa Live & Donate: ${STATE.footerUrl.trim()}`;
+              ctx.font = `700 ${Math.round(12 * uiScale)}px "Open Sans", sans-serif`;
+              const textW = ctx.measureText(ctaText).width;
+              const pillW = Math.min(maxTextW, textW + 36 * uiScale);
+              const pillH = 38 * uiScale;
+              const pillX = (canvasW - pillW) / 2;
+              const pillY = curY;
+
+              roundRectPath(ctx, pillX, pillY, pillW, pillH, pillH / 2);
+              ctx.fillStyle = STATE.primaryColor || '#D31C1C';
+              ctx.fill();
+              ctx.lineWidth = 1.8 * uiScale;
+              ctx.strokeStyle = effectiveAccent;
+              ctx.stroke();
+
+              resetShadow(ctx);
+              ctx.fillStyle = '#ffffff';
+              ctx.fillText(fitText(ctx, ctaText, pillW - 20 * uiScale), canvasW / 2, pillY + pillH / 2);
+
+              curY += pillH + 26 * uiScale;
+            }
+
+            // Festive Charity Tagline
+            ctx.font = `600 ${Math.round(11 * uiScale)}px "Open Sans", sans-serif`;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+            ctx.fillText(
+              fitText(ctx, '🎅 Raising vital funds for local charities this Christmas', maxTextW),
+              canvasW / 2,
+              curY
+            );
+
+            ctx.restore();
+          }
         }
 
-        // 5. Required subtle OpenStreetMap attribution in bottom-right corner
-        ctx.save();
-        ctx.font = `600 ${Math.max(8, Math.round(8.5 * uiScale))}px "Open Sans", sans-serif`;
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'bottom';
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
-        ctx.fillText('© OpenStreetMap', canvasW - 7 * uiScale, canvasH - 4 * uiScale);
-        ctx.restore();
+        // 5. Required subtle OpenStreetMap attribution in bottom-right corner (fades out as black outro appears)
+        const osmAlpha = Math.max(0, 1 - (activeSnap.panOutProgress || 0) / 0.35);
+        if (osmAlpha > 0.02) {
+          ctx.save();
+          ctx.globalAlpha = osmAlpha;
+          resetShadow(ctx);
+          ctx.font = `600 ${Math.max(8, Math.round(8.5 * uiScale))}px "Open Sans", sans-serif`;
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'bottom';
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+          ctx.fillText('© OpenStreetMap', canvasW - 7 * uiScale, canvasH - 4 * uiScale);
+          ctx.restore();
+        }
       }
 
       function drawScreenOverlay(snap) {
@@ -1970,6 +2165,12 @@
           const tableObj = data?.table || data?.settings || {};
           STATE.settings = { ...(data?.settings || {}), ...tableObj };
 
+          const loadedPrimary = tableObj.primary_color || STATE.settings.primary_color;
+          const loadedAccent = tableObj.accent_color || STATE.settings.accent_color;
+          if (loadedPrimary) STATE.primaryColor = loadedPrimary;
+          if (loadedAccent) STATE.accentColor = loadedAccent;
+          updateMapColors(STATE.primaryColor, STATE.accentColor);
+
           await loadTableIcons(STATE.settings);
 
           const sleighName = STATE.settings.sleigh_display_name || STATE.settings.name || `${cleanSlug.charAt(0).toUpperCase() + cleanSlug.slice(1)} Round Table Santa Sleigh`;
@@ -2011,6 +2212,7 @@
         } catch (err) {
           console.warn('Payload load fallback:', err);
           await loadTableIcons({});
+          updateMapColors(STATE.primaryColor, STATE.accentColor);
           STATE.routes = FALLBACK_GPX_ROUTES.map((r) => ({ ...r }));
           populateRouteSelect();
           await selectRouteByIndex(0);
@@ -2069,8 +2271,7 @@
         const timePart = routeMeta?.start_time
           ? `${routeMeta.start_time}${routeMeta.end_time ? '–' + routeMeta.end_time : ''}`
           : '';
-        const kmPart = `${(STATE.totalDistMeters / 1000).toFixed(1)} km`;
-        STATE.routeSubtitle = [datePart, timePart, kmPart].filter(Boolean).join(' • ');
+        STATE.routeSubtitle = [datePart, timePart].filter(Boolean).join(' • ');
 
         $('inp-route-title').value = STATE.routeTitle;
         $('inp-route-sub').value = STATE.routeSubtitle;
@@ -2510,6 +2711,31 @@
         ['inp-sleigh-title', 'inp-route-title', 'inp-route-sub', 'inp-footer-url'].forEach((id) => {
           $(id).addEventListener('input', syncTextInputs);
         });
+
+        const handlePrimaryColorChange = (val) => {
+          if (!val) return;
+          val = val.trim();
+          if (!val.startsWith('#') && /^[0-9a-f]{3,6}$/i.test(val)) val = '#' + val;
+          $('inp-primary-color').value = val;
+          if (/^#[0-9a-f]{6}$/i.test(val)) $('inp-primary-color-picker').value = val;
+          updateMapColors(val, STATE.accentColor);
+          drawScreenOverlay();
+        };
+
+        const handleAccentColorChange = (val) => {
+          if (!val) return;
+          val = val.trim();
+          if (!val.startsWith('#') && /^[0-9a-f]{3,6}$/i.test(val)) val = '#' + val;
+          $('inp-accent-color').value = val;
+          if (/^#[0-9a-f]{6}$/i.test(val)) $('inp-accent-color-picker').value = val;
+          updateMapColors(STATE.primaryColor, val);
+          drawScreenOverlay();
+        };
+
+        $('inp-primary-color').addEventListener('input', (e) => handlePrimaryColorChange(e.target.value));
+        $('inp-primary-color-picker').addEventListener('input', (e) => handlePrimaryColorChange(e.target.value));
+        $('inp-accent-color').addEventListener('input', (e) => handleAccentColorChange(e.target.value));
+        $('inp-accent-color-picker').addEventListener('input', (e) => handleAccentColorChange(e.target.value));
 
         $('btn-load-table').addEventListener('click', () => {
           const slug = $('inp-table-slug').value.trim().toLowerCase();

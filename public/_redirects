@@ -35,3 +35,7 @@
 /v1/               /santasleigh        200
 /v2                /sleigh_v2          200
 /v2/               /sleigh_v2          200
+/route-video       /travelboast_test   200
+/route-video/      /travelboast_test   200
+/route_video       /travelboast_test   200
+/route_video/      /travelboast_test   200
