@@ -330,9 +330,10 @@
       box-shadow: 0 6px 22px rgba(0,0,0,0.5), 0 0 0 1px rgba(244, 114, 182, 0.2);
     }
 
-    /* Hide where it would clash */
+    /* Hide where it would clash or when embedded in turnkey site iframe */
     body.kiosk .route-sponsor,
-    body.driver-mode .route-sponsor { display: none; }
+    body.driver-mode .route-sponsor,
+    body.is-embedded .route-sponsor { display: none !important; }
 
     body.dim-ui .route-sponsor.visible { opacity: 0.55; filter: saturate(0.85); }
     body.dim-ui .route-sponsor.visible:hover { opacity: 0.85; }
@@ -346,25 +347,28 @@
         max-width: calc(100vw - 28px);
       }
       .route-sponsor {
-        right: 10px;
-        top: 72px; /* fallback below status-popup before JS measurement */
-        padding: 6px 12px 8px;
-        gap: 3px;
-        flex-direction: column;
+        right: auto !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        top: 80px;
+        padding: 6px 14px 7px;
+        gap: 6px;
+        flex-direction: row;
         align-items: center;
-        max-width: 135px;
+        max-width: calc(100vw - 28px);
+        width: max-content;
       }
       .route-sponsor span {
-        display: block;
+        display: inline-block;
         font-size: 8px;
         letter-spacing: .08em;
       }
       .route-sponsor strong {
         font-size: 13px !important;
-        text-align: center;
+        text-align: left;
       }
       .route-sponsor img { 
-        max-height: 30px; 
+        max-height: 28px; 
         max-width: 100px; 
       }
     }
@@ -1343,6 +1347,7 @@
     <button class="btn" id="twitchBtn" style="display: none; border-color: var(--primary); color: var(--primary);" aria-label="Toggle sleigh camera feed">Cam: OFF</button>
     <button class="btn" id="msgBtn" style="display: none;" aria-label="Send a message to Santa">Msg Santa</button>
     <button class="btn" id="shareBtn" style="display: none;" aria-label="Share this tracker link with others">Share</button>
+    <button class="btn" id="musicBtn" style="display: none;" aria-label="Play Christmas music">Music: Off</button>
     <div id="toast" class="toast-box" role="alert" aria-live="assertive"></div>
   </nav>
 
@@ -1680,8 +1685,8 @@
       function normalizeApiData(data) {
         if (!data || typeof data !== 'object') return data;
         const tbl = data.table || {};
-        const mMode = tbl.music_mode || data.settings?.music_mode || 'default';
-        const defaultSong = '/media/santa_proximity_song.mp3';
+        const mMode = tbl.music_mode || data.settings?.music_mode || 'none';
+        const defaultSong = 'https://turbosanta-app.pages.dev/media/round_table_christmas.mp3';
         const resolvedMusicUrl = mMode === 'none'
           ? ''
           : (mMode === 'default'
@@ -2035,9 +2040,9 @@
 
       const AppState = {
         map: null, mlMap: null, marker: null, notifyMarker: null, gpxRoute: null, lastFix: null, recentFixes: [], routeFixes: [],
-        flags: { follow: true, firstFix: true, isKiosk: false, isDemo: false, gpxLoaded: false, snowActive: false, pageVisible: !document.hidden, awaitingPin: false, browserNotified: sessionStorage.getItem("SANTA_BROWSER_NOTIFIED") === "1", hasPassedSticky: sessionStorage.getItem("SANTA_HAS_PASSED") === "1", celebrationFired: sessionStorage.getItem("SANTA_CELEBRATION_FIRED") === "1", musicEnabled: true, beaconActive: false, proximityBellsFired: false },
+        flags: { follow: true, firstFix: true, isKiosk: false, isDemo: false, gpxLoaded: false, snowActive: false, pageVisible: !document.hidden, awaitingPin: false, browserNotified: sessionStorage.getItem("SANTA_BROWSER_NOTIFIED") === "1", hasPassedSticky: sessionStorage.getItem("SANTA_HAS_PASSED") === "1", celebrationFired: sessionStorage.getItem("SANTA_CELEBRATION_FIRED") === "1", musicEnabled: false, beaconActive: false, proximityBellsFired: false },
         vars: { apiUrl: null, tableSlug: "", sleighName: "Santa Sleigh", staleSince: null, lastSnapIndex: 0, snowflakes: [], animRaf: null, pendingSubscription: null, notifyLatLng: null, lastVisualPos: null, escapeListener: null, lastElfCamUrl: null, lastSeenMsgTs: Number(sessionStorage.getItem('SANTA_LAST_MSG_TS')) || 0, pollTimer: null, consecutiveErrors: 0, musicUrl: null, currentMapHeading: 0, latestApiData: null, lastSettingsFetch: 0, lastTxTime: 0, lastLeafletRouteIdx: -1, lastMlRouteIdx: -1, userSnapCache: null, etaEmaSec: null },
-        dom: { loading: document.getElementById("loadingCover"), statusBox: document.getElementById("statusBox"), followBtn: document.getElementById("followBtn"), recenterBtn: document.getElementById("recenterBtn"), notifyBtn: document.getElementById("notifyBtn"), msgBtn: document.getElementById("msgBtn"), statusDot: document.getElementById("statusDot"), donateLink: document.getElementById("donateLink"), donateBox: document.getElementById("donateBox"), kioskBanner: document.getElementById("kioskBanner"), sponsorBox: document.getElementById("kioskSponsor"), toast: document.getElementById("toast"), snowCanvas: document.getElementById("snow"), shareBtn: document.getElementById("shareBtn"), fireworks: document.getElementById("fireworks") }
+        dom: { loading: document.getElementById("loadingCover"), statusBox: document.getElementById("statusBox"), followBtn: document.getElementById("followBtn"), recenterBtn: document.getElementById("recenterBtn"), notifyBtn: document.getElementById("notifyBtn"), msgBtn: document.getElementById("msgBtn"), statusDot: document.getElementById("statusDot"), donateLink: document.getElementById("donateLink"), donateBox: document.getElementById("donateBox"), kioskBanner: document.getElementById("kioskBanner"), sponsorBox: document.getElementById("kioskSponsor"), toast: document.getElementById("toast"), snowCanvas: document.getElementById("snow"), shareBtn: document.getElementById("shareBtn"), musicBtn: document.getElementById("musicBtn"), fireworks: document.getElementById("fireworks") }
       };
 
       function scheduleNextPoll() {
@@ -4352,38 +4357,35 @@
             WorkshopManager.init(apiData.routes);
         }
 
-        const musicUrl = (settings.background_music_url && settings.background_music_url.trim() !== "")
-          ? settings.background_music_url.trim()
-          : "/media/santa_proximity_song.mp3";
-        if (!AppState.flags.isKiosk && !AppState.flags.isDriver) {
-          AppState.vars.musicUrl = musicUrl;
-          AppState.flags.musicEnabled = true;
+        const musicUrl = settings.background_music_url;
+        if (musicUrl && musicUrl.trim() !== "" && !AppState.flags.isKiosk && !AppState.flags.isDriver) {
+          AppState.vars.musicUrl = musicUrl.trim();
           SleighAudio.init(AppState.vars.musicUrl);
-
-          const startDefaultMusic = () => {
-            if (AppState.flags.musicEnabled && SleighAudio._audio) {
-              SleighAudio.play();
-              if (AppState.flags.snowActive && AppState.currentSnowLevel) {
-                SleighAudio.setIntensity(AppState.currentSnowLevel);
+          const musicBtn = AppState.dom.musicBtn;
+          if (musicBtn) {
+            musicBtn.style.display = "inline-block";
+            musicBtn.onclick = () => {
+              AppState.flags.musicEnabled = !AppState.flags.musicEnabled;
+              if (AppState.flags.musicEnabled) {
+                musicBtn.textContent = "Music: On";
+                musicBtn.classList.add("music-on");
+                musicBtn.setAttribute("aria-label", "Christmas music is playing — tap to mute");
+                SleighAudio.play();
+                if (AppState.flags.snowActive && AppState.currentSnowLevel) {
+                  SleighAudio.setIntensity(AppState.currentSnowLevel);
+                } else {
+                  SleighAudio.setIntensity(0);
+                }
+                showToast("🎵 Christmas music enabled!");
               } else {
-                SleighAudio.setIntensity(0);
+                musicBtn.textContent = "Music: Off";
+                musicBtn.classList.remove("music-on");
+                musicBtn.setAttribute("aria-label", "Christmas music is muted — tap to play");
+                SleighAudio.mute();
+                showToast("Christmas music muted");
               }
-            }
-          };
-
-          // Try immediate autoplay if browser policy allows
-          startDefaultMusic();
-
-          // And unlock seamlessly on first user interaction if browser blocked initial autoplay
-          const userUnlock = () => {
-            startDefaultMusic();
-            window.removeEventListener('click', userUnlock);
-            window.removeEventListener('touchstart', userUnlock);
-            window.removeEventListener('scroll', userUnlock);
-          };
-          window.addEventListener('click', userUnlock, { once: true, passive: true });
-          window.addEventListener('touchstart', userUnlock, { once: true, passive: true });
-          window.addEventListener('scroll', userUnlock, { once: true, passive: true });
+            };
+          }
         }
 
         const twitchEnabled = String(settings.enable_twitch || "").toUpperCase() === "TRUE";
@@ -4737,11 +4739,22 @@
                   // NEVER place beside on mobile screens. Only on desktop with plenty of side clearance
                   const fitsBeside = !isMobile && (spaceOnRight >= pillWidth + 20);
 
-                  if (fitsBeside) {
-                    pill.style.top = Math.round(Math.max(margin, sbr.top)) + 'px';
-                  } else {
-                    // On mobile or when side space is limited, stack cleanly below statusBox and ticker!
+                  if (isMobile) {
                     pill.style.top = Math.round(currentTop) + 'px';
+                    pill.style.left = '50%';
+                    pill.style.right = 'auto';
+                    pill.style.transform = 'translateX(-50%)';
+                  } else if (fitsBeside) {
+                    pill.style.top = Math.round(Math.max(margin, sbr.top)) + 'px';
+                    pill.style.left = 'auto';
+                    pill.style.right = '12px';
+                    pill.style.transform = 'none';
+                  } else {
+                    // On desktop when side space is limited, stack cleanly below statusBox and ticker!
+                    pill.style.top = Math.round(currentTop) + 'px';
+                    pill.style.left = 'auto';
+                    pill.style.right = '12px';
+                    pill.style.transform = 'none';
                   }
                 }
               }

@@ -1392,6 +1392,52 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
             overflow: 'hidden',
             boxShadow: '0 10px 30px rgba(0,0,0,0.6)'
           }}>
+            {todayItem?.sponsors && todayItem.sponsors.length > 0 && (() => {
+              const sp = todayItem.sponsors[0];
+              const isCharity = sp.type === 'charity';
+              return (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '8px 18px',
+                  background: isCharity ? 'rgba(26, 16, 22, 0.95)' : 'rgba(18, 20, 24, 0.95)',
+                  borderBottom: `1px solid ${isCharity ? 'rgba(244, 114, 182, 0.35)' : 'rgba(var(--primary-rgb), 0.25)'}`,
+                  fontSize: '12px',
+                  gap: '10px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                    <span style={{
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em',
+                      color: isCharity ? '#f472b6' : 'var(--primary)',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {isCharity ? '❤️ Supporting Charity:' : "⭐ Tonight's Route Sponsor:"}
+                    </span>
+                    <a
+                      href={sp.link || sp.url || undefined}
+                      target={sp.link || sp.url ? "_blank" : undefined}
+                      rel="noopener noreferrer sponsored"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        textDecoration: 'none',
+                        color: '#fff'
+                      }}
+                    >
+                      {sp.logo_url && (
+                        <img src={sp.logo_url} alt={`${sp.name} logo`} style={{ maxHeight: '26px', maxWidth: '110px', objectFit: 'contain' }} />
+                      )}
+                      <strong style={{ fontSize: '13px', fontWeight: 800 }}>{sp.name}</strong>
+                    </a>
+                  </div>
+                </div>
+              );
+            })()}
             <iframe
               id="tracker-iframe"
               src={`/tracker.html?table=${encodeURIComponent(activeTableSlug)}`}

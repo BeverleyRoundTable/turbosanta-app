@@ -583,6 +583,65 @@
     return sortCharitiesFirst(list);
   }
 
+  let radarSponsorRotateTimer = null;
+  function renderRadarRouteSponsor(route) {
+    const bar = document.getElementById('radar-route-sponsor');
+    if (!bar) return;
+    if (radarSponsorRotateTimer) {
+      clearInterval(radarSponsorRotateTimer);
+      radarSponsorRotateTimer = null;
+    }
+
+    const r = route || state.routes.find((rt, i) => isRouteLive(rt, i)) || (typeof findNextUpcomingRoute === 'function' ? findNextUpcomingRoute() : null) || state.routes[0];
+    if (!r) {
+      bar.style.display = 'none';
+      return;
+    }
+
+    const sponsors = getRouteSponsors(r);
+    const validSponsors = sponsors.filter(s => s && (s.name || s.logo));
+    if (validSponsors.length === 0) {
+      bar.style.display = 'none';
+      return;
+    }
+
+    bar.style.display = 'flex';
+    let idx = 0;
+
+    const render = (i) => {
+      const sp = validSponsors[i];
+      if (!sp) return;
+      const isCharity = sp.type === 'charity';
+      bar.className = `radar-route-sponsor${isCharity ? ' is-charity' : ''}`;
+
+      const kickerText = isCharity 
+        ? '❤️ Supporting' 
+        : (isRouteToday(r) ? "⭐ Tonight's Route Sponsor" : `⭐ ${escapeHtml(r.name || 'Route')} Sponsor`);
+      const linkTag = sp.url ? 'a' : 'div';
+      const linkAttrs = sp.url ? `href="${escapeHtml(sp.url)}" target="_blank" rel="noopener noreferrer sponsored"` : '';
+
+      bar.innerHTML = `
+        <div class="radar-sponsor-content">
+          <span class="radar-sponsor-kicker${isCharity ? ' is-charity' : ''}">${kickerText}:</span>
+          <${linkTag} class="radar-sponsor-entity" ${linkAttrs} title="${escapeHtml(sp.description || sp.name)}">
+            ${sp.logo ? `<img src="${escapeHtml(sp.logo)}" alt="${escapeHtml(sp.name)} logo" loading="lazy">` : ''}
+            <strong>${escapeHtml(sp.name)}</strong>
+            ${sp.description ? `<span style="font-size:11px; color:var(--text-muted); margin-left:4px;" class="hide-mobile">— ${escapeHtml(sp.description)}</span>` : ''}
+          </${linkTag}>
+        </div>
+        ${validSponsors.length > 1 ? `<span style="font-size:10px; color:var(--text-muted); font-weight:700;">1 of ${validSponsors.length}</span>` : ''}
+      `;
+    };
+
+    render(0);
+    if (validSponsors.length > 1) {
+      radarSponsorRotateTimer = setInterval(() => {
+        idx = (idx + 1) % validSponsors.length;
+        render(idx);
+      }, 5000);
+    }
+  }
+
   function getRoutePlannedStops(route) {
     if (!route) return [];
     let stops = [];
@@ -783,6 +842,10 @@
         }, '*');
       } catch (_) {}
     }
+
+    if (routeObj) {
+      renderRadarRouteSponsor(routeObj);
+    }
   }
 
   function rebuildStreetSearchIndex() {
@@ -966,6 +1029,9 @@
     if (crewLink) crewLink.href = buildSubdomainToolUrl('/crew');
     const gaOnlyLink = document.getElementById('impact-giftaid-only-btn');
     if (gaOnlyLink) gaOnlyLink.href = buildSubdomainToolUrl('/giftaid');
+
+    // Dedicated Tonight's Route Sponsor Bar above radar
+    renderRadarRouteSponsor((typeof activeR !== 'undefined' ? activeR : null) || (typeof nextR !== 'undefined' ? nextR : null) || state.routes[0]);
 
     // Footer & Socials
     const clubHeading = document.getElementById('footer-club-heading');
