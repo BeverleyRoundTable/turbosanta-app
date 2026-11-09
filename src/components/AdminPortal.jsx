@@ -3,7 +3,7 @@ import {
   Radio, Megaphone, Settings, Mic, Calendar, Heart, Shield,
   LogOut, ExternalLink, Save, Download, CheckCircle2,
   Users, Plus, Trash2, Edit3, Smartphone, Code, Copy,
-  MapPin, Bell, Activity, MessageSquare, Check, X, BookOpen, FileSpreadsheet,
+  MapPin, Bell, Activity, MessageSquare, Check, X, BookOpen,
   Camera, Video, Image as ImageIcon, FolderDown, Eye, EyeOff, Sparkles, Filter,
   CreditCard, Key, Zap, RefreshCw, Send, Link2, Gift,
   BarChart3, TrendingUp, Award, Printer, PieChart, Receipt,
@@ -29,7 +29,6 @@ import AdminAssistantModal from './AdminAssistantModal';
 import SocialPostModal from './SocialPostModal';
 import CrewBriefingAiModal from './CrewBriefingAiModal';
 
-const MigrationImporter = lazy(() => import('./MigrationImporter'));
 
 const OFFICIAL_GOOGLE_CLIENT_ID = "174929950272-ehpf04nea7ev4j8gfosq5acg6dvfmc95.apps.googleusercontent.com";
 
@@ -3416,7 +3415,6 @@ ${tableName} Organizers`
               { id: 'knowledge', label: 'Lessons Learned', icon: BookOpen },
               { id: 'memory', label: 'Polaroids & Media', icon: Camera },
               { id: 'mailbox', label: 'Magic Mailbox (Voice)', icon: Mic },
-              { id: 'migration', label: 'Sheets Importer', icon: FileSpreadsheet },
               { id: 'embeds', label: 'Embeds', icon: Code },
               { id: 'crew', label: 'Crew', icon: Bell },
               { id: 'settings', label: 'Table Settings', icon: Settings },
@@ -6296,7 +6294,7 @@ ${tableName} Organizers`
                       No Historical Seasons Uploaded Yet
                     </div>
                     <p style={{ fontSize: '13px', color: 'var(--text-muted)', maxWidth: '520px', margin: '0 auto 16px auto', lineHeight: 1.6 }}>
-                      This section will automatically generate comparative multi-year charts and growth analytics once you upload past seasons via the Sheets Importer or snapshot future campaigns using the <strong>📸 Snapshot Season</strong> button above.
+                      This section will automatically generate comparative multi-year charts and growth analytics once you snapshot campaigns using the <strong>📸 Snapshot Season</strong> button above.
                     </p>
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--primary)', background: 'rgba(251, 175, 51, 0.1)', padding: '6px 14px', borderRadius: '8px', fontWeight: 600 }}>
                       <span>Current Active Baseline: {currentYearStr} Season (£{liveGrossRaised.toFixed(2)} Raised)</span>
@@ -14630,30 +14628,6 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
           />
         )}
 
-        {/* TAB: 1.0 EXCEL & SHEETS IMPORTER */}
-        {activeTab === 'migration' && (
-          <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading Migration Importer...</div>}>
-            <MigrationImporter
-              tableSlug={tableData?.table?.slug || session.tableId || 'beverley'}
-              currentTableData={tableData}
-              onApplyMigration={(migratedData) => {
-                if (onUpdateTableData) {
-                  onUpdateTableData(prev => ({
-                    ...prev,
-                    table: {
-                      ...prev.table,
-                      ...migratedData.table
-                    },
-                    routes: migratedData.routes,
-                    streets: migratedData.streets
-                  }));
-                }
-                setSaveStatus('✅ Successfully imported 1.0 data! Routes, streets, and settings populated.');
-                setTimeout(() => setSaveStatus(''), 4000);
-              }}
-            />
-          </Suspense>
-        )}
 
         {/* GLOBAL ADMIN FOOTER & SUPPORTER RIBBON */}
         <footer style={{
