@@ -5475,6 +5475,9 @@ ${tableName} Organizers`
                   <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 0 0', lineHeight: 1.5 }}>
                     Feature local charities, schools, and community groups supported by your Santa Sleigh on your public website, and review incoming grant applications submitted by residents.
                   </p>
+                  <p style={{ fontSize: '12px', color: '#fbbf24', margin: '6px 0 0 0', lineHeight: 1.4 }}>
+                    💡 <em>Looking for food banks, toy drives, or street collection rules (e.g. <strong>"Conditions &amp; What We Can Accept"</strong>)? Go to <button type="button" onClick={() => setActiveTab('settings')} style={{ background: 'none', border: 'none', color: 'var(--primary)', textDecoration: 'underline', cursor: 'pointer', padding: 0, font: 'inherit', fontWeight: 700 }}>⚙️ Settings ➔ Supported Charity Appeals</button>.</em>
+                  </p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                   <button
@@ -9811,7 +9814,7 @@ ${tableName} Organizers`
 
                         <div style={{ marginBottom: '12px' }}>
                           <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#fbbf24', textTransform: 'uppercase', marginBottom: '4px' }}>
-                            📋 Conditions, Guidelines &amp; What Can / Cannot Be Donated *
+                            📋 Conditions, Guidelines &amp; What Can / Cannot Be Donated * (Displays on Public Site as "Conditions &amp; What We Can Accept")
                           </label>
                           <textarea
                             rows={3}
