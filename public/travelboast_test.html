@@ -1668,12 +1668,23 @@
 
       function getTimelinePhases() {
         const D = STATE.durationSecs;
-        const introHold = 1.0; // Exact 1.0s pause at Start Pin before traversing
-        const panOutDur = Math.min(4.5, Math.max(3.4, D * 0.16));
-        const overviewHangDur = Math.min(3.5, Math.max(2.5, D * 0.12));
-        const outroHold = Math.min(3.6, Math.max(2.5, D * 0.13));
-        const traverseDur = Math.max(4.0, D - introHold - panOutDur - overviewHangDur - outroHold);
-        return { introHold, traverseDur, panOutDur, overviewHangDur, outroHold, total: D };
+        const introOverviewDur = Math.min(1.2, Math.max(0.7, D * 0.04)); // ~1.0s wide town overview hold before commencing
+        const panInDur = Math.min(2.8, Math.max(1.8, D * 0.09));         // ~2.2s cinematic zoom-in down to Start Pin
+        const startHoldDur = Math.min(0.8, Math.max(0.4, D * 0.02));     // ~0.5s pause at Start Pin before takeoff
+        const panOutDur = Math.min(4.0, Math.max(2.8, D * 0.13));        // ~3.2s cinematic zoom-out back to town overview
+        const overviewHangDur = Math.min(3.0, Math.max(2.0, D * 0.09));  // ~2.2s completed route town overview hold
+        const outroHold = Math.min(3.4, Math.max(2.2, D * 0.11));        // ~2.7s outro card with live tracking CTA
+        const traverseDur = Math.max(3.5, D - introOverviewDur - panInDur - startHoldDur - panOutDur - overviewHangDur - outroHold);
+        return {
+          introOverviewDur,
+          panInDur,
+          startHoldDur,
+          traverseDur,
+          panOutDur,
+          overviewHangDur,
+          outroHold,
+          total: D
+        };
       }
 
       function getOverviewCamera() {
@@ -1715,6 +1726,7 @@
 
         let phase = 'TRAVERSE';
         let routeProgress = 0;
+        let panInProgress = 0;
         let panOutProgress = 0;
         let overviewHangProgress = 0;
         let outroProgress = 0;
@@ -1722,28 +1734,63 @@
         let centerLat = STATE.points[0].lat;
         let zoom = STATE.followZoom;
 
-        const tTraverseEnd = phases.introHold + phases.traverseDur;
+        const tIntroOverviewEnd = phases.introOverviewDur;
+        const tPanInEnd = tIntroOverviewEnd + phases.panInDur;
+        const tStartHoldEnd = tPanInEnd + phases.startHoldDur;
+        const tTraverseEnd = tStartHoldEnd + phases.traverseDur;
         const tPanOutEnd = tTraverseEnd + phases.panOutDur;
         const tOverviewEnd = tPanOutEnd + phases.overviewHangDur;
 
-        if (t <= phases.introHold) {
+        if (t <= tIntroOverviewEnd) {
+          phase = 'OVERVIEW';
+          routeProgress = 0;
+          panInProgress = 0;
+          const ov = getOverviewCamera();
+          centerLng = ov.center[0];
+          centerLat = ov.center[1];
+          zoom = ov.zoom;
+        } else if (t <= tPanInEnd) {
+          phase = 'ZOOM IN';
+          routeProgress = 0;
+          const rawP = (t - tIntroOverviewEnd) / phases.panInDur;
+          const e = easeInOutCubic(Math.min(1, Math.max(0, rawP)));
+          panInProgress = e;
+
+          const startSamp = sampleRouteAtProgress(0);
+          const ov = getOverviewCamera();
+          const z0 = ov.zoom;
+          const z1 = STATE.followZoom;
+          zoom = z0 + (z1 - z0) * e;
+
+          // Screen-linear Van Wijk zoom-pan interpolation for perfectly smooth cinematic glide
+          let wCenter = e;
+          if (Math.abs(z0 - z1) > 0.05) {
+            wCenter = (Math.pow(2, z0 - zoom) - 1) / (Math.pow(2, z0 - z1) - 1);
+          }
+          centerLng = ov.center[0] + (startSamp.camLng - ov.center[0]) * wCenter;
+          centerLat = ov.center[1] + (startSamp.camLat - ov.center[1]) * wCenter;
+        } else if (t <= tStartHoldEnd) {
           phase = 'START';
           routeProgress = 0;
-          const samp = sampleRouteAtProgress(0);
-          centerLng = samp.camLng;
-          centerLat = samp.camLat;
+          panInProgress = 1;
+          const startSamp = sampleRouteAtProgress(0);
+          centerLng = startSamp.camLng;
+          centerLat = startSamp.camLat;
           zoom = STATE.followZoom;
         } else if (t <= tTraverseEnd) {
           phase = 'TRAVERSE';
-          const rawU = (t - phases.introHold) / phases.traverseDur;
+          panInProgress = 1;
+          const rawU = (t - tStartHoldEnd) / phases.traverseDur;
           routeProgress = smoothTraverseRamp(rawU);
           const samp = sampleRouteAtProgress(routeProgress);
           centerLng = samp.camLng;
           centerLat = samp.camLat;
+          // Zoom is strictly locked & 100% constant throughout the entire route journey
           zoom = STATE.followZoom;
         } else if (t <= tPanOutEnd) {
           phase = 'ZOOM OUT';
           routeProgress = 1;
+          panInProgress = 1;
           const rawP = (t - tTraverseEnd) / phases.panOutDur;
           const e = easeInOutCubic(Math.min(1, Math.max(0, rawP)));
           panOutProgress = e;
@@ -1765,6 +1812,7 @@
           // Camera holds stationary over the entire route across town
           phase = 'OVERVIEW';
           routeProgress = 1;
+          panInProgress = 1;
           panOutProgress = 1;
           overviewHangProgress = (t - tPanOutEnd) / phases.overviewHangDur;
           const ov = getOverviewCamera();
@@ -1775,6 +1823,7 @@
           // Final phase: Black Outro slate with table logo and live tracking/donation CTA
           phase = 'FINALE';
           routeProgress = 1;
+          panInProgress = 1;
           panOutProgress = 1;
           overviewHangProgress = 1;
           outroProgress = phases.outroHold > 0 ? (t - tOverviewEnd) / phases.outroHold : 1;
@@ -1789,6 +1838,7 @@
           t,
           phase,
           routeProgress,
+          panInProgress,
           panOutProgress,
           overviewHangProgress,
           outroProgress,
@@ -1983,7 +2033,8 @@
         const cfg = ASPECT_CONFIGS[STATE.aspect] || ASPECT_CONFIGS['9:16'];
         const uiScale = canvasW / cfg.designW;
         // Slightly compact markers during zoomed-out overview so pins stay neat
-        const overviewPinScale = 1 - 0.16 * (activeSnap.panOutProgress || 0);
+        const overviewFactor = Math.max(activeSnap.panOutProgress || 0, 1 - (activeSnap.panInProgress !== undefined ? activeSnap.panInProgress : 1));
+        const overviewPinScale = 1 - 0.16 * overviewFactor;
 
         const projectToCanvas = (lng, lat) => {
           const p = map.project([lng, lat]);
@@ -2038,7 +2089,7 @@
           resetShadow(ctx);
           const pulsePhase = ((activeSnap.t || 0) * 1.6) % 1;
           const pulseRadius = (8 + pulsePhase * 22) * uiScale * overviewPinScale;
-          const pulseAlpha = Math.max(0, (1 - pulsePhase) * 0.45 * (1 - (activeSnap.panOutProgress || 0)));
+          const pulseAlpha = Math.max(0, (1 - pulsePhase) * 0.45 * (1 - overviewFactor));
           if (pulseAlpha > 0.02) {
             ctx.beginPath();
             ctx.arc(pSleigh.x, pSleigh.y, pulseRadius, 0, Math.PI * 2);
@@ -2724,6 +2775,11 @@
         const ov = getOverviewCamera();
         map.jumpTo({ center: ov.center, zoom: ov.zoom, pitch: 0, bearing: 0 });
         await waitForMapTilesAndRender(1100);
+        const startSamp = sampleRouteAtProgress(0);
+        if (startSamp) {
+          map.jumpTo({ center: [startSamp.camLng, startSamp.camLat], zoom: STATE.followZoom, pitch: 0, bearing: 0 });
+          await waitForMapTilesAndRender(1100);
+        }
         const firstSnap = evaluateStateAtTime(0);
         applyTimelineState(firstSnap);
         await waitForMapTilesAndRender(1100);
@@ -2841,6 +2897,12 @@
             completeVideoDownload(blob, chosen.ext);
             resolve();
           };
+
+          STATE.currentTimeSec = 0;
+          const firstSnap = evaluateStateAtTime(0);
+          applyTimelineState(firstSnap);
+          drawScreenOverlay(firstSnap);
+          renderCompositeFrame(compCtx, width, height, firstSnap);
 
           rec.start(200);
           const startTs = performance.now();
