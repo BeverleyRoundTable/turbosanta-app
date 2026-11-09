@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sponsor Thank You Certificate — TurboSanta</title>
+<meta name="theme-color" content="#0d0d0b">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<style>
+  @font-face {
+    font-family: 'Eurostile';
+    src: url('/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  :root {
+    --gold: #FBAF33;
+    --gold-bright: #ffd700;
+    --gold-dim: rgba(251,175,51,0.12);
+    --gold-glow: rgba(251,175,51,0.25);
+    --dark: #0d0d0b;
+    --surface: #161614;
+    --surface-2: #1e1e1b;
+    --border: rgba(255,255,255,0.08);
+    --border-gold: rgba(251,175,51,0.3);
+    --red: #D31C1C;
+    --green: #2ecc71;
+    --text: #eaeae5;
+    --text-dim: rgba(255,255,255,0.55);
+    --text-muted: rgba(255,255,255,0.35);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: 'Open Sans', sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── CONTROLS WRAPPER ── */
+  .controls-wrapper {
+    padding: 32px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .controls-container {
+    max-width: 920px;
+    margin: 0 auto;
+  }
+
+  .ctrl-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .ctrl-header h1 {
+    font-family: 'Eurostile', sans-serif;
+    font-size: 26px;
+    letter-spacing: 1px;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+  .ctrl-header h1 span { color: var(--gold); }
+  .ctrl-header p {
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .theme-switch {
+    display: flex;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 4px;
+  }
+  .theme-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .theme-btn.active {
+    background: var(--gold);
+    color: #000;
+  }
+
+  .fields-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .field label {
+    display: block;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .field input, .field select {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Open Sans', sans-serif;
+    font-size: 13px;
+    outline: none;
+    transition: all 0.2s;
+  }
+  .field input:focus, .field select:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 2px var(--gold-glow);
+  }
+
+  .action-bar {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    padding: 10px 20px;
+    height: 44px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .btn-gold {
+    background: var(--gold);
+    color: #000;
+    font-weight: 800;
+  }
+  .btn-gold:hover {
+    background: #ffc04d;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(251, 175, 51, 0.35);
+  }
+  .btn-dim {
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-dim:hover {
+    border-color: var(--border-gold);
+    color: #fff;
+    transform: translateY(-1px);
+  }
+
+  /* ── CERTIFICATE PREVIEW WORKSPACE ── */
+  .preview-stage {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    overflow-x: auto;
+    background: radial-gradient(circle at 50% 30%, #161b28 0%, #07080c 100%);
+  }
+
+  /* ── CERTIFICATE CANVAS CONTAINER (A4 Landscape aspect ~ 842 x 595 px) ── */
+  .cert-card {
+    width: 920px;
+    height: 650px;
+    position: relative;
+    box-shadow: 0 25px 80px rgba(0,0,0,0.85);
+    border-radius: 12px;
+    overflow: hidden;
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+    user-select: none;
+  }
+
+  /* ── DARK LUXURY PRESTIGE THEME (Default for Social Sharing) ── */
+  .cert-card.theme-dark {
+    background: radial-gradient(circle at 50% 20%, #171d2b 0%, #0c0e14 70%, #06070a 100%);
+    color: #fff;
+    border: 1px solid rgba(251, 175, 51, 0.4);
+  }
+  .cert-card.theme-dark .cert-frame {
+    border-color: #FBAF33;
+  }
+  .cert-card.theme-dark .cert-frame-inner {
+    border-color: rgba(251, 175, 51, 0.25);
+  }
+  .cert-card.theme-dark .stat-box {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(251, 175, 51, 0.3);
+  }
+  .cert-card.theme-dark .stat-num { color: #FBAF33; }
+  .cert-card.theme-dark .stat-desc { color: rgba(255,255,255,0.65); }
+  .cert-card.theme-dark .cert-sub-text { color: rgba(255,255,255,0.7); }
+
+  /* ── LIGHT CLEAN THEME (For Office Printing & Framing) ── */
+  .cert-card.theme-light {
+    background: #ffffff;
+    color: #12151e;
+    border: 1px solid #ddd;
+  }
+  .cert-card.theme-light .cert-frame {
+    border-color: #c98a24;
+  }
+  .cert-card.theme-light .cert-frame-inner {
+    border-color: rgba(201, 138, 36, 0.35);
+  }
+  .cert-card.theme-light .stat-box {
+    background: #fbf9f4;
+    border: 1px solid rgba(201, 138, 36, 0.35);
+  }
+  .cert-card.theme-light .stat-num { color: #b87914; }
+  .cert-card.theme-light .stat-desc { color: #555; }
+  .cert-card.theme-light .cert-sponsor-title { color: #111; }
+  .cert-card.theme-light .cert-sub-text { color: #444; }
+  .cert-card.theme-light .sig-title { color: #333; }
+
+  /* Certificate Internal Framing */
+  .cert-frame {
+    position: absolute;
+    inset: 18px;
+    border: 3px solid #FBAF33;
+    border-radius: 8px;
+    pointer-events: none;
+  }
+  .cert-frame-inner {
+    position: absolute;
+    inset: 6px;
+    border: 1px solid rgba(251, 175, 51, 0.3);
+    border-radius: 4px;
+  }
+
+  .cert-inner {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 38px 48px;
+    box-sizing: border-box;
+    text-align: center;
+  }
+
+  /* Header Section */
+  .cert-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+  .cert-logo {
+    height: 52px;
+    width: auto;
+    object-fit: contain;
+  }
+  .cert-national-brand {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold);
+    line-height: 1.2;
+  }
+  .cert-kicker {
+    font-family: 'Eurostile', sans-serif;
+    font-size: 26px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    line-height: 1;
+    margin-top: 2px;
+  }
+
+  .cert-ribbon {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+
+  /* Sponsor Hero Name */
+  .cert-sponsor-wrap {
+    margin-bottom: 14px;
+  }
+  .cert-sponsor-title {
+    font-family: 'Eurostile', sans-serif;
+    font-size: 44px;
+    letter-spacing: 2px;
+    line-height: 1.1;
+    color: #FBAF33;
+    text-transform: uppercase;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.4);
+  }
+
+  .cert-sub-text {
+    font-size: 14px;
+    line-height: 1.6;
+    max-width: 780px;
+    margin: 0 auto 20px;
+    font-weight: 500;
+  }
+  .cert-sub-text strong {
+    font-weight: 800;
+  }
+
+  /* 4-Stat Impact Grid */
+  .cert-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 26px;
+  }
+  .stat-box {
+    border-radius: 10px;
+    padding: 14px 10px;
+    text-align: center;
+  }
+  .stat-num {
+    font-family: 'Eurostile', sans-serif;
+    font-size: 28px;
+    line-height: 1;
+    margin-bottom: 6px;
+    font-weight: 900;
+  }
+  .stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .stat-desc {
+    font-size: 10px;
+    line-height: 1.3;
+  }
+
+  /* Footer & Signatures */
+  .cert-footer {
+    margin-top: auto;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .sig-block {
+    text-align: center;
+  }
+  .sig-line {
+    width: 180px;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.35;
+    margin: 0 auto 6px;
+  }
+  .sig-title {
+    font-family: 'Eurostile', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .sig-sub {
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+
+  /* Official Gold Foil Seal */
+  .gold-seal {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #ffe17d 0%, #FBAF33 60%, #b87914 100%);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5), inset 0 0 0 3px #ffffff, inset 0 0 0 5px #b87914;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #4a2f00;
+    text-align: center;
+    padding: 6px;
+    flex-shrink: 0;
+  }
+  .seal-star { font-size: 12px; line-height: 1; margin-bottom: 2px; }
+  .seal-text {
+    font-family: 'Eurostile', sans-serif;
+    font-size: 8px;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    line-height: 1.1;
+  }
+
+  /* ── PRINT RULES (A4 LANDSCAPE) ── */
+  @media print {
+    body { background: #fff !important; }
+    .controls-wrapper { display: none !important; }
+    .preview-stage {
+      padding: 0 !important;
+      background: none !important;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cert-card {
+      box-shadow: none !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      height: 100% !important;
+      max-height: 100vh !important;
+      page-break-after: avoid;
+      page-break-inside: avoid;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <!-- CONTROLS HEADER -->
+  <div class="controls-wrapper">
+    <div class="controls-container">
+      <div class="ctrl-top">
+        <div class="ctrl-header">
+          <h1>Sponsor <span>Thank You Certificate</span> &amp; Impact Pack</h1>
+          <p>Generate a 1-click social award image or printable certificate for doorstep sponsors.</p>
+        </div>
+        <div class="theme-switch">
+          <button type="button" class="theme-btn active" id="btn-theme-dark" onclick="setTheme('dark')">
+            <i class="fa-solid fa-moon"></i> Social Dark (LinkedIn / FB)
+          </button>
+          <button type="button" class="theme-btn" id="btn-theme-light" onclick="setTheme('light')">
+            <i class="fa-solid fa-print"></i> Clean Light (Print / A4)
+          </button>
+        </div>
+      </div>
+
+      <div class="fields-grid">
+        <div class="field">
+          <label>Select Route</label>
+          <select id="routeSelect" onchange="onRouteSelected()">
+            <option value="">Loading routes...</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Sponsor / Business Name</label>
+          <input type="text" id="inpSponsorName" placeholder="e.g. Meyers Estate Agents" oninput="updateCertPreview()">
+        </div>
+        <div class="field">
+          <label>Amount Raised (£)</label>
+          <input type="text" id="inpAmount" placeholder="e.g. £845" oninput="updateCertPreview()">
+        </div>
+        <div class="field">
+          <label>Route Distance (km)</label>
+          <input type="text" id="inpDist" placeholder="e.g. 8.4 km" oninput="updateCertPreview()">
+        </div>
+        <div class="field">
+          <label>Streets Visited</label>
+          <input type="text" id="inpStreets" placeholder="e.g. 24 Streets" oninput="updateCertPreview()">
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <button type="button" class="btn btn-gold" onclick="downloadCertificateImage()">
+          <i class="fa-solid fa-camera"></i> Download High-Res Image (PNG)
+        </button>
+        <button type="button" class="btn btn-dim" onclick="window.print()">
+          <i class="fa-solid fa-print"></i> Print / Save as PDF (A4)
+        </button>
+        <button type="button" class="btn btn-dim" onclick="copyCertificateLink()">
+          <i class="fa-solid fa-link"></i> Copy Link
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CERTIFICATE WORKSPACE -->
+  <div class="preview-stage">
+    <div class="cert-card theme-dark" id="certCard">
+      <div class="cert-frame">
+        <div class="cert-frame-inner"></div>
+      </div>
+
+      <div class="cert-inner">
+        <!-- Header -->
+        <div class="cert-header">
+          <img id="certLogo" class="cert-logo" src="/icons/RTBI_Santa.png" alt="Round Table Logo">
+          <div style="text-align: left;">
+            <div class="cert-national-brand">ROUND TABLE GREAT BRITAIN &amp; IRELAND</div>
+            <div class="cert-kicker" id="certTableTitle">BEVERLEY ROUND TABLE SANTA SLEIGH</div>
+          </div>
+        </div>
+
+        <div class="cert-ribbon">OFFICIAL CERTIFICATE OF COMMUNITY PARTNERSHIP &amp; APPRECIATION</div>
+
+        <!-- Sponsor Name -->
+        <div class="cert-sponsor-wrap">
+          <div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); margin-bottom: 4px;">
+            THIS CERTIFICATE IS PROUDLY PRESENTED TO
+          </div>
+          <div class="cert-sponsor-title" id="certSponsorName">MEYERS ESTATE AGENTS</div>
+        </div>
+
+        <p class="cert-sub-text">
+          In heartfelt appreciation of your generous doorstep sponsorship of the <strong id="certRouteName">Molescroft &amp; Woodhall Way</strong> Santa Sleigh Tour on <span id="certRouteDate">Monday, 9th December 2026</span>. Your support fueled Santa’s journey and helped raise vital funds for local families, foodbanks, and grassroots youth groups.
+        </p>
+
+        <!-- 4 Key Impact Stat Tiles -->
+        <div class="cert-stats-grid">
+          <div class="stat-box">
+            <div class="stat-num" id="certStatAmount">£845</div>
+            <div class="stat-label">Total Raised</div>
+            <div class="stat-desc">Directly supporting local causes in our community</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num" id="certStatDist">8.4 km</div>
+            <div class="stat-label">Sleigh Travelled</div>
+            <div class="stat-desc">Across residential streets &amp; cul-de-sacs</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num" id="certStatStreets">24</div>
+            <div class="stat-label">Streets Visited</div>
+            <div class="stat-desc">Delivering Christmas cheer to hundreds of doorsteps</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num" style="color: #2ecc71;">100%</div>
+            <div class="stat-label">Volunteer-Run</div>
+            <div class="stat-desc">Zero admin cut — every single penny stays local</div>
+          </div>
+        </div>
+
+        <!-- Footer Signatures & Official Seal -->
+        <div class="cert-footer">
+          <div class="sig-block">
+            <div class="sig-line"></div>
+            <div class="sig-title" id="sigLeadTitle">Sleigh Convener</div>
+            <div class="sig-sub" id="sigLeadSub">Route Operations Lead</div>
+          </div>
+
+          <div class="gold-seal">
+            <div class="seal-star">★ ★ ★</div>
+            <div class="seal-text">ROUND TABLE<br>SANTA SLEIGH<br>2026</div>
+          </div>
+
+          <div class="sig-block">
+            <div class="sig-line"></div>
+            <div class="sig-title" id="sigChairTitle">Table Chairman</div>
+            <div class="sig-sub" id="sigChairSub">Round Table Great Britain</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const WORKER_URL = (function() {
+      if (typeof window !== 'undefined' && window.location && window.location.hostname.endsWith('roundtablesantasleigh.co.uk')) {
+        return window.location.origin;
+      }
+      return 'https://turbosanta-api.beverley247.workers.dev';
+    })();
+
+    const PARAMS = new URLSearchParams(window.location.search);
+    const tableSlug = (function() {
+      const q = PARAMS.get('table') || PARAMS.get('slug');
+      if (q) return q.trim().toLowerCase();
+      const host = window.location.hostname;
+      const match = host.match(/^([a-z0-9-]+)\.roundtablesantasleigh\.co\.uk$/i);
+      if (match && !['www', 'api', 'admin', 'national'].includes(match[1].toLowerCase())) {
+        return match[1].toLowerCase();
+      }
+      return 'beverley';
+    })();
+
+    let tableData = null;
+    let routes = [];
+
+    async function init() {
+      const initialTheme = PARAMS.get('mode') === 'light' ? 'light' : 'dark';
+      setTheme(initialTheme);
+
+      try {
+        const res = await fetch(`${WORKER_URL}/api/payload?table=${encodeURIComponent(tableSlug)}`);
+        tableData = await res.json();
+      } catch(e) {
+        console.warn('Failed to fetch payload', e);
+      }
+
+      const tableObj = tableData?.table || tableData?.settings || {};
+      const town = (tableObj.town || tableSlug).toUpperCase();
+      const displayName = tableObj.sleigh_display_name || `${town} ROUND TABLE SANTA SLEIGH`;
+
+      document.getElementById('certTableTitle').textContent = displayName.toUpperCase();
+      if (tableObj.logo_url) {
+        const logoEl = document.getElementById('certLogo');
+        logoEl.src = tableObj.logo_url;
+        logoEl.onerror = () => { logoEl.src = '/icons/RTBI_Santa.png'; };
+      }
+
+      routes = tableData?.routes || [];
+      const select = document.getElementById('routeSelect');
+      select.innerHTML = '';
+
+      if (routes.length === 0) {
+        select.innerHTML = '<option value="">No routes found</option>';
+      } else {
+        routes.forEach((r, idx) => {
+          const opt = document.createElement('option');
+          opt.value = String(r.id);
+          opt.textContent = `${r.name || 'Route ' + (idx + 1)} (${r.date || 'TBD'})`;
+          select.appendChild(opt);
+        });
+      }
+
+      // Check URL parameters for preset route or sponsor
+      const reqRoute = PARAMS.get('routeId') || PARAMS.get('route');
+      if (reqRoute && routes.length > 0) {
+        const target = routes.find(r => String(r.id) === String(reqRoute) || (r.name && r.name.toLowerCase().includes(reqRoute.toLowerCase())));
+        if (target) select.value = String(target.id);
+      }
+
+      const reqSponsor = PARAMS.get('sponsor');
+      if (reqSponsor) document.getElementById('inpSponsorName').value = reqSponsor;
+
+      const reqAmount = PARAMS.get('amount');
+      if (reqAmount) document.getElementById('inpAmount').value = reqAmount;
+
+      const reqDist = PARAMS.get('dist');
+      if (reqDist) document.getElementById('inpDist').value = reqDist;
+
+      onRouteSelected();
+    }
+
+    function onRouteSelected() {
+      const select = document.getElementById('routeSelect');
+      const routeId = select.value;
+      const route = routes.find(r => String(r.id) === String(routeId)) || routes[0] || {};
+
+      document.getElementById('certRouteName').textContent = route.name || "Tonight's Route";
+      document.getElementById('certRouteDate').textContent = formatFriendlyDate(route.date || '');
+
+      // Check if route has an attached sponsor
+      let sponsorName = document.getElementById('inpSponsorName').value;
+      if (!sponsorName && Array.isArray(route.sponsors) && route.sponsors.length > 0) {
+        sponsorName = route.sponsors[0].name || '';
+        document.getElementById('inpSponsorName').value = sponsorName;
+      }
+      if (!sponsorName && route.sponsor_name) {
+        sponsorName = route.sponsor_name;
+        document.getElementById('inpSponsorName').value = sponsorName;
+      }
+
+      // Estimate streets count
+      let streetCount = '20+ Streets';
+      if (route.streets && typeof route.streets === 'string') {
+        const count = route.streets.split(/[,;\n]+/).filter(Boolean).length;
+        if (count > 0) streetCount = `${count} Streets`;
+      }
+      if (!document.getElementById('inpStreets').value) {
+        document.getElementById('inpStreets').value = streetCount;
+      }
+
+      // Estimate distance
+      if (!document.getElementById('inpDist').value) {
+        document.getElementById('inpDist').value = '8.5 km';
+      }
+
+      // Estimate amount raised
+      if (!document.getElementById('inpAmount').value) {
+        document.getElementById('inpAmount').value = '£850';
+      }
+
+      updateCertPreview();
+    }
+
+    function updateCertPreview() {
+      const sponsor = document.getElementById('inpSponsorName').value.trim() || 'LOCAL BUSINESS SPONSOR';
+      const amount = document.getElementById('inpAmount').value.trim() || '£850';
+      const dist = document.getElementById('inpDist').value.trim() || '8.5 km';
+      const streets = document.getElementById('inpStreets').value.trim() || '24 Streets';
+
+      document.getElementById('certSponsorName').textContent = sponsor.toUpperCase();
+      document.getElementById('certStatAmount').textContent = amount;
+      document.getElementById('certStatDist').textContent = dist;
+      document.getElementById('certStatStreets').textContent = streets.replace(/\s*streets?/i, '');
+    }
+
+    function setTheme(theme) {
+      const card = document.getElementById('certCard');
+      const btnDark = document.getElementById('btn-theme-dark');
+      const btnLight = document.getElementById('btn-theme-light');
+
+      if (theme === 'light') {
+        card.classList.remove('theme-dark');
+        card.classList.add('theme-light');
+        btnLight.classList.add('active');
+        btnDark.classList.remove('active');
+      } else {
+        card.classList.remove('theme-light');
+        card.classList.add('theme-dark');
+        btnDark.classList.add('active');
+        btnLight.classList.remove('active');
+      }
+    }
+
+    function formatFriendlyDate(ymd) {
+      if (!ymd || !/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return 'Tonight';
+      try {
+        const [y, m, d] = ymd.split('-').map(Number);
+        const dateObj = new Date(y, m - 1, d);
+        return dateObj.toLocaleDateString('en-GB', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        });
+      } catch(e) {
+        return ymd;
+      }
+    }
+
+    async function downloadCertificateImage() {
+      const cert = document.getElementById('certCard');
+      const sponsorName = document.getElementById('certSponsorName').textContent.trim() || 'Sponsor';
+      const routeName = document.getElementById('certRouteName').textContent.trim() || 'Route';
+
+      try {
+        const canvas = await html2canvas(cert, {
+          scale: 2.5,
+          useCORS: true,
+          logging: false
+        });
+
+        const link = document.createElement('a');
+        const cleanSponsor = sponsorName.replace(/[^a-z0-9]/gi, '_');
+        const cleanRoute = routeName.replace(/[^a-z0-9]/gi, '_');
+        link.download = `Sponsor_ThankYou_Certificate_${cleanSponsor}_${cleanRoute}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch(err) {
+        console.error('Certificate capture failed', err);
+        alert('Image generation failed. Try the Print / Save as PDF button instead.');
+      }
+    }
+
+    function copyCertificateLink() {
+      const url = new URL(window.location.href);
+      const select = document.getElementById('routeSelect');
+      if (select && select.value) url.searchParams.set('routeId', select.value);
+      const sponsor = document.getElementById('inpSponsorName').value.trim();
+      if (sponsor) url.searchParams.set('sponsor', sponsor);
+      const amount = document.getElementById('inpAmount').value.trim();
+      if (amount) url.searchParams.set('amount', amount);
+      const dist = document.getElementById('inpDist').value.trim();
+      if (dist) url.searchParams.set('dist', dist);
+
+      navigator.clipboard.writeText(url.toString())
+        .then(() => alert('✅ Certificate link copied to clipboard!'))
+        .catch(() => prompt('Copy this certificate link:', url.toString()));
+    }
+
+    init();
+  </script>
+</body>
+</html>

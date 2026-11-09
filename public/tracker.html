@@ -1073,12 +1073,209 @@
     .demo-restore-btn:hover {
       background: rgba(251, 175, 51, 0.2);
     }
+
+    /* ── LIVE STREET TICKER PILL ── */
+    .live-street-ticker {
+      position: absolute;
+      top: 76px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(22, 22, 20, 0.95);
+      border: 1px solid rgba(251, 175, 51, 0.4);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: #fff;
+      padding: 7px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.65), 0 0 16px rgba(251, 175, 51, 0.15);
+      z-index: 3998;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      max-width: min(540px, calc(100vw - 32px));
+      box-sizing: border-box;
+      user-select: none;
+    }
+    .live-street-ticker:hover {
+      transform: translateX(-50%) translateY(-1px);
+      border-color: var(--primary);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.75), 0 0 20px rgba(var(--primary-rgb), 0.3);
+    }
+    .live-street-ticker .ticker-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #2ecc71;
+      flex-shrink: 0;
+      box-shadow: 0 0 8px #2ecc71;
+      animation: pulseGreen 1.6s infinite;
+    }
+    @keyframes pulseGreen {
+      0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7); }
+      70% { box-shadow: 0 0 0 8px rgba(46, 204, 113, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
+    }
+    .live-street-ticker .ticker-content {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .live-street-ticker .ticker-tag {
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .live-street-ticker .ticker-tag.on-now { color: var(--primary); }
+    .live-street-ticker .ticker-tag.up-next { color: #8ec5fc; }
+    .live-street-ticker .ticker-street {
+      color: #fff;
+      font-weight: 800;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .live-street-ticker .ticker-street.ticker-next {
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+    .live-street-ticker .ticker-divider {
+      color: rgba(255, 255, 255, 0.3);
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+    .live-street-ticker .ticker-chevron {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      color: var(--text-dim);
+      font-size: 11px;
+    }
+    .live-street-ticker .ticker-badge {
+      background: rgba(251, 175, 51, 0.15);
+      color: var(--primary);
+      border: 1px solid rgba(251, 175, 51, 0.3);
+      border-radius: 20px;
+      padding: 1px 7px;
+      font-size: 10px;
+      font-weight: 800;
+    }
+    @media (max-width: 480px) {
+      .live-street-ticker {
+        font-size: 11px;
+        padding: 6px 12px;
+        gap: 6px;
+        top: 72px;
+      }
+    }
+
+    /* ── STREET PROGRESS MODAL ROWS ── */
+    .street-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      transition: all 0.2s;
+    }
+    .street-row.is-passed {
+      opacity: 0.55;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .street-row.is-passed .street-name {
+      text-decoration: line-through;
+      color: var(--text-dim);
+    }
+    .street-row.is-current {
+      background: rgba(var(--primary-rgb), 0.12);
+      border-color: var(--primary);
+      box-shadow: 0 0 12px rgba(var(--primary-rgb), 0.25);
+    }
+    .street-row.is-current .street-name {
+      color: #fff;
+      font-weight: 800;
+    }
+    .street-row.is-next {
+      border-color: rgba(142, 197, 252, 0.4);
+      background: rgba(142, 197, 252, 0.06);
+    }
+    .street-row.is-next .street-name {
+      color: #fff;
+      font-weight: 700;
+    }
+    
+    body.dim-ui .live-street-ticker { opacity: 0.45; }
+    body.dim-ui .live-street-ticker:hover { opacity: 0.85; }
+    body.kiosk .live-street-ticker { display: none !important; }
+    body.driver-mode .live-street-ticker { display: none !important; }
     
   </style>
 </head>
 <body>
   <div id="loadingCover"><div id="loadingSpinner"></div></div>
   <div class="status-popup" id="statusBox" role="status" aria-live="polite" aria-atomic="true">Searching for Santa…</div>
+
+  <!-- 🛷 WHERE'S SANTA RIGHT NOW — LIVE STREET TICKER PILL -->
+  <div id="liveStreetTicker" class="live-street-ticker" role="button" tabindex="0" aria-label="Where is Santa right now? Tap to view street checklist" onclick="toggleStreetProgressModal(true)">
+    <div class="ticker-dot"></div>
+    <div class="ticker-content">
+      <span class="ticker-tag on-now">ON NOW:</span>
+      <span id="tickerCurrentStreet" class="ticker-street">Locating street…</span>
+      <span class="ticker-divider">•</span>
+      <span class="ticker-tag up-next">NEXT:</span>
+      <span id="tickerNextStreet" class="ticker-street ticker-next">…</span>
+    </div>
+    <div class="ticker-chevron" title="View Full Street Order">
+      <span id="tickerStreetsCountBadge" class="ticker-badge">List</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </div>
+  </div>
+
+  <!-- STREET PROGRESS MODAL / BOTTOM SHEET -->
+  <div id="streetProgressModal" class="modal-overlay" onclick="if(event.target===this) toggleStreetProgressModal(false)">
+    <div class="modal-box" style="max-width: 480px; width: 92%; max-height: 85vh; display: flex; flex-direction: column;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:22px;">🛷</span>
+          <div>
+            <h3 id="streetProgressRouteTitle" style="font-family:'Eurostile',sans-serif; margin:0; font-size:18px; color:var(--primary); line-height:1.1;">Tonight's Route Streets</h3>
+            <span id="streetProgressSummary" style="font-size:12px; color:var(--text-dim); font-weight:700;">Live Route Progression</span>
+          </div>
+        </div>
+        <button class="close-btn" onclick="toggleStreetProgressModal(false)" style="font-size:26px;">&times;</button>
+      </div>
+
+      <div class="street-progress-bar-wrap" style="margin-bottom:14px; background:rgba(255,255,255,0.06); border-radius:10px; padding:10px 14px; border:1px solid var(--border);">
+        <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:800; color:var(--text-dim); margin-bottom:6px;">
+          <span id="streetProgressPctText">0% of Streets Visited</span>
+          <span id="streetProgressCountText">0 / 0 Streets</span>
+        </div>
+        <div style="height:6px; background:rgba(0,0,0,0.4); border-radius:6px; overflow:hidden;">
+          <div id="streetProgressBarInner" style="height:100%; width:0%; background:linear-gradient(90deg, #2ecc71, var(--primary)); transition:width 0.4s ease;"></div>
+        </div>
+      </div>
+
+      <div id="streetProgressSearchWrap" style="margin-bottom:12px;">
+        <input type="search" id="streetProgressFilterInput" placeholder="Filter streets on this route…" style="width:100%; box-sizing:border-box; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:#fff; font-size:13px; font-family:'Open Sans',sans-serif;" oninput="filterStreetProgressList(this.value)">
+      </div>
+
+      <div id="streetProgressList" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right:4px;">
+        <!-- Dynamically rendered street rows -->
+      </div>
+    </div>
+  </div>
 
   <!-- 🎬 DEMO SIMULATOR REEL TOOLBAR (Appears only on /trackerdemo or with ?demo=1) -->
   <div id="demoToolbar" class="demo-bar" style="display: none;">
@@ -2443,6 +2640,184 @@
         }
       };
 
+      const StreetTracker = {
+        currentStreet: '',
+        nextStreet: '',
+        currentIndex: -1,
+        allStreets: [],
+        activeRouteId: null,
+
+        getOrderedStreets(route) {
+          if (!route) return [];
+          const rId = String(route.id || route.routeName || '');
+          if (this.activeRouteId === rId && this.allStreets.length > 0) {
+            return this.allStreets;
+          }
+          this.activeRouteId = rId;
+          let list = [];
+
+          // 1. From payload streets table
+          if (AppState.vars.latestApiData?.streets && Array.isArray(AppState.vars.latestApiData.streets)) {
+            const match = AppState.vars.latestApiData.streets
+              .filter(s => String(s.route_id) === String(route.id))
+              .map(s => (s.street_name || s.name || '').trim())
+              .filter(Boolean);
+            if (match.length > 0) list = match;
+          }
+
+          // 2. From route.streets comma/newline string
+          if (list.length === 0 && route.streets && typeof route.streets === 'string') {
+            list = route.streets
+              .split(/[,;\n\r]+/)
+              .map(s => s.trim())
+              .filter(Boolean);
+          }
+
+          // 3. Fallback from GPX points / TurnByTurn steps if available
+          if (list.length === 0 && AppState.gpxRoute && AppState.gpxRoute.length > 0) {
+            const roadNames = AppState.gpxRoute.map(p => p.roadName).filter(Boolean);
+            list = [...new Set(roadNames)];
+          }
+          if (list.length === 0 && TurnByTurn.steps && TurnByTurn.steps.length > 0) {
+            const stepNames = TurnByTurn.steps.map(s => s.roadName || s.name).filter(Boolean);
+            list = [...new Set(stepNames)];
+          }
+
+          this.allStreets = list;
+          return list;
+        },
+
+        update(snapIdx, visualPos) {
+          const route = AppState.vars.activeRoute || AppState.vars.todayRoute;
+          const tickerEl = document.getElementById('liveStreetTicker');
+          if (!tickerEl) return;
+
+          // Check if Santa is actively live/moving on route
+          const isResting = isRestingInLapland(visualPos || AppState.lastFix || AppConfig.LOCATIONS.LAPLAND);
+          const isLive = !AppState.flags.hasPassedSticky && AppState.lastFix && !isResting && !AppState.flags.isKiosk && !AppState.flags.isDriver;
+
+          if (!isLive || !route) {
+            tickerEl.style.display = 'none';
+            return;
+          }
+
+          const streets = this.getOrderedStreets(route);
+          if (!streets || streets.length === 0) {
+            tickerEl.style.display = 'none';
+            return;
+          }
+
+          // Calculate progress along route (0.0 to 1.0)
+          let progress = 0;
+          if (AppState.gpxRoute && AppState.gpxRoute.length > 1) {
+            const totalDist = AppState.gpxRoute[AppState.gpxRoute.length - 1].dist || 1;
+            const currentDist = (typeof snapIdx === 'number' && AppState.gpxRoute[snapIdx]) ? AppState.gpxRoute[snapIdx].dist : 0;
+            progress = Math.min(1, Math.max(0, currentDist / totalDist));
+          }
+
+          let targetIdx = Math.min(Math.floor(progress * streets.length), streets.length - 1);
+
+          // If turn-by-turn road name matches a known street, prioritize exact road match
+          if (TurnByTurn.steps && TurnByTurn.cursor >= 0 && TurnByTurn.steps[TurnByTurn.cursor]) {
+            const road = (TurnByTurn.steps[TurnByTurn.cursor].roadName || '').toLowerCase().trim();
+            if (road) {
+              const matchedIdx = streets.findIndex(st => st.toLowerCase().includes(road) || road.includes(st.toLowerCase()));
+              if (matchedIdx !== -1) targetIdx = matchedIdx;
+            }
+          }
+
+          this.currentIndex = targetIdx;
+          this.currentStreet = streets[targetIdx] || streets[0];
+          this.nextStreet = streets[targetIdx + 1] || 'Final Stretch 🏁';
+
+          tickerEl.style.display = 'flex';
+          const currEl = document.getElementById('tickerCurrentStreet');
+          const nextEl = document.getElementById('tickerNextStreet');
+          const countBadge = document.getElementById('tickerStreetsCountBadge');
+          if (currEl) currEl.textContent = this.currentStreet;
+          if (nextEl) nextEl.textContent = this.nextStreet;
+          if (countBadge) countBadge.textContent = `${targetIdx + 1}/${streets.length}`;
+
+          if (window.layoutOverlays) window.layoutOverlays();
+
+          // Re-render modal list if visible
+          const modal = document.getElementById('streetProgressModal');
+          if (modal && modal.style.display === 'flex') {
+            this.renderModalList();
+          }
+        },
+
+        renderModalList(filterQuery = '') {
+          const listEl = document.getElementById('streetProgressList');
+          if (!listEl) return;
+          const route = AppState.vars.activeRoute || AppState.vars.todayRoute;
+          const streets = this.allStreets;
+          if (!streets || streets.length === 0) {
+            listEl.innerHTML = '<div style="text-align:center;color:var(--text-dim);padding:24px;">No street list recorded for this route.</div>';
+            return;
+          }
+
+          const titleEl = document.getElementById('streetProgressRouteTitle');
+          const summaryEl = document.getElementById('streetProgressSummary');
+          const pctText = document.getElementById('streetProgressPctText');
+          const countText = document.getElementById('streetProgressCountText');
+          const barInner = document.getElementById('streetProgressBarInner');
+
+          if (titleEl && route) titleEl.textContent = route.name || route.routeName || "Tonight's Route";
+          const passedCount = Math.max(0, this.currentIndex);
+          const pct = Math.min(100, Math.round(((this.currentIndex + 1) / streets.length) * 100));
+
+          if (summaryEl) summaryEl.textContent = `Santa is on street ${this.currentIndex + 1} of ${streets.length}`;
+          if (pctText) pctText.textContent = `${pct}% of Route Visited`;
+          if (countText) countText.textContent = `${passedCount} passed · 1 on now · ${Math.max(0, streets.length - this.currentIndex - 1)} left`;
+          if (barInner) barInner.style.width = `${pct}%`;
+
+          const q = (filterQuery || '').toLowerCase().trim();
+          listEl.innerHTML = streets.map((st, i) => {
+            if (q && !st.toLowerCase().includes(q)) return '';
+            let statusClass = '';
+            let badgeHtml = '';
+            if (i < this.currentIndex) {
+              statusClass = 'is-passed';
+              badgeHtml = '<span style="font-size:11px; font-weight:800; color:#2ecc71;">Passed ✅</span>';
+            } else if (i === this.currentIndex) {
+              statusClass = 'is-current';
+              badgeHtml = '<span style="font-size:11px; font-weight:900; color:var(--primary); text-transform:uppercase;">📍 ON NOW</span>';
+            } else if (i === this.currentIndex + 1) {
+              statusClass = 'is-next';
+              badgeHtml = '<span style="font-size:11px; font-weight:800; color:#8ec5fc; text-transform:uppercase;">⏭️ UP NEXT</span>';
+            } else {
+              badgeHtml = `<span style="font-size:11px; color:var(--text-dim); font-weight:700;">#${i + 1}</span>`;
+            }
+
+            return `
+              <div class="street-row ${statusClass}">
+                <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+                  <span style="font-size:12px; font-weight:800; color:var(--text-dim); width:24px;">${i + 1}</span>
+                  <span class="street-name" style="font-size:13px;">${Utils.escapeHtml(st)}</span>
+                </div>
+                <div>${badgeHtml}</div>
+              </div>
+            `;
+          }).join('');
+        }
+      };
+
+      function toggleStreetProgressModal(open) {
+        const modal = document.getElementById('streetProgressModal');
+        if (!modal) return;
+        modal.style.display = open ? 'flex' : 'none';
+        if (open) {
+          const filterInput = document.getElementById('streetProgressFilterInput');
+          if (filterInput) filterInput.value = '';
+          StreetTracker.renderModalList();
+        }
+      }
+
+      function filterStreetProgressList(query) {
+        StreetTracker.renderModalList(query);
+      }
+
       function setDimUI(dim) { document.body.classList.toggle("dim-ui", !!dim); }
       function showToast(message) { if (AppState.flags.isKiosk) return; const t = AppState.dom.toast; t.textContent = message; t.classList.add("toast-visible"); setTimeout(() => t.classList.remove("toast-visible"), 4000); }
       function setConnectionState(state) { const box = AppState.dom.statusBox; box.classList.remove("is-reconnecting"); if (state === "reconnecting") { box.classList.add("is-reconnecting"); AppState.dom.statusDot.style.display = "block"; AppState.dom.statusDot.className = "status-dot dot-reconnecting"; } }
@@ -2718,6 +3093,7 @@
             setDimUI(false);
             AppState.flags.firstFix = false;
             SleighAudio.setIntensity(0);
+            if (typeof StreetTracker !== 'undefined') StreetTracker.update(null, null);
             scheduleNextPoll();
             return;
           } else {
@@ -2767,6 +3143,7 @@
           }
 
           animateMarkerTo(visualPos.lat, visualPos.lng);
+          if (typeof StreetTracker !== 'undefined') StreetTracker.update(AppState.vars.lastSnapIndex, visualPos);
 
           // --- FADING TAIL LOGIC ---
           if (!AppState.tailFixes) AppState.tailFixes = [];
@@ -4208,12 +4585,20 @@
             }
             const pill = document.getElementById('routeSponsor');
             const sb = AppState.dom.statusBox;
-            if (pill && sb) {
+            const ticker = document.getElementById('liveStreetTicker');
+
+            if (sb) {
               const sbr = sb.getBoundingClientRect();
               if (sbr.height > 0) {
-                const margin = 12;
-                const fitsBeside = (window.innerWidth - sbr.right - margin * 2) >= pill.offsetWidth;
-                pill.style.top = Math.round(fitsBeside ? Math.max(margin, sbr.top) : sbr.bottom + 10) + 'px';
+                if (ticker && ticker.style.display !== 'none') {
+                  ticker.style.top = Math.round(sbr.bottom + 8) + 'px';
+                }
+                if (pill) {
+                  const margin = 12;
+                  const fitsBeside = (window.innerWidth - sbr.right - margin * 2) >= pill.offsetWidth;
+                  const topBase = (ticker && ticker.style.display !== 'none') ? ticker.getBoundingClientRect().bottom + 8 : sbr.bottom + 10;
+                  pill.style.top = Math.round(fitsBeside ? Math.max(margin, sbr.top) : topBase) + 'px';
+                }
               }
             }
           };
@@ -4224,6 +4609,8 @@
             if (AppState.dom.statusBox) overlayRO.observe(AppState.dom.statusBox);
             const pillEl = document.getElementById('routeSponsor');
             if (pillEl) overlayRO.observe(pillEl);
+            const tickerEl = document.getElementById('liveStreetTicker');
+            if (tickerEl) overlayRO.observe(tickerEl);
           } else {
             let resizeTimer;
             window.addEventListener('resize', () => {

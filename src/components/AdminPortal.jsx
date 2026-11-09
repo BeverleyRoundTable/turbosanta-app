@@ -4129,6 +4129,50 @@ ${tableName} Organizers`
                                   </a>
 
                                   <a
+                                    href={`https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/route-video?route=${encodeURIComponent(r.id)}&mode=graphic`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="btn-secondary"
+                                    style={{
+                                      padding: '8px 12px',
+                                      fontSize: '12px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      textDecoration: 'none',
+                                      borderColor: 'rgba(16, 185, 129, 0.45)',
+                                      color: '#10b981',
+                                      background: 'rgba(16, 185, 129, 0.08)'
+                                    }}
+                                    title="Generate 1-click branded 1080x1350 static graphic for Facebook & Instagram"
+                                  >
+                                    <Camera size={14} />
+                                    <span>Social Graphic</span>
+                                  </a>
+
+                                  <a
+                                    href={`https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/sponsor-cert?table=${encodeURIComponent(currentTableSlug)}&routeId=${encodeURIComponent(r.id)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="btn-secondary"
+                                    style={{
+                                      padding: '8px 12px',
+                                      fontSize: '12px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      textDecoration: 'none',
+                                      borderColor: 'rgba(251, 175, 51, 0.45)',
+                                      color: '#FBAF33',
+                                      background: 'rgba(251, 175, 51, 0.08)'
+                                    }}
+                                    title="Auto-generate 1-page Sponsor Thank You Certificate & Impact Pack"
+                                  >
+                                    <Award size={14} />
+                                    <span>Sponsor Cert</span>
+                                  </a>
+
+                                  <a
                                     href={`https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/planner?routeId=${encodeURIComponent(r.id)}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
@@ -4413,6 +4457,50 @@ ${tableName} Organizers`
                                   >
                                     <Video size={14} />
                                     <span>MP4 Video</span>
+                                  </a>
+
+                                  <a
+                                    href={`https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/route-video?route=${encodeURIComponent(r.id)}&mode=graphic`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="btn-secondary"
+                                    style={{
+                                      padding: '8px 12px',
+                                      fontSize: '12px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      textDecoration: 'none',
+                                      borderColor: 'rgba(16, 185, 129, 0.45)',
+                                      color: '#10b981',
+                                      background: 'rgba(16, 185, 129, 0.08)'
+                                    }}
+                                    title="Generate 1-click branded 1080x1350 static graphic for Facebook & Instagram"
+                                  >
+                                    <Camera size={14} />
+                                    <span>Social Graphic</span>
+                                  </a>
+
+                                  <a
+                                    href={`https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/sponsor-cert?table=${encodeURIComponent(currentTableSlug)}&routeId=${encodeURIComponent(r.id)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="btn-secondary"
+                                    style={{
+                                      padding: '8px 12px',
+                                      fontSize: '12px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      textDecoration: 'none',
+                                      borderColor: 'rgba(251, 175, 51, 0.45)',
+                                      color: '#FBAF33',
+                                      background: 'rgba(251, 175, 51, 0.08)'
+                                    }}
+                                    title="Auto-generate 1-page Sponsor Thank You Certificate & Impact Pack"
+                                  >
+                                    <Award size={14} />
+                                    <span>Sponsor Cert</span>
                                   </a>
 
                                   <a

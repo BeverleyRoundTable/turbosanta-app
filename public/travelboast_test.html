@@ -704,6 +704,12 @@
           <i class="fa-solid fa-film"></i>
           <span>Generate MP4</span>
         </button>
+
+        <!-- 1-Click Social Graphic (PNG) Export -->
+        <button type="button" id="social-graphic-btn" class="btn-export" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-color: rgba(16, 185, 129, 0.45); box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);" title="Generate 1-click branded 1080x1350 static graphic for Facebook & Instagram">
+          <i class="fa-solid fa-camera"></i>
+          <span>Social Graphic (PNG)</span>
+        </button>
       </div>
     </header>
 
@@ -833,13 +839,14 @@
   <div class="preview-backdrop" id="preview-backdrop">
     <div class="preview-card">
       <div class="preview-header">
-        <h3><i class="fa-solid fa-circle-check" style="color:#2ecc71;margin-right:6px;"></i> Social Video Ready</h3>
+        <h3 id="preview-modal-heading"><i class="fa-solid fa-circle-check" style="color:#2ecc71;margin-right:6px;"></i> Social Content Ready</h3>
         <button type="button" id="preview-close-x" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:18px;">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
       <div class="preview-video-box">
         <video id="preview-video" controls playsinline loop></video>
+        <img id="preview-image" style="display:none; max-width:100%; max-height:62vh; object-fit:contain; border-radius:8px;" alt="Social Graphic Preview" />
       </div>
       <div class="preview-actions">
         <button type="button" id="preview-next-route-btn" class="btn-tool">
@@ -2880,8 +2887,15 @@
         triggerBlobDownload(blobUrl, filename);
 
         const vid = $('preview-video');
-        vid.src = blobUrl;
-        vid.play().catch(() => {});
+        const img = $('preview-image');
+        if (img) img.style.display = 'none';
+        if (vid) {
+          vid.style.display = 'block';
+          vid.src = blobUrl;
+          vid.play().catch(() => {});
+        }
+        const heading = $('preview-modal-heading');
+        if (heading) heading.innerHTML = '<i class="fa-solid fa-circle-check" style="color:#2ecc71;margin-right:6px;"></i> Social Video Ready';
 
         $('preview-download-label').textContent = `Download .${ext.toUpperCase()}`;
         $('preview-next-route-btn').style.display = (STATE.activeRouteIndex >= 0 && STATE.activeRouteIndex < STATE.routes.length - 1)
@@ -2898,6 +2912,360 @@
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+      }
+
+      async function exportSocialGraphicPng() {
+        if (STATE.isExporting || STATE.points.length < 2) {
+          showToast('Please wait for route map to finish loading.');
+          return;
+        }
+        setPlaying(false);
+        STATE.isExporting = true;
+
+        const backdrop = $('encoding-backdrop');
+        const bar = $('encoding-bar');
+        const stats = $('encoding-stats');
+        const sub = $('encoding-sub');
+        if (bar) bar.style.width = '30%';
+        if (stats) stats.textContent = 'Rendering 1080×1350 Canvas...';
+        if (sub) sub.textContent = 'Capturing high-res map and laying out tonight’s street post';
+        if (backdrop) backdrop.classList.add('active');
+
+        try {
+          // 1. Fit map to route bounds
+          if (STATE.bounds) {
+            map.fitBounds(STATE.bounds, { padding: 40, animate: false });
+          }
+          await waitForMapTilesAndRender(900);
+
+          if (bar) bar.style.width = '65%';
+
+          const W = 1080, H = 1350;
+          const compCanvas = document.createElement('canvas');
+          compCanvas.width = W;
+          compCanvas.height = H;
+          const ctx = compCanvas.getContext('2d');
+
+          // 2. Background Carbon Gradient
+          const bgGrad = ctx.createRadialGradient(W / 2, H * 0.35, 100, W / 2, H / 2, 850);
+          bgGrad.addColorStop(0, '#191e2b');
+          bgGrad.addColorStop(0.6, '#0f121a');
+          bgGrad.addColorStop(1, '#07080c');
+          ctx.fillStyle = bgGrad;
+          ctx.fillRect(0, 0, W, H);
+
+          // Subtle Gold Outer Frame
+          ctx.save();
+          ctx.strokeStyle = 'rgba(251, 175, 51, 0.45)';
+          ctx.lineWidth = 3;
+          ctx.strokeRect(20, 20, W - 40, H - 40);
+
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(26, 26, W - 52, H - 52);
+          ctx.restore();
+
+          // Sparkles in corners
+          const sparkles = [
+            { x: 45, y: 45 }, { x: W - 45, y: 45 }, { x: 55, y: H - 55 }, { x: W - 55, y: H - 55 },
+            { x: 140, y: 80 }, { x: W - 140, y: 80 }
+          ];
+          sparkles.forEach(sp => {
+            ctx.fillStyle = 'rgba(251, 175, 51, 0.6)';
+            ctx.beginPath();
+            ctx.arc(sp.x, sp.y, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+          });
+
+          // 3. Header: Official Table Brand Strip
+          const tableTitle = (STATE.settings?.sleigh_display_name || (STATE.tableSlug.toUpperCase() + ' ROUND TABLE SANTA SLEIGH')).toUpperCase();
+          const route = STATE.activeRoute || {};
+          const routeName = (route.name || STATE.routeTitle || "Tonight's Route").toUpperCase();
+
+          // Logo / Crest
+          let logoImg = STATE.icons?.logo || STATE.icons?.live;
+          if (logoImg && logoImg.width > 0) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(95, 95, 40, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.clip();
+            ctx.drawImage(logoImg, 55, 55, 80, 80);
+            ctx.restore();
+            ctx.strokeStyle = '#FBAF33';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(95, 95, 41, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+
+          // Table Brand Name
+          ctx.fillStyle = '#FBAF33';
+          ctx.font = '700 22px "Eurostile", sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillText(tableTitle, 155, 78);
+
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+          ctx.font = '700 13px "DM Mono", monospace';
+          ctx.fillText('OFFICIAL COMMUNITY SANTA SLEIGH TOUR', 155, 102);
+
+          // Hero Headline: SANTA IS IN [ROUTE] TONIGHT!
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = '900 36px "Eurostile", sans-serif';
+          let displayHl = `🎅 SANTA IS IN ${routeName} TONIGHT!`;
+          if (ctx.measureText(displayHl).width > 960) {
+            ctx.font = '900 28px "Eurostile", sans-serif';
+          }
+          ctx.fillText(displayHl, 50, 160);
+
+          // Date & Time Pill
+          const dateStr = STATE.routeDateText || (route.date ? route.date : 'Tonight');
+          const timeStr = `${route.start_time || '18:00'} – ${route.end_time || '20:30'}`;
+          const dtText = `📅 ${dateStr}   •   ⏰ ${timeStr}   •   📍 Live GPS On Doorsteps`;
+          
+          ctx.fillStyle = 'rgba(251, 175, 51, 0.14)';
+          ctx.strokeStyle = 'rgba(251, 175, 51, 0.35)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.roundRect(50, 178, Math.min(980, ctx.measureText(dtText).width + 36), 34, 17);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = '#FBAF33';
+          ctx.font = '700 14px "Open Sans", sans-serif';
+          ctx.fillText(dtText, 68, 200);
+
+          // 4. Map Container (width: 980, height: 480, at 50, 226)
+          const mapBoxX = 50, mapBoxY = 226, mapBoxW = 980, mapBoxH = 480;
+          ctx.save();
+          ctx.beginPath();
+          ctx.roundRect(mapBoxX, mapBoxY, mapBoxW, mapBoxH, 16);
+          ctx.clip();
+
+          // Draw the rendered WebGL map
+          const mapCanvas = map.getCanvas();
+          ctx.drawImage(mapCanvas, 0, 0, mapCanvas.width, mapCanvas.height, mapBoxX, mapBoxY, mapBoxW, mapBoxH);
+          ctx.restore();
+
+          // Map Border
+          ctx.save();
+          ctx.strokeStyle = 'rgba(251, 175, 51, 0.4)';
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.roundRect(mapBoxX, mapBoxY, mapBoxW, mapBoxH, 16);
+          ctx.stroke();
+          ctx.restore();
+
+          // Map Top-Right Badge
+          const liveDomain = STATE.liveUrl || `${STATE.tableSlug}.roundtablesantasleigh.co.uk`;
+          const radarText = `📡 LIVE RADAR: ${liveDomain}`;
+          ctx.font = '800 12px "DM Mono", monospace';
+          const rTextW = ctx.measureText(radarText).width;
+          ctx.fillStyle = 'rgba(13, 13, 11, 0.9)';
+          ctx.strokeStyle = 'rgba(251, 175, 51, 0.3)';
+          ctx.beginPath();
+          ctx.roundRect(mapBoxX + mapBoxW - rTextW - 32, mapBoxY + 14, rTextW + 24, 28, 14);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = '#2ecc71';
+          ctx.beginPath();
+          ctx.arc(mapBoxX + mapBoxW - rTextW - 20, mapBoxY + 28, 4, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#fff';
+          ctx.fillText(radarText, mapBoxX + mapBoxW - rTextW - 10, mapBoxY + 32);
+
+          // 5. Streets We're Visiting Tonight Panel (y: 724 to 1110)
+          let streetList = [];
+          if (route.streets && typeof route.streets === 'string') {
+            streetList = route.streets.split(/[,;\n\r]+/).map(s => s.trim()).filter(Boolean);
+          }
+          if (streetList.length === 0 && STATE.stops && STATE.stops.length > 0) {
+            streetList = STATE.stops.map(s => s.name).filter(Boolean);
+          }
+          if (streetList.length === 0 && Array.isArray(STATE.streets)) {
+            streetList = STATE.streets.filter(s => s.route_id === route.id).map(s => s.street_name || s.name).filter(Boolean);
+          }
+
+          const streetsPanelY = 724;
+          ctx.fillStyle = '#FBAF33';
+          ctx.font = '800 20px "Eurostile", sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillText(`🏘️ STREETS WE'RE VISITING TONIGHT (${streetList.length || 'FULL TOUR'}):`, 50, streetsPanelY);
+
+          const colW = 475;
+          const maxChips = 16;
+          const displayStreets = streetList.slice(0, maxChips);
+          const hiddenCount = Math.max(0, streetList.length - maxChips);
+
+          displayStreets.forEach((st, idx) => {
+            const col = idx < 8 ? 0 : 1;
+            const row = idx % 8;
+            const x = 50 + col * (colW + 30);
+            const y = streetsPanelY + 16 + row * 44;
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.roundRect(x, y, colW, 36, 8);
+            ctx.fill();
+            ctx.stroke();
+
+            // Festive red/gold bullet
+            ctx.fillStyle = '#d31c1c';
+            ctx.beginPath();
+            ctx.arc(x + 16, y + 18, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#eaeae5';
+            ctx.font = '700 14px "Open Sans", sans-serif';
+            let label = st;
+            if (ctx.measureText(label).width > colW - 40) {
+              while (label.length > 4 && ctx.measureText(label + '…').width > colW - 40) {
+                label = label.slice(0, -1);
+              }
+              label += '…';
+            }
+            ctx.fillText(label, x + 30, y + 23);
+          });
+
+          if (hiddenCount > 0) {
+            const x = 50 + 1 * (colW + 30);
+            const y = streetsPanelY + 16 + 7 * 44;
+            ctx.fillStyle = 'rgba(251, 175, 51, 0.12)';
+            ctx.strokeStyle = 'rgba(251, 175, 51, 0.35)';
+            ctx.beginPath();
+            ctx.roundRect(x, y, colW, 36, 8);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#FBAF33';
+            ctx.font = '800 13px "Open Sans", sans-serif';
+            ctx.fillText(`+ ${hiddenCount} MORE STREETS ON LIVE MAP TRACKER`, x + 24, y + 23);
+          }
+
+          // 6. Footer / Sponsor & Live Tracker QR Section (y: 1118 to 1310)
+          const footerY = 1118, footerH = 190;
+          ctx.fillStyle = 'rgba(18, 21, 31, 0.9)';
+          ctx.strokeStyle = 'rgba(251, 175, 51, 0.35)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(50, footerY, 980, footerH, 16);
+          ctx.fill();
+          ctx.stroke();
+
+          // Left: Route Sponsor or Charity banner
+          const sponsorList = Array.isArray(route.sponsors) && route.sponsors.length > 0 ? route.sponsors : [];
+          const mainSponsor = sponsorList[0] || (STATE.settings?.headline_sponsor_name ? { name: STATE.settings.headline_sponsor_name } : null);
+
+          if (mainSponsor && mainSponsor.name) {
+            ctx.fillStyle = '#FBAF33';
+            ctx.font = '800 14px "DM Mono", monospace';
+            ctx.fillText("TONIGHT'S ROUTE IS PROUDLY SPONSORED BY:", 80, footerY + 45);
+
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = '900 30px "Eurostile", sans-serif';
+            ctx.fillText(mainSponsor.name.toUpperCase(), 80, footerY + 85);
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.font = '600 14px "Open Sans", sans-serif';
+            ctx.fillText('Thank you for fueling Santa & powering local charity grants!', 80, footerY + 115);
+            ctx.fillStyle = '#2ecc71';
+            ctx.font = '800 13px "DM Mono", monospace';
+            ctx.fillText('100% VOLUNTEER-RUN • ZERO ADMIN FEES', 80, footerY + 145);
+          } else {
+            ctx.fillStyle = '#FBAF33';
+            ctx.font = '900 28px "Eurostile", sans-serif';
+            ctx.fillText('100% VOLUNTEER RUN APPEAL', 80, footerY + 60);
+
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = '700 17px "Open Sans", sans-serif';
+            ctx.fillText('Every single penny collected stays local in our community.', 80, footerY + 95);
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.font = '600 14px "Open Sans", sans-serif';
+            ctx.fillText('Supporting grassroots clubs, foodbanks & children in need.', 80, footerY + 125);
+            ctx.fillStyle = '#2ecc71';
+            ctx.font = '800 13px "DM Mono", monospace';
+            ctx.fillText('ROUND TABLE GREAT BRITAIN & IRELAND', 80, footerY + 155);
+          }
+
+          // Right: QR Code & CTA
+          const qrX = 860, qrY = footerY + 25, qrSize = 140;
+          const qrTargetUrl = `https://${liveDomain}`;
+          const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrTargetUrl)}`;
+          
+          try {
+            const qrImg = await loadCorsImage(qrImgUrl, null);
+            if (qrImg) {
+              ctx.fillStyle = '#FFFFFF';
+              ctx.beginPath();
+              ctx.roundRect(qrX - 8, qrY - 8, qrSize + 16, qrSize + 16, 10);
+              ctx.fill();
+              ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+            }
+          } catch(e) {}
+
+          ctx.textAlign = 'right';
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = '900 16px "Eurostile", sans-serif';
+          ctx.fillText('TRACK SANTA LIVE', qrX - 20, footerY + 65);
+
+          ctx.fillStyle = '#FBAF33';
+          ctx.font = '800 14px "Eurostile", sans-serif';
+          ctx.fillText('& DONATE ONLINE', qrX - 20, footerY + 90);
+
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+          ctx.font = '700 12px "DM Mono", monospace';
+          ctx.fillText(liveDomain, qrX - 20, footerY + 115);
+
+          ctx.fillStyle = '#2ecc71';
+          ctx.font = '800 11px "DM Mono", monospace';
+          ctx.fillText('Scan with Phone Camera →', qrX - 20, footerY + 140);
+          ctx.textAlign = 'left';
+
+          if (bar) bar.style.width = '100%';
+
+          // Convert to Blob and display in modal
+          compCanvas.toBlob((blob) => {
+            if (!blob) throw new Error('Blob generation failed');
+            if (STATE.lastExportBlobUrl) URL.revokeObjectURL(STATE.lastExportBlobUrl);
+            const blobUrl = URL.createObjectURL(blob);
+            STATE.lastExportBlobUrl = blobUrl;
+
+            const cleanTable = (STATE.tableSlug || 'Santa').replace(/[^a-z0-9]/gi, '_');
+            const cleanRoute = (route.name || 'Tonight').replace(/[^a-z0-9]/gi, '_');
+            const filename = `SantaSleigh_${cleanTable}_${cleanRoute}_Tonight_SocialPost.png`;
+            STATE.lastExportFilename = filename;
+
+            // Update Preview Modal
+            const prevVideo = $('preview-video');
+            const prevImg = $('preview-image');
+            const downloadLabel = $('preview-download-label');
+            const modalHeading = $('preview-modal-heading');
+            if (prevVideo) prevVideo.style.display = 'none';
+            if (prevImg) {
+              prevImg.src = blobUrl;
+              prevImg.style.display = 'block';
+            }
+            if (modalHeading) modalHeading.innerHTML = '<i class="fa-solid fa-camera" style="color:#10b981;margin-right:6px;"></i> Social Graphic Ready';
+            if (downloadLabel) downloadLabel.textContent = 'Download PNG';
+
+            $('preview-backdrop').classList.add('active');
+            triggerBlobDownload(blobUrl, filename);
+            showToast('✅ 1080×1350 Social Graphic Generated & Downloaded!');
+          }, 'image/png');
+
+        } catch(err) {
+          console.error('Social graphic error:', err);
+          showToast('Failed to generate graphic: ' + (err?.message || 'Unknown'));
+        } finally {
+          STATE.isExporting = false;
+          if (backdrop) backdrop.classList.remove('active');
+          renderCurrentTimelineState();
+        }
       }
 
       // ─────────────────────────────────────────────────────────
@@ -3081,8 +3449,11 @@
           renderCurrentTimelineState();
         });
 
-        // MP4 Export & Preview Modal
+        // MP4 & Social Graphic Export
         $('export-btn').addEventListener('click', exportRouteVideo);
+        if ($('social-graphic-btn')) {
+          $('social-graphic-btn').addEventListener('click', exportSocialGraphicPng);
+        }
         $('encoding-cancel-btn').addEventListener('click', () => {
           STATE.cancelExport = true;
         });

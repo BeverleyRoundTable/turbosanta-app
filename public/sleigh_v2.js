@@ -937,10 +937,12 @@
     } else if (liveNow) {
       const activeR = state.routes.find((r, i) => isRouteLive(r, i)) || state.routes[0];
       badge.className = 'live-status-badge is-live';
+      const rStreets = (activeR && state.streetsByRoute.get(String(activeR.id))) || [];
+      const streetCount = rStreets.length;
       badgeText.textContent = `LIVE NOW: ${activeR ? activeR.name : 'Santa Is On The Streets!'}`;
       if (cdChip) {
         cdChip.style.display = 'inline-flex';
-        cdText.textContent = 'Live GPS Radar Active';
+        cdText.textContent = streetCount > 0 ? `Visiting ${streetCount} Streets Tonight` : 'Live GPS Radar Active';
       }
     } else {
       badge.className = 'live-status-badge';
