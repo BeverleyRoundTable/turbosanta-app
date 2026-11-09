@@ -438,6 +438,15 @@
     return d.getTime() < todayMidnight().getTime();
   }
 
+  function isCharityPartner(entity) {
+    if (!entity) return false;
+    if (entity.type === 'charity') return true;
+    if (entity.is_charity === true || entity.isCharity === true) return true;
+    const text = `${entity.name || entity.sponsor_name || ''} ${entity.role || entity.tagline || ''} ${entity.description || entity.desc || ''}`.toLowerCase();
+    const charityRegex = /\b(charity|charities|charitable|foodbank|food\s*bank|larder|pantry|hospice|foundation|trust|good\s*cause|cause|beneficiary|appeal|rescue|air\s*ambulance|cic|cio|shelter|mind|autism|cancer|macmillan|mcmillan|marie\s*curie|rspca|rnli|barnardo|barnardos|nspcc|samaritans|age\s*uk|red\s*cross|salvation\s*army|scouts|guides|brownies|cadets|rotary|round\s*table\s*trust)\b/i;
+    return charityRegex.test(text);
+  }
+
   function getRouteSponsors(route) {
     if (!route) return [];
     const list = [];
@@ -446,15 +455,17 @@
       const c = l.trim();
       return c.startsWith('blob:') ? '' : c;
     };
-    const normType = (t) => {
-      const s = String(t || 'sponsor').toLowerCase().trim();
-      return s === 'charity' ? 'charity' : 'sponsor';
+    const normType = (t, entity) => {
+      const s = String(t || '').toLowerCase().trim();
+      if (s === 'charity') return 'charity';
+      if (s === 'sponsor') return 'sponsor';
+      return isCharityPartner(entity) ? 'charity' : 'sponsor';
     };
 
     const sortCharitiesFirst = (arr) => {
       return arr.sort((a, b) => {
-        const aIs = a.type === 'charity' ? 1 : 0;
-        const bIs = b.type === 'charity' ? 1 : 0;
+        const aIs = (a.type === 'charity' || isCharityPartner(a)) ? 1 : 0;
+        const bIs = (b.type === 'charity' || isCharityPartner(b)) ? 1 : 0;
         return bIs - aIs;
       });
     };
@@ -463,12 +474,15 @@
       route.sponsors.forEach(s => {
         if (s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url)) {
           const l = sanitizeLogo(s.logo_url) || sanitizeLogo(s.sponsor_logo_url) || sanitizeLogo(s.sponsor_logo) || '';
-          list.push({
-            type: normType(s.type),
+          const item = {
             name: (s.name || s.sponsor_name || 'Route Partner').trim(),
             logo: l,
             url: (s.link || s.sponsor_link || s.url || '').trim(),
             description: (s.description || s.sponsor_description || '').trim()
+          };
+          list.push({
+            type: normType(s.type, { ...item, ...s }),
+            ...item
           });
         }
       });
@@ -481,12 +495,15 @@
           parsed.forEach(s => {
             if (s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url)) {
               const l = sanitizeLogo(s.logo_url) || sanitizeLogo(s.sponsor_logo_url) || sanitizeLogo(s.sponsor_logo) || '';
-              list.push({
-                type: normType(s.type),
+              const item = {
                 name: (s.name || s.sponsor_name || 'Route Partner').trim(),
                 logo: l,
                 url: (s.link || s.sponsor_link || s.url || '').trim(),
                 description: (s.description || s.sponsor_description || '').trim()
+              };
+              list.push({
+                type: normType(s.type, { ...item, ...s }),
+                ...item
               });
             }
           });
@@ -504,12 +521,15 @@
             parsed.forEach(s => {
               if (s && (s.name || s.sponsor_name || s.logo_url || s.sponsor_logo || s.sponsor_logo_url)) {
                 const l = sanitizeLogo(s.logo_url) || sanitizeLogo(s.sponsor_logo_url) || sanitizeLogo(s.sponsor_logo) || '';
-                list.push({
-                  type: normType(s.type),
+                const item = {
                   name: (s.name || s.sponsor_name || 'Route Partner').trim(),
                   logo: l,
                   url: (s.link || s.sponsor_link || s.url || '').trim(),
                   description: (s.description || s.sponsor_description || '').trim()
+                };
+                list.push({
+                  type: normType(s.type, { ...item, ...s }),
+                  ...item
                 });
               }
             });
@@ -520,12 +540,15 @@
     }
     if (route.sponsor_name || route.sponsor_logo_url || route.sponsor_logo) {
       const l = sanitizeLogo(route.sponsor_logo_url) || sanitizeLogo(route.sponsor_logo) || '';
-      list.push({
-        type: 'sponsor',
+      const legacyItem = {
         name: (route.sponsor_name || 'Official Route Sponsor').trim(),
         logo: l,
         url: (route.sponsor_link || '').trim(),
         description: (route.sponsor_description || '').trim()
+      };
+      list.push({
+        type: isCharityPartner(legacyItem) ? 'charity' : 'sponsor',
+        ...legacyItem
       });
     }
     return sortCharitiesFirst(list);
@@ -1665,24 +1688,51 @@
       });
     };
 
-    // 1. Beneficiary Charities across all routes (FIRST)
+    // 1. Table-wide Beneficiary Charities (from settings & supported appeals) - TIER 1 TOP
+    (state.payload?.partners || []).forEach(p => {
+      if (isCharityPartner(p)) {
+        addAttribution(charities, p.name, p.logo || p.logo_url, p.url || p.link, p.role ? (p.role.startsWith('❤️') ? p.role : `❤️ ${p.role}`) : '❤️ Official Charity Beneficiary', 'charity');
+      }
+    });
+
+    let rawAppeals = state.payload?.supported_appeals;
+    if (!rawAppeals && state.payload?.table?.supported_appeals) rawAppeals = state.payload.table.supported_appeals;
+    if (!rawAppeals && state.payload?.table?.supported_appeals_json) {
+      try {
+        rawAppeals = typeof state.payload.table.supported_appeals_json === 'string'
+          ? JSON.parse(state.payload.table.supported_appeals_json)
+          : state.payload.table.supported_appeals_json;
+      } catch (e) {}
+    }
+    if (Array.isArray(rawAppeals)) {
+      rawAppeals.forEach(a => {
+        const aName = a.charity_name || a.name;
+        if (aName) {
+          addAttribution(charities, aName, a.logo || a.logo_url, a.donate_url || a.link, `❤️ ${a.title || a.name || 'Charity Appeal'}`, 'charity');
+        }
+      });
+    }
+
+    // 2. Beneficiary Charities across all routes - TIER 1 TOP
     state.routes.forEach(r => {
       getRouteSponsors(r).forEach(sp => {
-        if (sp.type === 'charity') {
+        if (sp.type === 'charity' || isCharityPartner(sp)) {
           addAttribution(charities, sp.name, sp.logo, sp.url, `❤️ ${r.name || 'Route'} Beneficiary`, 'charity');
         }
       });
     });
 
-    // 2. Official Table Headline Partners from settings (SECOND)
+    // 3. Official Table Headline Commercial Partners from settings - TIER 2
     (state.payload?.partners || []).forEach(p => {
-      addAttribution(officialPartners, p.name, p.logo || p.logo_url, p.url || p.link, `⭐ ${p.role || 'Official Partner'}`, 'official_partner');
+      if (!isCharityPartner(p)) {
+        addAttribution(officialPartners, p.name, p.logo || p.logo_url, p.url || p.link, p.role ? (p.role.startsWith('⭐') ? p.role : `⭐ ${p.role}`) : '⭐ Official Partner', 'official_partner');
+      }
     });
 
-    // 3. Route Corporate Business Sponsors across all routes (THIRD)
+    // 4. Route Corporate Business Sponsors across all routes - TIER 3
     state.routes.forEach(r => {
       getRouteSponsors(r).forEach(sp => {
-        if (sp.type !== 'charity') {
+        if (sp.type !== 'charity' && !isCharityPartner(sp)) {
           addAttribution(routeSponsors, sp.name, sp.logo, sp.url, `🏢 ${r.name || 'Route'} Sponsor`, 'sponsor');
         }
       });

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Share2, MapPin, ExternalLink, Star, ChevronDown, Music, Volume2, VolumeX, Play, Pause, X, Heart, Building2 } from 'lucide-react';
 import { API_BASE } from '../services/api';
-import { extractRouteSponsors } from '../utils/sponsors';
+import { extractRouteSponsors, isCharityPartner } from '../utils/sponsors';
 import { normalizeFaqs } from '../utils/faqs';
 import RouteStreetsPreview from './RouteStreetsPreview';
 import SnowEffect from './SnowEffect';
@@ -903,18 +903,67 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
     const routeCharities = [];
     const seenBusinesses = new Set();
     const routeBusinesses = [];
+    const officialPartners = [];
 
+    // 1. Process Table-level Partners (formData.partners / heroPartners)
+    // If a partner is marked as 'charity' OR matches charity keywords, ELEVATE directly to Tier 1 Charities!
+    (heroPartners || []).forEach(p => {
+      const cleanName = (p.name || '').trim().toLowerCase();
+      if (!cleanName && !p.logo && !p.logo_url) return;
+      if (isCharityPartner(p)) {
+        const key = cleanName || p.logo || p.logo_url;
+        if (!seenCharities.has(key)) {
+          seenCharities.add(key);
+          routeCharities.push({
+            name: p.name,
+            role: p.role || p.tagline || 'Lead Charity Beneficiary',
+            logo: p.logo || p.logo_url,
+            url: p.url || p.link,
+            description: p.description,
+            type: 'charity',
+            isTableWide: true
+          });
+        }
+      } else {
+        officialPartners.push({
+          ...p,
+          role: p.role || p.tagline || 'Official Headline Partner',
+          type: 'official_partner'
+        });
+      }
+    });
+
+    // 2. Also check table supported appeals
+    const rawAppeals = tableData?.supported_appeals || table?.supported_appeals || [];
+    (Array.isArray(rawAppeals) ? rawAppeals : []).forEach(a => {
+      const aName = (a.charity_name || a.name || '').trim();
+      const aClean = aName.toLowerCase();
+      if (aClean && !seenCharities.has(aClean)) {
+        seenCharities.add(aClean);
+        routeCharities.push({
+          name: aName,
+          role: a.title || a.name || 'Charity Appeal',
+          logo: a.logo || a.logo_url,
+          url: a.donate_url || a.link,
+          description: a.description,
+          type: 'charity',
+          isTableWide: true
+        });
+      }
+    });
+
+    // 3. Process Route-level Sponsors & Charities
     rawRoutes.forEach(r => {
       const sps = extractRouteSponsors(r);
       sps.forEach(sp => {
         const cleanName = (sp.name || '').trim().toLowerCase();
         if (!cleanName) return;
-        if (sp.type === 'charity') {
+        if (sp.type === 'charity' || isCharityPartner(sp)) {
           if (!seenCharities.has(cleanName)) {
             seenCharities.add(cleanName);
             routeCharities.push({
               name: sp.name,
-              role: 'Charity Beneficiary',
+              role: sp.role || `${r.name || 'Route'} Beneficiary`,
               logo: sp.logo_url,
               url: sp.link,
               description: sp.description,
@@ -926,7 +975,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
             seenBusinesses.add(cleanName);
             routeBusinesses.push({
               name: sp.name,
-              role: 'Route Sponsor',
+              role: sp.role || `${r.name || 'Route'} Sponsor`,
               logo: sp.logo_url,
               url: sp.link,
               description: sp.description,
@@ -937,19 +986,13 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
       });
     });
 
-    const officialPartners = (heroPartners || []).map(p => ({
-      ...p,
-      role: p.role || p.tagline || 'Official Headline Partner',
-      type: 'official_partner'
-    }));
-
     return {
       charities: routeCharities,
       officialPartners,
       routeSponsors: routeBusinesses,
       totalCount: routeCharities.length + officialPartners.length + routeBusinesses.length
     };
-  }, [tableData, heroPartners]);
+  }, [tableData, heroPartners, table]);
 
   return (
     <div style={{
@@ -2252,8 +2295,8 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                   const isCharity = p.type === 'charity';
                   const isOfficial = p.type === 'official_partner';
                   const pRole = isCharity
-                    ? '❤️ Charity Beneficiary'
-                    : (isOfficial ? `⭐ ${p.role || 'Official Headline Partner'}` : `🏢 ${p.role || 'Route Sponsor'}`);
+                    ? (p.role ? (p.role.startsWith('❤️') ? p.role : `❤️ ${p.role}`) : '❤️ Charity Beneficiary')
+                    : (isOfficial ? (p.role ? (p.role.startsWith('⭐') ? p.role : `⭐ ${p.role}`) : '⭐ Official Headline Partner') : (p.role ? (p.role.startsWith('🏢') ? p.role : `🏢 ${p.role}`) : '🏢 Route Sponsor'));
                   const pUrl = p.url || p.link || p.website || p.website_url || '';
 
                   return (

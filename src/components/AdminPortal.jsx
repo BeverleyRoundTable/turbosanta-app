@@ -1582,13 +1582,14 @@ ${tableName} Organizers`
   };
 
   // Official Partners & Sponsors (Partnered With) Handlers
-  const handleAddPartner = () => {
+  const handleAddPartner = (defaultType = 'sponsor') => {
     setHasUserChangedPartners(true);
     setFormData(prev => {
       let currentPartners = prev.partners;
       if (!currentPartners || currentPartners.length === 0) {
         if (prev.headline_sponsor_name || prev.headline_sponsor_logo) {
           currentPartners = [{
+            type: 'sponsor',
             name: prev.headline_sponsor_name || '',
             role: prev.headline_sponsor_tagline || 'Official Power Partner',
             url: prev.headline_sponsor_url || '',
@@ -1598,9 +1599,16 @@ ${tableName} Organizers`
           currentPartners = [];
         }
       }
+      const isCharity = defaultType === 'charity';
       const nextPartners = [
         ...currentPartners,
-        { name: '', role: currentPartners.length === 0 ? 'Official Power Partner' : 'Official Partner', url: '', logo: '' }
+        {
+          type: defaultType,
+          name: '',
+          role: isCharity ? 'Official Charity Beneficiary' : (currentPartners.length === 0 ? 'Official Power Partner' : 'Official Partner'),
+          url: '',
+          logo: ''
+        }
       ];
       const lead = nextPartners[0] || {};
       return {
@@ -9331,29 +9339,51 @@ ${tableName} Organizers`
                   <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--primary)', fontFamily: 'Eurostile, sans-serif', textTransform: 'uppercase' }}>
                     Official Partners & Sponsors (Partnered With)
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleAddPartner}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      background: 'rgba(251, 175, 51, 0.15)',
-                      color: 'var(--primary)',
-                      border: '1px solid var(--primary)',
-                      borderRadius: '6px',
-                      padding: '5px 12px',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      transition: 'background 0.2s'
-                    }}
-                  >
-                    <Plus size={14} /> Add Partner / Sponsor
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleAddPartner('sponsor')}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: 'rgba(251, 175, 51, 0.15)',
+                        color: 'var(--primary)',
+                        border: '1px solid var(--primary)',
+                        borderRadius: '6px',
+                        padding: '5px 12px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'background 0.2s'
+                      }}
+                    >
+                      <Plus size={14} /> Add Business Partner
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAddPartner('charity')}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: 'rgba(244, 114, 182, 0.15)',
+                        color: '#f472b6',
+                        border: '1px solid rgba(244, 114, 182, 0.4)',
+                        borderRadius: '6px',
+                        padding: '5px 12px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'background 0.2s'
+                      }}
+                    >
+                      <Plus size={14} /> ❤️ Add Charity Beneficiary
+                    </button>
+                  </div>
                 </div>
                 <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px', lineHeight: 1.5 }}>
-                  Showcase your official partners, headline sponsors, or power partners (e.g. Zendure for Beverley, local dealerships, etc.) prominently beneath the live tracker action buttons. You can add multiple partners — when adding 5 or more, their badges automatically scale down neatly to fit side-by-side across both mobile and desktop. Leave empty to hide this section.
+                  Showcase your official corporate partners, headline sponsors, or supported table-level charities (e.g. Zendure for Beverley, local dealerships, or beneficiary causes) prominently beneath the live tracker action buttons. Beneficiary charities are automatically elevated to Tier 1 at the top of your public Community Partners section with pink recognition badges.
                 </p>
 
                 {(!formData.partners || formData.partners.length === 0) ? (
@@ -9367,44 +9397,67 @@ ${tableName} Organizers`
                     fontSize: '13px'
                   }}>
                     <p style={{ margin: '0 0 12px 0' }}>No partners or sponsors currently configured. The "Partnered With" section will remain completely hidden on your turnkey site.</p>
-                    <button
-                      type="button"
-                      onClick={handleAddPartner}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        background: 'var(--primary)',
-                        color: 'var(--on-primary, #000)',
-                        border: 'none',
-                        borderRadius: '6px',
-                        padding: '8px 16px',
-                        fontSize: '13px',
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <Plus size={15} /> Add First Partner / Sponsor
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleAddPartner('sponsor')}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          background: 'var(--primary)',
+                          color: 'var(--on-primary, #000)',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '8px 16px',
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <Plus size={15} /> Add Business Partner
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddPartner('charity')}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          background: 'rgba(244, 114, 182, 0.2)',
+                          color: '#f472b6',
+                          border: '1px solid rgba(244, 114, 182, 0.5)',
+                          borderRadius: '6px',
+                          padding: '8px 16px',
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <Plus size={15} /> ❤️ Add Charity Beneficiary
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {formData.partners.map((partner, idx) => (
+                    {formData.partners.map((partner, idx) => {
+                      const isCharity = partner.type === 'charity';
+                      return (
                       <div
                         key={idx}
                         style={{
                           background: '#161614',
-                          border: '1px solid rgba(251, 175, 51, 0.25)',
+                          border: isCharity ? '1px solid rgba(244, 114, 182, 0.35)' : '1px solid rgba(251, 175, 51, 0.25)',
                           borderRadius: '10px',
                           padding: '16px',
                           position: 'relative'
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span style={{
-                              background: 'rgba(251, 175, 51, 0.15)',
-                              color: 'var(--primary)',
+                              background: isCharity ? 'rgba(244, 114, 182, 0.15)' : 'rgba(251, 175, 51, 0.15)',
+                              color: isCharity ? '#f472b6' : 'var(--primary)',
                               fontSize: '11px',
                               fontWeight: 800,
                               textTransform: 'uppercase',
@@ -9412,7 +9465,7 @@ ${tableName} Organizers`
                               borderRadius: '4px',
                               letterSpacing: '0.5px'
                             }}>
-                              Partner #{idx + 1} {idx === 0 ? '· Lead Sponsor' : ''}
+                              {isCharity ? `❤️ Beneficiary Charity #${idx + 1}` : `🏢 Business Partner #${idx + 1}`} {idx === 0 && !isCharity ? '· Lead Sponsor' : ''}
                             </span>
                           </div>
                           <button
@@ -9438,55 +9491,94 @@ ${tableName} Organizers`
                           </button>
                         </div>
 
+                        {/* Attribution Type Dropdown */}
+                        <div style={{ marginBottom: '14px', background: '#0d0d0b', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                          <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: isCharity ? '#f472b6' : 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+                            Attribution Type
+                          </label>
+                          <select
+                            value={partner.type || 'sponsor'}
+                            onChange={(e) => handleUpdatePartner(idx, 'type', e.target.value)}
+                            style={{
+                              width: '100%',
+                              maxWidth: '100%',
+                              boxSizing: 'border-box',
+                              background: '#161614',
+                              border: isCharity ? '1px solid rgba(244, 114, 182, 0.5)' : '1px solid var(--border)',
+                              borderRadius: '6px',
+                              padding: '8px 12px',
+                              color: '#fff',
+                              fontSize: '13px',
+                              fontWeight: 600,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <option value="sponsor">🏢 Business Partner / Headline Sponsor (Commercial)</option>
+                            <option value="charity">❤️ Beneficiary Charity / Good Cause (Non-Profit Cause)</option>
+                          </select>
+                          <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                            {isCharity
+                              ? '✨ Beneficiary charities are elevated straight to Tier 1 at the very top of your Community Partners showcase with a pink heart badge.'
+                              : 'Commercial sponsors appear in Tier 2 beneath charities as official headline partners.'}
+                          </div>
+                        </div>
+
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '12px', marginBottom: '14px' }}>
                           <div style={{ minWidth: 0 }}>
-                            <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Partner / Sponsor Name</label>
+                            <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                              {isCharity ? 'Charity / Good Cause Name' : 'Partner / Sponsor Name'}
+                            </label>
                             <input
                               type="text"
                               value={partner.name || ''}
                               onChange={(e) => handleUpdatePartner(idx, 'name', e.target.value)}
-                              placeholder="e.g. Zendure or Local Motors"
+                              placeholder={isCharity ? 'e.g. Hope for Food or Local Foodbank' : 'e.g. Zendure or Local Motors'}
                               style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
                             />
                           </div>
 
                           <div style={{ minWidth: 0 }}>
-                            <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Role / Tagline</label>
+                            <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                              {isCharity ? 'Role / Recognition' : 'Role / Tagline'}
+                            </label>
                             <input
                               type="text"
                               value={partner.role || ''}
                               onChange={(e) => handleUpdatePartner(idx, 'role', e.target.value)}
-                              placeholder="e.g. Official Power Partner"
+                              placeholder={isCharity ? 'e.g. Official Charity Beneficiary' : 'e.g. Official Power Partner'}
                               style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
                             />
                           </div>
 
                           <div style={{ minWidth: 0 }}>
-                            <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Website URL</label>
+                            <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                              {isCharity ? 'Charity Website / Donate URL' : 'Website URL'}
+                            </label>
                             <input
                               type="url"
                               value={partner.url || ''}
                               onChange={(e) => handleUpdatePartner(idx, 'url', e.target.value)}
-                              placeholder="https://sponsor.co.uk"
+                              placeholder={isCharity ? 'https://charity.org.uk' : 'https://sponsor.co.uk'}
                               style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
                             />
                           </div>
                         </div>
 
                         <DropzoneUpload
-                          label={`Partner #${idx + 1} Logo (.png, .svg)`}
+                          label={isCharity ? `Charity #${idx + 1} Logo (.png, .svg)` : `Partner #${idx + 1} Logo (.png, .svg)`}
                           currentImage={partner.logo}
                           tableSlug={currentTableSlug}
                           onImageSelected={(url) => handleUpdatePartner(idx, 'logo', url)}
-                          helperText="Upload transparent sponsor logo for the turnkey website hero badge."
+                          helperText={isCharity ? 'Upload transparent charity or good cause logo.' : 'Upload transparent sponsor logo for the turnkey website hero badge.'}
                         />
                       </div>
-                    ))}
+                      );
+                    })}
 
-                    <div style={{ marginTop: '4px' }}>
+                    <div style={{ marginTop: '4px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                       <button
                         type="button"
-                        onClick={handleAddPartner}
+                        onClick={() => handleAddPartner('sponsor')}
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -9501,7 +9593,26 @@ ${tableName} Organizers`
                           cursor: 'pointer'
                         }}
                       >
-                        <Plus size={15} /> Add Another Partner / Sponsor
+                        <Plus size={15} /> Add Another Business Partner
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddPartner('charity')}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          background: 'rgba(244, 114, 182, 0.1)',
+                          color: '#f472b6',
+                          border: '1px dashed rgba(244, 114, 182, 0.5)',
+                          borderRadius: '8px',
+                          padding: '9px 16px',
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <Plus size={15} /> ❤️ Add Charity Beneficiary
                       </button>
                     </div>
                   </div>
