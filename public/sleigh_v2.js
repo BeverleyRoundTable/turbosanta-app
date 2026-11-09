@@ -1396,28 +1396,27 @@
     const calcBox = document.getElementById('giftaid-calc-box');
     if (calcBox) calcBox.style.display = isGa ? 'block' : 'none';
 
-    const gaOnlyBtn = document.getElementById('impact-giftaid-only-btn');
-    if (gaOnlyBtn) gaOnlyBtn.style.display = isGa ? 'inline-flex' : 'none';
+    const cashGaWrap = document.getElementById('impact-cash-ga-wrap');
+    if (cashGaWrap) cashGaWrap.style.display = isGa ? 'block' : 'none';
 
-    const bypassWrap = document.getElementById('impact-direct-bypass-wrap');
-    const bypassLink = document.getElementById('impact-direct-donate-link');
+    const directBtn = document.getElementById('impact-direct-btn');
+    const directLbl = document.getElementById('impact-direct-btn-label');
     const donateUrl = table.donate_url || table.justgiving_url || '';
-    if (bypassWrap) {
-      bypassWrap.style.display = (isGa && donateUrl) ? 'block' : 'none';
-      if (bypassLink && donateUrl) {
-        const platformName = /zeffy/i.test(donateUrl) ? 'Zeffy' : /justgiving/i.test(donateUrl) ? 'JustGiving' : 'online form';
-        bypassLink.textContent = `Donate directly via ${platformName} (Skip Gift Aid) →`;
-        bypassLink.onclick = (e) => {
-          e.preventDefault();
-          window.open(donateUrl, '_blank', 'noopener');
-        };
+    if (directBtn) {
+      directBtn.style.display = (isGa && donateUrl) ? 'inline-flex' : 'none';
+      if (directLbl && donateUrl) {
+        const platformName = /zeffy/i.test(donateUrl) ? 'Zeffy' : /justgiving/i.test(donateUrl) ? 'JustGiving' : 'Online Form';
+        directLbl.textContent = `Donate Directly (${platformName})`;
       }
+      directBtn.onclick = () => {
+        openDonateFlow({ direct: true });
+      };
     }
 
     const donateBtn = document.getElementById('impact-donate-btn');
     if (donateBtn) {
       donateBtn.innerHTML = isGa
-        ? '<i class="fa-solid fa-wand-magic-sparkles"></i><span>Boost by 25% &amp; Donate Now</span>'
+        ? '<i class="fa-solid fa-wand-magic-sparkles"></i><span>Boost by +25% &amp; Donate</span>'
         : '<i class="fa-solid fa-heart"></i><span>Donate Online to Sleigh Appeal</span>';
     }
 

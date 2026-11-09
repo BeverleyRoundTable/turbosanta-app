@@ -305,17 +305,23 @@
               </div>
             </div>
 
-            <div style="display:flex; flex-wrap:wrap; gap:10px;">
-              <button type="button" id="impact-donate-btn" class="btn-brand" style="flex:1; min-width:210px;">
-                <i class="fa-solid fa-heart"></i>
-                <span>Donate Online to Sleigh Appeal</span>
-              </button>
-              <a id="impact-giftaid-only-btn" href="/giftaid" target="_blank" rel="noopener" class="btn-glass" style="display:none;">
-                <span>Donated Cash/Card? Claim Gift Aid</span>
-              </a>
-            </div>
-            <div id="impact-direct-bypass-wrap" style="display:none; margin-top:12px; font-size:12.5px; color:var(--text-secondary); text-align:center;">
-              Prefer to donate without Gift Aid? <a href="#" id="impact-direct-donate-link" style="color:var(--primary); font-weight:700; text-decoration:underline;">Donate directly online &rarr;</a>
+            <div class="impact-donate-actions" style="margin-top:14px; display:flex; flex-direction:column; gap:10px;">
+              <div style="display:flex; flex-wrap:wrap; gap:10px;">
+                <button type="button" id="impact-donate-btn" class="btn-brand" style="flex:1; min-width:210px;">
+                  <i class="fa-solid fa-heart"></i>
+                  <span>Donate Online to Sleigh Appeal</span>
+                </button>
+                <button type="button" id="impact-direct-btn" class="btn-glass" style="display:none; flex:1; min-width:190px;">
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                  <span id="impact-direct-btn-label">Donate Directly via Zeffy</span>
+                </button>
+              </div>
+
+              <div id="impact-cash-ga-wrap" style="display:none; text-align:center; padding-top:4px;">
+                <a id="impact-giftaid-only-btn" href="/giftaid" target="_blank" rel="noopener" style="font-size:12.5px; color:#86efac; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                  <span>🪙 Donated cash or card on the route? Claim Gift Aid here &rarr;</span>
+                </a>
+              </div>
             </div>
           </div>
 
