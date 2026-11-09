@@ -2152,6 +2152,16 @@
       // ⚡ CLOUDFLARE WORKER ENDPOINT
       const WORKER_URL = "https://turbosanta-api.beverley247.workers.dev";
 
+      function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
       // Render public & user announcements in the dedicated top banner outside #map and #statusBox
       function syncAnnouncementBanner(liveMsg, userMsg = '', isUserMsgActive = false) {
         const banner = document.getElementById('announcementBanner');
@@ -2163,7 +2173,7 @@
           if (banner.dataset.annKey !== nextKey) {
             banner.dataset.annKey = nextKey;
             banner.classList.remove('is-user-msg');
-            banner.innerHTML = `<span class="ann-badge">📢 NOTICE</span><span class="ann-text">${Utils.escapeHtml(cleanLive)}</span>`;
+            banner.innerHTML = `<span class="ann-badge">📢 NOTICE</span><span class="ann-text">${escapeHtml(cleanLive)}</span>`;
           }
           if (banner.style.display !== 'flex') {
             banner.style.display = 'flex';
@@ -2174,7 +2184,7 @@
           if (banner.dataset.annKey !== nextKey) {
             banner.dataset.annKey = nextKey;
             banner.classList.add('is-user-msg');
-            banner.innerHTML = `<span class="ann-badge">✨ CHEER</span><span class="ann-text">${Utils.escapeHtml(cleanUser)}</span>`;
+            banner.innerHTML = `<span class="ann-badge">✨ CHEER</span><span class="ann-text">${escapeHtml(cleanUser)}</span>`;
           }
           if (banner.style.display !== 'flex') {
             banner.style.display = 'flex';
@@ -2239,6 +2249,7 @@
       }
 
       const Utils = {
+        escapeHtml(str) { return escapeHtml(str); },
         validPos: (lat, lng) => typeof lat === "number" && !isNaN(lat) && typeof lng === "number" && !isNaN(lng),
         lerp: (a, b, t) => a + (b - a) * t,
         easeOutCubic: (t) => 1 - Math.pow(1 - t, 3),
@@ -3840,6 +3851,8 @@
           if (AppState.vars.consecutiveErrors >= 2) {
             setConnectionState("reconnecting");
             AppState.dom.statusBox.textContent = "Reconnecting to Santa…";
+          } else if (!AppState.lastFix) {
+            AppState.dom.statusBox.textContent = getRestingLaplandText();
           }
           if (AppState.lastFix) {
             animateMarkerTo(AppState.lastFix.lat, AppState.lastFix.lng);
