@@ -1245,8 +1245,20 @@ function renderDonations(donations, settings) {
                     renderTodaySpotlight(todayItem, sponsors, todayContainer);
                 });
 
+                // Clear regular grid before re-rendering (fixes duplication on 15s auto-refresh)
+                container.innerHTML = '';
+
+                // Deduplicate otherRoutes by id
+                const seenRouteIds = new Set();
+                const dedupedRoutes = otherRoutes.filter(({ route }) => {
+                    const id = route.id || route.routeName;
+                    if (seenRouteIds.has(id)) return false;
+                    seenRouteIds.add(id);
+                    return true;
+                });
+
                 // 2. Render all other routes in the regular grid
-                otherRoutes.forEach(({ route, d, day }) => {
+                dedupedRoutes.forEach(({ route, d, day }) => {
                     const isPast = day < today;
                     
                     const start = route['Start Time'] || '';
