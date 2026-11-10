@@ -7274,6 +7274,26 @@ ${historyList}
     - On the public timetable, planned stops render as interactive numbered badges that fly the map directly to the stop location and display dwell times.
     - Volunteer Crew Hub includes an attendance tally counter at each stop to record crowd sizes for AGM reporting.
 
+18. 🤝 ROUTE & HEADLINE SPONSOR LOGO SPECIFICATIONS:
+    - Sizing & Recommended Dimensions:
+      • Golden Spec: 1200 × 600 px (2:1 landscape ratio) or 800 × 800 px (1:1 square/crest).
+      • File Format: High-resolution PNG with transparent background (or clean vector SVG; high-res JPG fallback). File size ideally under 2MB.
+      • Canvas Occupancy (Crucial): Artwork must fill 85% to 90% of the canvas width or height. Advise sponsors to crop out massive blank borders/padding; because the platform uses CSS "object-fit: contain", excess whitespace causes the logo to scale down too small on mobile.
+      • Preferred Lockup: Horizontal / Landscape layout is strongly preferred. If a sponsor has both stacked/vertical and horizontal variations, ask for the horizontal version because mobile map pills and TV kiosk banners are wide and narrow.
+    - Display Locations Across TurboSanta:
+      • Live GPS Map Tracker Pill: Floating badge over the map (max-width 160px, max-height 44px on desktop; 100px × 28px on mobile). Rotates smoothly every 7s if a route has multiple sponsors.
+      • Kiosk / Big-Screen Mode: Pinned bottom ticker banner (160px × 34px).
+      • Tonight's Route Spotlight: Featured card with 48×48px white tile badge, sponsor description, and external link.
+      • Public Timetable Grid: 32×32px white tile badges on each route card.
+      • Community Partners Section: Bottom of public turnkey page.
+      • Social Share Route Cards ("/{slug}/route-card") and Season Wrap PDF reports.
+      • High-Res Sponsor Certificates ("/{slug}/sponsor_cert.html") presented to sponsors post-tour.
+    - How Admins Upload:
+      • Go to Admin Portal -> Routes & Times tab -> Edit Route.
+      • Drag and drop the logo into the Dropzone upload box (direct upload to Cloudflare R2, no manual GitHub steps required).
+    - Email Template for Sponsors:
+      • Provide tables with a ready-to-copy email/WhatsApp template requesting a horizontal PNG on transparent background with cropped margins.
+
 ══════════════════════════════════════════════════════════════════════
 🎯 ANSWERING GUIDELINES:
 ══════════════════════════════════════════════════════════════════════

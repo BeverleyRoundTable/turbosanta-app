@@ -168,6 +168,7 @@ export default function AdminAssistantModal({
     { label: '🥫 Food Bank & Toy Appeals', prompt: 'How do we set up supported charity appeals for our local Food Bank or Cash for Kids Mission Christmas?' },
     { label: '🚐 Flatbed vs Trailer FAQs', prompt: 'How do I switch our safety FAQs between Towable Trailer and Flatbed Van presets, or customize Q&A answers?' },
     { label: '⏱️ Planned Stops & Dwell', prompt: 'How do planned stop dwell times (e.g. 5 mins each) dynamically adjust our total route duration on the timetable?' },
+    { label: '🤝 Sponsor Logo Sizes', prompt: 'What are the recommended dimensions, formats, and best practices for route sponsor logos?' },
     { label: '👥 Bulk Multi-Run Crew', prompt: 'How do I sign up our Round Table members for multiple route nights at once using the Bulk Multi-Run tool?' },
     { label: '🌦️ Live Weather & Safety', prompt: 'What is the current weather forecast for our town and our route safety advice?' },
     { label: '⚖️ Towing & Street Permits', prompt: 'What are the UK DVSA trailer towing rules and council street collection permit requirements?' },
