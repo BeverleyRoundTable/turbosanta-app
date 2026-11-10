@@ -4355,9 +4355,11 @@
             const autoplay = settings.music_autoplay !== false && settings.music_autoplay !== 0;
 
             const isEnabled = (musicMode === 'default') || (musicMode === 'custom' && Boolean(customUrl));
-            const effectiveUrl = musicMode === 'default'
-                ? 'https://turbosanta-app.pages.dev/media/default_sleigh_bells.mp3'
-                : (musicMode === 'custom' ? customUrl : '');
+            const effectiveUrl = (settings.music_url && settings.music_url.trim())
+                ? settings.music_url.trim()
+                : (musicMode === 'default'
+                    ? 'https://turbosanta-api.beverley247.workers.dev/cdn/round_table_christmas.mp3'
+                    : (musicMode === 'custom' ? customUrl : ''));
             const displayTitle = musicMode === 'default' ? 'Round Table Christmas' : (title || 'Festive Christmas Track');
 
             const player = $('ts-festive-music-player');

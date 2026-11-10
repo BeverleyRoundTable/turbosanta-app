@@ -2122,11 +2122,69 @@
       state.isMusicPlaying = false;
     }
 
-    if (table.music_mode && table.music_mode !== 'none' && table.music_custom_url) {
+    const musicMode = table.music_mode || 'none';
+    const DEFAULT_FESTIVE_MUSIC_URL = 'https://turbosanta-api.beverley247.workers.dev/cdn/round_table_christmas.mp3';
+    const effectiveMusicUrl = (table.music_url && table.music_url.trim())
+      ? table.music_url.trim()
+      : (musicMode === 'default'
+          ? DEFAULT_FESTIVE_MUSIC_URL
+          : (table.music_custom_url || '').trim());
+
+    const isMusicEnabled = (musicMode === 'default') || (musicMode === 'custom' && Boolean(table.music_custom_url));
+
+    if (isMusicEnabled && effectiveMusicUrl) {
       if (musicBtn) musicBtn.style.display = 'inline-flex';
-      state.audioEl = new Audio(table.music_custom_url);
-      state.audioEl.loop = table.music_loop !== false;
-      state.audioEl.volume = Math.min(1, Math.max(0.05, Number(table.music_volume ?? 0.45)));
+      const audio = new Audio(effectiveMusicUrl);
+      audio.preload = 'auto';
+      audio.loop = table.music_loop !== false;
+      audio.volume = Math.min(1, Math.max(0.05, Number(table.music_volume ?? 0.5)));
+      state.audioEl = audio;
+
+      const musicTitle = musicMode === 'default' ? 'Round Table Christmas' : (table.music_title || 'Festive Jingles');
+      const lbl = document.getElementById('music-btn-label');
+      if (lbl) lbl.textContent = 'Jingles';
+      if (musicBtn) musicBtn.title = `Play ${musicTitle}`;
+
+      audio.addEventListener('play', () => {
+        state.isMusicPlaying = true;
+        if (lbl) lbl.textContent = 'Playing';
+      });
+      audio.addEventListener('pause', () => {
+        state.isMusicPlaying = false;
+        if (lbl) lbl.textContent = 'Jingles';
+      });
+      audio.addEventListener('ended', () => {
+        state.isMusicPlaying = false;
+        if (lbl) lbl.textContent = 'Jingles';
+      });
+      audio.addEventListener('error', (e) => {
+        console.warn('Festive music audio load error:', e);
+        state.isMusicPlaying = false;
+        if (lbl) lbl.textContent = 'Jingles';
+      });
+
+      // Autoplay if configured (on modern mobile, triggered on visitor's first gesture)
+      if (table.music_autoplay !== false) {
+        audio.play().then(() => {
+          state.isMusicPlaying = true;
+          if (lbl) lbl.textContent = 'Playing';
+        }).catch(() => {
+          const handleFirstGesture = () => {
+            if (state.audioEl && !state.isMusicPlaying) {
+              state.audioEl.play().then(() => {
+                state.isMusicPlaying = true;
+                if (lbl) lbl.textContent = 'Playing';
+              }).catch(() => {});
+            }
+            window.removeEventListener('pointerdown', handleFirstGesture);
+            window.removeEventListener('touchstart', handleFirstGesture);
+            window.removeEventListener('click', handleFirstGesture);
+          };
+          window.addEventListener('pointerdown', handleFirstGesture, { once: true, passive: true });
+          window.addEventListener('touchstart', handleFirstGesture, { once: true, passive: true });
+          window.addEventListener('click', handleFirstGesture, { once: true, passive: true });
+        });
+      }
     } else if (musicBtn) {
       musicBtn.style.display = 'none';
     }
