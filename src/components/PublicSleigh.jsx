@@ -348,9 +348,11 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
     };
   }, [table.custom_css]);
 
+  const DEFAULT_FESTIVE_MUSIC_URL = 'https://turbosanta-api.beverley247.workers.dev/cdn/round_table_christmas.mp3';
+
   const isMusicEnabled = (musicMode === 'default') || (musicMode === 'custom' && Boolean(musicCustomUrl));
   const effectiveMusicUrl = musicMode === 'default'
-    ? 'https://turbosanta-app.pages.dev/media/round_table_christmas.mp3'
+    ? DEFAULT_FESTIVE_MUSIC_URL
     : (musicMode === 'custom' ? musicCustomUrl : '');
   const effectiveMusicTitle = musicMode === 'default' ? 'Round Table Christmas' : (musicTitle || 'Festive Christmas Track');
 
@@ -370,6 +372,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
     }
 
     const audio = new Audio(effectiveMusicUrl);
+    audio.preload = 'auto';
     audioRef.current = audio;
     audio.loop = musicLoop;
     audio.volume = isMuted ? 0 : Math.min(Math.max(musicVolume, 0), 1);
@@ -379,10 +382,15 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
     const handleEnded = () => {
       if (!musicLoop) setIsPlaying(false);
     };
+    const handleError = (e) => {
+      console.warn('Festive music audio load error:', e);
+      setIsPlaying(false);
+    };
 
     audio.addEventListener('play', handlePlay);
     audio.addEventListener('pause', handlePause);
     audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
 
     let cleanupGesture = null;
 
@@ -427,6 +435,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
       audio.removeEventListener('play', handlePlay);
       audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
       audio.pause();
       audio.src = '';
     };

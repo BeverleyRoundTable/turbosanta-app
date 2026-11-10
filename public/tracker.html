@@ -1867,7 +1867,7 @@
         if (!data || typeof data !== 'object') return data;
         const tbl = data.table || {};
         const mMode = tbl.music_mode || data.settings?.music_mode || 'none';
-        const defaultSong = 'https://turbosanta-app.pages.dev/media/round_table_christmas.mp3';
+        const defaultSong = 'https://turbosanta-api.beverley247.workers.dev/cdn/round_table_christmas.mp3';
         const resolvedMusicUrl = mMode === 'none'
           ? ''
           : (mMode === 'default'

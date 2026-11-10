@@ -2581,7 +2581,7 @@ AppState.vars.dataUrl = AppState.vars.proxyUrl || AppState.vars.apiUrl;
         const tbl = apiData.table || {};
         const mMode = tbl.music_mode || settings.music_mode || (settings.background_music_url ? 'custom' : 'none');
         const musicUrl = mMode === 'default'
-          ? 'https://turbosanta-app.pages.dev/media/round_table_christmas.mp3'
+          ? 'https://turbosanta-api.beverley247.workers.dev/cdn/round_table_christmas.mp3'
           : (settings.background_music_url || tbl.music_custom_url || '');
         if (musicUrl && musicUrl.trim() !== "" && !AppState.flags.isKiosk && !AppState.flags.isDriver) {
           AppState.vars.musicUrl = musicUrl.trim();

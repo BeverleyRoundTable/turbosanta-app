@@ -4179,10 +4179,10 @@ export default {
     }
 
     // ==============================================================
-    // 🖼️ 8. R2 ASSET SERVE (GET & HEAD /cdn/*)
+    // 🖼️ 8. R2 ASSET SERVE (GET & HEAD /cdn/* or /media/*)
     // ==============================================================
-    if (path.startsWith("/cdn/") && (request.method === "GET" || request.method === "HEAD")) {
-      const key = path.replace("/cdn/", "");
+    if ((path.startsWith("/cdn/") || path.startsWith("/media/")) && (request.method === "GET" || request.method === "HEAD")) {
+      const key = path.replace(/^\/(cdn|media)\//, "");
       if (!key || key.startsWith("_") || key.includes("..")) {
         return jsonResponse({ error: "Forbidden: Private storage namespace" }, 403);
       }

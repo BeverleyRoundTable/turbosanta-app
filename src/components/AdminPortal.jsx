@@ -2295,7 +2295,7 @@ ${tableName} Organizers`
     }
     const trackUrl = formData.music_mode === 'custom' && formData.music_custom_url
       ? formData.music_custom_url
-      : 'https://turbosanta-app.pages.dev/media/round_table_christmas.mp3';
+      : 'https://turbosanta-api.beverley247.workers.dev/cdn/round_table_christmas.mp3';
 
     try {
       if (adminAudioRef.current) {
