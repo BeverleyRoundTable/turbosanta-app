@@ -1644,6 +1644,9 @@ export default {
         music_mode: table.music_mode || 'none',
         music_title: table.music_title || '',
         music_custom_url: table.music_custom_url || null,
+        music_url: (table.music_mode === 'default')
+          ? `${origin}/cdn/round_table_christmas.mp3`
+          : (table.music_mode === 'custom' ? (table.music_custom_url || null) : null),
         music_loop: (table.music_loop !== undefined && table.music_loop !== null) ? Boolean(table.music_loop) : true,
         music_volume: (table.music_volume !== undefined && table.music_volume !== null) ? Number(table.music_volume) : 0.5,
         music_autoplay: (table.music_autoplay !== undefined && table.music_autoplay !== null) ? Boolean(table.music_autoplay) : true,

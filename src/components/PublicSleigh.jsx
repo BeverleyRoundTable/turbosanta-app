@@ -351,9 +351,11 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
   const DEFAULT_FESTIVE_MUSIC_URL = 'https://turbosanta-api.beverley247.workers.dev/cdn/round_table_christmas.mp3';
 
   const isMusicEnabled = (musicMode === 'default') || (musicMode === 'custom' && Boolean(musicCustomUrl));
-  const effectiveMusicUrl = musicMode === 'default'
-    ? DEFAULT_FESTIVE_MUSIC_URL
-    : (musicMode === 'custom' ? musicCustomUrl : '');
+  const effectiveMusicUrl = (table.music_url && table.music_url.trim())
+    ? table.music_url.trim()
+    : (musicMode === 'default'
+        ? DEFAULT_FESTIVE_MUSIC_URL
+        : (musicMode === 'custom' ? musicCustomUrl : ''));
   const effectiveMusicTitle = musicMode === 'default' ? 'Round Table Christmas' : (musicTitle || 'Festive Christmas Track');
 
   const [isPlaying, setIsPlaying] = useState(false);
