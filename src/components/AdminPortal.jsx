@@ -1208,6 +1208,19 @@ ${tableName} Organizers`
     facebook_url: tableData?.table?.facebook_url || '',
     instagram_url: tableData?.table?.instagram_url || '',
     tiktok_url: tableData?.table?.tiktok_url || '',
+    ladies_circle_url: tableData?.table?.ladies_circle_url || '',
+    club_41_url: tableData?.table?.club_41_url || '',
+    tangent_url: tableData?.table?.tangent_url || '',
+    custom_links: (() => {
+      if (tableData?.table?.custom_links_json) {
+        try {
+          const parsed = typeof tableData.table.custom_links_json === 'string' ? JSON.parse(tableData.table.custom_links_json) : tableData.table.custom_links_json;
+          if (Array.isArray(parsed)) return parsed;
+        } catch (_) {}
+      }
+      if (Array.isArray(tableData?.table?.custom_links)) return tableData.table.custom_links;
+      return [];
+    })(),
     primary_color: tableData?.table?.primary_color || '#D31C1C',
     accent_color: tableData?.table?.accent_color || '#FBAF33',
     enable_gift_aid: tableData?.table?.enable_gift_aid || false,
@@ -1375,6 +1388,19 @@ ${tableName} Organizers`
         facebook_url: tableData.table.facebook_url || prev.facebook_url || '',
         instagram_url: tableData.table.instagram_url || prev.instagram_url || '',
         tiktok_url: tableData.table.tiktok_url || prev.tiktok_url || '',
+        ladies_circle_url: tableData.table.ladies_circle_url || prev.ladies_circle_url || '',
+        club_41_url: tableData.table.club_41_url || prev.club_41_url || '',
+        tangent_url: tableData.table.tangent_url || prev.tangent_url || '',
+        custom_links: (() => {
+          if (tableData.table.custom_links_json) {
+            try {
+              const parsed = typeof tableData.table.custom_links_json === 'string' ? JSON.parse(tableData.table.custom_links_json) : tableData.table.custom_links_json;
+              if (Array.isArray(parsed)) return parsed;
+            } catch (_) {}
+          }
+          if (Array.isArray(tableData.table.custom_links)) return tableData.table.custom_links;
+          return prev.custom_links || [];
+        })(),
         primary_color: tableData.table.primary_color || prev.primary_color || '#D31C1C',
         accent_color: tableData.table.accent_color || prev.accent_color || '#FBAF33',
         enable_gift_aid: tableData.table.enable_gift_aid !== undefined ? Boolean(tableData.table.enable_gift_aid) : prev.enable_gift_aid,
@@ -9599,6 +9625,128 @@ ${tableName} Organizers`
                     />
                   </div>
                 </div>
+
+                {/* Round Table Family of Clubs (Ladies Circle, 41 Club, Tangent) */}
+                <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>Round Table Family of Clubs (Optional)</span>
+                    <span style={{ fontSize: '11px', background: 'rgba(251, 175, 51, 0.15)', color: 'var(--primary)', padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>Family Links</span>
+                  </div>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '14px' }}>
+                    If your town has a local Ladies Circle, 41 Club, or Tangent Club, link them here. They will appear as badges in your public footer alongside your Table links (hidden if left blank).
+                  </p>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '14px', maxWidth: '100%' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <label style={{ display: 'block', fontSize: '12px', color: '#ec4899', fontWeight: 600, marginBottom: '4px' }}>Ladies Circle Website / Page</label>
+                      <input
+                        type="url"
+                        value={formData.ladies_circle_url || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, ladies_circle_url: e.target.value }))}
+                        placeholder="https://ladiescircle.co.uk/..."
+                        style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', background: '#161614', border: '1px solid rgba(236, 72, 153, 0.3)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
+                      />
+                    </div>
+
+                    <div style={{ minWidth: 0 }}>
+                      <label style={{ display: 'block', fontSize: '12px', color: '#38bdf8', fontWeight: 600, marginBottom: '4px' }}>41 Club Website / Page</label>
+                      <input
+                        type="url"
+                        value={formData.club_41_url || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, club_41_url: e.target.value }))}
+                        placeholder="https://41club.org/..."
+                        style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', background: '#161614', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
+                      />
+                    </div>
+
+                    <div style={{ minWidth: 0 }}>
+                      <label style={{ display: 'block', fontSize: '12px', color: '#a855f7', fontWeight: 600, marginBottom: '4px' }}>Tangent Club Website / Page</label>
+                      <input
+                        type="url"
+                        value={formData.tangent_url || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, tangent_url: e.target.value }))}
+                        placeholder="https://tangent-clubs.org/..."
+                        style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', background: '#161614', border: '1px solid rgba(168, 85, 247, 0.3)', borderRadius: '6px', padding: '8px 12px', color: '#fff', fontSize: '14px' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Custom Community & Club Links */}
+                <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                    <div>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>Custom Community &amp; Sister Club Links (Optional)</span>
+                      <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                        Add manual entries for any other local groups, sponsors, or community clubs (e.g. Lions, Rotary, WhatsApp, YouTube).
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({
+                        ...prev,
+                        custom_links: [...(prev.custom_links || []), { label: '', url: '' }]
+                      }))}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        background: 'rgba(251, 175, 51, 0.12)',
+                        border: '1px solid var(--primary)',
+                        color: 'var(--primary)',
+                        borderRadius: '6px',
+                        padding: '5px 10px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Plus size={14} /> Add Custom Link
+                    </button>
+                  </div>
+
+                  {Array.isArray(formData.custom_links) && formData.custom_links.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
+                      {formData.custom_links.map((link, idx) => (
+                        <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'center', background: '#161614', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                          <input
+                            type="text"
+                            value={link.label || ''}
+                            onChange={(e) => {
+                              const newLinks = [...formData.custom_links];
+                              newLinks[idx] = { ...newLinks[idx], label: e.target.value };
+                              setFormData(prev => ({ ...prev, custom_links: newLinks }));
+                            }}
+                            placeholder="Link Name (e.g. Beverley Lions Club)"
+                            style={{ flex: 1, minWidth: '130px', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '4px', padding: '6px 10px', color: '#fff', fontSize: '13px' }}
+                          />
+                          <input
+                            type="url"
+                            value={link.url || ''}
+                            onChange={(e) => {
+                              const newLinks = [...formData.custom_links];
+                              newLinks[idx] = { ...newLinks[idx], url: e.target.value };
+                              setFormData(prev => ({ ...prev, custom_links: newLinks }));
+                            }}
+                            placeholder="https://..."
+                            style={{ flex: 2, minWidth: '160px', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '4px', padding: '6px 10px', color: '#fff', fontSize: '13px' }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newLinks = formData.custom_links.filter((_, i) => i !== idx);
+                              setFormData(prev => ({ ...prev, custom_links: newLinks }));
+                            }}
+                            title="Remove link"
+                            style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '6px' }}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* OFFICIAL PARTNERS & SPONSORS (PARTNERED WITH) */}
@@ -13259,6 +13407,12 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                         facebook_url: formData.facebook_url || null,
                         instagram_url: formData.instagram_url || null,
                         tiktok_url: formData.tiktok_url || null,
+                        ladies_circle_url: formData.ladies_circle_url || null,
+                        club_41_url: formData.club_41_url || null,
+                        tangent_url: formData.tangent_url || null,
+                        custom_links_json: Array.isArray(formData.custom_links) && formData.custom_links.length > 0
+                          ? JSON.stringify(formData.custom_links.filter(l => l && (l.label || l.name) && l.url))
+                          : null,
                         primary_color: formData.primary_color,
                         accent_color: formData.accent_color || (formData.primary_color === '#D31C1C' ? '#FBAF33' : '#D31C1C'),
                         enable_gift_aid: formData.enable_gift_aid,

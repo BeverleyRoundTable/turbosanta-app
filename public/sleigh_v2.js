@@ -1044,16 +1044,34 @@
 
     const socialsWrap = document.getElementById('footer-social-pills');
     if (socialsWrap) {
+      let customLinks = [];
+      if (table.custom_links_json) {
+        try {
+          const parsed = typeof table.custom_links_json === 'string' ? JSON.parse(table.custom_links_json) : table.custom_links_json;
+          if (Array.isArray(parsed)) customLinks = parsed.filter(l => l && (l.label || l.name) && l.url);
+        } catch (_) {}
+      } else if (Array.isArray(table.custom_links)) {
+        customLinks = table.custom_links;
+      }
+
       const links = [
         table.facebook_url && { href: table.facebook_url, icon: 'fa-brands fa-facebook', label: 'Facebook' },
         table.instagram_url && { href: table.instagram_url, icon: 'fa-brands fa-instagram', label: 'Instagram' },
         table.tiktok_url && { href: table.tiktok_url, icon: 'fa-brands fa-tiktok', label: 'TikTok' },
-        table.website_url && { href: table.website_url, icon: 'fa-solid fa-globe', label: 'Club Website' }
+        table.website_url && { href: table.website_url, icon: 'fa-solid fa-globe', label: 'Table Website' },
+        table.ladies_circle_url && { href: table.ladies_circle_url, icon: 'fa-solid fa-venus', label: 'Ladies Circle', color: '#ec4899' },
+        table.club_41_url && { href: table.club_41_url, icon: 'fa-solid fa-award', label: '41 Club', color: '#38bdf8' },
+        table.tangent_url && { href: table.tangent_url, icon: 'fa-solid fa-gem', label: 'Tangent Club', color: '#a855f7' },
+        ...customLinks.map(cl => ({
+          href: cl.url,
+          icon: cl.icon || 'fa-solid fa-arrow-up-right-from-square',
+          label: cl.label || cl.name || 'Link'
+        }))
       ].filter(Boolean);
 
       socialsWrap.innerHTML = links.map(l => `
         <a href="${escapeHtml(l.href)}" target="_blank" rel="noopener noreferrer" class="btn-glass btn-sm">
-          <i class="${l.icon}" style="color:var(--primary);"></i>
+          <i class="${l.icon}" style="color:${l.color || 'var(--primary)'};"></i>
           <span>${escapeHtml(l.label)}</span>
         </a>
       `).join('');

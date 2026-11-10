@@ -346,6 +346,10 @@ async function ensureSchemaOnce(env) {
       "ALTER TABLE tables ADD COLUMN seo_areas TEXT",
       "ALTER TABLE tables ADD COLUMN seo_keywords TEXT",
       "ALTER TABLE tables ADD COLUMN google_site_verification TEXT",
+      "ALTER TABLE tables ADD COLUMN ladies_circle_url TEXT",
+      "ALTER TABLE tables ADD COLUMN club_41_url TEXT",
+      "ALTER TABLE tables ADD COLUMN tangent_url TEXT",
+      "ALTER TABLE tables ADD COLUMN custom_links_json TEXT",
       "DELETE FROM lessons_learned WHERE id LIKE 'seed_%'",
       "DELETE FROM lesson_upvotes WHERE lesson_id LIKE 'seed_%'"
     ];
@@ -1543,6 +1547,19 @@ export default {
         facebook_url: table.facebook_url || null,
         instagram_url: table.instagram_url || null,
         tiktok_url: table.tiktok_url || null,
+        ladies_circle_url: table.ladies_circle_url || null,
+        club_41_url: table.club_41_url || null,
+        tangent_url: table.tangent_url || null,
+        custom_links_json: table.custom_links_json || null,
+        custom_links: (() => {
+          if (table.custom_links_json) {
+            try {
+              const parsed = typeof table.custom_links_json === 'string' ? JSON.parse(table.custom_links_json) : table.custom_links_json;
+              if (Array.isArray(parsed)) return parsed.filter(l => l && (l.label || l.name) && l.url);
+            } catch (e) {}
+          }
+          return [];
+        })(),
         headline_sponsor_name: table.headline_sponsor_name || null,
         headline_sponsor_logo: table.headline_sponsor_logo || null,
         headline_sponsor_url: table.headline_sponsor_url || null,
@@ -2788,6 +2805,10 @@ export default {
       setIfProvided("facebook_url");
       setIfProvided("instagram_url");
       setIfProvided("tiktok_url");
+      setIfProvided("ladies_circle_url");
+      setIfProvided("club_41_url");
+      setIfProvided("tangent_url");
+      setIfProvided("custom_links_json", "custom_links_json", v => typeof v === 'string' ? v : JSON.stringify(v || []));
       setIfProvided("primary_color");
       setIfProvided("accent_color");
       setIfProvided("charity_name");

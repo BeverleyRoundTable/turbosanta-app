@@ -2717,6 +2717,18 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
               {table.tiktok_url && (
                 <a href={table.tiktok_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', padding: '8px 14px', border: '1px solid var(--border)', borderRadius: '24px', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>TikTok</a>
               )}
+              {table.ladies_circle_url && (
+                <a href={table.ladies_circle_url} target="_blank" rel="noopener noreferrer" style={{ color: '#ec4899', padding: '8px 14px', border: '1px solid rgba(236, 72, 153, 0.4)', background: 'rgba(236, 72, 153, 0.08)', borderRadius: '24px', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>Ladies Circle</a>
+              )}
+              {table.club_41_url && (
+                <a href={table.club_41_url} target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8', padding: '8px 14px', border: '1px solid rgba(56, 189, 248, 0.4)', background: 'rgba(56, 189, 248, 0.08)', borderRadius: '24px', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>41 Club</a>
+              )}
+              {table.tangent_url && (
+                <a href={table.tangent_url} target="_blank" rel="noopener noreferrer" style={{ color: '#a855f7', padding: '8px 14px', border: '1px solid rgba(168, 85, 247, 0.4)', background: 'rgba(168, 85, 247, 0.08)', borderRadius: '24px', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>Tangent</a>
+              )}
+              {Array.isArray(table.custom_links) && table.custom_links.map((cl, idx) => (
+                <a key={idx} href={cl.url} target="_blank" rel="noopener noreferrer" style={{ color: '#FFFFFF', padding: '8px 14px', border: '1px solid var(--border)', borderRadius: '24px', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>{cl.label || cl.name}</a>
+              ))}
             </div>
           </div>
         </section>
