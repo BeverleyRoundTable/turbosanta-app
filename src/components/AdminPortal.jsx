@@ -3298,9 +3298,11 @@ ${tableName} Organizers`
             </a>
 
             <a
-              href={typeof window !== 'undefined' && window.location.hostname.includes('roundtablesantasleigh.co.uk')
-                ? `https://${encodeURIComponent((session.tableSlug || session.tableId || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/`
-                : `/?table=${encodeURIComponent(session.tableSlug || session.tableId || 'beverley')}&public=1`}
+              href={(session.tableSlug === 'shirley' || tableData?.table?.website_url)
+                ? (tableData?.table?.website_url || 'https://shirleyroundtable.co.uk/')
+                : (typeof window !== 'undefined' && window.location.hostname.includes('roundtablesantasleigh.co.uk')
+                  ? `https://${encodeURIComponent((session.tableSlug || session.tableId || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/`
+                  : `/?table=${encodeURIComponent(session.tableSlug || session.tableId || 'beverley')}&public=1`)}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-secondary"
