@@ -31,6 +31,8 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
 
   const watchIdRef = useRef(null);
   const wakeLockRef = useRef(null);
+  const roadNameRef = useRef('');
+  const lastGeocodeRef = useRef(0);
 
   const tableSlug = session?.tableSlug || session?.tableId || 'beverley';
   const tableName = session?.tableName || 'Santa Sleigh';
@@ -125,13 +127,28 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
           const accuracyMeters = Math.round(accuracy);
           const nowTime = new Date().toLocaleTimeString();
 
+          const nowMs = Date.now();
+          if (nowMs - lastGeocodeRef.current > 8000) {
+            lastGeocodeRef.current = nowMs;
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`)
+              .then(r => r.json())
+              .then(gData => {
+                const rName = gData?.address?.road || gData?.address?.pedestrian || gData?.address?.path || '';
+                if (rName) {
+                  roadNameRef.current = rName;
+                  setGpsStats(prev => ({ ...prev, roadName: rName }));
+                }
+              })
+              .catch(() => {});
+          }
+
           setGpsStats(prev => ({
             lat: latitude,
             lng: longitude,
             speedMph,
             accuracyMeters,
             heading: heading ? Math.round(heading) : null,
-            roadName: prev.roadName,
+            roadName: roadNameRef.current || prev.roadName,
             lastFixTime: nowTime,
             txCount: prev.txCount + 1
           }));
@@ -155,7 +172,7 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
               lat: latitude,
               lng: longitude,
               speed: speedMph,
-              road_name: "Active Santa Route",
+              road_name: roadNameRef.current || "",
               secret: beaconSecret
             })
           })

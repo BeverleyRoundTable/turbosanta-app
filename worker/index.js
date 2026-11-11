@@ -2454,13 +2454,17 @@ export default {
 
       const isQuietAlert = Boolean(activeRoute && (activeRoute.status === 'In Progress' || activeRoute.date === new Date().toISOString().slice(0, 10)) && ageSec > 180);
 
+      const cleanGpsRoad = (gps.road_name && !/^(active\s+(santa\s+)?route|unknown(\s+road)?)$/i.test(String(gps.road_name).trim()))
+        ? String(gps.road_name).trim()
+        : "";
+
       return storeEdgeCachedResponse(ctx, gpsCacheKey, {
         lat: isFresh ? gps.lat : 66.5436,
         lng: isFresh ? gps.lng : 25.8473,
         real_lat: gps.lat,
         real_lng: gps.lng,
         speed: isFresh ? (gps.speed || 0) : 0,
-        road_name: isFresh ? (gps.road_name || "") : "Lapland Workshop",
+        road_name: isFresh ? cleanGpsRoad : "Lapland Workshop",
         timestamp: isoTimestamp,
         ts: isoTimestamp,
         is_fresh: isFresh,
@@ -2611,7 +2615,8 @@ export default {
       let body = {};
       try { body = await request.json(); } catch(e) { body = {}; }
       const { lat, lng, speed, route_id } = body;
-      const road_name = body.road_name || body.roadName || "";
+      const rawRoadName = String(body.road_name || body.roadName || "").trim();
+      const road_name = /^(active\s+(santa\s+)?route|unknown(\s+road)?)$/i.test(rawRoadName) ? "" : rawRoadName;
 
       const authHeader = request.headers.get("Authorization") || "";
       const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";

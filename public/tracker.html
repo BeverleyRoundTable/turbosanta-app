@@ -323,14 +323,14 @@
 
     .donate-box { 
       position: fixed; bottom: var(--donate-bottom); left: 50%; transform: translateX(-50%); 
-      width: 70%; max-width: 420px; z-index: 2000; transition: opacity 600ms ease; 
+      width: min(360px, calc((100vw - 32px) * 0.67)); max-width: 360px; z-index: 2000; transition: opacity 600ms ease; 
     }
 
     .donate-btn { 
       font-family: 'Eurostile', sans-serif;
-      font-size: 16px;
+      font-size: 15px;
       line-height: 1.2;
-      letter-spacing: 1px;
+      letter-spacing: 0.8px;
       text-transform: uppercase;
       background: var(--primary); 
       color: var(--on-primary); 
@@ -338,11 +338,11 @@
       display: flex; 
       align-items: center; 
       justify-content: center;
-      min-height: 58px;
-      padding: 8px 15px;
+      min-height: 44px;
+      padding: 6px 14px;
       box-sizing: border-box; 
       width: 100%;
-      border-radius: 16px; 
+      border-radius: 999px; 
       font-weight: 900; 
       text-decoration: none; 
       box-shadow: 0 4px 16px rgba(0,0,0,.4); 
@@ -350,13 +350,33 @@
       position: relative; 
       z-index: 1; 
       overflow: hidden;
+      white-space: nowrap;
     }
 
     #donateText {
-      display: inline-block;
+      display: block;
       transition: opacity 0.4s ease, transform 0.4s ease;
       text-align: center;
       width: 100%;
+      overflow: hidden;
+      white-space: nowrap;
+      mask-image: linear-gradient(90deg, transparent 0%, #000 7%, #000 93%, transparent 100%);
+      -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 7%, #000 93%, transparent 100%);
+    }
+    .donate-marquee-track {
+      display: inline-flex;
+      align-items: center;
+      white-space: nowrap;
+      will-change: transform;
+      animation: donateTickerScroll 8.5s linear infinite;
+    }
+    .donate-marquee-track .donate-sep {
+      margin: 0 18px;
+      opacity: 0.55;
+    }
+    @keyframes donateTickerScroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
     }
     .text-fade-out {
       opacity: 0;
@@ -442,12 +462,12 @@
         max-width: calc(100vw - 88px);
       }
       .donate-box {
-        width: auto;
-        max-width: calc(100vw - 24px);
+        width: calc((100vw - 16px) * 0.67);
+        max-width: 320px;
       }
       .donate-btn {
         min-height: 34px;
-        padding: 5px 16px;
+        padding: 5px 14px;
         font-size: 12px;
         border-radius: 999px;
         letter-spacing: 0.04em;
@@ -2145,9 +2165,29 @@
           "Spread Christmas Cheer (£5)", "Help fill a local Stocking (£5)",
           "Give the gift of giving (£2+)"
         ],
-        currentIndex: 0, textEl: null,
-        init() { this.textEl = document.getElementById("donateText"); if (!this.textEl) return; this.currentIndex = Math.floor(Math.random() * this.phrases.length); this.textEl.textContent = this.phrases[this.currentIndex]; setInterval(() => this.rotate(), 10000); },
-        rotate() { if (!this.textEl) return; this.textEl.classList.add("text-fade-out"); setTimeout(() => { this.currentIndex = (this.currentIndex + 1) % this.phrases.length; this.textEl.textContent = this.phrases[this.currentIndex]; this.textEl.classList.remove("text-fade-out"); }, 400); }
+        currentIndex: 0, textEl: null, _timer: null,
+        renderPhrase(phrase) {
+          if (!this.textEl) return;
+          const safe = escapeHtml(phrase);
+          this.textEl.innerHTML = `<span class="donate-marquee-track"><span>${safe}</span><span class="donate-sep">•</span><span>${safe}</span><span class="donate-sep">•</span></span>`;
+        },
+        init() {
+          this.textEl = document.getElementById("donateText");
+          if (!this.textEl) return;
+          if (this._timer) clearInterval(this._timer);
+          this.currentIndex = Math.floor(Math.random() * this.phrases.length);
+          this.renderPhrase(this.phrases[this.currentIndex]);
+          this._timer = setInterval(() => this.rotate(), 11000);
+        },
+        rotate() {
+          if (!this.textEl) return;
+          this.textEl.classList.add("text-fade-out");
+          setTimeout(() => {
+            this.currentIndex = (this.currentIndex + 1) % this.phrases.length;
+            this.renderPhrase(this.phrases[this.currentIndex]);
+            this.textEl.classList.remove("text-fade-out");
+          }, 400);
+        }
       };
 
       // --- SPARKLE EFFECT ---
@@ -3690,8 +3730,14 @@
             }
           }
 
+          const cleanRoadName = (raw) => {
+            const s = String(raw || '').trim();
+            if (!s || /^(active\s+(santa\s+)?route|lapland\s+workshop|unknown(\s+road)?|unnamed\s+road)$/i.test(s)) return '';
+            return s;
+          };
+
           animateMarkerTo(visualPos.lat, visualPos.lng);
-          const liveRoadForTicker = data.roadName || data.road_name || (AppState.gpxRoute?.[AppState.vars.lastSnapIndex]?.roadName || '');
+          const liveRoadForTicker = cleanRoadName(data.roadName || data.road_name) || cleanRoadName(AppState.gpxRoute?.[AppState.vars.lastSnapIndex]?.roadName);
           if (typeof StreetTracker !== 'undefined') StreetTracker.update(AppState.vars.lastSnapIndex, visualPos, liveRoadForTicker);
 
           // --- FADING TAIL LOGIC ---
@@ -3899,10 +3945,6 @@
             AppState.dom.statusBox.textContent = "🎅 Santa is right outside!";
             setDimUI(false);
             document.title = "🎅 Outside! - TurboSanta";
-          } else if (etaSeconds !== null && !moving) { 
-            AppState.dom.statusBox.textContent = "Santa has stopped nearby!"; 
-            setDimUI(false); 
-            document.title = "Stopped - TurboSanta";
           } else if (etaSeconds !== null) { 
             const mins = etaSeconds / 60; 
             const dueMs = Date.now() + etaSeconds * 1000; 
@@ -3923,7 +3965,7 @@
           } else if (isBlackspotHold) {
             const minsAgo = Math.max(1, Math.round(age / 60000));
             const gpxPoint = AppState.gpxRoute?.[AppState.vars.lastSnapIndex];
-            const currentRoad = data.roadName || data.road_name || (gpxPoint?.roadName || "") || StreetTracker.currentStreet || "";
+            const currentRoad = cleanRoadName(data.roadName || data.road_name) || cleanRoadName(gpxPoint?.roadName) || cleanRoadName(StreetTracker.currentStreet) || "";
             AppState.dom.statusBox.textContent = currentRoad
               ? `📡 Signal Paused — Last seen ${minsAgo}m ago on ${currentRoad}`
               : `📡 Signal Paused — Last seen ${minsAgo}m ago`;
@@ -3934,7 +3976,7 @@
           } else if (moving) { 
             const gpxPoint = AppState.gpxRoute?.[AppState.vars.lastSnapIndex];
             const gpxDist = gpxPoint ? Utils.haversineMeters({lat: data.lat, lng: data.lng}, gpxPoint) : 999;
-            const currentRoad = data.roadName || data.road_name || (gpxDist < 60 ? gpxPoint.roadName : "") || StreetTracker.currentStreet || "";
+            const currentRoad = cleanRoadName(data.roadName || data.road_name) || (gpxDist < 60 ? cleanRoadName(gpxPoint?.roadName) : "") || cleanRoadName(StreetTracker.currentStreet) || "";
             
             AppState.dom.statusBox.textContent = currentRoad ? `Santa is on ${currentRoad}!` : "Santa is out spreading joy!"; 
             setDimUI(false); 
@@ -3942,9 +3984,9 @@
           } else { 
             const gpxPoint = AppState.gpxRoute?.[AppState.vars.lastSnapIndex];
             const gpxDist = gpxPoint ? Utils.haversineMeters({lat: data.lat, lng: data.lng}, gpxPoint) : 999;
-            const currentRoad = data.roadName || data.road_name || (gpxDist < 60 ? gpxPoint.roadName : "") || StreetTracker.currentStreet || "";
+            const currentRoad = cleanRoadName(data.roadName || data.road_name) || (gpxDist < 60 ? cleanRoadName(gpxPoint?.roadName) : "") || cleanRoadName(StreetTracker.currentStreet) || "";
             
-            AppState.dom.statusBox.textContent = currentRoad ? `Santa has stopped on ${currentRoad}!` : "Santa has stopped to spread cheer!"; 
+            AppState.dom.statusBox.textContent = currentRoad ? `Santa is spreading joy on ${currentRoad}!` : "Santa is out spreading joy!"; 
             setDimUI(false); 
             document.title = "TurboSanta — Tracker"; 
           }
