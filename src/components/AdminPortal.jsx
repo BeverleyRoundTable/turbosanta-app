@@ -8589,7 +8589,9 @@ ${tableName} Organizers`
                   .split(/[,;\n|]+/)
                   .map(s => s.trim())
                   .filter(Boolean);
-                const previewAreas = (manualAreasList.length > 0 ? manualAreasList : extractAreasFromRoutes()).slice(0, 5).join(', ');
+                const previewAreas = manualAreasList.length > 0
+                  ? manualAreasList.join(', ')
+                  : extractAreasFromRoutes().slice(0, 12).join(', ');
 
                 const defaultSeoTitle = `${effectiveTownName} Santa Sleigh ${seoSeasonYear} — Live Tracker, Routes & Street Times | ${effectiveTownName} Round Table`;
                 const defaultSeoDesc = seoRoutes.length > 0
