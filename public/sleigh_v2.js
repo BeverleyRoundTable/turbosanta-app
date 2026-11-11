@@ -2665,8 +2665,18 @@
         if (!res.ok || data.ok === false) {
           alert(data.error || 'Could not register alert — please try again.');
         } else {
+          try {
+            if (email) localStorage.setItem('SANTA_NOTIFY_EMAIL', email);
+            const pinObj = { lat: coords.lat, lng: coords.lng, email, table: state.slug, confirmed: true, subscribed: true, updated_at: Date.now() };
+            localStorage.setItem('SANTA_NOTIFY_POINT', JSON.stringify(pinObj));
+            sessionStorage.setItem('SANTA_NOTIFY_POINT', JSON.stringify(pinObj));
+            const radarIframe = document.getElementById('v2-radar-iframe');
+            if (radarIframe && radarIframe.contentWindow) {
+              radarIframe.contentWindow.postMessage({ type: 'turbosanta-pin-saved', pin: pinObj }, '*');
+            }
+          } catch (e) {}
           closeModal('alert-modal');
-          alert('🔔 Doorstep Alert Activated! We will email you when Santa departs and when his sleigh approaches within 250m.');
+          alert('🔔 Doorstep Alert Activated! Your house pin is now active on the live map, and we will email you when Santa approaches within 250m.');
         }
       } catch (err) {
         alert('Network error — please try again.');

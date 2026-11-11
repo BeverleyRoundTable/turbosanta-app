@@ -4777,14 +4777,14 @@ export default {
         for (const rId of route_ids) {
           const existing = await env.DB.prepare(`
             SELECT id FROM subscribers
-            WHERE table_id = ? AND LOWER(email) = ? AND COALESCE(route_id, '') = COALESCE(?, '')
+            WHERE (table_id = ? OR table_id = ?) AND LOWER(email) = ? AND COALESCE(route_id, '') = COALESCE(?, '')
             ORDER BY id DESC LIMIT 1
-          `).bind(tableId, email, rId).first().catch(() => null);
+          `).bind(tableId, targetSlug, email, rId).first().catch(() => null);
 
           if (existing && existing.id) {
             await env.DB.prepare(`
               UPDATE subscribers
-              SET lat = ?, lng = ?, notified = 0, notified_at = NULL, passed = 0, passed_at = NULL, created_at = CURRENT_TIMESTAMP
+              SET lat = ?, lng = ?, notified = 0, notified_at = NULL, passed = 0, passed_at = NULL, last_distance = NULL, created_at = CURRENT_TIMESTAMP
               WHERE id = ?
             `).bind(lat, lng, existing.id).run();
             lastId = existing.id;
@@ -4795,6 +4795,33 @@ export default {
             `).bind(tableId, rId, lat, lng, email).run();
             lastId = ins?.meta?.last_row_id || lastId;
           }
+        }
+
+        // If Santa is actively broadcasting right now (< 5 mins old), evaluate proximity immediately
+        if (targetTable && ctx && typeof ctx.waitUntil === "function") {
+          ctx.waitUntil((async () => {
+            try {
+              const telem = await env.DB.prepare(`
+                SELECT lat, lng, speed, route_id, updated_at FROM telemetry_state
+                WHERE table_id = ? OR table_id = ?
+                ORDER BY updated_at DESC LIMIT 1
+              `).bind(targetTable.id, targetTable.slug).first();
+              if (telem && telem.lat && telem.lng && telem.updated_at) {
+                const normTs = String(telem.updated_at).trim().replace(' ', 'T');
+                const tsMs = new Date(normTs.endsWith('Z') ? normTs : normTs + 'Z').getTime();
+                if (Date.now() - tsMs < 5 * 60 * 1000) {
+                  await processSubscriberProximity({
+                    env,
+                    table: targetTable,
+                    lat: Number(telem.lat),
+                    lng: Number(telem.lng),
+                    speed: Number(telem.speed || 0),
+                    route_id: telem.route_id || route_ids[0] || null
+                  });
+                }
+              }
+            } catch (e) {}
+          })());
         }
 
         return jsonResponse({
@@ -9702,8 +9729,8 @@ async function processSubscriberProximity({ env, table, lat, lng, speed, route_i
     const activeSubs = await env.DB.prepare(`
       SELECT id, email, lat, lng, route_id, notified, notified_at, passed, last_distance
       FROM subscribers
-      WHERE table_id = ? AND (notified = 0 OR (notified = 1 AND passed = 0))
-    `).bind(table.id).all();
+      WHERE (table_id = ? OR table_id = ?) AND (notified = 0 OR (notified = 1 AND passed = 0))
+    `).bind(table.id, table.slug).all();
 
     if (!activeSubs || !activeSubs.results || activeSubs.results.length === 0) {
       return;
@@ -9769,8 +9796,16 @@ async function processSubscriberProximity({ env, table, lat, lng, speed, route_i
           notifiedTs = new Date(normStr.endsWith('Z') ? normStr : normStr + 'Z').getTime();
         }
         const minutesSinceNotified = (now - notifiedTs) / (60 * 1000);
+        const prevMinDist = (sub.last_distance !== null && sub.last_distance !== undefined && !isNaN(Number(sub.last_distance)))
+          ? Number(sub.last_distance)
+          : dist;
+        const minDistReached = Math.min(prevMinDist, dist);
 
-        if (dist > (radius + buffer) && minutesSinceNotified >= 1.5) {
+        // Trigger passed email either when beyond outer buffer (400m) OR on compact estates once Santa visits within 120m and moves 80m+ further away (160m+ total)
+        const passedByOuterBuffer = dist > (radius + buffer);
+        const passedByCloseVisit = (minDistReached <= 120 && dist >= 160 && dist >= (minDistReached + 80));
+
+        if ((passedByOuterBuffer || passedByCloseVisit) && minutesSinceNotified >= 1.5) {
           if (sentPassedEmails.has(cleanEmail)) {
             await env.DB.prepare(`
               UPDATE subscribers
@@ -9801,10 +9836,10 @@ async function processSubscriberProximity({ env, table, lat, lng, speed, route_i
           } catch (emailErr) {
             console.error(`Failed to send passed email to ${sub.email}:`, emailErr);
           }
-        } else {
+        } else if (minDistReached !== sub.last_distance) {
           await env.DB.prepare(`
             UPDATE subscribers SET last_distance = ? WHERE id = ?
-          `).bind(dist, sub.id).run();
+          `).bind(minDistReached, sub.id).run();
         }
       }
     }

@@ -1407,7 +1407,8 @@
     
     body.dim-ui .live-street-ticker { opacity: 0.45; }
     body.dim-ui .live-street-ticker:hover { opacity: 0.85; }
-    body.kiosk .live-street-ticker { display: none !important; }
+    .live-street-ticker,
+    body.kiosk .live-street-ticker,
     body.driver-mode .live-street-ticker { display: none !important; }
     
   </style>
@@ -2253,7 +2254,7 @@
 
       const AppConfig = {
         API: { REFRESH_MS: 6000, REFRESH_MAX_MS: 60000, STALE_MS: 5 * 60 * 1000, MOTION_WINDOW_MS: 60 * 1000, MOVE_THRESHOLD_METERS: 8, MIN_FIXES_FOR_ETA: 3, MIN_ETA_WINDOW_MS: 15 * 1000 },
-        NOTIFICATIONS: { NEAR_DISTANCE_METERS: 250, PASSED_DISTANCE_OFFSET: 150 },
+        NOTIFICATIONS: { NEAR_DISTANCE_METERS: 250, PASSED_DISTANCE_OFFSET: 80 },
         GPX: { AHEAD: 140, BACK: 8, EARLY_EXIT_METERS: 150, TAIL_METERS: 150 },
         SNOW: { ETA_MINUTES_MAX: 15, LEVELS: { LIGHT: 1, HEAVY: 2, BLIZZARD: 3 }, MOBILE_BASE_COUNT: 30, DESKTOP_BASE_COUNT: 60, MULTIPLIERS: [0, 1, 2.5, 5] },
         BATTERY: { LOW: 0.4, CRITICAL: 0.2, FRAME_SKIP: { LOW: 2, CRITICAL: 3 } },
@@ -2271,7 +2272,7 @@
       const AppState = {
         map: null, mlMap: null, marker: null, notifyMarker: null, gpxRoute: null, lastFix: null, recentFixes: [], routeFixes: [],
         flags: { follow: true, firstFix: true, isKiosk: false, isDemo: false, isEmbedded: isEmbedded, gpxLoaded: false, snowActive: false, pageVisible: !document.hidden, awaitingPin: false, browserNotified: sessionStorage.getItem("SANTA_BROWSER_NOTIFIED") === "1", hasPassedSticky: sessionStorage.getItem("SANTA_HAS_PASSED") === "1", celebrationFired: sessionStorage.getItem("SANTA_CELEBRATION_FIRED") === "1", musicEnabled: false, beaconActive: false, proximityBellsFired: false },
-        vars: { apiUrl: null, tableSlug: "", sleighName: "Santa Sleigh", staleSince: null, lastSnapIndex: 0, snowflakes: [], animRaf: null, pendingSubscription: null, notifyLatLng: null, lastVisualPos: null, escapeListener: null, lastElfCamUrl: null, lastSeenMsgTs: Number(sessionStorage.getItem('SANTA_LAST_MSG_TS')) || 0, pollTimer: null, consecutiveErrors: 0, musicUrl: null, currentMapHeading: 0, latestApiData: null, lastSettingsFetch: 0, lastTxTime: 0, lastLeafletRouteIdx: -1, lastMlRouteIdx: -1, userSnapCache: null, etaEmaSec: null },
+        vars: { apiUrl: null, tableSlug: "", sleighName: "Santa Sleigh", staleSince: null, lastSnapIndex: 0, snowflakes: [], animRaf: null, pendingSubscription: null, notifyLatLng: null, lastVisualPos: null, escapeListener: null, lastElfCamUrl: null, lastSeenMsgTs: Number(sessionStorage.getItem('SANTA_LAST_MSG_TS')) || 0, pollTimer: null, consecutiveErrors: 0, musicUrl: null, currentMapHeading: 0, latestApiData: null, lastSettingsFetch: 0, lastTxTime: 0, lastLeafletRouteIdx: -1, lastMlRouteIdx: -1, userSnapCache: null, etaEmaSec: null, minPinDistSeen: null },
         dom: { loading: document.getElementById("loadingCover"), statusBox: document.getElementById("statusBox"), followBtn: document.getElementById("followBtn"), recenterBtn: document.getElementById("recenterBtn"), notifyBtn: document.getElementById("notifyBtn"), msgBtn: document.getElementById("msgBtn"), statusDot: document.getElementById("statusDot"), donateLink: document.getElementById("donateLink"), donateBox: document.getElementById("donateBox"), kioskBanner: document.getElementById("kioskBanner"), sponsorBox: document.getElementById("kioskSponsor"), toast: document.getElementById("toast"), snowCanvas: document.getElementById("snow"), shareBtn: document.getElementById("shareBtn"), fireworks: document.getElementById("fireworks") }
       };
 
@@ -3060,7 +3061,7 @@
           this.currentStreet = streets[targetIdx] || streets[0];
           this.nextStreet = streets[targetIdx + 1] || 'Final Stretch 🏁';
 
-          tickerEl.style.display = 'flex';
+          tickerEl.style.display = 'none';
           const currEl = document.getElementById('tickerCurrentStreet');
           const nextEl = document.getElementById('tickerNextStreet');
           const countBadge = document.getElementById('tickerStreetsCountBadge');
@@ -3180,23 +3181,35 @@
           a.crossOrigin = "anonymous";
           this._audio = a;
 
-          // Unlock audio playback on first resident gesture so browser policy permits arrival audio
+          // Unlock audio playback on resident gesture so browser autoplay policy permits arrival audio
           const unlock = () => {
-            if (this._unlocked) return;
-            this._unlocked = true;
-            a.play().then(() => {
-              if (this._targetVol === 0) {
-                a.pause();
-                a.currentTime = 0;
-              }
-            }).catch(() => {});
-            window.removeEventListener('click', unlock);
-            window.removeEventListener('touchstart', unlock);
-            window.removeEventListener('pointerdown', unlock);
+            if (this._unlocked || !this._audio) return;
+            const playPromise = this._audio.play();
+            if (playPromise && typeof playPromise.then === 'function') {
+              playPromise.then(() => {
+                this._unlocked = true;
+                if (this._targetVol === 0) {
+                  this._audio.pause();
+                  this._audio.currentTime = 0;
+                  this._isPlaying = false;
+                } else {
+                  this._isPlaying = true;
+                  this._startVolumeRamp();
+                }
+                window.removeEventListener('click', unlock);
+                window.removeEventListener('touchend', unlock);
+                window.removeEventListener('keydown', unlock);
+              }).catch(() => {});
+            }
           };
-          window.addEventListener('click', unlock, { once: true, passive: true });
-          window.addEventListener('touchstart', unlock, { once: true, passive: true });
-          window.addEventListener('pointerdown', unlock, { once: true, passive: true });
+          this._unlockFn = unlock;
+          window.addEventListener('click', unlock, { passive: true });
+          window.addEventListener('touchend', unlock, { passive: true });
+          window.addEventListener('keydown', unlock, { passive: true });
+        },
+
+        unlockNow() {
+          if (this._unlockFn) this._unlockFn();
         },
 
         setIntensity(level) {
@@ -3206,10 +3219,14 @@
           this._targetVol = volMap[level] ?? 0;
 
           if (this._targetVol > 0) {
-            if (!this._isPlaying) {
+            if (!this._isPlaying || this._audio.paused) {
               this._isPlaying = true;
               const p = this._audio.play();
-              if (p && p.catch) p.catch(() => {});
+              if (p && p.catch) {
+                p.catch(() => {
+                  this._isPlaying = false;
+                });
+              }
             }
             this._startVolumeRamp();
           } else {
@@ -3401,6 +3418,8 @@
         } else {
           AppState.notifyMarker.bindPopup("Tap this pin again to confirm").openPopup();
           AppState.notifyMarker.once("click", () => {
+            ProximityAudio.unlockNow();
+            SantaSoundboard._getAudioCtx();
             AppState.flags.awaitingPin = false;
             showNotifyMarker(lat, lng, true);
             const pinObj = { lat, lng, table: AppState.vars.tableSlug || "", confirmed: true, updated_at: Date.now() };
@@ -3411,6 +3430,7 @@
             AppState.vars.pendingSubscription = { lat, lng };
             AppState.vars.notifyLatLng = { lat, lng };
             AppState.vars.userSnapCache = null;
+            AppState.vars.minPinDistSeen = null;
             AppState.flags.proximityBellsFired = false;
 
             const curD = AppState.vars.latestApiData || {};
@@ -3424,6 +3444,11 @@
               Utils.toggleFollowControls(true);
               updateTracker();
             } else {
+              try {
+                const savedEmail = localStorage.getItem("SANTA_NOTIFY_EMAIL") || "";
+                const emailInput = document.getElementById("subEmail");
+                if (emailInput && savedEmail && !emailInput.value) emailInput.value = savedEmail;
+              } catch (e) {}
               document.getElementById("emailModal").style.display = "flex";
               document.getElementById("subEmail").focus();
             }
@@ -3705,54 +3730,111 @@
           }
           pushFix(data.lat, data.lng, Date.now());
 
+          const straightDist = (AppState.vars.notifyLatLng && data && typeof data.lat === 'number' && typeof data.lng === 'number')
+            ? Utils.haversineMeters({ lat: data.lat, lng: data.lng }, AppState.vars.notifyLatLng)
+            : null;
+
+          if (straightDist !== null && isFresh && !AppState.flags.hasPassedSticky) {
+            AppState.vars.minPinDistSeen = (AppState.vars.minPinDistSeen === null)
+              ? straightDist
+              : Math.min(AppState.vars.minPinDistSeen, straightDist);
+          }
+
+          const beaconSpeedMps = (typeof data.speed === 'number' && data.speed > 1.5)
+            ? Math.min(6.5, Math.max(1.2, data.speed * 0.44704))
+            : null;
+
           let etaSeconds = null;
+          let isAtPinNow = false;
           if (AppState.flags.hasPassedSticky) { /* locked */ }
-          else if (AppState.vars.notifyLatLng && AppState.flags.gpxLoaded && isFresh) {
-            const santaSnap = snapToGpxIndex({ lat: data.lat, lng: data.lng }, AppConfig.GPX);
-            if (santaSnap) {
-              let userSnap;
-              const pinCache = AppState.vars.userSnapCache;
-              if (pinCache && pinCache.lat === AppState.vars.notifyLatLng.lat && pinCache.lng === AppState.vars.notifyLatLng.lng) {
-                userSnap = pinCache.snap;
-              } else {
-                const savedSnapIdx = AppState.vars.lastSnapIndex;
-                userSnap = snapToGpxIndex(AppState.vars.notifyLatLng, null);
-                AppState.vars.lastSnapIndex = savedSnapIdx;
-                AppState.vars.userSnapCache = userSnap ? { lat: AppState.vars.notifyLatLng.lat, lng: AppState.vars.notifyLatLng.lng, snap: userSnap } : null;
-              }
-              pushRouteFix(santaSnap.point.dist, Date.now());
-              if (userSnap) {
-                const totalRouteDist = AppState.gpxRoute[AppState.gpxRoute.length - 1].dist;
-                const isUserNearEnd = userSnap.point.dist > (totalRouteDist - AppConfig.NOTIFICATIONS.PASSED_DISTANCE_OFFSET);
-                const santaReachedEnd = santaSnap.point.dist >= (totalRouteDist - 10);
-                if ((santaSnap.point.dist > userSnap.point.dist + AppConfig.NOTIFICATIONS.PASSED_DISTANCE_OFFSET) || (isUserNearEnd && santaReachedEnd)) {
-                  AppState.flags.hasPassedSticky = true;
-                  AppState.vars.etaEmaSec = null;
-                  sessionStorage.setItem("SANTA_HAS_PASSED", "1");
-                  if (!AppState.flags.celebrationFired) {
-                    AppState.flags.celebrationFired = true;
-                    sessionStorage.setItem("SANTA_CELEBRATION_FIRED", "1");
-                    Fireworks.launch();
-                    SleighAudio.arrivalSurge();
-                  }
+          else if (AppState.vars.notifyLatLng && isFresh) {
+            const haversinePassed = (
+              AppState.vars.minPinDistSeen !== null &&
+              AppState.vars.minPinDistSeen <= 85 &&
+              straightDist !== null &&
+              straightDist > 110 &&
+              straightDist >= AppState.vars.minPinDistSeen + 55
+            );
+
+            if (AppState.flags.gpxLoaded && AppState.gpxRoute && AppState.gpxRoute.length > 1) {
+              const santaSnap = snapToGpxIndex({ lat: data.lat, lng: data.lng }, AppConfig.GPX);
+              if (santaSnap) {
+                let userSnap;
+                const pinCache = AppState.vars.userSnapCache;
+                if (pinCache && pinCache.lat === AppState.vars.notifyLatLng.lat && pinCache.lng === AppState.vars.notifyLatLng.lng) {
+                  userSnap = pinCache.snap;
                 } else {
-                  const remaining = Math.max(0, userSnap.point.dist - santaSnap.point.dist);
-                  const routeSpeed = Utils.calculateRouteSpeed(AppState.routeFixes);
-                  const rawSpeed = Utils.calculateSpeed(AppState.recentFixes);
-                  const effectiveSpeed = (routeSpeed && routeSpeed > 0.3) ? routeSpeed : (rawSpeed && rawSpeed > 0.5) ? rawSpeed : 1.4;
-                  const rawEta = remaining / effectiveSpeed;
-                  const prevEma = AppState.vars.etaEmaSec;
-                  AppState.vars.etaEmaSec = (prevEma === null) ? rawEta : (0.35 * rawEta + 0.65 * prevEma);
-                  etaSeconds = AppState.vars.etaEmaSec;
+                  const savedSnapIdx = AppState.vars.lastSnapIndex;
+                  userSnap = snapToGpxIndex(AppState.vars.notifyLatLng, null);
+                  AppState.vars.lastSnapIndex = savedSnapIdx;
+                  AppState.vars.userSnapCache = userSnap ? { lat: AppState.vars.notifyLatLng.lat, lng: AppState.vars.notifyLatLng.lng, snap: userSnap } : null;
+                }
+                pushRouteFix(santaSnap.point.dist, Date.now());
+                if (userSnap) {
+                  const totalRouteDist = AppState.gpxRoute[AppState.gpxRoute.length - 1].dist;
+                  const isUserNearEnd = userSnap.point.dist > (totalRouteDist - AppConfig.NOTIFICATIONS.PASSED_DISTANCE_OFFSET);
+                  const santaReachedEnd = santaSnap.point.dist >= (totalRouteDist - 10);
+                  const gpxPassed = (santaSnap.point.dist > userSnap.point.dist + AppConfig.NOTIFICATIONS.PASSED_DISTANCE_OFFSET) && (straightDist === null || straightDist > 60);
+
+                  if (gpxPassed || (isUserNearEnd && santaReachedEnd) || haversinePassed) {
+                    AppState.flags.hasPassedSticky = true;
+                    AppState.vars.etaEmaSec = null;
+                    sessionStorage.setItem("SANTA_HAS_PASSED", "1");
+                    showToast("🎅 Santa has just visited your street! Thank you for coming out!");
+                    if (!AppState.flags.celebrationFired) {
+                      AppState.flags.celebrationFired = true;
+                      sessionStorage.setItem("SANTA_CELEBRATION_FIRED", "1");
+                      Fireworks.launch();
+                    }
+                  } else {
+                    const remaining = Math.max(0, userSnap.point.dist - santaSnap.point.dist);
+                    const routeSpeed = Utils.calculateRouteSpeed(AppState.routeFixes);
+                    const rawSpeed = Utils.calculateSpeed(AppState.recentFixes);
+                    const effectiveSpeed = (routeSpeed && routeSpeed > 0.3)
+                      ? routeSpeed
+                      : (rawSpeed && rawSpeed > 0.5)
+                        ? rawSpeed
+                        : (beaconSpeedMps || 1.4);
+                    const rawEta = remaining / effectiveSpeed;
+                    const prevEma = AppState.vars.etaEmaSec;
+                    AppState.vars.etaEmaSec = (prevEma === null) ? rawEta : (0.35 * rawEta + 0.65 * prevEma);
+                    etaSeconds = AppState.vars.etaEmaSec;
+                    if ((straightDist !== null && straightDist <= 55) || (remaining <= 35 && straightDist !== null && straightDist <= 75)) {
+                      isAtPinNow = true;
+                    }
+                  }
                 }
               }
+            } else if (straightDist !== null) {
+              // Haversine ETA & passing fallback when route has no GPX loaded
+              if (haversinePassed) {
+                AppState.flags.hasPassedSticky = true;
+                AppState.vars.etaEmaSec = null;
+                sessionStorage.setItem("SANTA_HAS_PASSED", "1");
+                showToast("🎅 Santa has just visited your street! Thank you for coming out!");
+              } else {
+                const rawSpeed = Utils.calculateSpeed(AppState.recentFixes);
+                const effectiveSpeed = (rawSpeed && rawSpeed > 0.5) ? rawSpeed : (beaconSpeedMps || 1.4);
+                const rawEta = (straightDist * 1.35) / effectiveSpeed;
+                const prevEma = AppState.vars.etaEmaSec;
+                AppState.vars.etaEmaSec = (prevEma === null) ? rawEta : (0.35 * rawEta + 0.65 * prevEma);
+                etaSeconds = AppState.vars.etaEmaSec;
+                if (straightDist <= 55) isAtPinNow = true;
+              }
+            }
+
+            // Fire arrival celebration & musical surge right when Santa arrives at the pin (within ~55m)
+            if (isAtPinNow && !AppState.flags.celebrationFired && !AppState.flags.hasPassedSticky) {
+              AppState.flags.celebrationFired = true;
+              sessionStorage.setItem("SANTA_CELEBRATION_FIRED", "1");
+              Fireworks.launch();
+              SleighAudio.arrivalSurge();
+              showToast("🎅 Santa is right outside! Wave to the sleigh!");
+              fireBrowserNotification("🎅 Santa is outside!", "Santa has arrived at your pin — pop outside and wave!");
             }
           }
 
           const etaMinutes = isFinite(etaSeconds) ? etaSeconds / 60 : Infinity;
-          const straightDist = (AppState.vars.notifyLatLng && data && typeof data.lat === 'number' && typeof data.lng === 'number')
-            ? Utils.haversineMeters({ lat: data.lat, lng: data.lng }, AppState.vars.notifyLatLng)
-            : null;
 
           let snowLevel = 0, triggerSnow = false;
           if (AppState.vars.notifyLatLng && !AppState.flags.hasPassedSticky && isFresh) {
@@ -3813,6 +3895,10 @@
             AppState.dom.statusBox.textContent = "Santa has just been here!"; 
             setDimUI(false); 
             document.title = "Passed - TurboSanta";
+          } else if (isAtPinNow) {
+            AppState.dom.statusBox.textContent = "🎅 Santa is right outside!";
+            setDimUI(false);
+            document.title = "🎅 Outside! - TurboSanta";
           } else if (etaSeconds !== null && !moving) { 
             AppState.dom.statusBox.textContent = "Santa has stopped nearby!"; 
             setDimUI(false); 
@@ -3837,7 +3923,7 @@
           } else if (isBlackspotHold) {
             const minsAgo = Math.max(1, Math.round(age / 60000));
             const gpxPoint = AppState.gpxRoute?.[AppState.vars.lastSnapIndex];
-            const currentRoad = data.roadName || data.road_name || (gpxPoint?.roadName || "");
+            const currentRoad = data.roadName || data.road_name || (gpxPoint?.roadName || "") || StreetTracker.currentStreet || "";
             AppState.dom.statusBox.textContent = currentRoad
               ? `📡 Signal Paused — Last seen ${minsAgo}m ago on ${currentRoad}`
               : `📡 Signal Paused — Last seen ${minsAgo}m ago`;
@@ -3848,7 +3934,7 @@
           } else if (moving) { 
             const gpxPoint = AppState.gpxRoute?.[AppState.vars.lastSnapIndex];
             const gpxDist = gpxPoint ? Utils.haversineMeters({lat: data.lat, lng: data.lng}, gpxPoint) : 999;
-            const currentRoad = data.roadName || data.road_name || (gpxDist < 60 ? gpxPoint.roadName : "");
+            const currentRoad = data.roadName || data.road_name || (gpxDist < 60 ? gpxPoint.roadName : "") || StreetTracker.currentStreet || "";
             
             AppState.dom.statusBox.textContent = currentRoad ? `Santa is on ${currentRoad}!` : "Santa is out spreading joy!"; 
             setDimUI(false); 
@@ -3856,7 +3942,7 @@
           } else { 
             const gpxPoint = AppState.gpxRoute?.[AppState.vars.lastSnapIndex];
             const gpxDist = gpxPoint ? Utils.haversineMeters({lat: data.lat, lng: data.lng}, gpxPoint) : 999;
-            const currentRoad = data.roadName || data.road_name || (gpxDist < 60 ? gpxPoint.roadName : "");
+            const currentRoad = data.roadName || data.road_name || (gpxDist < 60 ? gpxPoint.roadName : "") || StreetTracker.currentStreet || "";
             
             AppState.dom.statusBox.textContent = currentRoad ? `Santa has stopped on ${currentRoad}!` : "Santa has stopped to spread cheer!"; 
             setDimUI(false); 
@@ -5275,6 +5361,7 @@
             AppState.vars.notifyLatLng = { lat, lng };
             AppState.vars.userSnapCache = null;
             AppState.vars.etaEmaSec = null;
+            AppState.vars.minPinDistSeen = null;
             showNotifyMarker(lat, lng, true);
             if (options.persist) {
               const pinObj = {
@@ -5320,7 +5407,7 @@
             if (!pinSource) {
               try {
                 const savedEmail = localStorage.getItem("SANTA_NOTIFY_EMAIL") || "";
-                const localPinRaw = localStorage.getItem("SANTA_NOTIFY_POINT");
+                const localPinRaw = localStorage.getItem("SANTA_NOTIFY_POINT") || sessionStorage.getItem("SANTA_NOTIFY_POINT");
                 if (localPinRaw) {
                   const parsed = JSON.parse(localPinRaw);
                   const isRealSubscription = Boolean(
@@ -5328,7 +5415,13 @@
                     parsed.subscribed && 
                     ((parsed.email && parsed.email.includes('@')) || (savedEmail && savedEmail.includes('@')))
                   );
-                  if (isRealSubscription && Utils.validPos(parsed.lat, parsed.lng) && (!parsed.table || !AppState.vars.tableSlug || parsed.table === AppState.vars.tableSlug)) {
+                  const isRecentConfirmedPin = Boolean(
+                    parsed &&
+                    parsed.confirmed &&
+                    parsed.updated_at &&
+                    (Date.now() - Number(parsed.updated_at) < 12 * 3600 * 1000)
+                  );
+                  if ((isRealSubscription || isRecentConfirmedPin) && Utils.validPos(parsed.lat, parsed.lng) && (!parsed.table || !AppState.vars.tableSlug || parsed.table === AppState.vars.tableSlug)) {
                     pinSource = { lat: parsed.lat, lng: parsed.lng };
                     isDeepLink = false;
                   } else {
@@ -5453,6 +5546,8 @@
               try { window.parent.postMessage({ type: "turbosanta-scroll-to-routes" }, "*"); } catch (e) {}
               return;
             }
+            ProximityAudio.unlockNow();
+            SantaSoundboard._getAudioCtx();
             ensureNotifyPermission();
             AppState.flags.follow = false;
             AppState.dom.followBtn.textContent = "Follow: OFF";
@@ -5463,6 +5558,7 @@
             AppState.routeFixes = [];
             AppState.vars.etaEmaSec = null;
             AppState.vars.userSnapCache = null;
+            AppState.vars.minPinDistSeen = null;
             sessionStorage.removeItem("SANTA_BROWSER_NOTIFIED");
             sessionStorage.removeItem("SANTA_EMAIL_SUBSCRIBED");
             sessionStorage.removeItem("SANTA_NOTIFY_POINT");
@@ -5540,14 +5636,24 @@
 
           document.getElementById("modalCancelBtn").addEventListener("click", () => {
             document.getElementById("emailModal").style.display = "none";
-            AppState.dom.statusBox.textContent = "Tap the pin to try again";
             if (AppState.vars.escapeListener) {
               document.removeEventListener("keydown", AppState.vars.escapeListener);
               AppState.vars.escapeListener = null;
             }
+            Utils.toggleFollowControls(true);
+            if (AppState.vars.pendingSubscription) {
+              const pinLat = AppState.vars.pendingSubscription.lat;
+              const pinLng = AppState.vars.pendingSubscription.lng;
+              showNotifyMarker(pinLat, pinLng, true);
+              AppState.vars.pendingSubscription = null;
+              showToast("📍 Pin active for in-browser ETA & sleigh bell alerts!");
+              updateTracker();
+            }
           });
 
           document.getElementById("modalConfirmBtn").addEventListener("click", () => {
+            ProximityAudio.unlockNow();
+            SantaSoundboard._getAudioCtx();
             const email = document.getElementById("subEmail").value.trim().toLowerCase();
             document.getElementById("emailModal").style.display = "none";
             if (AppState.vars.escapeListener) {
@@ -5561,6 +5667,18 @@
             }
             const pinLat = AppState.vars.pendingSubscription.lat;
             const pinLng = AppState.vars.pendingSubscription.lng;
+            if (!email) {
+              try {
+                const pinObj = { lat: pinLat, lng: pinLng, table: AppState.vars.tableSlug || "", confirmed: true, updated_at: Date.now() };
+                localStorage.setItem("SANTA_NOTIFY_POINT", JSON.stringify(pinObj));
+                sessionStorage.setItem("SANTA_NOTIFY_POINT", JSON.stringify(pinObj));
+              } catch (e) {}
+              showToast("📍 Pin active! Keep this tab open for live ETA, snow & sleigh bells.");
+              showNotifyMarker(pinLat, pinLng, true);
+              AppState.vars.pendingSubscription = null;
+              updateTracker();
+              return;
+            }
             const subscribeUrl = AppState.vars.tableSlug
               ? `${WORKER_URL}/api/subscribe?table=${encodeURIComponent(AppState.vars.tableSlug)}&lat=${pinLat}&lng=${pinLng}&email=${encodeURIComponent(email)}&route_id=${encodeURIComponent(AppState.vars.todayRoute?.id || AppState.vars.todayRoute?.routeId || '')}`
               : Utils.appendQuery(AppState.vars.apiUrl, `function=subscribe&lat=${pinLat}&lng=${pinLng}&email=${encodeURIComponent(email)}`);
@@ -5576,18 +5694,22 @@
                     localStorage.setItem("SANTA_NOTIFY_POINT", JSON.stringify(pinObj));
                     sessionStorage.setItem("SANTA_NOTIFY_POINT", JSON.stringify(pinObj));
                   } catch (e) {}
-                  showToast(email ? "You're signed up! We'll email you when Santa is close." : "You're signed up! Keep this page open for alerts.");
+                  showToast("🔔 You're signed up! We'll email you when Santa is within 250m.");
                   showNotifyMarker(pinLat, pinLng, true);
                   AppState.vars.pendingSubscription = null;
                   updateTracker();
                 } else {
-                  showToast("Error saving notification.");
-                  AppState.dom.statusBox.textContent = "Failed to save.";
+                  showToast(d.error || "Error saving notification.");
+                  showNotifyMarker(pinLat, pinLng, true);
+                  AppState.vars.pendingSubscription = null;
+                  updateTracker();
                 }
               })
               .catch(() => {
-                showToast("Network error.");
-                AppState.dom.statusBox.textContent = "Connection failed.";
+                showToast("Network error — pin saved for in-browser alerts.");
+                showNotifyMarker(pinLat, pinLng, true);
+                AppState.vars.pendingSubscription = null;
+                updateTracker();
               });
           });
 
