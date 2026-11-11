@@ -315,6 +315,7 @@ async function ensureSchemaOnce(env) {
       "ALTER TABLE tables ADD COLUMN enable_grant_nominations BOOLEAN DEFAULT 1",
       "ALTER TABLE tables ADD COLUMN enable_volunteer_crew BOOLEAN DEFAULT 1",
       "ALTER TABLE tables ADD COLUMN user_announcement TEXT",
+      "ALTER TABLE tables ADD COLUMN user_announcement_ts INTEGER",
       "ALTER TABLE tables ADD COLUMN music_mode TEXT DEFAULT 'none'",
       "ALTER TABLE tables ADD COLUMN music_title TEXT DEFAULT ''",
       "ALTER TABLE tables ADD COLUMN music_custom_url TEXT DEFAULT ''",
@@ -1534,6 +1535,7 @@ export default {
         live_announcement: table.live_announcement,
         crew_alert: table.crew_alert || null,
         user_announcement: table.user_announcement || null,
+        user_announcement_ts: table.user_announcement_ts ? Number(table.user_announcement_ts) : null,
         tracking_active: Boolean(table.tracking_active),
         enable_gift_aid: Boolean(table.enable_gift_aid),
         enable_user_messages: (table.enable_user_messages !== undefined && table.enable_user_messages !== null) ? Boolean(table.enable_user_messages) : true,
@@ -2444,6 +2446,7 @@ export default {
           active_route_name: activeRoute?.name || null,
           live_announcement: table.live_announcement || null,
           user_announcement: table.user_announcement || null,
+        user_announcement_ts: table.user_announcement_ts ? Number(table.user_announcement_ts) : null,
           enable_gift_aid: Boolean(table.enable_gift_aid)
         }, 3);
       }
@@ -2475,6 +2478,7 @@ export default {
         active_route_name: activeRoute ? activeRoute.name : null,
         live_announcement: table.live_announcement || null,
         user_announcement: table.user_announcement || null,
+        user_announcement_ts: table.user_announcement_ts ? Number(table.user_announcement_ts) : null,
         enable_gift_aid: Boolean(table.enable_gift_aid),
         status: isQuietAlert ? "Signal Quiet" : (isFresh ? "Live Tracking" : "Resting in Lapland")
       }, 3);
@@ -2703,8 +2707,10 @@ export default {
       const authHeader = request.headers.get("Authorization") || "";
       const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
       const secret = body.secret || url.searchParams.get("secret") || bearerToken || effectiveAuthToken;
+      const driverPin = String(body.pin || url.searchParams.get("pin") || bearerToken || "").trim();
+      const isDriver = Boolean(table?.driver_pin && (secret === table.driver_pin || driverPin === table.driver_pin));
 
-      if (!(await isAuthorized(secret, slug))) {
+      if (!isDriver && !(await isAuthorized(secret, slug)) && !(await isAuthorized(secret, table?.id))) {
         return jsonResponse({ error: "Unauthorized: Admin credentials required to broadcast announcements" }, 401);
       }
 
@@ -2720,8 +2726,31 @@ export default {
 
       if (action === "approveUserMessage" || body.user_announcement !== undefined) {
         const userMsg = (body.user_announcement !== undefined ? body.user_announcement : message).trim();
-        await env.DB.prepare("UPDATE tables SET user_announcement = ? WHERE id = ?").bind(userMsg || null, table.id).run().catch(() => {});
-        return jsonResponse({ ok: true, user_announcement: userMsg });
+        const nowMs = Date.now();
+        await env.DB.prepare("UPDATE tables SET user_announcement = ?, user_announcement_ts = ? WHERE id = ?").bind(userMsg || null, userMsg ? nowMs : null, table.id).run().catch(() => {});
+        if (body.id) {
+          await env.DB.prepare(
+            "UPDATE live_messages SET status = 'approved' WHERE id = ? AND (table_id = ? OR table_id = ?)"
+          ).bind(body.id, table.id, table.slug).run().catch(() => {});
+        } else if (userMsg) {
+          await env.DB.prepare(
+            "UPDATE live_messages SET status = 'approved' WHERE (table_id = ? OR table_id = ?) AND message = ?"
+          ).bind(table.id, table.slug, userMsg).run().catch(() => {});
+        }
+        return jsonResponse({ ok: true, user_announcement: userMsg, user_announcement_ts: userMsg ? nowMs : null });
+      }
+
+      if (action === "rejectUserMessage") {
+        if (body.id) {
+          await env.DB.prepare(
+            "UPDATE live_messages SET status = 'rejected' WHERE id = ? AND (table_id = ? OR table_id = ?)"
+          ).bind(body.id, table.id, table.slug).run().catch(() => {});
+        } else if (message) {
+          await env.DB.prepare(
+            "UPDATE live_messages SET status = 'rejected' WHERE (table_id = ? OR table_id = ?) AND message = ?"
+          ).bind(table.id, table.slug, message).run().catch(() => {});
+        }
+        return jsonResponse({ ok: true, rejected: body.id || message });
       }
 
       await env.DB.prepare(`
@@ -4160,7 +4189,29 @@ export default {
     }
 
     if ((path === "/api/messages/pending" || url.searchParams.get("function") === "getPendingMessages") && request.method === "GET") {
-      return jsonResponse([]);
+      const authHeader = request.headers.get("Authorization") || "";
+      const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+      const secret = url.searchParams.get("secret") || bearerToken || cookieToken || effectiveAuthToken;
+      const driverPin = String(url.searchParams.get("pin") || bearerToken || "").trim();
+      const isDriver = Boolean(table?.driver_pin && (secret === table.driver_pin || driverPin === table.driver_pin));
+      if (!isDriver && !(await isAuthorized(secret, slug)) && !(await isAuthorized(secret, table?.id))) {
+        return jsonResponse([]);
+      }
+      try {
+        const rows = await env.DB.prepare(
+          "SELECT id, message, author_name, route_id, created_at FROM live_messages WHERE (table_id = ? OR table_id = ?) AND (status = 'pending' OR status = 'Pending') ORDER BY created_at DESC LIMIT 50"
+        ).bind(table?.id || slug, slug).all().catch(() => ({ results: [] }));
+        const formatted = (rows.results || []).map(r => ({
+          id: r.id,
+          msg: r.message,
+          author: r.author_name || 'Supporter',
+          route: r.route_id || '',
+          time: r.created_at
+        }));
+        return jsonResponse(formatted);
+      } catch (e) {
+        return jsonResponse([]);
+      }
     }
 
     if (url.searchParams.get("function") === "getIntakeMemories" && request.method === "GET") {
@@ -6154,7 +6205,8 @@ Return ONLY valid JSON:
     // ==============================================================
     if (path === "/api/messages") {
       if (request.method === "GET") {
-        const isAdmin = url.searchParams.get("admin") === "1" && (await isAuthorized(effectiveAuthToken, slug));
+        const isDriver = Boolean(table?.driver_pin && (effectiveAuthToken === table.driver_pin || url.searchParams.get("pin") === table.driver_pin));
+        const isAdmin = url.searchParams.get("admin") === "1" && (isDriver || (await isAuthorized(effectiveAuthToken, slug)) || (await isAuthorized(effectiveAuthToken, table?.id)));
         const query = isAdmin
           ? "SELECT id, table_id, route_id, message, author_name, status, ai_moderated, ai_reason, created_at FROM live_messages WHERE table_id = ? OR table_id = ? ORDER BY created_at DESC LIMIT 100"
           : "SELECT id, message, author_name, created_at FROM live_messages WHERE (table_id = ? OR table_id = ?) AND status = 'approved' ORDER BY created_at DESC LIMIT 40";
@@ -6231,7 +6283,9 @@ Output ONLY JSON: {"approved": true, "reason": "Festive cheer verified"}`
       const authHeader = request.headers.get("Authorization") || "";
       const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
       const secret = body.secret || url.searchParams.get("secret") || bearerToken || effectiveAuthToken;
-      if (!(await isAuthorized(secret, slug))) {
+      const driverPin = String(body.pin || bearerToken || "").trim();
+      const isDriver = Boolean(table?.driver_pin && (secret === table.driver_pin || driverPin === table.driver_pin));
+      if (!isDriver && !(await isAuthorized(secret, slug)) && !(await isAuthorized(secret, table?.id))) {
         return jsonResponse({ ok: false, error: "Unauthorized" }, 401);
       }
       const msgId = body.id || "";
@@ -6248,6 +6302,16 @@ Output ONLY JSON: {"approved": true, "reason": "Festive cheer verified"}`
         : (rawStatus === "pending" ? "pending" : "approved");
 
       await env.DB.prepare("UPDATE live_messages SET status = ? WHERE id = ? AND (table_id = ? OR table_id = ?)").bind(newStatus, msgId, table?.id || slug, slug).run();
+
+      // If approved, broadcast to table user_announcement so public tracker displays it immediately!
+      if (newStatus === "approved") {
+        const msgRow = await env.DB.prepare("SELECT message FROM live_messages WHERE id = ?").bind(msgId).first().catch(() => null);
+        if (msgRow && msgRow.message) {
+          const nowMs = Date.now();
+          await env.DB.prepare("UPDATE tables SET user_announcement = ?, user_announcement_ts = ? WHERE id = ?").bind(msgRow.message.trim(), nowMs, table?.id || slug).run().catch(() => {});
+        }
+      }
+
       return jsonResponse({ ok: true, id: msgId, status: newStatus });
     }
 

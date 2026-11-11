@@ -3606,6 +3606,10 @@
               AppState.vars.latestApiData.settings.user_announcement = data.user_announcement;
               AppState.vars.latestApiData.table.user_announcement = data.user_announcement;
             }
+            if (data.user_announcement_ts !== undefined) {
+              AppState.vars.latestApiData.settings.user_announcement_ts = data.user_announcement_ts;
+              AppState.vars.latestApiData.table.user_announcement_ts = data.user_announcement_ts;
+            }
             if (data.enable_gift_aid !== undefined) {
               AppState.vars.latestApiData.settings.enable_gift_aid = data.enable_gift_aid;
               AppState.vars.latestApiData.table.enable_gift_aid = data.enable_gift_aid;

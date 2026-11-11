@@ -440,6 +440,12 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   };
 
   useEffect(() => {
+    fetchLiveMessages();
+    const interval = setInterval(fetchLiveMessages, 15000);
+    return () => clearInterval(interval);
+  }, [currentTableSlug, session, fetchLiveMessages]);
+
+  useEffect(() => {
     if (activeTab === 'crew') {
       fetchVolunteersList();
       fetchLiveMessages();
@@ -3623,7 +3629,7 @@ ${tableName} Organizers`
               { id: 'memory', label: 'Polaroids & Media', icon: Camera },
               { id: 'mailbox', label: 'Magic Mailbox (Voice)', icon: Mic },
               { id: 'embeds', label: 'Embeds', icon: Code },
-              { id: 'crew', label: 'Crew', icon: Bell },
+              { id: 'crew', label: messages.filter(m => m.status === 'pending').length > 0 ? `Crew (${messages.filter(m => m.status === 'pending').length} Msg)` : 'Crew', icon: Bell },
               { id: 'settings', label: 'Table Settings', icon: Settings },
               { id: 'giftaid', label: 'Gift Aid', icon: Heart }
             ].map(tab => {
@@ -3758,6 +3764,40 @@ ${tableName} Organizers`
             <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '24px', overflowWrap: 'break-word' }}>
               Post an instant red alert banner at the very top of every family's live tracker screen.
             </p>
+
+            {messages.filter(m => m.status === 'pending').length > 0 && (
+              <div style={{
+                background: 'rgba(217, 119, 6, 0.15)',
+                border: '1px solid #d97706',
+                borderRadius: '12px',
+                padding: '14px 18px',
+                marginBottom: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                flexWrap: 'wrap'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '24px' }}>📬</span>
+                  <div>
+                    <div style={{ color: '#fbbf24', fontWeight: 700, fontSize: '15px' }}>
+                      {messages.filter(m => m.status === 'pending').length} Supporter Message{messages.filter(m => m.status === 'pending').length > 1 ? 's' : ''} Awaiting Review
+                    </div>
+                    <div style={{ color: '#d1d5db', fontSize: '13px' }}>
+                      Families are cheering on the sleigh! Review and approve messages to display live on the tracker.
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setActiveTab('crew')}
+                  className="btn-primary"
+                  style={{ padding: '8px 16px', fontSize: '13px', background: '#d97706', color: '#fff', border: 'none', cursor: 'pointer' }}
+                >
+                  Review in Crew Tab →
+                </button>
+              </div>
+            )}
 
             {/* Visual Live Preview Box */}
             <div style={{ marginBottom: '20px' }}>

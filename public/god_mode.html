@@ -1906,14 +1906,17 @@ async function fetchPendingMessages() {
     let html = '';
     msgs.forEach(m => {
        const safeMsg = encodeURIComponent(m.msg);
+       const msgId = m.id ? String(m.id) : '';
        const routeLabel = m.route ? `<div style="font-family:'Open Sans',monospace;font-size:10px;color:var(--gold);margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">📍 ${m.route}</div>` : '';
+       const authorLabel = m.author ? `<div style="font-size:11px;color:#d1d5db;margin-bottom:4px;">From: <strong style="color:#ffd700;">${m.author}</strong></div>` : '';
        html += `
          <div class="msg-item">
            ${routeLabel}
+           ${authorLabel}
            <div class="msg-text">"${m.msg}"</div>
            <div class="msg-actions">
-             <button class="btn-approve" onclick="handleUserMsg('${safeMsg}', 'approveUserMessage')">Approve (20s)</button>
-             <button class="btn-reject" onclick="handleUserMsg('${safeMsg}', 'rejectUserMessage')">Reject</button>
+             <button class="btn-approve" onclick="handleUserMsg('${safeMsg}', 'approveUserMessage', '${msgId}')">Approve (20s)</button>
+             <button class="btn-reject" onclick="handleUserMsg('${safeMsg}', 'rejectUserMessage', '${msgId}')">Reject</button>
            </div>
          </div>
        `;
@@ -2008,7 +2011,7 @@ async function moderateMemory(fileId, action) {
 // Kickstart on load
 setTimeout(fetchIntakeMemories, 2000);
   
-async function handleUserMsg(encodedMsg, action) {
+async function handleUserMsg(encodedMsg, action, msgId = '') {
   const secret = sessionStorage.getItem('sleighSecret') || '';
   const msg = decodeURIComponent(encodedMsg);
   
@@ -2026,7 +2029,7 @@ async function handleUserMsg(encodedMsg, action) {
     if (API) {
       await fetch(API, {
         method: 'POST',
-        body: JSON.stringify({ action: action, message: msg, secret: secret })
+        body: JSON.stringify({ action: action, message: msg, secret: secret, id: msgId })
       });
     } else {
       await fetch(`${WORKER_API}/api/announcement?table=${encodeURIComponent(TABLE_SLUG)}`, {
@@ -2035,7 +2038,7 @@ async function handleUserMsg(encodedMsg, action) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${secret}`
         },
-        body: JSON.stringify({ action: action, message: msg, secret: secret, user_announcement: action === 'approveUserMessage' ? msg : '' })
+        body: JSON.stringify({ action: action, message: msg, secret: secret, id: msgId, user_announcement: action === 'approveUserMessage' ? msg : '' })
       });
     }
     // Force immediate tracker setting refresh
