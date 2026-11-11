@@ -1234,6 +1234,7 @@ ${tableName} Organizers`
     music_autoplay: tableData?.table?.music_autoplay !== undefined ? Boolean(tableData.table.music_autoplay) : true,
     charity_name: tableData?.table?.charity_name || '',
     charity_number: tableData?.table?.charity_number || '',
+    collection_permit: tableData?.table?.collection_permit || '',
     headline_sponsor_name: tableData?.table?.headline_sponsor_name || '',
     headline_sponsor_logo: tableData?.table?.headline_sponsor_logo || '',
     headline_sponsor_url: tableData?.table?.headline_sponsor_url || '',
@@ -1414,6 +1415,7 @@ ${tableName} Organizers`
         music_autoplay: tableData.table.music_autoplay !== undefined ? Boolean(tableData.table.music_autoplay) : (prev.music_autoplay !== undefined ? prev.music_autoplay : true),
         charity_name: tableData.table.charity_name || prev.charity_name,
         charity_number: tableData.table.charity_number !== undefined ? (tableData.table.charity_number || '') : prev.charity_number,
+        collection_permit: tableData.table.collection_permit !== undefined ? (tableData.table.collection_permit || '') : (prev.collection_permit || ''),
         headline_sponsor_name: tableData.table.headline_sponsor_name || prev.headline_sponsor_name || '',
         headline_sponsor_logo: tableData.table.headline_sponsor_logo || prev.headline_sponsor_logo || '',
         headline_sponsor_url: tableData.table.headline_sponsor_url || prev.headline_sponsor_url || '',
@@ -9014,7 +9016,7 @@ ${tableName} Organizers`
 
                 <div style={{ minWidth: 0 }}>
                   <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>
-                    Donation URL (Zeffy / Stripe)
+                    Donation URL (Zeffy / Stripe / JustGiving)
                   </label>
                   <input
                     type="url"
@@ -9023,6 +9025,7 @@ ${tableName} Organizers`
                       const val = e.target.value;
                       setFormData(prev => ({ ...prev, donate_url: val }));
                     }}
+                    placeholder="https://www.zeffy.com/en-GB/donation-form/..."
                     style={{
                       width: '100%',
                       maxWidth: '100%',
@@ -9035,6 +9038,38 @@ ${tableName} Organizers`
                       fontSize: '15px'
                     }}
                   />
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    Primary online checkout link for QR codes &amp; donate buttons
+                  </div>
+                </div>
+
+                <div style={{ minWidth: 0 }}>
+                  <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>
+                    Council Collection Permit / Licence No.
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.collection_permit || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData(prev => ({ ...prev, collection_permit: val }));
+                    }}
+                    placeholder="e.g. CP/2026/049 or Borough Lic. #1234"
+                    style={{
+                      width: '100%',
+                      maxWidth: '100%',
+                      boxSizing: 'border-box',
+                      background: '#0d0d0b',
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      padding: '10px 14px',
+                      color: '#fff',
+                      fontSize: '15px'
+                    }}
+                  />
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    Required by UK councils on volunteer QR lanyards &amp; bucket stickers
+                  </div>
                 </div>
               </div>
 
@@ -13430,6 +13465,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                         music_autoplay: formData.music_autoplay !== false ? 1 : 0,
                         charity_name: formData.charity_name,
                         charity_number: formData.charity_number,
+                        collection_permit: formData.collection_permit || null,
                         partners_json: partnersJson,
                         supported_appeals_json: supportedAppealsJson,
                         faqs_json: faqsJson,
@@ -13703,7 +13739,8 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                     const res = await saveTableSettings(tableSlug, {
                       enable_gift_aid: nextVal,
                       charity_name: formData.charity_name,
-                      charity_number: formData.charity_number
+                      charity_number: formData.charity_number,
+                      collection_permit: formData.collection_permit || null
                     });
                     if (res && res.ok) {
                       setSaveStatus(`Gift Aid ${nextVal ? 'Enabled' : 'Disabled'} in database!`);
@@ -13728,7 +13765,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
               </div>
 
               {formData.enable_gift_aid && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
                       Registered Charity Name
@@ -13766,6 +13803,31 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                         setFormData(prev => ({ ...prev, charity_number: val }));
                       }}
                       placeholder="e.g. 1198234 or XA12345"
+                      style={{
+                        width: '100%',
+                        background: '#151513',
+                        border: '1px solid var(--border)',
+                        borderRadius: '8px',
+                        padding: '10px 14px',
+                        color: '#fff',
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
+                      Street Collection Permit / Council Licence No.
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.collection_permit || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData(prev => ({ ...prev, collection_permit: val }));
+                      }}
+                      placeholder="e.g. CP/2026/049 or Borough Lic. #1234"
                       style={{
                         width: '100%',
                         background: '#151513',

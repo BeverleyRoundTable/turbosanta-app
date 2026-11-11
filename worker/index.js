@@ -299,6 +299,7 @@ async function ensureSchemaOnce(env) {
       "ALTER TABLE tables ADD COLUMN tiktok_url TEXT",
       "ALTER TABLE tables ADD COLUMN charity_name TEXT",
       "ALTER TABLE tables ADD COLUMN charity_number TEXT",
+      "ALTER TABLE tables ADD COLUMN collection_permit TEXT",
       "ALTER TABLE tables ADD COLUMN enable_gift_aid BOOLEAN DEFAULT 0",
       "ALTER TABLE tables ADD COLUMN expenses REAL DEFAULT 0",
       "ALTER TABLE tables ADD COLUMN expenses_json TEXT",
@@ -1540,6 +1541,7 @@ export default {
         enable_grant_nominations: (table.enable_grant_nominations !== undefined && table.enable_grant_nominations !== null) ? Boolean(table.enable_grant_nominations) : true,
         enable_volunteer_crew: (table.enable_volunteer_crew !== undefined && table.enable_volunteer_crew !== null) ? Boolean(table.enable_volunteer_crew) : true,
         charity_number: table.charity_number || "",
+        collection_permit: table.collection_permit || "",
         logo_url: table.logo_url || null,
         logo_overlay_url: table.logo_url || null,
         sleigh_icon_live: table.sleigh_icon_live || null,
@@ -2818,6 +2820,7 @@ export default {
       setIfProvided("accent_color");
       setIfProvided("charity_name");
       setIfProvided("charity_number");
+      setIfProvided("collection_permit");
       setIfProvided("currency");
       setIfProvided("live_announcement");
       setIfProvided("crew_alert");

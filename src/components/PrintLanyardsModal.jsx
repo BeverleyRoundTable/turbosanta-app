@@ -9,7 +9,8 @@ export default function PrintLanyardsModal({
   donateUrl = '',
   logoUrl = '',
   enableGiftAid = true,
-  adminSecret = ''
+  adminSecret = '',
+  collectionPermit = ''
 }) {
   const [activeTab, setActiveTab] = useState('lanyards'); // 'lanyards' | 'poster'
   const [qrTarget, setQrTarget] = useState('donate'); // 'donate' | 'tracker'
@@ -468,7 +469,7 @@ export default function PrintLanyardsModal({
                       fontSize: '8.5px',
                       color: '#4b5563'
                     }}>
-                      <span>Live Tracker: <strong>{townDomain}</strong></span>
+                      <span>Live Tracker: <strong>{townDomain}</strong>{collectionPermit ? ` · Permit: ${collectionPermit}` : ''}</span>
                       <strong>#DoMore &middot; RTBI</strong>
                     </div>
                   </div>
@@ -562,7 +563,7 @@ export default function PrintLanyardsModal({
                 fontSize: '11px',
                 color: '#6b7280'
               }}>
-                <div>Organised with pride by <strong>{tableName}</strong></div>
+                <div>Organised with pride by <strong>{tableName}</strong>{collectionPermit ? ` (Permit: ${collectionPermit})` : ''}</div>
                 <div>Round Table Britain &amp; Ireland &middot; Charity &amp; Fellowship &middot; #DoMore</div>
               </div>
             </div>

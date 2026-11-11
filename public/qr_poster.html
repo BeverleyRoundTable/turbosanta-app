@@ -732,7 +732,8 @@ const STATE = {
   musterTime: '',
   startTime: '',
   endTime: '',
-  allVolunteers: []
+  allVolunteers: [],
+  collectionPermit: params.get('permit') || ''
 };
 
 function getAuthSecret() {
@@ -764,6 +765,9 @@ async function init() {
     const res = await fetch(API);
     const data = await res.json();
     STATE.settings = data.settings || data.table || {};
+    if (!STATE.collectionPermit) {
+      STATE.collectionPermit = STATE.settings.collection_permit || (data.table && data.table.collection_permit) || '';
+    }
     const rawGa = STATE.settings.enable_gift_aid !== undefined
       ? STATE.settings.enable_gift_aid
       : (data.table && data.table.enable_gift_aid);
@@ -884,6 +888,8 @@ function syncLanyardRouteData(routeIndex) {
     const timeDisplay = STATE.startTime ? (STATE.endTime && !STATE.startTime.includes('–') && !STATE.startTime.includes('-') ? `${STATE.startTime} – ${STATE.endTime}` : STATE.startTime) : '18:00';
     startEl.value = timeDisplay;
   }
+  const permitEl = document.getElementById('lanyardPermit');
+  if (permitEl && document.activeElement !== permitEl) permitEl.value = STATE.collectionPermit || '';
 }
 
 function formatDateLong(dateStr) {
@@ -1002,6 +1008,10 @@ function renderControls() {
           <label>Front Custom Call-to-Action</label>
           <input type="text" id="customHeadline" placeholder="SCAN TO DONATE" oninput="generatePoster()">
         </div>
+        <div class="control-group">
+          <label>Council Collection Permit / Licence No. (Printed on Badges)</label>
+          <input type="text" id="lanyardPermit" value="${STATE.collectionPermit || ''}" placeholder="e.g. CP/2026/049 or Borough Lic. #1234" oninput="STATE.collectionPermit=this.value; generatePoster()">
+        </div>
       </div>
 
       <div class="btn-row">
@@ -1047,11 +1057,21 @@ function renderControls() {
         <input type="text" id="customHeadline" placeholder="SANTA'S COMING TO YOUR STREET!" oninput="generatePoster()">
       </div>
     </div>
+    <div class="control-row">
+      <div class="control-group">
+        <label>Council Collection Permit / Licence No. (Printed in Footer)</label>
+        <input type="text" id="lanyardPermit" value="${STATE.collectionPermit || ''}" placeholder="e.g. CP/2026/049 or Borough Lic. #1234" oninput="STATE.collectionPermit=this.value; generatePoster()">
+      </div>
+    </div>
     ` : `
     <div class="control-row">
       <div class="control-group">
         <label>Custom Call-to-Action</label>
         <input type="text" id="customHeadline" placeholder="${STATE.layoutMode === 'buckets' ? 'NO CASH? SCAN TO DONATE!' : 'SCAN TO DONATE OR TRACK'}" oninput="generatePoster()">
+      </div>
+      <div class="control-group">
+        <label>Council Collection Permit / Licence No. (Printed on Bucket Stickers)</label>
+        <input type="text" id="lanyardPermit" value="${STATE.collectionPermit || ''}" placeholder="e.g. CP/2026/049 or Borough Lic. #1234" oninput="STATE.collectionPermit=this.value; generatePoster()">
       </div>
     </div>
     `}
@@ -1067,6 +1087,8 @@ function generatePoster(idx) {
   const qrUrl = getTargetQrUrl();
   const logoUrl = s.logo_overlay_url || s.logo_url || '';
   const sleighName = s.sleigh_display_name || s.name || 'Santa Sleigh';
+  const permit = (STATE.collectionPermit || '').trim();
+  const charityNum = (s.charity_number || (STATE.table && STATE.table.charity_number) || '').trim();
   const posterEl = document.getElementById('poster');
   document.getElementById('posterWrap').style.display = 'block';
 
@@ -1096,6 +1118,7 @@ function generatePoster(idx) {
             <span class="bucket-pill">🍎 Apple / Google Pay</span>
           </div>
           ${gaNotice}
+          ${permit ? `<div style="font-family:'DM Mono',monospace; font-size:9px; font-weight:800; color:#111827; margin-top:5px; text-transform:uppercase; letter-spacing:0.5px; background:#f3f4f6; padding:3px 8px; border-radius:4px; border:1px solid #e5e7eb;">Council Collection Permit: <strong style="color:#b91c1c;">${permit}</strong>${charityNum ? ` &bull; Reg. Charity ${charityNum}` : ''}</div>` : (charityNum ? `<div style="font-family:'DM Mono',monospace; font-size:8.5px; font-weight:700; color:#4b5563; margin-top:4px;">Registered Charity No. ${charityNum}</div>` : '')}
         </div>
       `;
     }
@@ -1145,7 +1168,10 @@ function generatePoster(idx) {
           <div class="lanyard-title">${headline}</div>
           <div class="lanyard-qr-box" id="qrLanyard_${i}"></div>
           ${gaBadge}
-          <div class="lanyard-footer">${sleighName}<br><span>100% TO LOCAL CHARITIES</span></div>
+          <div class="lanyard-footer">
+            ${sleighName}<br><span>100% TO LOCAL CHARITIES</span>
+            ${permit ? `<div style="font-size:7px; font-weight:800; color:#fff; margin-top:2px; letter-spacing:0.5px; text-transform:uppercase;">PERMIT NO: <span style="color:var(--gold);">${permit}</span>${charityNum ? ` &bull; CHARITY ${charityNum}` : ''}</div>` : (charityNum ? `<div style="font-size:7px; font-weight:700; color:#e5e7eb; margin-top:2px;">REG CHARITY NO. ${charityNum}</div>` : '')}
+          </div>
         </div>
       `;
     }
@@ -1192,11 +1218,13 @@ function generatePoster(idx) {
             <div>• High-vis vest &amp; torch on for full duration.</div>
             <div>• Hold QR lanyard flat at chest height for doorsteps.</div>
             <div>• Never open collection tins; return all to Lead Marshal.</div>
+            ${permit ? `<div>• <strong>Permit:</strong> Licensed Street Collection (#${permit}).</div>` : ''}
             <div style="color:#166534; font-weight:700; margin-top:1px;">• Live GPS Tracker: ${trackerHost}</div>
           </div>
 
           <div class="lanyard-footer" style="padding:3px 6px; font-size:7.5px; margin-top:3px; text-align:center;">
             ${sleighName}<br><span style="color:var(--gold);">ROUND TABLE BRITAIN &amp; IRELAND &middot; #DOMORE</span>
+            ${permit ? `<div style="color:#e5e7eb; font-size:6.5px; margin-top:1px; letter-spacing:0.3px;">COUNCIL PERMIT NO: <strong style="color:var(--gold);">${permit}</strong></div>` : ''}
           </div>
         </div>
       `;
@@ -1297,7 +1325,7 @@ function generatePoster(idx) {
     </div>
     <div class="poster-footer">
       ${logoUrl ? `<img src="${logoUrl}">` : ''}
-      <span class="footer-text">${sleighName} · <span>TurboSanta</span></span>
+      <span class="footer-text">${sleighName} · <span>TurboSanta</span>${permit ? ` · <span>Permit: ${permit}</span>` : ''}${charityNum ? ` · <span>Charity No. ${charityNum}</span>` : ''}</span>
     </div>
   `;
 
@@ -1322,6 +1350,8 @@ async function printAllLanyards() {
   const s = STATE.settings;
   const logoUrl = s.logo_overlay_url || s.logo_url || '';
   const sleighName = s.sleigh_display_name || s.name || 'Santa Sleigh';
+  const permit = (STATE.collectionPermit || '').trim();
+  const charityNum = (s.charity_number || (STATE.table && STATE.table.charity_number) || '').trim();
   const headline = document.getElementById('customHeadline')?.value || 'SCAN TO DONATE';
   const gaBadge = STATE.isGiftAidEnabled
     ? '<div style="font-size:11px;font-weight:800;color:#b45309;">+25% GIFT AID BOOST AVAILABLE</div>'
@@ -1359,7 +1389,10 @@ async function printAllLanyards() {
             <div class="lanyard-title">${headline}</div>
             <div class="lanyard-qr-box" id="${qrId}"></div>
             ${gaBadge}
-            <div class="lanyard-footer">${sleighName}<br><span>100% TO LOCAL CHARITIES</span></div>
+            <div class="lanyard-footer">
+              ${sleighName}<br><span>100% TO LOCAL CHARITIES</span>
+              ${permit ? `<div style="font-size:7px; font-weight:800; color:#fff; margin-top:2px; letter-spacing:0.5px; text-transform:uppercase;">PERMIT NO: <span style="color:var(--gold);">${permit}</span>${charityNum ? ` &bull; CHARITY ${charityNum}` : ''}</div>` : (charityNum ? `<div style="font-size:7px; font-weight:700; color:#e5e7eb; margin-top:2px;">REG CHARITY NO. ${charityNum}</div>` : '')}
+            </div>
           </div>
         `;
         qrTasks.push(qrId);
@@ -1413,11 +1446,13 @@ async function printAllLanyards() {
               <div>• High-vis vest &amp; torch on for full duration.</div>
               <div>• Hold QR lanyard flat at chest height for doorsteps.</div>
               <div>• Never open collection tins; return all to Lead Marshal.</div>
+              ${permit ? `<div>• <strong>Permit:</strong> Licensed Street Collection (#${permit}).</div>` : ''}
               <div style="color:#166534; font-weight:700; margin-top:1px;">• Live GPS Tracker: ${trackerHost}</div>
             </div>
 
             <div class="lanyard-footer" style="padding:3px 6px; font-size:7.5px; margin-top:3px; text-align:center;">
               ${sleighName}<br><span style="color:var(--gold);">ROUND TABLE BRITAIN &amp; IRELAND &middot; #DOMORE</span>
+              ${permit ? `<div style="color:#e5e7eb; font-size:6.5px; margin-top:1px; letter-spacing:0.3px;">COUNCIL PERMIT NO: <strong style="color:var(--gold);">${permit}</strong></div>` : ''}
             </div>
           </div>
         `;
