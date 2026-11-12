@@ -292,6 +292,15 @@ export function getOperatorTableName(table = {}, slug = '') {
 export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }) {
   const [addressFrameHeight, setAddressFrameHeight] = useState(500);
   const [mapInteractive, setMapInteractive] = useState(false);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isTouch = ('ontouchstart' in window || navigator.maxTouchPoints > 0) &&
+        window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+      setIsTouchDevice(Boolean(isTouch));
+    }
+  }, []);
   const [showFab, setShowFab] = useState(false);
   const [showGiftAidCheckoutModal, setShowGiftAidCheckoutModal] = useState(false);
   const [showGrantModal, setShowGrantModal] = useState(false);
@@ -1472,7 +1481,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                   display: 'block'
                 }}
               />
-              {!mapInteractive && (
+              {!mapInteractive && isTouchDevice && (
                 <div
                   onClick={() => setMapInteractive(true)}
                   style={{
@@ -1508,7 +1517,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                   </div>
                 </div>
               )}
-              {mapInteractive && (
+              {mapInteractive && isTouchDevice && (
                 <button
                   type="button"
                   onClick={() => setMapInteractive(false)}

@@ -1660,6 +1660,16 @@
         document.body.classList.add('is-embedded');
       }
 
+      function normalizeWheelDelta(e) {
+        let dy = e.deltaY;
+        if (e.deltaMode === 1) { // DOM_DELTA_LINE: Windows mouse wheel sends 3 lines (~114px)
+          dy *= 38;
+        } else if (e.deltaMode === 2) { // DOM_DELTA_PAGE
+          dy *= (window.innerHeight || 600);
+        }
+        return dy;
+      }
+
       function forwardScrollToParent(deltaY) {
         if (!isEmbedded || typeof deltaY !== 'number' || Math.abs(deltaY) < 0.5) return;
         let directSuccess = false;
@@ -1678,16 +1688,118 @@
         }
       }
 
-      const wsOverlay = document.getElementById('workshopOverlay');
-      if (wsOverlay) {
-        wsOverlay.addEventListener('wheel', (e) => {
-          if (isEmbedded && Math.abs(e.deltaY) > 0) {
-            forwardScrollToParent(e.deltaY);
+      let hintTimer = null;
+      function showCtrlZoomHint() {
+        let hint = document.getElementById('ctrlZoomHint');
+        if (!hint) {
+          hint = document.createElement('div');
+          hint.id = 'ctrlZoomHint';
+          hint.style.cssText = [
+            'position: fixed',
+            'top: 50%',
+            'left: 50%',
+            'transform: translate(-50%, -50%)',
+            'background: rgba(13, 13, 11, 0.94)',
+            'border: 1.5px solid var(--border-primary, rgba(251, 175, 51, 0.45))',
+            'border-radius: 999px',
+            'padding: 10px 22px',
+            'color: #ffffff',
+            'font-family: "Eurostile", sans-serif',
+            'font-size: 13px',
+            'font-weight: 800',
+            'letter-spacing: 0.5px',
+            'pointer-events: none',
+            'z-index: 9999',
+            'box-shadow: 0 10px 32px rgba(0, 0, 0, 0.85)',
+            'opacity: 0',
+            'transition: opacity 200ms ease',
+            'text-align: center',
+            'white-space: nowrap'
+          ].join(';');
+          document.body.appendChild(hint);
+        }
+        const isMac = (navigator.platform && navigator.platform.toUpperCase().includes('MAC')) ||
+                      (navigator.userAgent && navigator.userAgent.toUpperCase().includes('MAC'));
+        hint.innerHTML = `💡 Hold <span style="color:var(--primary, #FBAF33);">${isMac ? '⌘ Cmd' : 'Ctrl'}</span> + scroll to zoom map`;
+        hint.style.opacity = '1';
+        if (hintTimer) clearTimeout(hintTimer);
+        hintTimer = setTimeout(() => {
+          hint.style.opacity = '0';
+        }, 1300);
+      }
+
+      if (isEmbedded) {
+        // Universal wheel forwarding for embedded iframe — eliminates sticking scroll and map zoom traps
+        window.addEventListener('wheel', (e) => {
+          // If user holds Ctrl (or Cmd on Mac), permit map zoom
+          if (e.ctrlKey || e.metaKey) {
+            if (AppState && AppState.map) {
+              const currentZoom = AppState.map.getZoom();
+              const zoomDelta = e.deltaY < 0 ? 1 : -1;
+              AppState.map.setZoom(currentZoom + zoomDelta);
+              if (e.cancelable) e.preventDefault();
+            }
+            return;
+          }
+
+          // Otherwise, user is scrolling through the webpage!
+          const wsOverlay = document.getElementById('workshopOverlay');
+          const isWsVisible = wsOverlay && wsOverlay.style.display !== 'none' && getComputedStyle(wsOverlay).display !== 'none';
+
+          // Show subtle Ctrl+scroll hint if scrolling over active map (not over Santa's Workshop)
+          if (!isWsVisible) {
+            showCtrlZoomHint();
+          }
+
+          const dy = normalizeWheelDelta(e);
+          if (Math.abs(dy) > 0.5) {
+            forwardScrollToParent(dy);
             if (e.cancelable) {
               e.preventDefault();
             }
           }
         }, { passive: false });
+
+        // Touch drag forwarding for mobile on embedded iframe
+        let touchStartY = null;
+        let lastTouchY = null;
+
+        window.addEventListener('touchstart', (e) => {
+          if (e.touches && e.touches.length === 1) {
+            touchStartY = e.touches[0].clientY;
+            lastTouchY = touchStartY;
+          } else {
+            touchStartY = null;
+            lastTouchY = null;
+          }
+        }, { passive: true });
+
+        window.addEventListener('touchmove', (e) => {
+          if (touchStartY === null || !e.touches || e.touches.length !== 1) return;
+          const currentY = e.touches[0].clientY;
+          const deltaY = lastTouchY - currentY;
+          lastTouchY = currentY;
+
+          // If workshop overlay is visible and can scroll internally, allow it
+          const wsOverlay = document.getElementById('workshopOverlay');
+          const isWsVisible = wsOverlay && wsOverlay.style.display !== 'none' && getComputedStyle(wsOverlay).display !== 'none';
+          if (isWsVisible && wsOverlay) {
+            const canScrollUp = wsOverlay.scrollTop > 2;
+            const canScrollDown = wsOverlay.scrollTop + wsOverlay.clientHeight < wsOverlay.scrollHeight - 2;
+            if ((deltaY < 0 && canScrollUp) || (deltaY > 0 && canScrollDown)) {
+              return;
+            }
+          }
+
+          if (Math.abs(deltaY) > 0.5) {
+            forwardScrollToParent(deltaY);
+          }
+        }, { passive: true });
+
+        window.addEventListener('touchend', () => {
+          touchStartY = null;
+          lastTouchY = null;
+        }, { passive: true });
       }
 
       // --- THEME FROM THE API ---
@@ -5016,7 +5128,9 @@
         window.updateGiftAidDisplay();
         
         window.initTrackerMap = function() {
+          const enableWheelZoom = !AppState.flags.isKiosk && !AppState.flags.isDriver && !AppState.flags.isEmbedded;
           AppState.map = L.map("map", {
+            scrollWheelZoom: enableWheelZoom,
             zoomControl: !AppState.flags.isKiosk && !AppState.flags.isDriver,
             rotate: !!AppState.flags.isDriver,
             touchRotate: false,
