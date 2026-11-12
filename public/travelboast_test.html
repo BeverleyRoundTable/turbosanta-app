@@ -1194,9 +1194,10 @@
         }
 
         // Precompute smoothed camera follow path (tapered at Start & Finish so endpoints match 100%)
-        const smoothRadiusMeters = 135;
+        // Uses 55m radius with 28m max drift so camera actively tracks through cul-de-sacs/estate loops without stalling
+        const smoothRadiusMeters = 55;
         const camTrack = pts.map((pt, idx) => {
-          const edgeTaper = Math.min(1, pt.dist / 180, (cumDist - pt.dist) / 180);
+          const edgeTaper = Math.min(1, pt.dist / 90, (cumDist - pt.dist) / 90);
           const win = smoothRadiusMeters * edgeTaper;
           if (win < 2) return { lat: pt.lat, lng: pt.lng };
 
@@ -1218,10 +1219,10 @@
           let cLat = sumW > 0 ? sumLat / sumW : pt.lat;
           let cLng = sumW > 0 ? sumLng / sumW : pt.lng;
 
-          // Clamp max offset so Santa pin never drifts near screen edge in deep cul-de-sacs
+          // Clamp max offset so Santa pin never drifts far from screen center in tight turns / loops
           const drift = haversineMeters(pt, { lat: cLat, lng: cLng });
-          if (drift > 65) {
-            const k = 65 / drift;
+          if (drift > 28) {
+            const k = 28 / drift;
             cLat = pt.lat + (cLat - pt.lat) * k;
             cLng = pt.lng + (cLng - pt.lng) * k;
           }
@@ -2128,10 +2129,15 @@
           if (topBannerAlpha > 0.02) {
             ctx.save();
             ctx.globalAlpha = topBannerAlpha;
-            const padX = 14 * uiScale;
-            const topY = 14 * uiScale;
-            const cardW = canvasW - padX * 2;
-            const textMaxW = cardW - 22 * uiScale;
+            const topY = 10 * uiScale;
+            const isLandscape = canvasW > canvasH;
+            // Narrower centered banner width: max 50% in landscape, max 86% in portrait
+            const targetW = isLandscape
+              ? Math.min(canvasW * 0.50, 480 * uiScale)
+              : Math.min(canvasW - 24 * uiScale, 380 * uiScale);
+            const cardW = Math.max(260 * uiScale, targetW);
+            const cardX = (canvasW - cardW) / 2;
+            const textMaxW = cardW - 20 * uiScale;
             const hasSub = Boolean(STATE.routeSubtitle && STATE.routeSubtitle.trim());
 
             const bannerRouteLayout = layoutRouteTitleLines(
@@ -2139,53 +2145,53 @@
               STATE.routeTitle || 'Santa Sleigh Route',
               textMaxW,
               'Eurostile, "Open Sans", sans-serif',
-              15.5 * uiScale,
-              12.0 * uiScale,
-              13.5 * uiScale,
-              10.5 * uiScale
+              13.0 * uiScale,
+              10.0 * uiScale,
+              11.5 * uiScale,
+              9.0 * uiScale
             );
             const isTwoLineBannerRoute = bannerRouteLayout.lines.length > 1;
-            const extraBannerH = isTwoLineBannerRoute ? 16 * uiScale : 0;
-            const cardH = (hasSub ? 74 : 58) * uiScale + extraBannerH;
+            const extraBannerH = isTwoLineBannerRoute ? 12 * uiScale : 0;
+            const cardH = (hasSub ? 48 : 36) * uiScale + extraBannerH;
 
             // Frosted dark tracker banner card
             ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
-            ctx.shadowBlur = 14 * uiScale;
-            ctx.shadowOffsetY = 4 * uiScale;
-            roundRectPath(ctx, padX, topY, cardW, cardH, 13 * uiScale);
+            ctx.shadowBlur = 12 * uiScale;
+            ctx.shadowOffsetY = 3 * uiScale;
+            roundRectPath(ctx, cardX, topY, cardW, cardH, 10 * uiScale);
             ctx.fillStyle = 'rgba(13, 16, 23, 0.92)';
             ctx.fill();
 
             resetShadow(ctx);
-            ctx.lineWidth = 1.5 * uiScale;
+            ctx.lineWidth = 1.2 * uiScale;
             ctx.strokeStyle = hexToRgba(effectiveAccent, 0.65);
             ctx.stroke();
 
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
 
-            // Sleigh Display Name
+            // Sleigh Display Name (compact heading)
             ctx.fillStyle = effectiveAccent;
             drawFittedSingleLine(
               ctx,
               (STATE.sleighTitle || 'ROUND TABLE SANTA SLEIGH').toUpperCase(),
               canvasW / 2,
-              topY + 16 * uiScale,
+              topY + 11 * uiScale,
               textMaxW,
               '800',
               '"Open Sans", sans-serif',
-              10.5 * uiScale,
-              8.0 * uiScale
+              8.5 * uiScale,
+              7.0 * uiScale
             );
 
             // Route Title (1 or 2 lines, never truncated)
             ctx.font = `700 ${bannerRouteLayout.fontSize}px Eurostile, "Open Sans", sans-serif`;
             ctx.fillStyle = '#ffffff';
             if (isTwoLineBannerRoute) {
-              ctx.fillText(bannerRouteLayout.lines[0], canvasW / 2, topY + 34 * uiScale);
-              ctx.fillText(bannerRouteLayout.lines[1], canvasW / 2, topY + 50 * uiScale);
+              ctx.fillText(bannerRouteLayout.lines[0], canvasW / 2, topY + 23 * uiScale);
+              ctx.fillText(bannerRouteLayout.lines[1], canvasW / 2, topY + 34 * uiScale);
             } else {
-              ctx.fillText(bannerRouteLayout.lines[0], canvasW / 2, topY + 38 * uiScale);
+              ctx.fillText(bannerRouteLayout.lines[0], canvasW / 2, topY + 25 * uiScale);
             }
 
             // Date / Time Subtitle (No distance!)
@@ -2195,12 +2201,12 @@
                 ctx,
                 STATE.routeSubtitle,
                 canvasW / 2,
-                topY + 57 * uiScale + extraBannerH,
+                topY + (isTwoLineBannerRoute ? 44.5 : 37.5) * uiScale,
                 textMaxW,
                 '700',
                 '"Open Sans", sans-serif',
-                11 * uiScale,
-                8.5 * uiScale
+                9.0 * uiScale,
+                7.5 * uiScale
               );
             }
 
@@ -2220,35 +2226,36 @@
             const footerLabel = `📍 Track Santa Live: ${STATE.footerUrl.trim()}`;
 
             // Step down font size if needed so the full URL fits without truncation
-            let pillFontSize = 11 * uiScale;
-            while (pillFontSize > 8.5 * uiScale) {
+            let pillFontSize = 10 * uiScale;
+            while (pillFontSize > 7.5 * uiScale) {
               ctx.font = `700 ${Math.round(pillFontSize)}px "Open Sans", sans-serif`;
-              if (ctx.measureText(footerLabel).width <= maxPillW - 24 * uiScale) break;
+              if (ctx.measureText(footerLabel).width <= maxPillW - 20 * uiScale) break;
               pillFontSize -= 0.5;
             }
             ctx.font = `700 ${Math.round(pillFontSize)}px "Open Sans", sans-serif`;
-            const textW = Math.min(maxPillW - 22 * uiScale, ctx.measureText(footerLabel).width);
-            const pillW = textW + 24 * uiScale;
-            const pillH = 28 * uiScale;
+            const textW = Math.min(maxPillW - 18 * uiScale, ctx.measureText(footerLabel).width);
+            const pillW = textW + 20 * uiScale;
+            const pillH = 22 * uiScale;
             const pillX = (canvasW - pillW) / 2;
-            const pillY = canvasH - pillH - 22 * uiScale;
+            // Positioned lower near the bottom bezel to keep map route clearly visible
+            const pillY = canvasH - pillH - 8 * uiScale;
 
             ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
-            ctx.shadowBlur = 10 * uiScale;
+            ctx.shadowBlur = 8 * uiScale;
             ctx.shadowOffsetY = 2 * uiScale;
             roundRectPath(ctx, pillX, pillY, pillW, pillH, pillH / 2);
             ctx.fillStyle = 'rgba(13, 16, 23, 0.90)';
             ctx.fill();
 
             resetShadow(ctx);
-            ctx.lineWidth = 1.2 * uiScale;
+            ctx.lineWidth = 1.1 * uiScale;
             ctx.strokeStyle = hexToRgba(effectiveAccent, 0.55);
             ctx.stroke();
 
             ctx.fillStyle = '#ffffff';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(fitText(ctx, footerLabel, pillW - 16 * uiScale), canvasW / 2, pillY + pillH / 2);
+            ctx.fillText(fitText(ctx, footerLabel, pillW - 14 * uiScale), canvasW / 2, pillY + pillH / 2);
             ctx.restore();
           }
         } // end if (STATE.includeBanner)
