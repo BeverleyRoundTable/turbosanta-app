@@ -139,6 +139,9 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
   const [catalogueTableFilter, setCatalogueTableFilter] = useState('all');
   const [activeTicketModal, setActiveTicketModal] = useState(null);
   const [adminNoteInput, setAdminNoteInput] = useState('');
+  const [modalStatus, setModalStatus] = useState('open');
+  const [modalRag, setModalRag] = useState('amber');
+  const [notifyRecipient, setNotifyRecipient] = useState(true);
   const [updatingTicketId, setUpdatingTicketId] = useState(null);
   const [zoomImage, setZoomImage] = useState(null);
 
@@ -291,10 +294,12 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
   const handleUpdateTicketStatus = async (ticketId, newStatus) => {
     setUpdatingTicketId(ticketId);
     try {
-      await updateSupportTicket(ticketId, { status: newStatus });
+      const isResolved = newStatus === 'resolved' || newStatus === 'closed';
+      await updateSupportTicket(ticketId, { status: newStatus, notify_recipient: isResolved });
       setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: newStatus } : t));
       if (activeTicketModal?.id === ticketId) {
         setActiveTicketModal(prev => ({ ...prev, status: newStatus }));
+        setModalStatus(newStatus);
       }
     } catch (err) {
       alert(`Update failed: ${err.message}`);
@@ -310,9 +315,41 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
       setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, rag_status: newRag } : t));
       if (activeTicketModal?.id === ticketId) {
         setActiveTicketModal(prev => ({ ...prev, rag_status: newRag }));
+        setModalRag(newRag);
       }
     } catch (err) {
       alert(`Update failed: ${err.message}`);
+    } finally {
+      setUpdatingTicketId(null);
+    }
+  };
+
+  const handleSaveModalTicket = async (ticketId) => {
+    setUpdatingTicketId(ticketId);
+    try {
+      const isResolved = modalStatus === 'resolved' || modalStatus === 'closed';
+      await updateSupportTicket(ticketId, {
+        status: modalStatus,
+        rag_status: modalRag,
+        admin_notes: adminNoteInput,
+        notify_recipient: isResolved ? notifyRecipient : false
+      });
+      setTickets(prev => prev.map(t => t.id === ticketId ? {
+        ...t,
+        status: modalStatus,
+        rag_status: modalRag,
+        admin_notes: adminNoteInput
+      } : t));
+      const recipientEmail = activeTicketModal?.contact_email;
+      const tktNum = activeTicketModal?.ticket_number || ticketId;
+      setActiveTicketModal(null);
+      if (isResolved && notifyRecipient && recipientEmail) {
+        alert(`✅ Ticket #${tktNum} marked as ${modalStatus.toUpperCase()}!\n\nAn automated resolution email with your engineering notes was dispatched to ${recipientEmail}.`);
+      } else {
+        alert("Ticket details updated successfully.");
+      }
+    } catch (err) {
+      alert(`Failed to save ticket: ${err.message}`);
     } finally {
       setUpdatingTicketId(null);
     }
@@ -1754,6 +1791,9 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
                               onClick={() => {
                                 setActiveTicketModal(ticket);
                                 setAdminNoteInput(ticket.admin_notes || '');
+                                setModalStatus(ticket.status || 'open');
+                                setModalRag(ticket.rag_status || 'amber');
+                                setNotifyRecipient(true);
                               }}
                               style={{
                                 backgroundColor: 'rgba(251, 175, 51, 0.15)',
@@ -1849,8 +1889,8 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
                   Update RAG Rating
                 </label>
                 <select
-                  value={activeTicketModal.rag_status}
-                  onChange={(e) => handleUpdateTicketRag(activeTicketModal.id, e.target.value)}
+                  value={modalRag}
+                  onChange={(e) => setModalRag(e.target.value)}
                   style={{
                     width: '100%',
                     backgroundColor: '#1d1d1a',
@@ -1872,8 +1912,8 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
                   Update Status
                 </label>
                 <select
-                  value={activeTicketModal.status}
-                  onChange={(e) => handleUpdateTicketStatus(activeTicketModal.id, e.target.value)}
+                  value={modalStatus}
+                  onChange={(e) => setModalStatus(e.target.value)}
                   style={{
                     width: '100%',
                     backgroundColor: '#1d1d1a',
@@ -1893,7 +1933,7 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
               </div>
             </div>
 
-            <div style={{ marginBottom: '18px' }}>
+            <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#ffffff', marginBottom: '6px' }}>
                 Engineering Notes / Resolution Details (Visible to Table)
               </label>
@@ -1915,6 +1955,37 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
               />
             </div>
 
+            {/* Auto-Email Resolution Checkbox */}
+            {(modalStatus === 'resolved' || modalStatus === 'closed') && (
+              <div style={{
+                marginBottom: '18px',
+                padding: '10px 14px',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                border: '1px solid rgba(34, 197, 94, 0.3)',
+                borderRadius: '8px'
+              }}>
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  color: '#86efac',
+                  fontWeight: 600
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={notifyRecipient}
+                    onChange={(e) => setNotifyRecipient(e.target.checked)}
+                    style={{ accentColor: '#22c55e', width: '16px', height: '16px', cursor: 'pointer' }}
+                  />
+                  <span>
+                    Auto-email resolution briefing to <strong>{activeTicketModal.contact_name ? `${activeTicketModal.contact_name} (${activeTicketModal.contact_email})` : activeTicketModal.contact_email}</strong>
+                  </span>
+                </label>
+              </div>
+            )}
+
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button
                 onClick={() => setActiveTicketModal(null)}
@@ -1931,10 +2002,10 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
                 Close
               </button>
               <button
-                onClick={() => handleSaveAdminNotes(activeTicketModal.id)}
+                onClick={() => handleSaveModalTicket(activeTicketModal.id)}
                 disabled={updatingTicketId === activeTicketModal.id}
                 style={{
-                  backgroundColor: '#FBAF33',
+                  backgroundColor: (modalStatus === 'resolved' || modalStatus === 'closed') ? '#22c55e' : '#FBAF33',
                   border: 'none',
                   borderRadius: '6px',
                   color: '#000000',
@@ -1943,10 +2014,17 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
                   fontWeight: 800,
                   fontSize: '12px',
                   textTransform: 'uppercase',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}
               >
-                Save Notes
+                {updatingTicketId === activeTicketModal.id
+                  ? 'Saving...'
+                  : (modalStatus === 'resolved' || modalStatus === 'closed')
+                    ? (notifyRecipient ? 'Save & Email Resolution ✅' : 'Save & Mark Resolved ✅')
+                    : 'Save Changes'}
               </button>
             </div>
           </div>

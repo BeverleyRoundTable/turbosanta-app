@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { logoutAdmin, isNationalAdmin, getAdminAuthToken } from '../services/auth';
-import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, saveRoute, deleteRoute, connectTableGmail, disconnectTableGmail, testTableGmailAlert, fetchSubscribers, clearSubscribers, triggerAutomatedCrewBriefings, fetchAutomatedCrewBriefingStatus, uploadAssetToR2, fetchGiftAidSummary, updateGiftAidStatus, exportGiftAidCsv, updateVolunteer, deleteVolunteer } from '../services/api';
+import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, saveRoute, deleteRoute, connectTableGmail, disconnectTableGmail, testTableGmailAlert, fetchSubscribers, clearSubscribers, triggerAutomatedCrewBriefings, fetchAutomatedCrewBriefingStatus, uploadAssetToR2, fetchGiftAidSummary, updateGiftAidStatus, exportGiftAidCsv, updateVolunteer, deleteVolunteer, fetchSupportTickets } from '../services/api';
 import { extractRouteSponsors } from '../utils/sponsors';
 import { DEFAULT_FAQ_PRESETS, FLATBED_FAQ_PRESETS, normalizeFaqs } from '../utils/faqs';
 import DropzoneUpload from './DropzoneUpload';
@@ -204,6 +204,27 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
       clearInterval(interval);
     };
   }, [currentTableSlug]);
+
+  // Open Support Tickets badge counter for Super Admin
+  const [openTicketsCount, setOpenTicketsCount] = useState(0);
+  useEffect(() => {
+    if (!isMasterAdmin) return;
+    let isMounted = true;
+    const checkOpenTickets = async () => {
+      try {
+        const t = await fetchSupportTickets({ status: 'open' });
+        if (isMounted && Array.isArray(t)) {
+          setOpenTicketsCount(t.length);
+        }
+      } catch (e) {}
+    };
+    checkOpenTickets();
+    const interval = setInterval(checkOpenTickets, 60000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [isMasterAdmin]);
 
   // Screen Wake Lock for Admin Mission Control (prevents screen dimming / screensavers during live shifts)
   const [isScreenAwake, setIsScreenAwake] = useState(false);
@@ -3390,9 +3411,9 @@ ${tableName} Organizers`
               style={{
                 padding: '8px 12px',
                 fontSize: '13px',
-                borderColor: 'rgba(239, 68, 68, 0.45)',
-                color: '#fca5a5',
-                background: 'rgba(239, 68, 68, 0.1)',
+                borderColor: openTicketsCount > 0 ? '#ef4444' : 'rgba(239, 68, 68, 0.45)',
+                color: openTicketsCount > 0 ? '#ffffff' : '#fca5a5',
+                background: openTicketsCount > 0 ? 'rgba(239, 68, 68, 0.25)' : 'rgba(239, 68, 68, 0.1)',
                 textDecoration: 'none',
                 flexShrink: 0,
                 whiteSpace: 'nowrap',
@@ -3401,10 +3422,22 @@ ${tableName} Organizers`
                 gap: '6px',
                 fontWeight: 700
               }}
-              title="Report an issue or bug with RAG rating (Red, Amber, Green)"
+              title={isMasterAdmin ? `${openTicketsCount} Open Support Ticket(s)` : "Report an issue or bug with RAG rating (Red, Amber, Green)"}
             >
-              <LifeBuoy size={15} color="#ef4444" />
-              <span>Report Issue</span>
+              <LifeBuoy size={15} color={openTicketsCount > 0 ? '#ffffff' : '#ef4444'} />
+              <span>{isMasterAdmin ? 'Support Tickets' : 'Report Issue'}</span>
+              {isMasterAdmin && openTicketsCount > 0 && (
+                <span style={{
+                  backgroundColor: '#ef4444',
+                  color: '#ffffff',
+                  borderRadius: '999px',
+                  padding: '1px 6px',
+                  fontSize: '11px',
+                  fontWeight: 800
+                }}>
+                  {openTicketsCount}
+                </span>
+              )}
             </a>
 
             <a

@@ -5241,6 +5241,32 @@ export default {
           screenshotUrlsJson
         ).run();
 
+        // 🚨 Dispatch Instant SuperAdmin Support Alert via Gmail in Background
+        if (ctx && typeof ctx.waitUntil === "function") {
+          ctx.waitUntil(sendSupportTicketEmail({
+            env,
+            type: "new_ticket_admin_alert",
+            ticket: {
+              id: ticketId,
+              ticket_number: ticketNumber,
+              table_id: tableId,
+              table_name: tableName,
+              contact_name: contactName,
+              contact_email: contactEmail,
+              contact_phone: contactPhone,
+              rag_status: ragStatus,
+              category,
+              title,
+              description,
+              steps_to_reproduce: stepsToReproduce,
+              page_url: pageUrl,
+              device_info: deviceInfo,
+              browser_info: browserInfo,
+              screenshot_urls: screenshotUrlsJson
+            }
+          }));
+        }
+
         return jsonResponse({
           ok: true,
           message: "Support ticket submitted successfully",
@@ -5428,6 +5454,26 @@ export default {
           UPDATE support_tickets SET ${updates.join(", ")}
           WHERE id = ?
         `).bind(...vals).run();
+
+        // 🎅 If ticket is marked resolved or closed, auto-email resolution to recipient
+        const newStatus = body.status ? String(body.status).toLowerCase() : null;
+        const shouldNotifyRecipient = body.notify_recipient !== false && body.notify_recipient !== "false";
+
+        if ((newStatus === "resolved" || newStatus === "closed" || body.notify_recipient === true || body.notify_recipient === "true") && shouldNotifyRecipient) {
+          try {
+            const updatedTkt = await env.DB.prepare("SELECT * FROM support_tickets WHERE id = ?").bind(ticketId).first();
+            if (updatedTkt && (updatedTkt.status === "resolved" || updatedTkt.status === "closed") && ctx && typeof ctx.waitUntil === "function") {
+              ctx.waitUntil(sendSupportTicketEmail({
+                env,
+                type: "ticket_resolved",
+                ticket: updatedTkt,
+                resolutionNotes: body.admin_notes || body.resolution_summary || updatedTkt.admin_notes || updatedTkt.resolution_summary || ""
+              }));
+            }
+          } catch (notifErr) {
+            console.warn("Failed to schedule resolution email:", notifErr.message);
+          }
+        }
 
         return jsonResponse({ ok: true, message: "Ticket updated successfully" });
       } catch (err) {
@@ -9717,6 +9763,261 @@ async function sendGmailVolunteerBroadcast({ env, table, to, bcc, subject, messa
   }
 
   return await sendRes.json();
+}
+
+async function sendSupportTicketEmail({ env, type, ticket, resolutionNotes }) {
+  if (!ticket || !env?.DB) return;
+
+  try {
+    // 1. Locate Beverley table or an authorized table with active Gmail OAuth
+    const authTable = await env.DB.prepare(
+      "SELECT * FROM tables WHERE (slug = 'beverley' OR is_national = 1 OR admin_email = 'beverley247@roundtable.org.uk') AND gmail_refresh_token IS NOT NULL ORDER BY CASE WHEN slug = 'beverley' THEN 0 ELSE 1 END LIMIT 1"
+    ).first().catch(() => null);
+
+    if (!authTable || !authTable.gmail_refresh_token) {
+      console.warn("sendSupportTicketEmail: No table with gmail_refresh_token found");
+      return;
+    }
+
+    const accessToken = await getGoogleAccessToken(env, authTable);
+    if (!accessToken) {
+      console.warn("sendSupportTicketEmail: Could not obtain Google access token");
+      return;
+    }
+
+    const fromName = "TurboSanta Support";
+    const fromEmail = authTable.gmail_connected_email || authTable.admin_email || "beverley247@roundtable.org.uk";
+    const superAdminEmail = "beverley247@roundtable.org.uk";
+    const nationalAdminEmail = "national@roundtable.org.uk";
+
+    const ticketNum = ticket.ticket_number || ticket.id || "Ticket";
+    const title = ticket.title || "Support Request";
+    const tableName = ticket.table_name || ticket.table_id || "Round Table Santa Sleigh";
+    const rag = (ticket.rag_status || "amber").toLowerCase();
+    const category = ticket.category || "General";
+    const contactName = ticket.contact_name || "Organiser";
+    const contactEmail = ticket.contact_email ? ticket.contact_email.trim().toLowerCase() : "";
+    const contactPhone = ticket.contact_phone || "";
+    const description = ticket.description || "";
+    const stepsToReproduce = ticket.steps_to_reproduce || "";
+    const deviceInfo = ticket.device_info || "";
+    const browserInfo = ticket.browser_info || "";
+    const pageUrl = ticket.page_url || "";
+
+    const ragColors = {
+      red: { label: "HIGH PRIORITY (RED)", color: "#EF4444", bg: "#7F1D1D" },
+      amber: { label: "MEDIUM PRIORITY (AMBER)", color: "#F59E0B", bg: "#78350F" },
+      green: { label: "LOW PRIORITY (GREEN)", color: "#10B981", bg: "#064E3B" }
+    };
+    const ragInfo = ragColors[rag] || ragColors.amber;
+
+    // Parse screenshot URLs if present
+    let screenshots = [];
+    try {
+      if (typeof ticket.screenshot_urls === "string" && ticket.screenshot_urls.startsWith("[")) {
+        screenshots = JSON.parse(ticket.screenshot_urls);
+      } else if (Array.isArray(ticket.screenshot_urls)) {
+        screenshots = ticket.screenshot_urls;
+      }
+    } catch(e) {}
+
+    let to = "";
+    let bcc = "";
+    let subject = "";
+    let htmlBody = "";
+
+    if (type === "new_ticket_admin_alert") {
+      to = superAdminEmail;
+      bcc = nationalAdminEmail;
+      subject = `🚨 [Support #${ticketNum}] [${rag.toUpperCase()}] ${tableName} — ${title}`;
+
+      let screenshotsHtml = "";
+      if (screenshots.length > 0) {
+        screenshotsHtml = `
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
+            <p style="font-size: 13px; font-weight: 700; color: #FFFFFF; margin: 0 0 10px 0;">Attached Screenshots / Media (${screenshots.length}):</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              ${screenshots.map((s, idx) => `
+                <a href="${s}" target="_blank" style="display: inline-block; padding: 6px 12px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #FBAF33; font-size: 12px; text-decoration: none; font-weight: 600;">
+                  📷 View Attachment #${idx + 1} &rarr;
+                </a>
+              `).join("")}
+            </div>
+          </div>
+        `;
+      }
+
+      htmlBody = `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head><meta charset="utf-8"><title>${subject}</title></head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #141412; margin: 0; padding: 24px 12px;">
+          <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #1D1D1A; border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; overflow: hidden; box-shadow: 0 12px 36px rgba(0,0,0,0.6);">
+            <tr>
+              <td style="background: linear-gradient(135deg, ${ragInfo.bg} 0%, #1a1a17 100%); padding: 24px; border-bottom: 1px solid rgba(255,255,255,0.12);">
+                <div style="display: inline-block; background-color: rgba(0,0,0,0.6); border: 1px solid ${ragInfo.color}; border-radius: 9999px; padding: 4px 14px; color: ${ragInfo.color}; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">
+                  ${ragInfo.label} • TICKET #${ticketNum}
+                </div>
+                <h1 style="color: #FFFFFF; font-size: 20px; font-weight: 800; margin: 0 0 6px 0; line-height: 1.3;">
+                  ${title}
+                </h1>
+                <p style="color: #FBAF33; font-size: 14px; font-weight: 700; margin: 0;">
+                  ${tableName} &bull; Category: ${category}
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 24px; color: #E5E7EB; font-size: 14px; line-height: 1.6;">
+                <div style="background-color: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 14px; margin-bottom: 18px;">
+                  <p style="margin: 0 0 4px 0; font-size: 12px; text-transform: uppercase; color: #9CA3AF; font-weight: 700; letter-spacing: 0.5px;">Reporter Contact:</p>
+                  <p style="margin: 0; font-size: 14px; color: #FFFFFF;">
+                    <strong>${contactName}</strong> &bull; <a href="mailto:${contactEmail}" style="color: #60A5FA; text-decoration: none;">${contactEmail}</a> ${contactPhone ? `&bull; <a href="tel:${contactPhone}" style="color: #34D399; text-decoration: none;">${contactPhone}</a>` : ''}
+                  </p>
+                  ${pageUrl ? `<p style="margin: 6px 0 0 0; font-size: 12px; color: #9CA3AF;">Origin Page: <a href="${pageUrl}" style="color: #FBAF33; text-decoration: underline;" target="_blank">${pageUrl}</a></p>` : ''}
+                  ${(deviceInfo || browserInfo) ? `<p style="margin: 4px 0 0 0; font-size: 12px; color: #9CA3AF;">Device: ${deviceInfo || 'Unknown'} | Browser: ${browserInfo || 'Unknown'}</p>` : ''}
+                </div>
+
+                <p style="font-size: 12px; text-transform: uppercase; color: #9CA3AF; font-weight: 700; letter-spacing: 0.5px; margin: 0 0 6px 0;">Issue Description:</p>
+                <div style="background-color: rgba(0,0,0,0.3); border-left: 3px solid #FBAF33; padding: 12px 14px; border-radius: 0 8px 8px 0; color: #F3F4F6; margin-bottom: 16px; white-space: pre-wrap; font-size: 14px;">
+${description}
+                </div>
+
+                ${stepsToReproduce ? `
+                  <p style="font-size: 12px; text-transform: uppercase; color: #9CA3AF; font-weight: 700; letter-spacing: 0.5px; margin: 0 0 6px 0;">Steps to Reproduce:</p>
+                  <div style="background-color: rgba(0,0,0,0.3); border-left: 3px solid #60A5FA; padding: 12px 14px; border-radius: 0 8px 8px 0; color: #F3F4F6; margin-bottom: 16px; white-space: pre-wrap; font-size: 14px;">
+${stepsToReproduce}
+                  </div>
+                ` : ''}
+
+                ${screenshotsHtml}
+
+                <div style="text-align: center; margin: 26px 0 8px 0;">
+                  <a href="https://roundtablesantasleigh.co.uk/support" target="_blank" style="display: inline-block; background-color: #FBAF33; color: #000000; font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: 0.8px; text-decoration: none; padding: 12px 28px; border-radius: 8px;">
+                    Open Support Portal &rarr;
+                  </a>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="background-color: #141412; padding: 16px 24px; border-top: 1px solid rgba(255,255,255,0.1); text-align: center; color: #9CA3AF; font-size: 11px;">
+                TurboSanta 2.0 SuperAdmin Notifications &bull; Round Table Great Britain &amp; Ireland
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+      `;
+    } else if (type === "ticket_resolved") {
+      if (!contactEmail || !contactEmail.includes("@")) {
+        console.warn("sendSupportTicketEmail: No valid contact email for ticket recipient");
+        return;
+      }
+
+      to = `${contactName} <${contactEmail}>`;
+      bcc = superAdminEmail;
+      subject = `✅ [Ticket #${ticketNum} Resolved] ${title} — Round Table Santa Sleigh Support`;
+
+      const cleanSlug = String(ticket.table_id || "beverley").toLowerCase().trim();
+      const trackerUrl = `https://${cleanSlug}.roundtablesantasleigh.co.uk`;
+
+      let resolutionBoxHtml = "";
+      if (resolutionNotes && resolutionNotes.trim()) {
+        resolutionBoxHtml = `
+          <div style="margin: 18px 0; background-color: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.3); border-left: 4px solid #22C55E; border-radius: 8px; padding: 16px;">
+            <p style="font-size: 12px; text-transform: uppercase; color: #86EFAC; font-weight: 700; letter-spacing: 0.6px; margin: 0 0 6px 0;">Engineering &amp; Resolution Notes:</p>
+            <div style="color: #FFFFFF; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">${resolutionNotes.trim()}</div>
+          </div>
+        `;
+      }
+
+      htmlBody = `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head><meta charset="utf-8"><title>${subject}</title></head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #141412; margin: 0; padding: 24px 12px;">
+          <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 580px; background-color: #1D1D1A; border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; overflow: hidden; box-shadow: 0 12px 36px rgba(0,0,0,0.6);">
+            <tr>
+              <td style="background: linear-gradient(135deg, #064E3B 0%, #1a1a17 100%); padding: 26px 24px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.12);">
+                <div style="display: inline-block; background-color: rgba(0,0,0,0.5); border: 1px solid #22C55E; border-radius: 9999px; padding: 4px 16px; color: #86EFAC; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 12px;">
+                  TICKET #${ticketNum} &bull; RESOLVED ✅
+                </div>
+                <h1 style="color: #FFFFFF; font-size: 21px; font-weight: 800; margin: 0 0 6px 0; line-height: 1.3;">
+                  ${title}
+                </h1>
+                <p style="color: #D1D5DB; font-size: 13px; margin: 0;">
+                  ${tableName}
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 28px 24px; color: #E5E7EB; font-size: 14px; line-height: 1.65;">
+                <p style="font-size: 15px; margin: 0 0 14px 0; color: #FFFFFF;">
+                  Hi <strong>${contactName}</strong>,
+                </p>
+                <p style="margin: 0 0 14px 0;">
+                  Great news! Your support ticket regarding <strong>${title}</strong> for <strong>${tableName}</strong> has been marked as <strong>Resolved</strong>.
+                </p>
+
+                ${resolutionBoxHtml}
+
+                <p style="margin: 16px 0 20px 0; color: #D1D5DB; font-size: 13px;">
+                  Please take a moment to verify this on your live sleigh site or admin portal. If you notice any remaining issues or have questions, simply reply directly to this email!
+                </p>
+
+                <div style="text-align: center; margin: 24px 0 14px 0;">
+                  <a href="${trackerUrl}" target="_blank" style="display: inline-block; background-color: #FBAF33; color: #000000; font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: 0.8px; text-decoration: none; padding: 13px 30px; border-radius: 8px;">
+                    Open ${tableName} &rarr;
+                  </a>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 24px 0 16px 0;" />
+                <p style="font-size: 13px; color: #9CA3AF; margin: 0;">
+                  Warm festive regards,<br />
+                  <strong style="color: #FFFFFF;">National Santa Sleigh Tech Support</strong><br />
+                  Round Table Great Britain &amp; Ireland
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="background-color: #141412; padding: 14px 24px; border-top: 1px solid rgba(255,255,255,0.08); text-align: center; color: #6B7280; font-size: 11px;">
+                You received this email because you lodged a support ticket on the Round Table Santa Sleigh platform.
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+      `;
+    }
+
+    if (!to || !htmlBody) return;
+
+    const rawMessage = buildRfc2822Base64({
+      fromName,
+      fromEmail,
+      to,
+      bcc,
+      subject,
+      htmlBody
+    });
+
+    const sendRes = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ raw: rawMessage })
+    });
+
+    if (!sendRes.ok) {
+      const errText = await sendRes.text().catch(() => "");
+      console.warn("sendSupportTicketEmail error:", sendRes.status, errText);
+    } else {
+      console.log(`sendSupportTicketEmail: Successfully dispatched ${type} for #${ticketNum} to ${to}`);
+    }
+  } catch (err) {
+    console.warn("sendSupportTicketEmail exception:", err.message);
+  }
 }
 
 async function sendDepartureAlertsForRoute({ env, table, route, force = false }) {
