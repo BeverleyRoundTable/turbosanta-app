@@ -1705,9 +1705,6 @@
 
           if (isEmbedded && (totalDeltaY > totalDeltaX || Math.abs(deltaY) > 1)) {
             forwardScrollToParent(deltaY);
-            if (e.cancelable) {
-              e.preventDefault();
-            }
           }
         }, { passive: false });
 

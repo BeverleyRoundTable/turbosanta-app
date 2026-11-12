@@ -286,6 +286,7 @@ export function getOperatorTableName(table = {}, slug = '') {
 
 export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }) {
   const [addressFrameHeight, setAddressFrameHeight] = useState(500);
+  const [mapInteractive, setMapInteractive] = useState(false);
   const [showFab, setShowFab] = useState(false);
   const [showGiftAidCheckoutModal, setShowGiftAidCheckoutModal] = useState(false);
   const [showGrantModal, setShowGrantModal] = useState(false);
@@ -1449,20 +1450,88 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
                 </div>
               );
             })()}
-            <iframe
-              id="tracker-iframe"
-              src={`/tracker.html?table=${encodeURIComponent(activeTableSlug)}&embedded=1`}
-              title="Santa Tracker"
-              allow="geolocation; screen-wake-lock"
-              scrolling="no"
-              style={{
-                width: '100%',
-                height: '75svh',
-                minHeight: '520px',
-                border: 'none',
-                display: 'block'
-              }}
-            />
+            <div style={{ position: 'relative', width: '100%', overflow: 'hidden' }}>
+              <iframe
+                id="tracker-iframe"
+                src={`/tracker.html?table=${encodeURIComponent(activeTableSlug)}&embedded=1`}
+                title="Santa Tracker"
+                allow="geolocation; screen-wake-lock"
+                scrolling="no"
+                style={{
+                  width: '100%',
+                  height: '75svh',
+                  minHeight: '520px',
+                  border: 'none',
+                  display: 'block'
+                }}
+              />
+              {!mapInteractive && (
+                <div
+                  onClick={() => setMapInteractive(true)}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    zIndex: 10,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'rgba(10, 13, 18, 0.05)',
+                    cursor: 'pointer',
+                    touchAction: 'pan-y'
+                  }}
+                  title="Tap to interact with map"
+                >
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 18px',
+                    background: 'rgba(15, 18, 25, 0.92)',
+                    backdropFilter: 'blur(12px)',
+                    WebkitBackdropFilter: 'blur(12px)',
+                    border: '1.5px solid rgba(251, 175, 51, 0.6)',
+                    borderRadius: '999px',
+                    color: '#ffffff',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.75)'
+                  }}>
+                    <span>👆 Tap map to interact</span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>• or swipe to scroll page</span>
+                  </div>
+                </div>
+              )}
+              {mapInteractive && (
+                <button
+                  type="button"
+                  onClick={() => setMapInteractive(false)}
+                  style={{
+                    position: 'absolute',
+                    bottom: '16px',
+                    right: '16px',
+                    zIndex: 25,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '9px 16px',
+                    background: 'rgba(217, 119, 6, 0.95)',
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
+                    color: '#ffffff',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    borderRadius: '999px',
+                    boxShadow: '0 8px 25px rgba(0, 0, 0, 0.7)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <span>Done (Lock Scroll)</span>
+                </button>
+              )}
+            </div>
           </div>
 
           <div style={{

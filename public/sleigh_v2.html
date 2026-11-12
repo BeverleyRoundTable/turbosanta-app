@@ -180,13 +180,16 @@
           </div>
         </div>
 
-        <div class="iframe-container tracker-frame-container">
+        <div class="iframe-container tracker-frame-container" id="tracker-frame-container">
           <div class="iframe-chrome">
             <div class="iframe-chrome-left">
               <span class="chrome-pulse" aria-hidden="true"></span>
               <span>Sleigh Radar Feed</span>
             </div>
             <div class="iframe-chrome-actions">
+              <button type="button" id="radar-toggle-interact" class="radar-ctrl-btn radar-interact-btn" aria-pressed="false">
+                <i class="fa-solid fa-hand-pointer"></i> <span>Explore Map</span>
+              </button>
               <a href="#streets" class="radar-ctrl-btn">
                 <i class="fa-solid fa-magnifying-glass"></i> <span>Find Street</span>
               </a>
@@ -200,7 +203,21 @@
           </div>
           <!-- Dedicated Tonight's Route Sponsor Bar (Separated from inside iframe to keep map unsquashed) -->
           <div id="radar-route-sponsor" class="radar-route-sponsor" style="display:none;"></div>
-          <iframe id="tracker-iframe" height="650" title="Santa Sleigh Live Tracker" allow="geolocation; screen-wake-lock" scrolling="no"></iframe>
+          <div class="radar-embed-stage" id="radar-embed-stage">
+            <iframe id="tracker-iframe" height="650" title="Santa Sleigh Live Tracker" allow="geolocation; screen-wake-lock" scrolling="no"></iframe>
+            <!-- Mobile Cooperative Gesture Touch Guard -->
+            <div class="radar-touch-guard" id="radar-touch-guard" aria-label="Tap to interact with map or swipe to scroll page">
+              <div class="radar-touch-guard-pill" id="radar-touch-guard-pill">
+                <i class="fa-solid fa-hand-pointer"></i>
+                <span>Tap map to interact</span>
+                <span class="touch-guard-sub">• or swipe to scroll page</span>
+              </div>
+            </div>
+            <!-- Lock Scroll Button when interactive -->
+            <button type="button" class="radar-lock-scroll-btn" id="radar-lock-scroll-btn" style="display:none;" title="Lock map and resume smooth page scrolling">
+              <i class="fa-solid fa-lock"></i> <span>Lock Page Scroll</span>
+            </button>
+          </div>
         </div>
       </div>
     </section>
