@@ -915,7 +915,7 @@
       z-index: 8000; display: none; flex-direction: column;
       box-sizing: border-box;
       overflow-y: auto; overflow-x: hidden;
-      overscroll-behavior-y: contain;
+      overscroll-behavior-y: auto;
       touch-action: pan-y;
       padding: 12px 14px;
       align-items: center;
@@ -1120,6 +1120,7 @@
       justify-content: center;
       align-items: center;
       overflow-y: auto;
+      overscroll-behavior: auto;
     }
     body.is-embedded .ws-card,
     #workshopOverlay.ws-compact .ws-card {
@@ -1679,38 +1680,6 @@
 
       const wsOverlay = document.getElementById('workshopOverlay');
       if (wsOverlay) {
-        let touchStartY = 0;
-        let touchStartX = 0;
-        let touchLastY = 0;
-        let isTouchingWs = false;
-
-        wsOverlay.addEventListener('touchstart', (e) => {
-          if (e.touches.length === 1) {
-            touchStartY = e.touches[0].clientY;
-            touchStartX = e.touches[0].clientX;
-            touchLastY = touchStartY;
-            isTouchingWs = true;
-          }
-        }, { passive: true });
-
-        wsOverlay.addEventListener('touchmove', (e) => {
-          if (!isTouchingWs || e.touches.length !== 1) return;
-          const currentY = e.touches[0].clientY;
-          const currentX = e.touches[0].clientX;
-          const deltaY = touchLastY - currentY;
-          const totalDeltaY = Math.abs(currentY - touchStartY);
-          const totalDeltaX = Math.abs(currentX - touchStartX);
-
-          touchLastY = currentY;
-
-          if (isEmbedded && (totalDeltaY > totalDeltaX || Math.abs(deltaY) > 1)) {
-            forwardScrollToParent(deltaY);
-          }
-        }, { passive: false });
-
-        wsOverlay.addEventListener('touchend', () => { isTouchingWs = false; }, { passive: true });
-        wsOverlay.addEventListener('touchcancel', () => { isTouchingWs = false; }, { passive: true });
-
         wsOverlay.addEventListener('wheel', (e) => {
           if (isEmbedded && Math.abs(e.deltaY) > 0) {
             forwardScrollToParent(e.deltaY);

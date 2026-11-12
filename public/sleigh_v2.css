@@ -1042,100 +1042,20 @@ body {
   overflow-anchor: none;
 }
 
-/* --- MOBILE RADAR TOUCH GUARD & COOPERATIVE SCROLL --- */
+/* --- EMBEDDED RADAR STAGE --- */
 .radar-embed-stage {
   position: relative;
   width: 100%;
   overflow: hidden;
 }
 
-.radar-touch-guard {
-  display: none;
-}
-
-.radar-lock-scroll-btn {
-  display: none;
-}
-
-/* Active on touch devices and mobile screens where scroll trapping occurs */
-@media (hover: none) and (pointer: coarse), (max-width: 991px) {
-  .radar-touch-guard {
-    display: flex;
-    position: absolute;
-    inset: 0;
-    z-index: 10;
-    align-items: center;
-    justifyContent: center;
-    background: rgba(10, 13, 18, 0.05);
-    cursor: pointer;
-    touch-action: pan-y; /* Passes vertical finger swipes directly to browser compositor thread for 120Hz smooth scrolling */
-    transition: opacity 0.25s ease, visibility 0.25s ease;
+@media (max-width: 768px) {
+  #tracker {
+    scroll-margin-top: 60px;
   }
-
-  .tracker-frame-container.is-interactive .radar-touch-guard {
-    pointer-events: none;
-    opacity: 0;
-    visibility: hidden;
-  }
-
-  .radar-touch-guard-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 18px;
-    background: rgba(15, 18, 25, 0.92);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1.5px solid rgba(251, 175, 51, 0.65);
-    border-radius: 999px;
-    color: #ffffff;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.2px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(251, 175, 51, 0.25);
-    pointer-events: none;
-    transition: transform 0.2s ease, opacity 0.2s ease;
-  }
-
-  .radar-touch-guard-pill i {
-    color: #fbaf33;
-    font-size: 14px;
-  }
-
-  .touch-guard-sub {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--text-muted);
-  }
-
-  .tracker-frame-container.is-interactive .radar-lock-scroll-btn {
-    display: inline-flex !important;
-    position: absolute;
-    bottom: 16px;
-    right: 16px;
-    z-index: 25;
-    align-items: center;
-    gap: 6px;
-    padding: 9px 16px;
-    background: rgba(217, 119, 6, 0.95);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    color: #ffffff;
-    font-size: 12px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 999px;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7);
-    cursor: pointer;
-    animation: fadeIn 0.2s ease;
-  }
-
-  .radar-ctrl-btn.radar-interact-btn.active {
-    background: rgba(217, 119, 6, 0.35);
-    border-color: #d97706;
-    color: #fef08a;
+  .tracker-frame-container {
+    border-radius: var(--radius-xl);
+    margin: 0 auto;
   }
 }
 

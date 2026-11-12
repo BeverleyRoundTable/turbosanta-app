@@ -797,69 +797,6 @@
     });
   }
 
-  function initRadarTouchGuard() {
-    const container = document.getElementById('tracker-frame-container');
-    const guard = document.getElementById('radar-touch-guard');
-    const lockBtn = document.getElementById('radar-lock-scroll-btn');
-    const toggleBtn = document.getElementById('radar-toggle-interact');
-    if (!container || !guard) return;
-
-    let isInteractive = false;
-
-    function setInteractive(active) {
-      isInteractive = active;
-      if (active) {
-        container.classList.add('is-interactive');
-        if (lockBtn) lockBtn.style.display = 'inline-flex';
-        if (toggleBtn) {
-          toggleBtn.classList.add('active');
-          toggleBtn.setAttribute('aria-pressed', 'true');
-          toggleBtn.innerHTML = '<i class="fa-solid fa-lock"></i> <span>Lock Scroll</span>';
-        }
-      } else {
-        container.classList.remove('is-interactive');
-        if (lockBtn) lockBtn.style.display = 'none';
-        if (toggleBtn) {
-          toggleBtn.classList.remove('active');
-          toggleBtn.setAttribute('aria-pressed', 'false');
-          toggleBtn.innerHTML = '<i class="fa-solid fa-hand-pointer"></i> <span>Explore Map</span>';
-        }
-      }
-    }
-
-    // Single tap on guard unlocks interactive mode so user can pan/zoom
-    guard.addEventListener('click', () => {
-      setInteractive(true);
-    });
-
-    if (lockBtn) {
-      lockBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        setInteractive(false);
-      });
-    }
-
-    if (toggleBtn) {
-      toggleBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        setInteractive(!isInteractive);
-      });
-    }
-
-    // Automatically lock back when user scrolls far away from the tracker section
-    let scrollTimeout;
-    window.addEventListener('scroll', () => {
-      if (!isInteractive) return;
-      clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(() => {
-        const rect = container.getBoundingClientRect();
-        if (rect.bottom < 60 || rect.top > window.innerHeight - 60) {
-          setInteractive(false);
-        }
-      }, 300);
-    }, { passive: true });
-  }
-
   function selectRouteAndFocus(routeId, scrollMapIntoView = false, forceLive = false) {
     state.selectedRouteId = routeId ? String(routeId) : null;
     const cards = document.querySelectorAll('[data-route-card]');
@@ -2897,7 +2834,6 @@
   document.addEventListener('DOMContentLoaded', () => {
     initSnowCanvas();
     bindFrameMessages();
-    initRadarTouchGuard();
     bindEvents();
     populateTestLabTablesDropdown();
     loadTableExperience(state.slug, true);
