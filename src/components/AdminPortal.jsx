@@ -470,6 +470,108 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     return cleaned;
   };
 
+  const getVolunteerBriefingDetails = (vol) => {
+    const name = getVolName(vol);
+    const role = getVolRole(vol);
+    const phone = getVolPhone(vol);
+    const email = getVolEmail(vol);
+    const org = getVolOrg(vol);
+    const routeName = getVolRoute(vol);
+    const bucketNum = getVolBucket(vol);
+    const intlPhone = formatPhoneForWhatsApp(phone);
+
+    const routes = tableData?.routes || [];
+    const matchedRoute = routes.find(r => 
+      (routeName && r.name && r.name.toLowerCase() === routeName.toLowerCase()) ||
+      (routeName && r.id && String(r.id) === String(routeName))
+    );
+
+    const tableName = tableData?.table?.name || formData?.name || session?.tableName || 'Round Table';
+    const cleanSlug = String(currentTableSlug || session?.tableId || 'beverley').trim().toLowerCase();
+    const trackerUrl = `https://${cleanSlug}.roundtablesantasleigh.co.uk`;
+
+    let musterTime = matchedRoute?.muster_time;
+    let musterPoint = matchedRoute?.muster_point || matchedRoute?.meeting_point || tableData?.table?.default_muster_point || formData?.default_muster_point || '';
+    
+    if (matchedRoute?.notes) {
+      const match = matchedRoute.notes.match(/<!--\s*ROUTE_META:\s*({.*?})\s*-->/s);
+      if (match && match[1]) {
+        try {
+          const parsed = JSON.parse(match[1]);
+          if (!musterTime && parsed.muster_time) musterTime = parsed.muster_time;
+          if (!musterPoint && parsed.meeting_point) musterPoint = parsed.meeting_point;
+        } catch(e) {}
+      }
+    }
+
+    if (!musterTime && matchedRoute?.start_time) {
+      const parts = matchedRoute.start_time.split(':');
+      if (parts.length >= 2) {
+        let h = parseInt(parts[0], 10);
+        let m = parseInt(parts[1], 10) - 15;
+        if (m < 0) { m += 60; h -= 1; }
+        musterTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      }
+    }
+    if (!musterTime) musterTime = tableData?.table?.default_muster_time || formData?.default_muster_time || '17:45';
+
+    const startTime = matchedRoute?.start_time || '18:00';
+    const endTime = matchedRoute?.end_time || '20:30';
+
+    let dateFormatted = matchedRoute?.date || '';
+    try {
+      if (matchedRoute?.date) {
+        const d = new Date(matchedRoute.date + 'T12:00:00');
+        if (!isNaN(d.getTime())) {
+          dateFormatted = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
+        }
+      }
+    } catch(e) {}
+
+    // 1-Tap WhatsApp Message
+    let waMsg = `🎅 *${tableName.toUpperCase()} SANTA SLEIGH — VOLUNTEER RUN BRIEFING* 🎅\n\n`;
+    waMsg += `Hi ${name}, thank you so much for volunteering with the Santa Sleigh!\n\n`;
+    waMsg += `📍 *Route:* ${matchedRoute?.name || routeName || "Tonight's Tour"}\n`;
+    if (dateFormatted) waMsg += `📅 *Date:* ${dateFormatted}\n`;
+    if (musterPoint) waMsg += `📍 *Meeting Point:* ${musterPoint}\n`;
+    waMsg += `⏰ *Muster Time:* ${musterTime} sharp\n`;
+    waMsg += `🦺 *Rollout:* ${startTime} | *Finish:* ~${endTime}\n`;
+    if (role) waMsg += `🏷️ *Assigned Role:* ${role}\n`;
+    if (bucketNum) waMsg += `🪣 *Collection Bucket:* #${bucketNum}\n`;
+    waMsg += `\n`;
+    waMsg += `🦺 *Volunteer Reminders:*\n`;
+    waMsg += `• Please dress warmly in waterproof layers & sturdy footwear.\n`;
+    waMsg += `• High-vis vest & bucket / QR lanyard provided at muster.\n`;
+    waMsg += `• Keep children safe on pavements; stay 2m clear of vehicle wheels.\n\n`;
+    waMsg += `📱 *Live Tracker:* ${trackerUrl}\n\n`;
+    waMsg += `See you at muster! Let's make it a magical night! 🎅✨`;
+
+    // 1-Tap Email Subject & Body
+    const emailSubject = `🎅 Volunteer Briefing & Muster Reminder — ${matchedRoute?.name || routeName || 'Santa Sleigh'}`;
+    let emailBody = `Hi ${name},\n\n`;
+    emailBody += `Thank you for volunteering with the ${tableName} Santa Sleigh!\n\n`;
+    emailBody += `Here are your run details:\n`;
+    emailBody += `• Route: ${matchedRoute?.name || routeName || "Tonight's Tour"}\n`;
+    if (dateFormatted) emailBody += `• Date: ${dateFormatted}\n`;
+    if (musterPoint) emailBody += `• Meeting Point: ${musterPoint}\n`;
+    emailBody += `• Muster Time: ${musterTime} sharp (Rollout: ${startTime})\n`;
+    if (role) emailBody += `• Assigned Role: ${role}\n`;
+    if (bucketNum) emailBody += `• Collection Bucket: #${bucketNum}\n`;
+    emailBody += `\nImportant Briefing & Reminders:\n`;
+    emailBody += `• Please dress warmly in waterproof layers and sturdy shoes or boots.\n`;
+    emailBody += `• High-visibility vests, collection buckets, and QR badges will be handed out at muster.\n`;
+    emailBody += `• Keep children safely on the pavement and stay alert to passing traffic.\n`;
+    emailBody += `• Maintain a strict 2-metre exclusion zone around the sleigh wheels and tow vehicle.\n\n`;
+    emailBody += `Live Sleigh Tracker: ${trackerUrl}\n\n`;
+    emailBody += `Thank you for helping us bring Christmas joy to local children and raising vital funds for local causes!\n\n`;
+    emailBody += `Warm regards,\n${tableName} Organizers`;
+
+    return {
+      name, role, phone, email, org, route: routeName, bucketNum, intlPhone,
+      waMsg, emailSubject, emailBody
+    };
+  };
+
   const handleEmailAllVolunteers = (volList, routeName) => {
     const emails = Array.from(new Set(
       volList
@@ -7913,14 +8015,8 @@ ${tableName} Organizers`
                         </thead>
                         <tbody>
                           {filteredVolunteers.map((vol, idx) => {
-                            const name = getVolName(vol);
-                            const role = getVolRole(vol);
-                            const phone = getVolPhone(vol);
-                            const email = getVolEmail(vol);
-                            const org = getVolOrg(vol);
-                            const route = getVolRoute(vol);
-                            const intlPhone = formatPhoneForWhatsApp(phone);
-                            const waMsg = `Hi ${name}, thank you for volunteering with the Round Table Santa Sleigh for "${route || 'our route'}"! Here are tonight's muster details...`;
+                            const briefing = getVolunteerBriefingDetails(vol);
+                            const { name, role, phone, email, org, route, intlPhone, waMsg, emailSubject, emailBody } = briefing;
 
                             return (
                               <tr
@@ -8043,7 +8139,7 @@ ${tableName} Organizers`
                                     {/* Email */}
                                     {email ? (
                                       <a
-                                        href={`mailto:${email}?subject=${encodeURIComponent('🎅 Santa Sleigh Volunteer Briefing - ' + (route || 'Upcoming Run'))}&body=${encodeURIComponent('Hi ' + name + ',\n\nThank you for volunteering for the Round Table Santa Sleigh!\n\nRoute: ' + (route || 'Tonight') + '\n\n')}`}
+                                        href={`mailto:${email}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`}
                                         style={{
                                           background: 'rgba(255,255,255,0.08)',
                                           color: 'var(--primary)',
