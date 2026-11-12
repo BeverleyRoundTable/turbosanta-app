@@ -167,8 +167,8 @@
       embedSrc: slug => `/santa_bot.html?table=${encodeURIComponent(slug)}`,
       fullscreenSrc: null,
       fullscreenLabel: '',
-      height: 500,
-      maxWidth: 420,
+      height: 480,
+      maxWidth: 400,
       allowMicrophone: true
     },
     santa_chat: {
@@ -185,8 +185,8 @@
       },
       fullscreenSrc: null,
       fullscreenLabel: '',
-      height: 500,
-      maxWidth: 420,
+      height: 480,
+      maxWidth: 400,
       allowMicrophone: true
     },
     santa_frame: {
