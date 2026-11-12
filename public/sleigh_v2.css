@@ -868,6 +868,16 @@ body {
   line-height: 1.2;
 }
 
+.impact-side-stack.span-full {
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  max-width: 860px !important;
+  margin: 0 auto !important;
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+  gap: 16px !important;
+}
+
 @media (max-width: 640px) {
   .hero-card {
     padding: 24px 14px !important;
@@ -944,6 +954,10 @@ body {
   }
 
   .hero-btn-donate.span-full {
+    grid-column: 1 / -1 !important;
+  }
+
+  .hero-btn-volunteer.span-full {
     grid-column: 1 / -1 !important;
   }
 
@@ -2873,8 +2887,7 @@ body {
   border: 1px solid var(--border-strong);
   border-radius: 20px;
   padding: 7px 8px;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
   gap: 4px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75);
 }
@@ -2886,6 +2899,8 @@ body {
 }
 
 .dock-item {
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;

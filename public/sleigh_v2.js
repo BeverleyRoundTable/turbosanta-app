@@ -28,6 +28,12 @@
     return true;
   }
 
+  function hasDonationLink(tbl = state.payload?.table) {
+    if (!tbl) return false;
+    const url = tbl.donate_url || tbl.justgiving_url || '';
+    return Boolean(url && String(url).trim() && String(url).trim() !== '#' && String(url).trim().toLowerCase() !== 'none');
+  }
+
   const PUBLIC_FEATURE_CATALOG = {
     bingo: {
       id: 'bingo',
@@ -960,6 +966,13 @@
     const heroTown = document.getElementById('hero-town-hl');
     if (heroTown) heroTown.textContent = town;
 
+    const hasDonate = hasDonationLink(table);
+
+    const headerDonateBtn = document.getElementById('header-donate-btn');
+    if (headerDonateBtn) {
+      headerDonateBtn.style.display = hasDonate ? 'inline-flex' : 'none';
+    }
+
     const heroDonateLbl = document.getElementById('hero-donate-label') || document.querySelector('#hero-donate-cta span');
     if (heroDonateLbl) {
       heroDonateLbl.innerHTML = isGiftAidEnabled(table) ? 'Donate <span class="hero-ga-tag">+25%</span>' : 'Donate Online';
@@ -968,12 +981,28 @@
     const isCrewActive = isVolunteerCrewEnabled(table);
     const heroVolunteerLink = document.getElementById('hero-volunteer-cta');
     const heroDonateBtn = document.getElementById('hero-donate-cta');
+    const mobileDockDonate = document.getElementById('mobile-dock-donate');
+
     if (heroVolunteerLink) {
       heroVolunteerLink.href = buildSubdomainToolUrl('/crew');
       heroVolunteerLink.style.display = isCrewActive ? 'inline-flex' : 'none';
+      heroVolunteerLink.classList.toggle('span-full', !hasDonate);
     }
     if (heroDonateBtn) {
+      heroDonateBtn.style.display = hasDonate ? 'inline-flex' : 'none';
       heroDonateBtn.classList.toggle('span-full', !isCrewActive);
+    }
+    if (mobileDockDonate) {
+      mobileDockDonate.style.display = hasDonate ? 'flex' : 'none';
+    }
+
+    const heroSubcopy = document.getElementById('hero-subcopy');
+    if (heroSubcopy) {
+      if (!hasDonate) {
+        heroSubcopy.textContent = 'Follow Santa live on his journey, check when he is visiting your street, and join our Round Table volunteers in bringing festive cheer to the local community this Christmas!';
+      } else {
+        heroSubcopy.textContent = 'Follow Santa live on his journey, check when he is visiting your street, and help our Round Table volunteers raise vital funds for the local community this Christmas!';
+      }
     }
 
     // Announcement Banner
@@ -1420,6 +1449,7 @@
 
   function renderFundraisingAndImpact() {
     const table = state.payload?.table || {};
+    const hasDonate = hasDonationLink(table);
     const currency = table.currency || '£';
     const isGa = isGiftAidEnabled(table);
     const internalRaised = Number(table.total_raised || 0);
@@ -1427,6 +1457,61 @@
     const giftAidBonus = isGa ? Number(state.payload?.gift_aid?.giftAid || 0) : 0;
     const totalRaised = internalRaised + externalRaised + giftAidBonus;
     const goal = Number(table.fundraising_goal || 5000);
+
+    const impactSection = document.getElementById('impact');
+    const navImpactLink = document.getElementById('nav-impact-link');
+    const fundraiserCard = document.getElementById('fundraiser-card');
+    const sideStack = document.getElementById('impact-side-stack');
+
+    const isGrantsActive = isGrantNominationsEnabled(table);
+    const isCrewActive = isVolunteerCrewEnabled(table);
+    const hasAnyImpactContent = Boolean(
+      hasDonate ||
+      totalRaised > 0 ||
+      isCrewActive ||
+      isGrantsActive ||
+      (state.payload?.approved_grants && state.payload.approved_grants.length > 0) ||
+      (state.payload?.partners && state.payload.partners.length > 0)
+    );
+
+    if (impactSection) {
+      impactSection.style.display = hasAnyImpactContent ? '' : 'none';
+    }
+    if (navImpactLink) {
+      navImpactLink.style.display = hasAnyImpactContent ? '' : 'none';
+    }
+
+    const showFundraiserCard = hasDonate || totalRaised > 0;
+    if (fundraiserCard) {
+      fundraiserCard.style.display = showFundraiserCard ? 'block' : 'none';
+    }
+    if (sideStack) {
+      sideStack.classList.toggle('span-full', !showFundraiserCard);
+    }
+
+    const impactEyebrow = document.querySelector('#impact .section-head .section-eyebrow');
+    const impactTitle = document.querySelector('#impact .section-head .section-title');
+    const impactSubtitle = document.querySelector('#impact .section-head .section-subtitle');
+    const grantBeneficiariesTitle = document.querySelector('#grant-beneficiaries-card h3');
+    const grantBeneficiariesDesc = document.querySelector('#grant-beneficiaries-card p');
+
+    if (!showFundraiserCard) {
+      if (impactEyebrow) impactEyebrow.innerHTML = '<i class="fa-solid fa-heart-circle-check"></i> 100% Volunteer Community Sleigh';
+      if (impactTitle) impactTitle.innerHTML = 'SUPPORTING OUR <span class="hl">COMMUNITY</span>';
+      if (impactSubtitle) impactSubtitle.textContent = 'Our volunteers give their evenings for free to bring festive joy to local families, visit residential streets, and support community good causes and local food banks.';
+      if (grantBeneficiariesTitle) grantBeneficiariesTitle.innerHTML = 'SUPPORTING OUR <span class="hl">COMMUNITY</span>';
+      if (grantBeneficiariesDesc) {
+        grantBeneficiariesDesc.innerHTML = `Work carried out by <strong id="impact-charity-name" style="color:#fff;">our Round Table</strong> brings festive joy to families and supports local community projects, schools, and food banks across our area.`;
+      }
+    } else {
+      if (impactEyebrow) impactEyebrow.innerHTML = '<i class="fa-solid fa-heart-circle-check"></i> 100% Volunteer-Run Charity Appeal';
+      if (impactTitle) impactTitle.innerHTML = 'EVERY PENNY STAYS <span class="hl">LOCAL</span>';
+      if (impactSubtitle) impactSubtitle.textContent = 'Our elves give their evenings for free so every pound collected on the doorstep or donated online goes straight to local good causes, grassroots clubs, and families in need.';
+      if (grantBeneficiariesTitle) grantBeneficiariesTitle.innerHTML = 'WHERE YOUR <span class="hl">DONATIONS GO</span>';
+      if (grantBeneficiariesDesc) {
+        grantBeneficiariesDesc.innerHTML = `Funds raised by <strong id="impact-charity-name" style="color:#fff;">our Round Table</strong> directly support local charities, youth groups, schools, and community projects across our area.`;
+      }
+    }
 
     const kicker = document.getElementById('fundraiser-kicker');
     const bigAmt = document.getElementById('fundraiser-big-amount');
@@ -1506,29 +1591,30 @@
     const crewCard = document.getElementById('volunteer-crew-card');
     const heroVolunteerLink = document.getElementById('hero-volunteer-cta');
     const heroDonateBtn = document.getElementById('hero-donate-cta');
-    const isCrewActive = isVolunteerCrewEnabled(table);
     if (crewCard) {
       crewCard.style.display = isCrewActive ? 'block' : 'none';
     }
     if (heroVolunteerLink) {
       heroVolunteerLink.style.display = isCrewActive ? 'inline-flex' : 'none';
+      heroVolunteerLink.classList.toggle('span-full', !hasDonate);
     }
     if (heroDonateBtn) {
+      heroDonateBtn.style.display = hasDonate ? 'inline-flex' : 'none';
       heroDonateBtn.classList.toggle('span-full', !isCrewActive);
     }
 
     // Toggle Gift Aid Calculator and Buttons based on table setting
     const calcBox = document.getElementById('giftaid-calc-box');
-    if (calcBox) calcBox.style.display = isGa ? 'block' : 'none';
+    if (calcBox) calcBox.style.display = (hasDonate && isGa) ? 'block' : 'none';
 
     const cashGaWrap = document.getElementById('impact-cash-ga-wrap');
-    if (cashGaWrap) cashGaWrap.style.display = isGa ? 'block' : 'none';
+    if (cashGaWrap) cashGaWrap.style.display = (hasDonate && isGa) ? 'block' : 'none';
 
     const directBtn = document.getElementById('impact-direct-btn');
     const directLbl = document.getElementById('impact-direct-btn-label');
     const donateUrl = table.donate_url || table.justgiving_url || '';
     if (directBtn) {
-      directBtn.style.display = (isGa && donateUrl) ? 'inline-flex' : 'none';
+      directBtn.style.display = (hasDonate && isGa && donateUrl) ? 'inline-flex' : 'none';
       if (directLbl && donateUrl) {
         const platformName = /zeffy/i.test(donateUrl) ? 'Zeffy' : /justgiving/i.test(donateUrl) ? 'JustGiving' : 'Online Form';
         directLbl.textContent = `Donate Directly (${platformName})`;
@@ -1540,6 +1626,7 @@
 
     const donateBtn = document.getElementById('impact-donate-btn');
     if (donateBtn) {
+      donateBtn.style.display = hasDonate ? 'inline-flex' : 'none';
       donateBtn.innerHTML = isGa
         ? '<i class="fa-solid fa-wand-magic-sparkles"></i><span>Boost by +25% &amp; Donate</span>'
         : '<i class="fa-solid fa-heart"></i><span>Donate Online to Sleigh Appeal</span>';
@@ -1749,6 +1836,15 @@
       return;
     }
 
+    const subEl = section.querySelector('.section-subtitle');
+    if (subEl) {
+      if (!hasDonationLink(state.payload?.table)) {
+        subEl.textContent = 'Our sleigh tour is collecting physical donations on the streets for our official charity partners. Please see guidelines and accepted items below:';
+      } else {
+        subEl.textContent = 'Along with raising funds, our sleigh tour is collecting physical donations on the streets for our official charity partners. Please see guidelines and conditions below:';
+      }
+    }
+
     section.style.display = 'block';
     grid.innerHTML = appeals.map(a => {
       const name = a.name || a.charity_name || 'Special Charity Appeal';
@@ -1943,10 +2039,14 @@
       faqs = DEFAULT_FAQS;
     }
 
-    const validFaqs = faqs.map(f => ({
+    let validFaqs = faqs.map(f => ({
       q: String(f?.q || f?.question || '').trim(),
       a: String(f?.a || f?.answer || '').trim()
     })).filter(f => Boolean(f.q));
+
+    if (!hasDonationLink(state.payload?.table)) {
+      validFaqs = validFaqs.filter(f => !/contactless cards as well as cash|sealed buckets for coins and notes/i.test(`${f.q} ${f.a}`));
+    }
 
     if (validFaqs.length === 0) {
       section.style.display = 'none';
@@ -2285,6 +2385,7 @@
 
   function openDonateFlow(opts = {}) {
     const table = state.payload?.table || {};
+    if (!hasDonationLink(table)) return;
     const donateUrl = table.donate_url || table.justgiving_url || '';
     const isDirect = Boolean(opts && opts.direct);
 
@@ -2804,7 +2905,7 @@
     });
 
     // Open Gift Aid checkout automatically if ?donate=1
-    if (params.get('donate') === '1') {
+    if (params.get('donate') === '1' && hasDonationLink()) {
       setTimeout(openDonateFlow, 600);
     }
   }

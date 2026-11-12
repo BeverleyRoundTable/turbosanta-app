@@ -899,6 +899,11 @@ export default {
         : extractDistinctAreas(tableObj.seo_areas, routesList, cleanTownName);
       const areaPreview = coveredAreasList.slice(0, 15).join(', ');
 
+      const hasDonateUrl = Boolean(
+        (tableObj.donate_url && String(tableObj.donate_url).trim() && String(tableObj.donate_url).trim() !== '#' && String(tableObj.donate_url).trim().toLowerCase() !== 'none') ||
+        (tableObj.justgiving_url && String(tableObj.justgiving_url).trim() && String(tableObj.justgiving_url).trim() !== '#' && String(tableObj.justgiving_url).trim().toLowerCase() !== 'none')
+      );
+
       // Build High-Intent Search Engine Title & Meta Description
       const isMainTownLanding = !isNationalScope && canonicalPath === '/' && templateFile === '/sleigh_v2.html';
       let seoTitle;
@@ -919,9 +924,11 @@ export default {
         if (tableObj.seo_description && String(tableObj.seo_description).trim()) {
           seoDescription = String(tableObj.seo_description).trim();
         } else if (routesList.length > 0) {
-          seoDescription = `Official ${cleanTownName} Round Table Santa Sleigh ${seasonYear} live GPS tracker & street schedule (${routesList.length} route nights${areaPreview ? ` covering ${areaPreview}` : ''}). Check when Father Christmas visits your street, set doorstep alerts & donate locally.`;
+          const ctaAction = hasDonateUrl ? 'donate locally' : 'support our community';
+          seoDescription = `Official ${cleanTownName} Round Table Santa Sleigh ${seasonYear} live GPS tracker & street schedule (${routesList.length} route nights${areaPreview ? ` covering ${areaPreview}` : ''}). Check when Father Christmas visits your street, set doorstep alerts & ${ctaAction}.`;
         } else {
-          seoDescription = `Official ${cleanTownName} Round Table Santa Sleigh live GPS tracker, December street route dates${areaPreview ? ` (${areaPreview})` : ''}, doorstep alerts, and local community charity appeal.`;
+          const ctaTopic = hasDonateUrl ? 'local community charity appeal' : 'local community festive tour';
+          seoDescription = `Official ${cleanTownName} Round Table Santa Sleigh live GPS tracker, December street route dates${areaPreview ? ` (${areaPreview})` : ''}, doorstep alerts, and ${ctaTopic}.`;
         }
       } else {
         seoDescription = `${cleanTownName} Round Table Santa Sleigh: ${modeDescSuffix}${areaPreview ? ` Covering ${cleanTownName}, ${areaPreview}.` : ''}`;
@@ -1068,9 +1075,12 @@ export default {
                 q: `How do I track the ${cleanTownName} Santa Sleigh live tonight?`,
                 a: `Open the live GPS Sleigh Radar at ${canonicalOrigin}/tracker on any phone or computer to watch Santa move turn-by-turn in real time, or set a free 250m Doorstep Alert.`
               },
-              {
+              hasDonateUrl ? {
                 q: `Do ${cleanTownName} Round Table sleigh elves accept contactless card donations as well as cash?`,
                 a: `Yes! Volunteer collectors carry traditional sealed cash buckets alongside QR codes and online donation options, with 100% of proceeds supporting local ${cleanTownName} charities and good causes.`
+              } : {
+                q: `How can I support our local ${cleanTownName} Santa Sleigh?`,
+                a: `You can support us by coming out to wave to Santa, sharing our live tracker with friends and neighbours, or volunteering as an elf to walk alongside the sleigh!`
               }
             ];
           }
@@ -1164,7 +1174,9 @@ export default {
 
       // Pre-render Town-Specific Semantic HTML into sleigh_v2.html for Wave-1 Search Engine Crawlers
       if (isMainTownLanding) {
-        const ssrSubcopy = `Follow the official ${cleanTownName} Round Table Santa Sleigh live on GPS radar${coveredAreasList.length > 0 ? ` across ${cleanTownName}, ${coveredAreasList.slice(0, 15).join(', ')}` : ''}, check street-by-street December route dates and times, set automatic doorstep alerts, and help our volunteers raise vital funds for local causes.`;
+        const ssrSubcopy = hasDonateUrl
+          ? `Follow the official ${cleanTownName} Round Table Santa Sleigh live on GPS radar${coveredAreasList.length > 0 ? ` across ${cleanTownName}, ${coveredAreasList.slice(0, 15).join(', ')}` : ''}, check street-by-street December route dates and times, set automatic doorstep alerts, and help our volunteers raise vital funds for local causes.`
+          : `Follow the official ${cleanTownName} Round Table Santa Sleigh live on GPS radar${coveredAreasList.length > 0 ? ` across ${cleanTownName}, ${coveredAreasList.slice(0, 15).join(', ')}` : ''}, check street-by-street December route dates and times, set automatic doorstep alerts, and join our volunteers in bringing festive cheer to our local community this Christmas!`;
 
         const ssrRoutesHtml = routesList.length > 0
           ? routesList.slice(0, 24).map((r) => {
@@ -1249,6 +1261,29 @@ export default {
               el.setInnerContent(rawDisplayName);
             }
           });
+
+        if (!hasDonateUrl) {
+          rewriter = rewriter
+            .on('#header-donate-btn', {
+              element(el) { el.setAttribute('style', 'display:none;'); }
+            })
+            .on('#hero-donate-cta', {
+              element(el) { el.setAttribute('style', 'display:none;'); }
+            })
+            .on('#mobile-dock-donate', {
+              element(el) { el.setAttribute('style', 'display:none;'); }
+            });
+
+          if (Number(tableObj.total_raised || 0) <= 0) {
+            rewriter = rewriter
+              .on('#fundraiser-card', {
+                element(el) { el.setAttribute('style', 'display:none;'); }
+              })
+              .on('#impact-side-stack', {
+                element(el) { el.setAttribute('class', 'impact-side-stack span-full'); }
+              });
+          }
+        }
       }
 
       const responseHeaders = {
