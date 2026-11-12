@@ -8,6 +8,7 @@ const STANDARD_ROLES = [
   { id: 'Collections', label: '🪣 Collections (Bucket Collector)', badgeColor: '#22c55e' },
   { id: 'Safety Walkers', label: '🦺 Safety Walkers (Flank Marshal)', badgeColor: '#10b981' },
   { id: 'Santa', label: '🎅 Santa Claus', badgeColor: '#ef4444' },
+  { id: 'Tech/GPS', label: '📡 Tech / GPS Operator', badgeColor: '#06b6d4' },
   { id: 'Navigator', label: '🗺️ Navigator / Lead Marshal', badgeColor: '#f59e0b' },
   { id: 'Music Operator', label: '🎶 Music & Sound Operator', badgeColor: '#8b5cf6' },
   { id: 'General Elf', label: '🎄 General Elf / Helper', badgeColor: '#eab308' },

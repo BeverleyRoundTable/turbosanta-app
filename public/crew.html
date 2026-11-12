@@ -803,6 +803,7 @@ function updateRoleDropdown(capacity) {
       if (rfLower.includes('santa') && rLower.includes('santa')) return true;
       if (rfLower.includes('driver') && rLower.includes('driver')) return true;
       if ((rfLower.includes('lead') || rfLower.includes('navigator')) && (rLower.includes('lead') || rLower.includes('navigator'))) return true;
+      if ((rfLower.includes('tech') || rfLower.includes('gps')) && (rLower.includes('tech') || rLower.includes('gps'))) return true;
       if ((rfLower.includes('collect') || rfLower.includes('bucket')) && (rLower.includes('collect') || rLower.includes('bucket'))) return true;
       if ((rfLower.includes('marshal') || rfLower.includes('walker')) && (rLower.includes('marshal') || rLower.includes('walker'))) return true;
       return false;

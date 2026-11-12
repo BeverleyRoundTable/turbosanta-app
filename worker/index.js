@@ -1793,6 +1793,7 @@ export default {
         let maxLeadMarshals = 1;
         let maxCollectors = 8;
         let maxMarshals = 4;
+        let maxTech = 1;
         let volunteerClosed = false;
 
         if (r.notes) {
@@ -1806,6 +1807,7 @@ export default {
               if (p.max_lead_marshals !== undefined) maxLeadMarshals = Number(p.max_lead_marshals);
               if (p.max_collectors !== undefined) maxCollectors = Number(p.max_collectors);
               if (p.max_marshals !== undefined) maxMarshals = Number(p.max_marshals);
+              if (p.max_tech !== undefined) maxTech = Number(p.max_tech);
               if (p.volunteer_closed !== undefined) volunteerClosed = Boolean(p.volunteer_closed);
             } catch(e) {}
           }
@@ -1822,6 +1824,7 @@ export default {
         let leadMarshalCount = 0;
         let collectorCount = 0;
         let marshalCount = 0;
+        let techCount = 0;
 
         for (const vRow of matchedVolRows) {
           const cnt = Number(vRow.count) || 1;
@@ -1830,6 +1833,7 @@ export default {
           if (roleStr.includes('santa')) santaCount += cnt;
           else if (roleStr.includes('driver') || roleStr.includes('tow')) driverCount += cnt;
           else if (roleStr.includes('lead') && roleStr.includes('marshal')) leadMarshalCount += cnt;
+          else if (roleStr.includes('tech') || roleStr.includes('gps')) techCount += cnt;
           else if (roleStr.includes('bucket') || roleStr.includes('collector') || roleStr.includes('elf') || roleStr.includes('collection')) collectorCount += cnt;
           else if (roleStr.includes('marshal') || roleStr.includes('walker') || roleStr.includes('safety') || roleStr.includes('navigator')) marshalCount += cnt;
         }
@@ -1838,6 +1842,7 @@ export default {
         if (santaCount >= maxSantas) rolesFull.push('Santa');
         if (driverCount >= maxDrivers) rolesFull.push('Driver', 'Tow Driver');
         if (leadMarshalCount >= maxLeadMarshals) rolesFull.push('Lead Marshall', 'Lead Elf', 'Navigator');
+        if (techCount >= maxTech) rolesFull.push('Tech/GPS', 'GPS/Tech');
         if (collectorCount >= maxCollectors) rolesFull.push('Collections', 'Bucket Collector', 'General Elf');
         if (marshalCount >= maxMarshals) rolesFull.push('Safety Walkers', 'Safety Marshall');
 
@@ -1851,6 +1856,7 @@ export default {
           max_lead_marshals: maxLeadMarshals,
           max_collectors: maxCollectors,
           max_marshals: maxMarshals,
+          max_tech: maxTech,
           current_total: totalVolCount,
           slots_remaining: slotsRemaining,
           is_full: isFull,
@@ -1862,7 +1868,8 @@ export default {
             driver: driverCount,
             lead_marshal: leadMarshalCount,
             collector: collectorCount,
-            marshal: marshalCount
+            marshal: marshalCount,
+            tech: techCount
           }
         };
 
@@ -5747,6 +5754,7 @@ export default {
             let maxLeadMarshals = 1;
             let maxCollectors = 8;
             let maxMarshals = 4;
+            let maxTech = 1;
             let volunteerClosed = false;
 
             if (targetRouteObj.notes) {
@@ -5760,6 +5768,7 @@ export default {
                   if (p.max_lead_marshals !== undefined) maxLeadMarshals = Number(p.max_lead_marshals);
                   if (p.max_collectors !== undefined) maxCollectors = Number(p.max_collectors);
                   if (p.max_marshals !== undefined) maxMarshals = Number(p.max_marshals);
+                  if (p.max_tech !== undefined) maxTech = Number(p.max_tech);
                   if (p.volunteer_closed !== undefined) volunteerClosed = Boolean(p.volunteer_closed);
                 } catch(e) {}
               }
@@ -5778,7 +5787,7 @@ export default {
               "SELECT role, COUNT(*) as cnt FROM volunteers WHERE (table_id = ? OR table_id = ?) AND (route_id = ? OR route_name = ?) GROUP BY role"
             ).bind(table.id, table.slug, targetRouteObj.id, targetRouteObj.name).all().then(r => r.results || []).catch(() => []);
 
-            let totalCnt = 0, santaCnt = 0, driverCnt = 0, leadCnt = 0, collectorCnt = 0, marshalCnt = 0;
+            let totalCnt = 0, santaCnt = 0, driverCnt = 0, leadCnt = 0, collectorCnt = 0, marshalCnt = 0, techCnt = 0;
             for (const row of existingRows) {
               const c = Number(row.cnt) || 1;
               totalCnt += c;
@@ -5786,6 +5795,7 @@ export default {
               if (rRole.includes("santa")) santaCnt += c;
               else if (rRole.includes("driver") || rRole.includes("tow")) driverCnt += c;
               else if (rRole.includes("lead") && rRole.includes("marshal")) leadCnt += c;
+              else if (rRole.includes("tech") || rRole.includes("gps")) techCnt += c;
               else if (rRole.includes("bucket") || rRole.includes("collector") || rRole.includes("elf") || rRole.includes("collection")) collectorCnt += c;
               else if (rRole.includes("marshal") || rRole.includes("walker") || rRole.includes("safety") || rRole.includes("navigator")) marshalCnt += c;
             }
@@ -5818,6 +5828,13 @@ export default {
                 ok: false,
                 full: true,
                 error: `The Lead Marshall position for "${targetRouteObj.name}" is already filled. Please choose another role.`
+              }, 409);
+            }
+            if ((reqRole.includes("tech") || reqRole.includes("gps")) && techCnt >= maxTech) {
+              return jsonResponse({
+                ok: false,
+                full: true,
+                error: `Tech/GPS Operator slots for "${targetRouteObj.name}" are full (${techCnt}/${maxTech}). Please choose another role (such as Bucket Collector or Safety Marshall).`
               }, 409);
             }
             if ((reqRole.includes("bucket") || reqRole.includes("collector") || reqRole.includes("collection")) && collectorCnt >= maxCollectors) {

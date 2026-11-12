@@ -81,6 +81,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
     let max_lead_marshals = 1;
     let max_collectors = 8;
     let max_marshals = 4;
+    let max_tech = 1;
     let volunteer_closed = false;
 
     if (r?.notes) {
@@ -101,13 +102,14 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
           if (parsed.max_lead_marshals !== undefined) max_lead_marshals = Number(parsed.max_lead_marshals);
           if (parsed.max_collectors !== undefined) max_collectors = Number(parsed.max_collectors);
           if (parsed.max_marshals !== undefined) max_marshals = Number(parsed.max_marshals);
+          if (parsed.max_tech !== undefined) max_tech = Number(parsed.max_tech);
           if (parsed.volunteer_closed !== undefined) volunteer_closed = Boolean(parsed.volunteer_closed);
         } catch(e) {}
       }
     }
     return {
       meeting_point, muster_time, route_type, static_stop_name, static_stop_time, lead_marshal, tow_driver,
-      max_volunteers, max_santas, max_drivers, max_lead_marshals, max_collectors, max_marshals, volunteer_closed
+      max_volunteers, max_santas, max_drivers, max_lead_marshals, max_collectors, max_marshals, max_tech, volunteer_closed
     };
   };
 
@@ -141,6 +143,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
     max_lead_marshals: initialMeta.max_lead_marshals,
     max_collectors: initialMeta.max_collectors,
     max_marshals: initialMeta.max_marshals,
+    max_tech: initialMeta.max_tech !== undefined ? initialMeta.max_tech : 1,
     volunteer_closed: initialMeta.volunteer_closed
   });
 
@@ -189,7 +192,15 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
       sponsor_name: route?.sponsor_name || '',
       sponsor_link: route?.sponsor_link || '',
       sponsor_description: route?.sponsor_description || '',
-      sponsor_logo_url: route?.sponsor_logo_url || route?.sponsor_logo || ''
+      sponsor_logo_url: route?.sponsor_logo_url || route?.sponsor_logo || '',
+      max_volunteers: meta.max_volunteers,
+      max_santas: meta.max_santas,
+      max_drivers: meta.max_drivers,
+      max_lead_marshals: meta.max_lead_marshals,
+      max_collectors: meta.max_collectors,
+      max_marshals: meta.max_marshals,
+      max_tech: meta.max_tech,
+      volunteer_closed: meta.volunteer_closed
     });
     setGpxStats(
       route?.gpx_url
@@ -463,6 +474,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
       max_lead_marshals: parseInt(formData.max_lead_marshals, 10) || 1,
       max_collectors: parseInt(formData.max_collectors, 10) || 8,
       max_marshals: parseInt(formData.max_marshals, 10) || 4,
+      max_tech: (formData.max_tech !== undefined && !isNaN(parseInt(formData.max_tech, 10))) ? parseInt(formData.max_tech, 10) : 1,
       volunteer_closed: Boolean(formData.volunteer_closed)
     };
     const hasMeta = Boolean(
@@ -1044,6 +1056,19 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                     max="50"
                     value={formData.max_marshals !== undefined ? formData.max_marshals : 4}
                     onChange={(e) => setFormData(prev => ({ ...prev, max_marshals: parseInt(e.target.value, 10) || 4 }))}
+                    style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>
+                    📡 Tech / GPS (Max)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="10"
+                    value={formData.max_tech !== undefined ? formData.max_tech : 1}
+                    onChange={(e) => setFormData(prev => ({ ...prev, max_tech: e.target.value === '' ? 0 : (parseInt(e.target.value, 10) || 0) }))}
                     style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
                   />
                 </div>
