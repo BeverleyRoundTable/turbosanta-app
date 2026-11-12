@@ -668,7 +668,7 @@ export default function PublicDirectory({ session, onNavigateAdmin, onSelectTabl
               return (
                 <a
                   key={t.slug}
-                  href={(t.slug === 'shirley' || t.website_url) ? (t.website_url || 'https://shirleyroundtable.co.uk/') : `https://${t.slug}.roundtablesantasleigh.co.uk/`}
+                  href={`https://${encodeURIComponent(String(t.slug || '').toLowerCase().trim())}.roundtablesantasleigh.co.uk/`}
                   onClick={(e) => {
                     const host = typeof window !== 'undefined' ? window.location.hostname.toLowerCase() : '';
                     if (host.includes('roundtablesantasleigh.co.uk')) {

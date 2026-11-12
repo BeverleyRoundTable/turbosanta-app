@@ -3368,8 +3368,8 @@ ${tableName} Organizers`
 
             <a
               href={(() => {
-                const townSlug = encodeURIComponent((session.tableSlug || session.tableId || 'beverley').toLowerCase());
-                const token = session.token || session.googleCredential || getAdminAuthToken(session.tableSlug || session.tableId || 'beverley');
+                const townSlug = encodeURIComponent((currentTableSlug || session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley').toLowerCase());
+                const token = session?.token || session?.googleCredential || getAdminAuthToken(currentTableSlug || session?.tableSlug || session?.tableId || 'beverley');
                 const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';
                 return `https://${townSlug}.roundtablesantasleigh.co.uk/godmode${tokenParam}`;
               })()}
@@ -3384,7 +3384,7 @@ ${tableName} Organizers`
             </a>
 
             <a
-              href={`https://${encodeURIComponent((session.tableSlug || session.tableId || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/guide`}
+              href={`https://${encodeURIComponent((currentTableSlug || session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/guide`}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-secondary"
@@ -3454,11 +3454,9 @@ ${tableName} Organizers`
             </a>
 
             <a
-              href={(session.tableSlug === 'shirley' || tableData?.table?.website_url)
-                ? (tableData?.table?.website_url || 'https://shirleyroundtable.co.uk/')
-                : (typeof window !== 'undefined' && window.location.hostname.includes('roundtablesantasleigh.co.uk')
-                  ? `https://${encodeURIComponent((session.tableSlug || session.tableId || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/`
-                  : `/?table=${encodeURIComponent(session.tableSlug || session.tableId || 'beverley')}&public=1`)}
+              href={(typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+                ? `/?table=${encodeURIComponent((currentTableSlug || session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley').toLowerCase())}&public=1`
+                : `https://${encodeURIComponent((currentTableSlug || session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/`}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-secondary"
