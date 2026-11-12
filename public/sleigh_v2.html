@@ -128,26 +128,32 @@
           </p>
 
           <div class="hero-cta-row">
-            <a href="#tracker" class="btn-brand">
-              <i class="fa-solid fa-satellite-dish"></i>
-              <span>Watch Live Tracker</span>
-            </a>
-            <a href="#streets" class="btn-glass">
+            <div class="hero-tracker-row">
+              <a href="#tracker" class="btn-brand hero-btn-tracker">
+                <i class="fa-solid fa-satellite-dish"></i>
+                <span>Watch Live Tracker</span>
+              </a>
+              <button type="button" id="hero-share-cta" class="btn-glass hero-btn-share" aria-label="Share sleigh tracker">
+                <i class="fa-solid fa-share-nodes"></i>
+                <span>Share</span>
+              </button>
+            </div>
+            <a href="#streets" class="btn-glass hero-btn-street">
               <i class="fa-solid fa-magnifying-glass-location" style="color:var(--primary);"></i>
               <span>Find My Street</span>
             </a>
-            <button type="button" id="hero-donate-cta" class="btn-glass">
-              <i class="fa-solid fa-hand-holding-heart" style="color:var(--primary);"></i>
-              <span id="hero-donate-label">Donate Online</span>
-            </button>
-            <button type="button" id="hero-alert-cta" class="btn-glass">
+            <button type="button" id="hero-alert-cta" class="btn-glass hero-btn-alert">
               <i class="fa-solid fa-bell" style="color:var(--primary);"></i>
               <span>Doorstep Alert</span>
             </button>
-            <button type="button" id="hero-share-cta" class="btn-glass" aria-label="Share sleigh tracker">
-              <i class="fa-solid fa-share-nodes"></i>
-              <span>Share</span>
+            <button type="button" id="hero-donate-cta" class="btn-glass hero-btn-donate">
+              <i class="fa-solid fa-hand-holding-heart" style="color:var(--primary);"></i>
+              <span id="hero-donate-label">Donate Online</span>
             </button>
+            <a id="hero-volunteer-cta" href="/crew" target="_blank" rel="noopener" class="btn-glass hero-btn-volunteer">
+              <i class="fa-solid fa-users" style="color:var(--primary);"></i>
+              <span>Volunteer</span>
+            </a>
           </div>
 
           <!-- Live Town Route Coverage Metrics -->
@@ -159,10 +165,6 @@
             <div class="hero-metric-tile">
               <div class="hero-metric-val brand-font tabular" id="metric-streets">--</div>
               <div class="hero-metric-lbl">Streets Covered</div>
-            </div>
-            <div class="hero-metric-tile">
-              <div class="hero-metric-val brand-font tabular" id="metric-local">100%</div>
-              <div class="hero-metric-lbl">To Local Causes</div>
             </div>
           </div>
         </div>

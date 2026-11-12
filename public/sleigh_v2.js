@@ -962,7 +962,18 @@
 
     const heroDonateLbl = document.getElementById('hero-donate-label') || document.querySelector('#hero-donate-cta span');
     if (heroDonateLbl) {
-      heroDonateLbl.textContent = isGiftAidEnabled(table) ? 'Donate (+25% Gift Aid)' : 'Donate Online';
+      heroDonateLbl.innerHTML = isGiftAidEnabled(table) ? 'Donate <span class="hero-ga-tag">+25%</span>' : 'Donate Online';
+    }
+
+    const isCrewActive = isVolunteerCrewEnabled(table);
+    const heroVolunteerLink = document.getElementById('hero-volunteer-cta');
+    const heroDonateBtn = document.getElementById('hero-donate-cta');
+    if (heroVolunteerLink) {
+      heroVolunteerLink.href = buildSubdomainToolUrl('/crew');
+      heroVolunteerLink.style.display = isCrewActive ? 'inline-flex' : 'none';
+    }
+    if (heroDonateBtn) {
+      heroDonateBtn.classList.toggle('span-full', !isCrewActive);
     }
 
     // Announcement Banner
@@ -1110,15 +1121,8 @@
   function renderHeroMetrics() {
     const routesEl = document.getElementById('metric-routes');
     const streetsEl = document.getElementById('metric-streets');
-    const localEl = document.getElementById('metric-local');
     if (routesEl) routesEl.textContent = String(state.routes.length || 0);
     if (streetsEl) streetsEl.textContent = String(state.allStreetRecords.length || (state.payload?.streets?.length || 0));
-
-    const partnersCount = (state.payload?.partners?.length || 0);
-    const grantsCount = (state.payload?.approved_grants?.length || 0);
-    if (localEl) {
-      localEl.textContent = (partnersCount + grantsCount) > 0 ? '100%' : '100%';
-    }
   }
 
   function renderRoutesGrid() {
@@ -1500,9 +1504,17 @@
 
     // Toggle Volunteer Crew Card based on table setting
     const crewCard = document.getElementById('volunteer-crew-card');
+    const heroVolunteerLink = document.getElementById('hero-volunteer-cta');
+    const heroDonateBtn = document.getElementById('hero-donate-cta');
     const isCrewActive = isVolunteerCrewEnabled(table);
     if (crewCard) {
       crewCard.style.display = isCrewActive ? 'block' : 'none';
+    }
+    if (heroVolunteerLink) {
+      heroVolunteerLink.style.display = isCrewActive ? 'inline-flex' : 'none';
+    }
+    if (heroDonateBtn) {
+      heroDonateBtn.classList.toggle('span-full', !isCrewActive);
     }
 
     // Toggle Gift Aid Calculator and Buttons based on table setting
