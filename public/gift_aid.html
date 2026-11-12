@@ -403,7 +403,7 @@
     document.title = 'Gift Aid — ' + name;
 
     tableDonateUrl = settings.donate_url || settings.justgiving_url || '';
-    if (tableDonateUrl) {
+    if (tableDonateUrl && isCheckoutFlow) {
       const contWrap = document.getElementById('continueDonateWrap');
       const contBtn = document.getElementById('continueDonateBtn');
       if (contWrap && contBtn) {
