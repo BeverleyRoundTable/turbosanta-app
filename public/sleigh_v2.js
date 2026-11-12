@@ -1494,6 +1494,7 @@
     const impactSubtitle = document.querySelector('#impact .section-head .section-subtitle');
     const grantBeneficiariesTitle = document.querySelector('#grant-beneficiaries-card h3');
     const grantBeneficiariesDesc = document.querySelector('#grant-beneficiaries-card p');
+    const volunteerCrewDesc = document.querySelector('#volunteer-crew-card p');
 
     if (!showFundraiserCard) {
       if (impactEyebrow) impactEyebrow.innerHTML = '<i class="fa-solid fa-heart-circle-check"></i> 100% Volunteer Community Sleigh';
@@ -1503,6 +1504,9 @@
       if (grantBeneficiariesDesc) {
         grantBeneficiariesDesc.innerHTML = `Work carried out by <strong id="impact-charity-name" style="color:#fff;">our Round Table</strong> brings festive joy to families and supports local community projects, schools, and food banks across our area.`;
       }
+      if (volunteerCrewDesc) {
+        volunteerCrewDesc.textContent = 'Community groups, sports clubs, friends, and neighbours are welcome! Help us spread festive cheer and support our local community.';
+      }
     } else {
       if (impactEyebrow) impactEyebrow.innerHTML = '<i class="fa-solid fa-heart-circle-check"></i> 100% Volunteer-Run Charity Appeal';
       if (impactTitle) impactTitle.innerHTML = 'EVERY PENNY STAYS <span class="hl">LOCAL</span>';
@@ -1510,6 +1514,9 @@
       if (grantBeneficiariesTitle) grantBeneficiariesTitle.innerHTML = 'WHERE YOUR <span class="hl">DONATIONS GO</span>';
       if (grantBeneficiariesDesc) {
         grantBeneficiariesDesc.innerHTML = `Funds raised by <strong id="impact-charity-name" style="color:#fff;">our Round Table</strong> directly support local charities, youth groups, schools, and community projects across our area.`;
+      }
+      if (volunteerCrewDesc) {
+        volunteerCrewDesc.textContent = 'Community groups, sports clubs, friends, and neighbours are welcome! Help us walk the streets with buckets and spread festive cheer.';
       }
     }
 
@@ -1580,7 +1587,6 @@
 
     const grantWrap = document.getElementById('grant-action-wrap');
     const grantBtn = document.getElementById('open-grant-btn');
-    const isGrantsActive = isGrantNominationsEnabled(table);
     if (grantWrap) {
       grantWrap.style.display = isGrantsActive ? 'block' : 'none';
     } else if (grantBtn) {
