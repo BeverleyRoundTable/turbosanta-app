@@ -312,6 +312,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   const [isVolunteerEditorOpen, setIsVolunteerEditorOpen] = useState(false);
   const [editingVolunteer, setEditingVolunteer] = useState(null);
   const [isBulkCrewModalOpen, setIsBulkCrewModalOpen] = useState(false);
+  const [selectedVolunteerIds, setSelectedVolunteerIds] = useState(new Set());
 
   // Automated 2-Hour Crew Briefings State
   const [isBriefingDispatching, setIsBriefingDispatching] = useState(false);
@@ -741,6 +742,35 @@ ${tableName} Organizers`
   const handleOpenVolunteerEditor = (vol = null) => {
     setEditingVolunteer(vol);
     setIsVolunteerEditorOpen(true);
+  };
+
+  const handleBulkDeleteVolunteers = async () => {
+    if (!selectedVolunteerIds || selectedVolunteerIds.size === 0) return;
+    const count = selectedVolunteerIds.size;
+    if (!window.confirm(`Are you sure you want to remove ${count} selected volunteer(s) from the roster? This cannot be undone.`)) {
+      return;
+    }
+
+    const slug = currentTableSlug || session?.tableSlug || session?.tableId || 'beverley';
+    const secret = session?.googleCredential || session?.token || getAdminAuthToken(slug);
+
+    setSaveStatus(`Removing ${count} volunteer(s)...`);
+    const idsToDelete = Array.from(selectedVolunteerIds);
+    let successCount = 0;
+
+    for (const id of idsToDelete) {
+      try {
+        const res = await deleteVolunteer(slug, id, secret);
+        if (res && res.ok) successCount++;
+      } catch (e) {
+        console.error(`Failed to delete volunteer ${id}:`, e);
+      }
+    }
+
+    setVolunteers(prev => prev.filter(v => !selectedVolunteerIds.has(v.id || v)));
+    setSelectedVolunteerIds(new Set());
+    setSaveStatus(`✅ Successfully removed ${successCount} of ${count} volunteer(s).`);
+    setTimeout(() => setSaveStatus(''), 3000);
   };
 
   const handleDeleteVolunteer = async (vol) => {
@@ -7986,6 +8016,31 @@ ${tableName} Organizers`
                         <span>Add Volunteer</span>
                       </button>
 
+                      {/* Bulk Delete Selected */}
+                      {selectedVolunteerIds.size > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleBulkDeleteVolunteers}
+                          style={{
+                            padding: '8px 14px',
+                            fontSize: '12px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: 'rgba(239, 68, 68, 0.2)',
+                            border: '1px solid rgba(239, 68, 68, 0.5)',
+                            color: '#f87171',
+                            fontWeight: 700,
+                            borderRadius: '6px',
+                            cursor: 'pointer'
+                          }}
+                          title={`Delete ${selectedVolunteerIds.size} selected volunteers`}
+                        >
+                          <Trash2 size={14} />
+                          <span>Delete Selected (${selectedVolunteerIds.size})</span>
+                        </button>
+                      )}
+
                       {/* Bulk Crew Multi-Run Sign Up */}
                       <button
                         type="button"
@@ -8144,6 +8199,21 @@ ${tableName} Organizers`
                       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                         <thead>
                           <tr style={{ background: '#151513', borderBottom: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                            <th style={{ padding: '12px 14px', width: '38px', textAlign: 'center' }}>
+                              <input
+                                type="checkbox"
+                                checked={filteredVolunteers.length > 0 && filteredVolunteers.every(v => selectedVolunteerIds.has(v.id))}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedVolunteerIds(new Set(filteredVolunteers.map(v => v.id)));
+                                  } else {
+                                    setSelectedVolunteerIds(new Set());
+                                  }
+                                }}
+                                style={{ cursor: 'pointer', accentColor: 'var(--primary)', width: '15px', height: '15px' }}
+                                title="Select all matching volunteers"
+                              />
+                            </th>
                             <th style={{ padding: '12px 14px' }}>Volunteer</th>
                             <th style={{ padding: '12px 14px' }}>Role</th>
                             <th style={{ padding: '12px 14px' }}>Route Night</th>
@@ -8161,9 +8231,27 @@ ${tableName} Organizers`
                                 key={vol.id || idx}
                                 style={{
                                   borderBottom: idx < filteredVolunteers.length - 1 ? '1px solid rgba(255, 255, 255, 0.05)' : 'none',
-                                  background: idx % 2 === 0 ? '#0d0d0b' : '#11110f'
+                                  background: selectedVolunteerIds.has(vol.id) ? 'rgba(251, 175, 51, 0.08)' : (idx % 2 === 0 ? '#0d0d0b' : '#11110f')
                                 }}
                               >
+                                {/* Row Checkbox */}
+                                <td style={{ padding: '12px 14px', verticalAlign: 'middle', width: '38px', textAlign: 'center' }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedVolunteerIds.has(vol.id)}
+                                    onChange={(e) => {
+                                      const vId = vol.id;
+                                      setSelectedVolunteerIds(prev => {
+                                        const next = new Set(prev);
+                                        if (e.target.checked) next.add(vId);
+                                        else next.delete(vId);
+                                        return next;
+                                      });
+                                    }}
+                                    style={{ cursor: 'pointer', accentColor: 'var(--primary)', width: '15px', height: '15px' }}
+                                    title={`Select ${name}`}
+                                  />
+                                </td>
                                 {/* Volunteer & Org */}
                                 <td style={{ padding: '12px 14px', verticalAlign: 'middle' }}>
                                   <div style={{ fontWeight: 700, color: '#fff', fontSize: '13.5px' }}>{name}</div>
