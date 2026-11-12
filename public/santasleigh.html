@@ -2122,6 +2122,11 @@
             requestAnimationFrame(draw);
         })();
 
+        function isManagedGiftAidPlatform(url) {
+            if (!url || typeof url !== 'string') return false;
+            return /justgiving\.com|paypal\.com|paypal\.me|enthuse\.com|charitycheckout\.co\.uk|crowdfunder\.co\.uk|wonderful\.org|gofundme\.com/i.test(url);
+        }
+
         function safeUrl(u) {
             if (!u) return '';
             const s = String(u).trim();
@@ -3044,7 +3049,7 @@
                 donateBtn.href = donateUrl;
                 donateBtn.style.display = 'inline-flex';
                 donateBtn.onclick = (e) => {
-                    if (settings.enable_gift_aid) {
+                    if (settings.enable_gift_aid && !isManagedGiftAidPlatform(donateUrl)) {
                         e.preventDefault();
                         openGiftAidCheckoutModal(donateUrl, settings);
                     }
@@ -3053,7 +3058,7 @@
                     const params = new URLSearchParams(window.location.search);
                     if (params.get('donate') === '1') {
                         autoDonateParamHandled = true;
-                        if (settings.enable_gift_aid) {
+                        if (settings.enable_gift_aid && !isManagedGiftAidPlatform(donateUrl)) {
                             setTimeout(() => openGiftAidCheckoutModal(donateUrl, settings), 400);
                         } else {
                             window.location.href = donateUrl;

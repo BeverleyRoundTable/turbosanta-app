@@ -74,6 +74,22 @@ function getEquivalentDateNextYear(dateStr) {
   return `${y}-${m}-${dd}`;
 }
 
+export function isManagedGiftAidPlatform(url) {
+  if (!url || typeof url !== 'string') return false;
+  return /justgiving\.com|paypal\.com|paypal\.me|enthuse\.com|charitycheckout\.co\.uk|crowdfunder\.co\.uk|wonderful\.org|gofundme\.com/i.test(url);
+}
+
+export function getManagedPlatformName(url) {
+  if (!url) return 'your platform';
+  if (/paypal\.(com|me)/i.test(url)) return 'PayPal Giving Fund';
+  if (/justgiving\.com/i.test(url)) return 'JustGiving';
+  if (/enthuse\.com|charitycheckout\.co\.uk/i.test(url)) return 'Enthuse';
+  if (/crowdfunder\.co\.uk/i.test(url)) return 'Crowdfunder';
+  if (/wonderful\.org/i.test(url)) return 'Wonderful.org';
+  if (/gofundme\.com/i.test(url)) return 'GoFundMe';
+  return 'your charity platform';
+}
+
 function formatRouteDateWithWeekday(dateStr) {
   if (!dateStr) return '';
   const parts = String(dateStr).split('-');
@@ -14097,6 +14113,31 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                         boxSizing: 'border-box'
                       }}
                     />
+                  </div>
+                </div>
+              )}
+
+              {formData.enable_gift_aid && isManagedGiftAidPlatform(formData.donate_url || formData.justgiving_url) && (
+                <div style={{
+                  marginTop: '16px',
+                  padding: '14px 16px',
+                  borderRadius: '10px',
+                  background: 'rgba(59, 130, 246, 0.08)',
+                  border: '1px solid rgba(59, 130, 246, 0.3)',
+                  display: 'flex',
+                  gap: '12px',
+                  alignItems: 'flex-start'
+                }}>
+                  <span style={{ fontSize: '20px', lineHeight: 1 }}>🛡️</span>
+                  <div>
+                    <div style={{ color: '#60a5fa', fontWeight: 700, fontSize: '13px', marginBottom: '4px' }}>
+                      Automatic Duplicate Prevention Active ({getManagedPlatformName(formData.donate_url || formData.justgiving_url)})
+                    </div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '12px', lineHeight: 1.5 }}>
+                      Your online donation link uses <strong>{getManagedPlatformName(formData.donate_url || formData.justgiving_url)}</strong>, which automatically claims Gift Aid directly from HMRC on online gifts.
+                      <br />
+                      TurboSanta automatically forwards online donors straight to your payment page without an extra declaration, ensuring <strong>no duplicate HMRC claims</strong>. Any Gift Aid declarations captured in TurboSanta (via <code>/giftaid</code> QR codes or links) and the HMRC R68 CSV export are reserved exclusively for <strong>cash and street collection donations</strong>.
+                    </div>
                   </div>
                 </div>
               )}

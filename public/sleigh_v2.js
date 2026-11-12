@@ -34,6 +34,11 @@
     return Boolean(url && String(url).trim() && String(url).trim() !== '#' && String(url).trim().toLowerCase() !== 'none');
   }
 
+  function isManagedGiftAidPlatform(url) {
+    if (!url || typeof url !== 'string') return false;
+    return /justgiving\.com|paypal\.com|paypal\.me|enthuse\.com|charitycheckout\.co\.uk|crowdfunder\.co\.uk|wonderful\.org|gofundme\.com/i.test(url);
+  }
+
   const PUBLIC_FEATURE_CATALOG = {
     bingo: {
       id: 'bingo',
@@ -2395,8 +2400,10 @@
     const donateUrl = table.donate_url || table.justgiving_url || '';
     const isDirect = Boolean(opts && opts.direct);
 
-    // If direct navigation CTA (header nav / hero / mobile dock) or Gift Aid is disabled, go direct to the campaign
-    if (isDirect || !isGiftAidEnabled(table)) {
+    // If direct navigation CTA (header nav / hero / mobile dock), or Gift Aid is disabled,
+    // OR if using a managed platform that claims Gift Aid itself (PayPal, JustGiving, Enthuse),
+    // go direct to the campaign to prevent duplicate HMRC claims!
+    if (isDirect || !isGiftAidEnabled(table) || isManagedGiftAidPlatform(donateUrl)) {
       if (donateUrl) {
         window.open(donateUrl, '_blank', 'noopener');
       } else {

@@ -40,6 +40,11 @@ function parseRouteDate(v) {
   return isNaN(d) ? null : d;
 }
 
+export function isManagedGiftAidPlatform(url) {
+  if (!url || typeof url !== 'string') return false;
+  return /justgiving\.com|paypal\.com|paypal\.me|enthuse\.com|charitycheckout\.co\.uk|crowdfunder\.co\.uk|wonderful\.org|gofundme\.com/i.test(url);
+}
+
 export const PUBLIC_FEATURE_CATALOG = {
   bingo: {
     id: 'bingo',
@@ -469,8 +474,10 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
     if (params.get('donate') === '1') {
-      if (table.enable_gift_aid && effectiveDonateUrl) {
+      if (table.enable_gift_aid && effectiveDonateUrl && !isManagedGiftAidPlatform(effectiveDonateUrl)) {
         setShowGiftAidCheckoutModal(true);
+      } else if (effectiveDonateUrl) {
+        window.location.href = effectiveDonateUrl;
       } else {
         const el = document.getElementById('donate');
         if (el) el.scrollIntoView({ behavior: 'smooth' });
@@ -479,7 +486,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
   }, [table.enable_gift_aid, effectiveDonateUrl]);
 
   const handleDonateClick = (e) => {
-    if (table.enable_gift_aid && effectiveDonateUrl) {
+    if (table.enable_gift_aid && effectiveDonateUrl && !isManagedGiftAidPlatform(effectiveDonateUrl)) {
       e.preventDefault();
       setShowGiftAidCheckoutModal(true);
     }
