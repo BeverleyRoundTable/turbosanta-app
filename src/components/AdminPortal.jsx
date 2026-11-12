@@ -2617,7 +2617,8 @@ ${tableName} Organizers`
         justgiving_url: formData.justgiving_url || null,
         tickettailor_event_id: formData.tickettailor_event_id || null,
         tickettailor_api_key: formData.tickettailor_api_key && formData.tickettailor_api_key.trim() ? formData.tickettailor_api_key.trim() : undefined,
-        sumup_api_key: formData.sumup_api_key && formData.sumup_api_key.trim() ? formData.sumup_api_key.trim() : undefined
+        sumup_api_key: formData.sumup_api_key && formData.sumup_api_key.trim() ? formData.sumup_api_key.trim() : undefined,
+        donations_start_date: formData.donations_start_date || undefined
       });
       const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/fundraising/sync?table=${encodeURIComponent(slug)}`, {
         method: 'POST',
@@ -2629,7 +2630,8 @@ ${tableName} Organizers`
           justgiving_url: formData.justgiving_url || undefined,
           tickettailor_event_id: formData.tickettailor_event_id || undefined,
           tickettailor_api_key: formData.tickettailor_api_key && formData.tickettailor_api_key.trim() ? formData.tickettailor_api_key.trim() : undefined,
-          sumup_api_key: formData.sumup_api_key && formData.sumup_api_key.trim() ? formData.sumup_api_key.trim() : undefined
+          sumup_api_key: formData.sumup_api_key && formData.sumup_api_key.trim() ? formData.sumup_api_key.trim() : undefined,
+          donations_start_date: formData.donations_start_date || undefined
         })
       });
       const data = await res.json();
@@ -6028,6 +6030,82 @@ ${tableName} Organizers`
                       fontFamily: 'monospace'
                     }}
                   />
+                </div>
+              </div>
+
+              {/* Campaign Start Date / Ignore Before Date in External Sync */}
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '8px',
+                padding: '12px 14px',
+                marginBottom: '16px',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gap: '12px',
+                alignItems: 'end'
+              }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', color: '#fff', marginBottom: '4px', fontWeight: 600 }}>
+                    Campaign Start Date / Ignore Transactions Before Date
+                  </label>
+                  <p style={{ margin: '0 0 6px 0', fontSize: '11px', color: 'var(--text-muted)' }}>
+                    SumUp street card taps and online webhooks prior to this date are automatically filtered out.
+                  </p>
+                  <input
+                    type="date"
+                    value={formData.donations_start_date ? formData.donations_start_date.slice(0, 10) : ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData(prev => ({ ...prev, donations_start_date: val ? `${val} 00:00:00` : '' }));
+                    }}
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      background: '#151513',
+                      border: '1px solid var(--border)',
+                      borderRadius: '6px',
+                      padding: '8px 10px',
+                      color: '#fff',
+                      fontSize: '13px'
+                    }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const today = new Date().toISOString().slice(0, 10);
+                      setFormData(prev => ({ ...prev, donations_start_date: `${today} 00:00:00` }));
+                    }}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.08)',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      color: '#eee',
+                      borderRadius: '6px',
+                      padding: '8px 12px',
+                      fontSize: '12px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Set to Today (From Now Onwards)
+                  </button>
+                  {formData.donations_start_date && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, donations_start_date: '' }))}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        fontSize: '11px',
+                        textDecoration: 'underline',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Clear Filter
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -9461,11 +9539,11 @@ ${tableName} Organizers`
                   <div>
                     <strong style={{ fontSize: '14px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <CreditCard size={16} color="var(--primary)" />
-                      <span>Donations Tracking &amp; Reset</span>
+                      <span>Integrations / Card Readers: Campaign Start Date &amp; Reset</span>
                     </strong>
                     <p style={{ margin: '3px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
                       Current Live Raised: <strong style={{ color: 'var(--primary)' }}>£{Number(tableData?.table?.total_raised || 0).toLocaleString()}</strong>
-                      {formData.donations_start_date ? ` (Filtering from ${formData.donations_start_date.slice(0, 10)})` : ''}
+                      {formData.donations_start_date ? ` (Ignoring transactions before ${formData.donations_start_date.slice(0, 10)})` : ''}
                     </p>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -9492,8 +9570,8 @@ ${tableName} Organizers`
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', alignItems: 'end' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '5px' }}>
-                      Count Donations From Date:
+                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '5px', fontWeight: 600 }}>
+                      Campaign Start Date / Ignore Transactions Before Date:
                     </label>
                     <input
                       type="date"

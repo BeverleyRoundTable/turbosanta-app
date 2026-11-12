@@ -3524,6 +3524,22 @@ export default {
 
       const isDryRun = url.searchParams.get("dry_run") === "1" || url.searchParams.get("dry_run") === "true" || payload.dry_run === true;
 
+      if (table.donations_start_date) {
+        const rawTime = payload.timestamp || payload.created_at || (payload.data && (payload.data.timestamp || payload.data.created_at));
+        if (rawTime) {
+          const txTime = new Date(rawTime).getTime();
+          const cutTime = new Date(String(table.donations_start_date).trim().replace(" ", "T")).getTime();
+          if (!isNaN(txTime) && !isNaN(cutTime) && txTime < cutTime) {
+            return jsonResponse({
+              ok: true,
+              status: "Ignored transaction prior to campaign cutoff date",
+              cutoff: table.donations_start_date,
+              transaction_time: rawTime
+            });
+          }
+        }
+      }
+
       if (provider === "zeffy") {
         const raw = parseFloat((payload.data && (payload.data.amount_in_cents ?? payload.data.amount)) || payload.amount || payload.total || 0);
         amount = (payload.data && (payload.data.amount_in_cents !== undefined || payload.data.amount !== undefined))
@@ -3815,6 +3831,9 @@ export default {
       }
       if (body.sumup_api_key && !String(body.sumup_api_key).includes('•')) {
         table.sumup_api_key = body.sumup_api_key;
+      }
+      if (body.donations_start_date !== undefined) {
+        table.donations_start_date = body.donations_start_date;
       }
 
       try {
@@ -7607,6 +7626,10 @@ ${historyList}
    - Square Webhook & Contactless Sync: Configure webhook in Square Developer Dashboard to \`https://{domain}/api/webhooks/square?table={slug}\` with events \`payment.created\` and \`payment.updated\`. Validated cryptographically via HMAC-SHA256 signature using your Square Webhook Signature Key.
    - Webhook Dry-Run vs Live Simulator: The "Send Test Webhook" button in Admin Portal tests the endpoint URL parser and validation logic without creating fake records in your live table revenue. To verify live webhook delivery, trigger a test payment in Square Developer Dashboard or do a real contactless reader tap.
    - Other Webhooks: Configure provider webhooks to \`https://{domain}/api/webhooks/{provider}?table={slug}\` (e.g. provider = donorbox, zeffy, stripe, sumup, justgiving, paypal). Every incoming transaction automatically increments \`total_raised\` in Cloudflare D1.
+   - SumUp & Card Reader Cutoff Date ("Ignore Transactions Before Date"):
+     • Organizers connect SumUp using their Secret Key (\`sup_sk_...\`) in either the "Donations" tab or "Table Settings" under "Integrations & Card Readers".
+     • Under both sections, organizers can configure "Campaign Start Date / Ignore Transactions Before Date" (or click "Set to Today" / "Clear Test Donations").
+     • Any card tap, transaction, or webhook dated prior to this cutoff date is automatically ignored and excluded from total_raised, ensuring off-season events (summer galas, club meetings) do not inflate the Christmas Santa total.
    - Zeffy: 100% free fundraising software for non-profits — they even cover all card transaction fees so 100% of every donation goes straight to local causes. Highly recommended for QR codes on volunteer lanyards and online donation buttons. Sign up free via our community referral link: https://www.zeffy.com/en-GB/referral?referredByOrganizationId=ff97be69-575e-4672-832f-ae0e25b1e8ed
    - Cash Bucket Tally: Located in the Admin bar ("Cash Bucket Tally"). Organizers count coins & notes after each route and log them directly into the table total.
    - Gift Aid: When enabled, a 25% tax reclaim estimate is automatically calculated and formatted for HMRC claims.
