@@ -10161,12 +10161,6 @@ ${stepsToReproduce}
                   Please take a moment to verify this on your live sleigh site or admin portal. If you notice any remaining issues or have questions, simply reply directly to this email!
                 </p>
 
-                <div style="text-align: center; margin: 24px 0 14px 0;">
-                  <a href="${trackerUrl}" target="_blank" style="display: inline-block; background-color: #FBAF33; color: #000000; font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: 0.8px; text-decoration: none; padding: 13px 30px; border-radius: 8px;">
-                    Open ${tableName} &rarr;
-                  </a>
-                </div>
-
                 <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 24px 0 16px 0;" />
                 <p style="font-size: 13px; color: #9CA3AF; margin: 0;">
                   Warm festive regards,<br />
