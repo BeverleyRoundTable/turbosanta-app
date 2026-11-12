@@ -1042,6 +1042,30 @@ body {
   overflow-anchor: none;
 }
 
+#santa-chat-iframe,
+#santa-bot-iframe {
+  height: 520px;
+  max-height: 540px;
+}
+
+@media (max-width: 768px) {
+  #santa-chat-iframe,
+  #santa-bot-iframe {
+    height: 460px !important;
+    max-height: 60svh !important;
+  }
+  .modular-slot-section#santa-chat,
+  .modular-slot-section#santa-bot {
+    padding: 24px 0 !important;
+    scroll-margin-top: 60px;
+  }
+  #santa-chat .container,
+  #santa-bot .container {
+    max-width: 440px !important;
+    padding: 0 16px !important;
+  }
+}
+
 /* --- EMBEDDED RADAR STAGE --- */
 .radar-embed-stage {
   position: relative;

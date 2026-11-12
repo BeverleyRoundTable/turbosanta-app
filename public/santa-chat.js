@@ -261,8 +261,8 @@
       WIDGET_TAG + ".santa-inline {" +
       "position:absolute !important;inset:0 !important;display:block !important;" +
       "width:100% !important;height:100% !important;" +
-      "--el-overlay-padding:8px !important;" +
-      "--el-sheet-radius:24px !important;" +
+      "--el-overlay-padding:0px !important;" +
+      "--el-sheet-radius:18px !important;" +
       "}";
     document.head.appendChild(style);
   }
@@ -278,15 +278,15 @@
           s.id = "santa-fill-style";
           s.textContent =
             ".overlay {" +
-            "  inset: 8px !important;" +
-            "  right: 8px !important;" +
+            "  inset: 0px !important;" +
+            "  right: 0px !important;" +
             "}" +
             ".sheet {" +
             "  width: 100% !important;" +
             "  max-width: 100% !important;" +
             "  height: 100% !important;" +
             "  max-height: 100% !important;" +
-            "  border-radius: 24px !important;" +
+            "  border-radius: 18px !important;" +
             "}";
           el.shadowRoot.appendChild(s);
         }

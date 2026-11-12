@@ -165,10 +165,10 @@
       titleHighlight: 'SANTA',
       description: "Children and families can message Santa directly in Lapland! Ask when he is visiting your street, how Rudolph is doing, or hear a jolly festive story.",
       embedSrc: slug => `/santa_bot.html?table=${encodeURIComponent(slug)}`,
-      fullscreenSrc: slug => `/santa_bot.html?table=${encodeURIComponent(slug)}`,
-      fullscreenLabel: 'Open Santa AI Chat Full-Screen',
-      height: 720,
-      maxWidth: 820,
+      fullscreenSrc: null,
+      fullscreenLabel: '',
+      height: 520,
+      maxWidth: 440,
       allowMicrophone: true
     },
     santa_chat: {
@@ -183,13 +183,10 @@
         const origin = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? location.origin : 'https://roundtablesantasleigh.co.uk';
         return `${origin}/santa_chat.html?table=${encodeURIComponent(slug)}`;
       },
-      fullscreenSrc: slug => {
-        const origin = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? location.origin : 'https://roundtablesantasleigh.co.uk';
-        return `${origin}/santa_chat.html?table=${encodeURIComponent(slug)}`;
-      },
-      fullscreenLabel: 'Open Voice Hotline Full-Screen',
-      height: 680,
-      maxWidth: 760,
+      fullscreenSrc: null,
+      fullscreenLabel: '',
+      height: 520,
+      maxWidth: 440,
       allowMicrophone: true
     },
     santa_frame: {
