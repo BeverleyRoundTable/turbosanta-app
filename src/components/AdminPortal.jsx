@@ -825,6 +825,19 @@ ${tableName} Organizers`
       msg += `🗺️ *Streets (${streetNames.length}):*\n${streetNames.join(', ')}\n\n`;
     }
 
+    let rawBriefingStops = route.planned_stops;
+    if (typeof rawBriefingStops === 'string' && rawBriefingStops.trim()) {
+      try { rawBriefingStops = JSON.parse(rawBriefingStops); } catch (_) {}
+    }
+    const briefingStops = Array.isArray(rawBriefingStops) ? rawBriefingStops.filter(st => st && (st.name || st.title || st.stop_name)) : [];
+    if (briefingStops.length > 0) {
+      msg += `🛑 *Planned Stops (${briefingStops.length}):*\n${briefingStops.map((st, idx) => {
+        const stopName = st.name || st.title || st.stop_name || `Stop ${idx + 1}`;
+        const mins = parseInt(st.allocated_mins, 10);
+        return mins > 0 ? `• ${stopName} (${mins} min stop)` : `• ${stopName}`;
+      }).join('\n')}\n\n`;
+    }
+
     const routeSponsors = extractRouteSponsors(route).filter(s => s && s.name);
     const businesses = routeSponsors.filter(s => s.type !== 'charity');
     const charities = routeSponsors.filter(s => s.type === 'charity');
@@ -4335,6 +4348,40 @@ ${tableName} Organizers`
                                     <strong>Streets:</strong> {routeStreets.map(s => s.street_name).join(', ') || 'None specified'}
                                   </div>
                                   {(() => {
+                                    let rawStops = r.planned_stops;
+                                    if (typeof rawStops === 'string' && rawStops.trim()) {
+                                      try { rawStops = JSON.parse(rawStops); } catch (_) {}
+                                    }
+                                    let stops = Array.isArray(rawStops) ? rawStops.filter(st => st && (st.name || st.title || st.stop_name)) : [];
+                                    if (stops.length === 0 && r.static_stop_name) {
+                                      stops = [{ name: r.static_stop_name, allocated_mins: r.static_stop_time || 0 }];
+                                    }
+                                    if (stops.length === 0 && r.notes) {
+                                      const m = r.notes.match(/<!--\s*ROUTE_META:\s*({.*?})\s*-->/s);
+                                      if (m && m[1]) {
+                                        try {
+                                          const parsed = JSON.parse(m[1]);
+                                          if (parsed.static_stop_name) {
+                                            stops = [{ name: parsed.static_stop_name, allocated_mins: parsed.static_stop_time || 0 }];
+                                          }
+                                        } catch (_) {}
+                                      }
+                                    }
+                                    if (stops.length === 0) return null;
+                                    return (
+                                      <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '3px' }}>
+                                        <strong style={{ color: '#f59e0b' }}>🛑 Planned Stops ({stops.length}):</strong>{' '}
+                                        <span style={{ color: '#fef3c7' }}>
+                                          {stops.map((st, idx) => {
+                                            const stopName = st.name || st.title || st.stop_name || `Stop ${idx + 1}`;
+                                            const mins = parseInt(st.allocated_mins, 10);
+                                            return mins > 0 ? `${stopName} (${mins}m)` : stopName;
+                                          }).join(' • ')}
+                                        </span>
+                                      </div>
+                                    );
+                                  })()}
+                                  {(() => {
                                      const routeSponsors = extractRouteSponsors(r).filter(s => s && s.name);
                                      if (routeSponsors.length === 0) return null;
                                      const businesses = routeSponsors.filter(s => s.type !== 'charity');
@@ -4682,6 +4729,40 @@ ${tableName} Organizers`
                                   <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                                     <strong>Streets:</strong> {routeStreets.map(s => s.street_name).join(', ') || 'None specified'}
                                   </div>
+                                  {(() => {
+                                    let rawStops = r.planned_stops;
+                                    if (typeof rawStops === 'string' && rawStops.trim()) {
+                                      try { rawStops = JSON.parse(rawStops); } catch (_) {}
+                                    }
+                                    let stops = Array.isArray(rawStops) ? rawStops.filter(st => st && (st.name || st.title || st.stop_name)) : [];
+                                    if (stops.length === 0 && r.static_stop_name) {
+                                      stops = [{ name: r.static_stop_name, allocated_mins: r.static_stop_time || 0 }];
+                                    }
+                                    if (stops.length === 0 && r.notes) {
+                                      const m = r.notes.match(/<!--\s*ROUTE_META:\s*({.*?})\s*-->/s);
+                                      if (m && m[1]) {
+                                        try {
+                                          const parsed = JSON.parse(m[1]);
+                                          if (parsed.static_stop_name) {
+                                            stops = [{ name: parsed.static_stop_name, allocated_mins: parsed.static_stop_time || 0 }];
+                                          }
+                                        } catch (_) {}
+                                      }
+                                    }
+                                    if (stops.length === 0) return null;
+                                    return (
+                                      <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '3px' }}>
+                                        <strong style={{ color: '#f59e0b' }}>🛑 Planned Stops ({stops.length}):</strong>{' '}
+                                        <span style={{ color: '#fef3c7' }}>
+                                          {stops.map((st, idx) => {
+                                            const stopName = st.name || st.title || st.stop_name || `Stop ${idx + 1}`;
+                                            const mins = parseInt(st.allocated_mins, 10);
+                                            return mins > 0 ? `${stopName} (${mins}m)` : stopName;
+                                          }).join(' • ')}
+                                        </span>
+                                      </div>
+                                    );
+                                  })()}
                                   {(() => {
                                      const routeSponsors = extractRouteSponsors(r).filter(s => s && s.name);
                                      if (routeSponsors.length === 0) return null;
@@ -6960,7 +7041,17 @@ ${tableName} Organizers`
                           <tr key={r.id || i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                             <td style={{ padding: '12px', fontFamily: 'monospace', color: 'var(--primary)' }}>{r.date || 'TBD'}</td>
                             <td style={{ padding: '12px', fontWeight: 700, color: '#fff' }}>{r.name || 'Route'}</td>
-                            <td style={{ padding: '12px', color: 'var(--text-muted)' }}>{routeStreets.length > 0 ? `${routeStreets.length} streets` : 'Full corridor'}</td>
+                            <td style={{ padding: '12px', color: 'var(--text-muted)' }}>
+                              <div>{routeStreets.length > 0 ? `${routeStreets.length} streets` : 'Full corridor'}</div>
+                              {(() => {
+                                let rawStops = r.planned_stops;
+                                if (typeof rawStops === 'string' && rawStops.trim()) {
+                                  try { rawStops = JSON.parse(rawStops); } catch (_) {}
+                                }
+                                const stopsCount = Array.isArray(rawStops) ? rawStops.filter(st => st && (st.name || st.title || st.stop_name)).length : 0;
+                                return stopsCount > 0 ? <span style={{ color: '#f59e0b', fontSize: '11px', display: 'block', marginTop: '2px' }}>🛑 {stopsCount} stop{stopsCount === 1 ? '' : 's'}</span> : null;
+                              })()}
+                            </td>
                             <td style={{ padding: '12px', color: 'var(--text-muted)' }}>{r.start_time || '18:00'}</td>
                             <td style={{ padding: '12px', textAlign: 'right' }}>
                               <span style={{ background: badgeBg, color: badgeColor, padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>

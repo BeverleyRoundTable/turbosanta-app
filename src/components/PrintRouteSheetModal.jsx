@@ -470,6 +470,19 @@ export default function PrintRouteSheetModal({
       msg += `🗺️ *Streets (${streetList.length}):*\n${streetList.join(', ')}\n\n`;
     }
 
+    let rawStops = route.planned_stops;
+    if (typeof rawStops === 'string' && rawStops.trim()) {
+      try { rawStops = JSON.parse(rawStops); } catch (_) {}
+    }
+    const stops = Array.isArray(rawStops) ? rawStops.filter(st => st && (st.name || st.title || st.stop_name)) : [];
+    if (stops.length > 0) {
+      msg += `🛑 *Planned Stops (${stops.length}):*\n${stops.map((st, idx) => {
+        const stopName = st.name || st.title || st.stop_name || `Stop ${idx + 1}`;
+        const mins = parseInt(st.allocated_mins, 10);
+        return mins > 0 ? `• ${stopName} (${mins} min stop)` : `• ${stopName}`;
+      }).join('\n')}\n\n`;
+    }
+
     const routeSponsors = Array.isArray(route.sponsors) && route.sponsors.length > 0
       ? route.sponsors.filter(s => s && s.name)
       : (route.sponsor_name ? [{ name: route.sponsor_name }] : []);
@@ -990,6 +1003,51 @@ export default function PrintRouteSheetModal({
               </div>
             </div>
           </div>
+
+          {/* Planned Stops Checklist (if any) */}
+          {(() => {
+            let rawStops = route.planned_stops;
+            if (typeof rawStops === 'string' && rawStops.trim()) {
+              try { rawStops = JSON.parse(rawStops); } catch (_) {}
+            }
+            const stops = Array.isArray(rawStops) ? rawStops.filter(st => st && (st.name || st.title || st.stop_name)) : [];
+            if (stops.length === 0) return null;
+            return (
+              <div style={{ marginBottom: '14px', background: '#fffbeb', border: '1.5px solid #f59e0b', borderRadius: '6px', padding: '10px 12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '4px' }}>
+                  <strong style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#b45309' }}>
+                    🛑 Designated Santa Stops &amp; Static Gatherings ({stops.length} Stops)
+                  </strong>
+                  <span style={{ fontSize: '10.5px', color: '#92400e' }}>
+                    Dwell with crowds &bull; Photo ops &bull; Collect donations
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {stops.map((st, idx) => {
+                    const stopName = st.name || st.title || st.stop_name || `Stop ${idx + 1}`;
+                    const mins = parseInt(st.allocated_mins, 10);
+                    return (
+                      <div key={idx} style={{
+                        background: '#ffffff',
+                        border: '1px solid #fcd34d',
+                        borderRadius: '4px',
+                        padding: '4px 8px',
+                        fontSize: '11px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        <strong style={{ color: '#d97706' }}>#{idx + 1}</strong>
+                        <span style={{ fontWeight: 600, color: '#111827' }}>{stopName}</span>
+                        {mins > 0 && <span style={{ color: '#78350f', fontSize: '10px', background: '#fef3c7', padding: '1px 5px', borderRadius: '3px' }}>{mins} mins</span>}
+                        <span style={{ border: '1px solid #9ca3af', width: '12px', height: '12px', borderRadius: '2px', display: 'inline-block', marginLeft: '4px' }}></span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Sequential Street Checklist Table */}
           <div style={{ marginBottom: '14px' }}>
