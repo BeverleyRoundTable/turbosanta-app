@@ -37,6 +37,7 @@ export default function VolunteerEditorModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
   const [isError, setIsError] = useState(false);
+  const [overrideLimits, setOverrideLimits] = useState(false);
 
   const lastOpenedKeyRef = useRef(null);
 
@@ -161,7 +162,8 @@ export default function VolunteerEditorModal({
           routes: targetRoutes,
           phone: phone.trim(),
           email: email.trim().toLowerCase(),
-          organisation: organisation.trim()
+          organisation: organisation.trim(),
+          override_limits: overrideLimits
         };
 
         const res = await bulkRegisterVolunteers(tableSlug, payload, token);
@@ -187,7 +189,8 @@ export default function VolunteerEditorModal({
           routeId: routeId,
           phone: phone.trim(),
           email: email.trim().toLowerCase(),
-          organisation: organisation.trim()
+          organisation: organisation.trim(),
+          override_limits: overrideLimits
         };
 
         const res = await bulkRegisterVolunteers(tableSlug, payload, token);
@@ -584,6 +587,28 @@ export default function VolunteerEditorModal({
             }}>
               {isError ? <AlertCircle size={16} /> : <CheckCircle2 size={16} />}
               <span>{statusMsg}</span>
+            </div>
+          )}
+
+          {/* Admin Override */}
+          {!isEditing && (
+            <div style={{
+              marginTop: '4px',
+              padding: '8px 12px',
+              background: overrideLimits ? 'rgba(251, 175, 51, 0.1)' : 'rgba(255, 255, 255, 0.03)',
+              borderRadius: '8px',
+              border: overrideLimits ? '1px solid rgba(251, 175, 51, 0.35)' : '1px solid rgba(255, 255, 255, 0.08)',
+              transition: 'all 0.2s ease'
+            }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12px', color: overrideLimits ? '#FBAF33' : 'var(--text-muted)' }}>
+                <input
+                  type="checkbox"
+                  checked={overrideLimits}
+                  onChange={(e) => setOverrideLimits(e.target.checked)}
+                  style={{ accentColor: '#FBAF33', width: '15px', height: '15px', cursor: 'pointer' }}
+                />
+                <span style={{ fontWeight: overrideLimits ? 600 : 400 }}>Admin Override (bypass route &amp; role capacity limits)</span>
+              </label>
             </div>
           )}
 

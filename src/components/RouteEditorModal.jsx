@@ -75,6 +75,13 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
     let static_stop_time = r?.static_stop_time || '';
     let lead_marshal = r?.lead_marshal || '';
     let tow_driver = r?.tow_driver || '';
+    let max_volunteers = 15;
+    let max_santas = 1;
+    let max_drivers = 1;
+    let max_lead_marshals = 1;
+    let max_collectors = 8;
+    let max_marshals = 4;
+    let volunteer_closed = false;
 
     if (r?.notes) {
       const m = r.notes.match(/<!--\s*ROUTE_META:\s*({.*?})\s*-->/s);
@@ -88,10 +95,20 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
           if (parsed.static_stop_time) static_stop_time = parsed.static_stop_time;
           if (!lead_marshal && parsed.lead_marshal) lead_marshal = parsed.lead_marshal;
           if (!tow_driver && parsed.tow_driver) tow_driver = parsed.tow_driver;
+          if (parsed.max_volunteers !== undefined) max_volunteers = Number(parsed.max_volunteers);
+          if (parsed.max_santas !== undefined) max_santas = Number(parsed.max_santas);
+          if (parsed.max_drivers !== undefined) max_drivers = Number(parsed.max_drivers);
+          if (parsed.max_lead_marshals !== undefined) max_lead_marshals = Number(parsed.max_lead_marshals);
+          if (parsed.max_collectors !== undefined) max_collectors = Number(parsed.max_collectors);
+          if (parsed.max_marshals !== undefined) max_marshals = Number(parsed.max_marshals);
+          if (parsed.volunteer_closed !== undefined) volunteer_closed = Boolean(parsed.volunteer_closed);
         } catch(e) {}
       }
     }
-    return { meeting_point, muster_time, route_type, static_stop_name, static_stop_time, lead_marshal, tow_driver };
+    return {
+      meeting_point, muster_time, route_type, static_stop_name, static_stop_time, lead_marshal, tow_driver,
+      max_volunteers, max_santas, max_drivers, max_lead_marshals, max_collectors, max_marshals, volunteer_closed
+    };
   };
 
   const initialMeta = extractRouteMeta(route);
@@ -117,7 +134,14 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
     sponsor_name: route?.sponsor_name || '',
     sponsor_link: route?.sponsor_link || '',
     sponsor_description: route?.sponsor_description || '',
-    sponsor_logo_url: route?.sponsor_logo_url || route?.sponsor_logo || ''
+    sponsor_logo_url: route?.sponsor_logo_url || route?.sponsor_logo || '',
+    max_volunteers: initialMeta.max_volunteers,
+    max_santas: initialMeta.max_santas,
+    max_drivers: initialMeta.max_drivers,
+    max_lead_marshals: initialMeta.max_lead_marshals,
+    max_collectors: initialMeta.max_collectors,
+    max_marshals: initialMeta.max_marshals,
+    volunteer_closed: initialMeta.volunteer_closed
   });
 
   const [gpxStats, setGpxStats] = useState(
@@ -432,9 +456,20 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
       static_stop_name: (formData.static_stop_name || '').trim(),
       static_stop_time: (formData.static_stop_time || '').trim(),
       lead_marshal: (formData.lead_marshal || initialMeta.lead_marshal || route?.lead_marshal || '').trim(),
-      tow_driver: (formData.tow_driver || initialMeta.tow_driver || route?.tow_driver || '').trim()
+      tow_driver: (formData.tow_driver || initialMeta.tow_driver || route?.tow_driver || '').trim(),
+      max_volunteers: parseInt(formData.max_volunteers, 10) || 15,
+      max_santas: parseInt(formData.max_santas, 10) || 1,
+      max_drivers: parseInt(formData.max_drivers, 10) || 1,
+      max_lead_marshals: parseInt(formData.max_lead_marshals, 10) || 1,
+      max_collectors: parseInt(formData.max_collectors, 10) || 8,
+      max_marshals: parseInt(formData.max_marshals, 10) || 4,
+      volunteer_closed: Boolean(formData.volunteer_closed)
     };
-    const hasMeta = Boolean(routeMeta.meeting_point || routeMeta.muster_time || routeMeta.static_stop_name || routeMeta.route_type === 'static' || routeMeta.lead_marshal || routeMeta.tow_driver);
+    const hasMeta = Boolean(
+      routeMeta.meeting_point || routeMeta.muster_time || routeMeta.static_stop_name ||
+      routeMeta.route_type === 'static' || routeMeta.lead_marshal || routeMeta.tow_driver ||
+      routeMeta.volunteer_closed || routeMeta.max_volunteers !== 15
+    );
 
     let finalNotes = existingNotes;
     if (validSponsors.length > 0) {
@@ -900,6 +935,118 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                     'Custom arrival time for this route.'
                   )}
                 </span>
+              </div>
+            </div>
+
+            {/* Volunteer Capacity & Roster Limits */}
+            <div style={{
+              background: '#0d0d0b',
+              border: formData.volunteer_closed ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--border)',
+              borderRadius: '12px',
+              padding: '16px 20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '14px', color: '#fff', fontWeight: 700, margin: 0 }}>
+                    👥 Volunteer Capacity &amp; Crew Limits
+                  </label>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    Sets per-route limits for public registration. When reached, slots are politely declined.
+                  </span>
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12px', color: formData.volunteer_closed ? '#f87171' : 'var(--text-muted)', fontWeight: 600 }}>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(formData.volunteer_closed)}
+                    onChange={(e) => setFormData(prev => ({ ...prev, volunteer_closed: e.target.checked }))}
+                    style={{ accentColor: '#ef4444', width: '16px', height: '16px', cursor: 'pointer' }}
+                  />
+                  <span>{formData.volunteer_closed ? '🔒 Registrations Closed (Marked Full)' : 'Mark Route Full / Closed'}</span>
+                </label>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginTop: '6px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>
+                    Total Max Capacity
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={formData.max_volunteers !== undefined ? formData.max_volunteers : 15}
+                    onChange={(e) => setFormData(prev => ({ ...prev, max_volunteers: parseInt(e.target.value, 10) || 15 }))}
+                    style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>
+                    🎅 Santa (Max)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="5"
+                    value={formData.max_santas !== undefined ? formData.max_santas : 1}
+                    onChange={(e) => setFormData(prev => ({ ...prev, max_santas: parseInt(e.target.value, 10) || 1 }))}
+                    style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>
+                    🚐 Driver (Max)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="5"
+                    value={formData.max_drivers !== undefined ? formData.max_drivers : 1}
+                    onChange={(e) => setFormData(prev => ({ ...prev, max_drivers: parseInt(e.target.value, 10) || 1 }))}
+                    style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>
+                    🦺 Lead Marshall
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="5"
+                    value={formData.max_lead_marshals !== undefined ? formData.max_lead_marshals : 1}
+                    onChange={(e) => setFormData(prev => ({ ...prev, max_lead_marshals: parseInt(e.target.value, 10) || 1 }))}
+                    style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>
+                    🪣 Collectors (Max)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="50"
+                    value={formData.max_collectors !== undefined ? formData.max_collectors : 8}
+                    onChange={(e) => setFormData(prev => ({ ...prev, max_collectors: parseInt(e.target.value, 10) || 8 }))}
+                    style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>
+                    🚶 Walkers (Max)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="50"
+                    value={formData.max_marshals !== undefined ? formData.max_marshals : 4}
+                    onChange={(e) => setFormData(prev => ({ ...prev, max_marshals: parseInt(e.target.value, 10) || 4 }))}
+                    style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
+                  />
+                </div>
               </div>
             </div>
 

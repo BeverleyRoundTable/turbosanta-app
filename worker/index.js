@@ -1439,7 +1439,7 @@ export default {
         donationDateFilter = `AND strftime('%Y', created_at) = '${reqYear}'`;
       }
 
-      const [routes, streets, donations, latestGps, breakdown, ledger, volCount, gaStats, historyRecords, approvedGrants, subCount, grantsSummary, donationStats, memCount] = await Promise.all([
+      const [routes, streets, donations, latestGps, breakdown, ledger, volCount, gaStats, historyRecords, approvedGrants, subCount, grantsSummary, donationStats, memCount, volRoleCounts] = await Promise.all([
         env.DB.prepare("SELECT * FROM routes WHERE table_id = ? OR table_id = ? ORDER BY date ASC, start_time ASC").bind(table.id, table.slug).all(),
         env.DB.prepare("SELECT * FROM route_streets WHERE table_id = ? OR table_id = ? ORDER BY sequence_order ASC").bind(table.id, table.slug).all(),
         env.DB.prepare(`SELECT SUM(amount) as total FROM donations WHERE (table_id = ? OR table_id = ?) ${donationDateFilter}`).bind(table.id, table.slug).first().catch(() => {
@@ -1455,7 +1455,8 @@ export default {
         env.DB.prepare("SELECT COUNT(*) as count FROM subscribers WHERE table_id = ? OR table_id = ?").bind(table.id, table.slug).first().catch(() => ({ count: 0 })),
         env.DB.prepare("SELECT SUM(amount_awarded) as total, COUNT(*) as count FROM grant_applications WHERE (table_id = ? OR table_id = ?) AND (status = 'awarded' OR approved_public = 1 OR amount_awarded > 0)").bind(table.id, table.slug).first().catch(() => ({ total: 0, count: 0 })),
         env.DB.prepare(`SELECT COUNT(*) as count, AVG(amount) as avg FROM donations WHERE (table_id = ? OR table_id = ?) ${donationDateFilter}`).bind(table.id, table.slug).first().catch(() => ({ count: 0, avg: 0 })),
-        env.DB.prepare("SELECT COUNT(*) as count FROM memory_book WHERE (table_id = ? OR table_id = ?) AND (status IS NULL OR status != 'rejected')").bind(table.id, table.slug).first().catch(() => ({ count: 0 }))
+        env.DB.prepare("SELECT COUNT(*) as count FROM memory_book WHERE (table_id = ? OR table_id = ?) AND (status IS NULL OR status != 'rejected')").bind(table.id, table.slug).first().catch(() => ({ count: 0 })),
+        env.DB.prepare("SELECT route_id, route_name, role, COUNT(*) as count FROM volunteers WHERE table_id = ? OR table_id = ? GROUP BY route_id, route_name, role").bind(table.id, table.slug).all().catch(() => ({ results: [] }))
       ]);
 
       // Background auto-sync for JustGiving / Ticket Tailor / SumUp if configured
@@ -1785,6 +1786,86 @@ export default {
           } catch(e) {}
         }
 
+        // 👥 Route Volunteer Capacity & Role Fill Logic
+        let maxVolunteers = 15;
+        let maxSantas = 1;
+        let maxDrivers = 1;
+        let maxLeadMarshals = 1;
+        let maxCollectors = 8;
+        let maxMarshals = 4;
+        let volunteerClosed = false;
+
+        if (r.notes) {
+          const match = r.notes.match(/<!--\s*ROUTE_META:\s*({.*?})\s*-->/s);
+          if (match && match[1]) {
+            try {
+              const p = JSON.parse(match[1]);
+              if (p.max_volunteers !== undefined) maxVolunteers = Number(p.max_volunteers);
+              if (p.max_santas !== undefined) maxSantas = Number(p.max_santas);
+              if (p.max_drivers !== undefined) maxDrivers = Number(p.max_drivers);
+              if (p.max_lead_marshals !== undefined) maxLeadMarshals = Number(p.max_lead_marshals);
+              if (p.max_collectors !== undefined) maxCollectors = Number(p.max_collectors);
+              if (p.max_marshals !== undefined) maxMarshals = Number(p.max_marshals);
+              if (p.volunteer_closed !== undefined) volunteerClosed = Boolean(p.volunteer_closed);
+            } catch(e) {}
+          }
+        }
+
+        const matchedVolRows = (volRoleCounts?.results || []).filter(vr =>
+          (vr.route_id && String(vr.route_id) === String(r.id)) ||
+          (vr.route_name && r.name && vr.route_name.toLowerCase().trim() === r.name.toLowerCase().trim())
+        );
+
+        let totalVolCount = 0;
+        let santaCount = 0;
+        let driverCount = 0;
+        let leadMarshalCount = 0;
+        let collectorCount = 0;
+        let marshalCount = 0;
+
+        for (const vRow of matchedVolRows) {
+          const cnt = Number(vRow.count) || 1;
+          totalVolCount += cnt;
+          const roleStr = (vRow.role || '').toLowerCase();
+          if (roleStr.includes('santa')) santaCount += cnt;
+          else if (roleStr.includes('driver') || roleStr.includes('tow')) driverCount += cnt;
+          else if (roleStr.includes('lead') && roleStr.includes('marshal')) leadMarshalCount += cnt;
+          else if (roleStr.includes('bucket') || roleStr.includes('collector') || roleStr.includes('elf') || roleStr.includes('collection')) collectorCount += cnt;
+          else if (roleStr.includes('marshal') || roleStr.includes('walker') || roleStr.includes('safety') || roleStr.includes('navigator')) marshalCount += cnt;
+        }
+
+        const rolesFull = [];
+        if (santaCount >= maxSantas) rolesFull.push('Santa');
+        if (driverCount >= maxDrivers) rolesFull.push('Driver', 'Tow Driver');
+        if (leadMarshalCount >= maxLeadMarshals) rolesFull.push('Lead Marshall', 'Lead Elf', 'Navigator');
+        if (collectorCount >= maxCollectors) rolesFull.push('Collections', 'Bucket Collector', 'General Elf');
+        if (marshalCount >= maxMarshals) rolesFull.push('Safety Walkers', 'Safety Marshall');
+
+        const isFull = totalVolCount >= maxVolunteers || volunteerClosed;
+        const slotsRemaining = Math.max(0, maxVolunteers - totalVolCount);
+
+        const volunteerCapacity = {
+          max_volunteers: maxVolunteers,
+          max_santas: maxSantas,
+          max_drivers: maxDrivers,
+          max_lead_marshals: maxLeadMarshals,
+          max_collectors: maxCollectors,
+          max_marshals: maxMarshals,
+          current_total: totalVolCount,
+          slots_remaining: slotsRemaining,
+          is_full: isFull,
+          is_closed: volunteerClosed,
+          roles_full: rolesFull,
+          counts: {
+            total: totalVolCount,
+            santa: santaCount,
+            driver: driverCount,
+            lead_marshal: leadMarshalCount,
+            collector: collectorCount,
+            marshal: marshalCount
+          }
+        };
+
         return {
           ...r,
           'Start Time': stTime,
@@ -1796,6 +1877,7 @@ export default {
           meeting_point: r.muster_point || '',
           muster_time: r.muster_time || '',
           planned_stops: plannedStops,
+          volunteer_capacity: volunteerCapacity,
           sponsors,
           sponsors_json: sponsors.length > 0 ? JSON.stringify(sponsors) : null,
           sponsor_name: sponsors.map(s => s.name).filter(Boolean).join(' • ') || (r.sponsor_name || ''),
@@ -5537,7 +5619,7 @@ export default {
 
       // Fetch table routes to resolve route_id <-> route_name dynamically
       const allRoutes = await env.DB.prepare(
-        "SELECT id, name FROM routes WHERE table_id = ? OR table_id = ?"
+        "SELECT id, name, notes FROM routes WHERE table_id = ? OR table_id = ?"
       ).bind(table.id, table.slug).all().then(r => r.results || []).catch(() => []);
       const routeMapById = new Map(allRoutes.map(r => [String(r.id), r.name]));
       const routeMapByName = new Map(allRoutes.map(r => [String(r.name).toLowerCase().trim(), r.id]));
@@ -5647,6 +5729,112 @@ export default {
 
       if (itemsToInsert.length === 0) {
         return jsonResponse({ error: "No valid volunteer names or route assignments provided." }, 400);
+      }
+
+      // 👥 Check Volunteer Route & Role Capacity unless Admin Override is passed
+      const isOverride = Boolean(body.override_limits || body.overrideLimits || body.admin_override);
+      if (!isOverride) {
+        for (const item of itemsToInsert) {
+          const targetRouteObj = allRoutes.find(r => 
+            (item.route_id && String(r.id) === String(item.route_id)) ||
+            (item.route_name && r.name && r.name.toLowerCase().trim() === item.route_name.toLowerCase().trim())
+          );
+          if (targetRouteObj) {
+            let maxVolunteers = 15;
+            let maxSantas = 1;
+            let maxDrivers = 1;
+            let maxLeadMarshals = 1;
+            let maxCollectors = 8;
+            let maxMarshals = 4;
+            let volunteerClosed = false;
+
+            if (targetRouteObj.notes) {
+              const match = targetRouteObj.notes.match(/<!--\s*ROUTE_META:\s*({.*?})\s*-->/s);
+              if (match && match[1]) {
+                try {
+                  const p = JSON.parse(match[1]);
+                  if (p.max_volunteers !== undefined) maxVolunteers = Number(p.max_volunteers);
+                  if (p.max_santas !== undefined) maxSantas = Number(p.max_santas);
+                  if (p.max_drivers !== undefined) maxDrivers = Number(p.max_drivers);
+                  if (p.max_lead_marshals !== undefined) maxLeadMarshals = Number(p.max_lead_marshals);
+                  if (p.max_collectors !== undefined) maxCollectors = Number(p.max_collectors);
+                  if (p.max_marshals !== undefined) maxMarshals = Number(p.max_marshals);
+                  if (p.volunteer_closed !== undefined) volunteerClosed = Boolean(p.volunteer_closed);
+                } catch(e) {}
+              }
+            }
+
+            if (volunteerClosed) {
+              return jsonResponse({
+                ok: false,
+                full: true,
+                error: `Volunteer registrations for "${targetRouteObj.name}" have been marked as closed. Thank you for your support!`
+              }, 409);
+            }
+
+            // Count existing volunteers on this route
+            const existingRows = await env.DB.prepare(
+              "SELECT role, COUNT(*) as cnt FROM volunteers WHERE (table_id = ? OR table_id = ?) AND (route_id = ? OR route_name = ?) GROUP BY role"
+            ).bind(table.id, table.slug, targetRouteObj.id, targetRouteObj.name).all().then(r => r.results || []).catch(() => []);
+
+            let totalCnt = 0, santaCnt = 0, driverCnt = 0, leadCnt = 0, collectorCnt = 0, marshalCnt = 0;
+            for (const row of existingRows) {
+              const c = Number(row.cnt) || 1;
+              totalCnt += c;
+              const rRole = (row.role || "").toLowerCase();
+              if (rRole.includes("santa")) santaCnt += c;
+              else if (rRole.includes("driver") || rRole.includes("tow")) driverCnt += c;
+              else if (rRole.includes("lead") && rRole.includes("marshal")) leadCnt += c;
+              else if (rRole.includes("bucket") || rRole.includes("collector") || rRole.includes("elf") || rRole.includes("collection")) collectorCnt += c;
+              else if (rRole.includes("marshal") || rRole.includes("walker") || rRole.includes("safety") || rRole.includes("navigator")) marshalCnt += c;
+            }
+
+            if (totalCnt >= maxVolunteers) {
+              return jsonResponse({
+                ok: false,
+                full: true,
+                error: `Route "${targetRouteObj.name}" is already at full volunteer capacity (${totalCnt}/${maxVolunteers} filled). Thank you so much for your generosity! Please choose another route from our timetable.`
+              }, 409);
+            }
+
+            const reqRole = (item.role || "").toLowerCase();
+            if (reqRole.includes("santa") && santaCnt >= maxSantas) {
+              return jsonResponse({
+                ok: false,
+                full: true,
+                error: `The Santa position for "${targetRouteObj.name}" is already filled (${santaCnt}/${maxSantas}). Please choose another role (such as Bucket Collector or Safety Marshall) or select another date.`
+              }, 409);
+            }
+            if ((reqRole.includes("driver") || reqRole.includes("tow")) && driverCnt >= maxDrivers) {
+              return jsonResponse({
+                ok: false,
+                full: true,
+                error: `The Sleigh Driver position for "${targetRouteObj.name}" is already filled (${driverCnt}/${maxDrivers}). Please choose another role (such as Bucket Collector or Safety Marshall).`
+              }, 409);
+            }
+            if (reqRole.includes("lead") && reqRole.includes("marshal") && leadCnt >= maxLeadMarshals) {
+              return jsonResponse({
+                ok: false,
+                full: true,
+                error: `The Lead Marshall position for "${targetRouteObj.name}" is already filled. Please choose another role.`
+              }, 409);
+            }
+            if ((reqRole.includes("bucket") || reqRole.includes("collector") || reqRole.includes("collection")) && collectorCnt >= maxCollectors) {
+              return jsonResponse({
+                ok: false,
+                full: true,
+                error: `Bucket Collector slots for "${targetRouteObj.name}" are full (${collectorCnt}/${maxCollectors}). Please choose another role or select another date.`
+              }, 409);
+            }
+            if ((reqRole.includes("walker") || reqRole.includes("safety") || reqRole.includes("marshal")) && marshalCnt >= maxMarshals) {
+              return jsonResponse({
+                ok: false,
+                full: true,
+                error: `Safety Marshall slots for "${targetRouteObj.name}" are full (${marshalCnt}/${maxMarshals}). Please choose another role or select another date.`
+              }, 409);
+            }
+          }
+        }
       }
 
       try {

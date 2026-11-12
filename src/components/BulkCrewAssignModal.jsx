@@ -31,6 +31,7 @@ export default function BulkCrewAssignModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
   const [isError, setIsError] = useState(false);
+  const [overrideLimits, setOverrideLimits] = useState(false);
 
   const lastOpenedRef = useRef(false);
 
@@ -134,7 +135,8 @@ export default function BulkCrewAssignModal({
         names: uniqueNames,
         routes: targetRoutes,
         role: effectiveRole,
-        organisation: organisation.trim() || `${tableName} Members`
+        organisation: organisation.trim() || `${tableName} Members`,
+        override_limits: overrideLimits
       };
 
       const res = await bulkRegisterVolunteers(tableSlug, payload, token);
@@ -539,6 +541,25 @@ export default function BulkCrewAssignModal({
               <span>{statusMsg}</span>
             </div>
           )}
+
+          {/* Admin Override */}
+          <div style={{
+            padding: '8px 12px',
+            background: overrideLimits ? 'rgba(251, 175, 51, 0.1)' : 'rgba(255, 255, 255, 0.03)',
+            borderRadius: '8px',
+            border: overrideLimits ? '1px solid rgba(251, 175, 51, 0.35)' : '1px solid rgba(255, 255, 255, 0.08)',
+            transition: 'all 0.2s ease'
+          }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12px', color: overrideLimits ? '#FBAF33' : 'var(--text-muted)' }}>
+              <input
+                type="checkbox"
+                checked={overrideLimits}
+                onChange={(e) => setOverrideLimits(e.target.checked)}
+                style={{ accentColor: '#FBAF33', width: '15px', height: '15px', cursor: 'pointer' }}
+              />
+              <span style={{ fontWeight: overrideLimits ? 600 : 400 }}>Admin Override (bypass route &amp; role capacity limits)</span>
+            </label>
+          </div>
 
           {/* Action Buttons */}
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '6px' }}>

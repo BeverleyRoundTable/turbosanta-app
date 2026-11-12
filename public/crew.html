@@ -285,10 +285,11 @@
         <form id="signupForm" onsubmit="submitVolunteer(event)">
           <div class="field">
             <label>Select Route & Date</label>
-            <select id="routeSelect" required>
+            <select id="routeSelect" required onchange="updateRouteCapacityNotice()">
               <option value="">Loading routes...</option>
             </select>
           </div>
+          <div id="routeCapNotice" style="display:none; margin-bottom: 16px;"></div>
           <div class="field">
             <label>Full Name</label>
             <input type="text" id="volName" required placeholder="e.g. John Smith">
@@ -596,19 +597,14 @@ async function init() {
     updateCrewAlertBanner(alertMsg);
     setInterval(pollCrewAlert, 15000);
 
-    window.allRoutes = data.routes;
+    window.allRoutes = data.routes || [];
     populateRouteDropdowns(data.routes);
 
     // Populate roles from API (dynamic from Settings Column U)
     const roles = data.settings?.roles || [];
-    const roleSel = document.getElementById('volRole');
-    roleSel.innerHTML = '<option value="">Select a role…</option>';
-    if (roles.length > 0) {
-      roles.forEach(r => { roleSel.innerHTML += `<option value="${r}">${r}</option>`; });
-    } else {
-      ['Driver','Collections','Lead Elf','Santa','Tech/GPS','Safety Walkers']
-        .forEach(r => { roleSel.innerHTML += `<option value="${r}">${r}</option>`; });
-    }
+    window.baseRoles = roles.length > 0 ? roles : ['Driver','Collections','Lead Elf','Santa','Tech/GPS','Safety Walkers'];
+    updateRoleDropdown(null);
+    updateRouteCapacityNotice();
     
     document.getElementById('initArea').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
@@ -792,6 +788,126 @@ async function switchTab(btn) {
   document.getElementById(target).classList.add('active');
 }
 
+function updateRoleDropdown(capacity) {
+  const roleSel = document.getElementById('volRole');
+  if (!roleSel) return;
+  const currentVal = roleSel.value;
+  const roles = window.baseRoles || ['Driver','Collections','Lead Elf','Santa','Tech/GPS','Safety Walkers'];
+  const rolesFull = capacity?.roles_full || [];
+
+  roleSel.innerHTML = '<option value="">Select a role…</option>';
+  roles.forEach(r => {
+    const isFull = rolesFull.some(rf => {
+      const rfLower = rf.toLowerCase();
+      const rLower = r.toLowerCase();
+      if (rfLower.includes('santa') && rLower.includes('santa')) return true;
+      if (rfLower.includes('driver') && rLower.includes('driver')) return true;
+      if ((rfLower.includes('lead') || rfLower.includes('navigator')) && (rLower.includes('lead') || rLower.includes('navigator'))) return true;
+      if ((rfLower.includes('collect') || rfLower.includes('bucket')) && (rLower.includes('collect') || rLower.includes('bucket'))) return true;
+      if ((rfLower.includes('marshal') || rfLower.includes('walker')) && (rLower.includes('marshal') || rLower.includes('walker'))) return true;
+      return false;
+    });
+
+    const opt = document.createElement('option');
+    opt.value = r;
+    if (isFull) {
+      opt.disabled = true;
+      opt.textContent = `${r} (Position Filled)`;
+    } else {
+      opt.textContent = r;
+    }
+    roleSel.appendChild(opt);
+  });
+
+  if (currentVal) {
+    const matchingOpt = Array.from(roleSel.options).find(o => o.value === currentVal);
+    if (matchingOpt && !matchingOpt.disabled) {
+      roleSel.value = currentVal;
+    } else {
+      roleSel.value = "";
+    }
+  }
+}
+
+function updateRouteCapacityNotice() {
+  const routeSelect = document.getElementById('routeSelect');
+  const noticeDiv = document.getElementById('routeCapNotice');
+  const submitBtn = document.getElementById('submitBtn');
+  if (!routeSelect || !noticeDiv) return;
+
+  const selectedName = routeSelect.value;
+  if (!selectedName) {
+    noticeDiv.style.display = 'none';
+    noticeDiv.innerHTML = '';
+    updateRoleDropdown(null);
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerText = "Sign Up Now";
+    }
+    return;
+  }
+
+  const route = (window.allRoutes || []).find(r => (r.routeName || r.name) === selectedName);
+  const cap = route?.volunteer_capacity;
+
+  if (!cap) {
+    noticeDiv.style.display = 'none';
+    noticeDiv.innerHTML = '';
+    updateRoleDropdown(null);
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerText = "Sign Up Now";
+    }
+    return;
+  }
+
+  updateRoleDropdown(cap);
+
+  if (cap.is_closed) {
+    noticeDiv.style.display = 'block';
+    noticeDiv.innerHTML = `
+      <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 12px 14px; color: #fca5a5; font-size: 13px; line-height: 1.45;">
+        <strong>🔒 Volunteer Registration Closed</strong><br>
+        Registration for this route has been closed by the organizers. Thank you so much for your generosity! Please choose another route from the dropdown if available.
+      </div>
+    `;
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerText = "Registration Closed";
+    }
+  } else if (cap.is_full || cap.slots_remaining <= 0) {
+    noticeDiv.style.display = 'block';
+    noticeDiv.innerHTML = `
+      <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 12px 14px; color: #fcd34d; font-size: 13px; line-height: 1.45;">
+        <strong>🎅 Route is at Full Capacity!</strong><br>
+        This route already has all ${cap.current_total || cap.max_volunteers} volunteer positions filled. Thank you so much for offering to help! Please check our other dates or routes to see where extra hands are needed.
+      </div>
+    `;
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerText = "Route Capacity Reached";
+    }
+  } else if (cap.slots_remaining <= 5) {
+    noticeDiv.style.display = 'block';
+    noticeDiv.innerHTML = `
+      <div style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.2); border-radius: 8px; padding: 8px 12px; color: #86efac; font-size: 12px;">
+        ✨ <strong>${cap.slots_remaining} of ${cap.max_volunteers} volunteer slot${cap.slots_remaining === 1 ? '' : 's'} remaining</strong> on this run.
+      </div>
+    `;
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerText = "Sign Up Now";
+    }
+  } else {
+    noticeDiv.style.display = 'none';
+    noticeDiv.innerHTML = '';
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerText = "Sign Up Now";
+    }
+  }
+}
+
 function populateRouteDropdowns(routes) {
   const dropdowns = [document.getElementById('routeSelect'), document.getElementById('opsRouteSelect')];
   
@@ -813,7 +929,19 @@ function populateRouteDropdowns(routes) {
         const endTime = route["End Time"] || route.end_time || "";
         const timeStr = startTime ? ` (${startTime}–${endTime})` : "";
 
-        option.textContent = `${rName} — ${friendlyDate}${timeStr}`;
+        const cap = route.volunteer_capacity;
+        let capStr = "";
+        if (cap && dropdown.id === 'routeSelect') {
+          if (cap.is_closed) {
+            capStr = " [CLOSED]";
+          } else if (cap.is_full || cap.slots_remaining <= 0) {
+            capStr = ` [FULL - ${cap.current_total}/${cap.max_volunteers}]`;
+          } else {
+            capStr = ` (${cap.slots_remaining} slot${cap.slots_remaining === 1 ? '' : 's'} left)`;
+          }
+        }
+
+        option.textContent = `${rName} — ${friendlyDate}${timeStr}${capStr}`;
         dropdown.appendChild(option);
       }
     });
@@ -849,17 +977,24 @@ async function submitVolunteer(e) {
   };
 
   try {
+    let res;
     if (API) {
-      await fetch(API, { method: "POST", body: JSON.stringify(payload) });
+      res = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     } else {
-      await fetch(`${WORKER_URL}/api/volunteers?table=${encodeURIComponent(tableSlug)}`, {
+      res = await fetch(`${WORKER_URL}/api/volunteers?table=${encodeURIComponent(tableSlug)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
     }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      alert(data.error || "Unable to register for this route. It may have reached capacity.");
+      return;
+    }
     alert("Thanks for signing up! You've been added to the volunteer roster.");
     document.getElementById('signupForm').reset();
+    updateRouteCapacityNotice();
   } catch (err) {
     alert("Something went wrong. Please check your connection and try again.");
   } finally {
