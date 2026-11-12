@@ -10111,7 +10111,7 @@ ${stepsToReproduce}
       }
 
       to = `${contactName} <${contactEmail}>`;
-      bcc = superAdminEmail;
+      bcc = "";
       subject = `✅ [Ticket #${ticketNum} Resolved] ${title} — Round Table Santa Sleigh Support`;
 
       const cleanSlug = String(ticket.table_id || "beverley").toLowerCase().trim();
