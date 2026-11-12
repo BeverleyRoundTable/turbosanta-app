@@ -1389,6 +1389,7 @@ ${tableName} Organizers`
     admin_email: tableData?.table?.admin_email || session?.email || '',
     table_number: tableData?.table?.table_number || session?.tableNumber || '',
     fundraising_goal: tableData?.table?.fundraising_goal || 8000,
+    donations_start_date: tableData?.table?.donations_start_date || '',
     donate_url: tableData?.table?.donate_url || (currentTableSlug === 'beverley' ? 'https://www.zeffy.com/en-GB/donation-form/beverley-round-table-for-our-community' : ''),
     logo_url: (tableData?.table?.logo_url && tableData.table.logo_url !== '/icons/RTBI_Santa.png') ? tableData.table.logo_url : '',
     sleigh_icon_live: tableData?.table?.sleigh_icon_live || '',
@@ -1566,6 +1567,7 @@ ${tableName} Organizers`
         admin_email: tableData.table.admin_email || prev.admin_email || session?.email || '',
         table_number: tableData.table.table_number || prev.table_number || session?.tableNumber || '',
         fundraising_goal: tableData.table.fundraising_goal !== undefined && tableData.table.fundraising_goal !== null ? tableData.table.fundraising_goal : prev.fundraising_goal,
+        donations_start_date: tableData.table.donations_start_date !== undefined ? (tableData.table.donations_start_date || '') : (prev.donations_start_date || ''),
         donate_url: (tableData.table.donate_url !== undefined && tableData.table.donate_url !== null)
           ? tableData.table.donate_url
           : (currentTableSlug === 'beverley' ? 'https://www.zeffy.com/en-GB/donation-form/beverley-round-table-for-our-community' : ''),
@@ -2940,28 +2942,39 @@ ${tableName} Organizers`
     }
   };
 
-  const handleResetDonations = async () => {
-    if (!confirm("Are you sure you want to clear test donations and reset the live total raised back to £0.00 in your database?")) return;
+  const handleResetDonations = async (customCutoff) => {
+    if (!confirm("Are you sure you want to clear test donations and reset the live total raised back to £0.00 in your database? (Any future transactions will only be counted from now onwards)")) return;
     const slug = session?.tableSlug || tableData?.table?.slug || 'beverley';
     const secret = session?.googleCredential || session?.token || '';
+    const nowIso = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    const cutoffDate = customCutoff || nowIso;
     try {
-      await fetch(`https://turbosanta-api.beverley247.workers.dev/api/donations?table=${encodeURIComponent(slug)}`, {
+      const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/donations?table=${encodeURIComponent(slug)}&start_date=${encodeURIComponent(cutoffDate)}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${secret}` }
       });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to reset donations');
+
       if (onUpdateTableData) {
         onUpdateTableData(prev => ({
           ...prev,
           table: {
             ...prev.table,
             total_raised: 0,
+            external_raised_total: 0,
+            donations_start_date: cutoffDate,
             donation_breakdown: []
           },
           donationsLedger: []
         }));
       }
-      setSaveStatus("All test donations cleared! Live total reset to £0.00.");
-      setTimeout(() => setSaveStatus(''), 3000);
+      setFormData(prev => ({
+        ...prev,
+        donations_start_date: cutoffDate
+      }));
+      setSaveStatus("All test/pre-season donations cleared! Live total reset to £0.00 (tracking from now onwards).");
+      setTimeout(() => setSaveStatus(''), 4000);
     } catch (e) {
       alert("Failed to reset donations: " + e.message);
     }
@@ -9435,6 +9448,114 @@ ${tableName} Organizers`
                 </div>
               </div>
 
+              {/* DONATIONS TRACKING & RESET CONTROLS */}
+              <div style={{
+                background: 'rgba(251, 175, 51, 0.05)',
+                border: '1px solid rgba(251, 175, 51, 0.25)',
+                borderRadius: '10px',
+                padding: '16px',
+                marginTop: '14px',
+                marginBottom: '16px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
+                  <div>
+                    <strong style={{ fontSize: '14px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <CreditCard size={16} color="var(--primary)" />
+                      <span>Donations Tracking &amp; Reset</span>
+                    </strong>
+                    <p style={{ margin: '3px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
+                      Current Live Raised: <strong style={{ color: 'var(--primary)' }}>£{Number(tableData?.table?.total_raised || 0).toLocaleString()}</strong>
+                      {formData.donations_start_date ? ` (Filtering from ${formData.donations_start_date.slice(0, 10)})` : ''}
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleResetDonations()}
+                      className="btn-secondary"
+                      style={{
+                        padding: '7px 12px',
+                        fontSize: '12px',
+                        borderColor: '#ef4444',
+                        color: '#fca5a5',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                      title="Clear simulated / pre-season test donations and reset total back to £0.00"
+                    >
+                      <Trash2 size={13} />
+                      <span>Clear Test Donations (£0.00)</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', alignItems: 'end' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '5px' }}>
+                      Count Donations From Date:
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.donations_start_date ? formData.donations_start_date.slice(0, 10) : ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData(prev => ({ ...prev, donations_start_date: val ? `${val} 00:00:00` : '' }));
+                      }}
+                      style={{
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        background: '#0d0d0b',
+                        border: '1px solid var(--border)',
+                        borderRadius: '6px',
+                        padding: '8px 10px',
+                        color: '#fff',
+                        fontSize: '13px'
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const today = new Date().toISOString().slice(0, 10);
+                        setFormData(prev => ({ ...prev, donations_start_date: `${today} 00:00:00` }));
+                      }}
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.08)',
+                        border: '1px solid rgba(255, 255, 255, 0.15)',
+                        color: '#eee',
+                        borderRadius: '6px',
+                        padding: '8px 12px',
+                        fontSize: '12px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Set to Today (From Now Onwards)
+                    </button>
+                    {formData.donations_start_date && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, donations_start_date: '' }))}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-muted)',
+                          fontSize: '11px',
+                          textDecoration: 'underline',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Clear Filter
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px', lineHeight: 1.4 }}>
+                  Filters out off-season SumUp card payments (e.g. beer festivals, summer galas) or pre-launch test donations so only transactions during your Christmas sleigh run count toward your target.
+                </div>
+              </div>
+
               {/* BRAND COLOR SELECTOR */}
               <div style={{ minWidth: 0, maxWidth: '100%' }}>
                 <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>
@@ -13799,6 +13920,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                         admin_email: session?.email || formData.admin_email || undefined,
                         table_number: session?.tableNumber || formData.table_number || (session?.email ? session.email.split('@')[0].match(/\d+/)?.[0] : undefined),
                         fundraising_goal: parsedGoal,
+                        donations_start_date: (formData.donations_start_date !== undefined && formData.donations_start_date !== null && String(formData.donations_start_date).trim()) ? String(formData.donations_start_date).trim() : null,
                         expenses: Number(formData.expenses !== undefined ? formData.expenses : (tableData?.table?.expenses || 0)),
                         expenses_json: formData.expenses_json || null,
                         donate_url: formData.donate_url,

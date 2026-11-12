@@ -352,6 +352,7 @@ async function ensureSchemaOnce(env) {
       "ALTER TABLE tables ADD COLUMN club_41_url TEXT",
       "ALTER TABLE tables ADD COLUMN tangent_url TEXT",
       "ALTER TABLE tables ADD COLUMN custom_links_json TEXT",
+      "ALTER TABLE tables ADD COLUMN donations_start_date TEXT",
       "DELETE FROM lessons_learned WHERE id LIKE 'seed_%'",
       "DELETE FROM lesson_upvotes WHERE lesson_id LIKE 'seed_%'"
     ];
@@ -1438,6 +1439,9 @@ export default {
       } else if (reqYear && /^\d{4}$/.test(reqYear)) {
         donationDateFilter = `AND strftime('%Y', created_at) = '${reqYear}'`;
       }
+      if (table.donations_start_date) {
+        donationDateFilter += ` AND datetime(created_at) >= datetime('${table.donations_start_date}')`;
+      }
 
       const [routes, streets, donations, latestGps, breakdown, ledger, volCount, gaStats, historyRecords, approvedGrants, subCount, grantsSummary, donationStats, memCount, volRoleCounts] = await Promise.all([
         env.DB.prepare("SELECT * FROM routes WHERE table_id = ? OR table_id = ? ORDER BY date ASC, start_time ASC").bind(table.id, table.slug).all(),
@@ -1654,6 +1658,7 @@ export default {
         sumup_configured: Boolean(table.sumup_api_key),
         sumup_api_key: isAdmin ? (table.sumup_api_key ? '••••••••' : '') : undefined,
         external_raised_total: Number(table.external_raised_total || 0),
+        donations_start_date: table.donations_start_date || null,
         external_synced_at: table.external_synced_at || null,
         // Automated Crew Briefing & Default Muster Settings
         auto_crew_briefing_enabled: (table.auto_crew_briefing_enabled !== undefined && table.auto_crew_briefing_enabled !== null) ? Boolean(table.auto_crew_briefing_enabled) : true,
@@ -2919,6 +2924,7 @@ export default {
       values.push(standardDisplayName);
 
       setIfProvided("fundraising_goal", "fundraising_goal", v => parseFloat(v) || 0);
+      setIfProvided("donations_start_date", "donations_start_date", v => (typeof v === 'string' && v.trim()) ? v.trim() : null);
       setIfProvided("expenses", "expenses", v => parseFloat(v) || 0);
       setIfProvided("expenses_json", "expenses_json", v => typeof v === 'string' ? v : JSON.stringify(v));
       setIfProvided("admin_email", "admin_email", v => (typeof v === 'string' && v.includes('@')) ? v.trim().toLowerCase() : v);
@@ -3031,6 +3037,18 @@ export default {
             UPDATE tables SET ${fields.join(", ")}
             WHERE id = ? OR slug = ?
           `).bind(...values).run();
+        }
+
+        if (body.donations_start_date !== undefined) {
+          if (body.donations_start_date) {
+            const cleanCutoff = String(body.donations_start_date).trim().replace("T", " ").slice(0, 19);
+            await env.DB.prepare("DELETE FROM donations WHERE (table_id = ? OR table_id = ?) AND datetime(created_at) < datetime(?)")
+              .bind(tableId, targetSlug, cleanCutoff).run().catch(() => {});
+            const extSum = await env.DB.prepare("SELECT SUM(amount) as total FROM donations WHERE (table_id = ? OR table_id = ?) AND source IN ('sumup', 'justgiving', 'tickettailor')")
+              .bind(tableId, targetSlug).first().catch(() => ({ total: 0 }));
+            await env.DB.prepare("UPDATE tables SET external_raised_total = ? WHERE id = ? OR slug = ?")
+              .bind(Number(extSum?.total || 0), tableId, targetSlug).run().catch(() => {});
+          }
         }
         // Proactively notify search engines (IndexNow: Bing, Edge, DuckDuckGo, Yahoo, Yandex) in background
         if (ctx && typeof ctx.waitUntil === 'function' && targetSlug && !isReservedNationalSlug(targetSlug)) {
@@ -3948,8 +3966,19 @@ export default {
         return jsonResponse({ error: "Unauthorized: Admin credentials required to clear donations" }, 401);
       }
 
-      await env.DB.prepare("DELETE FROM donations WHERE table_id = ?").bind(table.id).run();
-      return jsonResponse({ ok: true, message: "Donations cleared successfully", total_raised: 0 });
+      const nowIso = new Date().toISOString().replace("T", " ").slice(0, 19);
+      const customStart = url.searchParams.get("from") || url.searchParams.get("start_date") || nowIso;
+
+      await env.DB.prepare("DELETE FROM donations WHERE table_id = ? OR table_id = ?").bind(table.id, table.slug).run();
+      await env.DB.prepare("UPDATE tables SET external_raised_total = 0, donations_start_date = ?, external_synced_at = ? WHERE id = ? OR slug = ?")
+        .bind(customStart, nowIso, table.id, table.slug).run().catch(() => {});
+
+      return jsonResponse({
+        ok: true,
+        message: "Donations cleared successfully. Tracking donations from now onwards.",
+        total_raised: 0,
+        donations_start_date: customStart
+      });
     }
 
     // ==============================================================
@@ -10571,7 +10600,29 @@ async function syncExternalFundraising({ env, table }) {
   if (suKey && !suKey.includes("•")) {
     try {
       const currentYear = new Date().getUTCFullYear();
-      const oldestTime = `${currentYear}-01-01T00:00:00Z`;
+      // Default to campaign season start (Nov 1st) if no custom donations_start_date is specified,
+      // preventing off-season transactions (summer fairs, club meetings, etc.) from polluting Santa sleigh totals.
+      let defaultCutoff = `${currentYear}-11-01T00:00:00Z`;
+      let oldestTime = defaultCutoff;
+      if (table.donations_start_date) {
+        try {
+          const norm = String(table.donations_start_date).trim().replace(" ", "T");
+          const parsed = new Date(norm.endsWith("Z") ? norm : norm + "Z");
+          if (!isNaN(parsed.getTime())) {
+            oldestTime = parsed.toISOString();
+          }
+        } catch (_) {}
+      }
+
+      // Prune any existing SumUp donations older than cutoff for this table
+      const cutoffSql = oldestTime.replace("T", " ").slice(0, 19);
+      await env.DB.prepare(`
+        DELETE FROM donations 
+        WHERE (table_id = ? OR table_id = ?) 
+          AND source = 'sumup' 
+          AND datetime(created_at) < datetime(?)
+      `).bind(table.id, table.slug, cutoffSql).run().catch(() => {});
+
       let nextUrl = `https://api.sumup.com/v0.1/me/transactions/history?statuses[]=SUCCESSFUL&oldest_time=${encodeURIComponent(oldestTime)}&limit=100`;
       let sumupTotalPounds = 0;
       let sumupCount = 0;
@@ -10597,6 +10648,17 @@ async function syncExternalFundraising({ env, table }) {
           if (st === "SUCCESSFUL" && tp !== "REFUND") {
             const amt = parseFloat(tx.amount ?? 0) || 0;
             if (amt > 0) {
+              let tsSql = new Date().toISOString().replace("T", " ").slice(0, 19);
+              if (tx.timestamp) {
+                const parsedDate = new Date(tx.timestamp);
+                if (!isNaN(parsedDate.getTime())) {
+                  const cutoffMs = new Date(oldestTime).getTime();
+                  if (parsedDate.getTime() < cutoffMs) {
+                    continue; // Skip pre-cutoff / pre-season transaction
+                  }
+                  tsSql = parsedDate.toISOString().replace("T", " ").slice(0, 19);
+                }
+              }
               sumupTotalPounds += amt;
               sumupCount++;
               const txKey = String(tx.transaction_code || tx.id || `${tx.timestamp}_${amt}`).trim();
@@ -10605,13 +10667,6 @@ async function syncExternalFundraising({ env, table }) {
                 ? `SumUp Card Tap (${tx.card_type})`
                 : (tx.payment_type ? `SumUp (${tx.payment_type})` : "SumUp Card Reader Tap");
               const summaryLabel = tx.product_summary || "Street Collection (SumUp)";
-              let tsSql = new Date().toISOString().replace("T", " ").slice(0, 19);
-              if (tx.timestamp) {
-                const parsedDate = new Date(tx.timestamp);
-                if (!isNaN(parsedDate.getTime())) {
-                  tsSql = parsedDate.toISOString().replace("T", " ").slice(0, 19);
-                }
-              }
               upserts.push(
                 env.DB.prepare(`
                   INSERT OR REPLACE INTO donations (id, table_id, amount, source, street_name, donor_name, created_at)
@@ -10643,7 +10698,7 @@ async function syncExternalFundraising({ env, table }) {
       }
 
       // Remove any legacy aggregate row so individual transactions are the single source of truth
-      await env.DB.prepare("DELETE FROM donations WHERE table_id = ? AND id = ?").bind(table.id, `sync_sumup_${table.id}`).run().catch(() => {});
+      await env.DB.prepare("DELETE FROM donations WHERE (table_id = ? OR table_id = ?) AND id = ?").bind(table.id, table.slug, `sync_sumup_${table.id}`).run().catch(() => {});
 
       for (let i = 0; i < upserts.length; i += 50) {
         const chunk = upserts.slice(i, i + 50);
@@ -10666,7 +10721,7 @@ async function syncExternalFundraising({ env, table }) {
     WHERE id = ? OR slug = ?
   `).bind(extTotal, syncedAt, table.id, table.slug).run().catch(() => {});
 
-  const sumRow = await env.DB.prepare("SELECT SUM(amount) as total FROM donations WHERE table_id = ?").bind(table.id).first().catch(() => ({ total: extTotal }));
+  const sumRow = await env.DB.prepare("SELECT SUM(amount) as total FROM donations WHERE table_id = ? OR table_id = ?").bind(table.id, table.slug).first().catch(() => ({ total: extTotal }));
 
   return {
     ...results,
