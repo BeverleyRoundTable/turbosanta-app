@@ -5530,11 +5530,12 @@ export default {
 
       updates.push("updated_at = CURRENT_TIMESTAMP");
       vals.push(ticketId);
+      vals.push(Number(ticketId) || 0);
 
       try {
         await env.DB.prepare(`
           UPDATE support_tickets SET ${updates.join(", ")}
-          WHERE id = ?
+          WHERE id = ? OR ticket_number = ?
         `).bind(...vals).run();
 
         // 🎅 If ticket is marked resolved or closed, auto-email resolution to recipient
@@ -5543,7 +5544,7 @@ export default {
 
         if ((newStatus === "resolved" || newStatus === "closed" || body.notify_recipient === true || body.notify_recipient === "true") && shouldNotifyRecipient) {
           try {
-            const updatedTkt = await env.DB.prepare("SELECT * FROM support_tickets WHERE id = ?").bind(ticketId).first();
+            const updatedTkt = await env.DB.prepare("SELECT * FROM support_tickets WHERE id = ? OR ticket_number = ?").bind(ticketId, Number(ticketId) || 0).first();
             if (updatedTkt && (updatedTkt.status === "resolved" || updatedTkt.status === "closed") && ctx && typeof ctx.waitUntil === "function") {
               ctx.waitUntil(sendSupportTicketEmail({
                 env,
@@ -9457,12 +9458,17 @@ function buildRfc2822Base64({ fromName, fromEmail, to, bcc, subject, htmlBody })
   const utf8Subject = `=?utf-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`;
   const utf8FromName = `=?utf-8?B?${btoa(unescape(encodeURIComponent(fromName)))}?=`;
 
+  const toStr = String(to || fromEmail).trim();
+  const formattedTo = toStr.includes('<') ? toStr : `<${toStr}>`;
+
   const headers = [
     `From: ${utf8FromName} <${fromEmail}>`,
-    `To: <${to || fromEmail}>`
+    `To: ${formattedTo}`
   ];
   if (bcc) {
-    headers.push(`Bcc: ${bcc}`);
+    const bccStr = String(bcc).trim();
+    const formattedBcc = bccStr.includes('<') ? bccStr : `<${bccStr}>`;
+    headers.push(`Bcc: ${formattedBcc}`);
   }
   headers.push(`Subject: ${utf8Subject}`);
   headers.push(`MIME-Version: 1.0`);
@@ -9959,8 +9965,11 @@ async function sendSupportTicketEmail({ env, type, ticket, resolutionNotes }) {
   try {
     // 1. Locate Beverley table or an authorized table with active Gmail OAuth
     const authTable = await env.DB.prepare(
-      "SELECT * FROM tables WHERE (slug = 'beverley' OR is_national = 1 OR admin_email = 'beverley247@roundtable.org.uk') AND gmail_refresh_token IS NOT NULL ORDER BY CASE WHEN slug = 'beverley' THEN 0 ELSE 1 END LIMIT 1"
-    ).first().catch(() => null);
+      "SELECT * FROM tables WHERE (slug = 'beverley' OR admin_email = 'beverley247@roundtable.org.uk' OR gmail_refresh_token IS NOT NULL) AND gmail_refresh_token IS NOT NULL ORDER BY CASE WHEN slug = 'beverley' THEN 0 ELSE 1 END LIMIT 1"
+    ).first().catch((err) => {
+      console.warn("sendSupportTicketEmail DB lookup error:", err.message);
+      return null;
+    });
 
     if (!authTable || !authTable.gmail_refresh_token) {
       console.warn("sendSupportTicketEmail: No table with gmail_refresh_token found");
