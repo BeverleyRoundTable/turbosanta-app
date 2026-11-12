@@ -1042,13 +1042,50 @@ body {
   overflow-anchor: none;
 }
 
+#santa-chat .container,
+#santa-bot .container {
+  max-width: 420px !important;
+  margin: 0 auto;
+}
+
+#santa-chat .iframe-container,
+#santa-bot .iframe-container {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  background: #ffffff !important;
+  border-radius: var(--radius-2xl);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+}
+
+#santa-chat .iframe-chrome,
+#santa-bot .iframe-chrome {
+  background: rgba(14, 22, 36, 0.96) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 #santa-chat-iframe,
 #santa-bot-iframe {
-  height: 520px;
-  max-height: 540px;
+  width: 100% !important;
+  height: 500px;
+  max-height: 520px;
+  display: block;
+  background: #ffffff !important;
+  border: none;
 }
 
 @media (max-width: 768px) {
+  #santa-chat .container,
+  #santa-bot .container {
+    max-width: 100% !important;
+    padding: 0 12px !important;
+  }
+  #santa-chat .iframe-container,
+  #santa-bot .iframe-container {
+    max-width: 100% !important;
+  }
   #santa-chat-iframe,
   #santa-bot-iframe {
     height: 460px !important;
@@ -1058,11 +1095,6 @@ body {
   .modular-slot-section#santa-bot {
     padding: 24px 0 !important;
     scroll-margin-top: 60px;
-  }
-  #santa-chat .container,
-  #santa-bot .container {
-    max-width: 440px !important;
-    padding: 0 16px !important;
   }
 }
 

@@ -262,54 +262,72 @@
       "position:absolute !important;inset:0 !important;display:block !important;" +
       "width:100% !important;height:100% !important;" +
       "--el-overlay-padding:0px !important;" +
-      "--el-sheet-radius:18px !important;" +
+      "--el-sheet-radius:0px !important;" +
+      "--el-base:#ffffff !important;" +
       "}";
     document.head.appendChild(style);
   }
 
   function ensureShadowFillStyle(el) {
     if (!el) return;
-    function injectStyle() {
+
+    var cssText = [
+      ":host { display:block !important; width:100% !important; height:100% !important; position:absolute !important; inset:0 !important; overflow:hidden !important; background:#ffffff !important; }",
+      ".overlay { position:absolute !important; inset:0 !important; top:0 !important; left:0 !important; right:0 !important; bottom:0 !important; width:100% !important; height:100% !important; max-width:100% !important; max-height:100% !important; padding:0 !important; margin:0 !important; display:flex !important; flex-direction:column !important; align-items:stretch !important; justify-content:stretch !important; background:#ffffff !important; }",
+      ".sheet, [data-variant].sheet, [data-variant='compact'].sheet, [data-variant='expanded'].sheet, [data-variant='fullscreen'].sheet, div[class*='sheet'] { position:absolute !important; inset:0 !important; top:0 !important; left:0 !important; right:0 !important; bottom:0 !important; width:100% !important; max-width:100% !important; min-width:100% !important; height:100% !important; max-height:100% !important; min-height:100% !important; margin:0 !important; border-radius:0 !important; border:none !important; box-shadow:none !important; transform:none !important; background-color:#ffffff !important; }",
+      ".sheet > div:nth-child(2), .sheet [class*='grow'] { flex-grow:1 !important; min-height:0 !important; }",
+      "p.whitespace-nowrap, .overlay > p { position:absolute !important; bottom:2px !important; left:0 !important; right:0 !important; margin:0 !important; padding:0 !important; text-align:center !important; z-index:30 !important; pointer-events:none !important; }",
+      "p.whitespace-nowrap a, .overlay > p a { pointer-events:auto !important; }"
+    ].join("\n");
+
+    function applyToShadow(sr) {
+      if (!sr) return false;
+      var applied = false;
       try {
-        if (!el.shadowRoot) return false;
-        var sheet = el.shadowRoot.querySelector(".sheet");
-        if (sheet && !el.shadowRoot.getElementById("santa-fill-style")) {
-          var s = document.createElement("style");
-          s.id = "santa-fill-style";
-          s.textContent =
-            ".overlay {" +
-            "  inset: 0px !important;" +
-            "  right: 0px !important;" +
-            "}" +
-            ".sheet {" +
-            "  width: 100% !important;" +
-            "  max-width: 100% !important;" +
-            "  height: 100% !important;" +
-            "  max-height: 100% !important;" +
-            "  border-radius: 18px !important;" +
-            "}";
-          el.shadowRoot.appendChild(s);
+        if (sr.adoptedStyleSheets && window.CSSStyleSheet) {
+          if (!sr._santaSheetInjected) {
+            var cs = new CSSStyleSheet();
+            cs.replaceSync(cssText);
+            sr.adoptedStyleSheets = [cs].concat(sr.adoptedStyleSheets || []);
+            sr._santaSheetInjected = true;
+            applied = true;
+          }
         }
-        return true;
-      } catch (e) { return false; }
+      } catch (e) {}
+
+      try {
+        if (!sr.getElementById("santa-fill-style")) {
+          var tag = document.createElement("style");
+          tag.id = "santa-fill-style";
+          tag.textContent = cssText;
+          sr.appendChild(tag);
+          applied = true;
+        }
+      } catch (e) {}
+
+      return applied;
     }
 
-    if (injectStyle()) return;
+    if (el.shadowRoot) {
+      applyToShadow(el.shadowRoot);
+    }
 
     var obs = null;
     var timer = setInterval(function () {
       if (el.shadowRoot) {
-        injectStyle();
+        applyToShadow(el.shadowRoot);
         if (!obs && window.MutationObserver) {
           obs = new MutationObserver(function () {
-            injectStyle();
+            applyToShadow(el.shadowRoot);
           });
           obs.observe(el.shadowRoot, { childList: true, subtree: true });
         }
       }
     }, 50);
 
-    setTimeout(function () { clearInterval(timer); }, 6000);
+    setTimeout(function () {
+      if (timer) clearInterval(timer);
+    }, 8000);
   }
 
   function injectWidget(agentId) {
@@ -326,7 +344,7 @@
       el.setAttribute("agent-id", finalAgentId);
       el.setAttribute("default-expanded", "true");
       el.setAttribute("always-expanded", "true");
-      el.setAttribute("show-resize-button", "true");
+      el.setAttribute("show-resize-button", "false");
 
       if (cleanRoute) {
         try {
@@ -354,11 +372,15 @@
       if (finalAgentId && el.getAttribute("agent-id") !== finalAgentId) {
         el.setAttribute("agent-id", finalAgentId);
       }
+      if (el.getAttribute("show-resize-button") !== "false") {
+        el.setAttribute("show-resize-button", "false");
+      }
       if (cleanRoute) {
         try {
           el.setAttribute("dynamic-variables", JSON.stringify({ route_info: cleanRoute }));
         } catch (e) {}
       }
+      ensureShadowFillStyle(el);
     }
 
     if (!window.customElements || !window.customElements.get(WIDGET_TAG)) {
