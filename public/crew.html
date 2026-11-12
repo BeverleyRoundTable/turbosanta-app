@@ -797,9 +797,20 @@ function updateRoleDropdown(capacity) {
 
   roleSel.innerHTML = '<option value="">Select a role…</option>';
   roles.forEach(r => {
+    const rLower = r.toLowerCase();
+
+    // If role is set to 0 capacity, completely remove from public volunteer options
+    if (capacity) {
+      if (rLower.includes('santa') && capacity.max_santas === 0) return;
+      if ((rLower.includes('driver') || rLower.includes('tow')) && capacity.max_drivers === 0) return;
+      if ((rLower.includes('lead') || rLower.includes('navigator')) && capacity.max_lead_marshals === 0) return;
+      if ((rLower.includes('tech') || rLower.includes('gps')) && capacity.max_tech === 0) return;
+      if ((rLower.includes('collect') || rLower.includes('bucket')) && capacity.max_collectors === 0) return;
+      if ((rLower.includes('marshal') || rLower.includes('walker') || rLower.includes('safety')) && capacity.max_marshals === 0) return;
+    }
+
     const isFull = rolesFull.some(rf => {
       const rfLower = rf.toLowerCase();
-      const rLower = r.toLowerCase();
       if (rfLower.includes('santa') && rLower.includes('santa')) return true;
       if (rfLower.includes('driver') && rLower.includes('driver')) return true;
       if ((rfLower.includes('lead') || rfLower.includes('navigator')) && (rLower.includes('lead') || rLower.includes('navigator'))) return true;

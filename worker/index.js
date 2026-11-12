@@ -5813,42 +5813,54 @@ export default {
               return jsonResponse({
                 ok: false,
                 full: true,
-                error: `The Santa position for "${targetRouteObj.name}" is already filled (${santaCnt}/${maxSantas}). Please choose another role (such as Bucket Collector or Safety Marshall) or select another date.`
+                error: maxSantas === 0
+                  ? `The Santa position for "${targetRouteObj.name}" is not open for public volunteer sign-up.`
+                  : `The Santa position for "${targetRouteObj.name}" is already filled (${santaCnt}/${maxSantas}). Please choose another role (such as Bucket Collector or Safety Marshall) or select another date.`
               }, 409);
             }
             if ((reqRole.includes("driver") || reqRole.includes("tow")) && driverCnt >= maxDrivers) {
               return jsonResponse({
                 ok: false,
                 full: true,
-                error: `The Sleigh Driver position for "${targetRouteObj.name}" is already filled (${driverCnt}/${maxDrivers}). Please choose another role (such as Bucket Collector or Safety Marshall).`
+                error: maxDrivers === 0
+                  ? `The Sleigh Driver position for "${targetRouteObj.name}" is not open for public volunteer sign-up.`
+                  : `The Sleigh Driver position for "${targetRouteObj.name}" is already filled (${driverCnt}/${maxDrivers}). Please choose another role (such as Bucket Collector or Safety Marshall).`
               }, 409);
             }
             if (reqRole.includes("lead") && reqRole.includes("marshal") && leadCnt >= maxLeadMarshals) {
               return jsonResponse({
                 ok: false,
                 full: true,
-                error: `The Lead Marshall position for "${targetRouteObj.name}" is already filled. Please choose another role.`
+                error: maxLeadMarshals === 0
+                  ? `The Lead Marshall position for "${targetRouteObj.name}" is not open for public volunteer sign-up.`
+                  : `The Lead Marshall position for "${targetRouteObj.name}" is already filled. Please choose another role.`
               }, 409);
             }
             if ((reqRole.includes("tech") || reqRole.includes("gps")) && techCnt >= maxTech) {
               return jsonResponse({
                 ok: false,
                 full: true,
-                error: `Tech/GPS Operator slots for "${targetRouteObj.name}" are full (${techCnt}/${maxTech}). Please choose another role (such as Bucket Collector or Safety Marshall).`
+                error: maxTech === 0
+                  ? `The Tech/GPS Operator position for "${targetRouteObj.name}" is not open for public volunteer sign-up.`
+                  : `Tech/GPS Operator slots for "${targetRouteObj.name}" are full (${techCnt}/${maxTech}). Please choose another role (such as Bucket Collector or Safety Marshall).`
               }, 409);
             }
             if ((reqRole.includes("bucket") || reqRole.includes("collector") || reqRole.includes("collection")) && collectorCnt >= maxCollectors) {
               return jsonResponse({
                 ok: false,
                 full: true,
-                error: `Bucket Collector slots for "${targetRouteObj.name}" are full (${collectorCnt}/${maxCollectors}). Please choose another role or select another date.`
+                error: maxCollectors === 0
+                  ? `Bucket Collector slots for "${targetRouteObj.name}" are not open for public volunteer sign-up.`
+                  : `Bucket Collector slots for "${targetRouteObj.name}" are full (${collectorCnt}/${maxCollectors}). Please choose another role or select another date.`
               }, 409);
             }
             if ((reqRole.includes("walker") || reqRole.includes("safety") || reqRole.includes("marshal")) && marshalCnt >= maxMarshals) {
               return jsonResponse({
                 ok: false,
                 full: true,
-                error: `Safety Marshall slots for "${targetRouteObj.name}" are full (${marshalCnt}/${maxMarshals}). Please choose another role or select another date.`
+                error: maxMarshals === 0
+                  ? `Safety Marshall slots for "${targetRouteObj.name}" are not open for public volunteer sign-up.`
+                  : `Safety Marshall slots for "${targetRouteObj.name}" are full (${marshalCnt}/${maxMarshals}). Please choose another role or select another date.`
               }, 409);
             }
           }

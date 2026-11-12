@@ -75,14 +75,14 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
     let static_stop_time = r?.static_stop_time || '';
     let lead_marshal = r?.lead_marshal || '';
     let tow_driver = r?.tow_driver || '';
-    let max_volunteers = 15;
-    let max_santas = 1;
-    let max_drivers = 1;
-    let max_lead_marshals = 1;
-    let max_collectors = 8;
-    let max_marshals = 4;
-    let max_tech = 1;
-    let volunteer_closed = false;
+    let max_volunteers = (r?.max_volunteers !== undefined && !isNaN(Number(r.max_volunteers))) ? Number(r.max_volunteers) : 15;
+    let max_santas = (r?.max_santas !== undefined && !isNaN(Number(r.max_santas))) ? Number(r.max_santas) : 1;
+    let max_drivers = (r?.max_drivers !== undefined && !isNaN(Number(r.max_drivers))) ? Number(r.max_drivers) : 1;
+    let max_lead_marshals = (r?.max_lead_marshals !== undefined && !isNaN(Number(r.max_lead_marshals))) ? Number(r.max_lead_marshals) : 1;
+    let max_collectors = (r?.max_collectors !== undefined && !isNaN(Number(r.max_collectors))) ? Number(r.max_collectors) : 8;
+    let max_marshals = (r?.max_marshals !== undefined && !isNaN(Number(r.max_marshals))) ? Number(r.max_marshals) : 4;
+    let max_tech = (r?.max_tech !== undefined && !isNaN(Number(r.max_tech))) ? Number(r.max_tech) : 1;
+    let volunteer_closed = r?.volunteer_closed !== undefined ? Boolean(r.volunteer_closed) : false;
 
     if (r?.notes) {
       const m = r.notes.match(/<!--\s*ROUTE_META:\s*({.*?})\s*-->/s);
@@ -96,13 +96,13 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
           if (parsed.static_stop_time) static_stop_time = parsed.static_stop_time;
           if (!lead_marshal && parsed.lead_marshal) lead_marshal = parsed.lead_marshal;
           if (!tow_driver && parsed.tow_driver) tow_driver = parsed.tow_driver;
-          if (parsed.max_volunteers !== undefined) max_volunteers = Number(parsed.max_volunteers);
-          if (parsed.max_santas !== undefined) max_santas = Number(parsed.max_santas);
-          if (parsed.max_drivers !== undefined) max_drivers = Number(parsed.max_drivers);
-          if (parsed.max_lead_marshals !== undefined) max_lead_marshals = Number(parsed.max_lead_marshals);
-          if (parsed.max_collectors !== undefined) max_collectors = Number(parsed.max_collectors);
-          if (parsed.max_marshals !== undefined) max_marshals = Number(parsed.max_marshals);
-          if (parsed.max_tech !== undefined) max_tech = Number(parsed.max_tech);
+          if (parsed.max_volunteers !== undefined && !isNaN(Number(parsed.max_volunteers))) max_volunteers = Number(parsed.max_volunteers);
+          if (parsed.max_santas !== undefined && !isNaN(Number(parsed.max_santas))) max_santas = Number(parsed.max_santas);
+          if (parsed.max_drivers !== undefined && !isNaN(Number(parsed.max_drivers))) max_drivers = Number(parsed.max_drivers);
+          if (parsed.max_lead_marshals !== undefined && !isNaN(Number(parsed.max_lead_marshals))) max_lead_marshals = Number(parsed.max_lead_marshals);
+          if (parsed.max_collectors !== undefined && !isNaN(Number(parsed.max_collectors))) max_collectors = Number(parsed.max_collectors);
+          if (parsed.max_marshals !== undefined && !isNaN(Number(parsed.max_marshals))) max_marshals = Number(parsed.max_marshals);
+          if (parsed.max_tech !== undefined && !isNaN(Number(parsed.max_tech))) max_tech = Number(parsed.max_tech);
           if (parsed.volunteer_closed !== undefined) volunteer_closed = Boolean(parsed.volunteer_closed);
         } catch(e) {}
       }
@@ -468,20 +468,16 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
       static_stop_time: (formData.static_stop_time || '').trim(),
       lead_marshal: (formData.lead_marshal || initialMeta.lead_marshal || route?.lead_marshal || '').trim(),
       tow_driver: (formData.tow_driver || initialMeta.tow_driver || route?.tow_driver || '').trim(),
-      max_volunteers: parseInt(formData.max_volunteers, 10) || 15,
-      max_santas: parseInt(formData.max_santas, 10) || 1,
-      max_drivers: parseInt(formData.max_drivers, 10) || 1,
-      max_lead_marshals: parseInt(formData.max_lead_marshals, 10) || 1,
-      max_collectors: parseInt(formData.max_collectors, 10) || 8,
-      max_marshals: parseInt(formData.max_marshals, 10) || 4,
-      max_tech: (formData.max_tech !== undefined && !isNaN(parseInt(formData.max_tech, 10))) ? parseInt(formData.max_tech, 10) : 1,
+      max_volunteers: (formData.max_volunteers !== undefined && formData.max_volunteers !== '' && !isNaN(parseInt(formData.max_volunteers, 10))) ? Math.max(1, parseInt(formData.max_volunteers, 10)) : 15,
+      max_santas: (formData.max_santas !== undefined && formData.max_santas !== '' && !isNaN(parseInt(formData.max_santas, 10))) ? Math.max(0, parseInt(formData.max_santas, 10)) : 1,
+      max_drivers: (formData.max_drivers !== undefined && formData.max_drivers !== '' && !isNaN(parseInt(formData.max_drivers, 10))) ? Math.max(0, parseInt(formData.max_drivers, 10)) : 1,
+      max_lead_marshals: (formData.max_lead_marshals !== undefined && formData.max_lead_marshals !== '' && !isNaN(parseInt(formData.max_lead_marshals, 10))) ? Math.max(0, parseInt(formData.max_lead_marshals, 10)) : 1,
+      max_collectors: (formData.max_collectors !== undefined && formData.max_collectors !== '' && !isNaN(parseInt(formData.max_collectors, 10))) ? Math.max(0, parseInt(formData.max_collectors, 10)) : 8,
+      max_marshals: (formData.max_marshals !== undefined && formData.max_marshals !== '' && !isNaN(parseInt(formData.max_marshals, 10))) ? Math.max(0, parseInt(formData.max_marshals, 10)) : 4,
+      max_tech: (formData.max_tech !== undefined && formData.max_tech !== '' && !isNaN(parseInt(formData.max_tech, 10))) ? Math.max(0, parseInt(formData.max_tech, 10)) : 1,
       volunteer_closed: Boolean(formData.volunteer_closed)
     };
-    const hasMeta = Boolean(
-      routeMeta.meeting_point || routeMeta.muster_time || routeMeta.static_stop_name ||
-      routeMeta.route_type === 'static' || routeMeta.lead_marshal || routeMeta.tow_driver ||
-      routeMeta.volunteer_closed || routeMeta.max_volunteers !== 15
-    );
+    const hasMeta = true; // Always persist ROUTE_META to preserve volunteer limits and route metadata
 
     let finalNotes = existingNotes;
     if (validSponsors.length > 0) {
@@ -507,6 +503,14 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
       muster_time: routeMeta.muster_time,
       lead_marshal: routeMeta.lead_marshal,
       tow_driver: routeMeta.tow_driver,
+      max_volunteers: routeMeta.max_volunteers,
+      max_santas: routeMeta.max_santas,
+      max_drivers: routeMeta.max_drivers,
+      max_lead_marshals: routeMeta.max_lead_marshals,
+      max_collectors: routeMeta.max_collectors,
+      max_marshals: routeMeta.max_marshals,
+      max_tech: routeMeta.max_tech,
+      volunteer_closed: routeMeta.volunteer_closed,
       streets: streetsArray,
       notes: finalNotes,
       sponsors: validSponsors,
@@ -990,7 +994,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                     min="1"
                     max="100"
                     value={formData.max_volunteers !== undefined ? formData.max_volunteers : 15}
-                    onChange={(e) => setFormData(prev => ({ ...prev, max_volunteers: parseInt(e.target.value, 10) || 15 }))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, max_volunteers: e.target.value === '' ? '' : (parseInt(e.target.value, 10) >= 1 ? parseInt(e.target.value, 10) : 1) }))}
                     style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
                   />
                 </div>
@@ -1003,7 +1007,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                     min="0"
                     max="5"
                     value={formData.max_santas !== undefined ? formData.max_santas : 1}
-                    onChange={(e) => setFormData(prev => ({ ...prev, max_santas: parseInt(e.target.value, 10) || 1 }))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, max_santas: e.target.value === '' ? '' : (parseInt(e.target.value, 10) >= 0 ? parseInt(e.target.value, 10) : 0) }))}
                     style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
                   />
                 </div>
@@ -1016,7 +1020,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                     min="0"
                     max="5"
                     value={formData.max_drivers !== undefined ? formData.max_drivers : 1}
-                    onChange={(e) => setFormData(prev => ({ ...prev, max_drivers: parseInt(e.target.value, 10) || 1 }))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, max_drivers: e.target.value === '' ? '' : (parseInt(e.target.value, 10) >= 0 ? parseInt(e.target.value, 10) : 0) }))}
                     style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
                   />
                 </div>
@@ -1029,7 +1033,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                     min="0"
                     max="5"
                     value={formData.max_lead_marshals !== undefined ? formData.max_lead_marshals : 1}
-                    onChange={(e) => setFormData(prev => ({ ...prev, max_lead_marshals: parseInt(e.target.value, 10) || 1 }))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, max_lead_marshals: e.target.value === '' ? '' : (parseInt(e.target.value, 10) >= 0 ? parseInt(e.target.value, 10) : 0) }))}
                     style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
                   />
                 </div>
@@ -1042,7 +1046,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                     min="0"
                     max="50"
                     value={formData.max_collectors !== undefined ? formData.max_collectors : 8}
-                    onChange={(e) => setFormData(prev => ({ ...prev, max_collectors: parseInt(e.target.value, 10) || 8 }))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, max_collectors: e.target.value === '' ? '' : (parseInt(e.target.value, 10) >= 0 ? parseInt(e.target.value, 10) : 0) }))}
                     style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
                   />
                 </div>
@@ -1055,7 +1059,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                     min="0"
                     max="50"
                     value={formData.max_marshals !== undefined ? formData.max_marshals : 4}
-                    onChange={(e) => setFormData(prev => ({ ...prev, max_marshals: parseInt(e.target.value, 10) || 4 }))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, max_marshals: e.target.value === '' ? '' : (parseInt(e.target.value, 10) >= 0 ? parseInt(e.target.value, 10) : 0) }))}
                     style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
                   />
                 </div>
@@ -1068,7 +1072,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                     min="0"
                     max="10"
                     value={formData.max_tech !== undefined ? formData.max_tech : 1}
-                    onChange={(e) => setFormData(prev => ({ ...prev, max_tech: e.target.value === '' ? 0 : (parseInt(e.target.value, 10) || 0) }))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, max_tech: e.target.value === '' ? '' : (parseInt(e.target.value, 10) >= 0 ? parseInt(e.target.value, 10) : 0) }))}
                     style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
                   />
                 </div>
