@@ -31,3 +31,45 @@ export function getManagedPlatformName(url) {
   if (/gofundme\.com/i.test(url)) return 'GoFundMe';
   return 'your charity platform';
 }
+
+/**
+ * Determine whether a route is completed based on explicit status or end-of-day date cutoff.
+ */
+export function isRouteCompleted(route, now = new Date()) {
+  if (!route) return false;
+  if (route.status === 'Completed') return true;
+  if (route.date) {
+    const d = new Date(`${route.date}T23:59:59`);
+    if (!Number.isNaN(d.getTime()) && d < now) return true;
+  }
+  return false;
+}
+
+/**
+ * Sort routes by date, start time, then name cleanly.
+ */
+export function sortRoutesChronologically(a, b, desc = false) {
+  const dComp = (a.date || '').localeCompare(b.date || '');
+  if (dComp !== 0) return desc ? -dComp : dComp;
+  const tComp = (a.start_time || '').localeCompare(b.start_time || '');
+  if (tComp !== 0) return desc ? -tComp : tComp;
+  return (a.name || '').localeCompare(b.name || '');
+}
+
+/**
+ * Split routes into chronologically sorted planned/upcoming vs completed lists.
+ */
+export function partitionRoutesByCompletion(routes = [], now = new Date()) {
+  const plannedRoutes = [];
+  const completedRoutes = [];
+  for (const r of routes) {
+    if (isRouteCompleted(r, now)) {
+      completedRoutes.push(r);
+    } else {
+      plannedRoutes.push(r);
+    }
+  }
+  plannedRoutes.sort((a, b) => sortRoutesChronologically(a, b, false));
+  completedRoutes.sort((a, b) => sortRoutesChronologically(a, b, true));
+  return { plannedRoutes, completedRoutes };
+}

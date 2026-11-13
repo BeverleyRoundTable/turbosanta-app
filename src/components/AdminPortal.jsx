@@ -15,7 +15,7 @@ import { logoutAdmin, isNationalAdmin, isSuperAdminEmail, getAdminAuthToken } fr
 import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, saveRoute, deleteRoute, connectTableGmail, disconnectTableGmail, testTableGmailAlert, clearSubscribers, triggerAutomatedCrewBriefings, uploadAssetToR2, fetchGiftAidSummary, updateGiftAidStatus, exportGiftAidCsv, deleteVolunteer, fetchSupportTickets } from '../services/api';
 import { extractRouteSponsors } from '../utils/sponsors';
 import { DEFAULT_FAQ_PRESETS, FLATBED_FAQ_PRESETS, normalizeFaqs } from '../utils/faqs';
-import { PUBLIC_SLOT_OPTIONS } from '../utils/adminHelpers';
+import { PUBLIC_SLOT_OPTIONS, partitionRoutesByCompletion } from '../utils/adminHelpers';
 import DropzoneUpload from './DropzoneUpload';
 
 const RouteEditorModal = lazy(() => import('./RouteEditorModal'));
@@ -3479,6 +3479,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         const table = tableData?.table || {};
         const routes = tableData?.routes || [];
         const streets = tableData?.streets || [];
+        const { plannedRoutes } = partitionRoutesByCompletion(routes);
         const todayStr = new Date().toISOString().slice(0, 10);
         const todayRoute = routes.find(r => r.date === todayStr);
 
@@ -3594,7 +3595,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 {todayRoute ? (todayRoute.name || 'Tonight') : 'REST DAY'}
               </div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {todayRoute ? `Starts ${todayRoute.start_time || '18:00'}` : `${routes.length} planned routes`}
+                {todayRoute ? `Starts ${todayRoute.start_time || '18:00'}` : `${plannedRoutes.length} planned ${plannedRoutes.length === 1 ? 'route' : 'routes'}`}
               </div>
             </div>
 
@@ -4112,38 +4113,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
             <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
               {(() => {
                 const allRoutes = tableData?.routes || [];
-                const now = new Date();
-
-                const plannedRoutes = [];
-                const completedRoutes = [];
-
-                allRoutes.forEach(r => {
-                  let isPast = false;
-                  if (r.status === 'Completed') {
-                    isPast = true;
-                  } else if (r.date) {
-                    const d = new Date(r.date + 'T23:59:59');
-                    if (!isNaN(d.getTime()) && d < now) {
-                      isPast = true;
-                    }
-                  }
-
-                  if (isPast) {
-                    completedRoutes.push(r);
-                  } else {
-                    plannedRoutes.push(r);
-                  }
-                });
-
-                const sortRoutesChronologically = (a, b, desc = false) => {
-                  const dComp = (a.date || '').localeCompare(b.date || '');
-                  if (dComp !== 0) return desc ? -dComp : dComp;
-                  const tComp = (a.start_time || '').localeCompare(b.start_time || '');
-                  if (tComp !== 0) return desc ? -tComp : tComp;
-                  return (a.name || '').localeCompare(b.name || '');
-                };
-                plannedRoutes.sort((a, b) => sortRoutesChronologically(a, b, false));
-                completedRoutes.sort((a, b) => sortRoutesChronologically(a, b, true));
+                const { plannedRoutes, completedRoutes } = partitionRoutesByCompletion(allRoutes);
 
                 if (allRoutes.length === 0) {
                   return (
