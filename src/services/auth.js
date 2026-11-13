@@ -37,8 +37,7 @@ export function isSuperAdminEmail(email) {
   if (!email || typeof email !== 'string') return false;
   const clean = email.trim().toLowerCase();
   return clean === 'beverley247@roundtable.org.uk' ||
-         clean === 'secretary@roundtable.org.uk' ||
-         clean.includes('beverley');
+         clean === 'secretary@roundtable.org.uk';
 }
 
 export const SLUG_ALIASES = {
@@ -56,7 +55,7 @@ export const SLUG_ALIASES = {
 
 export function normalizeTableSlug(slug) {
   if (!slug || typeof slug !== 'string') return '';
-  const clean = slug.toLowerCase().trim().replace(/^https?:\/\/[^\/]+/, '');
+  const clean = slug.toLowerCase().trim().replace(/^https?:\/\/[^/]+/, '');
   const base = clean.replace(/[-_]?(table|sleigh|\d+)$/gi, '');
   return SLUG_ALIASES[clean] || SLUG_ALIASES[base] || clean;
 }
@@ -67,7 +66,7 @@ export function getApprovedNationalEmails() {
     if (Array.isArray(custom)) {
       return Array.from(new Set([...DEFAULT_NATIONAL_ADMIN_EMAILS, ...custom.map(e => String(e).trim().toLowerCase())]));
     }
-  } catch (e) {}
+  } catch {}
   return DEFAULT_NATIONAL_ADMIN_EMAILS;
 }
 
@@ -76,7 +75,7 @@ export function saveApprovedNationalEmails(emails) {
     const cleanList = Array.from(new Set(emails.map(e => String(e).trim().toLowerCase()).filter(Boolean)));
     localStorage.setItem('custom_national_admin_emails', JSON.stringify(cleanList));
     return cleanList;
-  } catch (e) {
+  } catch {
     return emails;
   }
 }
@@ -85,7 +84,7 @@ export function isNationalAdmin(email) {
   if (!email || typeof email !== 'string') return false;
   const clean = email.trim().toLowerCase();
   const approved = getApprovedNationalEmails();
-  return clean.startsWith("national") || approved.includes(clean);
+  return approved.includes(clean) || (isRoundTableEmail(clean) && (clean.startsWith("national@") || clean.startsWith("rtbi@")));
 }
 
 /**
@@ -109,7 +108,7 @@ export function getAdminAuthToken() {
         }
       }
     }
-  } catch (e) {}
+  } catch {}
   return "";
 }
 
@@ -273,7 +272,7 @@ export async function verifyMagicLink(email, enteredCode) {
       verifiedOnWorker = true;
       signedToken = result.token;
     }
-  } catch (e) {}
+  } catch {}
 
   if (!verifiedOnWorker || !signedToken) {
     throw new Error("Invalid verification code. Please check your official Round Table inbox.");
@@ -316,7 +315,7 @@ export function syncAuthCookie(token) {
     } else {
       document.cookie = `turbosanta_auth_token=; path=/${domain}; max-age=0; SameSite=Lax${isProd ? '; Secure' : ''}`;
     }
-  } catch(e) {}
+  } catch {}
 }
 
 /**
@@ -368,6 +367,7 @@ export async function loginWithGoogleWorkspace(credential) {
   const isGenericNational = isNational && !isSuperAdmin;
 
   let signedSessionToken = credential;
+  let authRejectedError = null;
   try {
     const res = await fetch(`${WORKER_API}/api/auth/google-session`, {
       method: "POST",
@@ -379,16 +379,23 @@ export async function loginWithGoogleWorkspace(credential) {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      throw new Error(data.error || "Google Sign-In verification failed on server.");
-    }
-    if (data.ok && data.token) {
+      const msg = data.error || "Google Sign-In verification failed on server.";
+      if (res.status === 401 || res.status === 403 || res.status === 400 || /access denied|unauthori|invalid|expired|domain/i.test(msg)) {
+        authRejectedError = new Error(msg);
+      } else {
+        throw new Error(msg);
+      }
+    } else if (data.ok && data.token) {
       signedSessionToken = data.token;
     }
   } catch (err) {
-    if (err.message && err.message.includes("Access Denied")) {
+    if (err.message && /access denied/i.test(err.message)) {
       throw err;
     }
     console.warn("Could not exchange Google JWT for signed session token, using raw Google JWT:", err);
+  }
+  if (authRejectedError) {
+    throw authRejectedError;
   }
 
   const session = {
@@ -428,7 +435,7 @@ export function getCurrentSession() {
         if (parsed.token && parsed.token.startsWith("ts2_") && !parsed.token.startsWith("ts2_sig_")) {
           if (parsed.googleCredential && parsed.googleCredential.includes(".")) {
             parsed.token = parsed.googleCredential;
-            try { localStorage.setItem(SESSION_KEY, JSON.stringify(parsed)); } catch (e) {}
+            try { localStorage.setItem(SESSION_KEY, JSON.stringify(parsed)); } catch {}
           } else {
             logout();
             return null;
@@ -453,7 +460,7 @@ export function getCurrentSession() {
             if (!parsed.tableNumber && details.tableNumber) { parsed.tableNumber = details.tableNumber; changed = true; }
             if (!parsed.tableName || parsed.tableName === 'National Fleet Admin') { parsed.tableName = details.tableName; changed = true; }
             if (changed) {
-              try { localStorage.setItem(SESSION_KEY, JSON.stringify(parsed)); } catch(e) {}
+              try { localStorage.setItem(SESSION_KEY, JSON.stringify(parsed)); } catch {}
             }
           } else if (isGenericNational) {
             let changed = false;
@@ -463,7 +470,7 @@ export function getCurrentSession() {
             if (parsed.town !== 'National') { parsed.town = 'National'; changed = true; }
             if (!parsed.isNationalAdmin) { parsed.isNationalAdmin = true; changed = true; }
             if (changed) {
-              try { localStorage.setItem(SESSION_KEY, JSON.stringify(parsed)); } catch(e) {}
+              try { localStorage.setItem(SESSION_KEY, JSON.stringify(parsed)); } catch {}
             }
           }
         }
@@ -471,7 +478,7 @@ export function getCurrentSession() {
         return parsed;
       }
     }
-  } catch (e) {}
+  } catch {}
 
   return null;
 }
@@ -486,7 +493,7 @@ export function logout() {
     sessionStorage.removeItem(SESSION_KEY);
     sessionStorage.removeItem("ts2_admin_session");
     syncAuthCookie(null);
-  } catch (e) {}
+  } catch {}
 }
 
 export const logoutAdmin = logout;

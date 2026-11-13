@@ -1,9 +1,74 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   X, Receipt, Plus, Trash2, Download, CheckCircle2,
-  Calendar, Clock, Tag, FileText, ChevronRight, BarChart3,
-  AlertCircle, Sparkles, Fuel, Candy, Zap, Wrench, ShieldAlert
+  BarChart3, AlertCircle
 } from 'lucide-react';
+
+const getNowIso = () => new Date().toISOString();
+
+function parseExpensesState(initialExpenses, initialExpensesJson) {
+  let parsed = null;
+  try {
+    if (initialExpensesJson) {
+      parsed = typeof initialExpensesJson === 'string' ? JSON.parse(initialExpensesJson) : initialExpensesJson;
+    }
+  } catch {
+    parsed = null;
+  }
+
+  if (parsed && typeof parsed === 'object') {
+    const notesVal = parsed.notes || '';
+    if (Array.isArray(parsed.items) && parsed.items.length > 0) {
+      return { notes: notesVal, items: parsed.items };
+    }
+    const legacyItems = [];
+    const nowStr = getNowIso();
+    const dateStr = nowStr.slice(0, 10);
+    CATEGORIES.forEach((cat, idx) => {
+      const val = Number(parsed[cat.id] || 0);
+      if (val > 0) {
+        legacyItems.push({
+          id: `rec_legacy_${cat.id}_${idx}`,
+          timestamp: nowStr,
+          date: dateStr,
+          category: cat.id,
+          amount: val,
+          description: `Initial ${cat.short} Season Allocation`,
+          loggedBy: 'Committee'
+        });
+      }
+    });
+    if (legacyItems.length === 0 && Number(initialExpenses || 0) > 0) {
+      legacyItems.push({
+        id: 'rec_legacy_initial',
+        timestamp: nowStr,
+        date: dateStr,
+        category: 'fuel',
+        amount: Number(initialExpenses),
+        description: 'Carried Forward Season Operating Costs',
+        loggedBy: 'Committee'
+      });
+    }
+    return { notes: notesVal, items: legacyItems };
+  }
+
+  if (Number(initialExpenses || 0) > 0) {
+    const nowStr = getNowIso();
+    return {
+      notes: '',
+      items: [{
+        id: 'rec_legacy_single',
+        timestamp: nowStr,
+        date: nowStr.slice(0, 10),
+        category: 'fuel',
+        amount: Number(initialExpenses),
+        description: 'Carried Forward Operating Costs',
+        loggedBy: 'Committee'
+      }]
+    };
+  }
+  return { notes: '', items: [] };
+}
 
 const CATEGORIES = [
   { id: 'fuel', label: '⛽ Vehicle Fuel & Towing', short: 'Fuel', color: '#f59e0b', icon: '⛽' },
@@ -24,88 +89,28 @@ export default function ExpensesModal({
   grossRaised = 0,
   giftAid = 0
 }) {
+  const syncKey = isOpen ? `${initialExpenses}:${typeof initialExpensesJson === 'string' ? initialExpensesJson : JSON.stringify(initialExpensesJson || '')}` : '';
+  const [prevSyncKey, setPrevSyncKey] = useState(syncKey);
   const [activeView, setActiveView] = useState('log'); // 'log' | 'breakdown'
-  const [items, setItems] = useState([]);
-  const [notes, setNotes] = useState('');
+  const [items, setItems] = useState(() => (isOpen ? parseExpensesState(initialExpenses, initialExpensesJson).items : []));
+  const [notes, setNotes] = useState(() => (isOpen ? parseExpensesState(initialExpenses, initialExpensesJson).notes : ''));
 
   // Quick Add Receipt State
   const [newCategory, setNewCategory] = useState('fuel');
   const [newAmount, setNewAmount] = useState('');
   const [newDesc, setNewDesc] = useState('');
-  const [newDate, setNewDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [newDate, setNewDate] = useState(() => getNowIso().slice(0, 10));
   const [newLoggedBy, setNewLoggedBy] = useState('');
   const [formError, setFormError] = useState('');
 
-  // Initial Data Loading & Backward Compatibility
-  useEffect(() => {
-    if (!isOpen) return;
-    let parsed = null;
-    try {
-      if (initialExpensesJson) {
-        parsed = typeof initialExpensesJson === 'string' ? JSON.parse(initialExpensesJson) : initialExpensesJson;
-      }
-    } catch (e) {
-      parsed = null;
+  if (syncKey !== prevSyncKey) {
+    setPrevSyncKey(syncKey);
+    if (isOpen) {
+      const next = parseExpensesState(initialExpenses, initialExpensesJson);
+      setItems(next.items);
+      setNotes(next.notes);
     }
-
-    if (parsed && typeof parsed === 'object') {
-      setNotes(parsed.notes || '');
-
-      // Check if itemised array exists
-      if (Array.isArray(parsed.items) && parsed.items.length > 0) {
-        setItems(parsed.items);
-      } else {
-        // Synthesise items from legacy category totals if items array is absent
-        const legacyItems = [];
-        const nowStr = new Date().toISOString();
-        const dateStr = nowStr.slice(0, 10);
-
-        CATEGORIES.forEach(cat => {
-          const val = Number(parsed[cat.id] || 0);
-          if (val > 0) {
-            legacyItems.push({
-              id: `rec_legacy_${cat.id}_${Date.now()}`,
-              timestamp: nowStr,
-              date: dateStr,
-              category: cat.id,
-              amount: val,
-              description: `Initial ${cat.short} Season Allocation`,
-              loggedBy: 'Committee'
-            });
-          }
-        });
-
-        // If only lump sum initialExpenses existed without category keys
-        if (legacyItems.length === 0 && Number(initialExpenses || 0) > 0) {
-          legacyItems.push({
-            id: `rec_legacy_initial_${Date.now()}`,
-            timestamp: nowStr,
-            date: dateStr,
-            category: 'fuel',
-            amount: Number(initialExpenses),
-            description: 'Carried Forward Season Operating Costs',
-            loggedBy: 'Committee'
-          });
-        }
-
-        setItems(legacyItems);
-      }
-    } else if (Number(initialExpenses || 0) > 0) {
-      // Lump sum without JSON breakdown
-      setItems([{
-        id: `rec_legacy_${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        date: new Date().toISOString().slice(0, 10),
-        category: 'fuel',
-        amount: Number(initialExpenses),
-        description: 'Carried Forward Operating Costs',
-        loggedBy: 'Committee'
-      }]);
-    } else {
-      setItems([]);
-      setNotes('');
-    }
-  }, [initialExpenses, initialExpensesJson, isOpen]);
+  }
 
   if (!isOpen) return null;
 
@@ -207,7 +212,7 @@ export default function ExpensesModal({
       other: Number((categoryTotals.other || 0).toFixed(2)),
       total: totalExpenses,
       notes: notes.trim(),
-      updated_at: new Date().toISOString()
+      updated_at: getNowIso()
     };
 
     if (onSave) {

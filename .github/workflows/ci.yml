@@ -23,6 +23,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Run oxlint static analysis
+        run: |
+          if [ -d worker ]; then
+            npm run lint
+          else
+            npx oxlint src
+          fi
+
+      - name: Syntax check local scripts and workers (if present)
+        run: |
+          for f in public/sleigh_v2.js worker/index.js worker/santa_router.js; do
+            if [ -f "$f" ]; then
+              node --check "$f"
+            fi
+          done
+
       - name: Verify Vite production build
         run: npm run build
 

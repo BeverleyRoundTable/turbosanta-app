@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { 
   MapPin, Shield, Users, ArrowRight, ExternalLink, Sparkles, 
-  Search, FileSpreadsheet, Code, Globe, Radio, CheckCircle2,
-  Calendar, Heart, HeartHandshake, Download, Eye, Smartphone, BookOpen,
+  Search, FileSpreadsheet, Code, Globe, CheckCircle2,
+  Heart, Eye, Smartphone, BookOpen,
   Mail
 } from 'lucide-react';
-import { parseTableDetailsFromEmail, isRoundTableEmail } from '../services/auth';
+import { parseTableDetailsFromEmail } from '../services/auth';
 
 export default function LandingPortal({ onOpenLogin, session, onSelectTable }) {
   const [inputVal, setInputVal] = useState(session?.email || '');

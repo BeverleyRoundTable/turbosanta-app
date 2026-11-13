@@ -1,4 +1,4 @@
-import { getCurrentSession, getAdminAuthToken } from './auth';
+import { getAdminAuthToken } from './auth';
 
 export function getApiBase() {
   if (typeof window !== 'undefined' && window.location) {
@@ -11,7 +11,6 @@ export function getApiBase() {
 }
 
 export const API_BASE = "https://turbosanta-api.beverley247.workers.dev";
-const LOCAL_AGENT_URL = "http://127.0.0.1:8080";
 
 /**
  * Resilient multi-endpoint fetcher:
@@ -34,7 +33,7 @@ export async function apiFetch(endpointOrUrl, options = {}) {
       if (primaryBase !== "https://turbosanta-api.beverley247.workers.dev" && parsed.hostname.includes('workers.dev')) {
         url1 = `${primaryBase}${cleanPath}`;
       }
-    } catch(e) {}
+    } catch {}
   } else {
     const pathStr = String(endpointOrUrl || '');
     url1 = `${primaryBase}${pathStr.startsWith('/') ? '' : '/'}${pathStr}`;
@@ -234,7 +233,7 @@ export async function fetchTablePayload(tableSlug = "beverley") {
     let token = "";
     try {
       token = getAdminAuthToken(slug);
-    } catch (e) {}
+    } catch {}
     if (!token && typeof window !== "undefined" && window.__sleighPrefetchedData && !window.__sleighPrefetchedConsumed) {
       const pref = window.__sleighPrefetchedData;
       const prefSlug = (pref?.table?.slug || pref?.table?.id || "").toLowerCase().trim();
@@ -247,9 +246,9 @@ export async function fetchTablePayload(tableSlug = "beverley") {
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
-    const secretQuery = token ? `&secret=${encodeURIComponent(token)}&_t=${Date.now()}` : "";
+    const cacheBustQuery = token ? `&_t=${Date.now()}` : "";
     const fetchOpts = token ? { cache: "no-store", headers } : {};
-    const res = await apiFetch(`${API_BASE}/api/payload?table=${encodeURIComponent(slug)}${secretQuery}`, fetchOpts);
+    const res = await apiFetch(`${API_BASE}/api/payload?table=${encodeURIComponent(slug)}${cacheBustQuery}`, fetchOpts);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     if (data.error) throw new Error(data.error);
@@ -313,7 +312,7 @@ export async function uploadAssetToR2(file, tableSlug = "beverley") {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
-    const res = await apiFetch(`${API_BASE}/api/upload?table=${encodeURIComponent(tableSlug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
+    const res = await apiFetch(`${API_BASE}/api/upload?table=${encodeURIComponent(tableSlug)}`, {
       method: "POST",
       body: file,
       headers
@@ -329,26 +328,9 @@ export async function uploadAssetToR2(file, tableSlug = "beverley") {
 }
 
 /**
- * Sends a message to the AI Sleigh Elf.
- * Connects to the local ADK Agent if reachable, otherwise uses a smart festive response engine.
+ * Sends a message to the AI Sleigh Elf using the Smart Festive Elf Response Engine.
  */
 export async function sendElfChatMessage(message, tableData) {
-  // 1. Try local ADK Agent Playground / FastApi endpoint if active
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout
-    const testPing = await fetch(`${LOCAL_AGENT_URL}/list-apps`, { signal: controller.signal });
-    clearTimeout(timeoutId);
-
-    if (testPing.ok) {
-      // Create or post to ADK
-      // In ADK, we can use the run or session endpoint or let the smart generator handle it
-    }
-  } catch (e) {
-    // Falls through to smart festive generator
-  }
-
-  // 2. Smart Festive Elf Response Engine (Always reliable & instant in any browser)
   const lower = message.toLowerCase();
   const routes = tableData?.routes || [];
   const streets = tableData?.streets || [];
@@ -401,7 +383,7 @@ export async function saveTableSettings(tableSlug = "beverley", settings = {}, e
       secret: token
     };
 
-    const res = await apiFetch(`${API_BASE}/api/table/settings?table=${encodeURIComponent(slug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
+    const res = await apiFetch(`${API_BASE}/api/table/settings?table=${encodeURIComponent(slug)}`, {
       method: "POST",
       headers: getAuthHeaders(token, slug),
       body: JSON.stringify(bodyPayload)
@@ -438,10 +420,13 @@ export async function submitKnowledgeLesson(tableSlug = "beverley", lessonData =
   try {
     const res = await apiFetch(`${API_BASE}/api/knowledge-base?table=${encodeURIComponent(tableSlug)}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(null, tableSlug),
       body: JSON.stringify(lessonData)
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || `HTTP ${res.status}`);
+    }
     return await res.json();
   } catch (err) {
     console.error("submitKnowledgeLesson error:", err);
@@ -453,10 +438,13 @@ export async function upvoteKnowledgeLesson(tableSlug = "beverley", lessonId) {
   try {
     const res = await apiFetch(`${API_BASE}/api/knowledge-base/upvote?table=${encodeURIComponent(tableSlug)}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(null, tableSlug),
       body: JSON.stringify({ id: lessonId, table: tableSlug, toggle: true })
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || `HTTP ${res.status}`);
+    }
     return await res.json();
   } catch (err) {
     console.error("upvoteKnowledgeLesson error:", err);
@@ -469,10 +457,13 @@ export async function askFleetAdvisor(tableSlug = "beverley", { question, catego
     const selectedModel = model || localStorage.getItem('turbosanta_global_gemini_model') || 'auto';
     const res = await apiFetch(`${API_BASE}/api/knowledge-base/ask?table=${encodeURIComponent(tableSlug)}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(null, tableSlug),
       body: JSON.stringify({ question, category, scope, model: selectedModel })
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || `HTTP ${res.status}`);
+    }
     return await res.json();
   } catch (err) {
     console.error("askFleetAdvisor error:", err);
@@ -548,7 +539,7 @@ export async function saveRoute(tableSlug = "beverley", route = {}, streets = []
 
     const bodyPayload = { route, streets, tableSlug: slug, table: slug, secret: token };
 
-    const res = await apiFetch(`${API_BASE}/api/routes?table=${encodeURIComponent(slug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
+    const res = await apiFetch(`${API_BASE}/api/routes?table=${encodeURIComponent(slug)}`, {
       method: "POST",
       headers: getAuthHeaders(token, slug),
       body: JSON.stringify(bodyPayload)
@@ -570,7 +561,7 @@ export async function deleteRoute(tableSlug = "beverley", routeId = "", explicit
     const slug = (tableSlug || "beverley").toLowerCase().trim();
     const token = explicitSecret || getAdminAuthToken(slug);
 
-    const res = await apiFetch(`${API_BASE}/api/routes?table=${encodeURIComponent(slug)}&id=${encodeURIComponent(routeId)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
+    const res = await apiFetch(`${API_BASE}/api/routes?table=${encodeURIComponent(slug)}&id=${encodeURIComponent(routeId)}`, {
       method: "DELETE",
       headers: getAuthHeaders(token, slug)
     });
@@ -766,7 +757,7 @@ export async function fetchSubscribers(tableSlug = "beverley", explicitSecret = 
   try {
     const slug = (tableSlug || "beverley").toLowerCase().trim();
     const token = explicitSecret || getAdminAuthToken(slug);
-    const res = await apiFetch(`${API_BASE}/api/subscribers?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(token)}`, {
+    const res = await apiFetch(`${API_BASE}/api/subscribers?table=${encodeURIComponent(slug)}`, {
       headers: getAuthHeaders(token, slug)
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -781,7 +772,7 @@ export async function clearSubscribers(tableSlug = "beverley", explicitSecret = 
   try {
     const slug = (tableSlug || "beverley").toLowerCase().trim();
     const token = explicitSecret || getAdminAuthToken(slug);
-    const res = await apiFetch(`${API_BASE}/api/subscribers?table=${encodeURIComponent(slug)}&secret=${encodeURIComponent(token)}`, {
+    const res = await apiFetch(`${API_BASE}/api/subscribers?table=${encodeURIComponent(slug)}`, {
       method: "DELETE",
       headers: getAuthHeaders(token, slug)
     });
@@ -812,7 +803,7 @@ export async function sendVolunteerBroadcastEmail(tableSlug = "beverley", { rout
       secret: token
     };
 
-    const res = await apiFetch(`${API_BASE}/api/volunteers/email?table=${encodeURIComponent(slug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
+    const res = await apiFetch(`${API_BASE}/api/volunteers/email?table=${encodeURIComponent(slug)}`, {
       method: "POST",
       headers: getAuthHeaders(token, slug),
       body: JSON.stringify(bodyPayload)
@@ -835,7 +826,7 @@ export async function updateVolunteer(tableSlug = "beverley", volunteerData, exp
     const slug = (tableSlug || "beverley").toLowerCase().trim();
     const token = explicitSecret || getAdminAuthToken(slug);
 
-    const res = await apiFetch(`${API_BASE}/api/volunteers?table=${encodeURIComponent(slug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
+    const res = await apiFetch(`${API_BASE}/api/volunteers?table=${encodeURIComponent(slug)}`, {
       method: "PUT",
       headers: getAuthHeaders(token, slug),
       body: JSON.stringify({ ...volunteerData, secret: token })
@@ -855,7 +846,7 @@ export async function deleteVolunteer(tableSlug = "beverley", volunteerId, expli
     const slug = (tableSlug || "beverley").toLowerCase().trim();
     const token = explicitSecret || getAdminAuthToken(slug);
 
-    const res = await apiFetch(`${API_BASE}/api/volunteers?table=${encodeURIComponent(slug)}&id=${encodeURIComponent(volunteerId)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
+    const res = await apiFetch(`${API_BASE}/api/volunteers?table=${encodeURIComponent(slug)}&id=${encodeURIComponent(volunteerId)}`, {
       method: "DELETE",
       headers: getAuthHeaders(token, slug),
       body: JSON.stringify({ id: volunteerId, secret: token })
@@ -878,7 +869,7 @@ export async function bulkRegisterVolunteers(tableSlug = "beverley", payload, ex
     const slug = (tableSlug || "beverley").toLowerCase().trim();
     const token = explicitSecret || getAdminAuthToken(slug);
 
-    const res = await apiFetch(`${API_BASE}/api/volunteers?table=${encodeURIComponent(slug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
+    const res = await apiFetch(`${API_BASE}/api/volunteers?table=${encodeURIComponent(slug)}`, {
       method: "POST",
       headers: getAuthHeaders(token, slug),
       body: JSON.stringify({ ...payload, secret: token })
@@ -910,7 +901,7 @@ export async function triggerAutomatedCrewBriefings(tableSlug = "beverley", { ro
       secret: token
     };
 
-    const res = await apiFetch(`${API_BASE}/api/volunteers/auto-briefing?table=${encodeURIComponent(slug)}${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
+    const res = await apiFetch(`${API_BASE}/api/volunteers/auto-briefing?table=${encodeURIComponent(slug)}`, {
       method: "POST",
       headers: getAuthHeaders(token, slug),
       body: JSON.stringify(bodyPayload)
@@ -930,7 +921,7 @@ export async function fetchAutomatedCrewBriefingStatus(tableSlug = "beverley", e
     const slug = (tableSlug || "beverley").toLowerCase().trim();
     const token = explicitSecret || getAdminAuthToken(slug);
 
-    const res = await apiFetch(`${API_BASE}/api/volunteers/auto-briefing?table=${encodeURIComponent(slug)}&dry_run=1${token ? `&secret=${encodeURIComponent(token)}` : ""}`, {
+    const res = await apiFetch(`${API_BASE}/api/volunteers/auto-briefing?table=${encodeURIComponent(slug)}&dry_run=1`, {
       headers: getAuthHeaders(token, slug)
     });
 
@@ -1072,7 +1063,6 @@ export async function fetchSupportTickets({ table, email, rag, status, search, s
   if (rag) url.searchParams.set("rag", rag);
   if (status) url.searchParams.set("status", status);
   if (search) url.searchParams.set("search", search);
-  if (secret) url.searchParams.set("secret", secret);
 
   const headers = {};
   const token = secret || getAdminAuthToken();

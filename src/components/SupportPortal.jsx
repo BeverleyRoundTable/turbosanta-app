@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  AlertTriangle, CheckCircle2, Clock, LifeBuoy, UploadCloud, Trash2,
-  ExternalLink, Shield, Search, Filter, Image as ImageIcon, FileText,
-  Smartphone, Monitor, Calendar, ArrowLeft, Copy, Plus, RefreshCw,
-  FileSpreadsheet, Sparkles, X, ChevronDown, ChevronRight, HelpCircle,
-  Video
+  AlertTriangle, CheckCircle2, LifeBuoy, UploadCloud, Trash2,
+  Shield, Search, ArrowLeft, Plus, RefreshCw,
+  FileSpreadsheet, X, Video
 } from 'lucide-react';
 import {
   submitSupportTicket,
@@ -57,7 +55,7 @@ const CATEGORIES = [
   { id: 'other', label: '❓ Other / General Question' }
 ];
 
-export function isVideoUrl(url) {
+function isVideoUrl(url) {
   if (!url || typeof url !== 'string') return false;
   return /\.(mp4|webm|mov|m4v|ogv)($|\?)/i.test(url) || url.includes('/support-videos/');
 }
@@ -74,8 +72,6 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
   const session = propSession || getCurrentSession();
   const isSuperUser = Boolean(
     session?.isNationalAdmin ||
-    session?.email?.toLowerCase().includes('beverley247') ||
-    session?.email?.toLowerCase().startsWith('national') ||
     (session?.email && isNationalAdmin(session.email))
   );
 
@@ -119,7 +115,7 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [stepsToReproduce, setStepsToReproduce] = useState('');
-  const [pageUrl, setPageUrl] = useState(
+  const [pageUrl] = useState(
     typeof window !== 'undefined' ? window.location.origin : ''
   );
   const [deviceInfo, setDeviceInfo] = useState(autoEnv.os);
@@ -136,7 +132,7 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
   const [catalogueSearch, setCatalogueSearch] = useState('');
   const [catalogueRagFilter, setCatalogueRagFilter] = useState('all');
   const [catalogueStatusFilter, setCatalogueStatusFilter] = useState('all');
-  const [catalogueTableFilter, setCatalogueTableFilter] = useState('all');
+  const catalogueTableFilter = 'all';
   const [activeTicketModal, setActiveTicketModal] = useState(null);
   const [adminNoteInput, setAdminNoteInput] = useState('');
   const [modalStatus, setModalStatus] = useState('open');
@@ -154,13 +150,16 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
       .catch(() => {});
   }, []);
 
-  // Sync table name when table slug changes
-  useEffect(() => {
-    if (tableSlug && tablesList.length > 0) {
-      const match = tablesList.find(t => t.slug === tableSlug);
-      if (match) setTableName(match.sleigh_display_name || match.town_name);
-    }
-  }, [tableSlug, tablesList]);
+  const matchedTable = tableSlug && tablesList.length > 0 ? tablesList.find(t => t.slug === tableSlug) : null;
+  const matchedTableName = matchedTable ? (matchedTable.sleigh_display_name || matchedTable.town_name || '') : '';
+  const matchSyncKey = `${tableSlug}:${matchedTableName}`;
+  const [prevMatchSyncKey, setPrevMatchSyncKey] = useState(matchSyncKey);
+  if (matchSyncKey !== prevMatchSyncKey) {
+    setPrevMatchSyncKey(matchSyncKey);
+    if (matchedTableName) setTableName(matchedTableName);
+  }
+
+  const sessionTableSlug = session?.tableSlug;
 
   // Load Tickets (for Table or Superadmin)
   const loadTickets = useCallback(async () => {
@@ -173,7 +172,7 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
         if (catalogueStatusFilter !== 'all') params.status = catalogueStatusFilter;
         if (catalogueSearch) params.search = catalogueSearch;
       } else {
-        if (session?.tableSlug) params.table = session.tableSlug;
+        if (sessionTableSlug) params.table = sessionTableSlug;
         if (contactEmail) params.email = contactEmail;
       }
 
@@ -186,13 +185,39 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
     } finally {
       setIsLoadingTickets(false);
     }
-  }, [isSuperUser, catalogueTableFilter, catalogueRagFilter, catalogueStatusFilter, catalogueSearch, session?.tableSlug, contactEmail]);
+  }, [isSuperUser, catalogueTableFilter, catalogueRagFilter, catalogueStatusFilter, catalogueSearch, sessionTableSlug, contactEmail]);
 
   useEffect(() => {
-    if (activeTab === 'my_tickets' || activeTab === 'catalogue') {
-      loadTickets();
-    }
+    if (activeTab !== 'my_tickets' && activeTab !== 'catalogue') return;
+    let cancelled = false;
+    Promise.resolve().then(() => {
+      if (!cancelled) loadTickets();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [activeTab, loadTickets]);
+
+  // Screenshot & Video Upload Handler
+  const uploadFile = useCallback(async (file) => {
+    if (!file) return;
+    const maxMb = 15;
+    if (file.size > maxMb * 1024 * 1024) {
+      alert(`File size exceeds ${maxMb}MB limit. Please compress or take a shorter screen clip.`);
+      return;
+    }
+    setIsUploadingImage(true);
+    try {
+      const res = await uploadSupportScreenshot(file);
+      if (res?.url) {
+        setScreenshots(prev => [...prev, res.url]);
+      }
+    } catch (err) {
+      alert(`Upload failed: ${err.message}`);
+    } finally {
+      setIsUploadingImage(false);
+    }
+  }, []);
 
   // Clipboard Paste Screenshot Listener (Ctrl+V anywhere on page)
   useEffect(() => {
@@ -214,28 +239,7 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
 
     window.addEventListener('paste', handlePaste);
     return () => window.removeEventListener('paste', handlePaste);
-  }, [activeTab]);
-
-  // Screenshot & Video Upload Handler
-  const uploadFile = async (file) => {
-    if (!file) return;
-    const maxMb = 50;
-    if (file.size > maxMb * 1024 * 1024) {
-      alert(`File size exceeds ${maxMb}MB limit. Please compress or take a shorter screen clip.`);
-      return;
-    }
-    setIsUploadingImage(true);
-    try {
-      const res = await uploadSupportScreenshot(file);
-      if (res?.url) {
-        setScreenshots(prev => [...prev, res.url]);
-      }
-    } catch (err) {
-      alert(`Upload failed: ${err.message}`);
-    } finally {
-      setIsUploadingImage(false);
-    }
-  };
+  }, [activeTab, uploadFile]);
 
   // Form Submission
   const handleSubmitTicket = async (e) => {
@@ -308,22 +312,6 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
     }
   };
 
-  const handleUpdateTicketRag = async (ticketId, newRag) => {
-    setUpdatingTicketId(ticketId);
-    try {
-      await updateSupportTicket(ticketId, { rag_status: newRag });
-      setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, rag_status: newRag } : t));
-      if (activeTicketModal?.id === ticketId) {
-        setActiveTicketModal(prev => ({ ...prev, rag_status: newRag }));
-        setModalRag(newRag);
-      }
-    } catch (err) {
-      alert(`Update failed: ${err.message}`);
-    } finally {
-      setUpdatingTicketId(null);
-    }
-  };
-
   const handleSaveModalTicket = async (ticketId) => {
     setUpdatingTicketId(ticketId);
     try {
@@ -350,22 +338,6 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
       }
     } catch (err) {
       alert(`Failed to save ticket: ${err.message}`);
-    } finally {
-      setUpdatingTicketId(null);
-    }
-  };
-
-  const handleSaveAdminNotes = async (ticketId) => {
-    setUpdatingTicketId(ticketId);
-    try {
-      await updateSupportTicket(ticketId, { admin_notes: adminNoteInput });
-      setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, admin_notes: adminNoteInput } : t));
-      if (activeTicketModal?.id === ticketId) {
-        setActiveTicketModal(prev => ({ ...prev, admin_notes: adminNoteInput }));
-      }
-      alert("Admin note saved.");
-    } catch (err) {
-      alert(`Failed to save note: ${err.message}`);
     } finally {
       setUpdatingTicketId(null);
     }

@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Radio, Play, Square, Compass, Battery, ArrowLeft,
-  ExternalLink, Navigation, Volume2, VolumeX, MessageSquare, Check, Sparkles
+  Radio, Play, Square, Battery, ArrowLeft,
+  ExternalLink, Navigation, Check
 } from 'lucide-react';
 import { getAdminAuthToken } from '../services/auth';
 
@@ -13,7 +13,6 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
 
   // Standby Beacon Mode State
   const [isActive, setIsActive] = useState(false);
-  const [wakeLockActive, setWakeLockActive] = useState(false);
   const [gpsStats, setGpsStats] = useState({
     lat: null,
     lng: null,
@@ -27,7 +26,7 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
 
   const [batteryLevel, setBatteryLevel] = useState(null);
   const [transmissionLog, setTransmissionLog] = useState([]);
-  const [audioFeedback, setAudioFeedback] = useState(true);
+  const audioFeedback = true;
 
   const watchIdRef = useRef(null);
   const wakeLockRef = useRef(null);
@@ -68,7 +67,7 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
         if (!cancelled) {
           setCrewAlert(String(data?.table?.crew_alert || '').trim());
         }
-      } catch (e) {}
+      } catch {}
     };
     pollAlert();
     const timer = setInterval(pollAlert, 15000);
@@ -78,11 +77,18 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
     };
   }, [tableSlug]);
 
+  const audioCtxRef = useRef(null);
+
   // Audio Ping generator using Web Audio API (for standby beacon)
-  const playBeaconBeep = () => {
+  const playBeaconBeep = useCallback(() => {
     if (!audioFeedback) return;
     try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!audioCtxRef.current && AudioCtx) {
+        audioCtxRef.current = new AudioCtx();
+      }
+      const ctx = audioCtxRef.current;
+      if (!ctx) return;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
@@ -93,15 +99,16 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
       gain.connect(ctx.destination);
       osc.start();
       osc.stop(ctx.currentTime + 0.15);
-    } catch (e) {}
-  };
+    } catch { /* ignore Web Audio errors */ }
+  }, [audioFeedback]);
+
+  const sessionToken = session?.googleCredential || session?.token || '';
 
   // Screen Wake Lock & High-Accuracy GPS Watch for Standby Mode
   useEffect(() => {
     if (cockpitMode !== 'standby' || !isActive) {
       if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
       if (wakeLockRef.current) wakeLockRef.current.release().catch(() => {});
-      setWakeLockActive(false);
       return;
     }
 
@@ -110,11 +117,9 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
       navigator.wakeLock.request('screen')
         .then(lock => {
           wakeLockRef.current = lock;
-          setWakeLockActive(true);
         })
         .catch(err => {
           console.warn("WakeLock couldn't be granted:", err);
-          setWakeLockActive(false);
         });
     }
 
@@ -161,7 +166,7 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
           playBeaconBeep();
 
           // Transmit directly to Cloudflare Edge API
-          const beaconSecret = session?.googleCredential || session?.token || getAdminAuthToken(tableSlug) || '';
+          const beaconSecret = sessionToken || getAdminAuthToken(tableSlug) || '';
           fetch(`https://turbosanta-api.beverley247.workers.dev/api/telemetry?table=${encodeURIComponent(tableSlug)}`, {
             method: 'PUT',
             headers: {
@@ -199,7 +204,7 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
       if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
       if (wakeLockRef.current) wakeLockRef.current.release().catch(() => {});
     };
-  }, [cockpitMode, isActive, audioFeedback, tableSlug]);
+  }, [cockpitMode, isActive, tableSlug, playBeaconBeep, sessionToken]);
 
   const triggerAnnouncement = (text) => {
     if (onQuickAnnouncement) {

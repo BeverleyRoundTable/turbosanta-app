@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Sparkles, Send, Bot, User, Copy, Check, X,
-  ChevronDown, ChevronUp, RefreshCw, HelpCircle,
-  Database, MapPin, Sliders, ExternalLink, MessageSquare,
-  ShieldCheck, AlertTriangle
+  ChevronDown, ChevronUp, RefreshCw,
+  Database
 } from 'lucide-react';
 import { askAdminAssistant } from '../services/api';
+
+const formatClockTime = () => new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
 export default function AdminAssistantModal({
   isOpen,
@@ -16,15 +17,7 @@ export default function AdminAssistantModal({
   currentTableSlug
 }) {
   const [internalOpen, setInternalOpen] = useState(Boolean(isOpen));
-
-  // Sync internal state whenever parent isOpen prop changes
-  useEffect(() => {
-    if (isOpen !== undefined) {
-      setInternalOpen(Boolean(isOpen));
-    }
-  }, [isOpen]);
-
-  const activeOpen = internalOpen;
+  const activeOpen = isOpen !== undefined ? Boolean(isOpen) : internalOpen;
 
   const handleClose = () => {
     setInternalOpen(false);
@@ -51,11 +44,11 @@ export default function AdminAssistantModal({
   const [isSnapshotExpanded, setIsSnapshotExpanded] = useState(false);
 
   // Initialize messages with an informative welcome message
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState(() => [
     {
       role: 'model',
       text: `👋 Hello **${tableName}** team! I'm **TurboSanta**, your operations, compliance, and technical assistant.\n\nI have direct, real-time access to your table's **Cloudflare D1 database** and the full **TurboSanta System Guide**.\n\nAsk me anything about:\n- 💳 **Square & Card Webhooks** (Square HMAC-SHA256 webhooks, contactless reader sync, dry-run testing)\n- 🥫 **Supported Charity Appeals** (Food Banks, Cash for Kids Mission Christmas, item checklists, kerbside rules)\n- 🚐 **Dynamic FAQs & Vehicle Advice** (Towable Trailer vs Flatbed Van turning radius presets & custom Q&As)\n- ⏱️ **Planned Stops & Dwell Times** (allocating stop minutes, dynamic route duration adjustments, tally counters)\n- 👥 **Crew & Multi-Run Volunteer Roster** (bulk-assigning table members across multiple routes in 1 click)\n- 🎛️ **Modular Public Slots** (AI Santa Chat, Naughty/Nice Certificate, Reindeer Adoption, etc.)\n- 🗺️ **Routes & GPX** (drawing routes, attaching GPX files directly to timetable)\n- 📍 **Driver Beacon & Sleigh Radar** (why the sleigh is "Resting in Lapland" vs "Live")\n- ⚖️ **DVSA Towing & Council Permits** (2m exclusion zones, collection permits, street music laws)`,
-      timestamp: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+      timestamp: formatClockTime()
     }
   ]);
 
@@ -83,7 +76,7 @@ export default function AdminAssistantModal({
     const userMsg = {
       role: 'user',
       text: question,
-      timestamp: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+      timestamp: formatClockTime()
     };
 
     setMessages(prev => [...prev, userMsg]);
@@ -242,22 +235,52 @@ export default function AdminAssistantModal({
     );
   };
 
-  // Safe inline markdown replacement (bold, italic, code)
+  // Safe inline markdown replacement (bold, italic, links, code)
   const formatInlineMarkdown = (str) => {
     if (!str) return '';
-    return str
-      // Escape HTML
+    const tokens = [];
+    const stash = (html) => {
+      const idx = tokens.length;
+      tokens.push(html);
+      return `%%MD_TOKEN_${idx}%%`;
+    };
+
+    const escaped = String(str)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
+    const withPlaceholders = escaped
+      // Inline code `code` (stashed first so markdown chars inside code aren't mangled)
+      .replace(/`([^`]+)`/g, (_, code) =>
+        stash(`<code style="background: rgba(251, 175, 51, 0.15); color: #fbbf24; padding: 2px 5px; border-radius: 4px; font-family: monospace; font-size: 12px; border: 1px solid rgba(251, 175, 51, 0.25);">${code}</code>`)
+      )
+      // Links [title](url) - allow safe http(s)/mailto/relative URLs only
+      .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, title, rawUrl) => {
+        const candidate = rawUrl.replace(/&amp;/g, '&').trim();
+        const isHttp = /^https?:\/\//i.test(candidate);
+        const isMailto = /^mailto:/i.test(candidate);
+        const isRelative = candidate.startsWith('/') && !candidate.startsWith('//');
+        if (!isHttp && !isMailto && !isRelative) {
+          return title;
+        }
+        const safeHref = candidate
+          .replace(/&/g, '&amp;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+        const attrs = isHttp ? ' target="_blank" rel="noopener noreferrer"' : '';
+        return stash(`<a href="${safeHref}"${attrs} style="color: #60a5fa; text-decoration: underline; font-weight: 500;">${title}${isHttp ? ' ↗' : ''}</a>`);
+      })
       // Bold **text**
       .replace(/\*\*(.*?)\*\*/g, '<strong style="color: #fff;">$1</strong>')
       // Italic *text*
-      .replace(/\*(.*?)\*/g, '<em style="color: #e4e4e7;">$1</em>')
-      // Links [title](url)
-      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline; font-weight: 500;">$1 ↗</a>')
-      // Inline code `code`
-      .replace(/`([^`]+)`/g, '<code style="background: rgba(251, 175, 51, 0.15); color: #fbbf24; padding: 2px 5px; border-radius: 4px; font-family: monospace; font-size: 12px; border: 1px solid rgba(251, 175, 51, 0.25);">$1</code>');
+      .replace(/\*(.*?)\*/g, '<em style="color: #e4e4e7;">$1</em>');
+
+    return withPlaceholders.replace(/%%MD_TOKEN_(\d+)%%/g, (_, idx) => tokens[Number(idx)] || '');
   };
 
   const routesCount = tableData?.routes?.length || 0;

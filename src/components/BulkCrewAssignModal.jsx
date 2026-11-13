@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Users, Sparkles, CheckSquare, Square, Calendar, Shield, Building, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Users, Sparkles, CheckSquare, Square, AlertCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { bulkRegisterVolunteers } from '../services/api';
 
@@ -34,27 +34,20 @@ export default function BulkCrewAssignModal({
   const [isError, setIsError] = useState(false);
   const [overrideLimits, setOverrideLimits] = useState(false);
 
-  const lastOpenedRef = useRef(false);
+  const [prevIsOpen, setPrevIsOpen] = useState(false);
 
-  useEffect(() => {
-    if (!isOpen) {
-      lastOpenedRef.current = false;
-      return;
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
+    if (isOpen) {
+      setNamesText('');
+      setSelectedRole('Collections');
+      setCustomRoleText('');
+      setOrganisation(tableName ? `${tableName} Members` : 'Round Table');
+      setSelectedRouteIds(routes.map(r => r.id || r.name));
+      setStatusMsg('');
+      setIsError(false);
     }
-    if (lastOpenedRef.current) {
-      return; // Already initialized for this session; protect text entries from background polling churn
-    }
-    lastOpenedRef.current = true;
-
-    setNamesText('');
-    setSelectedRole('Collections');
-    setCustomRoleText('');
-    setOrganisation(tableName ? `${tableName} Members` : 'Round Table');
-    // Default: select all active routes
-    setSelectedRouteIds(routes.map(r => r.id || r.name));
-    setStatusMsg('');
-    setIsError(false);
-  }, [isOpen]);
+  }
 
   if (!isOpen) return null;
 
@@ -455,7 +448,7 @@ export default function BulkCrewAssignModal({
                         formattedDate = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
                       }
                     }
-                  } catch (e) {}
+                  } catch {}
 
                   return (
                     <label

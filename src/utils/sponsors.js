@@ -71,7 +71,7 @@ export function extractRouteSponsors(route) {
           });
         if (valid.length > 0) return valid;
       }
-    } catch (e) {}
+    } catch {}
   }
 
   // 3. Fallback in notes: <!-- SPONSORS_DATA:[...] --> or [SPONSORS_JSON:...]
@@ -99,7 +99,7 @@ export function extractRouteSponsors(route) {
           if (valid.length > 0) return valid;
         }
       }
-    } catch (e) {}
+    } catch {}
   }
 
   // 4. Auto-decompose joined sponsor names: "Jim's Plumbing • Sharon's Cleaning"

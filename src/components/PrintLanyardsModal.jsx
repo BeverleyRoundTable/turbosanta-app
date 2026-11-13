@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Printer, QrCode, Sparkles, Check, ExternalLink, Image as ImageIcon, Heart, Gift } from 'lucide-react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { X, Printer, QrCode, ExternalLink } from 'lucide-react';
 
 export default function PrintLanyardsModal({
   isOpen,
@@ -25,7 +25,7 @@ export default function PrintLanyardsModal({
   const currentQrUrl = qrTarget === 'donate' ? effectiveDonateUrl : trackerUrl;
   const qrCodeImgSrc = `https://api.qrserver.com/v1/create-qr-code/?size=350x350&margin=4&data=${encodeURIComponent(currentQrUrl)}`;
 
-  const handlePrint = () => {
+  const handlePrint = useCallback(() => {
     const printArea = document.getElementById('printable-lanyards-area');
     if (!printArea) {
       window.print();
@@ -89,7 +89,7 @@ export default function PrintLanyardsModal({
           try {
             printWindow.focus();
             printWindow.print();
-          } catch(e) {}
+          } catch {}
         }, 500);
         return;
       }
@@ -98,7 +98,7 @@ export default function PrintLanyardsModal({
     // Use full-size off-screen A4 iframe for reliable Chromium print rasterization
     let printIframe = document.getElementById('print-lanyards-iframe');
     if (printIframe) {
-      try { printIframe.remove(); } catch(e) {}
+      try { printIframe.remove(); } catch {}
     }
 
     printIframe = document.createElement('iframe');
@@ -145,9 +145,9 @@ export default function PrintLanyardsModal({
         doPrint();
       }
     }, 150);
-  };
+  }, [activeTab, tableName]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
@@ -157,7 +157,7 @@ export default function PrintLanyardsModal({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, activeTab, qrTarget, enableGiftAid]);
+  }, [isOpen, handlePrint]);
 
   if (!isOpen) return null;
 

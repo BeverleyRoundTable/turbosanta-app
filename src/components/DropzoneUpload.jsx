@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { UploadCloud, Image as ImageIcon, Video, Film, X, Check } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { UploadCloud, Film, X, Check } from 'lucide-react';
 import { uploadAssetToR2 } from '../services/api';
 
 export default function DropzoneUpload({
@@ -12,13 +12,15 @@ export default function DropzoneUpload({
   tableSlug = 'beverley'
 }) {
   const [isDragging, setIsDragging] = useState(false);
+  const [prevCurrentImage, setPrevCurrentImage] = useState(currentImage);
   const [preview, setPreview] = useState(currentImage || '');
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
 
-  useEffect(() => {
+  if (currentImage !== prevCurrentImage) {
+    setPrevCurrentImage(currentImage);
     setPreview(currentImage || '');
-  }, [currentImage]);
+  }
 
   const isVideoMode = acceptType === 'video';
   const isVideoContent = Boolean(
@@ -53,7 +55,7 @@ export default function DropzoneUpload({
     try {
       localUrl = URL.createObjectURL(file);
       setPreview(localUrl);
-    } catch (e) {}
+    } catch {}
 
     setIsUploading(true);
     const r2Url = await uploadAssetToR2(file, tableSlug);

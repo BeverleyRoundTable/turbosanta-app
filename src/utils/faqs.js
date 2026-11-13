@@ -42,7 +42,7 @@ export function normalizeFaqs(raw) {
   if (typeof raw === 'string') {
     try {
       parsed = JSON.parse(raw);
-    } catch (_) {
+    } catch {
       return DEFAULT_FAQ_PRESETS;
     }
   }

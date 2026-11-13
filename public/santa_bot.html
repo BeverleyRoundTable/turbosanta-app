@@ -746,9 +746,10 @@
       // ============================================================
       const STATIC_SANTA_AVATAR_URL = "/icons/Beverley_Santa_Logo.png"; // Static resting Santa head
 
-      // Detect Table Slug from query param (?table=beverley)
+      // Detect Table Slug from query param, router context, or subdomain
       const urlParams = new URLSearchParams(window.location.search);
-      const tableSlug = (urlParams.get("table") || "beverley").toLowerCase().trim();
+      const __botHostSub = location.hostname.toLowerCase().endsWith('roundtablesantasleigh.co.uk') && location.hostname.split('.').length > 3 ? location.hostname.split('.')[0].toLowerCase() : '';
+      const tableSlug = (urlParams.get("table") || window.__TURBOSANTA_TABLE__ || window.__TURBOSANTA_DEFAULT_TABLE__ || window.__sleighTableSlug || (__botHostSub && __botHostSub !== "www" && __botHostSub !== "sleigh" ? __botHostSub : "") || "beverley").toLowerCase().trim();
 
       // DOM Elements
       const avatarPod = document.getElementById("santa-avatar-pod");

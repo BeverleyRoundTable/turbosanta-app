@@ -417,12 +417,23 @@ let heartbeatTimer = null; // Refreshes claim on expanded card every 30s
 const recState = new Map();
 
 function getAuthToken() {
-  // 1. From URL query parameter (?secret=... or ?token=...)
-  const qSecret = params.get('secret') || params.get('token');
-  if (qSecret) {
-    try { sessionStorage.setItem('turbosanta_auth_token', qSecret); } catch (_) {}
-    return qSecret;
-  }
+  // 1. From URL hash (#token=... / #secret=...) or legacy query parameter, then scrub URL
+  try {
+    const hashParams = new URLSearchParams(window.location.hash ? window.location.hash.slice(1) : '');
+    const hSecret = hashParams.get('token') || hashParams.get('secret');
+    const qSecret = params.get('secret') || params.get('token');
+    const urlSecret = hSecret || qSecret;
+    if (urlSecret) {
+      try { sessionStorage.setItem('turbosanta_auth_token', urlSecret); } catch (_) {}
+      if (window.history && window.history.replaceState) {
+        params.delete('secret');
+        params.delete('token');
+        const cleanQs = params.toString();
+        window.history.replaceState(null, '', window.location.pathname + (cleanQs ? '?' + cleanQs : ''));
+      }
+      return urlSecret;
+    }
+  } catch (_) {}
 
   // 2. From sessionStorage
   try {
@@ -471,9 +482,9 @@ async function init() {
 
   try {
     const fetchEndpoints = [
-      makeApiUrl({ secret }),
-      `https://roundtablesantasleigh.co.uk/api/magic-mailbox?table=${encodeURIComponent(tableSlug)}&secret=${encodeURIComponent(secret)}`,
-      `https://turbosanta-api.beverley247.workers.dev/api/magic-mailbox?table=${encodeURIComponent(tableSlug)}&secret=${encodeURIComponent(secret)}`
+      makeApiUrl(),
+      `https://roundtablesantasleigh.co.uk/api/magic-mailbox?table=${encodeURIComponent(tableSlug)}`,
+      `https://turbosanta-api.beverley247.workers.dev/api/magic-mailbox?table=${encodeURIComponent(tableSlug)}`
     ];
 
     let data = null;
@@ -638,7 +649,7 @@ function enterStudio() {
 
 async function loadQueue() {
   try {
-    const res = await fetch(makeApiUrl({ secret }), {
+    const res = await fetch(makeApiUrl(), {
       headers: { 'Authorization': `Bearer ${secret}` }
     });
     const data = await res.json();
@@ -788,8 +799,7 @@ async function toggleCard(id, mode) {
           body: JSON.stringify({
             action: 'claimMagicMailbox',
             messageId: id,
-            volunteer: volunteerName,
-            secret
+            volunteer: volunteerName
           })
         });
         const claimData = await claimRes.json();
@@ -849,8 +859,7 @@ async function sendHeartbeat(id) {
       body: JSON.stringify({
         action: 'heartbeatMagicMailbox',
         messageId: id,
-        volunteer: volunteerName,
-        secret
+        volunteer: volunteerName
       })
     });
     const data = await res.json();
@@ -932,7 +941,7 @@ async function loadIncomingAudio(id) {
   }
 
   try {
-    const res = await fetch(makeApiUrl({ id, secret }), {
+    const res = await fetch(makeApiUrl({ id }), {
       headers: { 'Authorization': `Bearer ${secret}` }
     });
     const data = await res.json();
@@ -962,8 +971,7 @@ async function releaseMessage(id) {
       body: JSON.stringify({
         action: 'releaseMagicMailbox',
         messageId: id,
-        volunteer: volunteerName,
-        secret
+        volunteer: volunteerName
       })
     });
     const data = await res.json();
@@ -1094,8 +1102,7 @@ async function sendReply(id, isUpdate) {
       audioData: audioData,
       audioMime: state.blob.type || 'audio/webm',
       volunteer: volunteerName,
-      isUpdate: !!isUpdate,
-      secret: secret
+      isUpdate: !!isUpdate
     };
 
     const res = await fetch(makeApiUrl(), {
@@ -1135,8 +1142,7 @@ async function flagMessage(id) {
       action: 'flagMagicMailbox',
       messageId: id,
       reason: reason || 'No reason given',
-      volunteer: volunteerName,
-      secret: secret
+      volunteer: volunteerName
     };
     const res = await fetch(makeApiUrl(), {
       method: 'POST',

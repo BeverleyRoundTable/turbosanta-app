@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Mail, Send, Check, AlertTriangle, Eye, EyeOff, Users, Sparkles, RefreshCw, ExternalLink } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Mail, Send, Check, AlertTriangle, Eye, EyeOff, Users, Sparkles, ExternalLink } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { sendVolunteerBroadcastEmail } from '../services/api';
 
@@ -30,7 +30,6 @@ export default function VolunteerEmailModal({
   const getVolName = (v) => v.name || v["Volunteer Name"] || 'Volunteer';
   const getVolEmail = (v) => (v.email || v["Email"] || '').trim();
   const getVolRoute = (v) => (v.route_name || v["RouteName"] || '').trim();
-  const getVolRole = (v) => v.role || v["Role"] || 'Volunteer';
 
   // Compute recipient list based on selected route
   const matchingVolunteers = volunteers.filter(v => {
@@ -154,14 +153,17 @@ ${tableName} Organizers`
     };
   };
 
-  // Populate initial text on open or route change
-  useEffect(() => {
-    if (!isOpen) return;
-    const t = getTemplateContent(selectedTemplate, selectedRoute);
-    setSubject(t.subject);
-    setBodyText(t.body);
-    setFeedback(null);
-  }, [isOpen, selectedRoute]);
+  const [prevSyncKey, setPrevSyncKey] = useState('');
+  const syncKey = isOpen ? `${selectedRoute}` : '';
+  if (syncKey !== prevSyncKey) {
+    setPrevSyncKey(syncKey);
+    if (isOpen) {
+      const t = getTemplateContent(selectedTemplate, selectedRoute);
+      setSubject(t.subject);
+      setBodyText(t.body);
+      setFeedback(null);
+    }
+  }
 
   if (!isOpen) return null;
 

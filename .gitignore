@@ -23,6 +23,11 @@ dist-ssr
 *.sln
 *.sw?
 
+# Environment variables (never commit secrets or local env configs)
+.env
+.env.*
+!.env.example
+
 # Private worker backend & database backups (kept locally & backed up to private R2, excluded from public GitHub)
 worker/
 backups/

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  BookOpen, Sparkles, Send, ThumbsUp, PlusCircle, Search, Filter,
-  Shield, Volume2, Zap, MapPin, Heart, Users, Wrench, Globe,
-  CheckCircle2, AlertCircle, RefreshCw, MessageSquare, ChevronRight, Award
+  BookOpen, Sparkles, Send, ThumbsUp, PlusCircle, Search,
+  Shield, Volume2, Zap, MapPin, Heart, Users, Wrench,
+  CheckCircle2, AlertCircle, RefreshCw, Award
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
@@ -11,6 +11,9 @@ import {
   upvoteKnowledgeLesson,
   askFleetAdvisor
 } from '../services/api';
+
+const getTimeLabel = () => new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+const getErrorTimeLabel = () => new Date().toLocaleTimeString('en-GB');
 
 const CATEGORIES = [
   { id: 'all', label: 'All Categories', icon: BookOpen },
@@ -23,7 +26,7 @@ const CATEGORIES = [
   { id: 'sleigh_mechanics', label: 'Sleigh Mechanics', icon: Wrench }
 ];
 
-export const NATIONAL_PLAYBOOK_TIPS = [
+const NATIONAL_PLAYBOOK_TIPS = [
   {
     id: "tpl_digital_donations",
     category: "finance_donations",
@@ -149,17 +152,21 @@ export default function KnowledgeBase({ session, tableData }) {
   // Ask AI Fleet Advisor State
   const [aiQuestion, setAiQuestion] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiResponse, setAiResponse] = useState(null);
   const [aiHistory, setAiHistory] = useState([]);
 
+  const searchQueryRef = useRef(searchQuery);
+  useEffect(() => {
+    searchQueryRef.current = searchQuery;
+  }, [searchQuery]);
+
   // Load Lessons on mount and when filters change
-  const loadLessons = async () => {
+  const loadLessons = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await fetchKnowledgeLessons(currentTableSlug, {
         scope: selectedScope,
         category: selectedCategory,
-        q: searchQuery
+        q: searchQueryRef.current
       });
       if (res && Array.isArray(res.lessons)) {
         setLessons(res.lessons);
@@ -169,11 +176,17 @@ export default function KnowledgeBase({ session, tableData }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentTableSlug, selectedScope, selectedCategory]);
 
   useEffect(() => {
-    loadLessons();
-  }, [currentTableSlug, selectedScope, selectedCategory]);
+    let cancelled = false;
+    Promise.resolve().then(() => {
+      if (!cancelled) loadLessons();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [loadLessons]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -274,24 +287,23 @@ export default function KnowledgeBase({ session, tableData }) {
           answer: res.answer,
           model: formatModelDisplay(res.model || globalModel),
           lessonsCount: res.lessonsCount || 0,
-          timestamp: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+          timestamp: getTimeLabel()
         };
         setAiHistory(prev => [itemWithAnswer, ...prev.filter(item => item !== newQueryItem)]);
-        setAiResponse(itemWithAnswer);
       } else {
         setAiHistory(prev => [{
           question: q,
           answer: res.error || 'Could not synthesize advice right now. Please try again.',
           model: 'Error',
-          timestamp: new Date().toLocaleTimeString('en-GB')
+          timestamp: getErrorTimeLabel()
         }, ...prev.filter(item => item !== newQueryItem)]);
       }
-    } catch (err) {
+    } catch {
       setAiHistory(prev => [{
         question: q,
         answer: 'Failed to connect to the Fleet Advisor service.',
         model: 'Offline',
-        timestamp: new Date().toLocaleTimeString('en-GB')
+        timestamp: getErrorTimeLabel()
       }, ...prev.filter(item => item !== newQueryItem)]);
     } finally {
       setAiLoading(false);

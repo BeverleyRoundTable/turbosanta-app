@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Shield, Copy, Check, RefreshCw, Sparkles, Send } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { X, Shield, Copy, Check, RefreshCw, Sparkles } from 'lucide-react';
 import { getAdminAuthToken } from '../services/auth';
 import { extractRouteSponsors } from '../utils/sponsors';
 
@@ -70,15 +70,22 @@ export default function CrewBriefingAiModal({
   const table = tableData?.table || {};
   const tableName = table.sleigh_display_name || table.name || 'Round Table Santa Sleigh';
 
-  const generateBriefing = async () => {
+  const paramsRef = useRef({ route, tableData, currentTableSlug, session });
+  useEffect(() => {
+    paramsRef.current = { route, tableData, currentTableSlug, session };
+  });
+
+  const generateBriefing = useCallback(async () => {
+    const { route: r, tableData: td, currentTableSlug: slugProp, session: sess } = paramsRef.current;
     setLoading(true);
     setError('');
-    const tableSlug = currentTableSlug || session?.tableId || session?.tableSlug || 'beverley';
-    const token = session?.googleCredential || session?.token || getAdminAuthToken(tableSlug);
+    const tableSlug = slugProp || sess?.tableId || sess?.tableSlug || 'beverley';
+    const token = sess?.googleCredential || sess?.token || getAdminAuthToken(tableSlug);
+    const tbl = td?.table || {};
 
-    const routeStreets = (Array.isArray(route?.streets) && route.streets.length > 0)
-      ? route.streets
-      : (tableData?.streets || []).filter(s => String(s.route_id) === String(route?.id));
+    const routeStreets = (Array.isArray(r?.streets) && r.streets.length > 0)
+      ? r.streets
+      : (td?.streets || []).filter(s => String(s.route_id) === String(r?.id));
     const streetNames = routeStreets
       .map(s => (typeof s === 'string' ? s : (s.street_name || s.name || '')))
       .filter(Boolean)
@@ -86,15 +93,15 @@ export default function CrewBriefingAiModal({
 
     const payload = {
       secret: token,
-      routeId: route?.id,
-      routeName: route?.name || "Upcoming Sleigh Route",
-      date: route?.date || new Date().toISOString().split('T')[0],
-      musterPoint: route?.muster_point || table?.default_muster_point || "Muster point",
-      musterTime: route?.muster_time || table?.default_muster_time || "17:45",
-      startTime: route?.start_time || "18:00",
+      routeId: r?.id,
+      routeName: r?.name || "Upcoming Sleigh Route",
+      date: r?.date || new Date().toISOString().split('T')[0],
+      musterPoint: r?.muster_point || tbl?.default_muster_point || "Muster point",
+      musterTime: r?.muster_time || tbl?.default_muster_time || "17:45",
+      startTime: r?.start_time || "18:00",
       streets: streetNames,
-      sponsor: route?.sponsor_name || table?.headline_sponsor_name || '',
-      sponsors: route?.sponsor_name || table?.headline_sponsor_name || ''
+      sponsor: r?.sponsor_name || tbl?.headline_sponsor_name || '',
+      sponsors: r?.sponsor_name || tbl?.headline_sponsor_name || ''
     };
 
     try {
@@ -110,22 +117,27 @@ export default function CrewBriefingAiModal({
       if (data.ok && data.briefing) {
         setBriefing(data.briefing);
       } else {
-        const fallback = generateClientFallbackBriefing({ route, tableData, currentTableSlug });
+        const fallback = generateClientFallbackBriefing({ route: r, tableData: td, currentTableSlug: slugProp });
         setBriefing(fallback);
       }
-    } catch (err) {
-      const fallback = generateClientFallbackBriefing({ route, tableData, currentTableSlug });
+    } catch {
+      const fallback = generateClientFallbackBriefing({ route: r, tableData: td, currentTableSlug: slugProp });
       setBriefing(fallback);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    if (isOpen) {
-      generateBriefing();
-    }
-  }, [isOpen, route?.id]);
+    if (!isOpen) return;
+    let cancelled = false;
+    Promise.resolve().then(() => {
+      if (!cancelled) generateBriefing();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, route?.id, generateBriefing]);
 
   if (!isOpen) return null;
 

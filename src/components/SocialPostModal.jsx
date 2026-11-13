@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Sparkles, Copy, Check, Share2, MessageCircle, Newspaper, RefreshCw, Video } from 'lucide-react';
 import { getAdminAuthToken } from '../services/auth';
 import { extractRouteSponsors } from '../utils/sponsors';
@@ -93,15 +93,22 @@ export default function SocialPostModal({
   const table = tableData?.table || {};
   const tableName = table.sleigh_display_name || table.name || 'Round Table Santa Sleigh';
 
-  const generatePosts = async () => {
+  const paramsRef = useRef({ route, tableData, currentTableSlug, session });
+  useEffect(() => {
+    paramsRef.current = { route, tableData, currentTableSlug, session };
+  });
+
+  const generatePosts = useCallback(async () => {
+    const { route: r, tableData: td, currentTableSlug: slugProp, session: sess } = paramsRef.current;
     setLoading(true);
     setError('');
-    const tableSlug = currentTableSlug || session?.tableId || session?.tableSlug || 'beverley';
-    const token = session?.googleCredential || session?.token || getAdminAuthToken(tableSlug);
+    const tableSlug = slugProp || sess?.tableId || sess?.tableSlug || 'beverley';
+    const token = sess?.googleCredential || sess?.token || getAdminAuthToken(tableSlug);
+    const tbl = td?.table || {};
 
-    const routeStreets = (Array.isArray(route?.streets) && route.streets.length > 0)
-      ? route.streets
-      : (tableData?.streets || []).filter(s => String(s.route_id) === String(route?.id));
+    const routeStreets = (Array.isArray(r?.streets) && r.streets.length > 0)
+      ? r.streets
+      : (td?.streets || []).filter(s => String(s.route_id) === String(r?.id));
     const streetNames = routeStreets
       .map(s => (typeof s === 'string' ? s : (s.street_name || s.name || '')))
       .filter(Boolean)
@@ -109,16 +116,16 @@ export default function SocialPostModal({
 
     const payload = {
       secret: token,
-      routeId: route?.id,
-      routeName: route?.name || "Tonight's Sleigh Tour",
-      date: route?.date || new Date().toISOString().split('T')[0],
-      raised: route?.cash_raised !== undefined ? route.cash_raised : (tableData?.total_raised || tableData?.donations?.total || '0'),
-      totalRaised: tableData?.total_raised || tableData?.donations?.total || '0',
-      distance: route?.distance_km ? `${route.distance_km} km` : '',
+      routeId: r?.id,
+      routeName: r?.name || "Tonight's Sleigh Tour",
+      date: r?.date || new Date().toISOString().split('T')[0],
+      raised: r?.cash_raised !== undefined ? r.cash_raised : (td?.total_raised || td?.donations?.total || '0'),
+      totalRaised: td?.total_raised || td?.donations?.total || '0',
+      distance: r?.distance_km ? `${r.distance_km} km` : '',
       streets: streetNames,
-      sponsor: route?.sponsor_name || table?.headline_sponsor_name || '',
-      sponsors: route?.sponsor_name || table?.headline_sponsor_name || '',
-      donateUrl: table?.donate_url || ''
+      sponsor: r?.sponsor_name || tbl?.headline_sponsor_name || '',
+      sponsors: r?.sponsor_name || tbl?.headline_sponsor_name || '',
+      donateUrl: tbl?.donate_url || ''
     };
 
     try {
@@ -139,23 +146,28 @@ export default function SocialPostModal({
         });
       } else {
         // Smoothly fall back to client template generator
-        const fallback = generateClientFallbackPosts({ route, tableData, currentTableSlug });
+        const fallback = generateClientFallbackPosts({ route: r, tableData: td, currentTableSlug: slugProp });
         setPosts(fallback);
       }
-    } catch (err) {
+    } catch {
       // Smoothly fall back to client template generator on network failure
-      const fallback = generateClientFallbackPosts({ route, tableData, currentTableSlug });
+      const fallback = generateClientFallbackPosts({ route: r, tableData: td, currentTableSlug: slugProp });
       setPosts(fallback);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    if (isOpen) {
-      generatePosts();
-    }
-  }, [isOpen, route?.id]);
+    if (!isOpen) return;
+    let cancelled = false;
+    Promise.resolve().then(() => {
+      if (!cancelled) generatePosts();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, route?.id, generatePosts]);
 
   if (!isOpen) return null;
 

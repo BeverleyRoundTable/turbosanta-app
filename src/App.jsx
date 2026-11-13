@@ -10,6 +10,37 @@ const AdminLoginModal = lazy(() => import('./components/AdminLoginModal'));
 const AdminPortal = lazy(() => import('./components/AdminPortal'));
 const SupportPortal = lazy(() => import('./components/SupportPortal'));
 
+const CLEAN_ROUTE_MAP = {
+  '/tracker': '/tracker.html',
+  '/address': '/address.html',
+  '/addresses': '/address.html',
+  '/crew': '/crew.html',
+  '/giftaid': '/gift_aid.html',
+  '/gift-aid': '/gift_aid.html',
+  '/gift_aid': '/gift_aid.html',
+  '/sleigh/gift_aid': '/gift_aid.html',
+  '/route_planner': '/route_planner.html',
+  '/route-planner': '/route_planner.html',
+  '/qr_poster': '/qr_poster.html',
+  '/qr-poster': '/qr_poster.html',
+  '/beacon': '/beacon.html',
+  '/god_mode': '/god_mode.html',
+  '/god-mode': '/god_mode.html',
+  '/memory_book': '/memory_book.html',
+  '/memory-book': '/memory_book.html',
+  '/migrate': '/migrate.html',
+  '/season_wrap': '/season_wrap.html',
+  '/partner_report': '/partner_report.html',
+  '/volunteer_cert': '/volunteer_cert.html',
+  '/guide': '/guide.html',
+  '/hub': '/hub.html',
+  '/embed': '/embed.html',
+  '/v1': '/santasleigh.html',
+  '/santasleigh': '/santasleigh.html',
+  '/v2': '/sleigh_v2.html',
+  '/sleigh_v2': '/sleigh_v2.html'
+};
+
 const FullPageLoader = ({ label = 'Loading Sleigh Radar...' }) => (
   <div style={{
     minHeight: '100vh',
@@ -86,41 +117,10 @@ export default function App() {
     urlParams.get('support') === 'true';
   const [isSupportRoute, setIsSupportRoute] = useState(initialSupportParam);
 
-  const cleanRouteMap = {
-    '/tracker': '/tracker.html',
-    '/address': '/address.html',
-    '/addresses': '/address.html',
-    '/crew': '/crew.html',
-    '/giftaid': '/gift_aid.html',
-    '/gift-aid': '/gift_aid.html',
-    '/gift_aid': '/gift_aid.html',
-    '/sleigh/gift_aid': '/gift_aid.html',
-    '/route_planner': '/route_planner.html',
-    '/route-planner': '/route_planner.html',
-    '/qr_poster': '/qr_poster.html',
-    '/qr-poster': '/qr_poster.html',
-    '/beacon': '/beacon.html',
-    '/god_mode': '/god_mode.html',
-    '/god-mode': '/god_mode.html',
-    '/memory_book': '/memory_book.html',
-    '/memory-book': '/memory_book.html',
-    '/migrate': '/migrate.html',
-    '/season_wrap': '/season_wrap.html',
-    '/partner_report': '/partner_report.html',
-    '/volunteer_cert': '/volunteer_cert.html',
-    '/guide': '/guide.html',
-    '/hub': '/hub.html',
-    '/embed': '/embed.html',
-    '/v1': '/santasleigh.html',
-    '/santasleigh': '/santasleigh.html',
-    '/v2': '/sleigh_v2.html',
-    '/sleigh_v2': '/sleigh_v2.html'
-  };
-
   // Admin Authentication State
   const initialSession = getCurrentSession();
   const [adminSession, setAdminSession] = useState(initialSession);
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(() => Boolean(initialAdminParam && !isGatewayRequested && !initialSession && initialTableParam));
   const [loginInitialEmail, setLoginInitialEmail] = useState(initialTableParam || '');
 
   // Default to Admin Portal only when on /admin (or ?admin=1) and logged in
@@ -148,7 +148,7 @@ export default function App() {
       localStorage.removeItem("turbosanta_admin_session");
       localStorage.removeItem("ts2_admin_session");
       sessionStorage.clear();
-    } catch (e) {}
+    } catch {}
 
     // Redirect back to /admin login gateway
     const logoutUrl = (host.includes('roundtablesantasleigh.co.uk') || host.includes('pages.dev'))
@@ -158,45 +158,68 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (isAdminRoute && !gatewayRequested) {
-      if (adminSession) {
-        const isSuperAdmin = isSuperAdminEmail(adminSession.email) || adminSession.tableSlug === 'beverley';
-        if (adminSession.isNationalAdmin && !isSuperAdmin) {
-          window.location.href = '/national.html';
-          return;
-        }
-        const targetSlug = initialTableParam || adminSession.tableSlug || adminSession.tableId || 'beverley';
-        if (!activeTableSlug) setActiveTableSlug(targetSlug);
-        setViewMode('admin');
-      } else if (initialTableParam) {
-        setLoginInitialEmail(initialTableParam);
-        setIsLoginModalOpen(true);
+    if (isAdminRoute && !gatewayRequested && adminSession) {
+      const isSuperAdmin = isSuperAdminEmail(adminSession.email) || adminSession.tableSlug === 'beverley';
+      if (adminSession.isNationalAdmin && !isSuperAdmin) {
+        window.location.href = '/national.html';
       }
     }
-  }, [adminSession, isAdminRoute, gatewayRequested, initialTableParam, activeTableSlug]);
+  }, [adminSession, isAdminRoute, gatewayRequested]);
 
   useEffect(() => {
-    if (!activeTableSlug) {
-      setLoading(false);
-      return;
-    }
+    if (!activeTableSlug) return;
 
-    setLoading(true);
-    fetchTablePayload(activeTableSlug)
-      .then(data => {
-        setTableData(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error("Payload load error, falling back to cached/default data:", err);
-        setTableData(getTableFallback(activeTableSlug));
-        setLoading(false);
-      });
+    let cancelled = false;
+    Promise.resolve().then(() => {
+      if (cancelled) return;
+      setLoading(true);
+      fetchTablePayload(activeTableSlug)
+        .then(data => {
+          if (cancelled) return;
+          setTableData(data);
+          setLoading(false);
+        })
+        .catch(err => {
+          if (cancelled) return;
+          console.error("Payload load error, falling back to cached/default data:", err);
+          setTableData(getTableFallback(activeTableSlug));
+          setLoading(false);
+        });
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [activeTableSlug]);
 
-  if (cleanRouteMap[pathname]) {
-    window.location.replace(`${cleanRouteMap[pathname]}${window.location.search}`);
-    return null;
+  const isPublicRootDirectory = !isAdminRoute && !activeTableSlug && viewMode !== 'admin';
+  const isOrganiserGateway = isAdminRoute && (gatewayRequested || !adminSession || viewMode !== 'admin');
+  const cleanRedirect = CLEAN_ROUTE_MAP[pathname]
+    ? `${CLEAN_ROUTE_MAP[pathname]}${window.location.search}`
+    : null;
+  const shouldRedirectToSleighTracker = Boolean(
+    !cleanRedirect &&
+    !isSupportRoute &&
+    !isPublicRootDirectory &&
+    !isOrganiserGateway &&
+    !loading &&
+    !(viewMode === 'admin' && adminSession) &&
+    activeTableSlug &&
+    viewMode !== 'admin'
+  );
+  const trackerRedirectUrl = shouldRedirectToSleighTracker
+    ? `/sleigh_v2.html?table=${encodeURIComponent(activeTableSlug)}`
+    : null;
+  const pendingRedirectUrl = cleanRedirect || trackerRedirectUrl;
+
+  useEffect(() => {
+    if (pendingRedirectUrl) {
+      window.location.replace(pendingRedirectUrl);
+    }
+  }, [pendingRedirectUrl]);
+
+  if (cleanRedirect) {
+    return <FullPageLoader />;
   }
 
   // 0. SUPPORT & ISSUE TRACKER PORTAL (/support)
@@ -226,7 +249,6 @@ export default function App() {
 
   // 1. PUBLIC ROOT DIRECTORY VIEW (roundtablesantasleigh.co.uk/)
   // Shown whenever a visitor lands on the root domain without a specific table or /admin path
-  const isPublicRootDirectory = !isAdminRoute && !activeTableSlug && viewMode !== 'admin';
   if (isPublicRootDirectory) {
     return (
       <Suspense fallback={<FullPageLoader label="Loading Round Table Sleigh Directory..." />}>
@@ -255,7 +277,6 @@ export default function App() {
   }
 
   // 2. ORGANISER COMMAND & ADMIN LOGIN GATEWAY (/admin when not logged in or when gateway requested)
-  const isOrganiserGateway = isAdminRoute && (gatewayRequested || !adminSession || viewMode !== 'admin');
   if (isOrganiserGateway) {
     return (
       <Suspense fallback={<FullPageLoader label="Loading Table Command Gateway..." />}>
@@ -300,7 +321,7 @@ export default function App() {
     );
   }
 
-  if (loading) {
+  if (activeTableSlug && loading) {
     return <FullPageLoader />;
   }
 
@@ -319,8 +340,7 @@ export default function App() {
   }
 
   // 4. PUBLIC SLEIGH TRACKER VIEW ({town}.roundtablesantasleigh.co.uk or /?table={town})
-  if (activeTableSlug && viewMode !== 'admin') {
-    window.location.replace(`/sleigh_v2.html?table=${encodeURIComponent(activeTableSlug)}`);
+  if (shouldRedirectToSleighTracker) {
     return <FullPageLoader label="Opening Santa Sleigh Tracker..." />;
   }
 
@@ -397,7 +417,7 @@ export default function App() {
           activeTableSlug={activeTableSlug}
           onOpenLogin={() => {
             if (adminSession) {
-              const isBeverley = adminSession.email === 'beverley247@roundtable.org.uk' || adminSession.tableSlug === 'beverley' || (adminSession.email && adminSession.email.includes('beverley'));
+              const isBeverley = isSuperAdminEmail(adminSession.email) || adminSession.tableSlug === 'beverley';
               if (adminSession.isNationalAdmin && !isBeverley) {
                 window.location.href = '/national.html';
                 return;
@@ -419,7 +439,7 @@ export default function App() {
             onClose={() => setIsLoginModalOpen(false)}
             onLoginSuccess={(session) => {
               setAdminSession(session);
-              const isBeverley = session.email === 'beverley247@roundtable.org.uk' || session.tableSlug === 'beverley' || (session.email && session.email.includes('beverley'));
+              const isBeverley = isSuperAdminEmail(session.email) || session.tableSlug === 'beverley';
               if (session.isNationalAdmin && !isBeverley) {
                 window.location.href = '/national.html';
                 return;

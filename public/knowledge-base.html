@@ -371,6 +371,65 @@
             'sleigh_mechanics': 'Sleigh Mechanics'
         };
 
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function sanitizeRenderedHtml(html) {
+            const doc = new DOMParser().parseFromString(String(html || ''), 'text/html');
+            const blockedTags = 'script,style,iframe,object,embed,svg,math,form,input,button,textarea,select,link,meta,base';
+            doc.body.querySelectorAll(blockedTags).forEach(el => el.remove());
+            doc.body.querySelectorAll('*').forEach(el => {
+                for (const attr of Array.from(el.attributes)) {
+                    const name = attr.name.toLowerCase();
+                    const val = attr.value.trim();
+                    if (name.startsWith('on') || name === 'style' || name === 'srcdoc') {
+                        el.removeAttribute(attr.name);
+                    } else if (name === 'href' || name === 'src' || name === 'xlink:href') {
+                        if (!/^(https?:|mailto:|\/|#)/i.test(val)) {
+                            el.removeAttribute(attr.name);
+                        } else if (el.tagName === 'A' && name === 'href' && /^https?:/i.test(val)) {
+                            el.setAttribute('target', '_blank');
+                            el.setAttribute('rel', 'noopener noreferrer');
+                        }
+                    }
+                }
+            });
+            return doc.body.innerHTML;
+        }
+
+        function getAuthToken(tableSlug) {
+            try {
+                const raw = localStorage.getItem('turbosanta_admin_session');
+                if (raw) {
+                    const sess = JSON.parse(raw);
+                    if (sess && sess.token) return String(sess.token).trim();
+                    if (sess && sess.googleCredential) return String(sess.googleCredential).trim();
+                }
+                if (tableSlug) {
+                    const perTable = localStorage.getItem('turbosanta_admin_token_' + tableSlug);
+                    if (perTable) return perTable.trim();
+                }
+                const sTok = sessionStorage.getItem('turbosanta_auth_token');
+                if (sTok) return sTok.trim();
+                const cookieMatch = document.cookie.match(/(?:^|;\s*)turbosanta_auth_token=([^;]+)/);
+                if (cookieMatch && cookieMatch[1]) return decodeURIComponent(cookieMatch[1]).trim();
+            } catch (_) {}
+            return '';
+        }
+
+        function buildJsonHeaders(tableSlug) {
+            const headers = { 'Content-Type': 'application/json' };
+            const tok = getAuthToken(tableSlug);
+            if (tok) headers['Authorization'] = `Bearer ${tok}`;
+            return headers;
+        }
+
         // Fetch registered tables on load
         window.addEventListener('DOMContentLoaded', async () => {
             const activeModelName = formatModelName(globalModel);
@@ -419,34 +478,39 @@
                     container.innerHTML = '';
                     data.lessons.forEach(l => {
                         const isNat = l.scope === 'national';
-                        const catLabel = CATEGORY_NAMES[l.category] || l.category || 'General';
+                        const catLabel = escapeHtml(CATEGORY_NAMES[l.category] || l.category || 'General');
                         const hasLiked = !!l.has_upvoted;
+                        const safeScopeBadge = isNat ? '🇬🇧 RTBI National' : `📍 ${escapeHtml(l.table_name || 'Local Table')}`;
+                        const safeLesson = escapeHtml(l.lesson || '');
+                        const safeAuthor = escapeHtml(l.author_name || 'Volunteer');
+                        const safeRole = escapeHtml(l.author_role || 'Crew');
                         const el = document.createElement('div');
                         el.className = 'lesson-item';
                         el.innerHTML = `
                             <div>
                                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                                     <span style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:4px; text-transform:uppercase; background:${isNat ? 'rgba(251,175,51,0.15)' : 'rgba(59,130,246,0.15)'}; color:${isNat ? '#FBAF33' : '#60a5fa'}; border:1px solid ${isNat ? 'rgba(251,175,51,0.3)' : 'rgba(59,130,246,0.3)'};">
-                                        ${isNat ? '🇬🇧 RTBI National' : '📍 ' + (l.table_name || 'Local Table')}
+                                        ${safeScopeBadge}
                                     </span>
-                                    <button class="upvote-btn ${hasLiked ? 'has-upvoted' : ''}" 
-                                            style="${hasLiked ? 'color:var(--gold); border-color:var(--gold); background:rgba(251,175,51,0.15);' : ''}" 
-                                            onclick="upvoteLesson('${l.id}', this)"
+                                    <button type="button" class="upvote-btn ${hasLiked ? 'has-upvoted' : ''}"
+                                            style="${hasLiked ? 'color:var(--gold); border-color:var(--gold); background:rgba(251,175,51,0.15);' : ''}"
                                             title="${hasLiked ? 'Liked by your table (click to remove)' : 'Like this tip (1 per table)'}">
-                                        <i class="fa-solid fa-thumbs-up"></i> <span>${l.upvotes || 0}</span>
+                                        <i class="fa-solid fa-thumbs-up"></i> <span>${Number(l.upvotes) || 0}</span>
                                     </button>
                                 </div>
                                 <div style="font-size:11px; color:var(--gold); font-weight:700; margin-bottom:8px; text-transform:uppercase;">
                                     ${catLabel}
                                 </div>
                                 <p style="font-size:13px; color:#FFF; margin:0 0 12px 0; line-height:1.5;">
-                                    "${l.lesson}"
+                                    "${safeLesson}"
                                 </p>
                             </div>
                             <div style="font-size:11px; color:var(--text-muted); border-top:1px solid rgba(255,255,255,0.06); padding-top:8px;">
-                                <strong>${l.author_name || 'Volunteer'}</strong> • ${l.author_role || 'Crew'}
+                                <strong>${safeAuthor}</strong> • ${safeRole}
                             </div>
                         `;
+                        const upBtn = el.querySelector('.upvote-btn');
+                        if (upBtn) upBtn.addEventListener('click', () => upvoteLesson(l.id, upBtn));
                         container.appendChild(el);
                     });
                 } else {
@@ -468,7 +532,7 @@
                                             🇬🇧 RTBI Playbook
                                         </span>
                                         <span style="font-size: 10px; color: #86efac; background: rgba(34, 197, 94, 0.12); border: 1px solid #22c55e; padding: 2px 6px; border-radius: 4px; font-weight: 700;">
-                                            ${tpl.badge}
+                                            ${escapeHtml(tpl.badge)}
                                         </span>
                                     </div>
                                     <span style="font-size: 11px; color: var(--text-muted);">
@@ -476,15 +540,15 @@
                                     </span>
                                 </div>
                                 <div style="font-size: 11px; color: var(--gold); font-weight: 700; margin-bottom: 8px; text-transform: uppercase;">
-                                    ${CATEGORY_NAMES[tpl.category] || tpl.category}
+                                    ${escapeHtml(CATEGORY_NAMES[tpl.category] || tpl.category)}
                                 </div>
                                 <p style="font-size: 13px; color: #FFF; margin: 0 0 12px 0; line-height: 1.5; font-style: italic;">
-                                    "${tpl.lesson}"
+                                    "${escapeHtml(tpl.lesson)}"
                                 </p>
                             </div>
                             <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 10px; flex-wrap: wrap; gap: 8px;">
                                 <div style="font-size: 11px; color: var(--text-muted);">
-                                    <strong>${tpl.author_name}</strong> • ${tpl.author_role}
+                                    <strong>${escapeHtml(tpl.author_name)}</strong> • ${escapeHtml(tpl.author_role)}
                                 </div>
                                 <button type="button" onclick="usePlaybookTemplate(${idx})" style="font-size: 11px; padding: 5px 12px; background: var(--gold); color: #000; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
                                     <i class="fa-solid fa-copy"></i> Use as Template
@@ -587,10 +651,13 @@
             try {
                 const res = await fetch(`${API_BASE}/api/knowledge-base/upvote?table=${encodeURIComponent(tableSlug)}`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: buildJsonHeaders(tableSlug),
                     body: JSON.stringify({ id, table: tableSlug, toggle: true })
                 });
                 const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.error || 'Failed to update vote');
+                }
                 if (data.ok && typeof data.upvotes === 'number') {
                     span.textContent = data.upvotes;
                     if (data.liked) {
@@ -653,19 +720,22 @@
             try {
                 const response = await fetch(`${API_BASE}/api/knowledge-base?table=${encodeURIComponent(payload.tableSlug)}`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: buildJsonHeaders(payload.tableSlug),
                     body: JSON.stringify(payload)
                 });
                 const result = await response.json();
-                
+
                 if (result.ok) {
                     status.style.color = "var(--gold)";
-                    status.innerHTML = '<i class="fa-solid fa-circle-check"></i> ' + (result.message || "Lesson logged successfully!");
+                    status.innerHTML = '<i class="fa-solid fa-circle-check"></i> ';
+                    status.appendChild(document.createTextNode(result.message || "Lesson logged successfully!"));
                     document.getElementById('lessonText').value = "";
                     loadLessonsArchive();
                 } else {
                     status.style.color = "#d31c1c";
-                    status.textContent = result.error || "Error saving lesson. Try again.";
+                    status.textContent = response.status === 401
+                        ? "Please sign in via the Admin Portal (/admin) before publishing a lesson."
+                        : (result.error || "Error saving lesson. Try again.");
                 }
             } catch (err) {
                 status.style.color = "#d31c1c";
@@ -691,33 +761,36 @@
             
             if (!question) return;
 
-            // Add user message
-            chatWindow.innerHTML += `<div class="msg user">${question}</div>`;
+            // Add user message safely via textContent
+            const userMsg = document.createElement('div');
+            userMsg.className = 'msg user';
+            userMsg.textContent = question;
+            chatWindow.appendChild(userMsg);
             input.value = "";
             chatWindow.scrollTop = chatWindow.scrollHeight;
 
-            // Add loading indicator
-            const loadingId = "load-" + Date.now();
-            chatWindow.innerHTML += `<div id="${loadingId}" class="msg ai"><i class="fa-solid fa-spinner fa-spin"></i> Consulting Round Table archive...</div>`;
+            // Add loading indicator without overwriting existing chat DOM nodes
+            const loadingEl = document.createElement('div');
+            loadingEl.className = 'msg ai';
+            loadingEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Consulting Round Table archive...';
+            chatWindow.appendChild(loadingEl);
             chatWindow.scrollTop = chatWindow.scrollHeight;
 
             try {
                 const res = await fetch(`${API_BASE}/api/knowledge-base/ask?table=${encodeURIComponent(tableSlug)}`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: buildJsonHeaders(tableSlug),
                     body: JSON.stringify({ question, tableSlug, model: globalModel })
                 });
                 const data = await res.json();
-                
-                const targetEl = document.getElementById(loadingId);
-                if (data.ok && data.answer) {
-                    targetEl.innerHTML = marked.parse(data.answer);
+
+                if (res.ok && data.ok && data.answer) {
+                    loadingEl.innerHTML = sanitizeRenderedHtml(marked.parse(String(data.answer)));
                 } else {
-                    targetEl.innerHTML = data.error || "Could not synthesize advice right now. Please try again.";
+                    loadingEl.textContent = data.error || "Could not synthesize advice right now. Please try again.";
                 }
             } catch (err) {
-                const targetEl = document.getElementById(loadingId);
-                if (targetEl) targetEl.innerText = "Sorry, I lost connection to Lapland.";
+                loadingEl.textContent = "Sorry, I lost connection to Lapland.";
             }
             chatWindow.scrollTop = chatWindow.scrollHeight;
         });

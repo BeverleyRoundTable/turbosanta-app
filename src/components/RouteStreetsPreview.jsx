@@ -39,7 +39,7 @@ function formatStopLabel(name) {
   if (!name) return '';
   const isStop = isSantaStop(name);
   if (!isStop) return name;
-  const stripped = name.replace(/santa\s*stop[:\s\-]*/i, '').trim();
+  const stripped = name.replace(/santa\s*stop[:\s-]*/i, '').trim();
   return stripped ? `🎅 STOP: ${stripped}` : '🎅 SANTA STOP';
 }
 
@@ -68,7 +68,7 @@ export default function RouteStreetsPreview({
   const parsedPlannedStops = useMemo(() => {
     let raw = plannedStops;
     if (typeof raw === 'string' && raw.trim()) {
-      try { raw = JSON.parse(raw); } catch (_) {}
+      try { raw = JSON.parse(raw); } catch {}
     }
     if (!Array.isArray(raw)) return [];
     return raw.map((st, i) => {

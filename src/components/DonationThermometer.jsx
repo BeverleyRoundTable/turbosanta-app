@@ -1,6 +1,6 @@
 import React from 'react';
 import confetti from 'canvas-confetti';
-import { Heart, Gift, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Heart, ArrowRight, ShieldCheck } from 'lucide-react';
 
 export default function DonationThermometer({ tableData }) {
   const table = tableData?.table || {};
@@ -20,7 +20,7 @@ export default function DonationThermometer({ tableData }) {
         origin: { y: 0.7 },
         colors: ['#FBAF33', '#D31C1C', '#FFFFFF', '#22C55E']
       });
-    } catch (e) {}
+    } catch {}
 
     window.open(donateUrl, '_blank', 'noopener,noreferrer');
   };

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Shield, AlertCircle, X, CheckCircle2 } from 'lucide-react';
+import { Mail, Shield, AlertCircle, X } from 'lucide-react';
 import { loginWithGoogleWorkspace } from '../services/auth';
 
 const OFFICIAL_GOOGLE_CLIENT_ID = "174929950272-ehpf04nea7ev4j8gfosq5acg6dvfmc95.apps.googleusercontent.com";
@@ -7,8 +7,12 @@ const OFFICIAL_GOOGLE_CLIENT_ID = "174929950272-ehpf04nea7ev4j8gfosq5acg6dvfmc95
 export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [gsiReady, setGsiReady] = useState(false);
   const googleBtnRef = React.useRef(null);
+  const callbacksRef = React.useRef({ onClose, onLoginSuccess });
+
+  React.useEffect(() => {
+    callbacksRef.current = { onClose, onLoginSuccess };
+  });
 
   // Initialize official Google Identity Services (GIS)
   React.useEffect(() => {
@@ -22,8 +26,8 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
       setLoading(true);
       try {
         const session = await loginWithGoogleWorkspace(response.credential);
-        onLoginSuccess(session);
-        onClose();
+        callbacksRef.current.onLoginSuccess(session);
+        callbacksRef.current.onClose();
       } catch (err) {
         setError(err.message || "Google Workspace sign-in failed.");
       } finally {
@@ -53,7 +57,6 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
               logo_alignment: 'left',
               width: 320
             });
-            setGsiReady(true);
           }
         } catch (err) {
           console.warn("Google Accounts ID init error:", err);

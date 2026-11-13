@@ -1,22 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { X, Coins, Check, Trash2, Calendar, MapPin, Users, FileText, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { X, Coins, Trash2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { recordCashDonation, fetchCashDonations, deleteCashDonation } from '../services/api';
 
 export default function CashBucketModal({ isOpen, onClose, routes = [], tableSlug = 'beverley', onDonationRecorded }) {
-  const todayStr = new Date().toISOString().slice(0, 10);
   const [amount, setAmount] = useState('');
   const [selectedRoute, setSelectedRoute] = useState(routes[0]?.name || 'Street Collection');
   const [verifiedBy, setVerifiedBy] = useState('Treasurer & Lead Elf');
   const [notes, setNotes] = useState('');
-  const [date, setDate] = useState(todayStr);
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
   const [cashEntries, setCashEntries] = useState([]);
   const [totalCash, setTotalCash] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadEntries = async () => {
+  const loadEntries = useCallback(async () => {
     setIsLoading(true);
     const res = await fetchCashDonations(tableSlug);
     if (res && res.ok) {
@@ -24,13 +23,18 @@ export default function CashBucketModal({ isOpen, onClose, routes = [], tableSlu
       setTotalCash(res.total || 0);
     }
     setIsLoading(false);
-  };
+  }, [tableSlug]);
 
   useEffect(() => {
-    if (isOpen) {
-      loadEntries();
-    }
-  }, [isOpen, tableSlug]);
+    if (!isOpen) return;
+    let cancelled = false;
+    Promise.resolve().then(() => {
+      if (!cancelled) loadEntries();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, loadEntries]);
 
   if (!isOpen) return null;
 

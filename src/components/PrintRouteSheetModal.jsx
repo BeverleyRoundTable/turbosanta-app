@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Printer, Share2, Copy, Check, Phone, Shield, Clock, MapPin, AlertTriangle, Save } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Printer, Share2, Check, Clock, Save } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function PrintRouteSheetModal({
@@ -47,7 +47,7 @@ export default function PrintRouteSheetModal({
           if (!muster && parsedCache.musterTime) muster = parsedCache.musterTime;
         }
       }
-    } catch(e) {}
+    } catch {}
 
     if (r?.notes) {
       const match = r.notes.match(/<!--\s*ROUTE_META:\s*({.*?})\s*-->/s);
@@ -58,7 +58,7 @@ export default function PrintRouteSheetModal({
           if (!muster && parsed.muster_time) muster = parsed.muster_time;
           if (!lead && parsed.lead_marshal) lead = parsed.lead_marshal;
           if (!driver && parsed.tow_driver) driver = parsed.tow_driver;
-        } catch(e) {}
+        } catch {}
       }
     }
     return {
@@ -79,55 +79,48 @@ export default function PrintRouteSheetModal({
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  const lastRouteIdRef = useRef(null);
+  const [prevRouteKey, setPrevRouteKey] = useState(null);
+  const currentKey = isOpen && route ? `${route.id || route.name}` : null;
 
-  useEffect(() => {
-    if (!isOpen || !route) {
-      lastRouteIdRef.current = null;
-      return;
-    }
-    const currentKey = `${route.id || route.name}`;
-    if (lastRouteIdRef.current === currentKey) {
-      return; // Already initialized for this route session; protect user input from background polling churn
-    }
-    lastRouteIdRef.current = currentKey;
+  if (currentKey !== prevRouteKey) {
+    setPrevRouteKey(currentKey);
+    if (currentKey && route) {
+      const meta = getInitialMeta(route);
+      setMeetingLocation(meta.meetingLocation);
+      setMusterTime(meta.musterTime);
 
-    const meta = getInitialMeta(route);
-    setMeetingLocation(meta.meetingLocation);
-    setMusterTime(meta.musterTime);
+      let finalLead = meta.leadMarshal;
+      let finalDriver = meta.towDriver;
 
-    let finalLead = meta.leadMarshal;
-    let finalDriver = meta.towDriver;
-
-    // Only look in volunteer roster if not already filled or saved
-    if (!finalLead || !finalDriver) {
-      const rName = String(route.name || '').trim().toLowerCase();
-      const routeVols = (volunteers || []).filter(v => {
-        const vr = String(v.route_name || v.RouteName || '').trim().toLowerCase();
-        return !rName || vr === rName || vr.includes(rName) || rName.includes(vr);
-      });
-      const pool = routeVols.length > 0 ? routeVols : (volunteers || []);
-      const formatVol = (v) => {
-        if (!v) return '';
-        const name = String(v.name || v['Volunteer Name'] || '').trim();
-        const phone = String(v.phone || v['Phone'] || '').trim();
-        if (name && phone) return `${name} (${phone})`;
-        return name || phone || '';
-      };
-      if (!finalLead) {
-        const marshalVol = pool.find(v => /marshal|lead|head|organi[sz]er|coordinator|chair/i.test(String(v.role || v.Role || '')));
-        if (marshalVol) finalLead = formatVol(marshalVol);
+      if (!finalLead || !finalDriver) {
+        const rName = String(route.name || '').trim().toLowerCase();
+        const routeVols = (volunteers || []).filter(v => {
+          const vr = String(v.route_name || v.RouteName || '').trim().toLowerCase();
+          return !rName || vr === rName || vr.includes(rName) || rName.includes(vr);
+        });
+        const pool = routeVols.length > 0 ? routeVols : (volunteers || []);
+        const formatVol = (v) => {
+          if (!v) return '';
+          const name = String(v.name || v['Volunteer Name'] || '').trim();
+          const phone = String(v.phone || v['Phone'] || '').trim();
+          if (name && phone) return `${name} (${phone})`;
+          return name || phone || '';
+        };
+        if (!finalLead) {
+          const marshalVol = pool.find(v => /marshal|lead|head|organi[sz]er|coordinator|chair/i.test(String(v.role || v.Role || '')));
+          if (marshalVol) finalLead = formatVol(marshalVol);
+        }
+        if (!finalDriver) {
+          const driverVol = pool.find(v => /driver|tow|vehicle|tractor/i.test(String(v.role || v.Role || '')));
+          if (driverVol) finalDriver = formatVol(driverVol);
+        }
       }
-      if (!finalDriver) {
-        const driverVol = pool.find(v => /driver|tow|vehicle|tractor/i.test(String(v.role || v.Role || '')));
-        if (driverVol) finalDriver = formatVol(driverVol);
-      }
-    }
 
-    setLeadMarshal(finalLead);
-    setTowDriver(finalDriver);
-    setHasUnsavedChanges(false);
-  }, [isOpen, route?.id, route?.name]);
+      setLeadMarshal(finalLead);
+      setTowDriver(finalDriver);
+      setHasUnsavedChanges(false);
+    }
+  }
 
   const handleSaveManifestDetails = async (showFeedback = true) => {
     if (!route) return;
@@ -143,7 +136,7 @@ export default function PrintRouteSheetModal({
             meetingLocation,
             musterTime
           }));
-        } catch(e) {}
+        } catch {}
       }
 
       // 2. Parse existing ROUTE_META to preserve flags
@@ -153,7 +146,7 @@ export default function PrintRouteSheetModal({
         if (m && m[1]) {
           try {
             existingMeta = JSON.parse(m[1]);
-          } catch(e) {}
+          } catch {}
         }
       }
 
@@ -194,7 +187,7 @@ export default function PrintRouteSheetModal({
         setSaveSuccess(true);
         try {
           confetti({ particleCount: 25, spread: 35, origin: { y: 0.2 } });
-        } catch(e) {}
+        } catch {}
         setTimeout(() => setSaveSuccess(false), 3500);
       }
     } catch (err) {
@@ -214,7 +207,6 @@ export default function PrintRouteSheetModal({
   const cockpitDisplayText = `${townHost}/tracker?driver=1`;
   const trackerUrl = townOrigin;
   const trackerDisplayText = townHost;
-  const beaconUrl = `${townOrigin}/beacon`;
 
   // Parse street list safely
   const streetList = (streets && streets.length > 0)
@@ -232,7 +224,7 @@ export default function PrintRouteSheetModal({
         dateFormatted = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
       }
     }
-  } catch (e) {}
+  } catch {}
 
   const handlePrint = () => {
     handleSaveManifestDetails(false).catch(() => {});
@@ -416,7 +408,7 @@ export default function PrintRouteSheetModal({
           try {
             printWindow.focus();
             printWindow.print();
-          } catch(e) {}
+          } catch {}
         }, 500);
         return;
       }
@@ -472,7 +464,7 @@ export default function PrintRouteSheetModal({
 
     let rawStops = route.planned_stops;
     if (typeof rawStops === 'string' && rawStops.trim()) {
-      try { rawStops = JSON.parse(rawStops); } catch (_) {}
+      try { rawStops = JSON.parse(rawStops); } catch {}
     }
     const stops = Array.isArray(rawStops) ? rawStops.filter(st => st && (st.name || st.title || st.stop_name)) : [];
     if (stops.length > 0) {
@@ -1008,7 +1000,7 @@ export default function PrintRouteSheetModal({
           {(() => {
             let rawStops = route.planned_stops;
             if (typeof rawStops === 'string' && rawStops.trim()) {
-              try { rawStops = JSON.parse(rawStops); } catch (_) {}
+              try { rawStops = JSON.parse(rawStops); } catch {}
             }
             const stops = Array.isArray(rawStops) ? rawStops.filter(st => st && (st.name || st.title || st.stop_name)) : [];
             if (stops.length === 0) return null;

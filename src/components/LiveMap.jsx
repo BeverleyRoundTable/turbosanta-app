@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
-import { Compass, Maximize2, Minimize2, Radio, Wrench, Sparkles, Building2, Calendar } from 'lucide-react';
+import { Compass, Maximize2, Minimize2, Radio, Wrench, Building2 } from 'lucide-react';
 import { fetchLiveGps } from '../services/api';
 import WorkshopOverlay from './WorkshopOverlay';
 
@@ -20,15 +20,17 @@ export default function LiveMap({ tableData }) {
   });
 
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [lastUpdated, setLastUpdated] = useState(() => new Date());
+  const initialSleighIconRef = useRef(tableData?.table?.sleigh_icon_live || '/icons/brt_sleigh_icon.png');
 
   // Initialize Leaflet Map with the exact OpenStreetMap style from tracker.html & address.html
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
     // Default center on Round Table HQ (Marchesi House)
+    const defaultPos = [52.4708, -1.9207];
     const map = L.map(mapContainerRef.current, {
-      center: [52.4708, -1.9207],
+      center: defaultPos,
       zoom: 14,
       zoomControl: true,
       attributionControl: true
@@ -40,43 +42,45 @@ export default function LiveMap({ tableData }) {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
     }).addTo(map);
 
-    // 🎄 DUAL-LAYER ROUTE LINE (Gold Glow + Red Core, identical to tracker.html lines 2712-2713)
-    L.polyline(BEVERLEY_ROUTE_POINTS, {
-      color: "#ffd700",
-      weight: 8,
-      opacity: 0.55
-    }).addTo(map);
+    if (BEVERLEY_ROUTE_POINTS.length > 0) {
+      // 🎄 DUAL-LAYER ROUTE LINE (Gold Glow + Red Core, identical to tracker.html lines 2712-2713)
+      L.polyline(BEVERLEY_ROUTE_POINTS, {
+        color: "#ffd700",
+        weight: 8,
+        opacity: 0.55
+      }).addTo(map);
 
-    L.polyline(BEVERLEY_ROUTE_POINTS, {
-      color: "#d31c1c",
-      weight: 4,
-      opacity: 0.95
-    }).addTo(map);
+      L.polyline(BEVERLEY_ROUTE_POINTS, {
+        color: "#d31c1c",
+        weight: 4,
+        opacity: 0.95
+      }).addTo(map);
 
-    // 📍 START POINT MARKER
-    const startIcon = L.icon({
-      iconUrl: 'https://turbosanta-app.pages.dev/icons/start_icon.png',
-      iconSize: [36, 42],
-      iconAnchor: [18, 42],
-      popupAnchor: [0, -40]
-    });
-    L.marker(BEVERLEY_ROUTE_POINTS[0], { icon: startIcon })
-      .bindPopup("<b>Route Starts Here</b><br>Starts at 18:00")
-      .addTo(map);
+      // 📍 START POINT MARKER
+      const startIcon = L.icon({
+        iconUrl: 'https://turbosanta-app.pages.dev/icons/start_icon.png',
+        iconSize: [36, 42],
+        iconAnchor: [18, 42],
+        popupAnchor: [0, -40]
+      });
+      L.marker(BEVERLEY_ROUTE_POINTS[0], { icon: startIcon })
+        .bindPopup("<b>Route Starts Here</b><br>Starts at 18:00")
+        .addTo(map);
 
-    // 🏁 END POINT MARKER
-    const endIcon = L.icon({
-      iconUrl: 'https://turbosanta-app.pages.dev/icons/end_icon.png',
-      iconSize: [36, 42],
-      iconAnchor: [18, 42],
-      popupAnchor: [0, -40]
-    });
-    L.marker(BEVERLEY_ROUTE_POINTS[BEVERLEY_ROUTE_POINTS.length - 1], { icon: endIcon })
-      .bindPopup("<b>Route Finish Point</b><br>Estimated 20:30")
-      .addTo(map);
+      // 🏁 END POINT MARKER
+      const endIcon = L.icon({
+        iconUrl: 'https://turbosanta-app.pages.dev/icons/end_icon.png',
+        iconSize: [36, 42],
+        iconAnchor: [18, 42],
+        popupAnchor: [0, -40]
+      });
+      L.marker(BEVERLEY_ROUTE_POINTS[BEVERLEY_ROUTE_POINTS.length - 1], { icon: endIcon })
+        .bindPopup("<b>Route Finish Point</b><br>Estimated 20:30")
+        .addTo(map);
+    }
 
     // 🎅 SANTA SLEIGH LIVE POSITION MARKER
-    const sleighMarkerUrl = tableData?.table?.sleigh_icon_live || '/icons/brt_sleigh_icon.png';
+    const sleighMarkerUrl = initialSleighIconRef.current;
     const santaIcon = L.divIcon({
       className: 'custom-santa-marker',
       html: `
@@ -91,7 +95,7 @@ export default function LiveMap({ tableData }) {
       iconAnchor: [27, 27]
     });
 
-    const marker = L.marker(BEVERLEY_ROUTE_POINTS[0], { icon: santaIcon }).addTo(map);
+    const marker = L.marker(BEVERLEY_ROUTE_POINTS[0] || defaultPos, { icon: santaIcon }).addTo(map);
 
     marker.bindPopup(`
       <div style="text-align: center; padding: 6px;">
@@ -167,7 +171,7 @@ export default function LiveMap({ tableData }) {
   const isResting = gpsData.status?.toLowerCase().includes("resting") || !gpsData.road_name;
   const table = tableData?.table || {};
   const routes = tableData?.routes || [];
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const [todayStr] = useState(() => new Date().toISOString().slice(0, 10));
   const todayRoute = routes.find(r => r.date === todayStr);
   const [isWorkshopOpen, setIsWorkshopOpen] = useState(false);
 

@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import {
-  FileSpreadsheet, UploadCloud, CheckCircle2, AlertTriangle, ArrowRight,
+  FileSpreadsheet, UploadCloud, CheckCircle2, AlertTriangle,
   Download, Database, Sparkles, MapPin, Users, Heart, Shield, RefreshCw, FileText
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { parseTurboSantaWorkbook, generateSqlMigration } from '../services/migrationParser';
 import { getAdminAuthToken } from '../services/auth';
 
-export default function MigrationImporter({ tableSlug = 'beverley', onApplyMigration, currentTableData }) {
+export default function MigrationImporter({ tableSlug = 'beverley', onApplyMigration }) {
   const [dragActive, setDragActive] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [error, setError] = useState(null);
@@ -118,7 +118,7 @@ export default function MigrationImporter({ tableSlug = 'beverley', onApplyMigra
       // 3. Save to localStorage for persistence
       try {
         localStorage.setItem(`turbosanta_table_${tableSlug}`, JSON.stringify(parsedData));
-      } catch (e) {}
+      } catch {}
 
       // 4. Confetti and success message
       confetti({

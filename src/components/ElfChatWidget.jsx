@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, Send, X, Bot, User, MessageSquare } from 'lucide-react';
+import { Sparkles, Send, X } from 'lucide-react';
 import { sendElfChatMessage } from '../services/api';
 
 export default function ElfChatWidget({ tableData }) {
@@ -36,7 +36,7 @@ export default function ElfChatWidget({ tableData }) {
     try {
       const reply = await sendElfChatMessage(text, tableData);
       setMessages(prev => [...prev, { role: 'assistant', text: reply }]);
-    } catch (err) {
+    } catch {
       setMessages(prev => [...prev, {
         role: 'assistant',
         text: "🎅 Brrr! A chilly gust interrupted my connection to Lapland. Please ask again!"

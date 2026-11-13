@@ -47,11 +47,11 @@ export default function PublicDirectory({ session, onNavigateAdmin, onSelectTabl
     if (!slug) return;
     const host = window.location.hostname.toLowerCase();
     if (host.includes('roundtablesantasleigh.co.uk')) {
-      window.location.href = `https://${slug}.roundtablesantasleigh.co.uk/`;
+      window.location.assign(`https://${slug}.roundtablesantasleigh.co.uk/`);
     } else if (onSelectTable) {
       onSelectTable(slug);
     } else {
-      window.location.href = `/?table=${encodeURIComponent(slug)}`;
+      window.location.assign(`/?table=${encodeURIComponent(slug)}`);
     }
   };
 

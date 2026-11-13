@@ -737,10 +737,28 @@ const STATE = {
   collectionPermit: params.get('permit') || ''
 };
 
-function getAuthSecret() {
-  const pSecret = params.get('secret') || params.get('token');
-  if (pSecret) return pSecret;
+function getAuthSecret(tableSlug) {
   try {
+    const hashParams = new URLSearchParams(window.location.hash ? window.location.hash.slice(1) : '');
+    const hSecret = hashParams.get('token') || hashParams.get('secret');
+    const qSecret = params.get('secret') || params.get('token');
+    const urlSecret = hSecret || qSecret;
+    if (urlSecret) {
+      try { sessionStorage.setItem('turbosanta_auth_token', urlSecret); } catch (_) {}
+      if (window.history && window.history.replaceState) {
+        params.delete('secret');
+        params.delete('token');
+        const cleanQs = params.toString();
+        window.history.replaceState(null, '', window.location.pathname + (cleanQs ? '?' + cleanQs : ''));
+      }
+      return urlSecret;
+    }
+    const sToken = sessionStorage.getItem('turbosanta_auth_token');
+    if (sToken) return sToken;
+    if (tableSlug) {
+      const perTable = localStorage.getItem('turbosanta_admin_token_' + tableSlug);
+      if (perTable) return perTable;
+    }
     const raw = localStorage.getItem('turbosanta_admin_session');
     if (raw) {
       const sess = JSON.parse(raw);
@@ -795,7 +813,9 @@ async function init() {
 
     try {
       const secret = getAuthSecret(tableSlug);
-      const vRes = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/volunteers?table=${encodeURIComponent(tableSlug)}&secret=${encodeURIComponent(secret)}`);
+      const vRes = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/volunteers?table=${encodeURIComponent(tableSlug)}`, {
+        headers: secret ? { 'Authorization': `Bearer ${secret}` } : {}
+      });
       if (vRes.ok) {
         const vols = await vRes.json();
         if (Array.isArray(vols)) {

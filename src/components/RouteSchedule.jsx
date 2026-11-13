@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Star, Clock, CheckCircle2, MapPin, Building2, ExternalLink, Heart } from 'lucide-react';
+import { Search, Star, CheckCircle2, Building2, ExternalLink, Heart } from 'lucide-react';
 import { extractRouteSponsors } from '../utils/sponsors';
 import RouteStreetsPreview from './RouteStreetsPreview';
 
@@ -22,7 +22,7 @@ export default function RouteSchedule({ tableData }) {
   }, []);
 
   // Find if there is a route today
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const [todayStr] = useState(() => new Date().toISOString().slice(0, 10));
   const todayRoute = routes.find(r => r.date === todayStr);
 
   // Filter routes or streets based on user search

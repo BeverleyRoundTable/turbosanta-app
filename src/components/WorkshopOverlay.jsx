@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { X, Calendar, Wrench, Heart, Sparkles, Compass } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, Heart } from 'lucide-react';
 
 export default function WorkshopOverlay({ isOpen, onClose, routes = [], tableData }) {
+  const [mountDayStart] = useState(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  });
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-  const [hasValidDates, setHasValidDates] = useState(false);
-  const [nextRoute, setNextRoute] = useState(null);
   const [motProgress, setMotProgress] = useState(78);
   const [motMessage, setMotMessage] = useState('Polishing the bells...');
   const [reindeerProgress, setReindeerProgress] = useState(85);
@@ -12,22 +15,14 @@ export default function WorkshopOverlay({ isOpen, onClose, routes = [], tableDat
 
   const table = tableData?.table || {};
 
-  useEffect(() => {
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-
-    const futureRoutes = routes
-      .filter(r => r.date && !isNaN(new Date(r.date)) && new Date(r.date) >= now)
+  const futureRoutes = useMemo(() => {
+    return routes
+      .filter(r => r.date && !isNaN(new Date(r.date)) && new Date(r.date).getTime() >= mountDayStart)
       .sort((a, b) => new Date(a.date) - new Date(b.date));
+  }, [routes, mountDayStart]);
 
-    if (futureRoutes.length > 0) {
-      setNextRoute(futureRoutes[0]);
-      setHasValidDates(true);
-    } else {
-      setNextRoute(null);
-      setHasValidDates(false);
-    }
-  }, [routes]);
+  const nextRoute = futureRoutes[0] || null;
+  const hasValidDates = futureRoutes.length > 0;
 
   useEffect(() => {
     if (!nextRoute) return;
@@ -74,7 +69,7 @@ export default function WorkshopOverlay({ isOpen, onClose, routes = [], tableDat
   if (!isOpen) return null;
 
   const upcomingRoutes = routes
-    .filter(r => r.date && new Date(r.date) >= new Date())
+    .filter(r => r.date && !isNaN(new Date(r.date)) && new Date(r.date).getTime() >= mountDayStart)
     .sort((a, b) => {
       const dDiff = new Date(a.date) - new Date(b.date);
       if (dDiff !== 0) return dDiff;

@@ -1,8 +1,7 @@
-import React from 'react';
-import { Globe, Users, Heart } from 'lucide-react';
+import React, { useState } from 'react';
 
 export default function AboutSection({ tableData }) {
-  const currentYear = new Date().getFullYear();
+  const [currentYear] = useState(() => new Date().getFullYear());
   const table = tableData?.table || {};
   const tableName = table.name || "Beverley Round Table";
 

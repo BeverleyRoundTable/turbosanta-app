@@ -1,10 +1,13 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { Share2, MapPin, ExternalLink, Star, ChevronDown, Music, Volume2, VolumeX, Play, Pause, X, Heart, Building2 } from 'lucide-react';
+import { Share2, MapPin, ExternalLink, Star, ChevronDown, Music, Volume2, VolumeX, Play, Pause, X, Heart } from 'lucide-react';
 import { API_BASE, apiFetch } from '../services/api';
 import { extractRouteSponsors, isCharityPartner } from '../utils/sponsors';
 import { normalizeFaqs } from '../utils/faqs';
+import { isManagedGiftAidPlatform } from '../utils/adminHelpers';
 import RouteStreetsPreview from './RouteStreetsPreview';
 import SnowEffect from './SnowEffect';
+
+const EMPTY_TABLE = {};
 
 const DEFAULT_LOGO = '/icons/RTBI_Santa.png';
 const DEFAULT_BG = '/icons/site_background.png';
@@ -40,12 +43,7 @@ function parseRouteDate(v) {
   return isNaN(d) ? null : d;
 }
 
-export function isManagedGiftAidPlatform(url) {
-  if (!url || typeof url !== 'string') return false;
-  return /justgiving\.com|paypal\.com|paypal\.me|enthuse\.com|charitycheckout\.co\.uk|crowdfunder\.co\.uk|wonderful\.org|gofundme\.com/i.test(url);
-}
-
-export const PUBLIC_FEATURE_CATALOG = {
+const PUBLIC_FEATURE_CATALOG = {
   bingo: {
     id: 'bingo',
     anchorId: 'sleigh-bingo',
@@ -255,7 +253,7 @@ export const PUBLIC_FEATURE_CATALOG = {
 // Backwards compatibility alias for deprecated santa_studio
 PUBLIC_FEATURE_CATALOG.santa_studio = PUBLIC_FEATURE_CATALOG.santa_bot;
 
-export function getOperatorTableName(table = {}, slug = '') {
+function getOperatorTableName(table = {}, slug = '') {
   const activeSlug = (slug || table.slug || '').trim();
   const townFromSlug = activeSlug
     ? activeSlug
@@ -289,7 +287,7 @@ export function getOperatorTableName(table = {}, slug = '') {
   return 'Round Table';
 }
 
-export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }) {
+export default function PublicSleigh({ tableData, activeTableSlug }) {
   const [addressFrameHeight, setAddressFrameHeight] = useState(500);
   const [mapInteractive, setMapInteractive] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
@@ -317,7 +315,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
   const [grantStatusMsg, setGrantStatusMsg] = useState('');
   const currentYear = new Date().getFullYear();
 
-  const table = tableData?.table || {};
+  const table = tableData?.table || EMPTY_TABLE;
   const approvedGrants = Array.isArray(tableData?.approved_grants) ? tableData.approved_grants : [];
   const enableGrantNominations = (table.enable_grant_nominations !== undefined && table.enable_grant_nominations !== null) ? Boolean(table.enable_grant_nominations) : true;
   const primaryColor = table.primary_color || '#FBAF33';
@@ -377,6 +375,11 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
   const [isMuted, setIsMuted] = useState(false);
   const [isPlayerMinimized, setIsPlayerMinimized] = useState(false);
   const audioRef = useRef(null);
+  const volumeConfigRef = useRef({ isMuted, musicVolume });
+
+  useEffect(() => {
+    volumeConfigRef.current = { isMuted, musicVolume };
+  }, [isMuted, musicVolume]);
 
   useEffect(() => {
     if (!isMusicEnabled || !effectiveMusicUrl) {
@@ -384,7 +387,6 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
         audioRef.current.pause();
         audioRef.current.src = '';
       }
-      setIsPlaying(false);
       return;
     }
 
@@ -392,7 +394,8 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
     audio.preload = 'auto';
     audioRef.current = audio;
     audio.loop = musicLoop;
-    audio.volume = isMuted ? 0 : Math.min(Math.max(musicVolume, 0), 1);
+    const { isMuted: mutedNow, musicVolume: volNow } = volumeConfigRef.current;
+    audio.volume = mutedNow ? 0 : Math.min(Math.max(volNow, 0), 1);
 
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
@@ -575,7 +578,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
         if (trackerIframe && trackerIframe.contentWindow) {
           try {
             trackerIframe.contentWindow.postMessage(e.data, '*');
-          } catch (_) {}
+          } catch {}
         }
         return;
       }
@@ -627,7 +630,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
             fetch(beaconEndpoint, { method: 'POST', keepalive: true }).catch(() => {});
           }
         }
-      } catch (e) {}
+      } catch {}
     }
   }, [activeTableSlug]);
 
@@ -641,7 +644,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
     v.muted = true;
     try {
       v.load();
-    } catch (e) {}
+    } catch {}
     let onTouch = null;
     const playPromise = v.play();
     if (playPromise !== undefined) {
@@ -744,7 +747,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
             wakeLock = null;
           });
         }
-      } catch (err) {
+      } catch {
         setIsScreenAwake(false);
       }
     };
@@ -897,7 +900,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
       try {
         const parsed = typeof table.partners_json === 'string' ? JSON.parse(table.partners_json) : table.partners_json;
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
+      } catch {}
     }
     if (Array.isArray(table?.partners) && table.partners.length > 0) {
       return table.partners;
@@ -919,7 +922,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
     if (!raw && table?.supported_appeals_json) {
       try {
         raw = typeof table.supported_appeals_json === 'string' ? JSON.parse(table.supported_appeals_json) : table.supported_appeals_json;
-      } catch (e) {}
+      } catch {}
     }
     return Array.isArray(raw) ? raw.filter(a => a && a.name) : [];
   }, [tableData, table]);
@@ -2640,7 +2643,7 @@ export default function PublicSleigh({ tableData, activeTableSlug, onOpenLogin }
             </h2>
           {(() => {
             const socialUrl = table.instagram_url || table.facebook_url || table.tiktok_url || '';
-            const match = socialUrl.match(/(?:@|instagram\.com\/|tiktok\.com\/@?|facebook\.com\/)([\w\.-]+)/i);
+            const match = socialUrl.match(/(?:@|instagram\.com\/|tiktok\.com\/@?|facebook\.com\/)([\w.-]+)/i);
             const handle = match && match[1] && !['profile.php', 'pages', 'groups'].includes(match[1].toLowerCase()) ? ('@' + match[1].replace(/\/$/, '')) : (isBeverley ? '@beverleyroundtable' : null);
             return (
               <p style={{ color: 'var(--text-muted)', fontSize: '16px' }}>

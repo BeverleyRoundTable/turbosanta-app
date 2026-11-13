@@ -304,7 +304,8 @@
 
 <script>
 const COLOR_PARAM = new URLSearchParams(location.search).get('color') || '';
-const TABLE_PARAM = new URLSearchParams(location.search).get('table') || 'beverley';
+const __hostSub = location.hostname.toLowerCase().endsWith('roundtablesantasleigh.co.uk') && location.hostname.split('.').length > 3 ? location.hostname.split('.')[0].toLowerCase() : '';
+const TABLE_PARAM = (new URLSearchParams(location.search).get('table') || window.__TURBOSANTA_TABLE__ || window.__TURBOSANTA_DEFAULT_TABLE__ || window.__sleighTableSlug || (__hostSub && __hostSub !== 'www' && __hostSub !== 'sleigh' ? __hostSub : '') || 'beverley').toLowerCase().trim();
 
 function applyColorTheme(colorHex) {
   if (!colorHex) return;

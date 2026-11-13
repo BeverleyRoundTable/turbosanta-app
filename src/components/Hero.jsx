@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, MapPin, Share2, Check } from 'lucide-react';
 
-export default function Hero({ tableData }) {
-  const table = tableData?.table || {};
+export default function Hero() {
   const [copied, setCopied] = useState(false);
 
   const handleShare = () => {

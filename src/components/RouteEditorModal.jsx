@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Calendar, Clock, MapPin, Building2, Save, Trash2, UploadCloud, FileText, CheckCircle2, Navigation, ExternalLink, Sparkles, Plus, Heart } from 'lucide-react';
+import { X, Building2, Save, Trash2, UploadCloud, CheckCircle2, Navigation, ExternalLink, Sparkles, Plus, Heart } from 'lucide-react';
 import DropzoneUpload from './DropzoneUpload';
 import { uploadAssetToR2 } from '../services/api';
 import { extractRouteSponsors } from '../utils/sponsors';
 import { detectStreetsFromPoints, detectStreetsFromGpxUrl } from '../utils/streetDetector';
 
-export function slugifyRouteId(tableSlug, name) {
+function slugifyRouteId(tableSlug, name) {
   const cleanTable = String(tableSlug || 'beverley').toLowerCase().trim();
   const cleanName = String(name || '')
     .toLowerCase()
@@ -104,7 +104,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
           if (parsed.max_marshals !== undefined && !isNaN(Number(parsed.max_marshals))) max_marshals = Number(parsed.max_marshals);
           if (parsed.max_tech !== undefined && !isNaN(Number(parsed.max_tech))) max_tech = Number(parsed.max_tech);
           if (parsed.volunteer_closed !== undefined) volunteer_closed = Boolean(parsed.volunteer_closed);
-        } catch(e) {}
+        } catch {}
       }
     }
     return {
@@ -117,7 +117,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
   const [sponsors, setSponsors] = useState(getInitialSponsors);
 
   const initialStartTime = route?.start_time || '18:00';
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState(() => ({
     id: route?.id || `route_${Date.now()}`,
     name: route?.name || '',
     date: route?.date || new Date().toISOString().slice(0, 10),
@@ -145,7 +145,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
     max_marshals: initialMeta.max_marshals,
     max_tech: initialMeta.max_tech !== undefined ? initialMeta.max_tech : 1,
     volunteer_closed: initialMeta.volunteer_closed
-  });
+  }));
 
   const [gpxStats, setGpxStats] = useState(
     route?.gpx_url
@@ -246,7 +246,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
     try {
       bc = new BroadcastChannel('turbosanta_routes');
       bc.onmessage = handleGpxAttached;
-    } catch (err) {}
+    } catch {}
 
     return () => {
       window.removeEventListener('message', handleGpxAttached);

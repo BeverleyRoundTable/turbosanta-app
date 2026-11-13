@@ -55,7 +55,7 @@ class ErrorBoundary extends React.Component {
                   localStorage.removeItem('turbosanta_admin_session');
                   localStorage.removeItem('ts2_admin_session');
                   sessionStorage.clear();
-                } catch(e) {}
+                } catch {}
                 window.location.href = '/';
               }}
               style={{

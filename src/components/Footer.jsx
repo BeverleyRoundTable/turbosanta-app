@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 
-export default function Footer({ tableData, onOpenAdminModal }) {
-  const currentYear = new Date().getFullYear();
+export default function Footer({ tableData }) {
+  const [currentYear] = useState(() => new Date().getFullYear());
   const table = tableData?.table || {};
   const displayName = table.sleigh_display_name || "Beverley Round Table Santa Sleigh";
 

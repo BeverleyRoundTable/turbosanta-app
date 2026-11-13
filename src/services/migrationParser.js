@@ -16,7 +16,7 @@ export function formatExcelDate(val) {
   }
   const str = String(val).trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
-  const ukMatch = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+  const ukMatch = str.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);
   if (ukMatch) {
     const d = ukMatch[1].padStart(2, '0');
     const m = ukMatch[2].padStart(2, '0');

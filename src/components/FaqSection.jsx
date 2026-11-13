@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ShieldAlert } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { normalizeFaqs } from '../utils/faqs';
 
 export default function FaqSection({ faqs: customFaqs = null }) {
