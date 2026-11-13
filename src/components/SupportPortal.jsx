@@ -11,7 +11,9 @@ import {
   uploadSupportScreenshot,
   fetchPublicTables
 } from '../services/api';
-import { getCurrentSession, isNationalAdmin } from '../services/auth';
+import { getCurrentSession } from '../services/auth';
+
+const SUPPORT_TICKET_OWNER_EMAIL = 'beverley247@roundtable.org.uk';
 
 const RAG_CONFIG = {
   red: {
@@ -71,8 +73,7 @@ const STATUS_CONFIG = {
 export default function SupportPortal({ session: propSession, onBackToAdmin, onBackToHome }) {
   const session = propSession || getCurrentSession();
   const isSuperUser = Boolean(
-    session?.isNationalAdmin ||
-    (session?.email && isNationalAdmin(session.email))
+    session?.email && session.email.trim().toLowerCase() === SUPPORT_TICKET_OWNER_EMAIL
   );
 
   const [activeTab, setActiveTab] = useState(isSuperUser ? 'catalogue' : 'submit');
