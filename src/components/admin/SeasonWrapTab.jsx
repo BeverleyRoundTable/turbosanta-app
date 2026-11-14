@@ -418,7 +418,7 @@ export default function SeasonWrapTab({
           </button>
 
           <a
-            href={`https://${encodeURIComponent(tableSlug)}.roundtablesantasleigh.co.uk/season-wrap`}
+            href={`https://${encodeURIComponent(tableSlug)}.roundtablesantasleigh.co.uk/season-wrap?year=${encodeURIComponent(activeSeasonKey)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-secondary"
@@ -871,7 +871,7 @@ export default function SeasonWrapTab({
             </button>
 
             <a
-              href={`/partner_report.html?table=${encodeURIComponent(tableSlug)}`}
+              href={`/partner_report.html?table=${encodeURIComponent(tableSlug)}&year=${encodeURIComponent(activeSeasonKey)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-secondary"

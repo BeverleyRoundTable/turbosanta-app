@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Partner Impact Report | Beverley Round Table</title>
+  <title>Partner Impact Report | Round Table Santa Sleigh</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
   <!-- Fonts & Chart.js -->
@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="/embed-theme.js"></script>
   
   <style>
     /* --- EUROSTILE FONT INJECTION --- */
@@ -172,16 +173,54 @@
     .card .number.percentage {
       font-size: clamp(20px, 12cqi, 36px);
     }
+
+    .year-selector-bar {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: -22px auto 32px;
+      max-width: 720px;
+    }
+
+    .year-pill {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      color: #d1d5db;
+      padding: 7px 16px;
+      border-radius: 999px;
+      font-family: 'Open Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .year-pill:hover {
+      border-color: rgba(251, 175, 51, 0.6);
+      color: #FFFFFF;
+    }
+
+    .year-pill.active {
+      background: #FBAF33;
+      border-color: #FBAF33;
+      color: #1D1D1A;
+      box-shadow: 0 4px 16px rgba(251, 175, 51, 0.35);
+    }
     
   </style>
 </head>
 <body>
 
-  <!-- BRT Logo locked in as the default -->
-  <img id="headerLogo" class="header-logo" src="https://turbosanta-app.pages.dev/icons/BRTLogo.png" alt="BRT Logo">
+  <!-- Generic Round Table Santa logo until table logo loads -->
+  <img id="headerLogo" class="header-logo" src="/icons/RTBI_Santa.png" alt="Round Table Logo">
   
   <h1>Impact</h1>
   <div class="subtitle" id="sponsorName">Loading Report...</div>
+  <div class="year-selector-bar" id="yearSelectorBar" style="display:none;"></div>
 
   <!-- Cleaned-up Stats Grid -->
   <div class="grid" id="statsGrid" style="display:none;">
@@ -219,6 +258,25 @@
 </div>
   </div>
 
+  <!-- Campaign Impact Summary Row (populated when campaign / historical data exists) -->
+  <div class="grid" id="campaignImpactGrid" style="display:none;">
+    <div class="card">
+      <div class="number gold" id="valCampaignRaised">£0</div>
+      <div class="subtext" id="valCampaignYear">Season Total</div>
+      <div class="label">Total Raised</div>
+    </div>
+    <div class="card">
+      <div class="number" id="valCampaignRoutes">0</div>
+      <div class="subtext">Evening Sleigh Tours</div>
+      <div class="label">Routes Completed</div>
+    </div>
+    <div class="card">
+      <div class="number" id="valCampaignStreets">0</div>
+      <div class="subtext">Community Coverage</div>
+      <div class="label">Streets Visited</div>
+    </div>
+  </div>
+
   <!-- Daily Click Chart -->
   <div class="chart-container" id="chartCard" style="display:none;">
     <h2>Daily Engagement Timeline</h2>
@@ -230,117 +288,194 @@
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const _subMatch = window.location.hostname.match(/^([a-z0-9-]+)\.roundtablesantasleigh\.co\.uk$/i);
-    const _subSlug = (_subMatch && !['www', 'api', 'admin'].includes(_subMatch[1].toLowerCase())) ? _subMatch[1].toLowerCase() : '';
+    const _subSlug = (_subMatch && !['www', 'api', 'admin', 'demo', 'turbosanta'].includes(_subMatch[1].toLowerCase())) ? _subMatch[1].toLowerCase() : '';
     const tableSlug = (urlParams.get('table') || _subSlug || 'beverley').toLowerCase();
-    const API_URL = urlParams.get('api') || `https://api.roundtablesantasleigh.co.uk/${encodeURIComponent(tableSlug)}/api`;
+    const explicitApi = urlParams.get('api');
+    const WORKER_API_URL = `https://turbosanta-api.beverley247.workers.dev/api/partner-report?table=${encodeURIComponent(tableSlug)}`;
     const sponsor = urlParams.get('sponsor') || 'Global Partner';
+    let selectedYearParam = urlParams.get('year') || '';
     const prettyTable = tableSlug.charAt(0).toUpperCase() + tableSlug.slice(1) + ' Round Table';
+    let clickChartInstance = null;
 
     document.getElementById('sponsorName').innerText = `${sponsor} x ${prettyTable}`;
 
-    fetch(`${API_URL}${API_URL.includes('?') ? '&' : '?'}sponsor=${encodeURIComponent(sponsor)}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.settings && data.settings.sleigh_display_name) {
-          document.getElementById('sponsorName').innerText = `${sponsor} x ${data.settings.sleigh_display_name}`;
+    async function fetchPartnerReport(yearValue) {
+      const yrQuery = yearValue ? `&year=${encodeURIComponent(yearValue)}` : '';
+      const targetUrl = explicitApi
+        ? `${explicitApi}${explicitApi.includes('?') ? '&' : '?'}sponsor=${encodeURIComponent(sponsor)}${yrQuery}`
+        : `${WORKER_API_URL}&sponsor=${encodeURIComponent(sponsor)}${yrQuery}`;
+
+      try {
+        let res = await fetch(targetUrl);
+        const ct = (res.headers.get('content-type') || '').toLowerCase();
+        if (!res.ok || !ct.includes('json')) {
+          if (explicitApi) {
+            res = await fetch(`${WORKER_API_URL}&sponsor=${encodeURIComponent(sponsor)}${yrQuery}`);
+          } else {
+            throw new Error(`HTTP ${res.status}`);
+          }
         }
-        if (data.settings && data.settings.logo_overlay_url) {
-          document.getElementById('headerLogo').src = data.settings.logo_overlay_url;
+        return await res.json();
+      } catch (err) {
+        if (explicitApi) {
+          const fallbackRes = await fetch(`${WORKER_API_URL}&sponsor=${encodeURIComponent(sponsor)}${yrQuery}`);
+          return await fallbackRes.json();
         }
-        
-       // Clicks Population
-        document.getElementById('valClicks').innerText = (data.sponsorClicks || 0).toLocaleString();
-        const siteC = data.carrdClicks || 0;
-        const appC = data.trackerClicks || 0;
-        document.getElementById('valClicksBreakdown').innerText = `Site: ${siteC} | Tracker Map: ${appC}`;
-        
-        // Split Views Logic Applied Here
-        document.getElementById('valViews').innerText = (data.totalViews || 0).toLocaleString();
-        const siteV = data.siteViews || 0;
-        const appV = data.trackerViews || 0;
-        document.getElementById('valViewsBreakdown').innerText = `Site: ${siteV.toLocaleString()} | Map: ${appV.toLocaleString()}`;
-        
-        // Remaining Data Population
-        document.getElementById('valSocial').innerText = (data.socialReach || 0).toLocaleString();
-        document.getElementById('valRoute').innerText = data.popularRoute || 'TBC';
-        document.getElementById('valDevice').innerText = data.deviceSplit || '0%';
+        throw err;
+      }
+    }
 
-        // ----------------------------------------------------
-        // TRUE ISOLATED ENGAGEMENT RATE (CTR) LOGIC
-        // ----------------------------------------------------
-        const siteCTR = siteV > 0 ? ((siteC / siteV) * 100).toFixed(2) : "0.00";
-        const appCTR = appV > 0 ? ((appC / appV) * 100).toFixed(2) : "0.00";
+    function renderYearPills(availableYears, activeYear) {
+      const bar = document.getElementById('yearSelectorBar');
+      if (!Array.isArray(availableYears) || availableYears.length <= 1) {
+        bar.style.display = 'none';
+        bar.innerHTML = '';
+        return;
+      }
+      bar.innerHTML = '';
+      availableYears.forEach(yr => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'year-pill' + (String(yr) === String(activeYear) ? ' active' : '');
+        btn.innerText = `${yr} Season`;
+        btn.addEventListener('click', () => {
+          selectedYearParam = String(yr);
+          const nextUrl = new URL(window.location.href);
+          nextUrl.searchParams.set('year', selectedYearParam);
+          try { window.history.replaceState({}, '', nextUrl.toString()); } catch (e) {}
+          loadPartnerReport(selectedYearParam);
+        });
+        bar.appendChild(btn);
+      });
+      bar.style.display = 'flex';
+    }
 
-        const ctrCard = document.getElementById('valCTR');
-        const ctrSubtext = document.getElementById('valCTRBreakdown');
+    function loadPartnerReport(yearValue) {
+      fetchPartnerReport(yearValue)
+        .then(data => {
+          if (!data || data.error) {
+            throw new Error(data?.error || 'Failed to load partner report');
+          }
 
-        // 1. Sponsor is ONLY on the Main Site (Build Partners)
-        if (siteC > 0 && appC === 0) {
+          const activeYear = data.selectedYear || new Date().getFullYear();
+          if (data.settings && data.settings.sleigh_display_name) {
+            document.getElementById('sponsorName').innerText = `${sponsor} x ${data.settings.sleigh_display_name} (${activeYear})`;
+            document.title = `Partner Impact Report | ${data.settings.sleigh_display_name}`;
+          } else {
+            document.getElementById('sponsorName').innerText = `${sponsor} x ${prettyTable} (${activeYear})`;
+          }
+
+          if (data.settings && data.settings.logo_overlay_url) {
+            document.getElementById('headerLogo').src = data.settings.logo_overlay_url;
+          }
+
+          renderYearPills(data.availableYears || [], activeYear);
+
+          // Clicks Population
+          document.getElementById('valClicks').innerText = (data.sponsorClicks || 0).toLocaleString();
+          const siteC = data.carrdClicks || 0;
+          const appC = data.trackerClicks || 0;
+          document.getElementById('valClicksBreakdown').innerText = `Site: ${siteC} | Tracker Map: ${appC}`;
+
+          // Split Views Logic Applied Here
+          document.getElementById('valViews').innerText = (data.totalViews || 0).toLocaleString();
+          const siteV = data.siteViews || 0;
+          const appV = data.trackerViews || 0;
+          document.getElementById('valViewsBreakdown').innerText = `Site: ${siteV.toLocaleString()} | Map: ${appV.toLocaleString()}`;
+
+          // Remaining Data Population
+          document.getElementById('valSocial').innerText = (data.socialReach || 0).toLocaleString();
+          document.getElementById('valRoute').innerText = data.popularRoute || 'TBC';
+          document.getElementById('valDevice').innerText = data.deviceSplit || '0%';
+
+          // TRUE ISOLATED ENGAGEMENT RATE (CTR) LOGIC
+          const siteCTR = siteV > 0 ? ((siteC / siteV) * 100).toFixed(2) : "0.00";
+          const appCTR = appV > 0 ? ((appC / appV) * 100).toFixed(2) : "0.00";
+
+          const ctrCard = document.getElementById('valCTR');
+          const ctrSubtext = document.getElementById('valCTRBreakdown');
+
+          if (siteC > 0 && appC === 0) {
             ctrCard.innerText = `${siteCTR}%`;
             ctrSubtext.innerText = `Based purely on Site Views`;
-        } 
-        // 2. Sponsor is ONLY in the Tracker App (Route Sponsors)
-        else if (appC > 0 && siteC === 0) {
+          } else if (appC > 0 && siteC === 0) {
             ctrCard.innerText = `${appCTR}%`;
             ctrSubtext.innerText = `Based purely on App Views`;
-        } 
-        // 3. Sponsor is on BOTH (or neither yet)
-        else {
+          } else {
             const blendedCTR = data.totalViews > 0 ? ((data.sponsorClicks / data.totalViews) * 100).toFixed(2) : "0.00";
             ctrCard.innerText = `${blendedCTR}%`;
             ctrSubtext.innerText = `Site: ${siteCTR}% | App: ${appCTR}%`;
-        }
+          }
 
-        document.getElementById('statsGrid').style.display = 'grid';
+          document.getElementById('statsGrid').style.display = 'grid';
 
-        // Render Chart
-        if (data.chartLabels && data.chartLabels.length > 0) {
-          document.getElementById('chartCard').style.display = 'block';
-          
-          const ctx = document.getElementById('clickChart').getContext('2d');
-          
-          Chart.defaults.font.family = "'Open Sans', sans-serif";
-          Chart.defaults.color = 'rgba(255,255,255,0.5)';
-          
-          new Chart(ctx, {
-            type: 'bar',
-            data: {
-              labels: data.chartLabels,
-              datasets: [{
-                label: 'Link Clicks',
-                data: data.chartData,
-                backgroundColor: 'rgba(251,175,51,0.25)', 
-                borderColor: '#FBAF33',                  
-                borderWidth: 2,
-                borderRadius: 4
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { display: false } },
-              scales: {
-                x: {
-                  grid: { color: 'rgba(255,255,255,0.05)' },
-                  ticks: { font: { weight: '700' } }
-                },
-                y: {
-                  grid: { color: 'rgba(255,255,255,0.05)' },
-                  beginAtZero: true,
-                  ticks: { 
-                    stepSize: 1,
-                    font: { family: "'Open Sans', sans-serif", weight: '600' }
+          // Campaign Impact Summary Row
+          const summary = data.seasonSummary;
+          const impactGrid = document.getElementById('campaignImpactGrid');
+          if (summary && (Number(summary.raised || 0) > 0 || Number(summary.routes || 0) > 0 || Number(summary.streets || 0) > 0)) {
+            document.getElementById('valCampaignRaised').innerText = '£' + Number(summary.raised || 0).toLocaleString('en-GB', { maximumFractionDigits: 2 });
+            document.getElementById('valCampaignYear').innerText = `${summary.year || activeYear} Season Total`;
+            document.getElementById('valCampaignRoutes').innerText = Number(summary.routes || 0).toLocaleString();
+            document.getElementById('valCampaignStreets').innerText = Number(summary.streets || 0).toLocaleString();
+            impactGrid.style.display = 'grid';
+          } else {
+            impactGrid.style.display = 'none';
+          }
+
+          // Render Chart
+          if (clickChartInstance) {
+            clickChartInstance.destroy();
+            clickChartInstance = null;
+          }
+          if (data.chartLabels && data.chartLabels.length > 0) {
+            document.getElementById('chartCard').style.display = 'block';
+            const ctx = document.getElementById('clickChart').getContext('2d');
+            Chart.defaults.font.family = "'Open Sans', sans-serif";
+            Chart.defaults.color = 'rgba(255,255,255,0.5)';
+            clickChartInstance = new Chart(ctx, {
+              type: 'bar',
+              data: {
+                labels: data.chartLabels,
+                datasets: [{
+                  label: 'Link Clicks',
+                  data: data.chartData,
+                  backgroundColor: 'rgba(251,175,51,0.25)',
+                  borderColor: '#FBAF33',
+                  borderWidth: 2,
+                  borderRadius: 4
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                  x: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { font: { weight: '700' } }
+                  },
+                  y: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    beginAtZero: true,
+                    ticks: {
+                      stepSize: 1,
+                      font: { family: "'Open Sans', sans-serif", weight: '600' }
+                    }
                   }
                 }
               }
-            }
-          });
-        }
-      })
-      .catch(err => {
-        document.getElementById('sponsorName').innerText = "Error loading report.";
-        console.error("Error fetching data:", err);
-      });
+            });
+          } else {
+            document.getElementById('chartCard').style.display = 'none';
+          }
+        })
+        .catch(err => {
+          document.getElementById('sponsorName').innerText = "Error loading report.";
+          console.error("Error fetching data:", err);
+        });
+    }
+
+    loadPartnerReport(selectedYearParam);
   </script>
 </body>
 </html>

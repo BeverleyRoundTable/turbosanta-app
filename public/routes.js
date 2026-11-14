@@ -1,15 +1,13 @@
 function startRoutes() {
 
-    /* ===== Detect API from URL ===== */
+    /* ===== Detect API or Table from URL ===== */
     const params = new URLSearchParams(window.location.search);
     const apiBase = params.get("api");
-
-    if (!apiBase) {
-        console.error("❌ No API provided. Use ?api=YOUR_SCRIPT_URL");
-        return;
-    }
-
-    const ROUTES_URL = apiBase + "?function=getRoutes";
+    const hostSubMatch = (window.location.hostname || "").match(/^([a-z0-9-]+)\.roundtablesantasleigh\.co\.uk$/i);
+    const hostSub = (hostSubMatch && !["www", "api", "admin", "demo", "turbosanta"].includes(hostSubMatch[1].toLowerCase())) ? hostSubMatch[1].toLowerCase() : "";
+    const tableSlug = (params.get("table") || window.__TURBOSANTA_TABLE__ || hostSub || "beverley").toLowerCase().trim();
+    const WORKER_ROUTES_URL = `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableSlug)}`;
+    const ROUTES_URL = apiBase ? (apiBase + (apiBase.includes("?") ? "&" : "?") + "function=getRoutes") : WORKER_ROUTES_URL;
 
     /* ===== Inject styling and Leaflet if missing ===== */
     if (!document.getElementById("santa-routes-style")) {
@@ -67,9 +65,32 @@ function startRoutes() {
 
     (async function () {
         try {
-            const res = await fetch(ROUTES_URL);
+            let res = await fetch(ROUTES_URL);
+            const ct = (res.headers.get("content-type") || "").toLowerCase();
+            if ((!res.ok || !ct.includes("json")) && ROUTES_URL !== WORKER_ROUTES_URL) {
+                res = await fetch(WORKER_ROUTES_URL);
+            }
             const data = await res.json();
-            const routes = (data.routes || []).slice();
+            const rawStreets = Array.isArray(data.streets) ? data.streets : [];
+            const streetsByRoute = {};
+            rawStreets.forEach(st => {
+                const key = String(st.route_id || st.routeName || st.name || "").trim();
+                const sName = String(st.street_name || st.street || "").trim();
+                if (!key || !sName) return;
+                if (!streetsByRoute[key]) streetsByRoute[key] = [];
+                if (!streetsByRoute[key].includes(sName)) streetsByRoute[key].push(sName);
+            });
+            const routes = (data.routes || []).map(r => {
+                const rName = r.routeName || r.name || "";
+                const joinedStreets = (streetsByRoute[String(r.id || "")] || streetsByRoute[rName] || []).join(", ");
+                return {
+                    ...r,
+                    routeName: rName,
+                    streets: r.streets || joinedStreets,
+                    gpxUrl: r.gpxUrl || r.gpx_url || "",
+                    sponsorUrl: r.sponsorurl || r.sponsorUrl || r.sponsor_logo_url || r.sponsor_logo || ""
+                };
+            });
 
             if (!routes.length) {
                 tonightEl.innerHTML =
@@ -173,14 +194,14 @@ function startRoutes() {
         
         // Define custom icons mimicking the exact logic from address.js
         const startIcon = L.icon({ 
-            iconUrl: "https://turbosanta-app.pages.dev/icons/start_icon.png", 
+            iconUrl: "/icons/start_icon.png", 
             iconSize: [48, 48], 
             iconAnchor: [24, 48],
             shadowUrl: null // Explicitly disable shadow
         });
         
         const endIcon = L.icon({ 
-            iconUrl: "https://turbosanta-app.pages.dev/icons/end_icon.png", 
+            iconUrl: "/icons/end_icon.png", 
             iconSize: [48, 48], 
             iconAnchor: [24, 48],
             shadowUrl: null // Explicitly disable shadow

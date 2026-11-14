@@ -139,6 +139,28 @@
   .snapshot-btn.saved { background: var(--green); color: #000; border-color: var(--green); cursor: default; }
   .snapshot-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+  .year-pills {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 12px;
+    flex-wrap: wrap;
+  }
+  .year-pill-btn {
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-dim);
+    padding: 6px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .year-pill-btn:hover { border-color: var(--gold); color: #fff; }
+  .year-pill-btn.active { background: var(--gold); color: #000; border-color: var(--gold); }
+
   /* ── REPORT CONTAINER ── */
   .report {
     max-width: 1100px;
@@ -643,14 +665,22 @@ function getApiUrl() {
   const api = p.get('api');
   if (api) return api;
   const table = getTableSlug();
-  const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-  const apiHost = isLocal ? 'https://turbosanta-api.beverley247.workers.dev' : '';
-  return `${apiHost}/api/payload?table=${encodeURIComponent(table)}`;
+  return `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(table)}`;
 }
 
-// Populated by render() — used by snapshotSeason()
+// Populated by render() — used by snapshotSeason() & season switching
 let _snapshotData = null;
 let _seasonHistory = [];
+let _loadedPayload = null;
+let _selectedYearOverride = new URLSearchParams(location.search).get('year') || '';
+
+window.switchSeasonYear = function(yr) {
+  _selectedYearOverride = String(yr);
+  const nextUrl = new URL(location.href);
+  nextUrl.searchParams.set('year', _selectedYearOverride);
+  try { history.replaceState({}, '', nextUrl.toString()); } catch (e) {}
+  if (_loadedPayload) render(_loadedPayload);
+};
 
 function fmtDate(dateStr) {
   if (!dateStr) return '';
@@ -673,6 +703,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const data = await res.json();
 
     // Fetch season history if present or from endpoint
+    _loadedPayload = data;
     if (Array.isArray(data.season_history) && data.season_history.length > 0) {
       _seasonHistory = data.season_history;
     } else {
@@ -743,7 +774,7 @@ function render(data) {
   const bgImage = s.bgImageUrl || '';
   const sleighName = s.sleigh_display_name || s.name || s.sleigh_name || 'Santa Sleigh';
   const currency = donations.currency || '£';
-  const year = s.wrap_year || s.sponsor_pack_year || new Date().getFullYear();
+  const liveYear = String(s.wrap_year || s.sponsor_pack_year || new Date().getFullYear());
 
   const today = new Date();
   today.setHours(23, 59, 59, 999); 
@@ -756,55 +787,81 @@ function render(data) {
     return new Date(r.date + 'T23:59:59') > today;
   });
 
-  const effectiveRoutes = completedRoutes.length > 0 ? completedRoutes : routes;
-  const routeCount = effectiveRoutes.length;
+  const sortedHistoryDesc = [..._seasonHistory].sort((x, y) => Number(y.year) - Number(x.year));
+  let activeArchive = _selectedYearOverride
+    ? _seasonHistory.find(item => String(item.year) === String(_selectedYearOverride)) || null
+    : null;
+  if (!activeArchive && !_selectedYearOverride && routes.length === 0 && Number(donations.total || 0) === 0 && sortedHistoryDesc.length > 0) {
+    activeArchive = sortedHistoryDesc[0];
+  }
+
+  const isViewingHistorical = Boolean(activeArchive) && (String(activeArchive.year) !== liveYear || (routes.length === 0 && Number(donations.total || 0) === 0));
+  const year = activeArchive ? String(activeArchive.year) : (_selectedYearOverride || liveYear);
+  const allWrapYears = [...new Set([liveYear, ..._seasonHistory.map(item => String(item.year)).filter(Boolean)])].sort((x, y) => Number(y) - Number(x));
+
+  const effectiveRoutes = isViewingHistorical ? [] : (completedRoutes.length > 0 ? completedRoutes : routes);
+  const routeCount = isViewingHistorical ? Number(activeArchive.routes || 0) : effectiveRoutes.length;
   const completedRouteNames = new Set(effectiveRoutes.map(r => r.routeName));
   const completedStreets = streets.filter(x => completedRouteNames.has(x.routeName || x.name));
-  const uniqueStreets = [...new Set(completedStreets.map(x => x.street || x.street_name))].length || streets.length;
-  const totalRaised = Number(donations.total || 0);
+  const uniqueStreets = isViewingHistorical
+    ? Number(activeArchive.streets || 0)
+    : ([...new Set(completedStreets.map(x => x.street || x.street_name))].length || streets.length);
+  const totalRaised = isViewingHistorical ? Number(activeArchive.raised || 0) : Number(donations.total || 0);
   const targetAmount = Number(donations.target || 0);
-  const totalExpenses = Number(data.expenses || s.expenses || data.table?.expenses || 0);
+  const totalExpenses = isViewingHistorical ? Number(activeArchive.expenses || 0) : Number(data.expenses || s.expenses || data.table?.expenses || 0);
   const isGiftAidEligible = Boolean(s.enable_gift_aid);
-  const totalGiftAid = isGiftAidEligible ? Number(data.giftAid?.giftAid || data.gift_aid?.giftAid || 0) : 0;
-  const giftAidDeclarations = isGiftAidEligible ? Number(data.giftAid?.declarations || data.gift_aid?.declarations || 0) : 0;
-  const netRaised = (totalRaised + totalGiftAid) - totalExpenses;
+  const totalGiftAid = !isViewingHistorical && isGiftAidEligible ? Number(data.giftAid?.giftAid || data.gift_aid?.giftAid || 0) : 0;
+  const giftAidDeclarations = !isViewingHistorical && isGiftAidEligible ? Number(data.giftAid?.declarations || data.gift_aid?.declarations || 0) : 0;
+  const netRaised = isViewingHistorical
+    ? Number(activeArchive.net_raised ?? (totalRaised - totalExpenses))
+    : ((totalRaised + totalGiftAid) - totalExpenses);
   const pct = targetAmount > 0 ? Math.min(100, Math.round((totalRaised / targetAmount) * 100)) : 0;
-  const volunteers = s.wrap_volunteers || data.volunteers_count || s.sponsor_pack_volunteers || (routeCount > 0 ? routeCount * 6 : 18);
-  const volunteerHours = Number(data.volunteer_hours || (volunteers * 4 * Math.max(1, routeCount)));
-  const subscribers = Number(data.subscribers_count || 0);
-  const grantsAwarded = Number(data.grants_awarded || 0);
-  const causesCount = Number(data.causes_count || 0);
-  const milesDriven = Number(data.miles_driven || Math.round((uniqueStreets * 0.45) + (routeCount * 4.5)));
-  const cashRaised = Number(data.cash_raised || 0);
-  const digitalRaised = Number(data.digital_raised || Math.max(0, totalRaised - cashRaised));
-  const donationCount = Number(data.donation_count || breakdown.reduce((sum, b) => sum + (Number(b.count) || 0), 0) || (totalRaised > 0 ? 1 : 0));
+  const volunteers = isViewingHistorical
+    ? Number(activeArchive.volunteers || 0)
+    : (s.wrap_volunteers || data.volunteers_count || s.sponsor_pack_volunteers || (routeCount > 0 ? routeCount * 6 : 18));
+  const volunteerHours = isViewingHistorical
+    ? (volunteers * 4 * Math.max(1, routeCount))
+    : Number(data.volunteer_hours || (volunteers * 4 * Math.max(1, routeCount)));
+  const subscribers = isViewingHistorical ? Number(activeArchive.subscribers || 0) : Number(data.subscribers_count || 0);
+  const grantsAwarded = isViewingHistorical ? Number(activeArchive.grants_awarded || 0) : Number(data.grants_awarded || 0);
+  const causesCount = isViewingHistorical ? Number(activeArchive.causes_count || 0) : Number(data.causes_count || 0);
+  const milesDriven = isViewingHistorical
+    ? Number(activeArchive.miles_driven || Math.round((uniqueStreets * 0.45) + (routeCount * 4.5)))
+    : Number(data.miles_driven || Math.round((uniqueStreets * 0.45) + (routeCount * 4.5)));
+  const cashRaised = isViewingHistorical ? 0 : Number(data.cash_raised || 0);
+  const digitalRaised = isViewingHistorical ? totalRaised : Number(data.digital_raised || Math.max(0, totalRaised - cashRaised));
+  const donationCount = isViewingHistorical
+    ? (totalRaised > 0 ? 1 : 0)
+    : Number(data.donation_count || breakdown.reduce((sum, b) => sum + (Number(b.count) || 0), 0) || (totalRaised > 0 ? 1 : 0));
   const avgDonation = donationCount > 0 ? (totalRaised / donationCount).toFixed(2) : (data.avg_donation || '0.00');
 
   // Digital Reach — Autopopulated from Payload or Settings fallback
-  const computedViews = a.totalViews || completedRoutes.reduce((sum, r) => sum + (parseInt(r.views) || 0), 0);
-  const totalViews = computedViews > 0 ? computedViews : (s.wrap_total_views || '');
+  const computedViews = isViewingHistorical
+    ? Number(activeArchive.total_views || activeArchive.totalViews || 0)
+    : (a.totalViews || data.total_views || s.total_views || completedRoutes.reduce((sum, r) => sum + (parseInt(r.views) || 0), 0));
+  const totalViews = computedViews > 0 ? computedViews : (isViewingHistorical ? '' : (s.wrap_total_views || ''));
   
-  const desktopMobile = (a.desktopPct > 0 || a.mobilePct > 0) 
+  const desktopMobile = (!isViewingHistorical && (a.desktopPct > 0 || a.mobilePct > 0))
     ? `${a.desktopPct}% / ${a.mobilePct}%` 
-    : (s.wrap_desktop_mobile || '');
+    : (isViewingHistorical ? '' : (s.wrap_desktop_mobile || ''));
     
-  const popularRoute = a.topRoute || s.wrap_most_popular_route || '';
-  const sponsorClicks = a.sponsorClicks || s.wrap_sponsor_clicks || 0;
+  const popularRoute = isViewingHistorical ? '' : (a.topRoute || s.wrap_most_popular_route || '');
+  const sponsorClicks = isViewingHistorical ? 0 : (a.sponsorClicks || s.wrap_sponsor_clicks || 0);
 
-  const socialFollowers = s.wrap_social_followers || s.wrap_facebook_followers || s.sponsor_pack_facebook_followers || '';
-  const socialReach = s.wrap_social_reach || s.wrap_facebook_reach || s.sponsor_pack_facebook_reach || '';
-  const webViews = s.wrap_website_views || s.sponsor_pack_website_views || '';
-  const peakViewers = s.wrap_peak_viewers || '';
-  const totalWaves = s.season_total_waves || '';
-  const messageStats = data.messageStats || { total: 0, byRoute: {} };
+  const socialFollowers = isViewingHistorical ? '' : (s.wrap_social_followers || s.wrap_facebook_followers || s.sponsor_pack_facebook_followers || '');
+  const socialReach = isViewingHistorical ? '' : (s.wrap_social_reach || s.wrap_facebook_reach || s.sponsor_pack_facebook_reach || '');
+  const webViews = isViewingHistorical ? '' : (s.wrap_website_views || s.sponsor_pack_website_views || '');
+  const peakViewers = isViewingHistorical ? '' : (s.wrap_peak_viewers || '');
+  const totalWaves = isViewingHistorical ? '' : (s.season_total_waves || '');
+  const messageStats = isViewingHistorical ? { total: Number(activeArchive.messages || 0), byRoute: {} } : (data.messageStats || { total: 0, byRoute: {} });
   const totalMessages = messageStats.total || 0;
-  const highlight = s.wrap_highlight || '';
+  const highlight = isViewingHistorical ? (activeArchive.notes || activeArchive.ai_summary || '') : (s.wrap_highlight || '');
 
-  const sortedRoutes = [...completedRoutes].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-  const sortedPlanned = [...plannedRoutes].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const sortedRoutes = isViewingHistorical ? [] : [...completedRoutes].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const sortedPlanned = isViewingHistorical ? [] : [...plannedRoutes].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 
   const sponsorUrls = [...new Set(completedRoutes.map(r => r.sponsorUrl).filter(Boolean))];
-  const dates = completedRoutes.map(r => r.date).filter(Boolean).sort();
+  const dates = isViewingHistorical ? [] : completedRoutes.map(r => r.date).filter(Boolean).sort();
   const firstDate = dates[0] ? fmtDate(dates[0]) : '';
   const lastDate = dates[dates.length - 1] ? fmtDate(dates[dates.length - 1]) : '';
   const dateRange = firstDate && lastDate ? `${firstDate} — ${lastDate}` : '';
@@ -813,11 +870,16 @@ function render(data) {
 
   let h = '';
 
+  const yearPillsHtml = allWrapYears.length > 1
+    ? `<div class="year-pills">${allWrapYears.map(y => `<button type="button" class="year-pill-btn ${String(y) === String(year) ? 'active' : ''}" onclick="switchSeasonYear('${y}')">${y}</button>`).join('')}</div>`
+    : '';
+
   // Print bar
   h += `
     <div class="print-bar">
       <div class="print-bar-title">${sleighName} · Season Report ${year}</div>
       <div style="display:flex;align-items:center;gap:0;">
+        ${yearPillsHtml}
         <button class="snapshot-btn" id="snapshotBtn" onclick="snapshotSeason()">📸 Snapshot Season</button>
         <button class="print-btn" onclick="window.print()">🖨️ Print / Save PDF</button>
       </div>
@@ -1162,7 +1224,7 @@ function render(data) {
       { id: 'chartRaised',    label: '💰 Raised (£)',        data: allSeasons.map(s => Number(s.raised) || 0),      color: gold },
       { id: 'chartRoutes',    label: '✅ Routes Completed', data: allSeasons.map(s => Number(s.routes) || 0),      color: red },
       { id: 'chartStreets',   label: '🏘️ Streets Visited',  data: allSeasons.map(s => Number(s.streets) || 0),     color: green },
-      { id: 'chartViewers',   label: '👁️ Total Views',     data: allSeasons.map(s => Number(s.totalViews) || 0), color: blue }, 
+      { id: 'chartViewers',   label: '👁️ Total Views',     data: allSeasons.map(s => Number(s.totalViews ?? s.total_views) || 0), color: blue }, 
       { id: 'chartMessages',  label: '💬 Messages to Santa', data: allSeasons.map(s => Number(s.messages) || 0), color: purple }, 
       { id: 'chartVolunteers',label: '🙋 Volunteers',       data: allSeasons.map(s => Number(s.volunteers) || 0),  color: teal }
     ];

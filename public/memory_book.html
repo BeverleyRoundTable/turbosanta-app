@@ -1008,13 +1008,30 @@
         const currentYear = new Date().getFullYear();
 
         // Populate Years dropdown (only genuine active seasons)
-        const yearsList = [currentYear];
+        const urlYearParam = parseInt(new URLSearchParams(window.location.search).get('year'));
+        const initialYear = (urlYearParam && urlYearParam >= 2020 && urlYearParam <= currentYear + 1) ? urlYearParam : currentYear;
+        const yearsList = [...new Set([currentYear, initialYear])].sort((a, b) => b - a);
+        window.__populateMemoryBookYears = function(historyArr) {
+          const histYears = Array.isArray(historyArr)
+            ? historyArr.map(h => parseInt(h.year)).filter(y => !isNaN(y) && y >= 2020 && y <= currentYear + 1)
+            : [];
+          const allYrs = [...new Set([currentYear, initialYear, ...histYears])].sort((a, b) => b - a);
+          yearSelect.innerHTML = '';
+          allYrs.forEach(y => {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y;
+            if (y === initialYear) opt.selected = true;
+            yearSelect.appendChild(opt);
+          });
+          timeMachineBox.style.display = allYrs.length > 1 ? 'inline-flex' : 'none';
+        };
         yearSelect.innerHTML = '';
         yearsList.forEach(y => {
           const opt = document.createElement('option');
           opt.value = y;
           opt.textContent = y;
-          if (y === currentYear) opt.selected = true;
+          if (y === initialYear) opt.selected = true;
           yearSelect.appendChild(opt);
         });
         if (yearsList.length > 1) {
@@ -1024,7 +1041,7 @@
         }
 
         // Load initial gallery
-        loadGallery(currentYear);
+        loadGallery(initialYear);
 
         // Social handle extraction & tagline display
         currentSocialHandle = '';
@@ -1120,6 +1137,9 @@
             .then(r => r.ok ? r.json() : null)
             .then(data => {
               if (data && data.table) {
+                if (Array.isArray(data.season_history) && window.__populateMemoryBookYears) {
+                  window.__populateMemoryBookYears(data.season_history);
+                }
                 try { applyTheme(data.table); } catch (e) {}
                 const name = data.table.sleigh_display_name || data.table.name || "Santa Sleigh";
                 subtext.textContent = `Magical moments from the ${name} routes.`;

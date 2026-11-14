@@ -74,37 +74,63 @@
 </div>
 
 <script>
-  // --- HELPER: GET DYNAMIC API URL ---
+  // --- HELPER: GET DYNAMIC API & TABLE SLUG ---
+  function getTableSlug() {
+    const params = new URLSearchParams(window.location.search);
+    const subMatch = window.location.hostname.match(/^([a-z0-9-]+)\.roundtablesantasleigh\.co\.uk$/i);
+    const subSlug = (subMatch && !['www', 'api', 'admin', 'demo', 'turbosanta'].includes(subMatch[1].toLowerCase())) ? subMatch[1].toLowerCase() : '';
+    return (params.get('table') || subSlug || 'beverley').toLowerCase().trim();
+  }
+
   function getApiUrl() {
     const params = new URLSearchParams(window.location.search);
-    const apiParam = params.get("api") || localStorage.getItem("SANTA_API");
-    
-    if (apiParam) {
-      localStorage.setItem("SANTA_API", apiParam); // Cache it
-      return apiParam;
-    }
-    
-    const url = new URL(window.location.href);
-    url.search = ''; 
-    return url.toString();
+    return params.get("api") || null;
   }
 
   async function loadTurboSantaCarousel() {
     try {
       const apiUrl = getApiUrl();
-      if (!apiUrl) {
-        console.error("No API URL found!");
-        return;
+      const tableSlug = getTableSlug();
+      const workerPayloadUrl = `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableSlug)}`;
+
+      let data = null;
+      if (apiUrl) {
+        const sep = apiUrl.includes('?') ? '&' : '?';
+        const res = await fetch(`${apiUrl}${sep}function=getCarouselData`);
+        const ct = (res.headers.get('content-type') || '').toLowerCase();
+        if (res.ok && ct.includes('json')) {
+          data = await res.json();
+        }
       }
 
-      const sep = apiUrl.includes('?') ? '&' : '?';
-      const fetchUrl = `${apiUrl}${sep}function=getCarouselData`;
-
-      // 1. Ask the Google Sheet for the images and settings
-      const res = await fetch(fetchUrl);
-      const data = await res.json();
+      if (!data) {
+        const res = await fetch(workerPayloadUrl);
+        const payload = await res.json();
+        const t = payload.table || payload.settings || {};
+        let imgs = [];
+        if (t.carousel_images) {
+          try {
+            const parsed = typeof t.carousel_images === 'string' ? JSON.parse(t.carousel_images) : t.carousel_images;
+            if (Array.isArray(parsed)) imgs = parsed;
+          } catch (e) {}
+        }
+        if (imgs.length === 0) {
+          imgs = [
+            t.hero_image_url,
+            t.background_url,
+            ...(payload.routes || []).map(r => r.mapImageUrl || r.sponsor_logo_url || r.sponsor_logo)
+          ].filter((u, idx, arr) => u && typeof u === 'string' && !u.startsWith('blob:') && arr.indexOf(u) === idx);
+        }
+        data = {
+          images: imgs,
+          logo_overlay_enabled: Boolean(t.logo_url || t.logo_overlay_url),
+          logo_overlay_url: t.logo_overlay_url || t.logo_url || '',
+          logo_overlay_position: t.logo_overlay_position || 'top-left',
+          logo_overlay_size: t.logo_overlay_size || 64
+        };
+      }
       
-      // Stop if there are no images in the folder
+      // Stop if there are no images
       if (!data.images || data.images.length === 0) return;
 
       const track = document.getElementById("santa-carousel-track");
