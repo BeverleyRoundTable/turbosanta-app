@@ -1846,6 +1846,23 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
                         );
                       })()}
 
+                      {/* User-friendly Gemini Patch Summary if resolved */}
+                      {ticket.resolution_summary && (
+                        <div style={{
+                          marginTop: '10px',
+                          backgroundColor: 'rgba(34, 197, 94, 0.08)',
+                          borderLeft: '3px solid #22C55E',
+                          padding: '8px 12px',
+                          fontSize: '12px',
+                          color: '#dcfce7',
+                          borderRadius: '0 6px 6px 0',
+                          whiteSpace: 'pre-line'
+                        }}>
+                          <strong style={{ color: '#86efac' }}>✅ Resolution Summary:</strong><br />
+                          {ticket.resolution_summary}
+                        </div>
+                      )}
+
                       {/* Display Admin Notes if present */}
                       {ticket.admin_notes && (
                         <div style={{
