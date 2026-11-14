@@ -15,7 +15,7 @@ import { logoutAdmin, isNationalAdmin, isSuperAdminEmail, getAdminAuthToken } fr
 import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, saveRoute, deleteRoute, connectTableGmail, disconnectTableGmail, testTableGmailAlert, clearSubscribers, triggerAutomatedCrewBriefings, uploadAssetToR2, fetchGiftAidSummary, updateGiftAidStatus, exportGiftAidCsv, deleteVolunteer, fetchSupportTickets } from '../services/api';
 import { extractRouteSponsors } from '../utils/sponsors';
 import { DEFAULT_FAQ_PRESETS, FLATBED_FAQ_PRESETS, normalizeFaqs } from '../utils/faqs';
-import { PUBLIC_SLOT_OPTIONS, partitionRoutesByCompletion } from '../utils/adminHelpers';
+import { PUBLIC_SLOT_OPTIONS, partitionRoutesByCompletion, normalizeTableNumber } from '../utils/adminHelpers';
 import DropzoneUpload from './DropzoneUpload';
 
 const RouteEditorModal = lazy(() => import('./RouteEditorModal'));
@@ -1326,7 +1326,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     google_site_verification: tableData?.table?.google_site_verification || '',
     sleigh_display_name: initialSleighDisplayName,
     admin_email: tableData?.table?.admin_email || session?.email || '',
-    table_number: tableData?.table?.table_number || session?.tableNumber || '',
+    table_number: (tableData?.table?.table_number !== undefined && tableData?.table?.table_number !== null) ? String(tableData.table.table_number) : (session?.tableNumber || ''),
     fundraising_goal: tableData?.table?.fundraising_goal || 8000,
     donations_start_date: tableData?.table?.donations_start_date || '',
     donate_url: tableData?.table?.donate_url || (currentTableSlug === 'beverley' ? 'https://www.zeffy.com/en-GB/donation-form/beverley-round-table-for-our-community' : ''),
@@ -1501,7 +1501,9 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         google_site_verification: tableData.table.google_site_verification !== undefined ? (tableData.table.google_site_verification || '') : (prev.google_site_verification || ''),
         sleigh_display_name: standardSleighDisplayName,
         admin_email: tableData.table.admin_email || prev.admin_email || session?.email || '',
-        table_number: tableData.table.table_number || prev.table_number || session?.tableNumber || '',
+        table_number: (tableData.table.table_number !== undefined && tableData.table.table_number !== null)
+          ? String(tableData.table.table_number)
+          : (prev.table_number !== undefined ? prev.table_number : (session?.tableNumber || '')),
         fundraising_goal: tableData.table.fundraising_goal !== undefined && tableData.table.fundraising_goal !== null ? tableData.table.fundraising_goal : prev.fundraising_goal,
         donations_start_date: tableData.table.donations_start_date !== undefined ? (tableData.table.donations_start_date || '') : (prev.donations_start_date || ''),
         donate_url: (tableData.table.donate_url !== undefined && tableData.table.donate_url !== null)
@@ -8471,39 +8473,83 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 );
               })()}
 
-              {/* Registered Table Admin Card */}
-              <div style={{ minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
-                  <label style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span>Registered Table Admin</span>
-                    <span style={{ fontSize: '11px', background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: '4px', padding: '1px 6px', fontWeight: 600 }}>
-                      ✓ Google Workspace Verified
-                    </span>
-                  </label>
+              {/* Registered Table Admin & Manual Table Number Row */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: '16px', maxWidth: '100%' }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>Registered Table Admin</span>
+                      <span style={{ fontSize: '11px', background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: '4px', padding: '1px 6px', fontWeight: 600 }}>
+                        ✓ Google Workspace Verified
+                      </span>
+                    </label>
+                  </div>
+                  <input
+                    type="text"
+                    value={tableData?.table?.admin_email || session?.email || `${currentTableSlug}@roundtable.org.uk`}
+                    readOnly
+                    disabled
+                    style={{
+                      width: '100%',
+                      maxWidth: '100%',
+                      boxSizing: 'border-box',
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      borderRadius: '8px',
+                      padding: '10px 14px',
+                      color: 'rgba(255, 255, 255, 0.85)',
+                      fontSize: '15px',
+                      fontWeight: 600,
+                      cursor: 'not-allowed',
+                      userSelect: 'all'
+                    }}
+                  />
+                  <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                    Bound to your official Google account in Cloudflare D1{(normalizeTableNumber(formData.table_number) || tableData?.table?.table_number) ? ` (Table #${normalizeTableNumber(formData.table_number) || tableData?.table?.table_number})` : ''}.
+                  </p>
                 </div>
-                <input
-                  type="text"
-                  value={tableData?.table?.admin_email || session?.email || `${currentTableSlug}@roundtable.org.uk`}
-                  readOnly
-                  disabled
-                  style={{
-                    width: '100%',
-                    maxWidth: '100%',
-                    boxSizing: 'border-box',
-                    background: 'rgba(255, 255, 255, 0.04)',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
-                    borderRadius: '8px',
-                    padding: '10px 14px',
-                    color: 'rgba(255, 255, 255, 0.85)',
-                    fontSize: '15px',
-                    fontWeight: 600,
-                    cursor: 'not-allowed',
-                    userSelect: 'all'
-                  }}
-                />
-                <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                  Bound to your official Google account in Cloudflare D1{tableData?.table?.table_number ? ` (Table #${tableData.table.table_number})` : ''}.
-                </p>
+
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
+                    <label htmlFor="admin-table-number" style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                      Round Table Number (Optional)
+                    </label>
+                    {normalizeTableNumber(formData.table_number) && (
+                      <span style={{ fontSize: '11px', background: 'rgba(251, 175, 51, 0.14)', color: '#FBAF33', border: '1px solid rgba(251, 175, 51, 0.35)', borderRadius: '4px', padding: '1px 6px', fontWeight: 700 }}>
+                        RT #{normalizeTableNumber(formData.table_number)}
+                      </span>
+                    )}
+                  </div>
+                  <input
+                    id="admin-table-number"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={12}
+                    value={formData.table_number || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, table_number: e.target.value }))}
+                    onBlur={(e) => {
+                      const cleaned = normalizeTableNumber(e.target.value);
+                      if (cleaned !== (formData.table_number || '')) {
+                        setFormData(prev => ({ ...prev, table_number: cleaned }));
+                      }
+                    }}
+                    placeholder="e.g. 247"
+                    style={{
+                      width: '100%',
+                      maxWidth: '100%',
+                      boxSizing: 'border-box',
+                      background: '#0d0d0b',
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      padding: '10px 14px',
+                      color: '#fff',
+                      fontSize: '15px'
+                    }}
+                  />
+                  <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                    Auto-filled when your email contains digits (like <code>beverley247@</code>). Add it manually if yours does not to show your <code>RT #</code> badge across the site &amp; directory.
+                  </p>
+                </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '16px', maxWidth: '100%' }}>
@@ -12888,7 +12934,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                         seo_keywords: (formData.seo_keywords !== undefined && formData.seo_keywords !== null && String(formData.seo_keywords).trim()) ? String(formData.seo_keywords).trim() : null,
                         google_site_verification: (formData.google_site_verification !== undefined && formData.google_site_verification !== null && String(formData.google_site_verification).trim()) ? String(formData.google_site_verification).trim() : null,
                         admin_email: session?.email || formData.admin_email || undefined,
-                        table_number: session?.tableNumber || formData.table_number || (session?.email ? session.email.split('@')[0].match(/\d+/)?.[0] : undefined),
+                        table_number: normalizeTableNumber(formData.table_number) || null,
                         fundraising_goal: parsedGoal,
                         donations_start_date: (formData.donations_start_date !== undefined && formData.donations_start_date !== null && String(formData.donations_start_date).trim()) ? String(formData.donations_start_date).trim() : null,
                         expenses: Number(formData.expenses !== undefined ? formData.expenses : (tableData?.table?.expenses || 0)),

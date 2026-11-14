@@ -73,3 +73,17 @@ export function partitionRoutesByCompletion(routes = [], now = new Date()) {
   completedRoutes.sort((a, b) => sortRoutesChronologically(a, b, true));
   return { plannedRoutes, completedRoutes };
 }
+
+/**
+ * Normalize a manual Round Table number so public renderers ("RT #" / "Round Table #")
+ * never double-prefix inputs like "#247", "RT 247", or "RT #247".
+ */
+export function normalizeTableNumber(raw) {
+  if (raw === undefined || raw === null) return '';
+  const cleaned = String(raw)
+    .trim()
+    .replace(/^(?:round\s+table\s+|rt\b\s*)?#?\s*/i, '')
+    .replace(/[<>"'`]/g, '')
+    .trim();
+  return cleaned ? cleaned.slice(0, 12) : '';
+}
