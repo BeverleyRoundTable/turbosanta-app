@@ -1785,6 +1785,67 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
                         )}
                       </div>
 
+                      {/* SuperAdmin-only Gemini AI Pre-Triage & Antigravity Prompt */}
+                      {isSuperAdmin && ticket.ai_analysis && (() => {
+                        let parsedAi = null;
+                        try {
+                          parsedAi = typeof ticket.ai_analysis === 'string'
+                            ? JSON.parse(ticket.ai_analysis)
+                            : ticket.ai_analysis;
+                        } catch {
+                          parsedAi = { real_intent: String(ticket.ai_analysis) };
+                        }
+                        if (!parsedAi) return null;
+                        return (
+                          <div style={{
+                            marginTop: '10px',
+                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                            border: '1px solid rgba(167, 139, 250, 0.3)',
+                            borderLeft: '3px solid #A78BFA',
+                            padding: '10px 12px',
+                            fontSize: '12px',
+                            color: '#EDE9FE',
+                            borderRadius: '0 6px 6px 0'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', gap: '8px', flexWrap: 'wrap' }}>
+                              <strong style={{ color: '#C4B5FD' }}>🤖 Gemini Pre-Triage ({parsedAi.confidence || 'ai'})</strong>
+                              {parsedAi.antigravity_prompt && (
+                                <button
+                                  type="button"
+                                  onClick={() => navigator.clipboard?.writeText(parsedAi.antigravity_prompt)}
+                                  style={{
+                                    backgroundColor: 'rgba(167, 139, 250, 0.2)',
+                                    color: '#DDD6FE',
+                                    border: '1px solid rgba(167, 139, 250, 0.4)',
+                                    borderRadius: '4px',
+                                    padding: '2px 8px',
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Copy Antigravity Prompt
+                                </button>
+                              )}
+                            </div>
+                            {parsedAi.real_intent && (
+                              <div style={{ marginBottom: '4px' }}><strong>Intent:</strong> {parsedAi.real_intent}</div>
+                            )}
+                            {parsedAi.visual_findings && (
+                              <div style={{ marginBottom: '4px', color: '#D1D5DB' }}><strong>Screenshot:</strong> {parsedAi.visual_findings}</div>
+                            )}
+                            {parsedAi.likely_root_cause && (
+                              <div style={{ marginBottom: '4px', color: '#D1D5DB' }}><strong>Root Cause:</strong> {parsedAi.likely_root_cause}</div>
+                            )}
+                            {Array.isArray(parsedAi.target_files) && parsedAi.target_files.length > 0 && (
+                              <div style={{ color: '#C4B5FD', fontFamily: 'monospace', fontSize: '11px' }}>
+                                Files: {parsedAi.target_files.join(', ')}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+
                       {/* Display Admin Notes if present */}
                       {ticket.admin_notes && (
                         <div style={{
