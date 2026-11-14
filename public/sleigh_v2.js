@@ -1488,7 +1488,7 @@
 
     const showFundraiserCard = hasDonate || totalRaised > 0;
     if (fundraiserCard) {
-      fundraiserCard.style.display = showFundraiserCard ? 'block' : 'none';
+      fundraiserCard.style.display = showFundraiserCard ? '' : 'none';
     }
     if (sideStack) {
       sideStack.classList.toggle('span-full', !showFundraiserCard);
@@ -1603,7 +1603,7 @@
     const heroVolunteerLink = document.getElementById('hero-volunteer-cta');
     const heroDonateBtn = document.getElementById('hero-donate-cta');
     if (crewCard) {
-      crewCard.style.display = isCrewActive ? 'block' : 'none';
+      crewCard.style.display = isCrewActive ? '' : 'none';
     }
     if (heroVolunteerLink) {
       heroVolunteerLink.style.display = isCrewActive ? 'inline-flex' : 'none';

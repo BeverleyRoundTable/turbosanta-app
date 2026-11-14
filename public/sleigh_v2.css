@@ -871,10 +871,11 @@ body {
 .impact-side-stack.span-full {
   grid-column: 1 / -1 !important;
   width: 100% !important;
+  min-width: 0 !important;
   max-width: 860px !important;
   margin: 0 auto !important;
   display: grid !important;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)) !important;
   gap: 16px !important;
 }
 
@@ -1604,11 +1605,12 @@ body {
 
 .routes-bento-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr));
   gap: 18px;
 }
 
 .route-card-v2 {
+  min-width: 0;
   background: var(--surface-glass);
   backdrop-filter: blur(16px);
   border: 1px solid var(--border-subtle);
@@ -2008,13 +2010,18 @@ body {
 /* --- IMPACT, FUNDRAISING & GIFT AID BENTO --- */
 .impact-bento {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
+}
+
+.impact-bento > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 @media (min-width: 960px) {
   .impact-bento {
-    grid-template-columns: 1.25fr 1fr;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
   }
 }
 
@@ -2141,6 +2148,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .glass-bento-card {
@@ -2150,6 +2159,8 @@ body {
   padding: 24px;
   box-shadow: var(--shadow-ambient);
   flex: 1;
+  min-width: 0;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -2264,7 +2275,7 @@ body {
 /* --- FAMILY & KERBSIDE MAGIC ARCADE (THEATER LAUNCHER) --- */
 .arcade-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
   gap: 20px;
   max-width: 920px;
   margin: 0 auto;
@@ -2343,7 +2354,7 @@ body {
 /* --- NATIVE POLAROID MEMORY WALL --- */
 .memory-wall-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
   gap: 18px;
 }
 
@@ -2566,7 +2577,7 @@ body {
 /* --- UNIFIED PARTNERS & SPONSORS PEDESTAL --- */
 .partners-pedestal-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
   gap: 16px;
 }
 
@@ -2659,13 +2670,13 @@ body {
 /* --- FAQ & ROUND TABLE FOOTER --- */
 .faq-two-col {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 
 @media (min-width: 860px) {
   .faq-two-col {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 }
 
