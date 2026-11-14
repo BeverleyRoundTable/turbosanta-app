@@ -523,9 +523,18 @@ function dot(x,y){ ctx.beginPath(); ctx.arc(x,y,6,0,Math.PI*2); ctx.fillStyle="#
 function mitten(x,y){ ctx.beginPath(); ctx.arc(x,y,14,0,Math.PI*2); ctx.fillStyle="#d31c1c"; ctx.fill(); }
 
 function downloadPNG(){
+  const dataUrl = canvas.toDataURL("image/png");
+  if (window.TurboSantaDownload) {
+    window.TurboSantaDownload.downloadFile({
+      dataUrl,
+      filename: "my-snowman.png",
+      mime: "image/png"
+    });
+    return;
+  }
   const a=document.createElement("a");
   a.download="my-snowman.png";
-  a.href=canvas.toDataURL("image/png");
+  a.href=dataUrl;
   a.click();
 }
 

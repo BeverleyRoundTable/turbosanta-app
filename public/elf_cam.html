@@ -405,6 +405,16 @@
     <div class="log-box" id="logBox">
       STATUS: CONNECTED TO LAPLAND SLEIGH TELEMETRY NETWORK
     </div>
+
+    <div id="polaroidResultWrap" style="display:none;margin-top:18px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;text-align:center;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--primary);margin-bottom:10px;">Elf Cam Polaroid Ready</div>
+      <img id="polaroidPreviewImg" alt="Elf Cam Polaroid Snapshot" style="max-width:420px;width:100%;height:auto;border-radius:10px;border:2px solid rgba(255,255,255,0.12);-webkit-touch-callout:default;" />
+      <p style="font-size:12px;color:var(--text-dim);margin:10px 0 12px;">📱 On mobile: press &amp; hold the photo above to <strong>Save to Photos</strong>.</p>
+      <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
+        <button type="button" class="btn btn-gold" onclick="shareElfPolaroid()">📲 Save / Share Polaroid</button>
+        <button type="button" class="btn btn-secondary" onclick="downloadElfPolaroid()">⬇ Download JPG</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -495,11 +505,35 @@
         const sCtx = snapshotCanvas.getContext("2d");
         sCtx.drawImage(video, 0, 0, snapshotCanvas.width, snapshotCanvas.height);
 
-        // Download polaroid
-        const link = document.createElement("a");
-        link.download = `lapland_elf_cam_${Date.now()}.jpg`;
-        link.href = snapshotCanvas.toDataURL("image/jpeg", 0.9);
-        link.click();
+        // Save & preview polaroid (works in desktop & Facebook/Instagram WebViews)
+        const polaroidUrl = snapshotCanvas.toDataURL("image/jpeg", 0.9);
+        const polaroidName = `lapland_elf_cam_${Date.now()}.jpg`;
+        window.__latestElfPolaroid = { dataUrl: polaroidUrl, filename: polaroidName };
+        const pWrap = document.getElementById("polaroidResultWrap");
+        const pImg = document.getElementById("polaroidPreviewImg");
+        if (pImg && pWrap) {
+          pImg.onload = () => { if (window.TurboSantaEmbed && window.TurboSantaEmbed.notifyHeight) window.TurboSantaEmbed.notifyHeight(); };
+          pImg.src = polaroidUrl;
+          pWrap.style.display = "block";
+        }
+        if (window.TurboSantaDownload && !window.TurboSantaDownload.isInAppBrowser()) {
+          window.TurboSantaDownload.downloadFile({ dataUrl: polaroidUrl, filename: polaroidName, mime: "image/jpeg" });
+        } else if (!window.TurboSantaDownload) {
+          const link = document.createElement("a");
+          link.download = polaroidName;
+          link.href = polaroidUrl;
+          link.click();
+        }
+        window.shareElfPolaroid = function() {
+          if (!window.__latestElfPolaroid || !window.TurboSantaDownload) return;
+          window.TurboSantaDownload.shareFile({ dataUrl: window.__latestElfPolaroid.dataUrl, filename: window.__latestElfPolaroid.filename, mime: "image/jpeg", title: "Lapland Elf Cam Polaroid" });
+        };
+        window.downloadElfPolaroid = function() {
+          if (!window.__latestElfPolaroid) return;
+          if (window.TurboSantaDownload) {
+            window.TurboSantaDownload.downloadFile({ dataUrl: window.__latestElfPolaroid.dataUrl, filename: window.__latestElfPolaroid.filename, mime: "image/jpeg" });
+          }
+        };
 
         // Stop camera
         if (cameraStream) {

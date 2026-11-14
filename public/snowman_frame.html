@@ -258,11 +258,16 @@
 
   <div class="actions">
     <button id="generateBtn" disabled>Create Image</button>
+    <button id="shareBtn" type="button" style="display:none">📲 Save / Share</button>
     <button id="downloadBtn" style="display:none">⬇ Download image</button>
     <button type="button" onclick="window.location.href='snowman.html' + window.location.search" style="background:transparent;border:1px solid var(--border);color:var(--text-dim);">← Back to Snowman Builder</button>
   </div>
 
   <canvas id="canvas" width="1000" height="1000"></canvas>
+  <div id="snowmanPreviewWrap" style="display:none;margin-top:18px;text-align:center;">
+    <img id="snowmanPreviewImg" alt="Your Framed Snowman" style="max-width:100%;height:auto;border-radius:16px;border:1px solid var(--border);-webkit-touch-callout:default;" />
+    <p style="font-size:12px;color:var(--text-dim);margin-top:8px;">📱 On mobile: press &amp; hold the image above to <strong>Save to Photos</strong>.</p>
+  </div>
 </div>
 
 <script>
@@ -333,6 +338,7 @@ frameImg.src = FRAME_SRC;
 const photoInput = document.getElementById("photoInput");
 const generateBtn = document.getElementById("generateBtn");
 const downloadBtn = document.getElementById("downloadBtn");
+const shareBtn = document.getElementById("shareBtn");
   
 photoInput.addEventListener("change", () => {
   generateBtn.disabled = !photoInput.files.length;
@@ -369,6 +375,7 @@ function generate(){
         clearInterval(wait);
         draw(photo);
         downloadBtn.style.display = "inline-flex";
+        if (shareBtn) shareBtn.style.display = "inline-flex";
         generateBtn.disabled = false;
         generateBtn.textContent = "Replace photo";
 
@@ -533,11 +540,47 @@ canvas.addEventListener("wheel", e => {
   if (currentPhoto) draw(currentPhoto);
 }, { passive:false });
 
+function exportSnowmanPreview() {
+  const dataUrl = canvas.toDataURL("image/png");
+  const previewWrap = document.getElementById("snowmanPreviewWrap");
+  const previewImg = document.getElementById("snowmanPreviewImg");
+  if (previewImg && previewWrap) {
+    previewImg.onload = () => sendHeight(40);
+    previewImg.src = dataUrl;
+    previewWrap.style.display = "block";
+    sendHeight(40);
+  }
+  return dataUrl;
+}
+
+if (shareBtn) {
+  shareBtn.onclick = () => {
+    const dataUrl = exportSnowmanPreview();
+    if (window.TurboSantaDownload) {
+      window.TurboSantaDownload.shareFile({
+        dataUrl,
+        filename: "my_snowman.png",
+        mime: "image/png",
+        title: "My TurboSanta Snowman"
+      });
+    }
+  };
+}
+
 downloadBtn.onclick = () => {
-  const a = document.createElement("a");
-  a.download = "my_snowman.png";
-  a.href = canvas.toDataURL("image/png");
-  a.click();
+  const dataUrl = exportSnowmanPreview();
+  if (window.TurboSantaDownload) {
+    window.TurboSantaDownload.downloadFile({
+      dataUrl,
+      filename: "my_snowman.png",
+      mime: "image/png"
+    });
+  } else {
+    const a = document.createElement("a");
+    a.download = "my_snowman.png";
+    a.href = dataUrl;
+    a.click();
+  }
 
   // 🧹 Clean up so refresh starts fresh
   localStorage.removeItem("snowmanPNG");

@@ -542,26 +542,59 @@ async function generate() {
     });
 
     const maxW = Math.min(window.innerWidth * 0.85, 600);
+    const certDataUrl = canvas.toDataURL('image/png');
     const preview = document.getElementById('previewArea');
     preview.innerHTML = `
       <div class="preview-label">Your Certificate</div>
-      <img src="${canvas.toDataURL('image/png')}" style="width:${maxW}px;">
-      <div class="btn-row" style="margin-top:20px;">
-        <button class="btn btn-gold" onclick="downloadCert(this)" data-url="${canvas.toDataURL('image/png')}">⬇ Download</button>
+      <img src="${certDataUrl}" style="width:${maxW}px;max-width:100%;height:auto;-webkit-touch-callout:default;">
+      <p style="font-size:12px;color:var(--text-dim);margin-top:10px;">📱 On mobile: press &amp; hold the certificate above to <strong>Save to Photos</strong>.</p>
+      <div class="btn-row" style="margin-top:16px;">
+        <button class="btn btn-gold" onclick="shareCert(this)" data-url="${certDataUrl}">📲 Save / Share Image</button>
+        <button class="btn btn-ghost" onclick="downloadCert(this)" data-url="${certDataUrl}">⬇ Download PNG</button>
         <button class="btn btn-ghost" onclick="generate()">Regenerate</button>
       </div>
     `;
 
     preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (window.TurboSantaEmbed && window.TurboSantaEmbed.notifyHeight) {
+      setTimeout(window.TurboSantaEmbed.notifyHeight, 100);
+    }
   } catch(e) {
     alert('Error: ' + e.message);
   }
 }
 
+function getReindeerCertFilename() {
+  const rName = (selectedReindeer && selectedReindeer.name ? selectedReindeer.name : 'rudolph').toLowerCase().replace(/[^a-z0-9_-]+/g, '_');
+  return `reindeer_adoption_${rName}.png`;
+}
+
+function shareCert(btn) {
+  const url = btn && btn.dataset ? btn.dataset.url : '';
+  if (!url) return;
+  if (window.TurboSantaDownload) {
+    window.TurboSantaDownload.shareFile({
+      dataUrl: url,
+      filename: getReindeerCertFilename(),
+      mime: 'image/png',
+      title: 'Official Round Table Reindeer Adoption Certificate'
+    });
+  } else {
+    downloadCert(btn);
+  }
+}
+
 function downloadCert(btn) {
+  const url = btn && btn.dataset ? btn.dataset.url : '';
+  if (!url) return;
+  const fname = getReindeerCertFilename();
+  if (window.TurboSantaDownload) {
+    window.TurboSantaDownload.downloadFile({ dataUrl: url, filename: fname, mime: 'image/png' });
+    return;
+  }
   const link = document.createElement('a');
-  link.download = `reindeer_adoption_${selectedReindeer.name.toLowerCase()}.png`;
-  link.href = btn.dataset.url;
+  link.download = fname;
+  link.href = url;
   link.click();
 }
 
@@ -570,7 +603,7 @@ function downloadCert(btn) {
   let lastH = 0;
   const sendHeight = () => {
     const appEl = document.querySelector('.app') || document.body;
-    const h = Math.min(Math.ceil(appEl.getBoundingClientRect().height + 40), 960);
+    const h = Math.min(Math.ceil(appEl.getBoundingClientRect().height + 40), 1350);
     if (h > 100 && Math.abs(h - lastH) >= 16) {
       lastH = h;
       window.parent.postMessage({ type: 'turbosanta-resize', height: h }, '*');

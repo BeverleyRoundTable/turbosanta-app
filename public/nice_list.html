@@ -156,32 +156,64 @@
       letter-spacing: 1px;
     }
 
-    a#download {
+    #certPreviewWrap {
+      display: none;
+      margin: 20px auto 0;
+      max-width: 560px;
+    }
+
+    #certPreviewImg {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 12px;
+      border: 2px solid rgba(var(--primary-rgb), 0.35);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+      -webkit-touch-callout: default;
+      user-select: auto;
+    }
+
+    .save-hint {
+      margin: 10px 0 0;
+      font-size: 12px;
+      color: var(--text-dim);
+      line-height: 1.4;
+    }
+
+    .cert-actions {
       display: none;
       margin: 16px auto 0;
-      padding: 14px 28px;
-      border-radius: 8px;
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      color: #fff;
-      text-decoration: none;
-      font-weight: 700;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .cert-actions button {
+      margin: 0;
+      padding: 13px 20px;
       font-size: 14px;
-      transition: all 0.2s ease;
-      width: fit-content;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
     }
-    
-    a#download:hover {
-      background: var(--surface-3);
+
+    .btn-dl-secondary {
+      background: var(--surface-2) !important;
+      color: #fff !important;
+      border: 1px solid var(--border) !important;
     }
-    
-    a#download:active {
-      transform: scale(0.97);
+
+    .btn-dl-secondary:hover {
+      background: var(--surface-3) !important;
+      filter: none !important;
     }
     
     @media (max-width: 600px) {
-      .santa-checker { padding: 32px 20px; }
+      .santa-checker { padding: 28px 16px; }
       h2 { font-size: 36px; }
+      .cert-actions { flex-direction: column; max-width: 360px; }
+      .cert-actions button { width: 100%; }
     }
   </style>
 
@@ -201,9 +233,16 @@
 
   <canvas id="canvas" width="1600" height="1131" style="display:none;"></canvas>
 
-  <a id="download" download="Santa_Nice_List_Certificate.pdf">
-    ⬇ Download PDF Certificate
-  </a>
+  <div id="certPreviewWrap">
+    <img id="certPreviewImg" alt="Santa's Official Nice List Certificate" />
+    <p class="save-hint">📱 On mobile: you can press &amp; hold the certificate above to <strong>Save to Photos</strong>.</p>
+  </div>
+
+  <div id="certActions" class="cert-actions">
+    <button type="button" onclick="shareNiceCert()">📲 Save / Share Image</button>
+    <button type="button" class="btn-dl-secondary" onclick="downloadNicePdf()">📄 Download PDF</button>
+    <button type="button" class="btn-dl-secondary" onclick="downloadNicePng()">⬇ Download PNG</button>
+  </div>
 </div>
 
 <script>
@@ -301,17 +340,27 @@ function applyTheme(settings) {
 }
 
 /* ---------- MAIN FLOW ---------- */
+let latestCert = { name: "", pngDataUrl: "", pdfDataUrl: "", pdfBlob: null };
+
+function getSafeCertFilename(ext) {
+  const cleanName = (latestCert.name || "Child")
+    .replace(/[^a-zA-Z0-9_-]+/g, "_")
+    .replace(/^_+|_+$/g, "") || "Child";
+  return `Santa_Nice_List_${cleanName}.${ext}`;
+}
+
 function startCheck(){
   const name = document.getElementById("childName").value.trim();
   if(!name) return alert("Please enter a name");
 
   const status = document.getElementById("status");
-  const download = document.getElementById("download");
+  const previewWrap = document.getElementById("certPreviewWrap");
+  const certActions = document.getElementById("certActions");
 
-  download.style.display = "none";
+  if (previewWrap) previewWrap.style.display = "none";
+  if (certActions) certActions.style.display = "none";
   status.innerText = "Checking Santa’s list… 🤔";
   
-  // FIXED: Adjusted to dynamically read scrollHeight so it accounts for the margin
   sendHeight();
 
   const phases = ["Naughty…", "Nice…", "Naughty…", "Nice…"];
@@ -353,8 +402,15 @@ async function ensureBgLoaded() {
 async function generatePDF(name){
   const canvas = document.getElementById("canvas");
   const ctx = canvas.getContext("2d");
-  const link = document.getElementById("download");
+  const previewWrap = document.getElementById("certPreviewWrap");
+  const previewImg = document.getElementById("certPreviewImg");
+  const certActions = document.getElementById("certActions");
 
+  try {
+    if (document.fonts && document.fonts.ready) {
+      await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1500))]);
+    }
+  } catch (_) {}
   await ensureBgLoaded();
 
   ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -368,27 +424,86 @@ async function generatePDF(name){
   ctx.textAlign = "center";
   ctx.fillText(name, canvas.width / 2, 620);
 
-  // Canvas → PDF
+  // Canvas → PNG + PDF
   const imgData = canvas.toDataURL("image/png");
+  let pdfDataUrl = "";
+  let pdfBlob = null;
 
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({
-    orientation: "landscape",
-    unit: "pt",
-    format: "a4"
-  });
+  try {
+    if (window.jspdf && window.jspdf.jsPDF) {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "pt",
+        format: "a4"
+      });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      pdf.addImage(imgData, "PNG", 0, 0, pageWidth, pageHeight);
+      pdfBlob = pdf.output("blob");
+      pdfDataUrl = pdf.output("datauristring");
+    }
+  } catch (pdfErr) {
+    console.warn("PDF generation fallback to PNG:", pdfErr);
+  }
 
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
+  latestCert = {
+    name,
+    pngDataUrl: imgData,
+    pdfDataUrl,
+    pdfBlob
+  };
 
-  pdf.addImage(imgData, "PNG", 0, 0, pageWidth, pageHeight);
+  if (previewImg && previewWrap) {
+    previewImg.onload = () => {
+      sendHeight();
+      if (window.TurboSantaEmbed && window.TurboSantaEmbed.notifyHeight) {
+        window.TurboSantaEmbed.notifyHeight();
+      }
+    };
+    previewImg.src = imgData;
+    previewWrap.style.display = "block";
+  }
 
-  const blob = pdf.output("blob");
-  if (link.href) URL.revokeObjectURL(link.href);
-  link.href = URL.createObjectURL(blob);
-  link.style.display = "inline-block";
+  if (certActions) {
+    certActions.style.display = "flex";
+  }
 
   sendHeight();
+  setTimeout(sendHeight, 150);
+}
+
+function shareNiceCert() {
+  if (!latestCert.pngDataUrl || !window.TurboSantaDownload) return;
+  window.TurboSantaDownload.shareFile({
+    dataUrl: latestCert.pngDataUrl,
+    filename: getSafeCertFilename("png"),
+    mime: "image/png",
+    title: `${latestCert.name}'s Official Santa Nice List Certificate`,
+    text: `${latestCert.name} made Santa's Official Nice List!`
+  });
+}
+
+function downloadNicePdf() {
+  if (!window.TurboSantaDownload) return;
+  if (!latestCert.pdfBlob && !latestCert.pdfDataUrl) {
+    return downloadNicePng();
+  }
+  window.TurboSantaDownload.downloadFile({
+    blob: latestCert.pdfBlob,
+    dataUrl: latestCert.pdfDataUrl,
+    filename: getSafeCertFilename("pdf"),
+    mime: "application/pdf"
+  });
+}
+
+function downloadNicePng() {
+  if (!latestCert.pngDataUrl || !window.TurboSantaDownload) return;
+  window.TurboSantaDownload.downloadFile({
+    dataUrl: latestCert.pngDataUrl,
+    filename: getSafeCertFilename("png"),
+    mime: "image/png"
+  });
 }
 
 /* ---------- AUTO-HEIGHT ---------- */
@@ -398,7 +513,7 @@ function sendHeight(){
   const card = document.querySelector('.santa-checker');
   if (!card) return;
   const rect = card.getBoundingClientRect();
-  const height = Math.min(Math.ceil(rect.height + 48), 900);
+  const height = Math.min(Math.ceil(rect.height + 56), 1350);
   if (Math.abs(height - lastSentNiceHeight) >= 16) {
     lastSentNiceHeight = height;
     window.parent.postMessage({ niceListHeight: height, type: 'turbosanta-resize', height: height }, "*");

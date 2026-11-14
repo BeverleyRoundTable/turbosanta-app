@@ -225,10 +225,13 @@
       Create Image
     </button>
 
-    <a class="btn btn-ghost" id="download" download="santas_been.png">⬇ Download image</a>
+    <button class="btn btn-primary" id="shareBtn" type="button" style="display:none;" onclick="shareFramedPhoto()">📲 Save / Share</button>
+    <a class="btn btn-ghost" id="download" download="santas_been.png" onclick="return handleFrameDownload(event)">⬇ Download image</a>
   </div>
 
   <canvas id="canvas" width="1000" height="1000"></canvas>
+  <img id="previewImg" alt="Santa's Been Framed Photo" style="display:none;max-width:100%;height:auto;border-radius:16px;margin:20px auto 0;border:1px solid var(--border);box-shadow:0 12px 30px rgba(0,0,0,0.45);-webkit-touch-callout:default;" />
+  <p id="savePhotoHint" style="display:none;font-size:12px;color:var(--text-dim);margin-top:10px;">📱 On mobile: press &amp; hold the photo above to <strong>Save to Photos</strong>.</p>
 </div>
 
 <script>
@@ -397,16 +400,32 @@ function draw(photo){
     drawTimestamp();
 
     // Export
-    downloadLink.href = canvas.toDataURL("image/png");
-
-    // ⭐ Auto filename with date
-    downloadLink.download =
+    const dataUrl = canvas.toDataURL("image/png");
+    const filename =
       "santas_been_" +
       new Date().toISOString().slice(0, 10) +
       ".png";
 
+    window.__santaFrameDataUrl = dataUrl;
+    window.__santaFrameFilename = filename;
+    downloadLink.href = dataUrl;
+    downloadLink.download = filename;
+
+    const previewImg = document.getElementById("previewImg");
+    const saveHint = document.getElementById("savePhotoHint");
+    const shareBtn = document.getElementById("shareBtn");
+    if (previewImg) {
+      previewImg.onload = () => sendHeight(40);
+      previewImg.src = dataUrl;
+      previewImg.style.display = "block";
+      canvas.style.display = "none";
+    }
+    if (saveHint) saveHint.style.display = "block";
+
     setTimeout(() => {
+      if (shareBtn) shareBtn.style.display = "inline-flex";
       downloadLink.style.display = "inline-flex";
+      sendHeight(40);
     }, 150);
 
     generateBtn.disabled = false;
@@ -428,6 +447,32 @@ function draw(photo){
 
     sendHeight(40); // 🔑 FORCE iframe resize after content change
   });
+}
+
+function handleFrameDownload(e) {
+  if (!window.__santaFrameDataUrl) return false;
+  if (window.TurboSantaDownload) {
+    if (e && e.preventDefault) e.preventDefault();
+    window.TurboSantaDownload.downloadFile({
+      dataUrl: window.__santaFrameDataUrl,
+      filename: window.__santaFrameFilename || "santas_been.png",
+      mime: "image/png"
+    });
+    return false;
+  }
+  return true;
+}
+
+function shareFramedPhoto() {
+  if (!window.__santaFrameDataUrl) return;
+  if (window.TurboSantaDownload) {
+    window.TurboSantaDownload.shareFile({
+      dataUrl: window.__santaFrameDataUrl,
+      filename: window.__santaFrameFilename || "santas_been.png",
+      mime: "image/png",
+      title: "Santa's Been Framed Photo"
+    });
+  }
 }
   
 /* ---------- iframe auto-height ---------- */

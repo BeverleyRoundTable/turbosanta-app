@@ -353,4 +353,260 @@
     primaryColor: primaryColor,
     accentColor: accentColor
   };
+
+  // 8. Unified In-App Browser (Facebook/Instagram) & Mobile Save/Share Helper
+  var API_DOWNLOAD_URL = "https://turbosanta-api.beverley247.workers.dev/api/download-file";
+
+  function getUa() {
+    return (typeof navigator !== "undefined" && navigator.userAgent) ? navigator.userAgent : "";
+  }
+
+  function isInAppBrowser() {
+    return /FBAN|FBAV|FB_IAB|FBIOS|FB4A|Instagram|Messenger|Line\/|MicroMessenger|TikTok|BytedanceWebview|Musical_ly/i.test(getUa());
+  }
+
+  function isIOS() {
+    var ua = getUa();
+    if (/iPad|iPhone|iPod/i.test(ua)) return true;
+    try {
+      return navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function isAndroid() {
+    return /Android/i.test(getUa());
+  }
+
+  function dataUrlToBlob(dataUrl) {
+    if (!dataUrl || typeof dataUrl !== "string") return null;
+    var parts = dataUrl.split(",");
+    if (parts.length < 2) return null;
+    var meta = parts[0];
+    var mimeMatch = /^data:([^;]+)/i.exec(meta);
+    var mime = mimeMatch ? mimeMatch[1] : "application/octet-stream";
+    var bstr = atob(parts[1]);
+    var n = bstr.length;
+    var u8 = new Uint8Array(n);
+    for (var i = 0; i < n; i++) u8[i] = bstr.charCodeAt(i);
+    return new Blob([u8], { type: mime });
+  }
+
+  function postHttpsDownload(opts) {
+    opts = opts || {};
+    var payload = opts.base64 || opts.dataUrl || "";
+    if (!payload) return false;
+    try {
+      var form = document.createElement("form");
+      form.method = "POST";
+      form.enctype = "multipart/form-data";
+      form.action = API_DOWNLOAD_URL;
+      form.target = opts.target || "_top";
+      form.style.display = "none";
+
+      var fields = {
+        filename: opts.filename || "turbosanta_download",
+        mime: opts.mime || "image/png",
+        disposition: opts.disposition || "attachment",
+        data: payload
+      };
+      Object.keys(fields).forEach(function (k) {
+        var inp = document.createElement("input");
+        inp.type = "hidden";
+        inp.name = k;
+        inp.value = fields[k];
+        form.appendChild(inp);
+      });
+      document.body.appendChild(form);
+      form.submit();
+      setTimeout(function () {
+        if (form.parentNode) form.parentNode.removeChild(form);
+      }, 2000);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function triggerBrowserAnchorDownload(href, filename, revokeAfter) {
+    var a = document.createElement("a");
+    a.href = href;
+    a.download = filename || "download";
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+      if (a.parentNode) a.parentNode.removeChild(a);
+      if (revokeAfter) {
+        try { URL.revokeObjectURL(href); } catch (_) {}
+      }
+    }, 1500);
+  }
+
+  function downloadFile(opts) {
+    opts = opts || {};
+    var filename = opts.filename || "turbosanta_download";
+    var mime = opts.mime || "image/png";
+    var useServerFallback = isInAppBrowser();
+
+    if (useServerFallback) {
+      var disp = (isIOS() && mime === "application/pdf") ? "inline" : "attachment";
+      if (opts.dataUrl || opts.base64) {
+        postHttpsDownload({
+          dataUrl: opts.dataUrl,
+          base64: opts.base64,
+          filename: filename,
+          mime: mime,
+          disposition: disp,
+          target: "_top"
+        });
+        return Promise.resolve({ ok: true, method: "https-form" });
+      }
+      if (opts.blob) {
+        return new Promise(function (resolve) {
+          var reader = new FileReader();
+          reader.onloadend = function () {
+            postHttpsDownload({
+              dataUrl: reader.result,
+              filename: filename,
+              mime: mime,
+              disposition: disp,
+              target: "_top"
+            });
+            resolve({ ok: true, method: "https-form" });
+          };
+          reader.readAsDataURL(opts.blob);
+        });
+      }
+    }
+
+    if (opts.blob) {
+      var objUrl = URL.createObjectURL(opts.blob);
+      triggerBrowserAnchorDownload(objUrl, filename, true);
+      return Promise.resolve({ ok: true, method: "blob" });
+    }
+    if (opts.dataUrl) {
+      try {
+        var b = dataUrlToBlob(opts.dataUrl);
+        if (b) {
+          var u = URL.createObjectURL(b);
+          triggerBrowserAnchorDownload(u, filename, true);
+          return Promise.resolve({ ok: true, method: "data-blob" });
+        }
+      } catch (_) {}
+      triggerBrowserAnchorDownload(opts.dataUrl, filename, false);
+      return Promise.resolve({ ok: true, method: "data-url" });
+    }
+    return Promise.resolve({ ok: false });
+  }
+
+  function shareFile(opts) {
+    opts = opts || {};
+    var filename = opts.filename || "turbosanta_certificate.png";
+    var mime = opts.mime || "image/png";
+    var blob = opts.blob || (opts.dataUrl ? dataUrlToBlob(opts.dataUrl) : null);
+
+    if (blob && typeof navigator !== "undefined" && typeof navigator.share === "function" && typeof File === "function") {
+      try {
+        var file = new File([blob], filename, { type: mime });
+        var sharePayload = {
+          files: [file],
+          title: opts.title || "TurboSanta Certificate"
+        };
+        if (opts.text) sharePayload.text = opts.text;
+        if (!navigator.canShare || navigator.canShare({ files: [file] })) {
+          return navigator.share(sharePayload)
+            .then(function () { return { ok: true, method: "share" }; })
+            .catch(function (err) {
+              if (err && err.name === "AbortError") {
+                return { ok: false, aborted: true };
+              }
+              return downloadFile(opts);
+            });
+        }
+      } catch (_) {}
+    }
+    return downloadFile(opts);
+  }
+
+  function getPreferredExternalUrl() {
+    try {
+      if (window.top && window.top.location && window.top.location.href) {
+        return window.top.location.href;
+      }
+    } catch (_) {}
+    return window.location.href;
+  }
+
+  function getChromeIntentUrl(targetUrl) {
+    var clean = String(targetUrl || "").replace(/^https?:\/\//i, "");
+    return "intent://" + clean + "#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=" + encodeURIComponent(targetUrl) + ";end";
+  }
+
+  function injectInAppNotice(container) {
+    if (!isInAppBrowser() || !document.body) return;
+    if (document.getElementById("ts-inapp-browser-notice")) return;
+    var root = container || getContentRoot() || document.body;
+    if (!root) return;
+
+    var notice = document.createElement("div");
+    notice.id = "ts-inapp-browser-notice";
+    notice.style.cssText = [
+      "margin: 12px auto 16px",
+      "padding: 12px 14px",
+      "border-radius: 10px",
+      "background: rgba(251, 175, 51, 0.10)",
+      "border: 1px solid rgba(251, 175, 51, 0.35)",
+      "color: #eaeae5",
+      "font-family: 'Open Sans', sans-serif",
+      "font-size: 12px",
+      "line-height: 1.5",
+      "text-align: center",
+      "max-width: 580px"
+    ].join(";");
+
+    var extUrl = getPreferredExternalUrl();
+    if (isAndroid()) {
+      notice.innerHTML =
+        "<strong style='color:var(--primary,#FBAF33);'>Facebook / In-App Browser Tip:</strong> " +
+        "If saving or printing is restricted here, tap below to open in Chrome or press &amp; hold any generated image to save it." +
+        "<div style='margin-top:8px;'>" +
+        "<a target='_top' rel='noopener' href='" + getChromeIntentUrl(extUrl) + "' " +
+        "style='display:inline-block;padding:7px 14px;border-radius:7px;background:var(--primary,#FBAF33);color:var(--on-primary,#000);font-weight:700;text-decoration:none;font-size:12px;'>" +
+        "Open in Chrome ↗</a></div>";
+    } else {
+      notice.innerHTML =
+        "<strong style='color:var(--primary,#FBAF33);'>iPhone In-App Browser Tip:</strong> " +
+        "Tap <strong>Save / Share Image</strong> or press &amp; hold any generated certificate image to <strong>Save to Photos</strong> — or tap <strong>⋯ / Compass</strong> &rarr; <strong>Open in Safari</strong>.";
+    }
+
+    root.appendChild(notice);
+    setTimeout(notifyParentHeight, 60);
+  }
+
+  function autoAttachActivityNotice() {
+    var p = (window.location.pathname || "").toLowerCase();
+    var isActivity = /nice_list|adopt_reindeer|santa_frame|snowman_frame|snowman|elf_cam|colouring_page|bingo|door_hanger/.test(p);
+    if (isActivity) {
+      injectInAppNotice();
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", autoAttachActivityNotice);
+  } else {
+    autoAttachActivityNotice();
+  }
+
+  window.TurboSantaDownload = {
+    API_DOWNLOAD_URL: API_DOWNLOAD_URL,
+    isInAppBrowser: isInAppBrowser,
+    isIOS: isIOS,
+    isAndroid: isAndroid,
+    dataUrlToBlob: dataUrlToBlob,
+    downloadFile: downloadFile,
+    shareFile: shareFile,
+    injectInAppNotice: injectInAppNotice
+  };
 })();
