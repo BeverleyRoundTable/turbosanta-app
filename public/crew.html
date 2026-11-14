@@ -331,8 +331,8 @@
           </div>
 
           <div class="field">
-            <label>Organisation (Optional)</label>
-            <input type="text" id="volOrg" placeholder="e.g. Scouts, Round Table, or leave blank">
+            <label>Organisation / Group</label>
+            <input type="text" id="volOrg" required placeholder="e.g. Scouts, Round Table, or 'Individual'">
           </div>
 
           <div class="field" style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border);">
@@ -969,23 +969,38 @@ function populateRouteDropdowns(routes) {
 
 async function submitVolunteer(e) {
   e.preventDefault();
-  const btn = document.getElementById('submitBtn');
-  btn.innerText = "Submitting...";
-  btn.disabled = true;
-
   const routeSelect = document.getElementById('routeSelect');
   const selectedOpt = routeSelect.options[routeSelect.selectedIndex];
   const routeId = selectedOpt ? (selectedOpt.dataset.routeId || "") : "";
+
+  const cleanName = document.getElementById('volName').value.trim();
+  const cleanRole = document.getElementById('volRole').value.trim();
+  const cleanPhone = document.getElementById('volPhone').value.trim();
+  const cleanEmail = document.getElementById('volEmail').value.trim();
+  const cleanOrg = document.getElementById('volOrg').value.trim();
+
+  if (!routeSelect.value || !cleanName || !cleanRole || !cleanPhone || !cleanEmail || !cleanOrg) {
+    alert("Please complete all required fields (Route, Full Name, Role, Phone Number, Email Address, and Organisation — enter 'Individual' if not with a group).");
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+    alert("Please enter a valid email address so route organisers can contact you.");
+    return;
+  }
+
+  const btn = document.getElementById('submitBtn');
+  btn.innerText = "Submitting...";
+  btn.disabled = true;
 
   const payload = {
     action: "registerVolunteer",
     routeId: routeId,
     routeName: routeSelect.value,
-    name: document.getElementById('volName').value,
-    role: document.getElementById('volRole').value,
-    phone: document.getElementById('volPhone').value,
-    email: document.getElementById('volEmail').value,
-    organisation: document.getElementById('volOrg').value
+    name: cleanName,
+    role: cleanRole,
+    phone: cleanPhone,
+    email: cleanEmail,
+    organisation: cleanOrg
   };
 
   try {
