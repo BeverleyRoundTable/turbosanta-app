@@ -1786,7 +1786,7 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
                       </div>
 
                       {/* SuperAdmin-only Gemini AI Pre-Triage & Antigravity Prompt */}
-                      {isSuperAdmin && ticket.ai_analysis && (() => {
+                      {isSuperUser && ticket.ai_analysis && (() => {
                         let parsedAi = null;
                         try {
                           parsedAi = typeof ticket.ai_analysis === 'string'
