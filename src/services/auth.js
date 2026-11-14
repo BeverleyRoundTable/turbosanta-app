@@ -5,6 +5,23 @@ const SESSION_KEY = "turbosanta_admin_session";
 const OTP_STORAGE_KEY = "turbosanta_auth_otp";
 const WORKER_API = "https://turbosanta-api.beverley247.workers.dev";
 
+async function authFetch(pathStr, options = {}) {
+  const host = typeof window !== "undefined" ? (window.location?.hostname || "") : "";
+  const isCustomDomain = host.endsWith("roundtablesantasleigh.co.uk");
+  const primary = isCustomDomain ? window.location.origin : WORKER_API;
+  const fallback = isCustomDomain ? WORKER_API : "";
+  const cleanPath = pathStr.startsWith("/") ? pathStr : `/${pathStr}`;
+  const opts = { credentials: "include", ...options };
+  try {
+    return await fetch(`${primary}${cleanPath}`, opts);
+  } catch (err) {
+    if (fallback) {
+      return await fetch(`${fallback}${cleanPath}`, opts);
+    }
+    throw err;
+  }
+}
+
 /**
  * Validates that an email belongs to the official Round Table Google Workspace
  */
@@ -240,7 +257,7 @@ export async function requestMagicLink(email) {
 
   // Call the live Cloudflare Worker email dispatch endpoint
   try {
-    const res = await fetch(`${WORKER_API}/api/auth/send-otp`, {
+    const res = await authFetch(`/api/auth/send-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -290,7 +307,7 @@ export async function verifyMagicLink(email, enteredCode) {
   let verifiedOnWorker = false;
   let signedToken = "";
   try {
-    const res = await fetch(`${WORKER_API}/api/auth/verify-otp`, {
+    const res = await authFetch(`/api/auth/verify-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: cleanEmail, code, tableSlug: details?.slug || "beverley" })
@@ -397,7 +414,7 @@ export async function loginWithGoogleWorkspace(credential) {
   let signedSessionToken = credential;
   let authRejectedError = null;
   try {
-    const res = await fetch(`${WORKER_API}/api/auth/google-session`, {
+    const res = await authFetch(`/api/auth/google-session`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

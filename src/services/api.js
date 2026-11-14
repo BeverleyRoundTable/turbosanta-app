@@ -40,15 +40,20 @@ export async function apiFetch(endpointOrUrl, options = {}) {
     cleanPath = pathStr.startsWith('/') ? pathStr : `/${pathStr}`;
   }
 
+  const fetchOpts = { ...options };
+  if (!fetchOpts.credentials && (url1.startsWith(primaryBase) || url1.includes("workers.dev") || url1.includes("roundtablesantasleigh.co.uk"))) {
+    fetchOpts.credentials = "include";
+  }
+
   try {
-    const res = await fetch(url1, options);
+    const res = await fetch(url1, fetchOpts);
     return res;
   } catch (err) {
     const isNetworkError = err?.name === 'TypeError' || String(err).includes('Failed to fetch') || String(err).includes('NetworkError');
     if (fallbackBase && isNetworkError) {
       console.warn(`[apiFetch] Primary URL failed (${url1}: ${err.message}), trying resilient fallback on ${fallbackBase}...`);
       const url2 = `${fallbackBase}${cleanPath}`;
-      return await fetch(url2, options);
+      return await fetch(url2, fetchOpts);
     }
     throw err;
   }

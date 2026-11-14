@@ -492,6 +492,57 @@ const API = params.get('api') || '';
 const WORKER_URL = 'https://turbosanta-api.beverley247.workers.dev';
 let globalDonateUrl = "";
 
+function getCrewApiBase() {
+  try {
+    if (window.location && window.location.hostname && window.location.hostname.endsWith('roundtablesantasleigh.co.uk')) {
+      return window.location.origin;
+    }
+  } catch (e) {}
+  return WORKER_URL;
+}
+
+function getCrewCookieToken() {
+  try {
+    const m = document.cookie.match(/(?:^|;\s*)turbosanta_auth_token=([^;]+)/);
+    return m && m[1] ? decodeURIComponent(m[1]).trim() : '';
+  } catch (e) {
+    return '';
+  }
+}
+
+async function crewApiFetch(pathOrUrl, options = {}) {
+  const primaryBase = getCrewApiBase();
+  const fallbackBase = primaryBase !== WORKER_URL ? WORKER_URL : '';
+  let cleanPath = String(pathOrUrl || '');
+  let primaryUrl = cleanPath;
+
+  if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://')) {
+    try {
+      const u = new URL(cleanPath);
+      cleanPath = u.pathname + u.search;
+      if (u.hostname.includes('workers.dev') && primaryBase !== WORKER_URL) {
+        primaryUrl = `${primaryBase}${cleanPath}`;
+      } else {
+        primaryUrl = u.toString();
+      }
+    } catch (e) {}
+  } else {
+    if (!cleanPath.startsWith('/')) cleanPath = '/' + cleanPath;
+    primaryUrl = `${primaryBase}${cleanPath}`;
+  }
+
+  const fetchOpts = { credentials: 'include', ...options };
+  try {
+    return await fetch(primaryUrl, fetchOpts);
+  } catch (err) {
+    const isNetErr = err?.name === 'TypeError' || String(err).includes('Failed to fetch') || String(err).includes('NetworkError');
+    if (fallbackBase && isNetErr) {
+      return await fetch(`${fallbackBase}${cleanPath}`, fetchOpts);
+    }
+    throw err;
+  }
+}
+
 if (tableSlug) {
   try {
     const crewViewKey = 'ts_view_counted_crew_' + tableSlug;
@@ -499,7 +550,7 @@ if (tableSlug) {
       sessionStorage.setItem(crewViewKey, '1');
       const utmSource = params.get('utm_source') || params.get('source') || (params.get('qr') ? 'qr' : '');
       const ref = document.referrer || '';
-      const crewBeaconUrl = `${WORKER_URL}/api/track-view?table=${encodeURIComponent(tableSlug)}&page=crew&ref=${encodeURIComponent(ref)}&utm_source=${encodeURIComponent(utmSource)}`;
+      const crewBeaconUrl = `${getCrewApiBase()}/api/track-view?table=${encodeURIComponent(tableSlug)}&page=crew&ref=${encodeURIComponent(ref)}&utm_source=${encodeURIComponent(utmSource)}`;
       if (navigator.sendBeacon) {
         navigator.sendBeacon(crewBeaconUrl);
       } else {
@@ -582,11 +633,13 @@ async function init() {
     let data;
     if (API) {
       const res = await fetch(`${API}?function=getRoutes`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       data = await res.json();
       globalDonateUrl = data.settings?.donate_url || "";
     } else {
-      // 🚀 High-speed TurboSanta D1 Cloudflare Worker API
-      const res = await fetch(`${WORKER_URL}/api/payload?table=${encodeURIComponent(tableSlug)}`);
+      // 🚀 High-speed TurboSanta D1 API (same-origin with workers.dev fallback)
+      const res = await crewApiFetch(`/api/payload?table=${encodeURIComponent(tableSlug)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       data = await res.json();
       if (data && data.table) {
         data.settings = data.table;
@@ -612,7 +665,9 @@ async function init() {
     // ── CREW ALERT: read on init and start polling ──
     const alertMsg = (data.settings && (data.settings.crew_alert || data.settings.live_announcement)) || '';
     updateCrewAlertBanner(alertMsg);
-    setInterval(pollCrewAlert, 15000);
+    if (!window._crewAlertInterval) {
+      window._crewAlertInterval = setInterval(pollCrewAlert, 15000);
+    }
 
     window.allRoutes = data.routes || [];
     populateRouteDropdowns(data.routes);
@@ -627,7 +682,7 @@ async function init() {
     document.getElementById('mainApp').style.display = 'block';
   } catch(e) {
     document.getElementById('initArea').innerHTML = 
-      `<div class="error-msg">Connection Failed: ${e.message}</div>`;
+      `<div class="error-msg">Connection Failed: ${escapeHtml(e.message || 'Network error')}<br><button type="button" onclick="location.reload()" style="margin-top:12px; padding:8px 16px; border-radius:6px; border:1px solid var(--primary); background:var(--surface-2); color:var(--primary); font-weight:700; cursor:pointer;">Retry Connection</button></div>`;
   }
 }
 
@@ -656,7 +711,7 @@ async function pollCrewAlert() {
       const data = await res.json();
       alertMsg = data.settings?.crew_alert || '';
     } else {
-      const res = await fetch(`${WORKER_URL}/api/payload?table=${encodeURIComponent(tableSlug)}`);
+      const res = await crewApiFetch(`/api/payload?table=${encodeURIComponent(tableSlug)}`);
       const data = await res.json();
       alertMsg = data.table?.crew_alert || data.table?.live_announcement || '';
     }
@@ -722,11 +777,11 @@ async function broadcastCrewStatus(type) {
   if (statusEl) statusEl.textContent = 'Broadcasting…';
 
   try {
-    const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/announcement?table=${encodeURIComponent(tableSlug)}`, {
+    const res = await crewApiFetch(`/api/announcement?table=${encodeURIComponent(tableSlug)}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${secret}`
+        ...(secret ? { 'Authorization': `Bearer ${secret}` } : {})
       },
       body: JSON.stringify({ announcement })
     });
@@ -755,13 +810,17 @@ async function switchTab(btn) {
     if (!secret) {
       try {
         const adminSession = JSON.parse(localStorage.getItem("turbosanta_admin_session") || "{}");
-        if (adminSession && (adminSession.googleCredential || adminSession.token)) {
-          secret = adminSession.googleCredential || adminSession.token;
+        if (adminSession && (adminSession.token || adminSession.googleCredential)) {
+          secret = adminSession.token || adminSession.googleCredential;
           sessionStorage.setItem('opsSecret', secret);
         }
       } catch(e) {}
     }
-    
+    if (!secret) {
+      secret = getCrewCookieToken();
+      if (secret) sessionStorage.setItem('opsSecret', secret);
+    }
+
     if (!secret) {
       alert("Operations Authorization Required: Please sign in with your official @roundtable.org.uk Google Workspace account via the Admin Portal.");
       return;
@@ -778,7 +837,9 @@ async function switchTab(btn) {
         const result = await check.json();
         isValid = Boolean(result.valid);
       } else {
-        const check = await fetch(`${WORKER_URL}/api/auth/verify?table=${encodeURIComponent(tableSlug)}&secret=${encodeURIComponent(secret)}`);
+        const check = await crewApiFetch(`/api/auth/verify?table=${encodeURIComponent(tableSlug)}&secret=${encodeURIComponent(secret)}`, {
+          headers: secret ? { 'Authorization': `Bearer ${secret}` } : {}
+        });
         const result = await check.json();
         isValid = Boolean(result.valid);
       }
@@ -1025,7 +1086,7 @@ async function submitVolunteer(e) {
     if (API) {
       res = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     } else {
-      res = await fetch(`${WORKER_URL}/api/volunteers?table=${encodeURIComponent(tableSlug)}`, {
+      res = await crewApiFetch(`/api/volunteers?table=${encodeURIComponent(tableSlug)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -1052,8 +1113,17 @@ async function loadRouteData() {
   const contentDiv = document.getElementById('opsContent');
   const refreshBtn = document.getElementById('refreshBtn'); 
   
-  // Retrieve the stored God Mode password
-  const secret = sessionStorage.getItem('opsSecret') || '';
+  // Retrieve the stored Ops credential (sessionStorage, localStorage session, or cookie)
+  let secret = sessionStorage.getItem('opsSecret') || '';
+  if (!secret) {
+    try {
+      const adminSession = JSON.parse(localStorage.getItem("turbosanta_admin_session") || "{}");
+      secret = adminSession?.token || adminSession?.googleCredential || '';
+    } catch (e) {}
+  }
+  if (!secret) {
+    secret = getCrewCookieToken();
+  }
   
   if (!routeName) {
     contentDiv.style.display = 'none';
@@ -1080,7 +1150,14 @@ async function loadRouteData() {
       checklistPayload = await checklistRes.json();
       volData = await volRes.json();
     } else {
-      const volRes = await fetch(`${WORKER_URL}/api/volunteers?table=${encodeURIComponent(tableSlug)}&route=${encodeURIComponent(routeName)}&secret=${encodeURIComponent(secret)}`);
+      const volUrl = `/api/volunteers?table=${encodeURIComponent(tableSlug)}&route=${encodeURIComponent(routeName)}${secret ? `&secret=${encodeURIComponent(secret)}` : ''}`;
+      const volRes = await crewApiFetch(volUrl, {
+        headers: secret ? { 'Authorization': `Bearer ${secret}` } : {}
+      });
+      if (!volRes.ok) {
+        const errJson = await volRes.json().catch(() => ({}));
+        throw new Error(errJson.error || `HTTP ${volRes.status}`);
+      }
       volData = await volRes.json();
       checklistPayload = {
         tasks: [
@@ -1098,7 +1175,7 @@ async function loadRouteData() {
     renderCrew(Array.isArray(volData) ? volData : (volData.volunteers || []));
     renderCrewStops(routeName);
   } catch (e) {
-    document.getElementById('checklistContainer').innerHTML = `<p style="color:var(--red); font-family:'Open Sans',monospace; font-size:12px;">Error loading data.</p>`;
+    document.getElementById('checklistContainer').innerHTML = `<p style="color:var(--red); font-family:'Open Sans',monospace; font-size:12px;">Error loading data: ${escapeHtml(e.message || 'Connection failed')}</p>`;
     document.getElementById('crewContainer').innerHTML = ``;
   }
 }
@@ -1118,17 +1195,22 @@ function renderChecklist(routeName, tasks, data) {
     
     const div = document.createElement('div');
     div.className = 'check-item';
-    div.innerHTML = `
-      <input type="checkbox" id="${id}" ${isChecked ? 'checked' : ''} 
-             onchange="updateChecklistItem('${routeName}', '${item}', this.checked)">
-      <label for="${id}">${item}</label>
-    `;
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.id = id;
+    cb.checked = isChecked;
+    cb.addEventListener('change', () => updateChecklistItem(routeName, item, cb.checked));
+    const lbl = document.createElement('label');
+    lbl.htmlFor = id;
+    lbl.textContent = item;
+    div.appendChild(cb);
+    div.appendChild(lbl);
     container.appendChild(div);
   });
 }
 
 async function updateChecklistItem(routeName, item, isChecked) {
-  const secret = sessionStorage.getItem('opsSecret') || '';
+  const secret = sessionStorage.getItem('opsSecret') || getCrewCookieToken() || '';
   const payload = {
     action: "updateChecklist",
     routeName: routeName,
@@ -1138,12 +1220,19 @@ async function updateChecklistItem(routeName, item, isChecked) {
   };
 
   try {
-    const targetUrl = API || `${WORKER_URL}/api/volunteers/checklist?table=${encodeURIComponent(tableSlug)}`;
-    const response = await fetch(targetUrl, {
+    const targetUrl = API || `/api/volunteers/checklist?table=${encodeURIComponent(tableSlug)}`;
+    const response = await (API ? fetch(targetUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
-    });
+    }) : crewApiFetch(targetUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(secret ? { "Authorization": `Bearer ${secret}` } : {})
+      },
+      body: JSON.stringify(payload)
+    }));
     const result = await response.json();
     if(!result.ok) {
         alert("Blocked: " + (result.error || "Update failed"));
@@ -1171,8 +1260,9 @@ function renderCrew(volunteers) {
     const name = vol["Volunteer Name"] || vol.name || "Unknown";
     const role = vol["Role"] || vol.role || "Volunteer";
     const phone = vol["Phone Number"] || vol.phone || "No number";
-    const status = vol["Check-in Status"] || vol.status || "Confirmed";
-    const routeName = vol["RouteName"] || vol.route_name;
+    const org = vol["Organisation"] || vol.organisation || "";
+    const status = vol["Check-in Status"] || vol.status || (vol.checked_in ? "Checked In" : "Confirmed");
+    const routeName = vol["RouteName"] || vol.route_name || "";
 
     // Update inline styles to match the new dark theme
     const btnStyle = status === "Checked In" 
@@ -1182,17 +1272,21 @@ function renderCrew(volunteers) {
     const btnText = status === "Checked In" ? "Here" : "Tap to Check-in";
     const disabledAttr = status === "Checked In" ? "disabled" : "";
 
-    const orgBadge = vol["Organisation"] ? `<span style="background: var(--surface-3); color: var(--text-muted); padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 8px;">${vol["Organisation"]}</span>` : "";
+    const orgBadge = org ? `<span style="background: var(--surface-3); color: var(--text-muted); padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 8px;">${escapeHtml(org)}</span>` : "";
 
     div.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <div>
-          <strong>${name}${orgBadge}</strong>
-          <span>${role}  ·  ${phone}</span>
+          <strong>${escapeHtml(name)}${orgBadge}</strong>
+          <span>${escapeHtml(role)}  ·  ${escapeHtml(phone)}</span>
         </div>
-        <button style="${btnStyle}" ${disabledAttr} onclick="checkInVolunteer(this, '${routeName}', '${name}', '${role}')">${btnText}</button>
+        <button type="button" style="${btnStyle}" ${disabledAttr}>${escapeHtml(btnText)}</button>
       </div>
     `;
+    const btnEl = div.querySelector('button');
+    if (btnEl && status !== "Checked In") {
+      btnEl.addEventListener('click', () => checkInVolunteer(btnEl, routeName, name, role));
+    }
     container.appendChild(div);
   });
 }
@@ -1206,7 +1300,7 @@ async function checkInVolunteer(btn, routeName, volName, role) {
   }
 
   btn.innerText = "Checking in...";
-  const secret = sessionStorage.getItem('opsSecret') || '';
+  const secret = sessionStorage.getItem('opsSecret') || getCrewCookieToken() || '';
   
   const payload = {
     action: "checkIn",
@@ -1217,12 +1311,19 @@ async function checkInVolunteer(btn, routeName, volName, role) {
   };
 
   try {
-    const targetUrl = API || `${WORKER_URL}/api/volunteers/checkin?table=${encodeURIComponent(tableSlug)}`;
-    const response = await fetch(targetUrl, {
+    const targetUrl = API || `/api/volunteers/checkin?table=${encodeURIComponent(tableSlug)}`;
+    const response = await (API ? fetch(targetUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
-    });
+    }) : crewApiFetch(targetUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(secret ? { "Authorization": `Bearer ${secret}` } : {})
+      },
+      body: JSON.stringify(payload)
+    }));
     const result = await response.json();
     
     if(!result.ok) {
@@ -1258,7 +1359,7 @@ async function closeRoute() {
   btn.innerText = "Processing...";
   btn.disabled = true;
 
-  const secret = sessionStorage.getItem('opsSecret') || '';
+  const secret = sessionStorage.getItem('opsSecret') || getCrewCookieToken() || '';
 
   const payload = {
     action: "closeRoute",
@@ -1267,12 +1368,19 @@ async function closeRoute() {
   };
 
   try {
-    const targetUrl = API || `${WORKER_URL}/api/volunteers/close-route?table=${encodeURIComponent(tableSlug)}`;
-    const response = await fetch(targetUrl, {
+    const targetUrl = API || `/api/volunteers/close-route?table=${encodeURIComponent(tableSlug)}`;
+    const response = await (API ? fetch(targetUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
-    });
+    }) : crewApiFetch(targetUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(secret ? { "Authorization": `Bearer ${secret}` } : {})
+      },
+      body: JSON.stringify(payload)
+    }));
     const result = await response.json();
 
     if(!result.ok) {

@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { logoutAdmin, isNationalAdmin, isSuperAdminEmail, getAdminAuthToken } from '../services/auth';
-import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, saveRoute, deleteRoute, connectTableGmail, disconnectTableGmail, testTableGmailAlert, clearSubscribers, triggerAutomatedCrewBriefings, uploadAssetToR2, fetchGiftAidSummary, updateGiftAidStatus, updateGiftAidEntry, deleteGiftAidEntry, exportGiftAidCsv, deleteVolunteer, fetchSupportTickets } from '../services/api';
+import { apiFetch, saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, saveRoute, deleteRoute, connectTableGmail, disconnectTableGmail, testTableGmailAlert, clearSubscribers, triggerAutomatedCrewBriefings, uploadAssetToR2, fetchGiftAidSummary, updateGiftAidStatus, updateGiftAidEntry, deleteGiftAidEntry, exportGiftAidCsv, deleteVolunteer, fetchSupportTickets } from '../services/api';
 import { extractRouteSponsors } from '../utils/sponsors';
 import { DEFAULT_FAQ_PRESETS, FLATBED_FAQ_PRESETS, normalizeFaqs } from '../utils/faqs';
 import { PUBLIC_SLOT_OPTIONS, partitionRoutesByCompletion, normalizeTableNumber } from '../utils/adminHelpers';
@@ -40,7 +40,7 @@ const OFFICIAL_GOOGLE_CLIENT_ID = "174929950272-ehpf04nea7ev4j8gfosq5acg6dvfmc95
 
 function buildTownToolUrl(slug, path, query, sessionObj) {
   const safeSlug = String(slug || 'beverley').toLowerCase();
-  const tok = sessionObj?.googleCredential || sessionObj?.token || getAdminAuthToken(safeSlug);
+  const tok = getAdminAuthToken(safeSlug) || sessionObj?.token || sessionObj?.googleCredential;
   const hash = tok ? `#token=${encodeURIComponent(tok)}` : '';
   return `https://${encodeURIComponent(safeSlug)}.roundtablesantasleigh.co.uk${path}${query}${hash}`;
 }
@@ -282,6 +282,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   // Volunteer Roster & Crew Communication State
   const [volunteers, setVolunteers] = useState([]);
   const [loadingVolunteers, setLoadingVolunteers] = useState(false);
+  const [volunteerLoadError, setVolunteerLoadError] = useState('');
   const [volunteerSearch, setVolunteerSearch] = useState('');
   const [volunteerRouteFilter, setVolunteerRouteFilter] = useState('all');
   const [volunteerCopiedType, setVolunteerCopiedType] = useState(null); // 'emails' | 'phones'
@@ -373,20 +374,32 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
 
   const fetchVolunteersList = useCallback(async () => {
     const slug = currentTableSlug;
-    const secret = session?.googleCredential || session?.token || getAdminAuthToken(slug);
+    const primarySecret = getAdminAuthToken(slug) || session?.token || session?.googleCredential || '';
+    const fallbackSecret = [session?.token, session?.googleCredential].find(t => t && t !== primarySecret) || '';
     setLoadingVolunteers(true);
+    setVolunteerLoadError('');
     try {
-      const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/volunteers?table=${encodeURIComponent(slug)}`, {
-        headers: secret ? { 'Authorization': `Bearer ${secret}` } : {}
+      const endpoint = `/api/volunteers?table=${encodeURIComponent(slug)}`;
+      let res = await apiFetch(endpoint, {
+        headers: primarySecret ? { 'Authorization': `Bearer ${primarySecret}` } : {}
       });
+      if (res.status === 401 && fallbackSecret) {
+        res = await apiFetch(endpoint, {
+          headers: { 'Authorization': `Bearer ${fallbackSecret}` }
+        });
+      }
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
           setVolunteers(data);
         }
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setVolunteerLoadError(errData.error || `Unable to load volunteers (HTTP ${res.status}). Please refresh or sign in again.`);
       }
     } catch (e) {
       console.error("Failed to fetch volunteers:", e);
+      setVolunteerLoadError(`Connection error loading volunteers: ${e?.message || 'Network error'}. Click Refresh to retry.`);
     } finally {
       setLoadingVolunteers(false);
     }
@@ -400,8 +413,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     try {
       setMessagesLoading(true);
       const slug = currentTableSlug || session?.tableId || session?.tableSlug || 'beverley';
-      const token = session?.googleCredential || session?.token || getAdminAuthToken(slug);
-      const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/messages?table=${encodeURIComponent(slug)}&admin=1`, {
+      const token = getAdminAuthToken(slug) || session?.token || session?.googleCredential || '';
+      const res = await apiFetch(`/api/messages?table=${encodeURIComponent(slug)}&admin=1`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       const data = await res.json();
@@ -427,8 +440,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   const handleModerateMessage = async (msgId, action) => {
     try {
       const slug = currentTableSlug || session?.tableId || session?.tableSlug || 'beverley';
-      const token = session?.googleCredential || session?.token || getAdminAuthToken(slug);
-      const res = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/messages/moderate?table=${encodeURIComponent(slug)}`, {
+      const token = getAdminAuthToken(slug) || session?.token || session?.googleCredential || '';
+      const res = await apiFetch(`/api/messages/moderate?table=${encodeURIComponent(slug)}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -691,7 +704,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     }
 
     const slug = currentTableSlug || session?.tableSlug || session?.tableId || 'beverley';
-    const secret = session?.googleCredential || session?.token || getAdminAuthToken(slug);
+    const secret = getAdminAuthToken(slug) || session?.token || session?.googleCredential;
 
     setSaveStatus(`Removing ${count} volunteer(s)...`);
     const idsToDelete = Array.from(selectedVolunteerIds);
@@ -720,7 +733,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     }
 
     const slug = currentTableSlug || session?.tableSlug || session?.tableId || 'beverley';
-    const secret = session?.googleCredential || session?.token || getAdminAuthToken(slug);
+    const secret = getAdminAuthToken(slug) || session?.token || session?.googleCredential;
 
     try {
       setSaveStatus(`Removing ${volName}...`);
@@ -7406,6 +7419,32 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   </div>
 
                   {/* Volunteer Table / Cards */}
+                  {volunteerLoadError && (
+                    <div style={{
+                      marginBottom: '14px',
+                      padding: '12px 14px',
+                      borderRadius: '8px',
+                      background: 'rgba(239, 68, 68, 0.12)',
+                      border: '1px solid rgba(239, 68, 68, 0.35)',
+                      color: '#fca5a5',
+                      fontSize: '13px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '12px',
+                      flexWrap: 'wrap'
+                    }}>
+                      <span>⚠️ {volunteerLoadError}</span>
+                      <button
+                        type="button"
+                        onClick={fetchVolunteersList}
+                        className="btn-secondary"
+                        style={{ padding: '6px 12px', fontSize: '12px' }}
+                      >
+                        Retry Loading Roster
+                      </button>
+                    </div>
+                  )}
                   {loadingVolunteers ? (
                     <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)' }}>
                       <div style={{ display: 'inline-block', width: '28px', height: '28px', border: '3px solid rgba(251,175,51,0.2)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '10px' }} />
@@ -13968,7 +14007,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
             volunteer={editingVolunteer}
             routes={tableData?.routes || []}
             tableSlug={currentTableSlug}
-            token={session?.googleCredential || session?.token || getAdminAuthToken(currentTableSlug)}
+            token={getAdminAuthToken(currentTableSlug) || session?.token || session?.googleCredential}
             onSaved={handleVolunteerSaved}
           />
         </Suspense>
@@ -13983,7 +14022,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
             routes={tableData?.routes || []}
             tableSlug={currentTableSlug}
             tableName={tableData?.table?.name || 'Round Table'}
-            token={session?.googleCredential || session?.token || getAdminAuthToken(currentTableSlug)}
+            token={getAdminAuthToken(currentTableSlug) || session?.token || session?.googleCredential}
             onSaved={() => {
               fetchVolunteersList();
               setSaveStatus('⚡ Bulk crew successfully assigned across selected routes!');
