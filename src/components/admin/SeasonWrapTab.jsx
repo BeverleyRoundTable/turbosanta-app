@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import {
   BarChart3, Camera, Coins, Printer, Download, Receipt, Heart,
-  Users, Bell, Navigation, CreditCard, TrendingUp, Sparkles, Check, Copy, Award, Calendar
+  Users, Bell, Navigation, CreditCard, TrendingUp, Sparkles, Check, Copy, Award, Calendar,
+  Plus, Pencil, Trash2, X, Save
 } from 'lucide-react';
+import { saveSeasonHistoryEntry, deleteSeasonHistoryEntry } from '../../services/api';
 
 export default function SeasonWrapTab({
   session,
@@ -14,9 +16,15 @@ export default function SeasonWrapTab({
   isSnapshottingSeason,
   setIsCashModalOpen,
   handleExportSeasonInfographic,
-  handleOpenExpensesModal
+  handleOpenExpensesModal,
+  onUpdateTableData
 }) {
   const [copiedAiDebrief, setCopiedAiDebrief] = useState(false);
+  const [historyModal, setHistoryModal] = useState(null);
+  const [isSavingHistory, setIsSavingHistory] = useState(false);
+  const [isDeletingHistory, setIsDeletingHistory] = useState(false);
+  const [confirmDeleteHistory, setConfirmDeleteHistory] = useState(false);
+  const [historyError, setHistoryError] = useState('');
 
   const tableSlug = session?.tableId || session?.tableSlug || 'beverley';
   const routes = tableData?.routes || [];
@@ -104,6 +112,152 @@ export default function SeasonWrapTab({
   const pctOfTarget = currentStats.target > 0 ? Math.min(100, Math.round((currentStats.raised / currentStats.target) * 100)) : 0;
   const avgPerStreet = currentStats.streets > 0 ? (currentStats.raised / currentStats.streets).toFixed(2) : '0.00';
 
+  const activeArchiveRecord = seasonHistory.find(h => String(h.year) === activeSeasonKey) || null;
+  const adminSecret = session?.googleCredential || session?.token || null;
+
+  const openAddHistoryModal = () => {
+    const existingYears = new Set(seasonHistory.map(h => String(h.year)));
+    const prevYear = String(Number(currentYearStr) - 1);
+    const oldestNum = availableSeasons.length > 0 ? Math.min(...availableSeasons.map(y => Number(y))) : Number(currentYearStr);
+    const defaultYear = !existingYears.has(prevYear) ? prevYear : String(oldestNum - 1);
+    setHistoryError('');
+    setConfirmDeleteHistory(false);
+    setHistoryModal({
+      mode: 'add',
+      year: defaultYear,
+      raised: '',
+      giftAid: '',
+      expenses: '',
+      routes: '',
+      streets: '',
+      volunteers: '',
+      subscribers: '',
+      grants_awarded: '',
+      causes_count: '',
+      miles_driven: '',
+      total_views: '',
+      notes: ''
+    });
+  };
+
+  const openEditHistoryModal = (record) => {
+    if (!record) return;
+    const recRaised = Number(record.raised) || 0;
+    const recExpenses = Number(record.expenses) || 0;
+    const recNet = record.net_raised !== undefined && record.net_raised !== null ? Number(record.net_raised) : recRaised;
+    const recGiftAid = isGiftAidEligible ? Math.max(0, Number((recNet + recExpenses - recRaised).toFixed(2))) : 0;
+    setHistoryError('');
+    setConfirmDeleteHistory(false);
+    setHistoryModal({
+      mode: 'edit',
+      year: String(record.year),
+      raised: String(recRaised),
+      giftAid: recGiftAid > 0 ? String(recGiftAid) : '',
+      expenses: recExpenses > 0 ? String(recExpenses) : '',
+      routes: String(Number(record.routes) || 0),
+      streets: String(Number(record.streets) || 0),
+      volunteers: String(Number(record.volunteers) || 0),
+      subscribers: String(Number(record.subscribers) || 0),
+      grants_awarded: String(Number(record.grants_awarded) || 0),
+      causes_count: String(Number(record.causes_count) || 0),
+      miles_driven: String(Number(record.miles_driven) || 0),
+      total_views: String(Number(record.total_views) || 0),
+      notes: record.notes || ''
+    });
+  };
+
+  const handleSaveHistoryForm = async (e) => {
+    e.preventDefault();
+    if (!historyModal) return;
+    const trimmedYear = String(historyModal.year || '').trim();
+    if (!/^\d{4}$/.test(trimmedYear) || Number(trimmedYear) < 1990 || Number(trimmedYear) > 2099) {
+      setHistoryError('Please enter a valid 4-digit year (e.g. 2025).');
+      return;
+    }
+
+    const raisedNum = Math.max(0, Number(historyModal.raised) || 0);
+    const giftAidNum = isGiftAidEligible ? Math.max(0, Number(historyModal.giftAid) || 0) : 0;
+    const expensesNum = Math.max(0, Number(historyModal.expenses) || 0);
+    const netRaisedNum = Math.max(0, Number((raisedNum + giftAidNum - expensesNum).toFixed(2)));
+
+    const payload = {
+      year: trimmedYear,
+      raised: raisedNum,
+      net_raised: netRaisedNum,
+      expenses: expensesNum,
+      routes: Math.max(0, Math.round(Number(historyModal.routes) || 0)),
+      streets: Math.max(0, Math.round(Number(historyModal.streets) || 0)),
+      volunteers: Math.max(0, Math.round(Number(historyModal.volunteers) || 0)),
+      subscribers: Math.max(0, Math.round(Number(historyModal.subscribers) || 0)),
+      grants_awarded: Math.max(0, Number(historyModal.grants_awarded) || 0),
+      causes_count: Math.max(0, Math.round(Number(historyModal.causes_count) || 0)),
+      miles_driven: Math.max(0, Number(historyModal.miles_driven) || 0),
+      total_views: Math.max(0, Math.round(Number(historyModal.total_views) || 0)),
+      notes: (historyModal.notes || '').trim(),
+      ai_summary: historyModal.mode === 'edit' && activeArchiveRecord?.ai_summary ? activeArchiveRecord.ai_summary : ''
+    };
+
+    setIsSavingHistory(true);
+    setHistoryError('');
+    try {
+      const res = await saveSeasonHistoryEntry(tableSlug, payload, adminSecret);
+      if (!res?.ok) {
+        setHistoryError(res?.error || 'Failed to save season history record.');
+        return;
+      }
+      const savedRecord = res.record || { ...payload, table_id: tableSlug };
+      if (typeof onUpdateTableData === 'function') {
+        onUpdateTableData((prev) => {
+          if (!prev) return prev;
+          const current = Array.isArray(prev.season_history) ? [...prev.season_history] : [];
+          const idx = current.findIndex(item => String(item.year) === String(savedRecord.year));
+          if (idx >= 0) {
+            current[idx] = { ...current[idx], ...savedRecord };
+          } else {
+            current.push(savedRecord);
+          }
+          current.sort((a, b) => Number(a.year) - Number(b.year));
+          return { ...prev, season_history: current };
+        });
+      }
+      setSelectedWrapSeason(String(savedRecord.year));
+      setHistoryModal(null);
+    } finally {
+      setIsSavingHistory(false);
+    }
+  };
+
+  const handleDeleteHistoryRecord = async () => {
+    if (!historyModal || historyModal.mode !== 'edit') return;
+    if (!confirmDeleteHistory) {
+      setConfirmDeleteHistory(true);
+      return;
+    }
+    setIsDeletingHistory(true);
+    setHistoryError('');
+    try {
+      const res = await deleteSeasonHistoryEntry(tableSlug, historyModal.year, adminSecret);
+      if (!res?.ok) {
+        setHistoryError(res?.error || 'Failed to delete archived season.');
+        return;
+      }
+      if (typeof onUpdateTableData === 'function') {
+        onUpdateTableData((prev) => {
+          if (!prev) return prev;
+          const current = Array.isArray(prev.season_history) ? prev.season_history : [];
+          return {
+            ...prev,
+            season_history: current.filter(item => String(item.year) !== String(historyModal.year))
+          };
+        });
+      }
+      setSelectedWrapSeason(currentYearStr);
+      setHistoryModal(null);
+    } finally {
+      setIsDeletingHistory(false);
+    }
+  };
+
   const zeffyItem = breakdown.find(b => String(b.source || '').toLowerCase() === 'zeffy');
   const stripeItem = breakdown.find(b => String(b.source || '').toLowerCase() === 'stripe');
   const sumupItem = breakdown.find(b => String(b.source || '').toLowerCase() === 'sumup');
@@ -173,11 +327,50 @@ export default function SeasonWrapTab({
               alignItems: 'center',
               gap: '6px'
             }}
-            title="Manually freeze and snapshot current season numbers to D1 archive (otherwise captured automatically on Feb 1st)"
+            title={`Manually freeze and snapshot live ${currentYearStr} season numbers to D1 archive (otherwise captured automatically on Feb 1st)`}
           >
             <Camera size={15} />
-            <span>{isSnapshottingSeason ? 'Saving...' : `Snapshot ${activeSeasonKey} Season`}</span>
+            <span>{isSnapshottingSeason ? 'Saving...' : `Snapshot ${currentYearStr} Live`}</span>
           </button>
+
+          <button
+            type="button"
+            onClick={openAddHistoryModal}
+            className="btn-secondary"
+            style={{
+              padding: '9px 16px',
+              fontSize: '13px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+            title="Manually enter or backdate data from a previous season (e.g. 2025)"
+          >
+            <Plus size={15} />
+            <span>Backdate / Add Season</span>
+          </button>
+
+          {activeArchiveRecord && (
+            <button
+              type="button"
+              onClick={() => openEditHistoryModal(activeArchiveRecord)}
+              className="btn-secondary"
+              style={{
+                padding: '9px 16px',
+                fontSize: '13px',
+                borderColor: '#60a5fa',
+                color: '#93c5fd',
+                background: 'rgba(59, 130, 246, 0.1)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+              title={`Amend locked-in ${activeSeasonKey} archive figures`}
+            >
+              <Pencil size={14} />
+              <span>Amend {activeSeasonKey} Data</span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -257,6 +450,28 @@ export default function SeasonWrapTab({
             {yr === currentYearStr ? `🎅 ${yr} (Live Current)` : `📅 ${yr} Season`}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={openAddHistoryModal}
+          style={{
+            padding: '7px 14px',
+            borderRadius: '7px',
+            border: '1px dashed var(--border)',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: 700,
+            background: 'transparent',
+            color: 'var(--primary)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+            transition: 'all 0.15s'
+          }}
+          title="Manually enter historical data from a past year (even before using TurboSanta)"
+        >
+          <Plus size={13} />
+          <span>Add Past Year</span>
+        </button>
       </div>
 
       {/* 4 Financial Impact Headline Cards */}
@@ -610,10 +825,29 @@ export default function SeasonWrapTab({
               No Historical Seasons Uploaded Yet
             </div>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', maxWidth: '520px', margin: '0 auto 16px auto', lineHeight: 1.6 }}>
-              This section will automatically generate comparative multi-year charts and growth analytics once you snapshot campaigns using the <strong>📸 Snapshot Season</strong> button above.
+              This section automatically generates multi-year comparisons once you snapshot a campaign or manually enter previous seasons (even from before using TurboSanta).
             </p>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--primary)', background: 'rgba(251, 175, 51, 0.1)', padding: '6px 14px', borderRadius: '8px', fontWeight: 600 }}>
-              <span>Current Active Baseline: {currentYearStr} Season (£{liveGrossRaised.toFixed(2)} Raised)</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--primary)', background: 'rgba(251, 175, 51, 0.1)', padding: '7px 14px', borderRadius: '8px', fontWeight: 600 }}>
+                <span>Current Active Baseline: {currentYearStr} Season (£{liveGrossRaised.toFixed(2)} Raised)</span>
+              </div>
+              <button
+                type="button"
+                onClick={openAddHistoryModal}
+                className="btn-secondary"
+                style={{
+                  padding: '7px 14px',
+                  fontSize: '12px',
+                  borderColor: 'var(--primary)',
+                  color: 'var(--primary)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Plus size={14} />
+                <span>Add {Number(currentYearStr) - 1} / Past Season Data</span>
+              </button>
             </div>
           </div>
         ) : (
@@ -813,6 +1047,264 @@ export default function SeasonWrapTab({
           </table>
         </div>
       </div>
+
+      {/* Backdate / Amend Historical Season Modal */}
+      {historyModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.78)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '16px'
+          }}
+          onClick={() => !isSavingHistory && !isDeletingHistory && setHistoryModal(null)}
+        >
+          <div
+            style={{
+              background: '#151513',
+              border: '1px solid var(--border)',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '640px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              padding: '24px',
+              boxShadow: '0 24px 60px rgba(0,0,0,0.6)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', marginBottom: '18px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Calendar size={18} style={{ color: 'var(--primary)' }} />
+                  <span>{historyModal.mode === 'add' ? 'Backdate / Add Historical Season' : `Amend ${historyModal.year} Season Archive`}</span>
+                </h3>
+                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                  {historyModal.mode === 'add'
+                    ? 'Enter totals from a past campaign (even if your Table was not on TurboSanta that year) so it appears in Season Wrap charts and comparisons.'
+                    : 'Update locked-in historical figures or notes for this archived season. Changes immediately recalculate your multi-year Season Wrap.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => !isSavingHistory && !isDeletingHistory && setHistoryModal(null)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+                aria-label="Close modal"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {historyError && (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.12)',
+                border: '1px solid rgba(239, 68, 68, 0.35)',
+                color: '#fca5a5',
+                borderRadius: '8px',
+                padding: '10px 12px',
+                fontSize: '12px',
+                marginBottom: '16px'
+              }}>
+                {historyError}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveHistoryForm} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '5px' }}>
+                    Campaign Year *
+                  </label>
+                  <input
+                    type="number"
+                    min="1990"
+                    max="2099"
+                    step="1"
+                    required
+                    disabled={historyModal.mode === 'edit'}
+                    value={historyModal.year}
+                    onChange={(e) => setHistoryModal(prev => ({ ...prev, year: e.target.value }))}
+                    placeholder="e.g. 2025"
+                    style={{
+                      width: '100%',
+                      background: historyModal.mode === 'edit' ? '#111' : '#0d0d0b',
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      padding: '9px 11px',
+                      color: historyModal.mode === 'edit' ? 'var(--text-muted)' : '#fff',
+                      fontSize: '14px',
+                      fontWeight: 700
+                    }}
+                  />
+                  {historyModal.mode === 'edit' && (
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Year key is fixed for existing snapshots.</span>
+                  )}
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '5px' }}>
+                    Gross Raised (£) *
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    required
+                    value={historyModal.raised}
+                    onChange={(e) => setHistoryModal(prev => ({ ...prev, raised: e.target.value }))}
+                    placeholder="0.00"
+                    style={{ width: '100%', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '9px 11px', color: '#fff', fontSize: '14px' }}
+                  />
+                </div>
+
+                {isGiftAidEligible && (
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#86efac', textTransform: 'uppercase', marginBottom: '5px' }}>
+                      Est. Gift Aid (£)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={historyModal.giftAid}
+                      onChange={(e) => setHistoryModal(prev => ({ ...prev, giftAid: e.target.value }))}
+                      placeholder="0.00"
+                      style={{ width: '100%', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '9px 11px', color: '#fff', fontSize: '14px' }}
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#fca5a5', textTransform: 'uppercase', marginBottom: '5px' }}>
+                    Expenses (£)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={historyModal.expenses}
+                    onChange={(e) => setHistoryModal(prev => ({ ...prev, expenses: e.target.value }))}
+                    placeholder="0.00"
+                    style={{ width: '100%', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '9px 11px', color: '#fff', fontSize: '14px' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{
+                background: 'rgba(251, 175, 51, 0.08)',
+                border: '1px solid rgba(251, 175, 51, 0.25)',
+                borderRadius: '8px',
+                padding: '9px 12px',
+                fontSize: '12px',
+                color: '#fde68a',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span>Calculated Net Retained for Charity:</span>
+                <strong style={{ fontSize: '14px', color: '#fff' }}>
+                  £{Math.max(0, (Number(historyModal.raised) || 0) + (isGiftAidEligible ? (Number(historyModal.giftAid) || 0) : 0) - (Number(historyModal.expenses) || 0)).toFixed(2)}
+                </strong>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: '10px' }}>
+                {[
+                  { key: 'routes', label: 'Routes Run', step: '1' },
+                  { key: 'streets', label: 'Streets Visited', step: '1' },
+                  { key: 'volunteers', label: 'Volunteers', step: '1' },
+                  { key: 'miles_driven', label: 'Miles Driven', step: '0.1' },
+                  { key: 'subscribers', label: 'Subscribers', step: '1' },
+                  { key: 'total_views', label: 'Map Views', step: '1' },
+                  { key: 'causes_count', label: 'Charities Supported', step: '1' },
+                  { key: 'grants_awarded', label: 'Grants Awarded (£)', step: '0.01' }
+                ].map(field => (
+                  <div key={field.key}>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>
+                      {field.label}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step={field.step}
+                      value={historyModal[field.key]}
+                      onChange={(e) => setHistoryModal(prev => ({ ...prev, [field.key]: e.target.value }))}
+                      placeholder="0"
+                      style={{ width: '100%', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '7px 10px', color: '#fff', fontSize: '13px' }}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>
+                  Season Notes (Optional)
+                </label>
+                <textarea
+                  rows={2}
+                  value={historyModal.notes}
+                  onChange={(e) => setHistoryModal(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="e.g. Manual import from 2025 spreadsheet records..."
+                  style={{ width: '100%', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 10px', color: '#fff', fontSize: '13px', resize: 'vertical' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '6px', paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
+                <div>
+                  {historyModal.mode === 'edit' && (
+                    <button
+                      type="button"
+                      onClick={handleDeleteHistoryRecord}
+                      disabled={isSavingHistory || isDeletingHistory}
+                      style={{
+                        background: confirmDeleteHistory ? 'rgba(239, 68, 68, 0.2)' : 'transparent',
+                        border: '1px solid rgba(239, 68, 68, 0.45)',
+                        color: '#fca5a5',
+                        borderRadius: '8px',
+                        padding: '8px 12px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <Trash2 size={14} />
+                      <span>{isDeletingHistory ? 'Deleting...' : (confirmDeleteHistory ? `Confirm Delete ${historyModal.year}` : `Delete ${historyModal.year}`)}</span>
+                    </button>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <button
+                    type="button"
+                    disabled={isSavingHistory || isDeletingHistory}
+                    onClick={() => setHistoryModal(null)}
+                    className="btn-secondary"
+                    style={{ padding: '9px 14px', fontSize: '13px' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingHistory || isDeletingHistory}
+                    className="btn-primary"
+                    style={{ padding: '9px 18px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <Save size={14} />
+                    <span>{isSavingHistory ? 'Saving...' : (historyModal.mode === 'add' ? 'Save Season Data' : 'Save Amendments')}</span>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

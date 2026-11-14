@@ -1130,4 +1130,44 @@ export async function updateSupportTicket(ticketId, updates, secret) {
   return data;
 }
 
+// ==============================================================
+// 📸 SEASON WRAP HISTORY (BACKDATE / AMEND / DELETE ARCHIVES)
+// ==============================================================
+export async function saveSeasonHistoryEntry(tableSlug = "beverley", payload = {}, explicitSecret = null) {
+  try {
+    const slug = (tableSlug || "beverley").toLowerCase().trim();
+    const token = explicitSecret || getAdminAuthToken(slug);
+    const res = await apiFetch(`${API_BASE}/api/season-history?table=${encodeURIComponent(slug)}`, {
+      method: "POST",
+      headers: getAuthHeaders(token, slug),
+      body: JSON.stringify({ ...payload, secret: token })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  } catch (err) {
+    console.error("saveSeasonHistoryEntry error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
+export async function deleteSeasonHistoryEntry(tableSlug = "beverley", year, explicitSecret = null) {
+  try {
+    const slug = (tableSlug || "beverley").toLowerCase().trim();
+    const token = explicitSecret || getAdminAuthToken(slug);
+    const res = await apiFetch(`${API_BASE}/api/season-history?table=${encodeURIComponent(slug)}&year=${encodeURIComponent(year)}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(token, slug),
+      body: JSON.stringify({ year, secret: token })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  } catch (err) {
+    console.error("deleteSeasonHistoryEntry error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
+
 

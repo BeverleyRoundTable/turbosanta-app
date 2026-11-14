@@ -2270,6 +2270,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
 
   const handleSnapshotSeason = async () => {
     const tableSlug = session?.tableId || session?.tableSlug || 'beverley';
+    const liveYear = String(new Date().getFullYear());
     const routes = tableData?.routes || [];
     const streets = tableData?.streets || [];
     const totalRaised = Number(tableData?.table?.total_raised || 0);
@@ -2278,7 +2279,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     const expenses = Number(tableData?.expenses ?? tableData?.table?.expenses ?? formData.expenses ?? 0);
     const netRaised = (totalRaised + giftAid) - expenses;
 
-    if (!confirm(`📸 Snapshot ${selectedWrapSeason} Season for ${tableSlug.toUpperCase()}?\n\nThis will freeze and save:\n• Year: ${selectedWrapSeason}\n• Gross Raised: £${totalRaised.toLocaleString()}\n• Routes: ${routes.length}\n• Streets: ${streets.length}\n\nProceed to save to D1 database?`)) {
+    if (!confirm(`📸 Snapshot ${liveYear} Season for ${tableSlug.toUpperCase()}?\n\nThis will freeze and save your current live figures:\n• Year: ${liveYear}\n• Gross Raised: £${totalRaised.toLocaleString()}\n• Routes: ${routes.length}\n• Streets: ${streets.length}\n\nProceed to save to D1 database?`)) {
       return;
     }
 
@@ -2291,7 +2292,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
           'Authorization': `Bearer ${session?.googleCredential || session?.token || ''}`
         },
         body: JSON.stringify({
-          year: selectedWrapSeason,
+          year: liveYear,
           raised: totalRaised,
           net_raised: netRaised,
           expenses: expenses,
@@ -2309,7 +2310,18 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
       });
       const result = await res.json();
       if (result.ok) {
-        setSaveStatus(`✅ Season ${selectedWrapSeason} successfully snapshotted to D1!`);
+        if (result.record && typeof onUpdateTableData === 'function') {
+          onUpdateTableData(prev => {
+            const existing = Array.isArray(prev?.season_history) ? prev.season_history : [];
+            const filtered = existing.filter(h => String(h.year) !== String(liveYear));
+            return {
+              ...prev,
+              season_history: [...filtered, result.record].sort((a, b) => Number(a.year) - Number(b.year))
+            };
+          });
+        }
+        setSelectedWrapSeason(liveYear);
+        setSaveStatus(`✅ Season ${liveYear} successfully snapshotted to D1!`);
         setTimeout(() => setSaveStatus(''), 4000);
       } else {
         alert('Failed to save snapshot: ' + (result.error || 'Unknown error'));
@@ -6348,6 +6360,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
               setIsCashModalOpen={setIsCashModalOpen}
               handleExportSeasonInfographic={handleExportSeasonInfographic}
               handleOpenExpensesModal={handleOpenExpensesModal}
+              onUpdateTableData={onUpdateTableData}
             />
           </Suspense>
         )}
