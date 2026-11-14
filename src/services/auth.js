@@ -87,15 +87,43 @@ export function isNationalAdmin(email) {
   return approved.includes(clean) || (isRoundTableEmail(clean) && (clean.startsWith("national@") || clean.startsWith("rtbi@")));
 }
 
+export function isAuthTokenExpired(token) {
+  try {
+    if (!token || typeof token !== "string") return true;
+    const tok = token.trim();
+    const now = Math.floor(Date.now() / 1000);
+    if (tok.startsWith("ts2_sig_")) {
+      const payloadB64 = tok.slice(8).split(".")[0];
+      if (!payloadB64) return true;
+      const b64 = payloadB64.replace(/-/g, "+").replace(/_/g, "/");
+      const p = JSON.parse(atob(b64));
+      return !p || !p.exp || p.exp <= now + 10;
+    }
+    if (tok.includes(".")) {
+      const parts = tok.split(".");
+      if (parts.length === 3) {
+        const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+        const p = JSON.parse(atob(b64));
+        const issuedAt = Number(p.iat || (p.exp ? p.exp - 3600 : 0));
+        if (!issuedAt) return true;
+        return (now - issuedAt) > (30 * 24 * 3600 - 30);
+      }
+    }
+    return false;
+  } catch {
+    return true;
+  }
+}
+
 /**
  * Returns the cryptographically signed admin session token issued by the Cloudflare Worker
  */
 export function getAdminAuthToken() {
   const session = getCurrentSession();
-  if (session?.token && (session.token.startsWith("ts2_sig_") || session.token.includes("."))) {
+  if (session?.token && !isAuthTokenExpired(session.token) && (session.token.startsWith("ts2_sig_") || session.token.includes("."))) {
     return session.token;
   }
-  if (session?.googleCredential && session.googleCredential.includes(".")) {
+  if (session?.googleCredential && !isAuthTokenExpired(session.googleCredential) && session.googleCredential.includes(".")) {
     return session.googleCredential;
   }
   try {
@@ -103,7 +131,7 @@ export function getAdminAuthToken() {
       const m = document.cookie.match(/(?:^|;\s*)turbosanta_auth_token=([^;]+)/);
       if (m && m[1]) {
         const cookieTok = decodeURIComponent(m[1]).trim();
-        if (cookieTok.startsWith("ts2_sig_") || cookieTok.includes(".")) {
+        if (!isAuthTokenExpired(cookieTok) && (cookieTok.startsWith("ts2_sig_") || cookieTok.includes("."))) {
           return cookieTok;
         }
       }
@@ -444,9 +472,14 @@ export function getCurrentSession() {
         if (!parsed.token && parsed.googleCredential && parsed.googleCredential.includes(".")) {
           parsed.token = parsed.googleCredential;
         }
-        if (!parsed.token) {
-          logout();
-          return null;
+        if (!parsed.token || isAuthTokenExpired(parsed.token)) {
+          if (parsed.googleCredential && !isAuthTokenExpired(parsed.googleCredential)) {
+            parsed.token = parsed.googleCredential;
+            try { localStorage.setItem(SESSION_KEY, JSON.stringify(parsed)); } catch {}
+          } else {
+            logout();
+            return null;
+          }
         }
         if (parsed.email && isRoundTableEmail(parsed.email)) {
           const details = parseTableDetailsFromEmail(parsed.email);

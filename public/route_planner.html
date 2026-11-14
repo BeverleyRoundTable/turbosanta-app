@@ -11,6 +11,7 @@
 <link rel="preload" href="https://turbosanta-app.pages.dev/site/Eurostile_Extended_2_Bold.woff2" as="font" type="font/woff2" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="/leaflet.polylineDecorator.min.js"></script>
@@ -318,6 +319,9 @@
       <span id="topTableBadge" style="font-size:11px; font-weight:700; background:rgba(251,175,51,0.12); border:1px solid rgba(251,175,51,0.3); color:var(--primary); padding:4px 10px; border-radius:100px; text-transform:uppercase; letter-spacing:1px; display:inline-flex; align-items:center; gap:4px;">📍 Beverley</span>
     </div>
     <div class="top-bar-right">
+      <button type="button" id="adminAuthStatusBtn" onclick="openPlannerAuthModal()" class="btn btn-dim btn-sm" style="font-size:11px; display:inline-flex; align-items:center; gap:5px;" title="Admin sign-in status for saving to D1">
+        <span>🔒 Sign In</span>
+      </button>
       <a id="backToAdminLink" href="/admin.html" class="btn btn-dim btn-sm" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px; font-size:11px;">
         <span>← Admin Portal</span>
       </a>
@@ -522,6 +526,43 @@
       <a id="tackSuccessAdminBtn" href="/admin.html" class="btn btn-dim" style="text-decoration:none; padding:12px; font-size:13px; text-align:center;">
         ← Return to Admin Portal
       </a>
+    </div>
+  </div>
+</div>
+
+<!-- Admin Sign-In Modal (keeps drawn route & stops intact when authenticating) -->
+<div id="plannerAuthModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:100000; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:var(--surface); border:2px solid var(--primary); border-radius:16px; max-width:440px; width:100%; padding:26px 24px; box-shadow:0 20px 50px rgba(0,0,0,0.9); box-sizing:border-box; position:relative;">
+    <button type="button" onclick="closePlannerAuthModal()" style="position:absolute; top:14px; right:14px; background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer;">✕</button>
+    <div style="text-align:center; margin-bottom:16px;">
+      <div style="font-size:34px; margin-bottom:6px;">🔐</div>
+      <h2 style="font-family:'Eurostile', 'Open Sans', sans-serif; font-size:19px; color:var(--primary); margin:0 0 6px 0; letter-spacing:1px;">ADMIN VERIFICATION</h2>
+      <p id="plannerAuthSubtitle" style="font-size:12px; color:var(--text-dim); margin:0; line-height:1.5;">Sign in with your Round Table account to save routes &amp; dwell times to D1. Your map edits stay safe.</p>
+    </div>
+
+    <div id="plannerAuthError" style="display:none; background:rgba(211,28,28,0.15); border:1px solid rgba(211,28,28,0.5); color:#fca5a5; padding:10px 12px; border-radius:8px; font-size:12px; margin-bottom:14px; line-height:1.4;"></div>
+
+    <div style="display:flex; justify-content:center; margin-bottom:16px;">
+      <div id="plannerGoogleBtnWrap" style="min-height:44px; display:flex; align-items:center; justify-content:center;"></div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:10px; margin:14px 0; color:var(--text-muted); font-size:11px; text-transform:uppercase; letter-spacing:1px;">
+      <div style="flex:1; height:1px; background:var(--border);"></div>
+      <span>Or verify via email code</span>
+      <div style="flex:1; height:1px; background:var(--border);"></div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <input type="email" id="plannerAuthEmail" placeholder="yourtable@roundtable.org.uk" style="width:100%; box-sizing:border-box; padding:10px 12px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:#fff; font-size:13px;">
+      <button type="button" id="plannerAuthSendBtn" onclick="sendPlannerOtp()" class="btn btn-dim" style="width:100%; padding:10px; font-size:12px; font-weight:700;">
+        Send 6-Digit Verification Code
+      </button>
+      <div id="plannerAuthCodeRow" style="display:none; flex-direction:column; gap:8px; margin-top:4px;">
+        <input type="text" id="plannerAuthCode" placeholder="Enter 6-digit code" maxlength="32" style="width:100%; box-sizing:border-box; padding:10px 12px; border-radius:8px; border:1px solid var(--border-primary); background:#111; color:#fff; font-size:14px; text-align:center; letter-spacing:3px; font-weight:700;">
+        <button type="button" id="plannerAuthVerifyBtn" onclick="verifyPlannerOtp()" class="btn btn-green" style="width:100%; padding:11px; font-size:13px; font-weight:700;">
+          Verify &amp; Continue
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -2729,27 +2770,272 @@ function routeColour(index) {
   return `hsl(${hue}, ${tier.s}%, ${tier.l}%)`;
 }
 
+const OFFICIAL_GOOGLE_CLIENT_ID = "174929950272-ehpf04nea7ev4j8gfosq5acg6dvfmc95.apps.googleusercontent.com";
+let _pendingTackRetry = false;
+
+function decodeTokenPayload(token) {
+  try {
+    if (!token || typeof token !== "string") return null;
+    if (token.startsWith("ts2_sig_")) {
+      const payloadB64 = token.slice(8).split(".")[0];
+      if (!payloadB64) return null;
+      return JSON.parse(atob(payloadB64.replace(/-/g, "+").replace(/_/g, "/")));
+    }
+    const parts = token.split(".");
+    if (parts.length === 3) {
+      return JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+    }
+  } catch (e) {}
+  return null;
+}
+
+function isAdminTokenFresh(token) {
+  try {
+    if (!token || typeof token !== "string") return false;
+    const tok = token.trim();
+    if (!tok) return false;
+    const now = Math.floor(Date.now() / 1000);
+    if (tok.startsWith("ts2_sig_")) {
+      const p = decodeTokenPayload(tok);
+      return Boolean(p && p.email && p.exp && p.exp > now + 10);
+    }
+    if (tok.split(".").length === 3) {
+      const p = decodeTokenPayload(tok);
+      const issuedAt = Number(p?.iat || (p?.exp ? p.exp - 3600 : 0));
+      return Boolean(p && p.email && issuedAt && (now - issuedAt) <= (30 * 24 * 3600 - 30));
+    }
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 function getAdminSecret() {
+  const candidates = [];
   try {
     const pSecret = params.get('secret') || params.get('token');
-    if (pSecret) return pSecret;
+    if (pSecret) candidates.push(pSecret);
+
+    const cookieMatch = document.cookie.match(/(?:^|;\s*)turbosanta_auth_token=([^;]+)/);
+    if (cookieMatch && cookieMatch[1]) {
+      candidates.push(decodeURIComponent(cookieMatch[1]).trim());
+    }
+
     const sessionStr = localStorage.getItem("turbosanta_admin_session");
     if (sessionStr) {
       const session = JSON.parse(sessionStr);
       if (session.token && (session.token.startsWith("ts2_sig_") || session.token.includes("."))) {
-        return session.token;
+        candidates.push(session.token);
       }
       if (session.googleCredential && session.googleCredential.includes(".")) {
-        return session.googleCredential;
+        candidates.push(session.googleCredential);
       }
     }
-    const cookieMatch = document.cookie.match(/(?:^|;\s*)turbosanta_auth_token=([^;]+)/);
-    if (cookieMatch && cookieMatch[1]) {
-      return decodeURIComponent(cookieMatch[1]).trim();
-    }
   } catch(e) {}
+
+  for (const cand of candidates) {
+    if (cand && isAdminTokenFresh(cand)) return cand;
+  }
   return "";
 }
+
+function persistPlannerSession(email, token, provider = "google_workspace") {
+  try {
+    const cleanEmail = String(email || "").trim().toLowerCase();
+    const prevRaw = localStorage.getItem("turbosanta_admin_session");
+    let prev = {};
+    try { if (prevRaw) prev = JSON.parse(prevRaw) || {}; } catch (e) {}
+    const next = {
+      ...prev,
+      email: cleanEmail || prev.email || "",
+      tableSlug: tableParam,
+      tableId: tableParam,
+      authenticatedAt: new Date().toISOString(),
+      provider,
+      token
+    };
+    localStorage.setItem("turbosanta_admin_session", JSON.stringify(next));
+  } catch (e) {}
+  try {
+    const isProd = window.location.hostname.includes("roundtablesantasleigh.co.uk");
+    const domain = isProd ? "; domain=.roundtablesantasleigh.co.uk" : "";
+    document.cookie = `turbosanta_auth_token=${encodeURIComponent(token)}; path=/${domain}; max-age=2592000; SameSite=Lax${isProd ? "; Secure" : ""}`;
+  } catch (e) {}
+  updatePlannerAuthBadge();
+}
+
+function updatePlannerAuthBadge() {
+  const btn = document.getElementById("adminAuthStatusBtn");
+  if (!btn) return;
+  const tok = getAdminSecret();
+  if (tok) {
+    const payload = decodeTokenPayload(tok);
+    const labelEmail = payload?.email ? payload.email.split("@")[0] : "Admin";
+    btn.innerHTML = `<span>🔓 ${labelEmail}</span>`;
+    btn.style.borderColor = "rgba(46,204,113,0.45)";
+    btn.style.color = "#2ecc71";
+    btn.title = payload?.email ? `Signed in as ${payload.email}` : "Admin session active";
+  } else {
+    btn.innerHTML = `<span>🔒 Sign In</span>`;
+    btn.style.borderColor = "rgba(251,175,51,0.45)";
+    btn.style.color = "var(--primary)";
+    btn.title = "Sign in to save routes & dwell times to D1";
+  }
+}
+
+function setPlannerAuthError(msg) {
+  const box = document.getElementById("plannerAuthError");
+  if (!box) return;
+  if (msg) {
+    box.textContent = msg;
+    box.style.display = "block";
+  } else {
+    box.textContent = "";
+    box.style.display = "none";
+  }
+}
+
+function initPlannerGoogleSignIn() {
+  const wrap = document.getElementById("plannerGoogleBtnWrap");
+  if (!wrap) return;
+  const renderBtn = () => {
+    if (window.google && window.google.accounts && window.google.accounts.id) {
+      try {
+        window.google.accounts.id.initialize({
+          client_id: OFFICIAL_GOOGLE_CLIENT_ID,
+          callback: async (response) => {
+            if (!response || !response.credential) return;
+            setPlannerAuthError("");
+            try {
+              const res = await resilientFetch(`/api/auth/google-session?table=${encodeURIComponent(tableParam)}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ credential: response.credential, tableSlug: tableParam })
+              });
+              const data = await res.json().catch(() => ({}));
+              if (!res.ok || !data.ok || !data.token) {
+                throw new Error(data.error || "Google Workspace sign-in rejected.");
+              }
+              persistPlannerSession(data.email, data.token, "google_workspace");
+              const shouldRetry = _pendingTackRetry;
+              closePlannerAuthModal();
+              if (shouldRetry) tackToRoute();
+            } catch (err) {
+              setPlannerAuthError(err.message || "Google sign-in failed.");
+            }
+          },
+          auto_select: false,
+          cancel_on_tap_outside: true,
+          hd: "roundtable.org.uk"
+        });
+        wrap.innerHTML = "";
+        window.google.accounts.id.renderButton(wrap, {
+          type: "standard",
+          theme: "outline",
+          size: "large",
+          text: "continue_with",
+          shape: "rectangular",
+          width: 320
+        });
+      } catch (e) {}
+      return true;
+    }
+    return false;
+  };
+  if (!renderBtn()) {
+    let attempts = 0;
+    const t = setInterval(() => {
+      attempts++;
+      if (renderBtn() || attempts > 25) clearInterval(t);
+    }, 200);
+  }
+}
+
+function openPlannerAuthModal(retryAfterLogin = false, reasonMsg = "") {
+  _pendingTackRetry = Boolean(retryAfterLogin);
+  setPlannerAuthError(reasonMsg ? reasonMsg : "");
+  const sub = document.getElementById("plannerAuthSubtitle");
+  if (sub) {
+    sub.textContent = retryAfterLogin
+      ? "Sign in with your Round Table account to finish saving this route & dwell time. Your map edits remain untouched."
+      : "Sign in with your Round Table account to save routes & dwell times to D1.";
+  }
+  const modal = document.getElementById("plannerAuthModal");
+  if (modal) modal.style.display = "flex";
+  initPlannerGoogleSignIn();
+}
+
+function closePlannerAuthModal() {
+  _pendingTackRetry = false;
+  const modal = document.getElementById("plannerAuthModal");
+  if (modal) modal.style.display = "none";
+}
+
+async function sendPlannerOtp() {
+  const email = (document.getElementById("plannerAuthEmail")?.value || "").trim().toLowerCase();
+  const btn = document.getElementById("plannerAuthSendBtn");
+  setPlannerAuthError("");
+  if (!email || !email.includes("@")) {
+    setPlannerAuthError("Enter your official @roundtable.org.uk email address.");
+    return;
+  }
+  if (btn) { btn.disabled = true; btn.textContent = "Sending..."; }
+  try {
+    const res = await resilientFetch(`/api/auth/send-otp?table=${encodeURIComponent(tableParam)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || "Failed to send verification code.");
+    }
+    const row = document.getElementById("plannerAuthCodeRow");
+    if (row) row.style.display = "flex";
+    if (btn) btn.textContent = "Code Sent ✓ (Resend)";
+  } catch (err) {
+    setPlannerAuthError(err.message || "Failed to send code.");
+    if (btn) btn.textContent = "Send 6-Digit Verification Code";
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function verifyPlannerOtp() {
+  const email = (document.getElementById("plannerAuthEmail")?.value || "").trim().toLowerCase();
+  const code = (document.getElementById("plannerAuthCode")?.value || "").trim();
+  const btn = document.getElementById("plannerAuthVerifyBtn");
+  setPlannerAuthError("");
+  if (!email || !code) {
+    setPlannerAuthError("Enter both your email address and verification code.");
+    return;
+  }
+  if (btn) { btn.disabled = true; btn.textContent = "Verifying..."; }
+  try {
+    const res = await resilientFetch(`/api/auth/verify-otp?table=${encodeURIComponent(tableParam)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok || !data.token) {
+      throw new Error(data.error || "Invalid or expired verification code.");
+    }
+    persistPlannerSession(email, data.token, "email_otp");
+    const shouldRetry = _pendingTackRetry;
+    closePlannerAuthModal();
+    if (shouldRetry) tackToRoute();
+  } catch (err) {
+    setPlannerAuthError(err.message || "Verification failed.");
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = "Verify & Continue"; }
+  }
+}
+
+window.addEventListener("storage", (e) => {
+  if (e.key === "turbosanta_admin_session") updatePlannerAuthBadge();
+});
+setTimeout(updatePlannerAuthBadge, 0);
 
 function populateRouteSelect(preferredRouteId = null) {
   const select = document.getElementById('targetRouteSelect');
@@ -3015,6 +3301,7 @@ ${trkpts}
       const uploadRes = await resilientFetch(`/api/upload?table=${encodeURIComponent(tableParam)}${uploadTok ? `&secret=${encodeURIComponent(uploadTok)}` : ''}`, {
         method: 'POST',
         body: blob,
+        credentials: 'include',
         headers: uploadHeaders
       });
       if (uploadRes.ok) {
@@ -3055,17 +3342,23 @@ ${trkpts}
       secret: token
     };
 
-    const saveRes = await resilientFetch(`/api/routes?table=${encodeURIComponent(tableParam)}&secret=${encodeURIComponent(token)}`, {
+    const saveHeaders = { 'Content-Type': 'application/json' };
+    if (token) saveHeaders['Authorization'] = `Bearer ${token}`;
+
+    const saveRes = await resilientFetch(`/api/routes?table=${encodeURIComponent(tableParam)}${token ? `&secret=${encodeURIComponent(token)}` : ''}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
+      credentials: 'include',
+      headers: saveHeaders,
       body: JSON.stringify(savePayload)
     });
 
     if (!saveRes.ok) {
       const errData = await saveRes.json().catch(() => ({}));
+      if (saveRes.status === 401) {
+        updatePlannerAuthBadge();
+        openPlannerAuthModal(true, errData.error || 'Admin credentials expired or missing for this domain.');
+        return;
+      }
       throw new Error(errData.error || `HTTP ${saveRes.status}`);
     }
 

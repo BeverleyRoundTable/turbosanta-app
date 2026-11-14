@@ -4140,7 +4140,9 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
 
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 <a
-                  href={`https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/planner`}
+                  href={typeof window !== 'undefined' && window.location.hostname.endsWith('roundtablesantasleigh.co.uk')
+                    ? `https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/planner`
+                    : `/route_planner.html?table=${encodeURIComponent(currentTableSlug)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-secondary"
@@ -4620,7 +4622,9 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                                   </a>
 
                                   <a
-                                    href={`https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/planner?routeId=${encodeURIComponent(r.id)}`}
+                                    href={typeof window !== 'undefined' && window.location.hostname.endsWith('roundtablesantasleigh.co.uk')
+                                      ? `https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/planner?routeId=${encodeURIComponent(r.id)}`
+                                      : `/route_planner.html?table=${encodeURIComponent(currentTableSlug)}&routeId=${encodeURIComponent(r.id)}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="btn-secondary"
@@ -4985,7 +4989,9 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                                   </a>
 
                                   <a
-                                    href={`https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/planner?routeId=${encodeURIComponent(r.id)}`}
+                                    href={typeof window !== 'undefined' && window.location.hostname.endsWith('roundtablesantasleigh.co.uk')
+                                      ? `https://${encodeURIComponent(currentTableSlug)}.roundtablesantasleigh.co.uk/planner?routeId=${encodeURIComponent(r.id)}`
+                                      : `/route_planner.html?table=${encodeURIComponent(currentTableSlug)}&routeId=${encodeURIComponent(r.id)}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="btn-secondary"
