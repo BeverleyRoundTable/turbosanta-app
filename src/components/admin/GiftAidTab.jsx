@@ -1,5 +1,5 @@
-import React from 'react';
-import { RefreshCw, Download, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { RefreshCw, Download, CheckCircle2, Edit3, Trash2, X, Save } from 'lucide-react';
 import { isManagedGiftAidPlatform, getManagedPlatformName } from '../../utils/adminHelpers';
 
 export default function GiftAidTab({
@@ -14,8 +14,72 @@ export default function GiftAidTab({
   giftAidLoading,
   loadGiftAidSummary,
   handleExportHmrc,
-  handleMarkGiftAidClaimed
+  handleMarkGiftAidClaimed,
+  handleUpdateGiftAidEntry,
+  handleDeleteGiftAidEntry
 }) {
+  const [editingEntry, setEditingEntry] = useState(null);
+  const [savingEntry, setSavingEntry] = useState(false);
+  const [deletingEntryId, setDeletingEntryId] = useState(null);
+
+  const openEditModal = (entry) => {
+    setEditingEntry({
+      id: entry.id,
+      title: entry.title || '',
+      first_name: entry.first_name || '',
+      last_name: entry.last_name || '',
+      house_name_or_number: entry.house_name_or_number || '',
+      postcode: entry.postcode || '',
+      email: entry.email || '',
+      amount: entry.amount !== undefined && entry.amount !== null ? String(entry.amount) : '',
+      date: entry.date || '',
+      status: entry.status === 'Claimed' ? 'Claimed' : 'Pending'
+    });
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editingEntry || !handleUpdateGiftAidEntry) return;
+    const numericAmount = Number.parseFloat(editingEntry.amount);
+    if (!editingEntry.first_name.trim() || !editingEntry.last_name.trim() || !editingEntry.house_name_or_number.trim() || !editingEntry.postcode.trim() || !Number.isFinite(numericAmount) || numericAmount <= 0 || !editingEntry.date) {
+      alert('Please complete donor name, address, postcode, declaration date, and a positive donation amount.');
+      return;
+    }
+    setSavingEntry(true);
+    try {
+      const ok = await handleUpdateGiftAidEntry(editingEntry.id, {
+        title: editingEntry.title.trim(),
+        first_name: editingEntry.first_name.trim(),
+        last_name: editingEntry.last_name.trim(),
+        house_name_or_number: editingEntry.house_name_or_number.trim(),
+        postcode: editingEntry.postcode.trim().toUpperCase(),
+        email: editingEntry.email.trim(),
+        donation_amount: numericAmount,
+        declaration_date: editingEntry.date,
+        status: editingEntry.status
+      });
+      if (ok) setEditingEntry(null);
+    } finally {
+      setSavingEntry(false);
+    }
+  };
+
+  const onConfirmDelete = async (entry) => {
+    if (!handleDeleteGiftAidEntry || !entry?.id) return;
+    const claimedWarning = entry.status === 'Claimed'
+      ? '\n\n⚠️ Note: This declaration is currently marked Claimed.'
+      : '';
+    const okConfirm = window.confirm(
+      `Remove this Gift Aid declaration for ${entry.name || 'Donor'} (£${Number(entry.amount || 0).toFixed(2)})?${claimedWarning}\n\nThis permanently deletes the entry from your HMRC Gift Aid ledger.`
+    );
+    if (!okConfirm) return;
+    setDeletingEntryId(entry.id);
+    try {
+      await handleDeleteGiftAidEntry(entry.id);
+    } finally {
+      setDeletingEntryId(null);
+    }
+  };
   return (
     <div style={{
       background: '#151513',
@@ -47,7 +111,7 @@ export default function GiftAidTab({
           </p>
         </div>
 
-        {formData.enable_gift_aid && (
+        {(formData.enable_gift_aid || giftAidSummary.entries.length > 0) && (
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <button
               type="button"
@@ -311,6 +375,7 @@ export default function GiftAidTab({
                     <th style={{ padding: '8px 10px' }}>Donation</th>
                     <th style={{ padding: '8px 10px' }}>Gift Aid (+25%)</th>
                     <th style={{ padding: '8px 10px' }}>Status</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -335,6 +400,53 @@ export default function GiftAidTab({
                         }}>
                           {entry.status || 'Pending'}
                         </span>
+                      </td>
+                      <td style={{ padding: '10px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(entry)}
+                            title="Amend Gift Aid entry"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '5px 9px',
+                              borderRadius: '6px',
+                              background: 'rgba(255,255,255,0.06)',
+                              border: '1px solid rgba(255,255,255,0.16)',
+                              color: '#fff',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <Edit3 size={12} />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onConfirmDelete(entry)}
+                            disabled={deletingEntryId === entry.id}
+                            title="Remove Gift Aid entry"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '5px 9px',
+                              borderRadius: '6px',
+                              background: 'rgba(239, 68, 68, 0.12)',
+                              border: '1px solid rgba(239, 68, 68, 0.35)',
+                              color: '#fca5a5',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              cursor: deletingEntryId === entry.id ? 'wait' : 'pointer'
+                            }}
+                          >
+                            <Trash2 size={12} />
+                            <span>{deletingEntryId === entry.id ? '...' : 'Delete'}</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -407,6 +519,176 @@ export default function GiftAidTab({
           </div>
         )}
       </div>
+
+      {/* AMEND GIFT AID DECLARATION MODAL */}
+      {editingEntry && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            zIndex: 1200
+          }}
+        >
+          <form
+            onSubmit={handleEditSubmit}
+            style={{
+              width: '100%',
+              maxWidth: '520px',
+              background: '#151513',
+              border: '1px solid var(--border)',
+              borderRadius: '16px',
+              padding: '24px',
+              maxHeight: '90vh',
+              overflowY: 'auto'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+              <h3 className="brand-font" style={{ margin: 0, fontSize: '19px', color: '#fff' }}>
+                Amend Gift Aid Declaration
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingEntry(null)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 130px), 1fr))', gap: '12px', marginBottom: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Title</label>
+                <input
+                  type="text"
+                  value={editingEntry.title}
+                  onChange={(e) => setEditingEntry(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Mr"
+                  style={{ width: '100%', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '9px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>First Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editingEntry.first_name}
+                  onChange={(e) => setEditingEntry(prev => ({ ...prev, first_name: e.target.value }))}
+                  style={{ width: '100%', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '9px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Last Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editingEntry.last_name}
+                  onChange={(e) => setEditingEntry(prev => ({ ...prev, last_name: e.target.value }))}
+                  style={{ width: '100%', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '9px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: '12px', marginBottom: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>House No / Street Address *</label>
+                <input
+                  type="text"
+                  required
+                  value={editingEntry.house_name_or_number}
+                  onChange={(e) => setEditingEntry(prev => ({ ...prev, house_name_or_number: e.target.value }))}
+                  style={{ width: '100%', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '9px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Postcode *</label>
+                <input
+                  type="text"
+                  required
+                  value={editingEntry.postcode}
+                  onChange={(e) => setEditingEntry(prev => ({ ...prev, postcode: e.target.value.toUpperCase() }))}
+                  style={{ width: '100%', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '9px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Donor Email (Optional)</label>
+              <input
+                type="email"
+                value={editingEntry.email}
+                onChange={(e) => setEditingEntry(prev => ({ ...prev, email: e.target.value }))}
+                style={{ width: '100%', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '9px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: '12px', marginBottom: '18px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                  Donation (£) *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  required
+                  value={editingEntry.amount}
+                  onChange={(e) => setEditingEntry(prev => ({ ...prev, amount: e.target.value }))}
+                  style={{ width: '100%', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '9px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
+                />
+                <div style={{ fontSize: '11px', color: '#86efac', marginTop: '4px' }}>
+                  +25% Gift Aid: £{(Math.max(0, Number.parseFloat(editingEntry.amount) || 0) * 0.25).toFixed(2)}
+                </div>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Declaration Date *</label>
+                <input
+                  type="date"
+                  required
+                  value={editingEntry.date}
+                  onChange={(e) => setEditingEntry(prev => ({ ...prev, date: e.target.value }))}
+                  style={{ width: '100%', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '9px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Claim Status</label>
+                <select
+                  value={editingEntry.status}
+                  onChange={(e) => setEditingEntry(prev => ({ ...prev, status: e.target.value }))}
+                  style={{ width: '100%', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '9px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
+                >
+                  <option value="Pending">Pending</option>
+                  <option value="Claimed">Claimed</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setEditingEntry(null)}
+                className="btn-secondary"
+                style={{ padding: '9px 16px', fontSize: '13px' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={savingEntry}
+                className="btn-primary"
+                style={{ padding: '9px 18px', fontSize: '13px' }}
+              >
+                <Save size={15} />
+                <span>{savingEntry ? 'Saving...' : 'Save Amendment'}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

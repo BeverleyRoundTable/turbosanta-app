@@ -659,6 +659,40 @@ export async function updateGiftAidStatus(tableSlug = "beverley", payload = { mo
   }
 }
 
+export async function updateGiftAidEntry(tableSlug = "beverley", payload = {}, explicitSecret = null) {
+  try {
+    const slug = (tableSlug || "beverley").toLowerCase().trim();
+    const res = await apiFetch(`${API_BASE}/api/gift-aid/entry/update?table=${encodeURIComponent(slug)}`, {
+      method: "POST",
+      headers: getAuthHeaders(explicitSecret, slug),
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  } catch (err) {
+    console.error("Update Gift Aid entry error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
+export async function deleteGiftAidEntry(tableSlug = "beverley", entryId = "", explicitSecret = null) {
+  try {
+    const slug = (tableSlug || "beverley").toLowerCase().trim();
+    const res = await apiFetch(`${API_BASE}/api/gift-aid/entry/delete?table=${encodeURIComponent(slug)}`, {
+      method: "POST",
+      headers: getAuthHeaders(explicitSecret, slug),
+      body: JSON.stringify({ id: entryId })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  } catch (err) {
+    console.error("Delete Gift Aid entry error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
 export async function exportGiftAidCsv(tableSlug = "beverley", statusFilter = "All", explicitSecret = null) {
   try {
     const slug = (tableSlug || "beverley").toLowerCase().trim();

@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { logoutAdmin, isNationalAdmin, isSuperAdminEmail, getAdminAuthToken } from '../services/auth';
-import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, saveRoute, deleteRoute, connectTableGmail, disconnectTableGmail, testTableGmailAlert, clearSubscribers, triggerAutomatedCrewBriefings, uploadAssetToR2, fetchGiftAidSummary, updateGiftAidStatus, exportGiftAidCsv, deleteVolunteer, fetchSupportTickets } from '../services/api';
+import { saveTableSettings, fetchLiveGps, fetchTablePayload, fetchLatestAiModels, saveRoute, deleteRoute, connectTableGmail, disconnectTableGmail, testTableGmailAlert, clearSubscribers, triggerAutomatedCrewBriefings, uploadAssetToR2, fetchGiftAidSummary, updateGiftAidStatus, updateGiftAidEntry, deleteGiftAidEntry, exportGiftAidCsv, deleteVolunteer, fetchSupportTickets } from '../services/api';
 import { extractRouteSponsors } from '../utils/sponsors';
 import { DEFAULT_FAQ_PRESETS, FLATBED_FAQ_PRESETS, normalizeFaqs } from '../utils/faqs';
 import { PUBLIC_SLOT_OPTIONS, partitionRoutesByCompletion, normalizeTableNumber } from '../utils/adminHelpers';
@@ -1289,19 +1289,32 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     try {
       const data = await fetchGiftAidSummary(slug, token);
       if (data && data.ok) {
+        const declarationsCount = Number(data.declarations || 0);
+        const totalGaValue = Number(data.totalGiftAid || 0);
         setGiftAidSummary({
-          declarations: Number(data.declarations || 0),
+          declarations: declarationsCount,
           totalDonations: Number(data.totalDonations || 0),
-          totalGiftAid: Number(data.totalGiftAid || 0),
+          totalGiftAid: totalGaValue,
           entries: Array.isArray(data.entries) ? data.entries : []
         });
+        if (typeof onUpdateTableData === 'function') {
+          onUpdateTableData(prev => ({
+            ...prev,
+            gift_aid: {
+              ...(prev?.gift_aid || {}),
+              eligible: Boolean(prev?.table?.enable_gift_aid),
+              declarations: declarationsCount,
+              giftAid: prev?.table?.enable_gift_aid ? totalGaValue : 0
+            }
+          }));
+        }
       }
     } catch (e) {
       console.warn('Failed to load Gift Aid summary:', e);
     } finally {
       setGiftAidLoading(false);
     }
-  }, [currentTableSlug, session, tableData?.table?.slug]);
+  }, [currentTableSlug, session, tableData?.table?.slug, onUpdateTableData]);
 
   useEffect(() => {
     if (activeTab === 'giftaid') {
@@ -3182,6 +3195,34 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
       alert(res?.error || 'Failed to update Gift Aid status.');
     }
     setTimeout(() => setSaveStatus(''), 3000);
+  };
+
+  const handleUpdateGiftAidEntry = async (entryId, patch) => {
+    const slug = currentTableSlug || session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley';
+    const token = session?.googleCredential || session?.token || getAdminAuthToken(slug);
+    const res = await updateGiftAidEntry(slug, { id: entryId, ...patch }, token);
+    if (res && res.ok) {
+      setSaveStatus('✓ Gift Aid declaration updated in D1!');
+      await loadGiftAidSummary();
+      setTimeout(() => setSaveStatus(''), 3000);
+      return true;
+    }
+    alert(res?.error || 'Failed to update Gift Aid entry.');
+    return false;
+  };
+
+  const handleDeleteGiftAidEntry = async (entryId) => {
+    const slug = currentTableSlug || session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley';
+    const token = session?.googleCredential || session?.token || getAdminAuthToken(slug);
+    const res = await deleteGiftAidEntry(slug, entryId, token);
+    if (res && res.ok) {
+      setSaveStatus('✓ Gift Aid declaration removed from D1!');
+      await loadGiftAidSummary();
+      setTimeout(() => setSaveStatus(''), 3000);
+      return true;
+    }
+    alert(res?.error || 'Failed to delete Gift Aid entry.');
+    return false;
   };
 
   // RESTRICTED VIEW FOR NATIONAL BOARD ACCOUNTS (VIEW ONLY ON NATIONAL FLEET RADAR)
@@ -13079,6 +13120,37 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                 </div>
               </div>
 
+              {/* QUICK JUMP TO GIFT AID LEDGER (AMEND / REMOVE ENTRIES) */}
+              <div style={{
+                background: 'rgba(34, 197, 94, 0.06)',
+                border: '1px solid rgba(34, 197, 94, 0.25)',
+                borderRadius: '12px',
+                padding: '16px 20px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '14px', color: '#fff', marginBottom: '2px' }}>
+                    🎁 Gift Aid Declarations &amp; Ledger
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    Need to edit donor details, correct amounts, or remove test Gift Aid entries?
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('giftaid')}
+                  className="btn-secondary"
+                  style={{ borderColor: 'rgba(34, 197, 94, 0.4)', color: '#86efac', padding: '8px 14px', fontSize: '13px' }}
+                >
+                  <Heart size={14} />
+                  <span>Manage / Amend Gift Aid Entries →</span>
+                </button>
+              </div>
+
               {/* SUPPORTER PLEA: TUK TUK BUILD & SERVER HOSTING UPKEEP */}
               <div style={{
                 background: 'linear-gradient(135deg, rgba(251, 175, 51, 0.08) 0%, #1a1a17 100%)',
@@ -13163,6 +13235,8 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
               loadGiftAidSummary={loadGiftAidSummary}
               handleExportHmrc={handleExportHmrc}
               handleMarkGiftAidClaimed={handleMarkGiftAidClaimed}
+              handleUpdateGiftAidEntry={handleUpdateGiftAidEntry}
+              handleDeleteGiftAidEntry={handleDeleteGiftAidEntry}
             />
           </Suspense>
         )}
