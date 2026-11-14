@@ -492,6 +492,23 @@ const API = params.get('api') || '';
 const WORKER_URL = 'https://turbosanta-api.beverley247.workers.dev';
 let globalDonateUrl = "";
 
+if (tableSlug) {
+  try {
+    const crewViewKey = 'ts_view_counted_crew_' + tableSlug;
+    if (!sessionStorage.getItem(crewViewKey)) {
+      sessionStorage.setItem(crewViewKey, '1');
+      const utmSource = params.get('utm_source') || params.get('source') || (params.get('qr') ? 'qr' : '');
+      const ref = document.referrer || '';
+      const crewBeaconUrl = `${WORKER_URL}/api/track-view?table=${encodeURIComponent(tableSlug)}&page=crew&ref=${encodeURIComponent(ref)}&utm_source=${encodeURIComponent(utmSource)}`;
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(crewBeaconUrl);
+      } else {
+        fetch(crewBeaconUrl, { method: 'POST', keepalive: true }).catch(() => {});
+      }
+    }
+  } catch (e) {}
+}
+
 // --- THEME FROM THE API ---
 // Same source and rules as the Santa sleigh page: settings.primary_color drives the brand colour,
 // and text on it flips black/white for readability. Missing or invalid -> Round Table gold.

@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   BarChart3, Camera, Coins, Printer, Download, Receipt, Heart,
   Users, Bell, Navigation, CreditCard, TrendingUp, Sparkles, Check, Copy, Award, Calendar,
-  Plus, Pencil, Trash2, X, Save
+  Plus, Pencil, Trash2, X, Save, Globe, Smartphone, Monitor, ExternalLink, RefreshCw, Eye
 } from 'lucide-react';
-import { saveSeasonHistoryEntry, deleteSeasonHistoryEntry } from '../../services/api';
+import { saveSeasonHistoryEntry, deleteSeasonHistoryEntry, fetchTrafficAnalytics } from '../../services/api';
 
 export default function SeasonWrapTab({
   session,
@@ -26,7 +26,33 @@ export default function SeasonWrapTab({
   const [confirmDeleteHistory, setConfirmDeleteHistory] = useState(false);
   const [historyError, setHistoryError] = useState('');
 
+  const [trafficDays, setTrafficDays] = useState(30);
+  const [trafficData, setTrafficData] = useState(null);
+  const [isLoadingTraffic, setIsLoadingTraffic] = useState(false);
+  const [trafficError, setTrafficError] = useState('');
+  const [copiedTrackingUrl, setCopiedTrackingUrl] = useState(false);
+
   const tableSlug = session?.tableId || session?.tableSlug || 'beverley';
+
+  const loadTraffic = useCallback(async (daysToFetch = trafficDays) => {
+    if (!tableSlug) return;
+    setIsLoadingTraffic(true);
+    setTrafficError('');
+    try {
+      const res = await fetchTrafficAnalytics(tableSlug, daysToFetch);
+      if (res?.ok) {
+        setTrafficData(res);
+      } else {
+        setTrafficError(res?.error || 'Could not load traffic metrics.');
+      }
+    } finally {
+      setIsLoadingTraffic(false);
+    }
+  }, [tableSlug, trafficDays]);
+
+  useEffect(() => {
+    loadTraffic(trafficDays);
+  }, [loadTraffic, trafficDays]);
   const routes = tableData?.routes || [];
   const streets = tableData?.streets || [];
   const isGiftAidEligible = Boolean(tableData?.table?.enable_gift_aid);
@@ -791,6 +817,342 @@ export default function SeasonWrapTab({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Built-in Site Traffic & Audience Reach Analytics */}
+      <div style={{ background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '14px', padding: '24px', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <Globe size={18} color="var(--primary)" />
+              <span>Site Traffic &amp; Audience Reach</span>
+              <span style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--primary)', background: 'rgba(251, 175, 51, 0.1)', border: '1px solid rgba(251, 175, 51, 0.25)', padding: '2px 8px', borderRadius: '6px' }}>
+                {tableSlug}.roundtablesantasleigh.co.uk
+              </span>
+            </h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>
+              Cookieless real-time traffic across your Town Sleigh Hub, Live Santa Tracker Map, and Crew Sign-Up pages.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'inline-flex', background: '#151513', border: '1px solid var(--border)', borderRadius: '8px', padding: '3px', gap: '3px' }}>
+              {[7, 30, 90].map(d => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setTrafficDays(d)}
+                  style={{
+                    background: trafficDays === d ? 'var(--primary)' : 'transparent',
+                    color: trafficDays === d ? '#000' : 'var(--text-muted)',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '5px 10px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {d}D
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => loadTraffic(trafficDays)}
+              disabled={isLoadingTraffic}
+              className="btn-secondary"
+              style={{ padding: '6px 11px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+              title="Refresh traffic analytics"
+            >
+              <RefreshCw size={13} style={{ animation: isLoadingTraffic ? 'spin 1s linear infinite' : 'none' }} />
+              <span>{isLoadingTraffic ? 'Loading...' : 'Refresh'}</span>
+            </button>
+
+            <a
+              href={`/partner_report.html?table=${encodeURIComponent(tableSlug)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary"
+              style={{
+                padding: '6px 12px',
+                fontSize: '12px',
+                textDecoration: 'none',
+                color: '#93c5fd',
+                borderColor: 'rgba(96, 165, 250, 0.35)',
+                background: 'rgba(59, 130, 246, 0.08)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+            >
+              <span>Partner Impact Report</span>
+              <ExternalLink size={12} />
+            </a>
+          </div>
+        </div>
+
+        {trafficError && (
+          <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#fca5a5', borderRadius: '8px', padding: '10px 12px', fontSize: '12px', marginBottom: '16px' }}>
+            {trafficError}
+          </div>
+        )}
+
+        {(() => {
+          const lifetimeViews = Math.max(Number(currentStats.views || 0), Number(trafficData?.totalViews || 0));
+          const windowViews = trafficDays === 7
+            ? Number(trafficData?.views7d ?? trafficData?.windowViews ?? 0)
+            : trafficDays === 30
+              ? Number(trafficData?.views30d ?? trafficData?.windowViews ?? 0)
+              : Number(trafficData?.windowViews ?? trafficData?.views30d ?? 0);
+          const mobilePct = Number(trafficData?.devices?.mobilePct ?? 0);
+          const desktopPct = Number(trafficData?.devices?.desktopPct ?? 0);
+          const mobileCount = Number(trafficData?.devices?.mobile || 0) + Number(trafficData?.devices?.tablet || 0);
+          const desktopCount = Number(trafficData?.devices?.desktop || 0);
+          const totalDeviceLogged = mobileCount + desktopCount;
+          const dailyList = Array.isArray(trafficData?.daily) ? trafficData.daily : [];
+          const maxDailyViews = dailyList.reduce((m, row) => Math.max(m, Number(row.views || 0)), 0);
+          const sourcesList = Array.isArray(trafficData?.sources) ? trafficData.sources : [];
+          const pagesList = Array.isArray(trafficData?.pages) ? trafficData.pages : [];
+          const topSponsors = Array.isArray(trafficData?.sponsorClicks?.topSponsors) ? trafficData.sponsorClicks.topSponsors : [];
+          const qrTrackUrl = `https://${tableSlug}.roundtablesantasleigh.co.uk/?utm_source=qr`;
+
+          return (
+            <>
+              {/* 4 Traffic KPI Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px', marginBottom: '18px' }}>
+                <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.8px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Eye size={13} color="var(--primary)" />
+                    <span>Total Site &amp; Map Views</span>
+                  </div>
+                  <div className="brand-font" style={{ fontSize: '28px', color: 'var(--primary)', lineHeight: 1.1, marginBottom: '5px' }}>
+                    {lifetimeViews.toLocaleString()}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#86efac', fontWeight: 600 }}>
+                    Last 24h: +{(trafficData?.views24h || 0).toLocaleString()} logged visits
+                  </div>
+                </div>
+
+                <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.8px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <TrendingUp size={13} color="#38bdf8" />
+                    <span>Recent Window ({trafficDays}d)</span>
+                  </div>
+                  <div className="brand-font" style={{ fontSize: '28px', color: '#38bdf8', lineHeight: 1.1, marginBottom: '5px' }}>
+                    {windowViews.toLocaleString()}
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    Last 7 days: {(trafficData?.views7d || 0).toLocaleString()} views
+                  </div>
+                </div>
+
+                <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.8px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Smartphone size={13} color="#c084fc" />
+                    <span>Mobile vs Desktop</span>
+                  </div>
+                  <div className="brand-font" style={{ fontSize: '28px', color: '#c084fc', lineHeight: 1.1, marginBottom: '6px' }}>
+                    {totalDeviceLogged > 0 ? `${mobilePct}% Mobile` : '—'}
+                  </div>
+                  {totalDeviceLogged > 0 ? (
+                    <>
+                      <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden', display: 'flex', marginBottom: '5px' }}>
+                        <div style={{ width: `${mobilePct}%`, height: '100%', background: '#c084fc' }} />
+                        <div style={{ width: `${desktopPct}%`, height: '100%', background: '#60a5fa' }} />
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Smartphone size={11} color="#c084fc" /> {mobileCount} mobile</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Monitor size={11} color="#60a5fa" /> {desktopCount} desktop</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      Device split records on new visits
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.8px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Award size={13} color="#22c55e" />
+                    <span>Sponsor &amp; Partner Clicks</span>
+                  </div>
+                  <div className="brand-font" style={{ fontSize: '28px', color: '#22c55e', lineHeight: 1.1, marginBottom: '5px' }}>
+                    {(trafficData?.sponsorClicks?.total || 0).toLocaleString()}
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    Tracked outbound clicks across site &amp; map
+                  </div>
+                </div>
+              </div>
+
+              {/* Daily Visitor Timeline Chart */}
+              <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '18px', marginBottom: '18px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>
+                    Daily Visitor Timeline (Last {trafficDays} Days)
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    {dailyList.length > 0
+                      ? `${dailyList.length} active day${dailyList.length === 1 ? '' : 's'} · Peak ${maxDailyViews.toLocaleString()} views`
+                      : 'Detailed daily log started'}
+                  </div>
+                </div>
+
+                {dailyList.length === 0 ? (
+                  <div style={{ padding: '20px', textAlign: 'center', border: '1px dashed var(--border)', borderRadius: '10px', color: 'var(--text-muted)', fontSize: '12px', lineHeight: 1.6 }}>
+                    Detailed daily breakdown logging starts from today for each new visit to <strong>{tableSlug}.roundtablesantasleigh.co.uk</strong>.
+                    {lifetimeViews > 0 && ` Your historical total of ${lifetimeViews.toLocaleString()} views is preserved above.`}
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '140px', paddingTop: '20px', overflowX: 'auto' }}>
+                    {dailyList.map(d => {
+                      const pct = maxDailyViews > 0 ? Math.max(8, Math.round((d.views / maxDailyViews) * 100)) : 8;
+                      const shortDay = String(d.day || '').slice(5);
+                      return (
+                        <div
+                          key={d.day}
+                          title={`${d.day}: ${d.views} visit${d.views === 1 ? '' : 's'} (${d.mobile} mobile, ${d.desktop} desktop)`}
+                          style={{
+                            flex: dailyList.length <= 14 ? '1 1 28px' : '0 0 26px',
+                            minWidth: '22px',
+                            height: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'flex-end',
+                            alignItems: 'center',
+                            gap: '5px'
+                          }}
+                        >
+                          <span style={{ fontSize: '10px', color: 'var(--primary)', fontWeight: 700 }}>{d.views}</span>
+                          <div
+                            style={{
+                              width: '100%',
+                              maxWidth: '34px',
+                              height: `${pct}%`,
+                              background: 'linear-gradient(180deg, var(--primary) 0%, rgba(251, 175, 51, 0.35) 100%)',
+                              borderRadius: '5px 5px 2px 2px',
+                              transition: 'height 0.25s ease'
+                            }}
+                          />
+                          <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
+                            {shortDay}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* 2-Column Breakdown Grid: Sources + Pages/Sponsors */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
+                {/* Top Traffic Sources & Referrers */}
+                <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px' }}>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff', marginBottom: '10px' }}>
+                      Top Traffic Sources &amp; Referrers
+                    </div>
+                    {sourcesList.length === 0 ? (
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', padding: '10px 0' }}>
+                        Source metrics appear automatically as visitors arrive from QR posters, Facebook, Instagram, WhatsApp, Google, or direct links.
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
+                        {sourcesList.map(item => (
+                          <div key={item.source}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+                              <span style={{ color: '#fff', fontWeight: 600 }}>{item.source}</span>
+                              <span style={{ color: 'var(--text-muted)', fontFamily: 'monospace' }}>{item.count} ({item.pct}%)</span>
+                            </div>
+                            <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.06)', borderRadius: '3px', overflow: 'hidden' }}>
+                              <div style={{ width: `${Math.max(4, item.pct)}%`, height: '100%', background: 'var(--primary)' }} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 12px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                    <div style={{ fontWeight: 700, color: '#fde68a', marginBottom: '4px' }}>Track printed posters &amp; social links:</div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                      <code style={{ fontSize: '10px', color: '#fff', wordBreak: 'break-all' }}>{qrTrackUrl}</code>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard?.writeText(qrTrackUrl);
+                          setCopiedTrackingUrl(true);
+                          setTimeout(() => setCopiedTrackingUrl(false), 2000);
+                        }}
+                        style={{
+                          background: 'rgba(251, 175, 51, 0.12)',
+                          border: '1px solid rgba(251, 175, 51, 0.35)',
+                          color: 'var(--primary)',
+                          borderRadius: '5px',
+                          padding: '3px 8px',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        {copiedTrackingUrl ? <Check size={11} /> : <Copy size={11} />}
+                        <span>{copiedTrackingUrl ? 'Copied' : 'Copy QR Link'}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Page & Feature Engagement */}
+                <div style={{ background: '#151513', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff', marginBottom: '10px' }}>
+                    Page &amp; Feature Engagement
+                  </div>
+                  {pagesList.length === 0 ? (
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', padding: '10px 0' }}>
+                      Page-level views across Main Sleigh Hub, Live Santa Tracker Map, and Crew Sign-Up will populate as visitors browse.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '9px', marginBottom: topSponsors.length > 0 ? '14px' : 0 }}>
+                      {pagesList.map(p => (
+                        <div key={p.page}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+                            <span style={{ color: '#fff', fontWeight: 600 }}>{p.label}</span>
+                            <span style={{ color: 'var(--text-muted)', fontFamily: 'monospace' }}>{p.count} ({p.pct}%)</span>
+                          </div>
+                          <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.06)', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ width: `${Math.max(4, p.pct)}%`, height: '100%', background: '#38bdf8' }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {topSponsors.length > 0 && (
+                    <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#86efac', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: '8px' }}>
+                        Top Clicked Sponsors
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                        {topSponsors.map(sp => (
+                          <div key={sp.sponsor_name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                            <span style={{ color: '#fff' }}>{sp.sponsor_name}</span>
+                            <span style={{ color: '#86efac', fontFamily: 'monospace', fontWeight: 700 }}>{sp.clicks} click{sp.clicks === 1 ? '' : 's'}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          );
+        })()}
       </div>
 
       {/* Year-on-Year Growth Graphs & Benchmarks */}

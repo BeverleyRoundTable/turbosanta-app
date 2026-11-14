@@ -1169,5 +1169,18 @@ export async function deleteSeasonHistoryEntry(tableSlug = "beverley", year, exp
   }
 }
 
+export async function fetchTrafficAnalytics(tableSlug = "beverley", days = 30) {
+  try {
+    const slug = (tableSlug || "beverley").toLowerCase().trim();
+    const res = await apiFetch(`${API_BASE}/api/traffic?table=${encodeURIComponent(slug)}&days=${encodeURIComponent(days)}`);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  } catch (err) {
+    console.error("fetchTrafficAnalytics error:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
 
 

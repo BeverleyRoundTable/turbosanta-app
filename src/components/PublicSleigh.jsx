@@ -616,14 +616,17 @@ export default function PublicSleigh({ tableData, activeTableSlug }) {
     return () => window.removeEventListener('message', handleResizeMsg);
   }, []);
 
-  // 👁️ Record unique visit beacon to update D1 total_views (session deduplicated)
+  // 👁️ Record unique visit beacon to update D1 total_views & site_views (session deduplicated)
   useEffect(() => {
     if (activeTableSlug) {
       try {
         const sessionKey = 'ts_view_counted_' + activeTableSlug;
         if (!sessionStorage.getItem(sessionKey)) {
           sessionStorage.setItem(sessionKey, '1');
-          const beaconEndpoint = `${API_BASE}/api/track-view?table=${encodeURIComponent(activeTableSlug)}`;
+          const searchParams = new URLSearchParams(window.location.search);
+          const utmSource = searchParams.get('utm_source') || searchParams.get('source') || (searchParams.get('qr') ? 'qr' : '');
+          const ref = document.referrer || '';
+          const beaconEndpoint = `${API_BASE}/api/track-view?table=${encodeURIComponent(activeTableSlug)}&page=site&ref=${encodeURIComponent(ref)}&utm_source=${encodeURIComponent(utmSource)}`;
           if (navigator.sendBeacon) {
             navigator.sendBeacon(beaconEndpoint);
           } else {

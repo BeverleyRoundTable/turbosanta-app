@@ -4893,13 +4893,16 @@
         const tableSlug = rawTableParam || (!explicitApi ? (localStorage.getItem("SANTA_TABLE") || sessionStorage.getItem("SANTA_TABLE") || "") : "");
         AppState.vars.tableSlug = tableSlug;
 
-        // 👁️ Record unique visit beacon to update D1 total_views (session deduplicated)
+        // 👁️ Record unique visit beacon to update D1 total_views & site_views (session deduplicated)
         if (tableSlug) {
           try {
-            const sessionKey = 'ts_view_counted_' + tableSlug;
+            const isEmbedded = params.get('embedded') === '1' || (window.self !== window.top);
+            const sessionKey = (isEmbedded ? 'ts_view_counted_map_' : 'ts_view_counted_') + tableSlug;
             if (!sessionStorage.getItem(sessionKey)) {
               sessionStorage.setItem(sessionKey, '1');
-              const beaconEndpoint = `${WORKER_URL}/api/track-view?table=${encodeURIComponent(tableSlug)}`;
+              const utmSource = params.get('utm_source') || params.get('source') || (params.get('qr') ? 'qr' : '');
+              const ref = document.referrer || '';
+              const beaconEndpoint = `${WORKER_URL}/api/track-view?table=${encodeURIComponent(tableSlug)}&page=tracker&inc=${isEmbedded ? '0' : '1'}&ref=${encodeURIComponent(ref)}&utm_source=${encodeURIComponent(utmSource)}`;
               if (navigator.sendBeacon) {
                 navigator.sendBeacon(beaconEndpoint);
               } else {
