@@ -9029,7 +9029,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   🎬 Ambient Background & Video Loop
                 </div>
                 <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-                  Choose your public tracker background style.
+                  Choose your hero banner video mode and/or upload a custom page background image. Both can be active together.
                 </p>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '12px', marginBottom: '16px' }}>
@@ -9060,10 +9060,10 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                           }
                         }}
                       />
-                      <span style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>🖼️ Static Image (Default)</span>
+                      <span style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>🖼️ Static Image Only</span>
                     </div>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      Use the default background image or upload a custom image.
+                      No hero video. Use the default background image or upload a custom page image below.
                     </span>
                   </label>
 
@@ -9094,10 +9094,10 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                           }
                         }}
                       />
-                      <span style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>🎅 Default Video</span>
+                      <span style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>🎅 Default Hero Video</span>
                     </div>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      Play the default video loop in the hero banner.
+                      Play the default video loop in the hero banner (supports custom page background below).
                     </span>
                   </label>
 
@@ -9128,10 +9128,10 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                           }
                         }}
                       />
-                      <span style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>📹 Custom Video (.mp4)</span>
+                      <span style={{ fontWeight: 700, fontSize: '14px', color: '#fff' }}>📹 Custom Hero Video (.mp4)</span>
                     </div>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      Upload your own .mp4 video loop or enter a direct URL.
+                      Upload your own .mp4 hero video loop (supports custom page background below).
                     </span>
                   </label>
                 </div>
@@ -9206,7 +9206,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     background: '#161614',
                     border: '1px solid rgba(251, 175, 51, 0.4)',
                     borderRadius: '8px',
-                    marginBottom: '14px',
+                    marginBottom: '12px',
                     flexWrap: 'wrap'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -9246,7 +9246,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     background: '#161614',
                     border: '1px solid rgba(251, 175, 51, 0.4)',
                     borderRadius: '8px',
-                    marginBottom: '14px',
+                    marginBottom: '12px',
                     flexWrap: 'wrap'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -9276,7 +9276,9 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       ✓ Custom Video Active
                     </span>
                   </div>
-                ) : !formData.background_url ? (
+                ) : null}
+
+                {!formData.background_url ? (
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -9297,15 +9299,19 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       />
                       <div>
                         <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>
-                          Default Background Image Active
+                          {(formData.background_mode === 'video' || formData.background_mode === 'custom_video')
+                            ? 'Optional Custom Page Background: Not Set'
+                            : 'Default Background Image Active'}
                         </div>
                         <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                          Using the default background image. Upload a custom image below to replace.
+                          {(formData.background_mode === 'video' || formData.background_mode === 'custom_video')
+                            ? 'Using ambient dark backdrop behind sections. Upload a custom image below to show it alongside your hero video.'
+                            : 'Using the default background image. Upload a custom image below to replace.'}
                         </div>
                       </div>
                     </div>
                     <span style={{ fontSize: '12px', color: '#86efac', fontWeight: 600 }}>
-                      ✓ Default Active
+                      ✓ {(formData.background_mode === 'video' || formData.background_mode === 'custom_video') ? 'Ambient Backdrop' : 'Default Active'}
                     </span>
                   </div>
                 ) : (
@@ -9329,17 +9335,21 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       />
                       <div>
                         <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>
-                          Custom Background Image Active
+                          {(formData.background_mode === 'video' || formData.background_mode === 'custom_video')
+                            ? 'Custom Page Background Active (+ Hero Video)'
+                            : 'Custom Background Image Active'}
                         </div>
                         <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                          Custom uploaded image is active.
+                          {(formData.background_mode === 'video' || formData.background_mode === 'custom_video')
+                            ? 'Shown across the full page while your video plays in the hero banner.'
+                            : 'Custom uploaded image is active.'}
                         </div>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => {
-                        setFormData(prev => ({ ...prev, background_url: '', background_mode: 'image' }));
+                        setFormData(prev => ({ ...prev, background_url: '' }));
                       }}
                       style={{
                         background: 'rgba(251, 175, 51, 0.1)',
@@ -9355,7 +9365,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                         gap: '6px'
                       }}
                     >
-                      ↺ Revert to Default Background Image
+                      ↺ Clear Custom Background Image
                     </button>
                   </div>
                 )}
@@ -9366,14 +9376,15 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   currentImage={formData.background_url}
                   tableSlug={currentTableSlug}
                   onImageSelected={(dataUrl) => {
-                    setFormData(prev => ({ ...prev, background_url: dataUrl, background_mode: 'image' }));
+                    const nextMode = formData.background_mode || 'image';
+                    setFormData(prev => ({ ...prev, background_url: dataUrl, background_mode: prev.background_mode || 'image' }));
                     if (typeof window !== 'undefined') {
-                      localStorage.setItem(`turbosanta_${currentTableSlug}_bg_mode`, 'image');
+                      localStorage.setItem(`turbosanta_${currentTableSlug}_bg_mode`, nextMode);
                       const slug = session?.tableId || session?.tableSlug || tableData?.table?.slug || currentTableSlug || 'beverley';
-                      localStorage.setItem(`turbosanta_${slug}_bg_mode`, 'image');
+                      localStorage.setItem(`turbosanta_${slug}_bg_mode`, nextMode);
                     }
                   }}
-                  helperText="Leave empty to use the default background image."
+                  helperText="Leave empty to use the default background image. Uploading an image keeps your active Hero Video mode intact so both can be displayed together."
                 />
 
                 {/* Instant Save Ambient Background & Video Button */}

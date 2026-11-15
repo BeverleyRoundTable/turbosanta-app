@@ -2456,8 +2456,14 @@
                         }
                     }
 
-                    if (bgEl) bgEl.style.backgroundImage = 'none';
-                    if (bgOverlay) bgOverlay.style.backgroundImage = BG_OVERLAY;
+                    const customBgUrl = safeUrl(settings.background_url);
+                    if (customBgUrl) {
+                        if (bgEl) bgEl.style.backgroundImage = BG_OVERLAY + ', url("' + customBgUrl.replace(/"/g, '%22') + '")';
+                        if (bgOverlay) bgOverlay.style.backgroundImage = 'none';
+                    } else {
+                        if (bgEl) bgEl.style.backgroundImage = 'none';
+                        if (bgOverlay) bgOverlay.style.backgroundImage = BG_OVERLAY;
+                    }
                 } else {
                     if (heroEl) heroEl.style.backgroundColor = 'transparent';
                     if (videoWrap) videoWrap.style.display = 'none';

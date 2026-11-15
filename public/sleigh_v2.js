@@ -2244,14 +2244,22 @@
     const isVideo = isCustomVideo || isDefaultVideo;
 
     if (isVideo) {
-      // 1. VIDEO MODE (e.g. Beverley, Stockton, Abergavenny, Isle of Wight):
-      // Hide static background image on sky layer, keep ambient stars
+      // 1. VIDEO MODE (e.g. Beverley, Stockton, Abergavenny, Isle of Wight, Bishop's Stortford):
+      // Play ambient video in hero card; if a custom background image is also configured, display it on the page sky layer
+      const customBgImg = safeUrl(table.background_url);
       if (bgLayer) {
-        bgLayer.style.display = 'none';
-        bgLayer.style.backgroundImage = 'none';
+        if (customBgImg) {
+          bgLayer.style.display = 'block';
+          bgLayer.style.backgroundImage = `url("${customBgImg.replace(/"/g, '%22')}")`;
+        } else {
+          bgLayer.style.display = 'none';
+          bgLayer.style.backgroundImage = 'none';
+        }
       }
       if (bgOverlay) {
-        bgOverlay.style.background = 'radial-gradient(ellipse 80% 50% at 18% -10%, rgba(var(--primary-rgb), 0.16), transparent 65%), radial-gradient(ellipse 65% 45% at 85% 8%, rgba(var(--accent-rgb), 0.12), transparent 60%), radial-gradient(ellipse 90% 60% at 50% 100%, rgba(16, 24, 40, 0.9), transparent 70%), var(--bg-obsidian)';
+        bgOverlay.style.background = customBgImg
+          ? 'linear-gradient(180deg, rgba(8, 12, 20, 0.45) 0%, rgba(8, 12, 20, 0.72) 50%, rgba(6, 9, 15, 0.94) 100%)'
+          : 'radial-gradient(ellipse 80% 50% at 18% -10%, rgba(var(--primary-rgb), 0.16), transparent 65%), radial-gradient(ellipse 65% 45% at 85% 8%, rgba(var(--accent-rgb), 0.12), transparent 60%), radial-gradient(ellipse 90% 60% at 50% 100%, rgba(16, 24, 40, 0.9), transparent 70%), var(--bg-obsidian)';
       }
 
       if (heroCard) {
