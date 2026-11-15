@@ -1114,6 +1114,11 @@
 
     /* 🚀 EMBEDDED TURNKEY IFRAME & MOBILE CLEAN SCALING */
     /* Preserves clean card aspect ratio with balanced padding and zero cutoffs */
+    body.is-embedded,
+    body.is-embedded #map {
+      touch-action: pinch-zoom;
+      overscroll-behavior: none;
+    }
     body.is-embedded #workshopOverlay,
     #workshopOverlay.ws-compact {
       padding: 10px 12px;
@@ -1121,7 +1126,7 @@
       align-items: center;
       overflow: hidden;
       overscroll-behavior: none;
-      touch-action: pan-y;
+      touch-action: none;
     }
     body.is-embedded .ws-card,
     #workshopOverlay.ws-compact .ws-card {
@@ -1637,7 +1642,7 @@
       
       <div class="ws-actions">
         <a id="wsDonate" class="ws-donate" href="#" target="_blank" style="display: none;">Donate to support good causes</a>
-        <button class="ws-skip-btn" onclick="const w=document.getElementById('workshopOverlay'); if(w) w.remove(); try{window.parent.postMessage({type:'turbosanta-workshop-state',visible:false},'*');}catch(_){}">Bypass &amp; view map</button>
+        <button class="ws-skip-btn" onclick="document.getElementById('workshopOverlay').remove();">Bypass &amp; view map</button>
       </div>
     </div>
   </div>
@@ -1690,7 +1695,7 @@
       }
 
       let hintTimer = null;
-      function showCtrlZoomHint() {
+      function showMapHint(html) {
         let hint = document.getElementById('ctrlZoomHint');
         if (!hint) {
           hint = document.createElement('div');
@@ -1719,14 +1724,22 @@
           ].join(';');
           document.body.appendChild(hint);
         }
-        const isMac = (navigator.platform && navigator.platform.toUpperCase().includes('MAC')) ||
-                      (navigator.userAgent && navigator.userAgent.toUpperCase().includes('MAC'));
-        hint.innerHTML = `💡 Hold <span style="color:var(--primary, #FBAF33);">${isMac ? '⌘ Cmd' : 'Ctrl'}</span> + scroll to zoom map`;
+        hint.innerHTML = html;
         hint.style.opacity = '1';
         if (hintTimer) clearTimeout(hintTimer);
         hintTimer = setTimeout(() => {
           hint.style.opacity = '0';
         }, 1300);
+      }
+
+      function showCtrlZoomHint() {
+        const isMac = (navigator.platform && navigator.platform.toUpperCase().includes('MAC')) ||
+                      (navigator.userAgent && navigator.userAgent.toUpperCase().includes('MAC'));
+        showMapHint(`💡 Hold <span style="color:var(--primary, #FBAF33);">${isMac ? '⌘ Cmd' : 'Ctrl'}</span> + scroll to zoom map`);
+      }
+
+      function showTwoFingerTouchHint() {
+        showMapHint('💡 Use <span style="color:var(--primary, #FBAF33);">two fingers</span> to move map');
       }
 
       if (isEmbedded) {
@@ -1761,29 +1774,16 @@
           }
         }, { passive: false });
 
-        // Listen for parent control messages (e.g. bypass workshop / unlock map from mobile scroll guard)
-        let parentMapInteractive = false;
-        window.addEventListener('message', (e) => {
-          if (!e.data || typeof e.data !== 'object') return;
-          if (e.data.type === 'turbosanta-bypass-workshop') {
-            const wsOverlay = document.getElementById('workshopOverlay');
-            if (wsOverlay) {
-              wsOverlay.remove();
-            }
-            try {
-              window.parent.postMessage({ type: 'turbosanta-workshop-state', visible: false }, '*');
-            } catch (_) {}
-          } else if (e.data.type === 'turbosanta-map-interactive') {
-            parentMapInteractive = Boolean(e.data.interactive);
-          }
-        });
-
         // Touch drag forwarding for mobile on embedded iframe using physical screenY
         // (avoids iframe viewport clientY feedback oscillation) + inertial momentum on touchend
+        let startScreenX = null;
+        let startScreenY = null;
         let lastScreenY = null;
         let lastMoveTs = 0;
         let velocityY = 0;
+        let isDraggingScroll = false;
         let momentumRaf = null;
+        let twoFingerHintShown = false;
 
         function stopMomentum() {
           if (momentumRaf) {
@@ -1796,54 +1796,78 @@
         window.addEventListener('touchstart', (e) => {
           stopMomentum();
           if (e.touches && e.touches.length === 1) {
-            lastScreenY = e.touches[0].screenY;
+            startScreenX = e.touches[0].screenX;
+            startScreenY = e.touches[0].screenY;
+            lastScreenY = startScreenY;
             lastMoveTs = performance.now();
+            isDraggingScroll = false;
+            twoFingerHintShown = false;
           } else {
+            startScreenX = null;
+            startScreenY = null;
             lastScreenY = null;
+            isDraggingScroll = false;
           }
         }, { passive: true });
 
         window.addEventListener('touchmove', (e) => {
           if (lastScreenY === null || !e.touches || e.touches.length !== 1) return;
-          const wsOverlay = document.getElementById('workshopOverlay');
-          const isWsVisible = wsOverlay && wsOverlay.style.display !== 'none' && getComputedStyle(wsOverlay).display !== 'none';
-          if (parentMapInteractive && !isWsVisible) {
+
+          // Allow scrolling inside open modal lists (#scheduleList / #streetProgressList)
+          if (e.target && e.target.closest && e.target.closest('#scheduleList, #streetProgressList')) {
             return;
           }
 
           const now = performance.now();
+          const currentScreenX = e.touches[0].screenX;
           const currentScreenY = e.touches[0].screenY;
+          const totalDx = currentScreenX - startScreenX;
+          const totalDy = startScreenY - currentScreenY;
           const deltaY = lastScreenY - currentScreenY;
-          const dt = Math.max(1, now - lastMoveTs);
-          lastScreenY = currentScreenY;
-          lastMoveTs = now;
 
-          // Exponentially smoothed velocity (px per ms)
-          const instVel = deltaY / dt;
-          velocityY = velocityY * 0.4 + instVel * 0.6;
+          const wsOverlay = document.getElementById('workshopOverlay');
+          const isWsVisible = wsOverlay && wsOverlay.style.display !== 'none' && getComputedStyle(wsOverlay).display !== 'none';
 
-          if (Math.abs(deltaY) > 0.5) {
-            forwardScrollToParent(deltaY);
+          if (!isDraggingScroll) {
+            if (!isWsVisible && !twoFingerHintShown && Math.abs(totalDx) > 18 && Math.abs(totalDx) > Math.abs(totalDy) * 1.5) {
+              twoFingerHintShown = true;
+              showTwoFingerTouchHint();
+            }
+            if (Math.abs(totalDy) > 5) {
+              isDraggingScroll = true;
+            }
           }
-        }, { passive: true });
+
+          if (isDraggingScroll || Math.abs(deltaY) > 0.5) {
+            if (isDraggingScroll && e.cancelable) {
+              e.preventDefault();
+            }
+            const dt = Math.max(1, now - lastMoveTs);
+            lastScreenY = currentScreenY;
+            lastMoveTs = now;
+
+            // Exponentially smoothed velocity (px per ms)
+            const instVel = deltaY / dt;
+            velocityY = velocityY * 0.35 + instVel * 0.65;
+
+            if (isDraggingScroll && Math.abs(deltaY) > 0.5) {
+              forwardScrollToParent(deltaY);
+            }
+          }
+        }, { passive: false });
 
         window.addEventListener('touchend', () => {
           lastScreenY = null;
-          const wsOverlay = document.getElementById('workshopOverlay');
-          const isWsVisible = wsOverlay && wsOverlay.style.display !== 'none' && getComputedStyle(wsOverlay).display !== 'none';
-          if (parentMapInteractive && !isWsVisible) {
-            velocityY = 0;
-            return;
-          }
+          isDraggingScroll = false;
           const sinceLastMove = performance.now() - lastMoveTs;
-          if (sinceLastMove < 80 && Math.abs(velocityY) > 0.15) {
+          if (sinceLastMove < 90 && Math.abs(velocityY) > 0.12) {
             let lastFrameTs = performance.now();
             const stepMomentum = (now) => {
               const dt = Math.min(32, Math.max(8, now - lastFrameTs));
               lastFrameTs = now;
-              velocityY *= Math.pow(0.94, dt / 16);
+              velocityY *= Math.pow(0.95, dt / 16);
               const stepDelta = velocityY * dt;
-              if (Math.abs(stepDelta) >= 0.8) {
+              if (Math.abs(stepDelta) >= 0.6) {
                 forwardScrollToParent(stepDelta);
                 momentumRaf = requestAnimationFrame(stepMomentum);
               } else {
@@ -1858,6 +1882,7 @@
 
         window.addEventListener('touchcancel', () => {
           lastScreenY = null;
+          isDraggingScroll = false;
           stopMomentum();
         }, { passive: true });
       }
@@ -2183,9 +2208,6 @@
               if (window.self !== window.top || window.innerWidth < 768 || window.innerHeight < 850) {
                 wsOverlay.classList.add('ws-compact');
               }
-              try {
-                window.parent.postMessage({ type: 'turbosanta-workshop-state', visible: true }, '*');
-              } catch (_) {}
             }
             
             const scheduleEl = document.getElementById('wsSchedule');
@@ -5195,8 +5217,10 @@
         
         window.initTrackerMap = function() {
           const enableWheelZoom = !AppState.flags.isKiosk && !AppState.flags.isDriver && !AppState.flags.isEmbedded;
+          const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
           AppState.map = L.map("map", {
             scrollWheelZoom: enableWheelZoom,
+            dragging: !(AppState.flags.isEmbedded && isTouchDevice),
             zoomControl: !AppState.flags.isKiosk && !AppState.flags.isDriver,
             rotate: !!AppState.flags.isDriver,
             touchRotate: false,
