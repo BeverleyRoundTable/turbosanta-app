@@ -82,6 +82,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
     let max_collectors = (r?.max_collectors !== undefined && !isNaN(Number(r.max_collectors))) ? Number(r.max_collectors) : 8;
     let max_marshals = (r?.max_marshals !== undefined && !isNaN(Number(r.max_marshals))) ? Number(r.max_marshals) : 4;
     let max_tech = (r?.max_tech !== undefined && !isNaN(Number(r.max_tech))) ? Number(r.max_tech) : 1;
+    let max_banksman = (r?.max_banksman !== undefined && !isNaN(Number(r.max_banksman))) ? Number(r.max_banksman) : 1;
     let volunteer_closed = r?.volunteer_closed !== undefined ? Boolean(r.volunteer_closed) : false;
 
     if (r?.notes) {
@@ -103,13 +104,14 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
           if (parsed.max_collectors !== undefined && !isNaN(Number(parsed.max_collectors))) max_collectors = Number(parsed.max_collectors);
           if (parsed.max_marshals !== undefined && !isNaN(Number(parsed.max_marshals))) max_marshals = Number(parsed.max_marshals);
           if (parsed.max_tech !== undefined && !isNaN(Number(parsed.max_tech))) max_tech = Number(parsed.max_tech);
+          if (parsed.max_banksman !== undefined && !isNaN(Number(parsed.max_banksman))) max_banksman = Number(parsed.max_banksman);
           if (parsed.volunteer_closed !== undefined) volunteer_closed = Boolean(parsed.volunteer_closed);
         } catch {}
       }
     }
     return {
       meeting_point, muster_time, route_type, static_stop_name, static_stop_time, lead_marshal, tow_driver,
-      max_volunteers, max_santas, max_drivers, max_lead_marshals, max_collectors, max_marshals, max_tech, volunteer_closed
+      max_volunteers, max_santas, max_drivers, max_lead_marshals, max_collectors, max_marshals, max_tech, max_banksman, volunteer_closed
     };
   };
 
@@ -144,6 +146,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
     max_collectors: initialMeta.max_collectors,
     max_marshals: initialMeta.max_marshals,
     max_tech: initialMeta.max_tech !== undefined ? initialMeta.max_tech : 1,
+    max_banksman: initialMeta.max_banksman !== undefined ? initialMeta.max_banksman : 1,
     volunteer_closed: initialMeta.volunteer_closed
   }));
 
@@ -200,6 +203,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
       max_collectors: meta.max_collectors,
       max_marshals: meta.max_marshals,
       max_tech: meta.max_tech,
+      max_banksman: meta.max_banksman,
       volunteer_closed: meta.volunteer_closed
     });
     setGpxStats(
@@ -475,6 +479,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
       max_collectors: (formData.max_collectors !== undefined && formData.max_collectors !== '' && !isNaN(parseInt(formData.max_collectors, 10))) ? Math.max(0, parseInt(formData.max_collectors, 10)) : 8,
       max_marshals: (formData.max_marshals !== undefined && formData.max_marshals !== '' && !isNaN(parseInt(formData.max_marshals, 10))) ? Math.max(0, parseInt(formData.max_marshals, 10)) : 4,
       max_tech: (formData.max_tech !== undefined && formData.max_tech !== '' && !isNaN(parseInt(formData.max_tech, 10))) ? Math.max(0, parseInt(formData.max_tech, 10)) : 1,
+      max_banksman: (formData.max_banksman !== undefined && formData.max_banksman !== '' && !isNaN(parseInt(formData.max_banksman, 10))) ? Math.max(0, parseInt(formData.max_banksman, 10)) : 1,
       volunteer_closed: Boolean(formData.volunteer_closed)
     };
     const hasMeta = true; // Always persist ROUTE_META to preserve volunteer limits and route metadata
@@ -510,6 +515,7 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
       max_collectors: routeMeta.max_collectors,
       max_marshals: routeMeta.max_marshals,
       max_tech: routeMeta.max_tech,
+      max_banksman: routeMeta.max_banksman,
       volunteer_closed: routeMeta.volunteer_closed,
       streets: streetsArray,
       notes: finalNotes,
@@ -1073,6 +1079,19 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                     max="10"
                     value={formData.max_tech !== undefined ? formData.max_tech : 1}
                     onChange={(e) => setFormData(prev => ({ ...prev, max_tech: e.target.value === '' ? '' : (parseInt(e.target.value, 10) >= 0 ? parseInt(e.target.value, 10) : 0) }))}
+                    style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>
+                    🚧 Banksman (Max)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="5"
+                    value={formData.max_banksman !== undefined ? formData.max_banksman : 1}
+                    onChange={(e) => setFormData(prev => ({ ...prev, max_banksman: e.target.value === '' ? '' : (parseInt(e.target.value, 10) >= 0 ? parseInt(e.target.value, 10) : 0) }))}
                     style={{ width: '100%', background: '#161614', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px', boxSizing: 'border-box' }}
                   />
                 </div>

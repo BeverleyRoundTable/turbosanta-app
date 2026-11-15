@@ -7,6 +7,7 @@ const STANDARD_ROLES = [
   { id: 'Driver', label: '🚗 Driver (Tow Car / Sleigh Driver)', badgeColor: '#3b82f6' },
   { id: 'Collections', label: '🪣 Collections (Bucket Collector)', badgeColor: '#22c55e' },
   { id: 'Safety Walkers', label: '🦺 Safety Walkers (Flank Marshal)', badgeColor: '#10b981' },
+  { id: 'Banksman', label: '🚧 Banksman (Sleigh Guide / Reversing)', badgeColor: '#f97316' },
   { id: 'Santa', label: '🎅 Santa Claus', badgeColor: '#ef4444' },
   { id: 'Tech/GPS', label: '📡 Tech / GPS Operator', badgeColor: '#06b6d4' },
   { id: 'Navigator', label: '🗺️ Navigator / Lead Marshal', badgeColor: '#f59e0b' },
