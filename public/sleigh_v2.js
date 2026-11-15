@@ -754,12 +754,90 @@
   }
 
   let frameMessageBound = false;
+  let workshopVisibleInTracker = false;
+  function setRadarInteractive(active) {
+    const stage = document.getElementById('radar-embed-stage');
+    const lockBtn = document.getElementById('radar-lock-pill');
+    const trackerIframe = document.getElementById('tracker-iframe');
+    if (stage) stage.classList.toggle('is-interactive', Boolean(active));
+    if (lockBtn) lockBtn.style.display = active ? 'inline-flex' : 'none';
+    if (trackerIframe && trackerIframe.contentWindow) {
+      try {
+        if (active) {
+          trackerIframe.contentWindow.postMessage({ type: 'turbosanta-bypass-workshop' }, '*');
+        }
+        trackerIframe.contentWindow.postMessage({ type: 'turbosanta-map-interactive', interactive: Boolean(active) }, '*');
+      } catch (_) {}
+    }
+  }
+
   function bindFrameMessages() {
     if (frameMessageBound) return;
     frameMessageBound = true;
 
+    const scrollGuard = document.getElementById('radar-scroll-guard');
+    const unlockPill = document.getElementById('radar-unlock-pill');
+    const lockPill = document.getElementById('radar-lock-pill');
+
+    if (scrollGuard) {
+      let guardTouchStart = null;
+      let guardTouchMoved = false;
+
+      scrollGuard.addEventListener('touchstart', (e) => {
+        guardTouchMoved = false;
+        if (e.touches && e.touches.length === 1) {
+          guardTouchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        } else {
+          guardTouchStart = null;
+        }
+      }, { passive: true });
+
+      scrollGuard.addEventListener('touchmove', (e) => {
+        if (!guardTouchStart || !e.touches || e.touches.length !== 1) return;
+        const dx = e.touches[0].clientX - guardTouchStart.x;
+        const dy = e.touches[0].clientY - guardTouchStart.y;
+        if (Math.hypot(dx, dy) > 10) {
+          guardTouchMoved = true;
+        }
+      }, { passive: true });
+
+      scrollGuard.addEventListener('click', () => {
+        if (guardTouchMoved) {
+          guardTouchMoved = false;
+          return;
+        }
+        setRadarInteractive(true);
+      });
+    }
+
+    if (unlockPill) {
+      unlockPill.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setRadarInteractive(true);
+      });
+    }
+
+    if (lockPill) {
+      lockPill.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setRadarInteractive(false);
+      });
+    }
+
     window.addEventListener('message', (e) => {
       if (!e.data || typeof e.data !== 'object') return;
+
+      // Sync Santa's Workshop overlay visibility state for mobile scroll-guard label
+      if (e.data.type === 'turbosanta-workshop-state') {
+        workshopVisibleInTracker = Boolean(e.data.visible);
+        const unlockLabel = document.getElementById('radar-unlock-label');
+        if (unlockLabel) {
+          unlockLabel.textContent = workshopVisibleInTracker
+            ? 'Bypass Workshop & Explore Map'
+            : 'Tap to Pan / Zoom Map';
+        }
+        return;
+      }
 
       // 1. Forward confirmed house pin from address-iframe to tracker-iframe
       if (e.data.type === 'turbosanta-pin-saved' && e.data.pin) {

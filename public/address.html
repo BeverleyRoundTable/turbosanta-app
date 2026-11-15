@@ -165,7 +165,43 @@
       border-radius: 12px;
       border: 1px solid var(--border);
       background: var(--surface-2);
-      z-index: 1; 
+      z-index: 1;
+      position: relative;
+    }
+
+    #lookup-map.lookup-map-scroll-locked,
+    #lookup-map.lookup-map-scroll-locked * {
+      touch-action: pan-y !important;
+    }
+
+    .lookup-drag-toggle-pill {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: rgba(15, 18, 25, 0.92);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1.5px solid rgba(251, 175, 51, 0.65);
+      border-radius: 999px;
+      color: #ffffff;
+      font-family: 'Open Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.65);
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    .lookup-drag-toggle-pill.is-unlocked {
+      background: rgba(217, 119, 6, 0.95);
+      border-color: rgba(255, 255, 255, 0.35);
     }
 
     #results {
@@ -714,8 +750,13 @@
   }
 
   function initMap() {
+    const isEmbeddedTouch = (window.self !== window.top) &&
+      (('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
+
     // Initialized to Marchesi House (Round Table HQ) as the national fallback
     map = L.map('lookup-map', {
+      scrollWheelZoom: false,
+      dragging: !isEmbeddedTouch,
       wheelPxPerZoomLevel: 120,
       zoomDelta: 1,
       wheelDebounceTime: 60
@@ -725,6 +766,35 @@
       attribution: '&copy; OpenStreetMap',
       maxZoom: 18
     }).addTo(map);
+
+    if (isEmbeddedTouch) {
+      const mapEl = document.getElementById('lookup-map');
+      let mapPanUnlocked = false;
+      if (mapEl) mapEl.classList.add('lookup-map-scroll-locked');
+
+      const dragBtn = document.createElement('button');
+      dragBtn.type = 'button';
+      dragBtn.className = 'lookup-drag-toggle-pill';
+      dragBtn.textContent = '👆 Tap to pan street map • Swipe to scroll';
+      L.DomEvent.disableClickPropagation(dragBtn);
+      dragBtn.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        mapPanUnlocked = !mapPanUnlocked;
+        if (mapPanUnlocked) {
+          map.dragging.enable();
+          if (mapEl) mapEl.classList.remove('lookup-map-scroll-locked');
+          dragBtn.classList.add('is-unlocked');
+          dragBtn.textContent = '🔒 Lock street map';
+        } else {
+          map.dragging.disable();
+          if (mapEl) mapEl.classList.add('lookup-map-scroll-locked');
+          dragBtn.classList.remove('is-unlocked');
+          dragBtn.textContent = '👆 Tap to pan street map • Swipe to scroll';
+        }
+      });
+      if (mapEl) mapEl.appendChild(dragBtn);
+    }
 
     map.on('click', function(e) {
       if (!document.getElementById('locateBtn').disabled) {

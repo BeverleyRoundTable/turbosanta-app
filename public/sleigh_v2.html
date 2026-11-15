@@ -204,6 +204,19 @@
           <div id="radar-route-sponsor" class="radar-route-sponsor" style="display:none;"></div>
           <div class="radar-embed-stage" id="radar-embed-stage">
             <iframe id="tracker-iframe" height="650" title="Santa Sleigh Live Tracker" allow="geolocation; screen-wake-lock" scrolling="no"></iframe>
+            <div class="radar-scroll-guard" id="radar-scroll-guard" aria-label="Touch scroll guard for live sleigh radar">
+              <div class="radar-scroll-guard-actions">
+                <button type="button" class="radar-unlock-pill" id="radar-unlock-pill">
+                  <i class="fa-solid fa-hand-pointer"></i>
+                  <span id="radar-unlock-label">Tap to Pan / Zoom Map</span>
+                  <span class="radar-unlock-sub">• Swipe anywhere to scroll page</span>
+                </button>
+              </div>
+            </div>
+            <button type="button" class="radar-lock-pill" id="radar-lock-pill" style="display:none;">
+              <i class="fa-solid fa-lock"></i>
+              <span>Lock Map to Scroll Page</span>
+            </button>
           </div>
         </div>
       </div>

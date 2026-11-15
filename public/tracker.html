@@ -1119,8 +1119,9 @@
       padding: 10px 12px;
       justify-content: center;
       align-items: center;
-      overflow-y: auto;
-      overscroll-behavior: auto;
+      overflow: hidden;
+      overscroll-behavior: none;
+      touch-action: pan-y;
     }
     body.is-embedded .ws-card,
     #workshopOverlay.ws-compact .ws-card {
@@ -1636,7 +1637,7 @@
       
       <div class="ws-actions">
         <a id="wsDonate" class="ws-donate" href="#" target="_blank" style="display: none;">Donate to support good causes</a>
-        <button class="ws-skip-btn" onclick="document.getElementById('workshopOverlay').remove();">Bypass &amp; view map</button>
+        <button class="ws-skip-btn" onclick="const w=document.getElementById('workshopOverlay'); if(w) w.remove(); try{window.parent.postMessage({type:'turbosanta-workshop-state',visible:false},'*');}catch(_){}">Bypass &amp; view map</button>
       </div>
     </div>
   </div>
@@ -1760,36 +1761,66 @@
           }
         }, { passive: false });
 
-        // Touch drag forwarding for mobile on embedded iframe
-        let touchStartY = null;
-        let lastTouchY = null;
+        // Listen for parent control messages (e.g. bypass workshop / unlock map from mobile scroll guard)
+        let parentMapInteractive = false;
+        window.addEventListener('message', (e) => {
+          if (!e.data || typeof e.data !== 'object') return;
+          if (e.data.type === 'turbosanta-bypass-workshop') {
+            const wsOverlay = document.getElementById('workshopOverlay');
+            if (wsOverlay) {
+              wsOverlay.remove();
+            }
+            try {
+              window.parent.postMessage({ type: 'turbosanta-workshop-state', visible: false }, '*');
+            } catch (_) {}
+          } else if (e.data.type === 'turbosanta-map-interactive') {
+            parentMapInteractive = Boolean(e.data.interactive);
+          }
+        });
+
+        // Touch drag forwarding for mobile on embedded iframe using physical screenY
+        // (avoids iframe viewport clientY feedback oscillation) + inertial momentum on touchend
+        let lastScreenY = null;
+        let lastMoveTs = 0;
+        let velocityY = 0;
+        let momentumRaf = null;
+
+        function stopMomentum() {
+          if (momentumRaf) {
+            cancelAnimationFrame(momentumRaf);
+            momentumRaf = null;
+          }
+          velocityY = 0;
+        }
 
         window.addEventListener('touchstart', (e) => {
+          stopMomentum();
           if (e.touches && e.touches.length === 1) {
-            touchStartY = e.touches[0].clientY;
-            lastTouchY = touchStartY;
+            lastScreenY = e.touches[0].screenY;
+            lastMoveTs = performance.now();
           } else {
-            touchStartY = null;
-            lastTouchY = null;
+            lastScreenY = null;
           }
         }, { passive: true });
 
         window.addEventListener('touchmove', (e) => {
-          if (touchStartY === null || !e.touches || e.touches.length !== 1) return;
-          const currentY = e.touches[0].clientY;
-          const deltaY = lastTouchY - currentY;
-          lastTouchY = currentY;
-
-          // If workshop overlay is visible and can scroll internally, allow it
+          if (lastScreenY === null || !e.touches || e.touches.length !== 1) return;
           const wsOverlay = document.getElementById('workshopOverlay');
           const isWsVisible = wsOverlay && wsOverlay.style.display !== 'none' && getComputedStyle(wsOverlay).display !== 'none';
-          if (isWsVisible && wsOverlay) {
-            const canScrollUp = wsOverlay.scrollTop > 2;
-            const canScrollDown = wsOverlay.scrollTop + wsOverlay.clientHeight < wsOverlay.scrollHeight - 2;
-            if ((deltaY < 0 && canScrollUp) || (deltaY > 0 && canScrollDown)) {
-              return;
-            }
+          if (parentMapInteractive && !isWsVisible) {
+            return;
           }
+
+          const now = performance.now();
+          const currentScreenY = e.touches[0].screenY;
+          const deltaY = lastScreenY - currentScreenY;
+          const dt = Math.max(1, now - lastMoveTs);
+          lastScreenY = currentScreenY;
+          lastMoveTs = now;
+
+          // Exponentially smoothed velocity (px per ms)
+          const instVel = deltaY / dt;
+          velocityY = velocityY * 0.4 + instVel * 0.6;
 
           if (Math.abs(deltaY) > 0.5) {
             forwardScrollToParent(deltaY);
@@ -1797,8 +1828,37 @@
         }, { passive: true });
 
         window.addEventListener('touchend', () => {
-          touchStartY = null;
-          lastTouchY = null;
+          lastScreenY = null;
+          const wsOverlay = document.getElementById('workshopOverlay');
+          const isWsVisible = wsOverlay && wsOverlay.style.display !== 'none' && getComputedStyle(wsOverlay).display !== 'none';
+          if (parentMapInteractive && !isWsVisible) {
+            velocityY = 0;
+            return;
+          }
+          const sinceLastMove = performance.now() - lastMoveTs;
+          if (sinceLastMove < 80 && Math.abs(velocityY) > 0.15) {
+            let lastFrameTs = performance.now();
+            const stepMomentum = (now) => {
+              const dt = Math.min(32, Math.max(8, now - lastFrameTs));
+              lastFrameTs = now;
+              velocityY *= Math.pow(0.94, dt / 16);
+              const stepDelta = velocityY * dt;
+              if (Math.abs(stepDelta) >= 0.8) {
+                forwardScrollToParent(stepDelta);
+                momentumRaf = requestAnimationFrame(stepMomentum);
+              } else {
+                stopMomentum();
+              }
+            };
+            momentumRaf = requestAnimationFrame(stepMomentum);
+          } else {
+            velocityY = 0;
+          }
+        }, { passive: true });
+
+        window.addEventListener('touchcancel', () => {
+          lastScreenY = null;
+          stopMomentum();
         }, { passive: true });
       }
 
@@ -2123,6 +2183,9 @@
               if (window.self !== window.top || window.innerWidth < 768 || window.innerHeight < 850) {
                 wsOverlay.classList.add('ws-compact');
               }
+              try {
+                window.parent.postMessage({ type: 'turbosanta-workshop-state', visible: true }, '*');
+              } catch (_) {}
             }
             
             const scheduleEl = document.getElementById('wsSchedule');

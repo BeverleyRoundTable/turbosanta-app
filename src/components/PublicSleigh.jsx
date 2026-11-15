@@ -1484,12 +1484,22 @@ export default function PublicSleigh({ tableData, activeTableSlug }) {
                   height: '75svh',
                   minHeight: '520px',
                   border: 'none',
-                  display: 'block'
+                  display: 'block',
+                  pointerEvents: (!mapInteractive && isTouchDevice) ? 'none' : 'auto'
                 }}
               />
               {!mapInteractive && isTouchDevice && (
                 <div
-                  onClick={() => setMapInteractive(true)}
+                  onClick={() => {
+                    setMapInteractive(true);
+                    const frame = document.getElementById('tracker-iframe');
+                    if (frame && frame.contentWindow) {
+                      try {
+                        frame.contentWindow.postMessage({ type: 'turbosanta-bypass-workshop' }, '*');
+                        frame.contentWindow.postMessage({ type: 'turbosanta-map-interactive', interactive: true }, '*');
+                      } catch (_) {}
+                    }
+                  }}
                   style={{
                     position: 'absolute',
                     inset: 0,
@@ -1526,7 +1536,15 @@ export default function PublicSleigh({ tableData, activeTableSlug }) {
               {mapInteractive && isTouchDevice && (
                 <button
                   type="button"
-                  onClick={() => setMapInteractive(false)}
+                  onClick={() => {
+                    setMapInteractive(false);
+                    const frame = document.getElementById('tracker-iframe');
+                    if (frame && frame.contentWindow) {
+                      try {
+                        frame.contentWindow.postMessage({ type: 'turbosanta-map-interactive', interactive: false }, '*');
+                      } catch (_) {}
+                    }
+                  }}
                   style={{
                     position: 'absolute',
                     bottom: '16px',
