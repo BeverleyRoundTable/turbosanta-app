@@ -33,8 +33,11 @@
 /tracker-demo/     /tracker.html?demo=1 200
 /demo              /tracker.html?demo=1 200
 /demo/             /tracker.html?demo=1 200
-/v1                /santasleigh        200
-/v1/               /santasleigh        200
+/v1                /sleigh_v2          301
+/v1/               /sleigh_v2          301
+/santasleigh       /sleigh_v2          301
+/santasleigh/      /sleigh_v2          301
+/santasleigh.html  /sleigh_v2          301
 /v2                /sleigh_v2          200
 /v2/               /sleigh_v2          200
 /route-video       /travelboast_test   200

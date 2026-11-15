@@ -35,8 +35,8 @@ const CLEAN_ROUTE_MAP = {
   '/guide': '/guide.html',
   '/hub': '/hub.html',
   '/embed': '/embed.html',
-  '/v1': '/santasleigh.html',
-  '/santasleigh': '/santasleigh.html',
+  '/v1': '/sleigh_v2.html',
+  '/santasleigh': '/sleigh_v2.html',
   '/v2': '/sleigh_v2.html',
   '/sleigh_v2': '/sleigh_v2.html'
 };

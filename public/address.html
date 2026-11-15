@@ -522,9 +522,11 @@
       mainUrl = location.protocol + '//' + host.replace('addresses.', '.');
     } else if (API_URL) {
       // Fallback for when testing with raw API URL
-      mainUrl = `${window.location.origin}/santasleigh.html?api=${encodeURIComponent(API_URL)}`;
+      mainUrl = `${window.location.origin}/sleigh_v2.html?api=${encodeURIComponent(API_URL)}`;
+    } else if (host.endsWith('.roundtablesantasleigh.co.uk')) {
+      mainUrl = `${window.location.origin}/`;
     } else {
-      mainUrl = `${window.location.origin}/santasleigh.html?table=${encodeURIComponent(tableSlug)}`;
+      mainUrl = `${window.location.origin}/sleigh_v2.html?table=${encodeURIComponent(tableSlug)}`;
     }
     
     document.getElementById('backToMainLink').href = mainUrl;

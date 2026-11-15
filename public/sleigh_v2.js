@@ -1226,10 +1226,6 @@
         </a>
       `).join('');
     }
-
-    // Compare V1 link in Test Lab
-    const v1Link = document.getElementById('lab-compare-v1');
-    if (v1Link) v1Link.href = `/santasleigh.html?table=${encodeURIComponent(state.slug)}`;
   }
 
   function startNextRouteCountdown(route, chipEl, textEl) {
@@ -2555,8 +2551,6 @@
     });
     const allSelect = document.getElementById('lab-all-tables');
     if (allSelect) allSelect.value = state.slug;
-    const compareLink = document.getElementById('lab-compare-v1');
-    if (compareLink) compareLink.href = `/santasleigh.html?table=${encodeURIComponent(state.slug)}`;
 
     try {
       let data = null;
