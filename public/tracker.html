@@ -1885,6 +1885,125 @@
           isDraggingScroll = false;
           stopMomentum();
         }, { passive: true });
+
+        // Support invisible parent scroll-guard tap pass-through, 2-finger pinch/pan, and modal state sync
+        let lastModalOpenState = false;
+        function syncModalStateToParent() {
+          const modalIds = ['scheduleModal', 'emailModal', 'msgModal', 'streetProgressModal'];
+          const anyOpen = modalIds.some((id) => {
+            const m = document.getElementById(id);
+            return m && m.style.display !== 'none' && getComputedStyle(m).display !== 'none';
+          });
+          if (anyOpen !== lastModalOpenState) {
+            lastModalOpenState = anyOpen;
+            try {
+              window.parent.postMessage({ type: 'turbosanta-modal-state', open: anyOpen }, '*');
+            } catch (_) {}
+          }
+        }
+
+        document.querySelectorAll('.modal-overlay').forEach((overlay) => {
+          try {
+            new MutationObserver(syncModalStateToParent).observe(overlay, {
+              attributes: true,
+              attributeFilter: ['style', 'class']
+            });
+          } catch (_) {}
+        });
+
+        function handleParentTap(x, y) {
+          if (typeof x !== 'number' || typeof y !== 'number') return;
+          const el = document.elementFromPoint(x, y);
+          const ctrl = el && el.closest && el.closest(
+            'button, a, input, select, textarea, label, [role="button"], .btn, .ws-skip-btn, .ws-donate, .leaflet-control a, .leaflet-marker-icon, .leaflet-popup-close-button, .live-street-ticker, .close-btn, .cal-btn, .demo-btn'
+          );
+          if (ctrl) {
+            const href = ctrl.tagName === 'A' ? (ctrl.getAttribute('href') || '') : '';
+            if (ctrl.tagName === 'A' && href && !href.startsWith('#') && !href.startsWith('javascript:')) {
+              window.open(ctrl.href, ctrl.target || '_blank');
+            } else {
+              ctrl.click();
+            }
+            setTimeout(syncModalStateToParent, 50);
+            return;
+          }
+          const wsOverlay = document.getElementById('workshopOverlay');
+          const isWsVisible = wsOverlay && wsOverlay.style.display !== 'none' && getComputedStyle(wsOverlay).display !== 'none';
+          if (!isWsVisible && AppState && AppState.map && window.L) {
+            const containerPoint = L.point(x, y);
+            const latlng = AppState.map.containerPointToLatLng(containerPoint);
+            const layerPoint = AppState.map.latLngToLayerPoint(latlng);
+            AppState.map.fire('click', { latlng, layerPoint, containerPoint });
+            setTimeout(syncModalStateToParent, 50);
+          }
+        }
+        window.__tsHandleParentTap = handleParentTap;
+
+        let pinchState = null;
+        window.addEventListener('message', (e) => {
+          if (!e.data || typeof e.data !== 'object') return;
+          if (e.data.type === 'turbosanta-show-2finger-hint') {
+            const wsOverlay = document.getElementById('workshopOverlay');
+            const isWsVisible = wsOverlay && wsOverlay.style.display !== 'none' && getComputedStyle(wsOverlay).display !== 'none';
+            if (!isWsVisible) {
+              showTwoFingerTouchHint();
+            }
+            return;
+          }
+          if (e.data.type === 'turbosanta-parent-tap') {
+            handleParentTap(e.data.x, e.data.y);
+            return;
+          }
+          const wsOverlay = document.getElementById('workshopOverlay');
+          const isWsVisible = wsOverlay && wsOverlay.style.display !== 'none' && getComputedStyle(wsOverlay).display !== 'none';
+          if (e.data.type === 'turbosanta-pinch-start') {
+            if (isWsVisible || !AppState || !AppState.map) {
+              pinchState = null;
+              return;
+            }
+            pinchState = {
+              lastX: Number(e.data.x) || 0,
+              lastY: Number(e.data.y) || 0,
+              startDist: Math.max(10, Number(e.data.dist) || 10),
+              startZoom: AppState.map.getZoom(),
+              lastZoom: AppState.map.getZoom()
+            };
+            if (AppState.flags.follow && !AppState.flags.isKiosk && !AppState.flags.isDriver) {
+              AppState.flags.follow = false;
+              if (AppState.dom && AppState.dom.followBtn) {
+                AppState.dom.followBtn.textContent = "Follow: OFF";
+              }
+            }
+            return;
+          }
+          if (e.data.type === 'turbosanta-pinch-move') {
+            if (!pinchState || isWsVisible || !AppState || !AppState.map || !window.L) return;
+            const nx = Number(e.data.x) || 0;
+            const ny = Number(e.data.y) || 0;
+            const dx = pinchState.lastX - nx;
+            const dy = pinchState.lastY - ny;
+            pinchState.lastX = nx;
+            pinchState.lastY = ny;
+            if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+              AppState.map.panBy([dx, dy], { animate: false });
+            }
+            const dist = Math.max(10, Number(e.data.dist) || pinchState.startDist);
+            const scale = dist / pinchState.startDist;
+            const targetZoom = Math.round(pinchState.startZoom + Math.log2(scale));
+            if (
+              targetZoom !== pinchState.lastZoom &&
+              targetZoom >= AppState.map.getMinZoom() &&
+              targetZoom <= AppState.map.getMaxZoom()
+            ) {
+              pinchState.lastZoom = targetZoom;
+              AppState.map.setZoomAround(L.point(nx, ny), targetZoom, { animate: false });
+            }
+            return;
+          }
+          if (e.data.type === 'turbosanta-pinch-end') {
+            pinchState = null;
+          }
+        });
       }
 
       // --- THEME FROM THE API ---

@@ -166,7 +166,11 @@
       border: 1px solid var(--border);
       background: var(--surface-2);
       z-index: 1;
-      touch-action: pan-y pinch-zoom;
+      touch-action: pan-y !important;
+    }
+
+    #lookup-map * {
+      touch-action: pan-y !important;
     }
 
     #results {
@@ -731,111 +735,6 @@
       attribution: '&copy; OpenStreetMap',
       maxZoom: 18
     }).addTo(map);
-
-    if (isEmbeddedTouch) {
-      const mapEl = document.getElementById('lookup-map');
-      let startScreenY = null;
-      let lastScreenY = null;
-      let lastMoveTs = 0;
-      let velocityY = 0;
-      let isDraggingScroll = false;
-      let momentumRaf = null;
-
-      function stopLookupMomentum() {
-        if (momentumRaf) {
-          cancelAnimationFrame(momentumRaf);
-          momentumRaf = null;
-        }
-        velocityY = 0;
-      }
-
-      function forwardLookupScroll(deltaY) {
-        if (typeof deltaY !== 'number' || Math.abs(deltaY) < 0.5) return;
-        let directSuccess = false;
-        try {
-          if (window.parent && window.parent !== window && window.parent.document) {
-            window.parent.scrollBy({ top: deltaY, behavior: 'auto' });
-            directSuccess = true;
-          }
-        } catch (_) {
-          directSuccess = false;
-        }
-        if (!directSuccess) {
-          try {
-            window.parent.postMessage({ type: 'turbosanta-scroll-parent', deltaY: deltaY }, '*');
-          } catch (_) {}
-        }
-      }
-
-      if (mapEl) {
-        mapEl.addEventListener('touchstart', (e) => {
-          stopLookupMomentum();
-          if (e.touches && e.touches.length === 1) {
-            startScreenY = e.touches[0].screenY;
-            lastScreenY = startScreenY;
-            lastMoveTs = performance.now();
-            isDraggingScroll = false;
-          } else {
-            startScreenY = null;
-            lastScreenY = null;
-            isDraggingScroll = false;
-          }
-        }, { passive: true });
-
-        mapEl.addEventListener('touchmove', (e) => {
-          if (lastScreenY === null || !e.touches || e.touches.length !== 1) return;
-          const now = performance.now();
-          const currentScreenY = e.touches[0].screenY;
-          const totalDy = startScreenY - currentScreenY;
-          const deltaY = lastScreenY - currentScreenY;
-
-          if (!isDraggingScroll && Math.abs(totalDy) > 5) {
-            isDraggingScroll = true;
-          }
-          if (isDraggingScroll) {
-            if (e.cancelable) e.preventDefault();
-            const dt = Math.max(1, now - lastMoveTs);
-            lastScreenY = currentScreenY;
-            lastMoveTs = now;
-            const instVel = deltaY / dt;
-            velocityY = velocityY * 0.35 + instVel * 0.65;
-            if (Math.abs(deltaY) > 0.5) {
-              forwardLookupScroll(deltaY);
-            }
-          }
-        }, { passive: false });
-
-        mapEl.addEventListener('touchend', () => {
-          lastScreenY = null;
-          isDraggingScroll = false;
-          const sinceLastMove = performance.now() - lastMoveTs;
-          if (sinceLastMove < 90 && Math.abs(velocityY) > 0.12) {
-            let lastFrameTs = performance.now();
-            const stepMomentum = (now) => {
-              const dt = Math.min(32, Math.max(8, now - lastFrameTs));
-              lastFrameTs = now;
-              velocityY *= Math.pow(0.95, dt / 16);
-              const stepDelta = velocityY * dt;
-              if (Math.abs(stepDelta) >= 0.6) {
-                forwardLookupScroll(stepDelta);
-                momentumRaf = requestAnimationFrame(stepMomentum);
-              } else {
-                stopLookupMomentum();
-              }
-            };
-            momentumRaf = requestAnimationFrame(stepMomentum);
-          } else {
-            velocityY = 0;
-          }
-        }, { passive: true });
-
-        mapEl.addEventListener('touchcancel', () => {
-          lastScreenY = null;
-          isDraggingScroll = false;
-          stopLookupMomentum();
-        }, { passive: true });
-      }
-    }
 
     map.on('click', function(e) {
       if (!document.getElementById('locateBtn').disabled) {

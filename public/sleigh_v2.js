@@ -758,8 +758,116 @@
     if (frameMessageBound) return;
     frameMessageBound = true;
 
+    const scrollGuard = document.getElementById('radar-scroll-guard');
+    if (scrollGuard) {
+      let guardTouchStart = null;
+      let guardTouchMoved = false;
+      let guardHintSent = false;
+      let pinchActive = false;
+
+      const postToTracker = (payload) => {
+        const trackerIframe = document.getElementById('tracker-iframe');
+        if (trackerIframe && trackerIframe.contentWindow) {
+          try {
+            trackerIframe.contentWindow.postMessage(payload, '*');
+          } catch (_) {}
+        }
+      };
+
+      const getRelPoint = (clientX, clientY) => {
+        const trackerIframe = document.getElementById('tracker-iframe');
+        const rect = (trackerIframe || scrollGuard).getBoundingClientRect();
+        return { x: clientX - rect.left, y: clientY - rect.top };
+      };
+
+      scrollGuard.addEventListener('touchstart', (e) => {
+        if (!e.touches) return;
+        if (e.touches.length === 1) {
+          pinchActive = false;
+          guardTouchMoved = false;
+          guardHintSent = false;
+          guardTouchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        } else if (e.touches.length >= 2) {
+          pinchActive = true;
+          guardTouchMoved = true;
+          const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+          const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+          const dist = Math.hypot(
+            e.touches[1].clientX - e.touches[0].clientX,
+            e.touches[1].clientY - e.touches[0].clientY
+          );
+          const pt = getRelPoint(midX, midY);
+          postToTracker({ type: 'turbosanta-pinch-start', x: pt.x, y: pt.y, dist });
+        }
+      }, { passive: true });
+
+      scrollGuard.addEventListener('touchmove', (e) => {
+        if (!e.touches) return;
+        if (e.touches.length >= 2) {
+          if (e.cancelable) e.preventDefault();
+          const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+          const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+          const dist = Math.hypot(
+            e.touches[1].clientX - e.touches[0].clientX,
+            e.touches[1].clientY - e.touches[0].clientY
+          );
+          const pt = getRelPoint(midX, midY);
+          if (!pinchActive) {
+            pinchActive = true;
+            postToTracker({ type: 'turbosanta-pinch-start', x: pt.x, y: pt.y, dist });
+          } else {
+            postToTracker({ type: 'turbosanta-pinch-move', x: pt.x, y: pt.y, dist });
+          }
+          return;
+        }
+        if (e.touches.length === 1 && guardTouchStart) {
+          const dx = e.touches[0].clientX - guardTouchStart.x;
+          const dy = e.touches[0].clientY - guardTouchStart.y;
+          if (Math.hypot(dx, dy) > 10) {
+            guardTouchMoved = true;
+          }
+          if (!guardHintSent && Math.abs(dx) > 22 && Math.abs(dx) > Math.abs(dy) * 1.6) {
+            guardHintSent = true;
+            postToTracker({ type: 'turbosanta-show-2finger-hint' });
+          }
+        }
+      }, { passive: false });
+
+      const endPinchIfNeeded = (e) => {
+        if (pinchActive && (!e.touches || e.touches.length < 2)) {
+          pinchActive = false;
+          postToTracker({ type: 'turbosanta-pinch-end' });
+        }
+      };
+      scrollGuard.addEventListener('touchend', endPinchIfNeeded, { passive: true });
+      scrollGuard.addEventListener('touchcancel', endPinchIfNeeded, { passive: true });
+
+      scrollGuard.addEventListener('click', (e) => {
+        if (guardTouchMoved) {
+          guardTouchMoved = false;
+          return;
+        }
+        const pt = getRelPoint(e.clientX, e.clientY);
+        const trackerIframe = document.getElementById('tracker-iframe');
+        try {
+          if (trackerIframe && trackerIframe.contentWindow && typeof trackerIframe.contentWindow.__tsHandleParentTap === 'function') {
+            trackerIframe.contentWindow.__tsHandleParentTap(pt.x, pt.y);
+            return;
+          }
+        } catch (_) {}
+        postToTracker({ type: 'turbosanta-parent-tap', x: pt.x, y: pt.y });
+      });
+    }
+
     window.addEventListener('message', (e) => {
       if (!e.data || typeof e.data !== 'object') return;
+
+      // 0. Toggle modal interaction inside embedded radar on touch devices
+      if (e.data.type === 'turbosanta-modal-state') {
+        const stage = document.getElementById('radar-embed-stage');
+        if (stage) stage.classList.toggle('is-modal-open', Boolean(e.data.open));
+        return;
+      }
 
       // 1. Forward confirmed house pin from address-iframe to tracker-iframe
       if (e.data.type === 'turbosanta-pin-saved' && e.data.pin) {

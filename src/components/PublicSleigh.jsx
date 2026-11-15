@@ -289,6 +289,32 @@ function getOperatorTableName(table = {}, slug = '') {
 
 export default function PublicSleigh({ tableData, activeTableSlug }) {
   const [addressFrameHeight, setAddressFrameHeight] = useState(500);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [radarModalOpen, setRadarModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const checkTouch = () => {
+        const isTouch = (('ontouchstart' in window || navigator.maxTouchPoints > 0) &&
+          window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches) ||
+          window.innerWidth <= 900;
+        setIsTouchDevice(Boolean(isTouch));
+      };
+      checkTouch();
+      window.addEventListener('resize', checkTouch);
+      return () => window.removeEventListener('resize', checkTouch);
+    }
+  }, []);
+
+  useEffect(() => {
+    const onMessage = (e) => {
+      if (e.data && typeof e.data === 'object' && e.data.type === 'turbosanta-modal-state') {
+        setRadarModalOpen(Boolean(e.data.open));
+      }
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
   const [showFab, setShowFab] = useState(false);
   const [showGiftAidCheckoutModal, setShowGiftAidCheckoutModal] = useState(false);
   const [showGrantModal, setShowGrantModal] = useState(false);
@@ -1474,9 +1500,134 @@ export default function PublicSleigh({ tableData, activeTableSlug }) {
                   height: '75svh',
                   minHeight: '520px',
                   border: 'none',
-                  display: 'block'
+                  display: 'block',
+                  pointerEvents: (isTouchDevice && !radarModalOpen) ? 'none' : 'auto'
                 }}
               />
+              {isTouchDevice && !radarModalOpen && (
+                <div
+                  className="radar-scroll-guard"
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    zIndex: 20,
+                    background: 'transparent',
+                    touchAction: 'pan-y',
+                    WebkitOverflowScrolling: 'touch'
+                  }}
+                  onTouchStart={(e) => {
+                    const el = e.currentTarget;
+                    const touches = e.touches;
+                    if (!touches) return;
+                    if (touches.length === 1) {
+                      el._tsGuard = {
+                        moved: false,
+                        hintSent: false,
+                        pinch: false,
+                        x: touches[0].clientX,
+                        y: touches[0].clientY
+                      };
+                    } else if (touches.length >= 2) {
+                      const frame = document.getElementById('tracker-iframe');
+                      const rect = (frame || el).getBoundingClientRect();
+                      const midX = (touches[0].clientX + touches[1].clientX) / 2 - rect.left;
+                      const midY = (touches[0].clientY + touches[1].clientY) / 2 - rect.top;
+                      const dist = Math.hypot(
+                        touches[1].clientX - touches[0].clientX,
+                        touches[1].clientY - touches[0].clientY
+                      );
+                      el._tsGuard = { moved: true, hintSent: true, pinch: true };
+                      if (frame && frame.contentWindow) {
+                        try {
+                          frame.contentWindow.postMessage({ type: 'turbosanta-pinch-start', x: midX, y: midY, dist }, '*');
+                        } catch (_) {}
+                      }
+                    }
+                  }}
+                  onTouchMove={(e) => {
+                    const el = e.currentTarget;
+                    const st = el._tsGuard || {};
+                    const touches = e.touches;
+                    if (!touches) return;
+                    const frame = document.getElementById('tracker-iframe');
+                    if (touches.length >= 2) {
+                      if (e.cancelable) e.preventDefault();
+                      const rect = (frame || el).getBoundingClientRect();
+                      const midX = (touches[0].clientX + touches[1].clientX) / 2 - rect.left;
+                      const midY = (touches[0].clientY + touches[1].clientY) / 2 - rect.top;
+                      const dist = Math.hypot(
+                        touches[1].clientX - touches[0].clientX,
+                        touches[1].clientY - touches[0].clientY
+                      );
+                      if (frame && frame.contentWindow) {
+                        try {
+                          if (!st.pinch) {
+                            st.pinch = true;
+                            st.moved = true;
+                            frame.contentWindow.postMessage({ type: 'turbosanta-pinch-start', x: midX, y: midY, dist }, '*');
+                          } else {
+                            frame.contentWindow.postMessage({ type: 'turbosanta-pinch-move', x: midX, y: midY, dist }, '*');
+                          }
+                        } catch (_) {}
+                      }
+                      el._tsGuard = st;
+                      return;
+                    }
+                    if (touches.length === 1 && typeof st.x === 'number') {
+                      const dx = touches[0].clientX - st.x;
+                      const dy = touches[0].clientY - st.y;
+                      if (Math.hypot(dx, dy) > 10) st.moved = true;
+                      if (!st.hintSent && Math.abs(dx) > 22 && Math.abs(dx) > Math.abs(dy) * 1.6) {
+                        st.hintSent = true;
+                        if (frame && frame.contentWindow) {
+                          try {
+                            frame.contentWindow.postMessage({ type: 'turbosanta-show-2finger-hint' }, '*');
+                          } catch (_) {}
+                        }
+                      }
+                      el._tsGuard = st;
+                    }
+                  }}
+                  onTouchEnd={(e) => {
+                    const el = e.currentTarget;
+                    const st = el._tsGuard || {};
+                    if (st.pinch && (!e.touches || e.touches.length < 2)) {
+                      st.pinch = false;
+                      el._tsGuard = st;
+                      const frame = document.getElementById('tracker-iframe');
+                      if (frame && frame.contentWindow) {
+                        try {
+                          frame.contentWindow.postMessage({ type: 'turbosanta-pinch-end' }, '*');
+                        } catch (_) {}
+                      }
+                    }
+                  }}
+                  onClick={(e) => {
+                    const el = e.currentTarget;
+                    const st = el._tsGuard || {};
+                    if (st.moved) {
+                      st.moved = false;
+                      el._tsGuard = st;
+                      return;
+                    }
+                    const frame = document.getElementById('tracker-iframe');
+                    if (!frame || !frame.contentWindow) return;
+                    const rect = frame.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    try {
+                      if (typeof frame.contentWindow.__tsHandleParentTap === 'function') {
+                        frame.contentWindow.__tsHandleParentTap(x, y);
+                        return;
+                      }
+                    } catch (_) {}
+                    try {
+                      frame.contentWindow.postMessage({ type: 'turbosanta-parent-tap', x, y }, '*');
+                    } catch (_) {}
+                  }}
+                />
+              )}
             </div>
           </div>
 
