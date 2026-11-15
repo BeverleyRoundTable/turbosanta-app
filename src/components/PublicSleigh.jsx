@@ -983,26 +983,8 @@ export default function PublicSleigh({ tableData, activeTableSlug }) {
       }
     });
 
-    // 2. Also check table supported appeals
-    const rawAppeals = tableData?.supported_appeals || table?.supported_appeals || [];
-    (Array.isArray(rawAppeals) ? rawAppeals : []).forEach(a => {
-      const aName = (a.charity_name || a.name || '').trim();
-      const aClean = aName.toLowerCase();
-      if (aClean && !seenCharities.has(aClean)) {
-        seenCharities.add(aClean);
-        routeCharities.push({
-          name: aName,
-          role: a.title || a.name || 'Charity Appeal',
-          logo: a.logo || a.logo_url,
-          url: a.donate_url || a.link,
-          description: a.description,
-          type: 'charity',
-          isTableWide: true
-        });
-      }
-    });
-
-    // 3. Process Route-level Sponsors & Charities
+    // 2. Process Route-level Sponsors & Charities
+    // Physical street collection drives (supported_appeals) render in their own #charity-appeals section.
     rawRoutes.forEach(r => {
       const sps = extractRouteSponsors(r);
       sps.forEach(sp => {
@@ -2315,7 +2297,142 @@ export default function PublicSleigh({ tableData, activeTableSlug }) {
         </section>
 
 
-        {/* 4.5 Supported Charity Appeals & Street Drives (Food Bank, Mission Christmas, etc.) */}
+        {/* 4.5 Community Partners & Beneficiaries: Charities first, then Official Headline Partners, then Route Sponsors */}
+        {(() => {
+          const combinedList = [
+            ...allCommunityAttributions.charities,
+            ...allCommunityAttributions.officialPartners,
+            ...allCommunityAttributions.routeSponsors
+          ];
+
+          if (combinedList.length === 0) return null;
+
+          return (
+            <section id="partners" style={{ padding: '60px 20px', maxWidth: '1000px', margin: '0 auto', textAlign: 'center' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '11px',
+                fontWeight: 800,
+                letterSpacing: '1.8px',
+                textTransform: 'uppercase',
+                color: 'var(--primary)',
+                marginBottom: '10px'
+              }}>
+                <span style={{ display: 'inline-block', width: '20px', height: '1px', background: 'linear-gradient(90deg, transparent, var(--primary))' }} />
+                LOCAL SUPPORT &amp; BENEFICIARIES
+                <span style={{ display: 'inline-block', width: '20px', height: '1px', background: 'linear-gradient(90deg, var(--primary), transparent)' }} />
+              </div>
+              <h2 className="brand-font" style={{ fontSize: '38px', margin: '0 0 10px 0', color: '#FFFFFF' }}>
+                COMMUNITY <span style={{ color: 'var(--primary)' }}>PARTNERS</span>
+              </h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '16px', marginBottom: '32px' }}>
+                Thank you to our beneficiary causes, headline partners, and local business sponsors keeping Santa rolling.
+              </p>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                gap: '18px',
+                textAlign: 'left'
+              }}>
+                {combinedList.map((p, idx) => {
+                  const pLogo = p.logo || p.logo_url || '';
+                  const pName = p.name || '';
+                  const isCharity = p.type === 'charity';
+                  const isOfficial = p.type === 'official_partner';
+                  const pRole = isCharity
+                    ? (p.role ? (p.role.startsWith('❤️') ? p.role : `❤️ ${p.role}`) : '❤️ Charity Beneficiary')
+                    : (isOfficial ? (p.role ? (p.role.startsWith('⭐') ? p.role : `⭐ ${p.role}`) : '⭐ Official Headline Partner') : (p.role ? (p.role.startsWith('🏢') ? p.role : `🏢 ${p.role}`) : '🏢 Route Sponsor'));
+                  const pUrl = p.url || p.link || p.website || p.website_url || '';
+
+                  return (
+                    <div
+                      key={idx}
+                      style={{
+                        background: isCharity ? 'rgba(244, 114, 182, 0.04)' : '#000000',
+                        border: isCharity
+                          ? '1px solid rgba(244, 114, 182, 0.35)'
+                          : (isOfficial ? '1px solid rgba(251, 175, 51, 0.45)' : '1px solid var(--border)'),
+                        borderRadius: '16px',
+                        padding: '20px 18px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        boxSizing: 'border-box',
+                        overflow: 'hidden',
+                        wordWrap: 'break-word',
+                        overflowWrap: 'break-word',
+                        minWidth: 0,
+                        width: '100%',
+                        boxShadow: isCharity
+                          ? '0 6px 20px rgba(244, 114, 182, 0.08)'
+                          : (isOfficial ? '0 6px 20px rgba(251, 175, 51, 0.1)' : '0 4px 14px rgba(0,0,0,0.3)')
+                      }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '12px', flexWrap: 'wrap', minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
+                        {pLogo && (
+                          <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: '#FFFFFF',
+                            borderRadius: '10px',
+                            padding: '6px',
+                            boxShadow: 'none',
+                            flexShrink: 0,
+                            maxWidth: '110px',
+                            maxHeight: '52px'
+                          }}>
+                            {pUrl ? (
+                              <a href={pUrl} target="_blank" rel="noopener noreferrer sponsored" style={{ display: 'block', textDecoration: 'none' }}>
+                                <img
+                                  src={pLogo}
+                                  alt={pName ? `${pName} logo` : 'Logo'}
+                                  style={{ height: '40px', maxWidth: '98px', objectFit: 'contain', display: 'block' }}
+                                  loading="lazy"
+                                />
+                              </a>
+                            ) : (
+                              <img
+                                src={pLogo}
+                                alt={pName ? `${pName} logo` : 'Logo'}
+                                style={{ height: '40px', maxWidth: '98px', objectFit: 'contain', display: 'block' }}
+                                loading="lazy"
+                              />
+                            )}
+                          </div>
+                        )}
+                        <div style={{ minWidth: 0, flex: 1, overflowWrap: 'break-word', wordBreak: 'break-word' }}>
+                          <div
+                            className="brand-font"
+                            style={{ color: isCharity ? '#f472b6' : (isOfficial ? 'var(--primary)' : '#86efac'), fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 800, marginBottom: '4px', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
+                            {pRole}
+                          </div>
+                          <h3 className="brand-font" style={{ fontSize: 'clamp(15px, 3.8vw, 19px)', color: '#FFFFFF', margin: 0, lineHeight: 1.25, overflowWrap: 'break-word', wordBreak: 'break-word', hyphens: 'auto' }}>
+                            {pName}
+                          </h3>
+                        </div>
+                      </div>
+
+                      {p.description && (
+                        <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '12px', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
+                          {p.description}
+                        </p>
+                      )}
+                      {pUrl && (
+                        <a href={pUrl} target="_blank" rel="noopener noreferrer sponsored" style={{ display: 'inline-block', color: isCharity ? '#f472b6' : 'var(--primary)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', textDecoration: 'none', marginTop: 'auto', paddingTop: '6px', overflowWrap: 'break-word', wordBreak: 'break-word', maxWidth: '100%' }}>
+                          Visit {pName} &rarr;
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })()}
+
+        {/* 5. Supported Charity Appeals & Street Drives (Food Bank, Mission Christmas, etc.) */}
         {supportedAppeals.length > 0 && (
           <section id="charity-appeals" style={{ padding: '60px 20px', maxWidth: '1000px', margin: '0 auto', textAlign: 'center' }}>
             <div style={{
@@ -2472,141 +2589,6 @@ export default function PublicSleigh({ tableData, activeTableSlug }) {
             </div>
           </section>
         )}
-
-        {/* 5. Community Partners & Beneficiaries: Charities first, then Official Headline Partners, then Route Sponsors */}
-        {(() => {
-          const combinedList = [
-            ...allCommunityAttributions.charities,
-            ...allCommunityAttributions.officialPartners,
-            ...allCommunityAttributions.routeSponsors
-          ];
-
-          if (combinedList.length === 0) return null;
-
-          return (
-            <section id="partners" style={{ padding: '60px 20px', maxWidth: '1000px', margin: '0 auto', textAlign: 'center' }}>
-              <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '11px',
-                fontWeight: 800,
-                letterSpacing: '1.8px',
-                textTransform: 'uppercase',
-                color: 'var(--primary)',
-                marginBottom: '10px'
-              }}>
-                <span style={{ display: 'inline-block', width: '20px', height: '1px', background: 'linear-gradient(90deg, transparent, var(--primary))' }} />
-                LOCAL SUPPORT &amp; BENEFICIARIES
-                <span style={{ display: 'inline-block', width: '20px', height: '1px', background: 'linear-gradient(90deg, var(--primary), transparent)' }} />
-              </div>
-              <h2 className="brand-font" style={{ fontSize: '38px', margin: '0 0 10px 0', color: '#FFFFFF' }}>
-                COMMUNITY <span style={{ color: 'var(--primary)' }}>PARTNERS</span>
-              </h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '16px', marginBottom: '32px' }}>
-                Thank you to our beneficiary causes, headline partners, and local business sponsors keeping Santa rolling.
-              </p>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                gap: '18px',
-                textAlign: 'left'
-              }}>
-                {combinedList.map((p, idx) => {
-                  const pLogo = p.logo || p.logo_url || '';
-                  const pName = p.name || '';
-                  const isCharity = p.type === 'charity';
-                  const isOfficial = p.type === 'official_partner';
-                  const pRole = isCharity
-                    ? (p.role ? (p.role.startsWith('❤️') ? p.role : `❤️ ${p.role}`) : '❤️ Charity Beneficiary')
-                    : (isOfficial ? (p.role ? (p.role.startsWith('⭐') ? p.role : `⭐ ${p.role}`) : '⭐ Official Headline Partner') : (p.role ? (p.role.startsWith('🏢') ? p.role : `🏢 ${p.role}`) : '🏢 Route Sponsor'));
-                  const pUrl = p.url || p.link || p.website || p.website_url || '';
-
-                  return (
-                    <div
-                      key={idx}
-                      style={{
-                        background: isCharity ? 'rgba(244, 114, 182, 0.04)' : '#000000',
-                        border: isCharity
-                          ? '1px solid rgba(244, 114, 182, 0.35)'
-                          : (isOfficial ? '1px solid rgba(251, 175, 51, 0.45)' : '1px solid var(--border)'),
-                        borderRadius: '16px',
-                        padding: '20px 18px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        boxSizing: 'border-box',
-                        overflow: 'hidden',
-                        wordWrap: 'break-word',
-                        overflowWrap: 'break-word',
-                        minWidth: 0,
-                        width: '100%',
-                        boxShadow: isCharity
-                          ? '0 6px 20px rgba(244, 114, 182, 0.08)'
-                          : (isOfficial ? '0 6px 20px rgba(251, 175, 51, 0.1)' : '0 4px 14px rgba(0,0,0,0.3)')
-                      }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '12px', flexWrap: 'wrap', minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
-                        {pLogo && (
-                          <div style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            background: '#FFFFFF',
-                            borderRadius: '10px',
-                            padding: '6px',
-                            boxShadow: 'none',
-                            flexShrink: 0,
-                            maxWidth: '110px',
-                            maxHeight: '52px'
-                          }}>
-                            {pUrl ? (
-                              <a href={pUrl} target="_blank" rel="noopener noreferrer sponsored" style={{ display: 'block', textDecoration: 'none' }}>
-                                <img
-                                  src={pLogo}
-                                  alt={pName ? `${pName} logo` : 'Logo'}
-                                  style={{ height: '40px', maxWidth: '98px', objectFit: 'contain', display: 'block' }}
-                                  loading="lazy"
-                                />
-                              </a>
-                            ) : (
-                              <img
-                                src={pLogo}
-                                alt={pName ? `${pName} logo` : 'Logo'}
-                                style={{ height: '40px', maxWidth: '98px', objectFit: 'contain', display: 'block' }}
-                                loading="lazy"
-                              />
-                            )}
-                          </div>
-                        )}
-                        <div style={{ minWidth: 0, flex: 1, overflowWrap: 'break-word', wordBreak: 'break-word' }}>
-                          <div
-                            className="brand-font"
-                            style={{ color: isCharity ? '#f472b6' : (isOfficial ? 'var(--primary)' : '#86efac'), fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1.2px', fontWeight: 800, marginBottom: '4px', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
-                            {pRole}
-                          </div>
-                          <h3 className="brand-font" style={{ fontSize: 'clamp(15px, 3.8vw, 19px)', color: '#FFFFFF', margin: 0, lineHeight: 1.25, overflowWrap: 'break-word', wordBreak: 'break-word', hyphens: 'auto' }}>
-                            {pName}
-                          </h3>
-                        </div>
-                      </div>
-
-                      {p.description && (
-                        <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '12px', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
-                          {p.description}
-                        </p>
-                      )}
-                      {pUrl && (
-                        <a href={pUrl} target="_blank" rel="noopener noreferrer sponsored" style={{ display: 'inline-block', color: isCharity ? '#f472b6' : 'var(--primary)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', textDecoration: 'none', marginTop: 'auto', paddingTop: '6px', overflowWrap: 'break-word', wordBreak: 'break-word', maxWidth: '100%' }}>
-                          Visit {pName} &rarr;
-                        </a>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })()}
 
         {/* MODULAR PUBLIC FEATURE SLOTS (Placed Above Memory Book) */}
         {activeSlots.map((slot) => {

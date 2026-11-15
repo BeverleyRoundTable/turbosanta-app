@@ -2042,30 +2042,13 @@
       });
     };
 
-    // 1. Table-wide Beneficiary Charities (from settings & supported appeals) - TIER 1 TOP
+    // 1. Table-wide Beneficiary Charities (from partners settings) - TIER 1 TOP
+    // Note: Physical street collection drives (supported_appeals) render exclusively in #charity-appeals to avoid duplication.
     (state.payload?.partners || []).forEach(p => {
       if (isCharityPartner(p)) {
         addAttribution(charities, p.name, p.logo || p.logo_url, p.url || p.link, p.role ? (p.role.startsWith('❤️') ? p.role : `❤️ ${p.role}`) : '❤️ Official Charity Beneficiary', 'charity');
       }
     });
-
-    let rawAppeals = state.payload?.supported_appeals;
-    if (!rawAppeals && state.payload?.table?.supported_appeals) rawAppeals = state.payload.table.supported_appeals;
-    if (!rawAppeals && state.payload?.table?.supported_appeals_json) {
-      try {
-        rawAppeals = typeof state.payload.table.supported_appeals_json === 'string'
-          ? JSON.parse(state.payload.table.supported_appeals_json)
-          : state.payload.table.supported_appeals_json;
-      } catch (e) {}
-    }
-    if (Array.isArray(rawAppeals)) {
-      rawAppeals.forEach(a => {
-        const aName = a.charity_name || a.name;
-        if (aName) {
-          addAttribution(charities, aName, a.logo || a.logo_url, a.donate_url || a.link, `❤️ ${a.title || a.name || 'Charity Appeal'}`, 'charity');
-        }
-      });
-    }
 
     // 2. Beneficiary Charities across all routes - TIER 1 TOP
     state.routes.forEach(r => {
