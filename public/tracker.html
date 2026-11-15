@@ -2724,7 +2724,12 @@
           }));
 
           const pts = [...xml.getElementsByTagName("trkpt")];
-          if (pts.length < 2) throw new Error("GPX too short");
+          if (pts.length < 2) {
+            if (!AppState.gpxStops || AppState.gpxStops.length === 0) throw new Error("GPX too short");
+            AppState.gpxRoute = null;
+            AppState.flags.gpxLoaded = false;
+            return;
+          }
           let dist = 0;
           let route = [];
           for (let i = 0; i < pts.length; i++) {
@@ -5424,6 +5429,11 @@
               .bindTooltip(stop.name, { direction: 'top', offset: [0, -16], className: 'stop-tooltip' })
               .addTo(AppState.map);
             });
+            if (!AppState.flags.gpxLoaded && AppState.map) {
+              const stopCoords = AppState.gpxStops.map(s => [s.lat, s.lng]).filter(c => !isNaN(c[0]) && !isNaN(c[1]));
+              if (stopCoords.length === 1) AppState.map.setView(stopCoords[0], 16);
+              else if (stopCoords.length > 1) AppState.map.fitBounds(stopCoords, { padding: [40, 40] });
+            }
           }
 
           const routeSponsors = (Array.isArray(route?.sponsors) && route.sponsors.length > 0)
@@ -6179,6 +6189,20 @@
                   if (p.lng > maxLng) maxLng = p.lng;
                 }
                 mlMap.fitBounds([[minLng, minLat], [maxLng, maxLat]], { padding: 60, pitch: 0, bearing: 0, duration: 0 });
+              } else if (AppState.gpxStops && AppState.gpxStops.length > 0) {
+                const validStops = AppState.gpxStops.filter(s => !isNaN(s.lat) && !isNaN(s.lng));
+                if (validStops.length === 1) {
+                  mlMap.jumpTo({ center: [validStops[0].lng, validStops[0].lat], zoom: 16, pitch: 45, bearing: 0 });
+                } else if (validStops.length > 1) {
+                  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+                  for (const s of validStops) {
+                    if (s.lat < minLat) minLat = s.lat;
+                    if (s.lat > maxLat) maxLat = s.lat;
+                    if (s.lng < minLng) minLng = s.lng;
+                    if (s.lng > maxLng) maxLng = s.lng;
+                  }
+                  mlMap.fitBounds([[minLng, minLat], [maxLng, maxLat]], { padding: 60, pitch: 0, bearing: 0, duration: 0 });
+                }
               }
 
               if (AppState.gpxStops && AppState.gpxStops.length > 0) {

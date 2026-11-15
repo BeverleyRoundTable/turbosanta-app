@@ -457,6 +457,10 @@
               <input type="time" id="newRouteTimeInput" value="18:00" style="width:100%; background:var(--surface-3); border:1px solid var(--border); border-radius:6px; padding:6px 8px; color:#fff; font-size:12px; box-sizing:border-box;">
             </div>
           </div>
+          <label style="display:flex; align-items:center; gap:8px; margin-top:10px; font-size:11px; color:var(--text-muted); cursor:pointer;">
+            <input type="checkbox" id="newRouteStaticCheckbox" onchange="if(typeof renderPlannedStops==='function')renderPlannedStops(); if(typeof updateStats==='function')updateStats();" style="accent-color:#f59e0b; width:14px; height:14px; margin:0; flex-shrink:0;">
+            <span><strong style="color:#fbbf24;">Static Route</strong> — single planned stop pin (up to 24h dwell)</span>
+          </label>
         </div>
 
         <div style="margin-bottom:14px;">
@@ -742,6 +746,10 @@ function setMode(m) {
   document.getElementById('placeSection').style.display = m === 'place' ? 'block' : 'none';
   document.getElementById('mapToast').style.display = m === 'place' ? 'block' : 'none';
   map.getContainer().style.cursor = m === 'place' ? 'crosshair' : '';
+  const stopsSec = document.getElementById('plannedStopsSection');
+  if (stopsSec && (m === 'place' || (window.plannedStops && window.plannedStops.length > 0))) {
+    stopsSec.style.display = 'block';
+  }
 }
 
 function setActiveToolProfile(btn) {
@@ -935,7 +943,7 @@ function createStopMarker(stop, index) {
       <div style="display:flex; align-items:center; gap:5px;">
         <button type="button" id="popupDwellSub5_${index}" style="background:#f3f4f6; border:1px solid #d1d5db; border-radius:4px; padding:3px 7px; font-size:11px; font-weight:700; cursor:pointer;">-5m</button>
         <button type="button" id="popupDwellSub1_${index}" style="background:#f3f4f6; border:1px solid #d1d5db; border-radius:4px; padding:3px 7px; font-size:11px; font-weight:700; cursor:pointer;">-1m</button>
-        <input type="number" min="0" max="180" id="popupStopAllocated_${index}" value="${dwellMins}" style="width:48px; text-align:center; padding:4px; border:1px solid #ccc; border-radius:4px; font-size:12px; font-weight:700; color:#0284c7;">
+        <input type="number" min="0" max="${window.getStopMaxDwellMins ? window.getStopMaxDwellMins() : 1440}" id="popupStopAllocated_${index}" value="${dwellMins}" style="width:54px; text-align:center; padding:4px; border:1px solid #ccc; border-radius:4px; font-size:12px; font-weight:700; color:#0284c7;">
         <span style="font-size:11px; color:#555; font-weight:600;">mins</span>
         <button type="button" id="popupDwellAdd1_${index}" style="background:#f3f4f6; border:1px solid #d1d5db; border-radius:4px; padding:3px 7px; font-size:11px; font-weight:700; cursor:pointer;">+1m</button>
         <button type="button" id="popupDwellAdd5_${index}" style="background:#f3f4f6; border:1px solid #d1d5db; border-radius:4px; padding:3px 7px; font-size:11px; font-weight:700; color:#0284c7; cursor:pointer;">+5m</button>
@@ -1020,9 +1028,31 @@ function createStopMarker(stop, index) {
   return marker;
 }
 
+window.isStaticRouteMode = function() {
+  const sel = document.getElementById('targetRouteSelect');
+  if (sel && sel.value === '__NEW__') {
+    const chk = document.getElementById('newRouteStaticCheckbox');
+    if (chk && chk.checked) return true;
+  }
+  const r = window.currentLoadedRoute;
+  if (r) {
+    if (r.is_static === 1 || r.is_static === true || r.route_type === 'static') return true;
+    const notesStr = String(r.notes || '');
+    if (/"route_type"\s*:\s*"static"/i.test(notesStr) || /"is_static"\s*:\s*(true|1)\b/i.test(notesStr)) return true;
+  }
+  const activePts = typeof getActivePoints === 'function' ? getActivePoints() : [];
+  if (activePts.length < 2 && Array.isArray(window.plannedStops) && window.plannedStops.length >= 1) return true;
+  return false;
+};
+
+window.getStopMaxDwellMins = function() {
+  return window.isStaticRouteMode() ? 1440 : 180;
+};
+
 window.updateStopAllocatedTime = function(index, val) {
   if (window.plannedStops[index]) {
-    window.plannedStops[index].allocated_mins = Math.max(0, parseInt(val, 10) || 0);
+    const maxDwell = window.getStopMaxDwellMins();
+    window.plannedStops[index].allocated_mins = Math.min(maxDwell, Math.max(0, parseInt(val, 10) || 0));
     const marker = window.stopMarkerInstances[index];
     if (marker) {
       const tallyStr = (window.plannedStops[index].tally && window.plannedStops[index].tally > 0) ? ` · 👥 ${window.plannedStops[index].tally}` : '';
@@ -1037,8 +1067,9 @@ window.updateStopAllocatedTime = function(index, val) {
 
 window.adjustStopAllocatedTime = function(index, delta) {
   if (window.plannedStops[index]) {
+    const maxDwell = window.getStopMaxDwellMins();
     const cur = (window.plannedStops[index].allocated_mins !== undefined && window.plannedStops[index].allocated_mins !== null) ? window.plannedStops[index].allocated_mins : 5;
-    window.plannedStops[index].allocated_mins = Math.max(0, cur + delta);
+    window.plannedStops[index].allocated_mins = Math.min(maxDwell, Math.max(0, cur + delta));
     const marker = window.stopMarkerInstances[index];
     if (marker) {
       const tallyStr = (window.plannedStops[index].tally && window.plannedStops[index].tally > 0) ? ` · 👥 ${window.plannedStops[index].tally}` : '';
@@ -1115,7 +1146,7 @@ function renderPlannedStopsList() {
           <div style="display:flex; align-items:center; gap:4px;" title="Allocated stop dwell time added to route duration">
             <span>⏱️ Dwell:</span>
             <button type="button" class="btn btn-dim btn-sm" onclick="adjustStopAllocatedTime(${i}, -5)" style="padding:2px 5px; font-size:10px;">-5m</button>
-            <input type="number" min="0" max="180" value="${allocated}" onchange="updateStopAllocatedTime(${i}, this.value)" style="width:36px; text-align:center; background:#111; border:1px solid var(--border); border-radius:4px; color:#38bdf8; font-size:11px; font-weight:700; padding:2px;">
+            <input type="number" min="0" max="${window.getStopMaxDwellMins ? window.getStopMaxDwellMins() : 1440}" value="${allocated}" onchange="updateStopAllocatedTime(${i}, this.value)" style="width:44px; text-align:center; background:#111; border:1px solid var(--border); border-radius:4px; color:#38bdf8; font-size:11px; font-weight:700; padding:2px;">
             <span style="font-size:10px; color:#38bdf8; font-weight:600;">m</span>
             <button type="button" class="btn btn-dim btn-sm" onclick="adjustStopAllocatedTime(${i}, 5)" style="padding:2px 5px; font-size:10px; color:#38bdf8;">+5m</button>
           </div>
@@ -2006,35 +2037,60 @@ function parseGPX(text, name, size) {
   abortGeocode();
   const parser = new DOMParser();
   const gpx = parser.parseFromString(text, 'text/xml');
-  const pts = [];
   const nodes = gpx.querySelectorAll('trkpt');
-  const fallback = nodes.length ? nodes : gpx.querySelectorAll('rtept').length ? gpx.querySelectorAll('rtept') : gpx.querySelectorAll('wpt');
+  const rteNodes = gpx.querySelectorAll('rtept');
+  const wptNodes = gpx.querySelectorAll('wpt');
+  const pts = [];
+  const fallback = nodes.length ? nodes : rteNodes.length ? rteNodes : (wptNodes.length >= 2 ? wptNodes : []);
   fallback.forEach(pt => {
     const lat = parseFloat(pt.getAttribute('lat'));
     const lon = parseFloat(pt.getAttribute('lon'));
     if (!isNaN(lat) && !isNaN(lon)) pts.push([lat, lon]);
   });
-  if (pts.length < 2) { alert('GPX needs at least 2 points.'); return; }
+  if (pts.length === 0 && wptNodes.length === 0) {
+    alert('GPX needs at least 1 stop pin or track point.');
+    return;
+  }
 
   uploadedPoints = pts;
   snappedGeometry = [];
 
-  // Parse any planned <wpt> stops in GPX
+  const savedStops = (window.currentLoadedRoute && Array.isArray(window.currentLoadedRoute.planned_stops))
+    ? window.currentLoadedRoute.planned_stops
+    : [];
+
+  // Parse any planned <wpt> stops in GPX (preserving saved dwell/tally from D1 or extensions)
   window.plannedStops = [];
-  const wptNodes = gpx.querySelectorAll('wpt');
   wptNodes.forEach((w, i) => {
     const lat = parseFloat(w.getAttribute('lat'));
     const lon = parseFloat(w.getAttribute('lon'));
     const nameNode = w.querySelector('name');
     const stopName = nameNode ? nameNode.textContent.trim() : `Stop ${i + 1}`;
     if (!isNaN(lat) && !isNaN(lon)) {
-      window.plannedStops.push({ id: `stop_${i + 1}`, lat, lng: lon, name: stopName, allocated_mins: 5, tally: 0 });
+      const extDwell = w.querySelector('allocated_mins')?.textContent;
+      const matchedSaved = savedStops.find((s, sIdx) => {
+        const sLat = parseFloat(s.lat);
+        const sLng = parseFloat(s.lng || s.lon);
+        const closeCoords = !isNaN(sLat) && !isNaN(sLng) && Math.abs(sLat - lat) < 0.0005 && Math.abs(sLng - lon) < 0.0005;
+        return closeCoords || (sIdx === i && (s.name || '').trim() === stopName);
+      }) || (wptNodes.length === savedStops.length ? savedStops[i] : null);
+      const allocRaw = extDwell !== undefined && extDwell !== null && extDwell !== ''
+        ? extDwell
+        : (matchedSaved && matchedSaved.allocated_mins !== undefined && matchedSaved.allocated_mins !== null ? matchedSaved.allocated_mins : 5);
+      window.plannedStops.push({
+        id: matchedSaved?.id || `stop_${i + 1}`,
+        lat,
+        lng: lon,
+        name: stopName,
+        allocated_mins: Math.max(0, parseInt(allocRaw, 10) || 0),
+        tally: Number(matchedSaved?.tally || 0)
+      });
     }
   });
 
   // If GPX has no <wpt> stops, check if currently selected route in D1 has planned_stops
-  if (window.plannedStops.length === 0 && window.currentLoadedRoute && Array.isArray(window.currentLoadedRoute.planned_stops) && window.currentLoadedRoute.planned_stops.length > 0) {
-    window.plannedStops = window.currentLoadedRoute.planned_stops.map((s, i) => ({
+  if (window.plannedStops.length === 0 && savedStops.length > 0) {
+    window.plannedStops = savedStops.map((s, i) => ({
       id: s.id || `stop_${i + 1}`,
       lat: parseFloat(s.lat),
       lng: parseFloat(s.lng || s.lon),
@@ -2046,15 +2102,29 @@ function parseGPX(text, name, size) {
 
   renderPlannedStops();
 
-  if (uploadLayer) map.removeLayer(uploadLayer);
-  uploadLayer = L.polyline(pts, { color: '#D31C1C', weight: 4, opacity: 0.9 }).addTo(map);
-  uploadLayer.on('click', e => {
-    if (window.isAddingStop) {
-      L.DomEvent.stopPropagation(e);
-      addStopAtLatLng(e.latlng.lat, e.latlng.lng);
+  if (uploadLayer) {
+    map.removeLayer(uploadLayer);
+    uploadLayer = null;
+  }
+  if (pts.length >= 2) {
+    uploadLayer = L.polyline(pts, { color: '#D31C1C', weight: 4, opacity: 0.9 }).addTo(map);
+    uploadLayer.on('click', e => {
+      if (window.isAddingStop) {
+        L.DomEvent.stopPropagation(e);
+        addStopAtLatLng(e.latlng.lat, e.latlng.lng);
+      }
+    });
+    map.fitBounds(uploadLayer.getBounds(), { padding: [40, 40] });
+  } else if (window.plannedStops.length > 0) {
+    const stopCoords = window.plannedStops.map(s => [s.lat, s.lng]).filter(c => !isNaN(c[0]) && !isNaN(c[1]));
+    if (stopCoords.length === 1) {
+      map.setView(stopCoords[0], 16);
+    } else if (stopCoords.length > 1) {
+      map.fitBounds(stopCoords, { padding: [50, 50] });
     }
-  });
-  map.fitBounds(uploadLayer.getBounds(), { padding: [40, 40] });
+  } else if (pts.length === 1) {
+    map.setView(pts[0], 16);
+  }
 
   const stopsNotice = window.plannedStops.length > 0 
     ? ` · <span style="color:var(--primary); font-weight:700;">${window.plannedStops.length} stops</span>` 
@@ -2063,7 +2133,7 @@ function parseGPX(text, name, size) {
   document.getElementById('fileBadge').style.display = 'block';
   document.getElementById('fileBadge').innerHTML = `<div class="file-badge">
     <span class="file-badge-icon">📍</span>
-    <div class="file-badge-info"><div class="file-badge-name">${name}</div><div class="file-badge-meta">${pts.length} pts · ${(size/1024).toFixed(1)} KB${stopsNotice}</div></div>
+    <div class="file-badge-info"><div class="file-badge-name">${name}</div><div class="file-badge-meta">${pts.length > 0 ? `${pts.length} pts` : 'Static pin'} · ${(size/1024).toFixed(1)} KB${stopsNotice}</div></div>
     <button class="file-badge-clear" onclick="clearUpload()">✕</button>
   </div>`;
   const upAct = document.getElementById('uploadActions');
@@ -2105,37 +2175,51 @@ function getActivePoints() {
 
 function updateStats() {
   const pts = getActivePoints();
-  if (pts.length < 2) {
+  const hasStops = Array.isArray(window.plannedStops) && window.plannedStops.length > 0;
+  const allowSinglePin = pts.length === 1 && window.isStaticRouteMode();
+
+  if (pts.length < 2 && !hasStops && !allowSinglePin) {
     document.getElementById('statsSection').style.display = 'none';
     document.getElementById('streetsSection').style.display = 'none';
     const tackEl = document.getElementById('tackSection');
     if (tackEl) tackEl.style.display = 'none';
     const stopsSec = document.getElementById('plannedStopsSection');
-    if (stopsSec) stopsSec.style.display = 'none';
+    if (stopsSec && mode !== 'place') stopsSec.style.display = 'none';
     document.getElementById('mapLegend').style.display = 'none';
     return;
   }
 
-  const distKm = calcDist(pts);
+  const distKm = pts.length >= 2 ? calcDist(pts) : 0;
   const distMi = distKm * 0.621371;
   const density = parseInt(document.getElementById('densitySelect').value);
-  const dense = densifyPoints(pts, density);
+  const dense = pts.length >= 2 ? densifyPoints(pts, density) : pts;
+  const stopCount = hasStops ? window.plannedStops.length : pts.length;
 
-  document.getElementById('statDist').textContent = distMi < 0.1 ? `${Math.round(distKm * 1000)}m` : `${distMi.toFixed(2)} mi`;
+  document.getElementById('statDist').textContent = pts.length < 2
+    ? 'Static'
+    : (distMi < 0.1 ? `${Math.round(distKm * 1000)}m` : `${distMi.toFixed(2)} mi`);
   document.getElementById('statWaypoints').textContent = mode === 'place' ? waypoints.length : uploadedPoints.length;
-  document.getElementById('statDense').textContent = dense.length.toLocaleString();
+  document.getElementById('statDense').textContent = (pts.length >= 2 ? dense.length : stopCount).toLocaleString();
   updateTime(distMi);
 
   updatePlannedStopsCountBadge();
 
+  const activeEl = document.activeElement;
+  const stopsListEl = document.getElementById('plannedStopsList');
+  if (stopsListEl && (!activeEl || !stopsListEl.contains(activeEl)) && typeof renderPlannedStopsList === 'function') {
+    renderPlannedStopsList();
+  }
+
   document.getElementById('statsSection').style.display = 'block';
   const stopsSec = document.getElementById('plannedStopsSection');
   if (stopsSec) stopsSec.style.display = 'block';
-  document.getElementById('streetsSection').style.display = 'block';
+  document.getElementById('streetsSection').style.display = pts.length >= 2 ? 'block' : 'none';
   const tackEl = document.getElementById('tackSection');
   if (tackEl) tackEl.style.display = 'block';
   document.getElementById('mapLegend').style.display = 'block';
-  document.getElementById('legendText').textContent = `${distMi.toFixed(2)} mi · ${dense.length} export pts`;
+  document.getElementById('legendText').textContent = pts.length >= 2
+    ? `${distMi.toFixed(2)} mi · ${dense.length} export pts`
+    : `Static stop · ${stopCount} pin${stopCount === 1 ? '' : 's'}`;
 
   const streetsCountEl = document.getElementById('attachStreetsCount');
   if (streetsCountEl) streetsCountEl.textContent = detectedStreets.length;
@@ -2246,16 +2330,21 @@ function escXml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace
 
 function exportDenseGPX() {
   const pts = getActivePoints();
-  if (pts.length < 2) { alert('Build or upload a route first.'); return; }
+  const hasStops = Array.isArray(window.plannedStops) && window.plannedStops.length > 0;
+  if (pts.length < 2 && !hasStops && !(pts.length === 1 && window.isStaticRouteMode())) {
+    alert('Build a route, upload a GPX, or add a planned stop pin first.');
+    return;
+  }
 
   const density = parseInt(document.getElementById('densitySelect').value);
-  const dense = densifyPoints(pts, density);
+  const dense = pts.length >= 2 ? densifyPoints(pts, density) : pts;
 
   let wptTags = '';
-  if (Array.isArray(window.plannedStops) && window.plannedStops.length > 0) {
+  if (hasStops) {
     window.plannedStops.forEach((st, i) => {
       const defaultName = `Stop ${i + 1}`;
-      wptTags += `  <wpt lat="${Number(st.lat).toFixed(7)}" lon="${Number(st.lng).toFixed(7)}">\n    <name>${escXml(st.name || defaultName)}</name>\n  </wpt>\n`;
+      const allocMins = (st.allocated_mins !== undefined && st.allocated_mins !== null) ? parseInt(st.allocated_mins, 10) : 5;
+      wptTags += `  <wpt lat="${Number(st.lat).toFixed(7)}" lon="${Number(st.lng).toFixed(7)}">\n    <name>${escXml(st.name || defaultName)}</name>\n    <extensions><allocated_mins>${isNaN(allocMins) ? 5 : Math.max(0, allocMins)}</allocated_mins></extensions>\n  </wpt>\n`;
     });
   } else {
     waypoints.forEach((w, i) => {
@@ -2264,6 +2353,9 @@ function exportDenseGPX() {
         wptTags += `  <wpt lat="${w.lat.toFixed(7)}" lon="${w.lng.toFixed(7)}">\n    <name>${escXml(w.stopName || defaultName)}</name>\n  </wpt>\n`;
       }
     });
+    if (!wptTags && pts.length === 1) {
+      wptTags += `  <wpt lat="${pts[0][0].toFixed(7)}" lon="${pts[0][1].toFixed(7)}">\n    <name>Static Stop 1</name>\n  </wpt>\n`;
+    }
   }
 
   const trkpts = dense.map(p => `      <trkpt lat="${p[0].toFixed(7)}" lon="${p[1].toFixed(7)}">\n      </trkpt>`).join('\n');
@@ -3059,6 +3151,52 @@ function populateRouteSelect(preferredRouteId = null) {
   }
 }
 
+function isRouteStaticRecord(route) {
+  if (!route) return false;
+  if (route.is_static === 1 || route.is_static === true || route.route_type === 'static') return true;
+  const notesStr = String(route.notes || '');
+  return /"route_type"\s*:\s*"static"/i.test(notesStr) || /"is_static"\s*:\s*(true|1)\b/i.test(notesStr);
+}
+
+function restoreStopsFromRouteRecord(route, zoomToStops = true) {
+  if (!route || !Array.isArray(route.planned_stops) || route.planned_stops.length === 0) return false;
+  const parsed = route.planned_stops.map((s, i) => ({
+    id: s.id || `stop_${i + 1}`,
+    lat: parseFloat(s.lat),
+    lng: parseFloat(s.lng || s.lon),
+    name: s.name || `Stop ${i + 1}`,
+    allocated_mins: (s.allocated_mins !== undefined && s.allocated_mins !== null) ? Number(s.allocated_mins) : 5,
+    tally: Number(s.tally || 0)
+  })).filter(s => !isNaN(s.lat) && !isNaN(s.lng));
+  if (parsed.length === 0) return false;
+  window.plannedStops = parsed;
+  renderPlannedStops();
+  updateStats();
+  if (zoomToStops) {
+    const coords = parsed.map(s => [s.lat, s.lng]);
+    if (coords.length === 1) map.setView(coords[0], 16);
+    else map.fitBounds(coords, { padding: [50, 50] });
+  }
+  return true;
+}
+
+function applyStaticMetaToRoute(targetRoute, shouldBeStatic) {
+  if (!targetRoute || !shouldBeStatic) return;
+  targetRoute.is_static = 1;
+  targetRoute.route_type = 'static';
+  const rawNotes = String(targetRoute.notes || '');
+  let metaObj = {};
+  const metaMatch = rawNotes.match(/<!--\s*ROUTE_META:(.*?)-->/s);
+  if (metaMatch) {
+    try { metaObj = JSON.parse(metaMatch[1]) || {}; } catch (e) {}
+  }
+  metaObj.is_static = true;
+  metaObj.route_type = 'static';
+  const cleanedNotes = rawNotes.replace(/<!--\s*ROUTE_META:.*?-->/gs, '').trim();
+  const metaTag = `<!-- ROUTE_META:${JSON.stringify(metaObj)} -->`;
+  targetRoute.notes = cleanedNotes ? `${cleanedNotes}\n${metaTag}` : metaTag;
+}
+
 function onTargetRouteChanged() {
   const select = document.getElementById('targetRouteSelect');
   const val = select ? select.value : '';
@@ -3068,27 +3206,33 @@ function onTargetRouteChanged() {
   const existingAction = document.getElementById('existingGpxAction');
 
   if (val === '__NEW__') {
+    window.currentLoadedRoute = null;
     if (newFields) newFields.style.display = 'block';
     if (infoEl) infoEl.style.display = 'none';
     if (existingAction) existingAction.style.display = 'none';
     const dateInput = document.getElementById('newRouteDateInput');
     if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().slice(0, 10);
+    if (typeof renderPlannedStopsList === 'function') renderPlannedStopsList();
     return;
   }
 
   if (newFields) newFields.style.display = 'none';
 
   if (!val) {
+    window.currentLoadedRoute = null;
     if (infoEl) infoEl.style.display = 'none';
     if (existingAction) existingAction.style.display = 'none';
+    if (typeof renderPlannedStopsList === 'function') renderPlannedStopsList();
     return;
   }
 
   const route = allTableRoutes.find(r => r.id === val);
   if (!route) {
+    window.currentLoadedRoute = null;
     if (infoEl) infoEl.style.display = 'none';
     return;
   }
+  window.currentLoadedRoute = route;
 
   // Restore the route's saved sleigh speed to the slider
   const rSpeed = (route.sleigh_speed !== undefined && route.sleigh_speed !== null && !isNaN(Number(route.sleigh_speed)))
@@ -3098,21 +3242,33 @@ function onTargetRouteChanged() {
   if (speedVal) speedVal.textContent = `${rSpeed} mph`;
   const activePts = getActivePoints();
   if (activePts.length > 1) updateTime(calcDist(activePts) * 0.621371);
+  else if (Array.isArray(window.plannedStops) && window.plannedStops.length > 0) updateTime(0);
+
+  const hasGpx = Boolean(route.gpx_url || route.gpxUrl);
+  const isStatic = isRouteStaticRecord(route);
+  const hasSavedStops = Array.isArray(route.planned_stops) && route.planned_stops.length > 0;
+  if (!hasGpx && activePts.length < 2 && (!window.plannedStops || window.plannedStops.length === 0) && hasSavedStops) {
+    restoreStopsFromRouteRecord(route, true);
+  } else if (typeof renderPlannedStopsList === 'function') {
+    renderPlannedStopsList();
+  }
 
   if (infoEl && metaEl) {
     infoEl.style.display = 'block';
-    const hasGpx = Boolean(route.gpx_url || route.gpxUrl);
+    const statusText = hasGpx
+      ? '✓ Existing GPX track currently attached'
+      : (hasSavedStops ? `✓ ${route.planned_stops.length} static stop pin${route.planned_stops.length === 1 ? '' : 's'} saved` : '⚠️ No GPX track or stop pin attached yet');
     metaEl.innerHTML = `
-      <div style="color:#fff; font-weight:700;">${route.name}</div>
+      <div style="color:#fff; font-weight:700;">${route.name}${isStatic ? ' <span style="color:#fbbf24; font-size:10px; font-weight:800; margin-left:4px;">STATIC</span>' : ''}</div>
       <div>Date: <strong>${route.date || 'Unscheduled'}</strong> · Time: <strong>${route.start_time || '18:00'} - ${route.end_time || '20:30'}</strong></div>
       <div style="margin-top:2px; font-size:11.5px; color:var(--text-dim);">Sleigh Parade Speed: <strong>${rSpeed} mph</strong></div>
-      <div style="margin-top:4px; color:${hasGpx ? 'var(--green)' : 'var(--primary)'}; font-weight:600;">
-        ${hasGpx ? '✓ Existing GPX track currently attached' : '⚠️ No GPX track attached yet'}
+      <div style="margin-top:4px; color:${hasGpx || hasSavedStops ? 'var(--green)' : 'var(--primary)'}; font-weight:600;">
+        ${statusText}
       </div>
     `;
 
     if (existingAction) {
-      existingAction.style.display = hasGpx ? 'block' : 'none';
+      existingAction.style.display = (hasGpx || hasSavedStops) ? 'block' : 'none';
     }
   }
 }
@@ -3133,7 +3289,16 @@ async function loadSelectedRouteGpx() {
   }
   const gpxUrl = route?.gpx_url || route?.gpxUrl;
   if (!gpxUrl) {
-    alert("This route does not have an existing GPX track to load.");
+    if (restoreStopsFromRouteRecord(route, true)) {
+      const toast = document.getElementById('mapToast');
+      if (toast) {
+        toast.textContent = `📍 Loaded ${window.plannedStops.length} static stop pin${window.plannedStops.length === 1 ? '' : 's'} for ${route.name}`;
+        toast.style.display = 'block';
+        setTimeout(() => { if (mode !== 'place') toast.style.display = 'none'; }, 3500);
+      }
+      return;
+    }
+    alert("This route does not have an existing GPX track or saved stop pins to load.");
     return;
   }
 
@@ -3166,12 +3331,13 @@ async function loadSelectedRouteGpx() {
 
 async function attachGpxToSelectedRoute() {
   const pts = getActivePoints();
-  if (pts.length < 2) {
-    alert("Please build or upload a route before tacking.");
+  const hasStops = Array.isArray(window.plannedStops) && window.plannedStops.length > 0;
+  if (pts.length < 2 && !hasStops && !(pts.length === 1 && window.isStaticRouteMode())) {
+    alert("Please build a route, upload a GPX, or add at least one planned stop pin before tacking.");
     return;
   }
 
-  const distKm = calcDist(pts);
+  const distKm = pts.length >= 2 ? calcDist(pts) : 0;
   const distMi = (distKm * 0.621371).toFixed(2);
 
   const select = document.getElementById('targetRouteSelect');
@@ -3193,7 +3359,7 @@ async function attachGpxToSelectedRoute() {
     const isNew = selectedId === '__NEW__';
 
     const chosenSpeed = parseFloat(speedSlider.value) || 3.0;
-    const driveMins = Math.round((parseFloat(distMi) / chosenSpeed) * 60);
+    const driveMins = pts.length >= 2 ? Math.round((parseFloat(distMi) / chosenSpeed) * 60) : 0;
     const dwellMins = (window.plannedStops || []).reduce((sum, s) => sum + (parseInt(s.allocated_mins, 10) || 0), 0);
     const estMins = driveMins + dwellMins;
 
@@ -3235,8 +3401,13 @@ async function attachGpxToSelectedRoute() {
       }
     }
 
+    const shouldMarkStatic = isNew
+      ? Boolean(document.getElementById('newRouteStaticCheckbox')?.checked || pts.length < 2)
+      : Boolean(window.isStaticRouteMode() || pts.length < 2);
+    applyStaticMetaToRoute(targetRoute, shouldMarkStatic);
+
     const density = parseInt(document.getElementById('densitySelect')?.value || '10');
-    const dense = densifyPoints(pts, density);
+    const dense = pts.length >= 2 ? densifyPoints(pts, density) : pts;
 
     // Extract planned stops from window.plannedStops or waypoints
     let plannedStops = [];
@@ -3247,7 +3418,7 @@ async function attachGpxToSelectedRoute() {
         const stopName = st.name || `Stop ${i + 1}`;
         const stopAlloc = (st.allocated_mins !== undefined && st.allocated_mins !== null) ? Number(st.allocated_mins) : 5;
         const stopTally = Number(st.tally || 0);
-        wptTags += `  <wpt lat="${Number(st.lat).toFixed(7)}" lon="${Number(st.lng).toFixed(7)}">\n    <name>${escXml(stopName)}</name>\n  </wpt>\n`;
+        wptTags += `  <wpt lat="${Number(st.lat).toFixed(7)}" lon="${Number(st.lng).toFixed(7)}">\n    <name>${escXml(stopName)}</name>\n    <extensions><allocated_mins>${stopAlloc}</allocated_mins></extensions>\n  </wpt>\n`;
         plannedStops.push({
           id: st.id || `stop_${i + 1}`,
           lat: Number(st.lat),
@@ -3263,7 +3434,7 @@ async function attachGpxToSelectedRoute() {
           const stopName = w.stopName || `Stop ${i + 1}`;
           const stopAlloc = (w.allocated_mins !== undefined && w.allocated_mins !== null) ? Number(w.allocated_mins) : 5;
           const stopTally = Number(w.tally || 0);
-          wptTags += `  <wpt lat="${w.lat.toFixed(7)}" lon="${w.lng.toFixed(7)}">\n    <name>${escXml(stopName)}</name>\n  </wpt>\n`;
+          wptTags += `  <wpt lat="${w.lat.toFixed(7)}" lon="${w.lng.toFixed(7)}">\n    <name>${escXml(stopName)}</name>\n    <extensions><allocated_mins>${stopAlloc}</allocated_mins></extensions>\n  </wpt>\n`;
           plannedStops.push({
             id: `stop_${i + 1}`,
             lat: w.lat,
@@ -3274,6 +3445,18 @@ async function attachGpxToSelectedRoute() {
           });
         }
       });
+      if (plannedStops.length === 0 && pts.length === 1) {
+        const stopName = targetRoute.name || 'Static Stop 1';
+        wptTags += `  <wpt lat="${pts[0][0].toFixed(7)}" lon="${pts[0][1].toFixed(7)}">\n    <name>${escXml(stopName)}</name>\n    <extensions><allocated_mins>5</allocated_mins></extensions>\n  </wpt>\n`;
+        plannedStops.push({
+          id: 'stop_1',
+          lat: pts[0][0],
+          lng: pts[0][1],
+          name: stopName,
+          allocated_mins: 5,
+          tally: 0
+        });
+      }
     }
 
     const trkpts = dense.map(p => `      <trkpt lat="${p[0].toFixed(7)}" lon="${p[1].toFixed(7)}">\n      </trkpt>`).join('\n');
@@ -3515,11 +3698,26 @@ async function loadExistingRoutes() {
       }
       if (targetRoute && (targetRoute.gpx_url || targetRoute.gpxUrl)) {
         await loadSelectedRouteGpx();
-      } else if (targetRoute) {
+      } else if (targetRoute && restoreStopsFromRouteRecord(targetRoute, true)) {
+        window.currentLoadedRoute = targetRoute;
         setMode('place');
         const toast = document.getElementById('mapToast');
         if (toast) {
-          toast.textContent = `📍 Plotting GPX for ${targetRoute.name} — Click map to place points`;
+          toast.textContent = `📍 Loaded ${window.plannedStops.length} saved static stop pin(s) for ${targetRoute.name}`;
+          toast.style.display = 'block';
+        }
+      } else if (targetRoute) {
+        window.currentLoadedRoute = targetRoute;
+        setMode('place');
+        const isStatic = isRouteStaticRecord(targetRoute);
+        if (isStatic && typeof toggleAddStopMode === 'function') {
+          toggleAddStopMode(true);
+        }
+        const toast = document.getElementById('mapToast');
+        if (toast) {
+          toast.textContent = isStatic
+            ? `📍 Static route ${targetRoute.name} — Click map to drop a planned stop pin`
+            : `📍 Plotting GPX for ${targetRoute.name} — Click map to place points`;
           toast.style.display = 'block';
         }
       }

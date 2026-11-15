@@ -1768,6 +1768,16 @@
           console.warn("FlyToBounds failed:", e);
         }
       }
+    } else if (selectedRoute && selectedRoute.stopsLayer && typeof selectedRoute.stopsLayer.getLayers === 'function' && selectedRoute.stopsLayer.getLayers().length > 0) {
+      try { selectedRoute.stopsLayer.bringToFront(); } catch(e) {}
+      try {
+        const b = selectedRoute.stopsLayer.getBounds();
+        if (b && typeof b.isValid === 'function' && b.isValid()) {
+          map.flyToBounds(b, { padding: [40, 40], maxZoom: 16, duration: 1.2 });
+        }
+      } catch(e) {
+        console.warn("FlyToBounds static stops failed:", e);
+      }
     }
   }
 

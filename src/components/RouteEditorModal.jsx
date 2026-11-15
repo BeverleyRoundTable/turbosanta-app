@@ -1305,22 +1305,24 @@ export default function RouteEditorModal({ isOpen, onClose, route, onSaveRoute, 
                         <input
                           type="number"
                           min="0"
-                          max="180"
+                          max={formData.route_type === 'static' ? 1440 : 180}
                           value={(stop.allocated_mins !== undefined && stop.allocated_mins !== null) ? stop.allocated_mins : 5}
                           onChange={(e) => {
+                            const maxDwell = formData.route_type === 'static' ? 1440 : 180;
                             const updated = [...formData.planned_stops];
-                            updated[sIdx] = { ...updated[sIdx], allocated_mins: Math.max(0, parseInt(e.target.value, 10) || 0) };
+                            updated[sIdx] = { ...updated[sIdx], allocated_mins: Math.min(maxDwell, Math.max(0, parseInt(e.target.value, 10) || 0)) };
                             setFormData(prev => ({ ...prev, planned_stops: updated }));
                           }}
-                          style={{ width: '32px', background: 'transparent', border: 'none', color: '#38bdf8', textAlign: 'center', fontSize: '11px', fontWeight: 700, outline: 'none' }}
+                          style={{ width: '44px', background: 'transparent', border: 'none', color: '#38bdf8', textAlign: 'center', fontSize: '11px', fontWeight: 700, outline: 'none' }}
                         />
                         <span style={{ fontSize: '10px', color: '#38bdf8', fontWeight: 600 }}>m</span>
                         <button
                           type="button"
                           onClick={() => {
+                            const maxDwell = formData.route_type === 'static' ? 1440 : 180;
                             const updated = [...formData.planned_stops];
                             const cur = (updated[sIdx].allocated_mins !== undefined && updated[sIdx].allocated_mins !== null) ? Number(updated[sIdx].allocated_mins) : 5;
-                            updated[sIdx] = { ...updated[sIdx], allocated_mins: cur + 5 };
+                            updated[sIdx] = { ...updated[sIdx], allocated_mins: Math.min(maxDwell, cur + 5) };
                             setFormData(prev => ({ ...prev, planned_stops: updated }));
                           }}
                           style={{ background: 'transparent', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: '0 2px', fontSize: '10px', fontWeight: 700 }}

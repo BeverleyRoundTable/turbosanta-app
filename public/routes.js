@@ -231,7 +231,17 @@ function startRoutes() {
                 // Parse XML
                 const xml = new DOMParser().parseFromString(text, "text/xml");
                 const pts = [...xml.getElementsByTagName("trkpt")];
-                if (pts.length < 2) return;
+                const wpts = [...xml.getElementsByTagName("wpt")];
+                if (pts.length < 2) {
+                    const stopPts = (wpts.length > 0 ? wpts : pts)
+                        .map(p => [parseFloat(p.getAttribute("lat")), parseFloat(p.getAttribute("lon"))])
+                        .filter(c => !isNaN(c[0]) && !isNaN(c[1]));
+                    if (stopPts.length === 0) return;
+                    stopPts.forEach(c => L.marker(c, { icon: startIcon }).addTo(map));
+                    if (stopPts.length === 1) map.setView(stopPts[0], 15);
+                    else map.fitBounds(stopPts, { padding: [20, 20] });
+                    return;
+                }
 
                 // Extract coordinates
                 const latLngs = pts.map(p => [
