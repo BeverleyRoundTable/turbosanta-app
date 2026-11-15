@@ -1962,18 +1962,14 @@
               return;
             }
             pinchState = {
+              startX: Number(e.data.x) || 0,
+              startY: Number(e.data.y) || 0,
               lastX: Number(e.data.x) || 0,
               lastY: Number(e.data.y) || 0,
               startDist: Math.max(10, Number(e.data.dist) || 10),
               startZoom: AppState.map.getZoom(),
               lastZoom: AppState.map.getZoom()
             };
-            if (AppState.flags.follow && !AppState.flags.isKiosk && !AppState.flags.isDriver) {
-              AppState.flags.follow = false;
-              if (AppState.dom && AppState.dom.followBtn) {
-                AppState.dom.followBtn.textContent = "Follow: OFF";
-              }
-            }
             return;
           }
           if (e.data.type === 'turbosanta-pinch-move') {
@@ -1984,6 +1980,14 @@
             const dy = pinchState.lastY - ny;
             pinchState.lastX = nx;
             pinchState.lastY = ny;
+            if (Math.hypot(nx - pinchState.startX, ny - pinchState.startY) > 25) {
+              if (AppState.flags.follow && !AppState.flags.isKiosk && !AppState.flags.isDriver) {
+                AppState.flags.follow = false;
+                if (AppState.dom && AppState.dom.followBtn) {
+                  AppState.dom.followBtn.textContent = "Follow: OFF";
+                }
+              }
+            }
             if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
               AppState.map.panBy([dx, dy], { animate: false });
             }
@@ -5858,6 +5862,9 @@
           AppState.dom.followBtn.onclick = () => {
             AppState.flags.follow = !AppState.flags.follow;
             AppState.dom.followBtn.textContent = "Follow: " + (AppState.flags.follow ? "ON" : "OFF");
+            if (AppState.flags.follow && AppState.marker && AppState.map) {
+              AppState.map.panTo(AppState.marker.getLatLng());
+            }
           };
           AppState.dom.recenterBtn.onclick = () => {
             AppState.flags.follow = true;
