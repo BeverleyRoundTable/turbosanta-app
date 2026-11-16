@@ -107,7 +107,9 @@ export default function PrintRouteSheetModal({
           return name || phone || '';
         };
         if (!finalLead) {
-          const marshalVol = pool.find(v => /marshal|lead|head|organi[sz]er|coordinator|chair/i.test(String(v.role || v.Role || '')));
+          const isPrimaryLeadRole = (rStr) => /navigator|lead\s*mar?sh?al|route\s*lead|head|organi[sz]er|coordinator|chair/i.test(String(rStr || ''));
+          const isAnyMarshalRole = (rStr) => /marshal|navigator|lead|head|organi[sz]er|coordinator|chair/i.test(String(rStr || ''));
+          const marshalVol = pool.find(v => isPrimaryLeadRole(v.role || v.Role)) || pool.find(v => isAnyMarshalRole(v.role || v.Role));
           if (marshalVol) finalLead = formatVol(marshalVol);
         }
         if (!finalDriver) {

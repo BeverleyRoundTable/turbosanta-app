@@ -888,7 +888,9 @@ function syncLanyardRouteData(routeIndex) {
 
     const pool = specificVols.length > 0 ? specificVols : (generalVols.length > 0 ? generalVols : STATE.allVolunteers);
 
-    const marshal = pool.find(v => /marshal|lead|head|organi[sz]er|coordinator|chair/i.test(v.role || ''));
+    const isPrimaryLeadRole = (rStr) => /navigator|lead\s*mar?sh?al|route\s*lead|head|organi[sz]er|coordinator|chair/i.test(String(rStr || ''));
+    const isAnyMarshalRole = (rStr) => /marshal|navigator|lead|head|organi[sz]er|coordinator|chair/i.test(String(rStr || ''));
+    const marshal = pool.find(v => isPrimaryLeadRole(v.role)) || pool.find(v => isAnyMarshalRole(v.role));
     const driver = pool.find(v => /driver|tow|vehicle|tractor/i.test(v.role || ''));
 
     STATE.leadMarshal = marshal ? `${marshal.name}${marshal.phone ? ` (${marshal.phone})` : ''}` : '';
