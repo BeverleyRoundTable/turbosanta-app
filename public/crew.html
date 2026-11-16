@@ -531,13 +531,27 @@ async function crewApiFetch(pathOrUrl, options = {}) {
     primaryUrl = `${primaryBase}${cleanPath}`;
   }
 
-  const fetchOpts = { credentials: 'include', ...options };
+  const isSameOriginUrl = (targetUrl) => {
+    try {
+      return new URL(targetUrl, window.location.origin).origin === window.location.origin;
+    } catch (e) {
+      return false;
+    }
+  };
+
   try {
-    return await fetch(primaryUrl, fetchOpts);
+    return await fetch(primaryUrl, {
+      credentials: isSameOriginUrl(primaryUrl) ? 'include' : 'same-origin',
+      ...options
+    });
   } catch (err) {
     const isNetErr = err?.name === 'TypeError' || String(err).includes('Failed to fetch') || String(err).includes('NetworkError');
     if (fallbackBase && isNetErr) {
-      return await fetch(`${fallbackBase}${cleanPath}`, fetchOpts);
+      const fallbackUrl = `${fallbackBase}${cleanPath}`;
+      return await fetch(fallbackUrl, {
+        credentials: isSameOriginUrl(fallbackUrl) ? 'include' : 'same-origin',
+        ...options
+      });
     }
     throw err;
   }
