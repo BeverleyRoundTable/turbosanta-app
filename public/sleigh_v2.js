@@ -1564,7 +1564,10 @@
     const internalRaised = Number(table.total_raised || 0);
     const externalRaised = Number(table.external_raised_total || 0);
     const giftAidBonus = isGa ? Number(state.payload?.gift_aid?.giftAid || 0) : 0;
-    const totalRaised = internalRaised + externalRaised + giftAidBonus;
+    // table.total_raised already includes synced donations (SumUp, JustGiving, Ticket Tailor);
+    // external_raised_total is only a fallback if no donation rows are present.
+    const baseRaised = internalRaised > 0 ? internalRaised : externalRaised;
+    const totalRaised = baseRaised + giftAidBonus;
     const goal = Number(table.fundraising_goal || 5000);
 
     const impactSection = document.getElementById('impact');
