@@ -2146,7 +2146,10 @@
     })).filter(f => Boolean(f.q));
 
     if (!hasDonationLink(state.payload?.table)) {
-      validFaqs = validFaqs.filter(f => !/contactless cards as well as cash|sealed buckets for coins and notes/i.test(`${f.q} ${f.a}`));
+      validFaqs = validFaqs.map(f => ({
+        ...f,
+        a: f.a.replace(/\s*[—–-]\s*or you can donate online right here\.?/i, '.')
+      }));
     }
 
     if (validFaqs.length === 0) {
