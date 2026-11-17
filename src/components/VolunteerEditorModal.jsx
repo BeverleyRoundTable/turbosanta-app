@@ -20,12 +20,17 @@ export default function VolunteerEditorModal({
   isOpen,
   onClose,
   volunteer = null,
+  volunteers = [],
   routes = [],
   tableSlug = 'beverley',
   token = null,
   onSaved = null
 }) {
   const isEditing = Boolean(volunteer && volunteer.id);
+  const originalName = volunteer ? String(volunteer.name || volunteer['Volunteer Name'] || '').trim() : '';
+  const matchingEntriesCount = (isEditing && originalName && Array.isArray(volunteers))
+    ? volunteers.filter(v => String(v.name || v['Volunteer Name'] || '').trim().toLowerCase() === originalName.toLowerCase()).length
+    : 1;
 
   const [name, setName] = useState('');
   const [selectedRole, setSelectedRole] = useState('Collections');
@@ -40,6 +45,7 @@ export default function VolunteerEditorModal({
   const [statusMsg, setStatusMsg] = useState('');
   const [isError, setIsError] = useState(false);
   const [overrideLimits, setOverrideLimits] = useState(false);
+  const [applyToAllRoutes, setApplyToAllRoutes] = useState(true);
 
   const [prevOpenKey, setPrevOpenKey] = useState(null);
 
@@ -52,6 +58,7 @@ export default function VolunteerEditorModal({
     if (isOpen) {
       if (volunteer) {
         setRouteMode('single');
+        setApplyToAllRoutes(matchingEntriesCount > 1);
         setName(volunteer.name || volunteer['Volunteer Name'] || '');
         const currentRole = volunteer.role || volunteer['Role'] || 'Collections';
         const matched = STANDARD_ROLES.find(r => r.id.toLowerCase() === currentRole.toLowerCase() || currentRole.toLowerCase().includes(r.id.toLowerCase()));
@@ -122,6 +129,7 @@ export default function VolunteerEditorModal({
         const payload = {
           id: volunteer.id,
           name: cleanName,
+          originalName: originalName || cleanName,
           role: effectiveRole,
           routeName: cleanRouteName,
           route_name: cleanRouteName,
@@ -129,7 +137,8 @@ export default function VolunteerEditorModal({
           route_id: routeId,
           phone: phone.trim(),
           email: email.trim().toLowerCase(),
-          organisation: organisation.trim()
+          organisation: organisation.trim(),
+          applyToAllRoutes: Boolean(applyToAllRoutes && matchingEntriesCount > 1)
         };
 
         const res = await updateVolunteer(tableSlug, payload, token);
@@ -141,7 +150,8 @@ export default function VolunteerEditorModal({
         if (onSaved) {
           onSaved({
             ...volunteer,
-            ...payload
+            ...payload,
+            updatedCount: res.updated_count || (payload.applyToAllRoutes ? matchingEntriesCount : 1)
           }, false);
         }
         onClose();
@@ -588,6 +598,35 @@ export default function VolunteerEditorModal({
             </div>
           )}
 
+          {/* Sync Contact Details Across All Route Assignments */}
+          {isEditing && matchingEntriesCount > 1 && (
+            <div style={{
+              marginTop: '4px',
+              padding: '10px 12px',
+              background: applyToAllRoutes ? 'rgba(251, 175, 51, 0.12)' : 'rgba(255, 255, 255, 0.03)',
+              borderRadius: '8px',
+              border: applyToAllRoutes ? '1px solid rgba(251, 175, 51, 0.45)' : '1px solid rgba(255, 255, 255, 0.08)',
+              transition: 'all 0.2s ease'
+            }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', fontSize: '12px', color: applyToAllRoutes ? '#FBAF33' : 'var(--text-muted)' }}>
+                <input
+                  type="checkbox"
+                  checked={applyToAllRoutes}
+                  onChange={(e) => setApplyToAllRoutes(e.target.checked)}
+                  style={{ accentColor: '#FBAF33', width: '15px', height: '15px', cursor: 'pointer', marginTop: '2px', flexShrink: 0 }}
+                />
+                <div>
+                  <div style={{ fontWeight: 700, color: applyToAllRoutes ? '#FBAF33' : '#fff' }}>
+                    Update Name, Phone, Email &amp; Organisation across all {matchingEntriesCount} route entries for &ldquo;{originalName}&rdquo;
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    Role and assigned route night still apply to this entry only.
+                  </div>
+                </div>
+              </label>
+            </div>
+          )}
+
           {/* Admin Override */}
           {!isEditing && (
             <div style={{
@@ -642,7 +681,11 @@ export default function VolunteerEditorModal({
                   <span>Saving...</span>
                 </>
               ) : (
-                <span>{isEditing ? 'Save Changes' : 'Add to Roster'}</span>
+                <span>
+                  {isEditing
+                    ? (applyToAllRoutes && matchingEntriesCount > 1 ? `Save Across ${matchingEntriesCount} Routes` : 'Save Changes')
+                    : 'Add to Roster'}
+                </span>
               )}
             </button>
           </div>

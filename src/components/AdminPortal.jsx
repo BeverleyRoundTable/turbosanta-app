@@ -756,6 +756,30 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   const handleVolunteerSaved = (savedVol, isNew) => {
     if (isNew) {
       setVolunteers(prev => [savedVol, ...prev]);
+    } else if (savedVol?.applyToAllRoutes && savedVol?.originalName) {
+      const targetLower = String(savedVol.originalName).trim().toLowerCase();
+      setVolunteers(prev => prev.map(v => {
+        if (v.id === savedVol.id) {
+          return { ...v, ...savedVol };
+        }
+        const vName = String(v.name || v['Volunteer Name'] || '').trim().toLowerCase();
+        if (vName === targetLower) {
+          return {
+            ...v,
+            name: savedVol.name,
+            'Volunteer Name': savedVol.name,
+            phone: savedVol.phone,
+            'Phone Number': savedVol.phone,
+            email: savedVol.email,
+            'Email': savedVol.email,
+            organisation: savedVol.organisation,
+            'Organisation': savedVol.organisation
+          };
+        }
+        return v;
+      }));
+      setSaveStatus(`✅ Updated details across all ${savedVol.updatedCount || ''} route assignments for ${savedVol.name}!`);
+      setTimeout(() => setSaveStatus(''), 4500);
     } else {
       setVolunteers(prev => prev.map(v => (v.id === savedVol.id ? { ...v, ...savedVol } : v)));
     }
@@ -14016,6 +14040,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
               setEditingVolunteer(null);
             }}
             volunteer={editingVolunteer}
+            volunteers={volunteers}
             routes={tableData?.routes || []}
             tableSlug={currentTableSlug}
             token={getAdminAuthToken(currentTableSlug) || session?.token || session?.googleCredential}
