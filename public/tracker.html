@@ -2175,11 +2175,14 @@
         const tbl = data.table || {};
         const mMode = tbl.music_mode || data.settings?.music_mode || 'none';
         const defaultSong = 'https://turbosanta-api.beverley247.workers.dev/cdn/round_table_christmas.mp3';
+        const tableCustomSong = (tbl.music_url && String(tbl.music_url).trim())
+          ? String(tbl.music_url).trim()
+          : (tbl.music_custom_url || tbl.background_music_url || data.settings?.background_music_url || '').trim();
         const resolvedMusicUrl = mMode === 'none'
           ? ''
           : (mMode === 'default'
               ? defaultSong
-              : (tbl.music_custom_url || tbl.background_music_url || data.settings?.background_music_url || defaultSong));
+              : (tableCustomSong || defaultSong));
         const isGaEnabled = tbl.enable_gift_aid !== undefined
           ? (tbl.enable_gift_aid === true || tbl.enable_gift_aid === 1 || tbl.enable_gift_aid === '1' || tbl.enable_gift_aid === 'true')
           : (data.settings?.enable_gift_aid === true || data.settings?.enable_gift_aid === 1 || data.settings?.enable_gift_aid === '1' || data.settings?.enable_gift_aid === 'true');
@@ -3499,8 +3502,21 @@
         _audio: null,
         _targetVol: 0,
         _rampTimer: null,
+        _surgeTimer: null,
         _unlocked: false,
         _isPlaying: false,
+        _lastNotifiedPlaying: false,
+
+        _notifyParent(isPlaying) {
+          const next = Boolean(isPlaying);
+          if (this._lastNotifiedPlaying === next) return;
+          this._lastNotifiedPlaying = next;
+          try {
+            if (window.parent && window.parent !== window) {
+              window.parent.postMessage({ type: 'turbosanta-proximity-audio', playing: next }, '*');
+            }
+          } catch (e) {}
+        },
 
         init(url = '/media/santa_proximity_song.mp3') {
           if (this._audio) return;
@@ -3509,7 +3525,6 @@
           a.loop = true;
           a.volume = 0;
           a.preload = "auto";
-          a.crossOrigin = "anonymous";
           this._audio = a;
 
           // Unlock audio playback on resident gesture so browser autoplay policy permits arrival audio
@@ -3523,8 +3538,10 @@
                   this._audio.pause();
                   this._audio.currentTime = 0;
                   this._isPlaying = false;
+                  this._notifyParent(false);
                 } else {
                   this._isPlaying = true;
+                  this._notifyParent(true);
                   this._startVolumeRamp();
                 }
                 window.removeEventListener('click', unlock);
@@ -3553,11 +3570,18 @@
             if (!this._isPlaying || this._audio.paused) {
               this._isPlaying = true;
               const p = this._audio.play();
-              if (p && p.catch) {
-                p.catch(() => {
+              if (p && typeof p.then === 'function') {
+                p.then(() => {
+                  if (this._targetVol > 0) this._notifyParent(true);
+                }).catch(() => {
                   this._isPlaying = false;
+                  this._notifyParent(false);
                 });
+              } else {
+                this._notifyParent(true);
               }
+            } else {
+              this._notifyParent(true);
             }
             this._startVolumeRamp();
           } else {
@@ -3567,6 +3591,7 @@
                 this._audio.pause();
                 this._audio.currentTime = 0;
                 this._isPlaying = false;
+                this._notifyParent(false);
               }
             });
           }
@@ -3574,21 +3599,39 @@
 
         arrivalSurge() {
           if (!this._audio) return;
+          if (this._surgeTimer) {
+            clearTimeout(this._surgeTimer);
+            this._surgeTimer = null;
+          }
           this._targetVol = 1.0;
           this._audio.volume = 1.0;
-          if (!this._isPlaying) {
+          if (!this._isPlaying || this._audio.paused) {
             this._isPlaying = true;
-            this._audio.play().catch(() => {});
+            const p = this._audio.play();
+            if (p && typeof p.then === 'function') {
+              p.then(() => {
+                this._notifyParent(true);
+              }).catch(() => {
+                this._isPlaying = false;
+                this._notifyParent(false);
+              });
+            } else {
+              this._notifyParent(true);
+            }
+          } else {
+            this._notifyParent(true);
           }
 
           // Play arrival peak for 8s, then smoothly taper off
-          setTimeout(() => {
+          this._surgeTimer = setTimeout(() => {
+            this._surgeTimer = null;
             this._targetVol = 0;
             this._startVolumeRamp(() => {
               if (this._audio && this._targetVol === 0) {
                 this._audio.pause();
                 this._audio.currentTime = 0;
                 this._isPlaying = false;
+                this._notifyParent(false);
               }
             });
           }, 8000);
@@ -3617,12 +3660,17 @@
 
         mute() {
           this._targetVol = 0;
+          if (this._surgeTimer) {
+            clearTimeout(this._surgeTimer);
+            this._surgeTimer = null;
+          }
           if (this._audio) {
             this._audio.volume = 0;
             this._audio.pause();
             this._audio.currentTime = 0;
           }
           this._isPlaying = false;
+          this._notifyParent(false);
           if (this._rampTimer) {
             clearInterval(this._rampTimer);
             this._rampTimer = null;
@@ -5231,9 +5279,10 @@
             WorkshopManager.init(apiData.routes);
         }
 
-        // Proximity Doorstep Music: ALWAYS ARMED & READY TO PLAY on pin proximity
+        // Proximity Doorstep Music: uses table's configured song when enabled, otherwise falls back to Jingle Bells
         if (!AppState.flags.isKiosk && !AppState.flags.isDriver) {
-          ProximityAudio.init('/media/santa_proximity_song.mp3');
+          const tableSongUrl = String(settings.background_music_url || apiData?.table?.music_url || '').trim();
+          ProximityAudio.init(tableSongUrl || '/media/santa_proximity_song.mp3');
         }
 
         const twitchEnabled = String(settings.enable_twitch || "").toUpperCase() === "TRUE";

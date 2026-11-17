@@ -869,6 +869,59 @@
         return;
       }
 
+      // 0b. Dynamically mute top banner jingles when tracker proximity/arrival audio is active
+      if (e.data.type === 'turbosanta-proximity-audio') {
+        const isTrackerPlaying = Boolean(e.data.playing);
+        const musicBtn = document.getElementById('music-toggle-btn');
+        const lbl = document.getElementById('music-btn-label');
+        const iconEl = musicBtn?.querySelector('i');
+        if (isTrackerPlaying) {
+          if (!state.proximityMuted) {
+            state.wasPlayingBeforeProximity = Boolean(state.isMusicPlaying);
+          }
+          state.proximityMuted = true;
+          if (state.audioEl) {
+            state.audioEl.muted = true;
+            state.audioEl.pause();
+          }
+          state.isMusicPlaying = false;
+          if (musicBtn) {
+            musicBtn.disabled = true;
+            musicBtn.style.opacity = '0.55';
+            musicBtn.title = 'Top banner jingles muted while live tracker arrival music plays';
+          }
+          if (iconEl) iconEl.className = 'fa-solid fa-volume-xmark';
+          if (lbl) lbl.textContent = 'Muted';
+        } else {
+          state.proximityMuted = false;
+          if (musicBtn) {
+            musicBtn.disabled = false;
+            musicBtn.style.opacity = '';
+            const t = state.payload?.table || {};
+            const mTitle = (t.music_mode === 'default') ? 'Round Table Christmas' : (t.music_title || 'Festive Jingles');
+            musicBtn.title = `Play ${mTitle}`;
+          }
+          if (iconEl) iconEl.className = 'fa-solid fa-music';
+          if (state.audioEl) {
+            state.audioEl.muted = false;
+            if (state.wasPlayingBeforeProximity) {
+              state.audioEl.play().then(() => {
+                state.isMusicPlaying = true;
+                if (lbl) lbl.textContent = 'Playing';
+              }).catch(() => {
+                if (lbl) lbl.textContent = 'Jingles';
+              });
+            } else {
+              if (lbl) lbl.textContent = 'Jingles';
+            }
+          } else if (lbl) {
+            lbl.textContent = 'Jingles';
+          }
+          state.wasPlayingBeforeProximity = false;
+        }
+        return;
+      }
+
       // 1. Forward confirmed house pin from address-iframe to tracker-iframe
       if (e.data.type === 'turbosanta-pin-saved' && e.data.pin) {
         const trackerIframe = document.getElementById('tracker-iframe');
@@ -2381,35 +2434,46 @@
 
       const musicTitle = musicMode === 'default' ? 'Round Table Christmas' : (table.music_title || 'Festive Jingles');
       const lbl = document.getElementById('music-btn-label');
-      if (lbl) lbl.textContent = 'Jingles';
-      if (musicBtn) musicBtn.title = `Play ${musicTitle}`;
+      const iconEl = musicBtn?.querySelector('i');
+      if (lbl) lbl.textContent = state.proximityMuted ? 'Muted' : 'Jingles';
+      if (iconEl) iconEl.className = state.proximityMuted ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-music';
+      if (musicBtn) {
+        musicBtn.disabled = Boolean(state.proximityMuted);
+        musicBtn.style.opacity = state.proximityMuted ? '0.55' : '';
+        musicBtn.title = state.proximityMuted ? 'Top banner jingles muted while live tracker arrival music plays' : `Play ${musicTitle}`;
+      }
 
       audio.addEventListener('play', () => {
+        if (state.proximityMuted) {
+          audio.muted = true;
+          audio.pause();
+          return;
+        }
         state.isMusicPlaying = true;
         if (lbl) lbl.textContent = 'Playing';
       });
       audio.addEventListener('pause', () => {
         state.isMusicPlaying = false;
-        if (lbl) lbl.textContent = 'Jingles';
+        if (lbl) lbl.textContent = state.proximityMuted ? 'Muted' : 'Jingles';
       });
       audio.addEventListener('ended', () => {
         state.isMusicPlaying = false;
-        if (lbl) lbl.textContent = 'Jingles';
+        if (lbl) lbl.textContent = state.proximityMuted ? 'Muted' : 'Jingles';
       });
       audio.addEventListener('error', (e) => {
         console.warn('Festive music audio load error:', e);
         state.isMusicPlaying = false;
-        if (lbl) lbl.textContent = 'Jingles';
+        if (lbl) lbl.textContent = state.proximityMuted ? 'Muted' : 'Jingles';
       });
 
       // Autoplay if configured (on modern mobile, triggered on visitor's first gesture)
-      if (table.music_autoplay !== false) {
+      if (table.music_autoplay !== false && !state.proximityMuted) {
         audio.play().then(() => {
           state.isMusicPlaying = true;
           if (lbl) lbl.textContent = 'Playing';
         }).catch(() => {
           const handleFirstGesture = () => {
-            if (state.audioEl && !state.isMusicPlaying) {
+            if (state.audioEl && !state.isMusicPlaying && !state.proximityMuted) {
               state.audioEl.play().then(() => {
                 state.isMusicPlaying = true;
                 if (lbl) lbl.textContent = 'Playing';
@@ -2743,7 +2807,7 @@
 
     // Music Toggle
     document.getElementById('music-toggle-btn')?.addEventListener('click', () => {
-      if (!state.audioEl) return;
+      if (!state.audioEl || state.proximityMuted) return;
       const lbl = document.getElementById('music-btn-label');
       if (state.isMusicPlaying) {
         state.audioEl.pause();
