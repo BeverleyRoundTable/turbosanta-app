@@ -4874,9 +4874,44 @@
               }
             } catch (e) { alert("Setup failed: " + e.message); navBtn.textContent = "START SAT-NAV & BEACON"; return; }
             
+            let isBeaconPaused = false;
+            const updateDriverControlUI = () => {
+              const pill = document.getElementById('txPill');
+              const stEl = document.getElementById('txState');
+              const pBtn = document.getElementById('driverPauseBtn');
+              if (pill && stEl) {
+                if (isBeaconPaused) {
+                  pill.style.borderColor = "#fbaf33";
+                  pill.style.color = "#fbaf33";
+                  stEl.textContent = "PAUSED";
+                } else if (BeaconDB.depth > 0) {
+                  pill.style.borderColor = "var(--primary)";
+                  pill.style.color = "var(--primary)";
+                  stEl.textContent = "BUFFERING";
+                } else {
+                  pill.style.borderColor = "#00e676";
+                  pill.style.color = "#00e676";
+                  stEl.textContent = "LIVE";
+                }
+              }
+              if (pBtn) {
+                if (isBeaconPaused) {
+                  pBtn.innerHTML = "&#9654; Resume";
+                  pBtn.style.background = "rgba(0, 230, 118, 0.18)";
+                  pBtn.style.borderColor = "#00e676";
+                  pBtn.style.color = "#00e676";
+                } else {
+                  pBtn.innerHTML = "&#10074;&#10074; Pause";
+                  pBtn.style.background = "rgba(251, 175, 51, 0.16)";
+                  pBtn.style.borderColor = "#fbaf33";
+                  pBtn.style.color = "#fbaf33";
+                }
+              }
+            };
+
             await BeaconDB.init();
             await BeaconDB.updateUI();
-            setInterval(() => BeaconDB.flush(gpsLoggerUrl), 5000);
+            const flushIntervalId = setInterval(() => { if (!isBeaconPaused) BeaconDB.flush(gpsLoggerUrl); }, 5000);
             navBtn.style.display = "none";
             document.body.classList.add("nav-active");
             AppState.flags.beaconActive = true;
@@ -4898,11 +4933,51 @@
               AppState.map.setZoom(18);
             }
             
+            const existingDock = document.getElementById("driverControlDock");
+            if (existingDock) existingDock.remove();
+            const controlDock = document.createElement("div");
+            controlDock.id = "driverControlDock";
+            controlDock.style.cssText = "position:fixed; bottom:46px; left:50%; transform:translateX(-50%); z-index:4500; display:flex; align-items:center; gap:8px; max-width:calc(100vw - 20px); pointer-events:auto;";
+
             const txPill = document.createElement("div");
             txPill.id = "txPill";
-            txPill.style.cssText = "position:fixed; top:auto; bottom:50px; left:50%; transform:translateX(-50%); background:rgba(13, 13, 11, 0.95); border:2px solid #00e676; color:#00e676; padding:8px 16px; border-radius:14px; font-weight:900; font-size:0.8em; z-index:4500; box-shadow:0 4px 16px rgba(0,0,0,0.6); display:flex; gap:12px; pointer-events:none; font-family:'Open Sans',sans-serif;";
+            txPill.style.cssText = "background:rgba(13, 13, 11, 0.95); border:2px solid #00e676; color:#00e676; padding:7px 12px; border-radius:14px; font-weight:900; font-size:0.78em; box-shadow:0 4px 16px rgba(0,0,0,0.6); display:flex; align-items:center; gap:9px; pointer-events:none; font-family:'Open Sans',sans-serif; white-space:nowrap;";
             txPill.innerHTML = `<span id="txState">LIVE</span> <span>Tx: <span id="txSent">0</span></span> <span>Q: <span id="txQueued">0</span></span>`;
-            document.body.appendChild(txPill);
+
+            const pauseBtn = document.createElement("button");
+            pauseBtn.id = "driverPauseBtn";
+            pauseBtn.type = "button";
+            pauseBtn.innerHTML = "&#10074;&#10074; Pause";
+            pauseBtn.title = "Pause or resume GPS coordinate transmission";
+            pauseBtn.style.cssText = "background:rgba(251, 175, 51, 0.16); border:2px solid #fbaf33; color:#fbaf33; padding:7px 12px; border-radius:14px; font-weight:800; font-size:0.78em; box-shadow:0 4px 16px rgba(0,0,0,0.6); cursor:pointer; font-family:'Open Sans',sans-serif; white-space:nowrap;";
+
+            const stopBtn = document.createElement("button");
+            stopBtn.id = "driverStopBtn";
+            stopBtn.type = "button";
+            stopBtn.innerHTML = "&#9632; Stop";
+            stopBtn.title = "Stop live GPS tracking and end route";
+            stopBtn.style.cssText = "background:rgba(211, 28, 28, 0.9); border:2px solid #ff6b6b; color:#fff; padding:7px 12px; border-radius:14px; font-weight:800; font-size:0.78em; box-shadow:0 4px 16px rgba(0,0,0,0.6); cursor:pointer; font-family:'Open Sans',sans-serif; white-space:nowrap;";
+
+            controlDock.appendChild(txPill);
+            controlDock.appendChild(pauseBtn);
+            controlDock.appendChild(stopBtn);
+            document.body.appendChild(controlDock);
+
+            pauseBtn.onclick = () => {
+              isBeaconPaused = !isBeaconPaused;
+              if (isBeaconPaused) {
+                AppState.dom.statusBox.textContent = "GPS Paused (Local Sat-Nav)";
+                AppState.dom.statusBox.style.color = "#fbaf33";
+                showToast("⏸ GPS firing paused — tap Resume when ready");
+              } else {
+                AppState.vars.lastTxTime = 0;
+                AppState.dom.statusBox.textContent = "Sat-Nav & Beacon Active";
+                AppState.dom.statusBox.style.color = "var(--primary)";
+                BeaconDB.flush(gpsLoggerUrl);
+                showToast("▶️ GPS firing resumed");
+              }
+              updateDriverControlUI();
+            };
             
             let driverMarker;
             if (AppState.mlMap) {
@@ -4970,7 +5045,8 @@
               return { point: bestPt, distance: bestDist };
             }
 
-            navigator.geolocation.watchPosition(async (pos) => {
+            let gpsWatchId = navigator.geolocation.watchPosition(async (pos) => {
+              if (!AppState.flags.beaconActive) return;
               const lat = pos.coords.latitude;
               const lng = pos.coords.longitude;
               const gpsHeading = pos.coords.heading;
@@ -5092,7 +5168,7 @@
               }
               
               const txNow = Date.now();
-              if (txNow - AppState.vars.lastTxTime >= 4000) {
+              if (!isBeaconPaused && txNow - AppState.vars.lastTxTime >= 4000) {
                 AppState.vars.lastTxTime = txNow;
                 let activeRoad = "";
                 if (isOnRoute && snapResult && snapResult.point && snapResult.point.roadName) {
@@ -5117,18 +5193,60 @@
                   BeaconDB.sent++;
                   const sentEl = document.getElementById('txSent');
                   if (sentEl) sentEl.textContent = BeaconDB.sent;
-                  if(BeaconDB.depth === 0) {
-                    txPill.style.borderColor = "#00e676"; txPill.style.color = "#00e676";
-                    const stateEl = document.getElementById('txState');
-                    if (stateEl) stateEl.textContent = "LIVE";
-                  }
+                  updateDriverControlUI();
                 } catch(e) {
                   await BeaconDB.add(payload);
+                  updateDriverControlUI();
                 }
               }
             }, () => {
-              alert("GPS Error: Please ensure Location Services are turned on.");
+              if (AppState.flags.beaconActive) {
+                alert("GPS Error: Please ensure Location Services are turned on.");
+              }
             }, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+
+            stopBtn.onclick = async () => {
+              if (!confirm("Stop live GPS tracking and end Sat-Nav session?")) return;
+              AppState.flags.beaconActive = false;
+              isBeaconPaused = false;
+              if (gpsWatchId !== null && navigator.geolocation) {
+                try { navigator.geolocation.clearWatch(gpsWatchId); } catch (e) {}
+                gpsWatchId = null;
+              }
+              if (flushIntervalId) clearInterval(flushIntervalId);
+              try { if ('speechSynthesis' in window) speechSynthesis.cancel(); } catch (e) {}
+              try { if (driverMarker && typeof driverMarker.remove === 'function') driverMarker.remove(); } catch (e) {}
+              try { controlDock.remove(); } catch (e) {}
+              document.body.classList.remove("nav-active");
+              const banner = document.getElementById('navBanner');
+              if (banner) banner.classList.remove('ready', 'off-route');
+              const recBtn = document.getElementById('driverRecenterBtn');
+              if (recBtn) recBtn.style.display = 'none';
+              try {
+                if (wakeLock && typeof wakeLock.release === 'function') {
+                  wakeLock.release().catch(() => {});
+                  wakeLock = null;
+                }
+              } catch (e) {}
+
+              const beaconToken = secret || sessionStorage.getItem('beaconSecret') || "";
+              try {
+                await fetch(gpsLoggerUrl, {
+                  method: "DELETE",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${beaconToken}`
+                  },
+                  body: JSON.stringify({ secret: beaconToken, pin: beaconToken })
+                });
+              } catch (e) {}
+
+              navBtn.textContent = "START SAT-NAV & BEACON";
+              navBtn.style.display = "block";
+              AppState.dom.statusBox.textContent = "Tracking Stopped (Safe to Close)";
+              AppState.dom.statusBox.style.color = "var(--text-dim)";
+              showToast("⏹ Live GPS tracking stopped — safe to close tab");
+            };
           };
         }
         
