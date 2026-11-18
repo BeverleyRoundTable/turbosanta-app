@@ -1,0 +1,3 @@
+{
+  "install": "mkdir -p \"$HOME/.local/bin\" && { command -v cf >/dev/null 2>&1 || [ -x \"$HOME/.local/bin/cf\" ] || npm install --global --prefix \"$HOME/.local\" cf; } && touch \"$HOME/.bashrc\" && (sed -i '/case \\$- in/,/esac/d' \"$HOME/.bashrc\" 2>/dev/null || true) && (grep -qxF 'export PATH=\"$HOME/.local/bin:$PATH\"' \"$HOME/.bashrc\" || echo 'export PATH=\"$HOME/.local/bin:$PATH\"' >> \"$HOME/.bashrc\") && (grep -qxF '[ -f \"$HOME/.gemini/cloudflare.env\" ] && . \"$HOME/.gemini/cloudflare.env\"' \"$HOME/.bashrc\" || echo '[ -f \"$HOME/.gemini/cloudflare.env\" ] && . \"$HOME/.gemini/cloudflare.env\"' >> \"$HOME/.bashrc\") && { [ -d node_modules ] || npm ci --no-audit --no-fund; }"
+}
