@@ -5151,10 +5151,10 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     textDecoration: 'none',
                     fontWeight: 700
                   }}
-                  title="Open Print Studio for 6-Up Double-Sided Elf Lanyards with Contacts & Rules (Tool 4)"
+                  title="Open Print Studio for 6-Up, 90×60mm & Custom-Sized Double-Sided Elf Lanyards with Crew List Tiling (Tool 4)"
                 >
                   <Printer size={16} />
-                  <span>🪪 Print 6-Up Elf Lanyards</span>
+                  <span>🪪 Print Elf Lanyards</span>
                 </a>
 
                 <a

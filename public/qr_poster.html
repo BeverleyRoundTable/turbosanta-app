@@ -507,7 +507,7 @@
     max-height: 297mm;
     background: #ffffff;
     color: #0d0d0b;
-    margin: 0 auto;
+    margin: 0 auto 24px;
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     grid-template-rows: 1fr 1fr;
@@ -593,7 +593,7 @@
     max-height: 297mm;
     background: #ffffff;
     color: #0d0d0b;
-    margin: 32px auto 0;
+    margin: 32px auto 24px;
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     grid-template-rows: 1fr 1fr;
@@ -670,7 +670,7 @@
       box-shadow: none !important;
       border: none !important;
     }
-    .sheet-grid-6.has-rear {
+    .sheet-grid-6.has-rear, .sheet-grid-paged.page-break {
       page-break-after: always !important;
       break-after: page !important;
     }
@@ -678,14 +678,219 @@
       page-break-after: always !important;
       break-after: page !important;
     }
-    .sheet-grid-6-rear:not(.has-next-route), .poster:not(.has-next-route) {
+    .sheet-grid-6:not(.has-rear):not(.has-next-route), .sheet-grid-6-rear:not(.has-next-route), .poster:not(.has-next-route), .sheet-grid-paged.last-page {
       page-break-after: avoid !important;
       break-after: avoid !important;
+    }
+    .sheet-grid-paged {
+      width: 210mm !important;
+      height: 296mm !important;
+      min-height: 296mm !important;
+      max-height: 296mm !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      margin: 0 auto !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
     }
     @page {
       margin: 0;
       size: A4 portrait;
     }
+  }
+
+  /* ── ADJUSTABLE / TILED LANYARD SHEETS ── */
+  .sheet-grid-paged {
+    width: 210mm;
+    height: 297mm;
+    min-height: 297mm;
+    max-height: 297mm;
+    background: #ffffff;
+    color: #0d0d0b;
+    margin: 0 auto 24px;
+    padding: 8mm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    border-radius: 8px;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  .tiled-card-matrix {
+    display: grid;
+    gap: 0;
+    margin: 0 auto;
+    box-sizing: border-box;
+  }
+
+  .lanyard-card.is-compact {
+    padding: 2.5mm 3mm;
+    border: 1px dashed #9ca3af;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: stretch;
+    text-align: left;
+    gap: 3px;
+    background: #ffffff;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .lanyard-card.is-compact-empty {
+    border: 1px dashed rgba(156,163,175,0.28);
+    background: #fafafa;
+    box-sizing: border-box;
+  }
+
+  .compact-header {
+    background: #0d0d0b;
+    color: #fff;
+    padding: 2.5px 6px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+
+  .compact-header-left {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .compact-header-left img {
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+    background: #fff;
+    border-radius: 3px;
+    padding: 1px;
+    flex-shrink: 0;
+  }
+
+  .compact-sleigh-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 7.5px;
+    font-weight: 700;
+    color: var(--gold);
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .compact-role-pill {
+    background: #dc2626;
+    color: #fff;
+    font-family: 'DM Mono', monospace;
+    font-size: 7px;
+    font-weight: 700;
+    padding: 1.5px 5px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .compact-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .compact-qr-wrap {
+    border: 2px solid #0d0d0b;
+    border-radius: 6px;
+    padding: 3px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .compact-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+  }
+
+  .compact-vol-name {
+    font-size: 11px;
+    font-weight: 800;
+    color: #0d0d0b;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .compact-headline {
+    font-family: 'Eurostile', sans-serif;
+    font-size: 13px;
+    line-height: 1;
+    color: #b91c1c;
+    text-transform: uppercase;
+    word-break: break-word;
+  }
+
+  .compact-sub {
+    font-size: 7.5px;
+    font-weight: 700;
+    color: #92400e;
+    line-height: 1.2;
+  }
+
+  .compact-url {
+    font-family: 'DM Mono', monospace;
+    font-size: 6.5px;
+    color: #4b5563;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .compact-footer {
+    background: #f3f4f6;
+    border-top: 1px solid #d1d5db;
+    color: #111827;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-family: 'DM Mono', monospace;
+    font-size: 6.5px;
+    font-weight: 700;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    text-transform: uppercase;
+  }
+
+  .lanyard-card-rear.is-compact {
+    padding: 2.5mm 3mm;
+    border: 1px dashed #9ca3af;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 2.5px;
+    background: #ffffff;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-align: left;
   }
 </style>
 </head>
@@ -727,6 +932,11 @@ const STATE = {
   layoutMode: params.get('mode') || 'poster', // 'poster' | 'buckets' | 'lanyards'
   qrTargetMode: (params.get('mode') === 'poster' || params.get('qr') === 'tracker') ? 'tracker' : 'donate',
   lanyardSides: 'double', // 'double' | 'front' | 'rear'
+  lanyardPreset: params.get('size') || '6up', // '6up' | '90x60' | '86x54' | '95x65' | 'custom'
+  lanyardWidthMm: Number(params.get('w')) || 90,
+  lanyardHeightMm: Number(params.get('h')) || 60,
+  lanyardCrewMode: (params.get('size') && params.get('size') !== '6up') ? 'crew' : 'sheet', // 'crew' | 'sheet'
+  lanyardShowNames: true,
   leadMarshal: '',
   towDriver: '',
   meetingPoint: '',
@@ -952,21 +1162,127 @@ function onLayoutChange(mode) {
   generatePoster();
 }
 
+function escHtml(val) {
+  return String(val || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function getLanyardSizeConfig() {
+  const preset = STATE.lanyardPreset || '6up';
+  if (preset === '6up') {
+    return { preset: '6up', widthMm: 70, heightMm: 148.5, cols: 3, rows: 2, perPage: 6, isClassic6Up: true };
+  }
+  const presets = {
+    '90x60': { widthMm: 90, heightMm: 60 },
+    '86x54': { widthMm: 86, heightMm: 54 },
+    '95x65': { widthMm: 95, heightMm: 65 }
+  };
+  let widthMm = Number(STATE.lanyardWidthMm) || 90;
+  let heightMm = Number(STATE.lanyardHeightMm) || 60;
+  if (presets[preset]) {
+    widthMm = presets[preset].widthMm;
+    heightMm = presets[preset].heightMm;
+  }
+  widthMm = Math.min(194, Math.max(40, widthMm));
+  heightMm = Math.min(280, Math.max(40, heightMm));
+  // Printable safe A4 portrait box inside 8mm margins = 194mm x 281mm
+  const cols = Math.max(1, Math.floor(194 / widthMm));
+  const rows = Math.max(1, Math.floor(281 / heightMm));
+  return {
+    preset,
+    widthMm,
+    heightMm,
+    cols,
+    rows,
+    perPage: cols * rows,
+    isClassic6Up: false
+  };
+}
+
+function getNightCrewForRoute(route) {
+  if (!Array.isArray(STATE.allVolunteers) || !STATE.allVolunteers.length) return [];
+  const clean = s => (s || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]/g, '');
+  const sameNightRoutes = (STATE.routes || []).filter(rOther =>
+    rOther.date && route && route.date && rOther.date === route.date
+  );
+  const targetRoutes = sameNightRoutes.length ? sameNightRoutes : (route ? [route] : []);
+  const targetNamesClean = targetRoutes.map(r => clean(r.routeName || r.name || '')).filter(Boolean);
+
+  const specificVols = STATE.allVolunteers.filter(v => {
+    const vNameClean = clean(v.route_name || '');
+    return vNameClean && targetNamesClean.some(rNameClean =>
+      vNameClean === rNameClean || vNameClean.includes(rNameClean) || rNameClean.includes(vNameClean)
+    );
+  });
+
+  const generalVols = STATE.allVolunteers.filter(v => {
+    const vName = (v.route_name || '').trim().toLowerCase();
+    return !vName || vName === 'all' || vName === 'all routes' || vName === 'general';
+  });
+
+  const pool = specificVols.length > 0 ? specificVols : generalVols;
+  const deduped = [];
+  const seenNames = new Set();
+  for (const v of pool) {
+    const key = clean(v.name || '');
+    if (!key || seenNames.has(key)) continue;
+    seenNames.add(key);
+    deduped.push(v);
+  }
+  return deduped;
+}
+
+function onLanyardPresetChange(preset) {
+  STATE.lanyardPreset = preset;
+  if (preset === '90x60') { STATE.lanyardWidthMm = 90; STATE.lanyardHeightMm = 60; }
+  else if (preset === '86x54') { STATE.lanyardWidthMm = 86; STATE.lanyardHeightMm = 54; }
+  else if (preset === '95x65') { STATE.lanyardWidthMm = 95; STATE.lanyardHeightMm = 65; }
+  if (preset !== '6up') {
+    STATE.lanyardCrewMode = 'crew';
+  }
+  renderControls();
+  generatePoster();
+}
+
+function onLanyardCustomDimensionInput() {
+  const wEl = document.getElementById('lanyardWidthInput');
+  const hEl = document.getElementById('lanyardHeightInput');
+  if (wEl && wEl.value !== '') STATE.lanyardWidthMm = Number(wEl.value) || 90;
+  if (hEl && hEl.value !== '') STATE.lanyardHeightMm = Number(hEl.value) || 60;
+  const sizeCfg = getLanyardSizeConfig();
+  const labelEl = document.getElementById('lanyardSizeLabel');
+  if (labelEl) labelEl.textContent = `Lanyard Card Size (${sizeCfg.cols}×${sizeCfg.rows} = ${sizeCfg.perPage}/page)`;
+  const activeRoute = STATE.routes[Number(STATE.selectedRoute || 0)] || {};
+  const nightCrew = getNightCrewForRoute(activeRoute);
+  const totalCards = (STATE.lanyardCrewMode === 'crew' && nightCrew.length > 0) ? nightCrew.length : sizeCfg.perPage;
+  const sheetPages = Math.max(1, Math.ceil(totalCards / sizeCfg.perPage));
+  const totalPrintPages = STATE.lanyardSides === 'double' ? sheetPages * 2 : sheetPages;
+  const btnEl = document.getElementById('printLanyardsBtn');
+  if (btnEl) btnEl.textContent = `🖨️ Print Lanyards (${totalPrintPages} ${totalPrintPages === 1 ? 'Page' : 'Pages'} · ${sizeCfg.widthMm}×${sizeCfg.heightMm}mm)`;
+  generatePoster();
+}
+
 function renderControls() {
   const options = STATE.routes.length
-    ? STATE.routes.map((r, i) => `<option value="${i}" ${Number(STATE.selectedRoute) === i ? 'selected' : ''}>${r.routeName || 'Route'} — ${formatDateLong(r.date)}</option>`).join('')
+    ? STATE.routes.map((r, i) => `<option value="${i}" ${Number(STATE.selectedRoute) === i ? 'selected' : ''}>${escHtml(r.routeName || 'Route')} — ${formatDateLong(r.date)}</option>`).join('')
     : `<option value="0">General Sleigh Campaign</option>`;
 
   const isPoster = STATE.layoutMode === 'poster';
   const isLanyards = STATE.layoutMode === 'lanyards';
 
   if (isLanyards) {
+    const sizeCfg = getLanyardSizeConfig();
+    const activeRoute = STATE.routes[Number(STATE.selectedRoute || 0)] || {};
+    const nightCrew = getNightCrewForRoute(activeRoute);
+    const totalCards = (STATE.lanyardCrewMode === 'crew' && nightCrew.length > 0) ? nightCrew.length : sizeCfg.perPage;
+    const sheetPages = Math.max(1, Math.ceil(totalCards / sizeCfg.perPage));
+    const totalPrintPages = STATE.lanyardSides === 'double' ? sheetPages * 2 : sheetPages;
+
     document.getElementById('controlsInner').innerHTML = `
       <div class="control-row">
         <div class="control-group">
           <label>Print Format</label>
           <select id="layoutSelect" onchange="onLayoutChange(this.value)">
-            <option value="lanyards" selected>🪪 6-Up Walking Elf Lanyard Badges (A4 Sheet)</option>
+            <option value="lanyards" selected>🪪 Walking Elf Lanyard Badges (A4 Sheet)</option>
             <option value="poster">📌 1-Up A4 Street Route Poster</option>
             <option value="buckets">🪣 4-Up Collector Bucket Stickers (A4 Sheet)</option>
           </select>
@@ -981,9 +1297,42 @@ function renderControls() {
 
       <div class="control-row">
         <div class="control-group">
+          <label id="lanyardSizeLabel">Lanyard Card Size (${sizeCfg.cols}×${sizeCfg.rows} = ${sizeCfg.perPage}/page)</label>
+          <select id="lanyardPresetSelect" onchange="onLanyardPresetChange(this.value)">
+            <option value="6up" ${sizeCfg.preset === '6up' ? 'selected' : ''}>🪪 Classic 6-Up Vertical Lanyard (70 × 148.5mm)</option>
+            <option value="90x60" ${sizeCfg.preset === '90x60' ? 'selected' : ''}>💳 Credit-Card Holder Landscape (90 × 60mm · 8-Up)</option>
+            <option value="86x54" ${sizeCfg.preset === '86x54' ? 'selected' : ''}>🪪 Standard CR80 ID Card (86 × 54mm · 10-Up)</option>
+            <option value="95x65" ${sizeCfg.preset === '95x65' ? 'selected' : ''}>🏷️ Event Pouch Badge (95 × 65mm · 8-Up)</option>
+            <option value="custom" ${sizeCfg.preset === 'custom' ? 'selected' : ''}>📐 Custom Size (mm Width × Height)</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label>Crew List Tiling (${nightCrew.length} crew found for night)</label>
+          <select id="lanyardCrewModeSelect" onchange="STATE.lanyardCrewMode=this.value; renderControls(); generatePoster()">
+            <option value="crew" ${STATE.lanyardCrewMode === 'crew' ? 'selected' : ''}>👥 Tile Tonight's Crew List (${nightCrew.length > 0 ? `${nightCrew.length} badges` : `fallback ${sizeCfg.perPage} generic`})</option>
+            <option value="sheet" ${STATE.lanyardCrewMode === 'sheet' ? 'selected' : ''}>📄 Fill 1 Full Sheet (${sizeCfg.perPage} generic badges)</option>
+          </select>
+        </div>
+      </div>
+
+      ${sizeCfg.preset === 'custom' ? `
+      <div class="control-row">
+        <div class="control-group">
+          <label>Card Width (mm · 40–194)</label>
+          <input type="number" id="lanyardWidthInput" min="40" max="194" step="1" value="${sizeCfg.widthMm}" oninput="onLanyardCustomDimensionInput()" onchange="renderControls(); generatePoster()">
+        </div>
+        <div class="control-group">
+          <label>Card Height (mm · 40–280)</label>
+          <input type="number" id="lanyardHeightInput" min="40" max="280" step="1" value="${sizeCfg.heightMm}" oninput="onLanyardCustomDimensionInput()" onchange="renderControls(); generatePoster()">
+        </div>
+      </div>
+      ` : ''}
+
+      <div class="control-row">
+        <div class="control-group">
           <label>Lanyard Print Sides</label>
-          <select id="lanyardSidesSelect" onchange="STATE.lanyardSides=this.value; generatePoster()">
-            <option value="double" ${STATE.lanyardSides === 'double' ? 'selected' : ''}>📄 Double-Sided (Page 1: Front QR + Page 2: Route Contacts & Safety)</option>
+          <select id="lanyardSidesSelect" onchange="STATE.lanyardSides=this.value; renderControls(); generatePoster()">
+            <option value="double" ${STATE.lanyardSides === 'double' ? 'selected' : ''}>📄 Double-Sided (Front QR + Rear Route Contacts & Safety)</option>
             <option value="front" ${STATE.lanyardSides === 'front' ? 'selected' : ''}>Front QR Code Only (Single-Sided)</option>
             <option value="rear" ${STATE.lanyardSides === 'rear' ? 'selected' : ''}>Rear Route Brief & Contacts Only (Single-Sided)</option>
           </select>
@@ -1001,14 +1350,23 @@ function renderControls() {
         </div>
       </div>
 
+      ${STATE.lanyardCrewMode === 'crew' ? `
+      <div class="control-row" style="margin-bottom:14px;">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; color:var(--text); font-weight:600;">
+          <input type="checkbox" id="lanyardShowNamesCheck" ${STATE.lanyardShowNames ? 'checked' : ''} onchange="STATE.lanyardShowNames=this.checked; generatePoster()" style="width:16px; height:16px; accent-color:var(--gold);">
+          <span>Print each volunteer's Name &amp; Role on their badge (${nightCrew.length} matched for this night)</span>
+        </label>
+      </div>
+      ` : ''}
+
       <div class="control-row">
         <div class="control-group">
           <label>Lead Marshal &amp; Mobile (Rear Side · Auto-Loaded from Crew)</label>
-          <input type="text" id="lanyardMarshal" value="${STATE.leadMarshal || ''}" placeholder="e.g. Ben (07123 456789)" oninput="STATE.leadMarshal=this.value; generatePoster()">
+          <input type="text" id="lanyardMarshal" value="${escHtml(STATE.leadMarshal || '')}" placeholder="e.g. Ben (07123 456789)" oninput="STATE.leadMarshal=this.value; generatePoster()">
         </div>
         <div class="control-group">
           <label>Tow / Sleigh Driver &amp; Mobile (Rear Side · Auto-Loaded from Crew)</label>
-          <input type="text" id="lanyardDriver" value="${STATE.towDriver || ''}" placeholder="e.g. Dave (07987 654321)" oninput="STATE.towDriver=this.value; generatePoster()">
+          <input type="text" id="lanyardDriver" value="${escHtml(STATE.towDriver || '')}" placeholder="e.g. Dave (07987 654321)" oninput="STATE.towDriver=this.value; generatePoster()">
         </div>
       </div>
 
@@ -1016,13 +1374,13 @@ function renderControls() {
         <div class="control-group">
           <label>Muster &amp; Departure Times (Rear Side)</label>
           <div style="display:flex; gap:8px;">
-            <input type="text" id="lanyardMusterTime" value="${STATE.musterTime || '17:45'}" placeholder="Muster: 17:45" title="Crew Muster Time" oninput="STATE.musterTime=this.value; generatePoster()" style="flex:1;">
-            <input type="text" id="lanyardStartTime" value="${STATE.startTime ? (STATE.endTime && !STATE.startTime.includes('–') && !STATE.startTime.includes('-') ? `${STATE.startTime} – ${STATE.endTime}` : STATE.startTime) : '18:00'}" placeholder="Rollout: 18:00" title="Sleigh Departure Time" oninput="STATE.startTime=this.value; STATE.endTime=''; generatePoster()" style="flex:1;">
+            <input type="text" id="lanyardMusterTime" value="${escHtml(STATE.musterTime || '17:45')}" placeholder="Muster: 17:45" title="Crew Muster Time" oninput="STATE.musterTime=this.value; generatePoster()" style="flex:1;">
+            <input type="text" id="lanyardStartTime" value="${escHtml(STATE.startTime ? (STATE.endTime && !STATE.startTime.includes('–') && !STATE.startTime.includes('-') ? `${STATE.startTime} – ${STATE.endTime}` : STATE.startTime) : '18:00')}" placeholder="Rollout: 18:00" title="Sleigh Departure Time" oninput="STATE.startTime=this.value; STATE.endTime=''; generatePoster()" style="flex:1;">
           </div>
         </div>
         <div class="control-group">
           <label>Staging Location (Rear Side)</label>
-          <input type="text" id="lanyardMeetingPoint" value="${STATE.meetingPoint || ''}" placeholder="e.g. Pavilion Car Park" oninput="STATE.meetingPoint=this.value; generatePoster()">
+          <input type="text" id="lanyardMeetingPoint" value="${escHtml(STATE.meetingPoint || '')}" placeholder="e.g. Pavilion Car Park" oninput="STATE.meetingPoint=this.value; generatePoster()">
         </div>
       </div>
 
@@ -1033,12 +1391,12 @@ function renderControls() {
         </div>
         <div class="control-group">
           <label>Council Collection Permit / Licence No. (Printed on Badges)</label>
-          <input type="text" id="lanyardPermit" value="${STATE.collectionPermit || ''}" placeholder="e.g. CP/2026/049 or Borough Lic. #1234" oninput="STATE.collectionPermit=this.value; generatePoster()">
+          <input type="text" id="lanyardPermit" value="${escHtml(STATE.collectionPermit || '')}" placeholder="e.g. CP/2026/049 or Borough Lic. #1234" oninput="STATE.collectionPermit=this.value; generatePoster()">
         </div>
       </div>
 
       <div class="btn-row">
-        <button class="btn btn-gold" onclick="window.print()">🖨️ Print Lanyard Sheet (${STATE.lanyardSides === 'double' ? '2 Pages Double-Sided' : '1 Page'})</button>
+        <button id="printLanyardsBtn" class="btn btn-gold" onclick="window.print()">🖨️ Print Lanyards (${totalPrintPages} ${totalPrintPages === 1 ? 'Page' : 'Pages'} · ${sizeCfg.widthMm}×${sizeCfg.heightMm}mm)</button>
         ${STATE.routes.length > 1 ? `<button class="btn btn-ghost" onclick="printAllLanyards()">🖨️ Print All ${STATE.routes.length} Route Lanyards</button>` : ''}
       </div>
     `;
@@ -1052,7 +1410,7 @@ function renderControls() {
         <select id="layoutSelect" onchange="onLayoutChange(this.value)">
           <option value="poster" ${STATE.layoutMode === 'poster' ? 'selected' : ''}>📌 1-Up A4 Street Route Poster</option>
           <option value="buckets" ${STATE.layoutMode === 'buckets' ? 'selected' : ''}>🪣 4-Up Collector Bucket Stickers (A4 Sheet)</option>
-          <option value="lanyards" ${STATE.layoutMode === 'lanyards' ? 'selected' : ''}>🪪 6-Up Walking Elf Lanyard Badges (A4 Sheet)</option>
+          <option value="lanyards" ${STATE.layoutMode === 'lanyards' ? 'selected' : ''}>🪪 Walking Elf Lanyard Badges (6-Up / 90×60mm / Custom)</option>
         </select>
       </div>
       <div class="control-group">
@@ -1161,176 +1519,42 @@ function generatePoster(idx) {
 
   if (STATE.layoutMode === 'lanyards') {
     const headline = document.getElementById('customHeadline')?.value || 'SCAN TO DONATE';
-    const gaBadge = STATE.isGiftAidEnabled
-      ? '<div style="font-size:11px;font-weight:800;color:#b45309;">+25% GIFT AID BOOST AVAILABLE</div>'
-      : '<div style="font-size:11px;font-weight:800;color:#15803d;">SUPPORTING LOCAL COMMUNITY CAUSES</div>';
-
     const route = STATE.routes[idx !== undefined ? idx : STATE.selectedRoute] || {
       routeName: sleighName,
       date: '',
       streets: ''
     };
-    const routeName = route.routeName || route.name || 'Tonight\'s Sleigh Route';
-    const routeDate = formatDateLong(route.date) || 'Tonight';
-    const musterTime = STATE.musterTime || '17:45';
-    const startTime = STATE.startTime || route["Start Time"] || route.start_time || '18:00';
-    const endTime = STATE.endTime || route["End Time"] || route.end_time || '';
-    const timeDisplay = endTime && !startTime.includes('–') && !startTime.includes('-') ? `${startTime} – ${endTime}` : startTime;
-    const meetingPoint = STATE.meetingPoint || 'Depot / Pavilion Car Park';
-    const marshalText = STATE.leadMarshal || '____________________';
-    const driverText = STATE.towDriver || '____________________';
-    const trackerHost = `${tableSlug}.roundtablesantasleigh.co.uk`;
-
-    let frontCardsHtml = '';
-    for (let i = 0; i < 6; i++) {
-      frontCardsHtml += `
-        <div class="lanyard-card">
-          <div class="lanyard-slot" title="Lanyard punch slot"></div>
-          <div class="lanyard-badge-role">🎅 OFFICIAL SLEIGH ELF</div>
-          ${logoUrl ? `<img src="${logoUrl}" style="width:44px;height:44px;object-fit:contain;">` : ''}
-          <div class="lanyard-title">${headline}</div>
-          <div class="lanyard-qr-box" id="qrLanyard_${i}"></div>
-          ${gaBadge}
-          <div class="lanyard-footer">
-            ${sleighName}<br><span>100% TO LOCAL CHARITIES</span>
-            ${permit ? `<div style="font-size:7px; font-weight:800; color:#fff; margin-top:2px; letter-spacing:0.5px; text-transform:uppercase;">PERMIT NO: <span style="color:var(--gold);">${permit}</span>${charityNum ? ` &bull; CHARITY ${charityNum}` : ''}</div>` : (charityNum ? `<div style="font-size:7px; font-weight:700; color:#e5e7eb; margin-top:2px;">REG CHARITY NO. ${charityNum}</div>` : '')}
-          </div>
-        </div>
-      `;
-    }
-
-    const sameNightRoutes = (STATE.routes || []).filter(rOther => 
-      rOther.date && route.date && rOther.date === route.date
-    );
-
-    let multiRouteHtml = '';
-    if (sameNightRoutes.length > 1) {
-      multiRouteHtml = `
-        <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:4px 7px; margin-bottom:3px;">
-          <div style="font-family:'DM Mono', monospace; font-size:8px; font-weight:800; text-transform:uppercase; color:#1e40af; margin-bottom:2px; display:flex; justify-content:space-between; align-items:center;">
-            <span>🗺️ TONIGHT'S RUNS (${sameNightRoutes.length} LEGS)</span>
-            <span style="font-size:7px; color:#2563eb; font-weight:700;">COMBINED PASS</span>
-          </div>
-          <div style="font-size:8px; color:#1e3a5f; line-height:1.3; display:flex; flex-direction:column; gap:2px;">
-            ${sameNightRoutes.map((rLeg, legIdx) => {
-              const lStart = rLeg["Start Time"] || rLeg.start_time || '';
-              const lEnd = rLeg["End Time"] || rLeg.end_time || '';
-              const lTime = lEnd && !lStart.includes('–') && !lStart.includes('-') ? `${lStart}–${lEnd}` : lStart;
-              const isCurrent = (rLeg.id && route.id && rLeg.id === route.id) || (rLeg.routeName === route.routeName);
-              return `
-                <div style="display:flex; justify-content:space-between; align-items:baseline; gap:4px; ${isCurrent ? 'font-weight:700; color:#1d4ed8;' : ''}">
-                  <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:130px;">
-                    <strong>${legIdx + 1}.</strong> ${rLeg.routeName || rLeg.name}
-                  </span>
-                  <span style="font-family:'DM Mono', monospace; font-size:7.5px; color:#475569; white-space:nowrap;">${lTime ? `⏰ ${lTime}` : ''}</span>
-                </div>
-              `;
-            }).join('')}
-          </div>
-        </div>
-      `;
-    }
-
-    let rearCardsHtml = '';
-    for (let i = 0; i < 6; i++) {
-      rearCardsHtml += `
-        <div class="lanyard-card-rear">
-          <div class="lanyard-slot" title="Lanyard punch slot" style="margin: 0 auto 3px auto;"></div>
-          
-          <div class="lanyard-badge-role" style="background:#0d0d0b; color:var(--gold); display:flex; justify-content:space-between; align-items:center; padding:3px 8px; font-size:8.5px; margin-bottom:3px;">
-            <span>🦺 CREW RUN BRIEF</span>
-            <span style="color:#fff; font-size:7.5px; opacity:0.85;">VOLUNTEER PASS</span>
-          </div>
-
-          <div style="border-bottom:1.5px solid #0d0d0b; padding-bottom:3px; margin-bottom:3px;">
-            <div style="font-family:'Eurostile', sans-serif; font-size:13px; font-weight:700; color:#0d0d0b; text-transform:uppercase; line-height:1.15; word-break:break-word;">
-              ${routeName}
-            </div>
-            <div style="font-family:'DM Mono', monospace; font-size:8px; color:#4b5563; margin-top:2px; display:flex; justify-content:space-between; flex-wrap:wrap;">
-              <span>📅 ${routeDate}</span>
-              <span>⏰ Muster: <strong>${musterTime}</strong> · Sleigh: <strong>${timeDisplay}</strong></span>
-            </div>
-            <div style="font-size:8px; color:#1f2937; margin-top:1px; font-weight:600;">📍 Staging: ${meetingPoint}</div>
-          </div>
-
-          <div style="background:#fef3c7; border:1px solid #f59e0b; border-radius:6px; padding:5px 7px; margin-bottom:3px;">
-            <div style="font-family:'DM Mono', monospace; font-size:7.5px; font-weight:800; text-transform:uppercase; color:#92400e; margin-bottom:2px; display:flex; align-items:center; gap:4px;">
-              📞 KEY CONTACTS (ROUND TABLE)
-            </div>
-            <div style="font-size:8px; color:#1f2937; line-height:1.35;">
-              <div>🦺 <strong>Lead Marshal:</strong> ${marshalText}</div>
-              <div>🚜 <strong>Sleigh Driver:</strong> ${driverText}</div>
-              <div style="color:#b45309; font-size:7px; margin-top:1px;">🚨 Emergency: 999 · Police Non-Emergency: 101</div>
-            </div>
-          </div>
-
-          ${multiRouteHtml}
-
-          <div style="background:#f3f4f6; border:1px solid #e5e7eb; border-radius:6px; padding:6px 8px; font-size:8.5px; color:#1f2937; line-height:1.35; margin-bottom:3px; display:flex; flex-direction:column; gap:2.5px;">
-            <div style="font-family:'DM Mono', monospace; font-size:8.5px; font-weight:800; text-transform:uppercase; color:#111827; margin-bottom:1px; display:flex; align-items:center; gap:4px;">
-              🛡️ VOLUNTEER SAFETY &amp; CONDUCT
-            </div>
-            <div>• Stay on pavements &amp; never cross ahead of sleigh.</div>
-            <div>• Maintain 2m distance from vehicle wheels &amp; tow hitch.</div>
-            <div>• High-vis vest &amp; torch on for full duration.</div>
-            <div>• Hold QR lanyard flat at chest height for doorsteps.</div>
-            <div>• Never open collection tins; return all to Lead Marshal.</div>
-            ${permit ? `<div>• <strong>Permit:</strong> Licensed Street Collection (#${permit}).</div>` : ''}
-            <div style="color:#166534; font-weight:700; margin-top:1px;">• Live GPS Tracker: ${trackerHost}</div>
-          </div>
-
-          <div class="lanyard-footer" style="padding:3px 6px; font-size:7.5px; margin-top:auto; text-align:center;">
-            ${sleighName}<br><span style="color:var(--gold);">ROUND TABLE BRITAIN &amp; IRELAND &middot; #DOMORE</span>
-            ${permit ? `<div style="color:#e5e7eb; font-size:6.5px; margin-top:1px; letter-spacing:0.3px;">COUNCIL PERMIT NO: <strong style="color:var(--gold);">${permit}</strong></div>` : ''}
-          </div>
-        </div>
-      `;
-    }
-
+    const sizeCfg = getLanyardSizeConfig();
     const sides = STATE.lanyardSides || 'double';
-    let outputHtml = '';
-    if (sides === 'double') {
-      outputHtml = `
-        <div class="sheet-grid-6 has-rear" id="lanyardFrontSheet">
-          ${frontCardsHtml}
-        </div>
-        <div class="sheet-divider-label">
-          📄 PAGE 2: VOLUNTEER ROUTE BRIEF &amp; KEY CONTACTS (REAR SIDE)
-        </div>
-        <div class="sheet-grid-6-rear" id="lanyardRearSheet">
-          ${rearCardsHtml}
-        </div>
-      `;
-    } else if (sides === 'front') {
-      outputHtml = `
-        <div class="sheet-grid-6" id="lanyardFrontSheet">
-          ${frontCardsHtml}
-        </div>
-      `;
-    } else {
-      outputHtml = `
-        <div class="sheet-grid-6-rear" id="lanyardRearSheet" style="margin:0 auto;">
-          ${rearCardsHtml}
-        </div>
-      `;
-    }
+    const built = buildRouteLanyardPages({
+      route,
+      rIdx: idx !== undefined ? idx : Number(STATE.selectedRoute || 0),
+      sizeCfg,
+      headline,
+      sleighName,
+      logoUrl,
+      permit,
+      charityNum,
+      qrUrl,
+      sides,
+      isLastRoute: true,
+      showPageDividers: true
+    });
 
     posterEl.className = 'lanyards-container';
-    posterEl.innerHTML = outputHtml;
+    posterEl.innerHTML = built.html;
 
-    if (sides === 'double' || sides === 'front') {
-      for (let i = 0; i < 6; i++) {
-        const qrEl = document.getElementById(`qrLanyard_${i}`);
-        if (qrEl) {
-          new QRCode(qrEl, {
-            text: qrUrl,
-            width: 132,
-            height: 132,
-            colorDark: "#0d0d0b",
-            colorLight: "#ffffff",
-            correctLevel: QRCode.CorrectLevel.H
-          });
-        }
+    for (const qTask of built.qrTasks) {
+      const qrEl = document.getElementById(qTask.id);
+      if (qrEl) {
+        new QRCode(qrEl, {
+          text: qrUrl,
+          width: qTask.size,
+          height: qTask.size,
+          colorDark: "#0d0d0b",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.H
+        });
       }
     }
     return;
@@ -1398,11 +1622,322 @@ function generatePoster(idx) {
   });
 }
 
+function buildRouteLanyardPages({
+  route,
+  rIdx,
+  sizeCfg,
+  headline,
+  sleighName,
+  logoUrl,
+  permit,
+  charityNum,
+  qrUrl,
+  sides,
+  isLastRoute,
+  showPageDividers
+}) {
+  const routeName = route.routeName || route.name || "Tonight's Sleigh Route";
+  const routeDate = formatDateLong(route.date) || 'Tonight';
+  const musterTime = STATE.musterTime || '17:45';
+  const startTime = STATE.startTime || route["Start Time"] || route.start_time || '18:00';
+  const endTime = STATE.endTime || route["End Time"] || route.end_time || '';
+  const timeDisplay = endTime && !startTime.includes('–') && !startTime.includes('-') ? `${startTime} – ${endTime}` : startTime;
+  const meetingPoint = STATE.meetingPoint || 'Depot / Pavilion Car Park';
+  const marshalText = STATE.leadMarshal || '____________________';
+  const driverText = STATE.towDriver || '____________________';
+  const trackerHost = `${tableSlug}.roundtablesantasleigh.co.uk`;
+
+  const nightCrew = getNightCrewForRoute(route);
+  const useCrew = STATE.lanyardCrewMode === 'crew' && nightCrew.length > 0;
+  const items = useCrew
+    ? nightCrew.map(v => ({ name: v.name || '', role: v.role || 'Volunteer' }))
+    : Array.from({ length: sizeCfg.perPage }, () => ({ name: '', role: '' }));
+
+  const showVolunteerBadge = useCrew && STATE.lanyardShowNames !== false;
+  const isCompact = !sizeCfg.isClassic6Up && (sizeCfg.widthMm > sizeCfg.heightMm || sizeCfg.heightMm < 95);
+  const qrSize = sizeCfg.isClassic6Up
+    ? 132
+    : (isCompact
+        ? Math.max(60, Math.min(118, Math.round((sizeCfg.heightMm - 24) * 2.9)))
+        : Math.max(76, Math.min(132, Math.round(Math.min(sizeCfg.widthMm, sizeCfg.heightMm) * 1.75))));
+
+  const sameNightRoutes = (STATE.routes || []).filter(rOther =>
+    rOther.date && route.date && rOther.date === route.date
+  );
+
+  let multiRouteHtml = '';
+  if (sameNightRoutes.length > 1) {
+    multiRouteHtml = `
+      <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:4px 7px; margin-bottom:3px;">
+        <div style="font-family:'DM Mono', monospace; font-size:8px; font-weight:800; text-transform:uppercase; color:#1e40af; margin-bottom:2px; display:flex; justify-content:space-between; align-items:center;">
+          <span>🗺️ TONIGHT'S RUNS (${sameNightRoutes.length} LEGS)</span>
+          <span style="font-size:7px; color:#2563eb; font-weight:700;">COMBINED PASS</span>
+        </div>
+        <div style="font-size:8px; color:#1e3a5f; line-height:1.3; display:flex; flex-direction:column; gap:2px;">
+          ${sameNightRoutes.map((rLeg, legIdx) => {
+            const lStart = rLeg["Start Time"] || rLeg.start_time || '';
+            const lEnd = rLeg["End Time"] || rLeg.end_time || '';
+            const lTime = lEnd && !lStart.includes('–') && !lStart.includes('-') ? `${lStart}–${lEnd}` : lStart;
+            const isCurrent = (rLeg.id && route.id && rLeg.id === route.id) || (rLeg.routeName === route.routeName);
+            return `
+              <div style="display:flex; justify-content:space-between; align-items:baseline; gap:4px; ${isCurrent ? 'font-weight:700; color:#1d4ed8;' : ''}">
+                <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:130px;">
+                  <strong>${legIdx + 1}.</strong> ${escHtml(rLeg.routeName || rLeg.name)}
+                </span>
+                <span style="font-family:'DM Mono', monospace; font-size:7.5px; color:#475569; white-space:nowrap;">${lTime ? `⏰ ${escHtml(lTime)}` : ''}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  const gaBadge = STATE.isGiftAidEnabled
+    ? '<div style="font-size:11px;font-weight:800;color:#b45309;">+25% GIFT AID BOOST AVAILABLE</div>'
+    : '<div style="font-size:11px;font-weight:800;color:#15803d;">SUPPORTING LOCAL COMMUNITY CAUSES</div>';
+
+  const renderFrontCard = (vol, qrId) => {
+    if (!vol) {
+      if (sizeCfg.isClassic6Up) return `<div class="lanyard-card" style="opacity:0.2;"></div>`;
+      return `<div class="lanyard-card is-compact-empty" style="width:${sizeCfg.widthMm}mm;height:${sizeCfg.heightMm}mm;"></div>`;
+    }
+    const roleLabel = showVolunteerBadge && vol.role ? escHtml(vol.role) : 'OFFICIAL SLEIGH ELF';
+    const volNameHtml = showVolunteerBadge && vol.name
+      ? `<div class="compact-vol-name" title="${escHtml(vol.name)}">🎅 ${escHtml(vol.name)}</div>`
+      : '';
+
+    if (isCompact) {
+      const cardStyle = `width:${sizeCfg.widthMm}mm;height:${sizeCfg.heightMm}mm;`;
+      return `
+        <div class="lanyard-card is-compact" style="${cardStyle}">
+          <div class="compact-header">
+            <div class="compact-header-left">
+              ${logoUrl ? `<img src="${escHtml(logoUrl)}">` : '<span style="font-size:11px;">🎅</span>'}
+              <span class="compact-sleigh-title">${escHtml(sleighName)}</span>
+            </div>
+            <span class="compact-role-pill">${roleLabel}</span>
+          </div>
+          <div class="compact-body">
+            <div class="compact-qr-wrap" id="${qrId}"></div>
+            <div class="compact-info">
+              ${volNameHtml}
+              <div class="compact-headline">${escHtml(headline)}</div>
+              <div class="compact-sub">${STATE.isGiftAidEnabled ? '✨ +25% Gift Aid Boost Eligible' : '✨ 100% To Local Causes'}</div>
+              <div class="compact-url">${escHtml(trackerHost)}</div>
+            </div>
+          </div>
+          <div class="compact-footer">
+            <span>${permit ? `Permit: ${escHtml(permit)}` : (charityNum ? `Reg Charity: ${escHtml(charityNum)}` : 'Round Table Santa Sleigh')}</span>
+            <span>#DoMore &middot; RTBI</span>
+          </div>
+        </div>
+      `;
+    }
+
+    const cardStyle = sizeCfg.isClassic6Up ? '' : `width:${sizeCfg.widthMm}mm;height:${sizeCfg.heightMm}mm;`;
+    return `
+      <div class="lanyard-card" style="${cardStyle}">
+        <div class="lanyard-slot" title="Lanyard punch slot"></div>
+        <div class="lanyard-badge-role">🎅 ${roleLabel}</div>
+        ${showVolunteerBadge && vol.name ? `<div style="font-size:12px;font-weight:800;color:#0d0d0b;line-height:1.1;">${escHtml(vol.name)}</div>` : ''}
+        ${logoUrl ? `<img src="${escHtml(logoUrl)}" style="width:44px;height:44px;object-fit:contain;">` : ''}
+        <div class="lanyard-title">${escHtml(headline)}</div>
+        <div class="lanyard-qr-box" id="${qrId}"></div>
+        ${gaBadge}
+        <div class="lanyard-footer">
+          ${escHtml(sleighName)}<br><span>100% TO LOCAL CHARITIES</span>
+          ${permit ? `<div style="font-size:7px; font-weight:800; color:#fff; margin-top:2px; letter-spacing:0.5px; text-transform:uppercase;">PERMIT NO: <span style="color:var(--gold);">${escHtml(permit)}</span>${charityNum ? ` &bull; CHARITY ${escHtml(charityNum)}` : ''}</div>` : (charityNum ? `<div style="font-size:7px; font-weight:700; color:#e5e7eb; margin-top:2px;">REG CHARITY NO. ${escHtml(charityNum)}</div>` : '')}
+        </div>
+      </div>
+    `;
+  };
+
+  const renderRearCard = (vol) => {
+    if (!vol) {
+      if (sizeCfg.isClassic6Up) return `<div class="lanyard-card-rear" style="opacity:0.2;"></div>`;
+      return `<div class="lanyard-card is-compact-empty" style="width:${sizeCfg.widthMm}mm;height:${sizeCfg.heightMm}mm;"></div>`;
+    }
+
+    if (isCompact) {
+      const cardStyle = `width:${sizeCfg.widthMm}mm;height:${sizeCfg.heightMm}mm;`;
+      const volChip = showVolunteerBadge && vol.name
+        ? `<span style="color:#fff;font-size:7px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:52%;">${escHtml(vol.name)}</span>`
+        : `<span style="color:#fff;font-size:6.5px;opacity:0.85;">VOLUNTEER PASS</span>`;
+      return `
+        <div class="lanyard-card-rear is-compact" style="${cardStyle}">
+          <div class="lanyard-badge-role" style="background:#0d0d0b; color:var(--gold); display:flex; justify-content:space-between; align-items:center; padding:2px 6px; font-size:7.5px; border-radius:4px;">
+            <span>🦺 CREW BRIEF</span>
+            ${volChip}
+          </div>
+          <div style="border-bottom:1px solid #0d0d0b; padding-bottom:2px;">
+            <div style="font-family:'Eurostile', sans-serif; font-size:10px; font-weight:700; color:#0d0d0b; text-transform:uppercase; line-height:1.1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+              ${escHtml(routeName)}
+            </div>
+            <div style="font-family:'DM Mono', monospace; font-size:6.8px; color:#374151; margin-top:1px; display:flex; justify-content:space-between; gap:4px;">
+              <span>📅 ${escHtml(routeDate)}</span>
+              <span>⏰ M:${escHtml(musterTime)} · S:${escHtml(timeDisplay)}</span>
+            </div>
+            <div style="font-size:7px; color:#1f2937; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📍 ${escHtml(meetingPoint)}</div>
+          </div>
+          <div style="background:#fef3c7; border:1px solid #f59e0b; border-radius:4px; padding:2.5px 5px; font-size:6.8px; color:#1f2937; line-height:1.25;">
+            <div>🦺 <strong>Marshal:</strong> ${escHtml(marshalText)}</div>
+            <div>🚜 <strong>Driver:</strong> ${escHtml(driverText)} &middot; <strong style="color:#b45309;">🚨 999 / 101</strong></div>
+          </div>
+          <div style="background:#f3f4f6; border:1px solid #e5e7eb; border-radius:4px; padding:2.5px 5px; font-size:6.4px; color:#1f2937; line-height:1.25; flex:1; display:flex; flex-direction:column; justify-content:center;">
+            <div>• Stay on pavements; keep 2m clear of wheels &amp; tow hitch.</div>
+            <div>• High-vis &amp; torch on; never open tins (return to Marshal).</div>
+            <div style="color:#166534; font-weight:700;">• Live GPS: ${escHtml(trackerHost)}${permit ? ` · #${escHtml(permit)}` : ''}</div>
+          </div>
+          <div class="compact-footer">
+            <span>${escHtml(sleighName)}</span>
+            <span>RTBI &middot; #DoMore</span>
+          </div>
+        </div>
+      `;
+    }
+
+    const cardStyle = sizeCfg.isClassic6Up ? '' : `width:${sizeCfg.widthMm}mm;height:${sizeCfg.heightMm}mm;`;
+    return `
+      <div class="lanyard-card-rear" style="${cardStyle}">
+        <div class="lanyard-slot" title="Lanyard punch slot" style="margin: 0 auto 3px auto;"></div>
+        <div class="lanyard-badge-role" style="background:#0d0d0b; color:var(--gold); display:flex; justify-content:space-between; align-items:center; padding:3px 8px; font-size:8.5px; margin-bottom:3px;">
+          <span>🦺 CREW RUN BRIEF</span>
+          <span style="color:#fff; font-size:7.5px; opacity:0.85;">${showVolunteerBadge && vol.name ? escHtml(vol.name) : 'VOLUNTEER PASS'}</span>
+        </div>
+
+        <div style="border-bottom:1.5px solid #0d0d0b; padding-bottom:3px; margin-bottom:3px;">
+          <div style="font-family:'Eurostile', sans-serif; font-size:13px; font-weight:700; color:#0d0d0b; text-transform:uppercase; line-height:1.15; word-break:break-word;">
+            ${escHtml(routeName)}
+          </div>
+          <div style="font-family:'DM Mono', monospace; font-size:8px; color:#4b5563; margin-top:2px; display:flex; justify-content:space-between; flex-wrap:wrap;">
+            <span>📅 ${escHtml(routeDate)}</span>
+            <span>⏰ Muster: <strong>${escHtml(musterTime)}</strong> · Sleigh: <strong>${escHtml(timeDisplay)}</strong></span>
+          </div>
+          <div style="font-size:8px; color:#1f2937; margin-top:1px; font-weight:600;">📍 Staging: ${escHtml(meetingPoint)}</div>
+        </div>
+
+        <div style="background:#fef3c7; border:1px solid #f59e0b; border-radius:6px; padding:5px 7px; margin-bottom:3px;">
+          <div style="font-family:'DM Mono', monospace; font-size:7.5px; font-weight:800; text-transform:uppercase; color:#92400e; margin-bottom:2px; display:flex; align-items:center; gap:4px;">
+            📞 KEY CONTACTS (ROUND TABLE)
+          </div>
+          <div style="font-size:8px; color:#1f2937; line-height:1.35;">
+            <div>🦺 <strong>Lead Marshal:</strong> ${escHtml(marshalText)}</div>
+            <div>🚜 <strong>Sleigh Driver:</strong> ${escHtml(driverText)}</div>
+            <div style="color:#b45309; font-size:7px; margin-top:1px;">🚨 Emergency: 999 · Police Non-Emergency: 101</div>
+          </div>
+        </div>
+
+        ${multiRouteHtml}
+
+        <div style="background:#f3f4f6; border:1px solid #e5e7eb; border-radius:6px; padding:6px 8px; font-size:8.5px; color:#1f2937; line-height:1.35; margin-bottom:3px; display:flex; flex-direction:column; gap:2.5px;">
+          <div style="font-family:'DM Mono', monospace; font-size:8.5px; font-weight:800; text-transform:uppercase; color:#111827; margin-bottom:1px; display:flex; align-items:center; gap:4px;">
+            🛡️ VOLUNTEER SAFETY &amp; CONDUCT
+          </div>
+          <div>• Stay on pavements &amp; never cross ahead of sleigh.</div>
+          <div>• Maintain 2m distance from vehicle wheels &amp; tow hitch.</div>
+          <div>• High-vis vest &amp; torch on for full duration.</div>
+          <div>• Hold QR lanyard flat at chest height for doorsteps.</div>
+          <div>• Never open collection tins; return all to Lead Marshal.</div>
+          ${permit ? `<div>• <strong>Permit:</strong> Licensed Street Collection (#${escHtml(permit)}).</div>` : ''}
+          <div style="color:#166534; font-weight:700; margin-top:1px;">• Live GPS Tracker: ${escHtml(trackerHost)}</div>
+        </div>
+
+        <div class="lanyard-footer" style="padding:3px 6px; font-size:7.5px; margin-top:auto; text-align:center;">
+          ${escHtml(sleighName)}<br><span style="color:var(--gold);">ROUND TABLE BRITAIN &amp; IRELAND &middot; #DOMORE</span>
+          ${permit ? `<div style="color:#e5e7eb; font-size:6.5px; margin-top:1px; letter-spacing:0.3px;">COUNCIL PERMIT NO: <strong style="color:var(--gold);">${escHtml(permit)}</strong></div>` : ''}
+        </div>
+      </div>
+    `;
+  };
+
+  // Chunk items into A4 pages
+  const pages = [];
+  for (let i = 0; i < items.length; i += sizeCfg.perPage) {
+    pages.push(items.slice(i, i + sizeCfg.perPage));
+  }
+
+  let html = '';
+  const qrTasks = [];
+  const totalPages = pages.length;
+
+  pages.forEach((pageItems, pIdx) => {
+    const isLastPageInRoute = pIdx === totalPages - 1;
+    // Pad pageItems to full rows for clean duplex alignment
+    const padded = pageItems.slice();
+    while (padded.length < sizeCfg.perPage && (padded.length % sizeCfg.cols !== 0 || sides === 'double')) {
+      padded.push(null);
+    }
+
+    if (sides === 'double' || sides === 'front') {
+      let cardsHtml = '';
+      padded.forEach((vol, cIdx) => {
+        const qrId = `qr_r${rIdx}_p${pIdx}_${cIdx}`;
+        cardsHtml += renderFrontCard(vol, qrId);
+        if (vol) qrTasks.push({ id: qrId, size: qrSize });
+      });
+
+      const hasMoreAfterFront = sides === 'double' || !isLastPageInRoute || !isLastRoute;
+      if (sizeCfg.isClassic6Up) {
+        const cls = 'sheet-grid-6' + (sides === 'double' ? ' has-rear' : (hasMoreAfterFront ? ' has-next-route' : ''));
+        html += `<div class="${cls}">${cardsHtml}</div>`;
+      } else {
+        const cls = 'sheet-grid-paged ' + (hasMoreAfterFront ? 'page-break' : 'last-page');
+        html += `
+          <div class="${cls}">
+            <div class="tiled-card-matrix" style="grid-template-columns: repeat(${sizeCfg.cols}, ${sizeCfg.widthMm}mm); grid-auto-rows: ${sizeCfg.heightMm}mm;">
+              ${cardsHtml}
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    if (sides === 'double' || sides === 'rear') {
+      if (showPageDividers && sides === 'double') {
+        html += `
+          <div class="sheet-divider-label">
+            📄 SHEET ${pIdx + 1} REAR: VOLUNTEER ROUTE BRIEF &amp; CONTACTS (${sizeCfg.widthMm}×${sizeCfg.heightMm}mm)
+          </div>
+        `;
+      }
+
+      // Mirror each row horizontally for duplex alignment
+      const mirrored = [];
+      for (let r = 0; r < padded.length; r += sizeCfg.cols) {
+        const rowSlice = padded.slice(r, r + sizeCfg.cols);
+        while (rowSlice.length < sizeCfg.cols) rowSlice.push(null);
+        mirrored.push(...rowSlice.reverse());
+      }
+
+      const rearCardsHtml = mirrored.map(vol => renderRearCard(vol)).join('');
+      const hasMoreAfterRear = !isLastPageInRoute || !isLastRoute;
+
+      if (sizeCfg.isClassic6Up) {
+        const cls = 'sheet-grid-6-rear' + (hasMoreAfterRear ? ' has-next-route' : '');
+        const styleAttr = sides === 'rear' && totalPages === 1 ? ' style="margin:0 auto;"' : '';
+        html += `<div class="${cls}"${styleAttr}>${rearCardsHtml}</div>`;
+      } else {
+        const cls = 'sheet-grid-paged ' + (hasMoreAfterRear ? 'page-break' : 'last-page');
+        html += `
+          <div class="${cls}">
+            <div class="tiled-card-matrix" style="grid-template-columns: repeat(${sizeCfg.cols}, ${sizeCfg.widthMm}mm); grid-auto-rows: ${sizeCfg.heightMm}mm;">
+              ${rearCardsHtml}
+            </div>
+          </div>
+        `;
+      }
+    }
+  });
+
+  return { html, qrTasks };
+}
+
 async function printAllLanyards() {
   const poster = document.getElementById('poster');
   poster.className = 'lanyards-container';
   poster.innerHTML = '';
-  
+
   const qrUrl = getTargetQrUrl();
   const s = STATE.settings;
   const logoUrl = s.logo_overlay_url || s.logo_url || '';
@@ -1410,158 +1945,42 @@ async function printAllLanyards() {
   const permit = (STATE.collectionPermit || '').trim();
   const charityNum = (s.charity_number || (STATE.table && STATE.table.charity_number) || '').trim();
   const headline = document.getElementById('customHeadline')?.value || 'SCAN TO DONATE';
-  const gaBadge = STATE.isGiftAidEnabled
-    ? '<div style="font-size:11px;font-weight:800;color:#b45309;">+25% GIFT AID BOOST AVAILABLE</div>'
-    : '<div style="font-size:11px;font-weight:800;color:#15803d;">SUPPORTING LOCAL COMMUNITY CAUSES</div>';
-  const trackerHost = `${tableSlug}.roundtablesantasleigh.co.uk`;
-
   const sides = STATE.lanyardSides || 'double';
-  const qrTasks = [];
+  const sizeCfg = getLanyardSizeConfig();
+  const allQrTasks = [];
+  let combinedHtml = '';
 
   for (let rIdx = 0; rIdx < STATE.routes.length; rIdx++) {
     syncLanyardRouteData(rIdx);
     const route = STATE.routes[rIdx];
-    const routeName = route.routeName || route.name || 'Tonight\'s Sleigh Route';
-    const routeDate = formatDateLong(route.date) || 'Tonight';
-    const musterTime = STATE.musterTime || '17:45';
-    const startTime = STATE.startTime || route["Start Time"] || route.start_time || '18:00';
-    const endTime = STATE.endTime || route["End Time"] || route.end_time || '';
-    const timeDisplay = endTime && !startTime.includes('–') && !startTime.includes('-') ? `${startTime} – ${endTime}` : startTime;
-    const meetingPoint = STATE.meetingPoint || 'Depot / Pavilion Car Park';
-    const marshalText = STATE.leadMarshal || '____________________';
-    const driverText = STATE.towDriver || '____________________';
     const isLastRoute = rIdx === STATE.routes.length - 1;
-
-    if (sides === 'double' || sides === 'front') {
-      const frontSheet = document.createElement('div');
-      frontSheet.className = 'sheet-grid-6' + (sides === 'double' ? ' has-rear' : (!isLastRoute ? ' has-next-route' : ''));
-      let frontCards = '';
-      for (let i = 0; i < 6; i++) {
-        const qrId = `qr_print_r${rIdx}_${i}`;
-        frontCards += `
-          <div class="lanyard-card">
-            <div class="lanyard-slot" title="Lanyard punch slot"></div>
-            <div class="lanyard-badge-role">🎅 OFFICIAL SLEIGH ELF</div>
-            ${logoUrl ? `<img src="${logoUrl}" style="width:44px;height:44px;object-fit:contain;">` : ''}
-            <div class="lanyard-title">${headline}</div>
-            <div class="lanyard-qr-box" id="${qrId}"></div>
-            ${gaBadge}
-            <div class="lanyard-footer">
-              ${sleighName}<br><span>100% TO LOCAL CHARITIES</span>
-              ${permit ? `<div style="font-size:7px; font-weight:800; color:#fff; margin-top:2px; letter-spacing:0.5px; text-transform:uppercase;">PERMIT NO: <span style="color:var(--gold);">${permit}</span>${charityNum ? ` &bull; CHARITY ${charityNum}` : ''}</div>` : (charityNum ? `<div style="font-size:7px; font-weight:700; color:#e5e7eb; margin-top:2px;">REG CHARITY NO. ${charityNum}</div>` : '')}
-            </div>
-          </div>
-        `;
-        qrTasks.push(qrId);
-      }
-      frontSheet.innerHTML = frontCards;
-      poster.appendChild(frontSheet);
-    }
-
-    if (sides === 'double' || sides === 'rear') {
-      const rearSheet = document.createElement('div');
-      rearSheet.className = 'sheet-grid-6-rear' + (!isLastRoute ? ' has-next-route' : '');
-
-      const sameNightRoutes = (STATE.routes || []).filter(rOther => 
-        rOther.date && route.date && rOther.date === route.date
-      );
-
-      let multiRouteHtml = '';
-      if (sameNightRoutes.length > 1) {
-        multiRouteHtml = `
-          <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:4px 7px; margin-bottom:3px;">
-            <div style="font-family:'DM Mono', monospace; font-size:8px; font-weight:800; text-transform:uppercase; color:#1e40af; margin-bottom:2px; display:flex; justify-content:space-between; align-items:center;">
-              <span>🗺️ TONIGHT'S RUNS (${sameNightRoutes.length} LEGS)</span>
-              <span style="font-size:7px; color:#2563eb; font-weight:700;">COMBINED PASS</span>
-            </div>
-            <div style="font-size:8px; color:#1e3a5f; line-height:1.3; display:flex; flex-direction:column; gap:2px;">
-              ${sameNightRoutes.map((rLeg, legIdx) => {
-                const lStart = rLeg["Start Time"] || rLeg.start_time || '';
-                const lEnd = rLeg["End Time"] || rLeg.end_time || '';
-                const lTime = lEnd && !lStart.includes('–') && !lStart.includes('-') ? `${lStart}–${lEnd}` : lStart;
-                const isCurrent = (rLeg.id && route.id && rLeg.id === route.id) || (rLeg.routeName === route.routeName);
-                return `
-                  <div style="display:flex; justify-content:space-between; align-items:baseline; gap:4px; ${isCurrent ? 'font-weight:700; color:#1d4ed8;' : ''}">
-                    <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:130px;">
-                      <strong>${legIdx + 1}.</strong> ${rLeg.routeName || rLeg.name}
-                    </span>
-                    <span style="font-family:'DM Mono', monospace; font-size:7.5px; color:#475569; white-space:nowrap;">${lTime ? `⏰ ${lTime}` : ''}</span>
-                  </div>
-                `;
-              }).join('')}
-            </div>
-          </div>
-        `;
-      }
-
-      let rearCards = '';
-      for (let i = 0; i < 6; i++) {
-        rearCards += `
-          <div class="lanyard-card-rear">
-            <div class="lanyard-slot" title="Lanyard punch slot" style="margin: 0 auto 3px auto;"></div>
-            
-            <div class="lanyard-badge-role" style="background:#0d0d0b; color:var(--gold); display:flex; justify-content:space-between; align-items:center; padding:3px 8px; font-size:8.5px; margin-bottom:3px;">
-              <span>🦺 CREW RUN BRIEF</span>
-              <span style="color:#fff; font-size:7.5px; opacity:0.85;">VOLUNTEER PASS</span>
-            </div>
-
-            <div style="border-bottom:1.5px solid #0d0d0b; padding-bottom:3px; margin-bottom:3px;">
-              <div style="font-family:'Eurostile', sans-serif; font-size:13px; font-weight:700; color:#0d0d0b; text-transform:uppercase; line-height:1.15; word-break:break-word;">
-                ${routeName}
-              </div>
-              <div style="font-family:'DM Mono', monospace; font-size:8px; color:#4b5563; margin-top:2px; display:flex; justify-content:space-between; flex-wrap:wrap;">
-                <span>📅 ${routeDate}</span>
-                <span>⏰ Muster: <strong>${musterTime}</strong> · Sleigh: <strong>${timeDisplay}</strong></span>
-              </div>
-              <div style="font-size:8px; color:#1f2937; margin-top:1px; font-weight:600;">📍 Staging: ${meetingPoint}</div>
-            </div>
-
-            <div style="background:#fef3c7; border:1px solid #f59e0b; border-radius:6px; padding:5px 7px; margin-bottom:3px;">
-              <div style="font-family:'DM Mono', monospace; font-size:7.5px; font-weight:800; text-transform:uppercase; color:#92400e; margin-bottom:2px; display:flex; align-items:center; gap:4px;">
-                📞 KEY CONTACTS (ROUND TABLE)
-              </div>
-              <div style="font-size:8px; color:#1f2937; line-height:1.35;">
-                <div>🦺 <strong>Lead Marshal:</strong> ${marshalText}</div>
-                <div>🚜 <strong>Sleigh Driver:</strong> ${driverText}</div>
-                <div style="color:#b45309; font-size:7px; margin-top:1px;">🚨 Emergency: 999 · Police Non-Emergency: 101</div>
-              </div>
-            </div>
-
-            ${multiRouteHtml}
-
-            <div style="background:#f3f4f6; border:1px solid #e5e7eb; border-radius:6px; padding:6px 8px; font-size:8.5px; color:#1f2937; line-height:1.35; margin-bottom:3px; display:flex; flex-direction:column; gap:2.5px;">
-              <div style="font-family:'DM Mono', monospace; font-size:8.5px; font-weight:800; text-transform:uppercase; color:#111827; margin-bottom:1px; display:flex; align-items:center; gap:4px;">
-                🛡️ VOLUNTEER SAFETY &amp; CONDUCT
-              </div>
-              <div>• Stay on pavements &amp; never cross ahead of sleigh.</div>
-              <div>• Maintain 2m distance from vehicle wheels &amp; tow hitch.</div>
-              <div>• High-vis vest &amp; torch on for full duration.</div>
-              <div>• Hold QR lanyard flat at chest height for doorsteps.</div>
-              <div>• Never open collection tins; return all to Lead Marshal.</div>
-              ${permit ? `<div>• <strong>Permit:</strong> Licensed Street Collection (#${permit}).</div>` : ''}
-              <div style="color:#166534; font-weight:700; margin-top:1px;">• Live GPS Tracker: ${trackerHost}</div>
-            </div>
-
-            <div class="lanyard-footer" style="padding:3px 6px; font-size:7.5px; margin-top:auto; text-align:center;">
-              ${sleighName}<br><span style="color:var(--gold);">ROUND TABLE BRITAIN &amp; IRELAND &middot; #DOMORE</span>
-              ${permit ? `<div style="color:#e5e7eb; font-size:6.5px; margin-top:1px; letter-spacing:0.3px;">COUNCIL PERMIT NO: <strong style="color:var(--gold);">${permit}</strong></div>` : ''}
-            </div>
-          </div>
-        `;
-      }
-      rearSheet.innerHTML = rearCards;
-      poster.appendChild(rearSheet);
-    }
+    const built = buildRouteLanyardPages({
+      route,
+      rIdx,
+      sizeCfg,
+      headline,
+      sleighName,
+      logoUrl,
+      permit,
+      charityNum,
+      qrUrl,
+      sides,
+      isLastRoute,
+      showPageDividers: false
+    });
+    combinedHtml += built.html;
+    allQrTasks.push(...built.qrTasks);
   }
 
-  // Render QR codes into their elements
-  for (const qId of qrTasks) {
-    const el = document.getElementById(qId);
+  poster.innerHTML = combinedHtml;
+
+  for (const qTask of allQrTasks) {
+    const el = document.getElementById(qTask.id);
     if (el) {
       new QRCode(el, {
         text: qrUrl,
-        width: 132,
-        height: 132,
+        width: qTask.size,
+        height: qTask.size,
         colorDark: "#0d0d0b",
         colorLight: "#ffffff",
         correctLevel: QRCode.CorrectLevel.H
