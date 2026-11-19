@@ -1847,21 +1847,58 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
                       })()}
 
                       {/* User-friendly Gemini Patch Summary if resolved */}
-                      {ticket.resolution_summary && (
-                        <div style={{
-                          marginTop: '10px',
-                          backgroundColor: 'rgba(34, 197, 94, 0.08)',
-                          borderLeft: '3px solid #22C55E',
-                          padding: '8px 12px',
-                          fontSize: '12px',
-                          color: '#dcfce7',
-                          borderRadius: '0 6px 6px 0',
-                          whiteSpace: 'pre-line'
-                        }}>
-                          <strong style={{ color: '#86efac' }}>✅ Resolution Summary:</strong><br />
-                          {ticket.resolution_summary}
-                        </div>
-                      )}
+                      {ticket.resolution_summary && (() => {
+                        const raw = String(ticket.resolution_summary).trim();
+                        let displaySummary = raw;
+                        if (raw.startsWith('{') || raw.startsWith('```') || /^"[^"]*"\s*:|^":/.test(raw)) {
+                          try {
+                            const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+                            const parsed = JSON.parse(cleaned);
+                            const parts = [
+                              parsed.what_happened ? `What was happening: ${parsed.what_happened}` : '',
+                              parsed.what_we_fixed ? `What we fixed: ${parsed.what_we_fixed}` : '',
+                              parsed.how_to_verify ? `How to check: ${parsed.how_to_verify}` : ''
+                            ].filter(Boolean);
+                            if (parts.length > 0) displaySummary = parts.join('\n\n');
+                          } catch {
+                            const getPart = (key) => {
+                              const m = raw.match(new RegExp(`"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)(?:"|$)`));
+                              return m ? m[1].replace(/\\"/g, '"').replace(/\\n/g, ' ').trim() : '';
+                            };
+                            const parts = [
+                              getPart('what_happened') ? `What was happening: ${getPart('what_happened')}` : '',
+                              getPart('what_we_fixed') ? `What we fixed: ${getPart('what_we_fixed')}` : '',
+                              getPart('how_to_verify') ? `How to check: ${getPart('how_to_verify')}` : ''
+                            ].filter(Boolean);
+                            if (parts.length > 0) {
+                              displaySummary = parts.join('\n\n');
+                            } else {
+                              displaySummary = raw
+                                .replace(/^```(?:json)?\s*/i, '')
+                                .replace(/```\s*$/i, '')
+                                .replace(/^\{\s*/, '')
+                                .replace(/^"[^"]*"\s*:\s*"?/, '')
+                                .replace(/"\s*\}?\s*$/, '')
+                                .trim() || 'Fix deployed to production. Please refresh your browser to load the latest update.';
+                            }
+                          }
+                        }
+                        return (
+                          <div style={{
+                            marginTop: '10px',
+                            backgroundColor: 'rgba(34, 197, 94, 0.08)',
+                            borderLeft: '3px solid #22C55E',
+                            padding: '8px 12px',
+                            fontSize: '12px',
+                            color: '#dcfce7',
+                            borderRadius: '0 6px 6px 0',
+                            whiteSpace: 'pre-line'
+                          }}>
+                            <strong style={{ color: '#86efac' }}>✅ Resolution Summary:</strong><br />
+                            {displaySummary}
+                          </div>
+                        );
+                      })()}
 
                       {/* Display Admin Notes if present */}
                       {ticket.admin_notes && (
