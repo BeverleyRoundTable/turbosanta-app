@@ -35,8 +35,11 @@ export default function AdminAssistantModal({
 
   const targetSlug = (currentTableSlug || session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley').toLowerCase().trim();
   const tableName = tableData?.table?.name || session?.tableName || `${targetSlug.charAt(0).toUpperCase() + targetSlug.slice(1)} Round Table`;
-  const rawModel = tableData?.table?.gemini_model || localStorage.getItem('turbosanta_global_gemini_model') || 'gemini-3.8-flash';
-  const displayModel = rawModel.includes('3.8') ? 'Gemini 3.8 Flash' : (rawModel.includes('3.6') ? 'Gemini 3.6 Flash' : rawModel);
+  const rawModel = String(tableData?.table?.gemini_model || localStorage.getItem('turbosanta_global_gemini_model') || 'auto');
+  const cleanRawModel = rawModel.toLowerCase().trim();
+  const displayModel = (cleanRawModel === 'auto' || cleanRawModel === 'latest' || cleanRawModel === 'latest-flash' || cleanRawModel.includes('hydrogen') || cleanRawModel.includes('gemini-4'))
+    ? 'Gemini 4 Hydrogen'
+    : (cleanRawModel.includes('3.8') ? 'Gemini 3.8 Flash' : (cleanRawModel.includes('3.6') ? 'Gemini 3.6 Flash' : rawModel));
 
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);

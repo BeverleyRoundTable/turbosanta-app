@@ -12600,7 +12600,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                   </div>
 
                   <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '0 0 16px 0', lineHeight: 1.5 }}>
-                    Enter your Google Gemini model constant (e.g. <strong style={{ color: '#FBAF33' }}>gemini-3.8-flash</strong>, <strong style={{ color: '#FBAF33' }}>flash 3.8</strong>, <strong style={{ color: '#FBAF33' }}>gemini-3.6-flash</strong>, or <strong style={{ color: '#FBAF33' }}>flash 3.6</strong>). You can type it manually, or click <strong>"Detect Latest Free Model from Google"</strong> to query Google's live backend. This saves as the system-wide constant across all UK Round Tables with zero individual API fees.
+                    Enter your Google Gemini model constant (e.g. <strong style={{ color: '#FBAF33' }}>auto</strong>, <strong style={{ color: '#FBAF33' }}>gemini-4-hydrogen</strong>, <strong style={{ color: '#FBAF33' }}>gemini-3.8-flash</strong>, or <strong style={{ color: '#FBAF33' }}>gemini-3.6-flash</strong>). You can type it manually, or click <strong>"Detect from Google"</strong> to query Google's live backend. This saves as the system-wide constant across all UK Round Tables with zero individual API fees.
                   </p>
 
                   <div style={{ maxWidth: '640px' }}>
@@ -12616,14 +12616,14 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                           setDetectStatus('Querying Google backend...');
                           try {
                             const res = await fetchLatestAiModels(currentTableSlug);
-                            const detected = (res && res.latest) ? res.latest : 'gemini-3.8-flash';
+                            const detected = (res && res.latest) ? res.latest : 'gemini-4-hydrogen';
                             setFormData(prev => ({ ...prev, gemini_model: detected }));
                             localStorage.setItem('turbosanta_global_gemini_model', detected);
                             setDetectStatus(`⚡ Connected to Google API: ${detected} detected as newest free model!`);
                           } catch {
-                            setFormData(prev => ({ ...prev, gemini_model: 'gemini-3.8-flash' }));
-                            localStorage.setItem('turbosanta_global_gemini_model', 'gemini-3.8-flash');
-                            setDetectStatus('⚡ Set to newest free model: gemini-3.8-flash');
+                            setFormData(prev => ({ ...prev, gemini_model: 'gemini-4-hydrogen' }));
+                            localStorage.setItem('turbosanta_global_gemini_model', 'gemini-4-hydrogen');
+                            setDetectStatus('⚡ Set to newest free model: gemini-4-hydrogen');
                           } finally {
                             setIsDetectingModel(false);
                             setTimeout(() => setDetectStatus(''), 7000);
@@ -12652,7 +12652,8 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                     <div style={{ display: 'flex', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
                       {[
                         { id: 'auto', label: 'Auto (Dynamic)', badge: 'Recommended' },
-                        { id: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash', badge: 'Newest Free' },
+                        { id: 'gemini-4-hydrogen', label: 'Gemini 4 Hydrogen', badge: 'Newest Free' },
+                        { id: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash', badge: 'Previous Flash' },
                         { id: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash', badge: 'Stable' },
                         { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash', badge: 'Legacy' }
                       ].map(preset => {
@@ -12704,7 +12705,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                           setFormData(prev => ({ ...prev, gemini_model: val }));
                           localStorage.setItem('turbosanta_global_gemini_model', val);
                         }}
-                        placeholder="auto (defaults to gemini-3.8-flash)"
+                        placeholder="auto (defaults to gemini-4-hydrogen)"
                         style={{
                           flex: 1,
                           width: '100%',
@@ -12731,7 +12732,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                       <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e' }}></span>
                       {['auto', 'latest', 'latest-flash', ''].includes(String(formData.gemini_model || '').toLowerCase().trim()) ? (
                         <span>
-                          System Constant: <strong style={{ color: '#FBAF33' }}>AUTO MODE (Zero Maintenance)</strong> &bull; Auto-resolves to Google's newest free tier Flash engine (gemini-3.8-flash)
+                          System Constant: <strong style={{ color: '#FBAF33' }}>AUTO MODE (Zero Maintenance)</strong> &bull; Auto-resolves to Google&apos;s newest free tier engine (gemini-4-hydrogen) with Flash fallback cascade
                         </span>
                       ) : (
                         <span>

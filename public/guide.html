@@ -919,19 +919,19 @@
       
       <!-- SECTION: ARTIFICIAL INTELLIGENCE & OPERATIONS SUITE -->
       <section id="ai-suite" class="doc-section">
-        <h2><i class="fa-solid fa-wand-magic-sparkles" style="color:var(--primary);"></i> Artificial Intelligence &amp; Operations Suite (Gemini 3.8 Flash)</h2>
+        <h2><i class="fa-solid fa-wand-magic-sparkles" style="color:var(--primary);"></i> Artificial Intelligence &amp; Operations Suite (Gemini 4 Hydrogen)</h2>
         <p>
-          TurboSanta includes an integrated suite of purpose-built artificial intelligence tools powered by <strong>Google Gemini 3.8 Flash</strong>. The AI engine is designed to save volunteer organisers hours of manual work during freezing December nights, while keeping community safety and child protection front and centre.
+          TurboSanta includes an integrated suite of purpose-built artificial intelligence tools powered by <strong>Google Gemini 4 Hydrogen</strong> (Google&apos;s newest Free Tier engine replacing 3.8 Flash). The AI engine is designed to save volunteer organisers hours of manual work during freezing December nights, while keeping community safety and child protection front and centre.
         </p>
 
         <div class="card" style="margin-bottom: 20px; border-left: 4px solid var(--primary); background: rgba(251, 175, 51, 0.04);">
           <h3 style="color: var(--primary);"><i class="fa-solid fa-layer-group"></i> Multi-Model Fallback Cascade &amp; Model Selector</h3>
           <p style="font-size: 13px; line-height: 1.6; color: var(--text-muted);">
-            In <strong>Admin Portal &rarr; Settings &rarr; AI Model</strong>, each Table can select their preferred Gemini model (defaulting to <code>gemini-3.8-flash</code>). 
-            All AI operations run through TurboSanta's <strong>Cascade Engine</strong>:
+            In <strong>Admin Portal &rarr; Settings &rarr; AI Model</strong>, each Table can select their preferred Free Tier Gemini model (defaulting to <code>auto</code>, which resolves to <code>gemini-4-hydrogen</code>). 
+            All AI operations run through TurboSanta's Free Tier <strong>Cascade Engine</strong>:
           </p>
           <div style="background: #000; padding: 12px 16px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #86efac; margin: 10px 0; border: 1px solid var(--border);">
-            gemini-3.8-flash (Primary) &rarr; gemini-3.7-flash &rarr; gemini-3.6-flash &rarr; gemini-2.5-flash &rarr; gemini-1.5-flash (Emergency Backup)
+            gemini-4-hydrogen (Auto Primary) &rarr; gemini-3.8-flash &rarr; gemini-3.7-flash &rarr; gemini-3.6-flash &rarr; gemini-2.5-flash &rarr; gemini-1.5-flash (Emergency Backup)
           </div>
           <p style="font-size: 12px; color: var(--text-muted); margin: 0;">
             If Google ever experiences temporary regional rate limits or cloud hiccups on the primary model, requests seamlessly cascade down without failure.

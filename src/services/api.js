@@ -528,10 +528,11 @@ export async function fetchLatestAiModels(tableSlug = "beverley") {
     console.error("fetchLatestAiModels error:", err);
     return {
       ok: true,
-      latest: "gemini-3.8-flash",
+      latest: "gemini-4-hydrogen",
       models: [
-        { id: "gemini-3.8-flash", displayName: "Gemini 3.8 Flash (Stable, Newest Free Tier Flash)" },
-        { id: "gemini-3.6-flash", displayName: "Gemini 3.6 Flash (Stable, Previous-Generation Flash)" }
+        { id: "gemini-4-hydrogen", displayName: "Gemini 4 Hydrogen (Stable, Newest Free Tier · Replaces 3.8 Flash)" },
+        { id: "gemini-3.8-flash", displayName: "Gemini 3.8 Flash (Previous-Generation Free Tier Flash)" },
+        { id: "gemini-3.6-flash", displayName: "Gemini 3.6 Flash (Stable, Legacy Flash)" }
       ]
     };
   }

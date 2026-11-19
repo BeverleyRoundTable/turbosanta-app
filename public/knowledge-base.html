@@ -351,7 +351,8 @@
 
         function formatModelName(raw) {
             const m = String(raw || 'auto').trim().toLowerCase();
-            if (m === 'auto' || m === 'latest' || m === 'latest-flash') return 'Gemini Flash (Auto)';
+            if (m === 'auto' || m === 'latest' || m === 'latest-flash') return 'Gemini 4 Hydrogen (Auto)';
+            if (m.includes('hydrogen') || m.includes('gemini-4')) return 'Gemini 4 Hydrogen';
             if (m.includes('3.8')) return 'Gemini 3.8 Flash';
             if (m.includes('3.6')) return 'Gemini 3.6 Flash';
             if (m.includes('3.5')) return 'Gemini 3.5 Flash';
