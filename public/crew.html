@@ -282,6 +282,7 @@
     <div id="signup" class="section active">
       <div class="panel">
         <h3>Join a Route</h3>
+        <div id="signupSuccessBanner" role="status" aria-live="polite" style="display:none; background: rgba(16, 185, 129, 0.14); border: 1px solid rgba(52, 211, 153, 0.45); border-radius: 12px; padding: 14px 16px; margin-bottom: 18px; color: #ecfdf5; font-size: 14px; line-height: 1.55;"></div>
         <form id="signupForm" onsubmit="submitVolunteer(event)">
           <div class="field">
             <label>Select Route & Date</label>
@@ -1034,6 +1035,8 @@ function populateRouteDropdowns(routes) {
         const startTime = route["Start Time"] || route.start_time || "";
         const endTime = route["End Time"] || route.end_time || "";
         const timeStr = startTime ? ` (${startTime}–${endTime})` : "";
+        option.dataset.routeDate = friendlyDate || "";
+        option.dataset.routeTime = startTime ? (endTime ? `${startTime}–${endTime}` : startTime) : "";
 
         const cap = route.volunteer_capacity;
         let capStr = "";
@@ -1061,11 +1064,28 @@ function populateRouteDropdowns(routes) {
   });
 }
 
+function escapeCrewHtml(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 async function submitVolunteer(e) {
   e.preventDefault();
   const routeSelect = document.getElementById('routeSelect');
   const selectedOpt = routeSelect.options[routeSelect.selectedIndex];
   const routeId = selectedOpt ? (selectedOpt.dataset.routeId || "") : "";
+  const bookedRouteDate = selectedOpt ? (selectedOpt.dataset.routeDate || "") : "";
+  const bookedRouteTime = selectedOpt ? (selectedOpt.dataset.routeTime || "") : "";
+
+  const successBanner = document.getElementById('signupSuccessBanner');
+  if (successBanner) {
+    successBanner.style.display = 'none';
+    successBanner.innerHTML = '';
+  }
 
   const cleanName = document.getElementById('volName').value.trim();
   const cleanRole = document.getElementById('volRole').value.trim();
@@ -1113,7 +1133,29 @@ async function submitVolunteer(e) {
       alert(data.error || "Unable to register for this route. It may have reached capacity.");
       return;
     }
-    alert("Thanks for signing up! You've been added to the volunteer roster.");
+
+    const emailSent = Boolean(data.confirmation_email_queued);
+    if (successBanner) {
+      const whenBits = [bookedRouteDate, bookedRouteTime].filter(Boolean).join(" • ");
+      successBanner.innerHTML = `
+        <div style="font-weight: 800; color: #4ade80; font-size: 15px; margin-bottom: 6px;">✅ Booking Confirmed!</div>
+        <div style="color: #f3f4f6;">
+          Thank you <strong>${escapeCrewHtml(cleanName)}</strong> — your place on <strong>${escapeCrewHtml(payload.routeName)}</strong>${whenBits ? ` (${escapeCrewHtml(whenBits)})` : ""} as <strong>${escapeCrewHtml(cleanRole)}</strong> is booked.
+        </div>
+        <div style="margin-top: 8px; color: #a7f3d0; font-size: 13px;">
+          ${emailSent
+            ? `📧 Confirmation email sent to <strong>${escapeCrewHtml(cleanEmail)}</strong> with your route &amp; briefing details.`
+            : `📋 You are now listed on the volunteer roster. Check the Crew Hub or ask your coordinator for muster updates.`}
+        </div>
+      `;
+      successBanner.style.display = 'block';
+      successBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    const alertMsg = emailSent
+      ? `Thanks ${cleanName}! Your booking for "${payload.routeName}" is confirmed.\n\nA confirmation email with your route and briefing details has been sent to ${cleanEmail}.`
+      : `Thanks for signing up, ${cleanName}! Your booking for "${payload.routeName}" is confirmed on the volunteer roster.`;
+    alert(alertMsg);
     document.getElementById('signupForm').reset();
     updateRouteCapacityNotice();
   } catch (err) {
