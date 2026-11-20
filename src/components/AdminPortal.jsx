@@ -5187,10 +5187,10 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     textDecoration: 'none',
                     fontWeight: 700
                   }}
-                  title="Open Print Studio for 6-Up, 90×60mm & Custom-Sized Double-Sided Elf Lanyards with Crew List Tiling (Tool 4)"
+                  title="Open Print Studio for Generic Official Volunteer Lanyards (All Routes), SumUp QR codes, 6-Up, 90×60mm & Crew List Tiling (Tool 4)"
                 >
                   <Printer size={16} />
-                  <span>🪪 Print Elf Lanyards</span>
+                  <span>🪪 Print Collector &amp; Elf Lanyards</span>
                 </a>
 
                 <a
@@ -7534,6 +7534,29 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                         <Download size={14} />
                         <span>Export CSV</span>
                       </button>
+
+                      {/* Print Generic / Official Volunteer Lanyards */}
+                      <a
+                        href={buildTownToolUrl(currentTableSlug || session?.tableSlug || 'beverley', '/qr_poster', '?mode=lanyards&template=generic', session)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-secondary"
+                        style={{
+                          padding: '8px 12px',
+                          fontSize: '12px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          borderColor: 'rgba(34, 197, 94, 0.45)',
+                          color: '#86efac',
+                          textDecoration: 'none',
+                          fontWeight: 700
+                        }}
+                        title="Open Print Studio pre-selected for Generic Official Volunteer collector lanyards (SumUp QR & Table Logo)"
+                      >
+                        <Printer size={14} />
+                        <span>🪪 Print Volunteer Lanyards</span>
+                      </a>
                     </div>
                   </div>
 
@@ -8838,7 +8861,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
 
                 <div style={{ minWidth: 0 }}>
                   <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>
-                    Donation URL (Zeffy / Stripe / JustGiving)
+                    Donation URL (Zeffy / SumUp Payment Link / Stripe / JustGiving)
                   </label>
                   <input
                     type="url"

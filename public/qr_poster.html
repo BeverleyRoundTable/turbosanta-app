@@ -176,9 +176,47 @@
 
   /* ── POSTER PREVIEW (screen) ── */
   .poster-preview-wrap {
-    max-width: 800px;
+    max-width: 848px;
     margin: 0 auto;
     padding: 0 24px 80px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-preview-hint {
+    display: none;
+    text-align: center;
+    margin: 0 auto 14px;
+    padding: 8px 12px;
+    max-width: 600px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  @media screen and (max-width: 840px) {
+    .controls-wrapper {
+      padding: 20px 12px 20px;
+    }
+    .controls {
+      padding: 20px 16px 24px;
+    }
+    .controls h1 {
+      font-size: 30px;
+      letter-spacing: 1px;
+    }
+    .control-group {
+      min-width: 100%;
+    }
+    .poster-preview-wrap {
+      padding: 0 12px 60px;
+    }
+    .mobile-preview-hint {
+      display: block;
+    }
   }
 
   /* ── THE POSTER (A4) ── */
@@ -644,7 +682,7 @@
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }
-    .controls-wrapper, .sheet-divider-label { display: none !important; }
+    .controls-wrapper, .sheet-divider-label, .mobile-preview-hint { display: none !important; }
     .poster-preview-wrap {
       padding: 0 !important;
       max-width: none !important;
@@ -767,13 +805,32 @@
   }
 
   .compact-header-left img {
-    width: 14px;
-    height: 14px;
+    width: 19px;
+    height: 19px;
     object-fit: contain;
     background: #fff;
     border-radius: 3px;
     padding: 1px;
     flex-shrink: 0;
+  }
+
+  .compact-info-logo {
+    max-height: 28px;
+    max-width: 96px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    align-self: flex-start;
+    margin-bottom: 1px;
+  }
+
+  .lanyard-front-logo {
+    max-height: 58px;
+    max-width: 150px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
   }
 
   .compact-sleigh-title {
@@ -909,6 +966,7 @@
 </div>
 
 <div class="poster-preview-wrap" id="posterWrap" style="display:none;">
+  <div class="mobile-preview-hint">↔️ Swipe left/right to inspect full A4 layout · Tap Print below for crisp A4 scaling</div>
   <div class="poster" id="poster"></div>
 </div>
 
@@ -924,19 +982,30 @@ const subdomainSlug = (() => {
 })();
 const tableSlug = (subdomainSlug || params.get('table') || 'beverley').toLowerCase();
 const API = params.get('api') || `https://turbosanta-api.beverley247.workers.dev/api/payload?table=${encodeURIComponent(tableSlug)}`;
+const isGenericParam = params.get('template') === 'generic' || params.get('scope') === 'generic';
 
 const STATE = {
+  table: {},
   settings: {},
   routes: [],
   selectedRoute: 0,
+  isGenericLanyard: isGenericParam,
   layoutMode: params.get('mode') || 'poster', // 'poster' | 'buckets' | 'lanyards'
-  qrTargetMode: (params.get('mode') === 'poster' || params.get('qr') === 'tracker') ? 'tracker' : 'donate',
+  qrTargetMode: (params.get('mode') === 'poster' || params.get('qr') === 'tracker') ? 'tracker' : (params.get('qr_url') ? 'sumup_custom' : 'donate'),
   lanyardSides: 'double', // 'double' | 'front' | 'rear'
   lanyardPreset: params.get('size') || '6up', // '6up' | '90x60' | '86x54' | '95x65' | 'custom'
   lanyardWidthMm: Number(params.get('w')) || 90,
   lanyardHeightMm: Number(params.get('h')) || 60,
-  lanyardCrewMode: (params.get('size') && params.get('size') !== '6up') ? 'crew' : 'sheet', // 'crew' | 'sheet'
+  lanyardCrewMode: isGenericParam ? 'sheet' : ((params.get('size') && params.get('size') !== '6up') ? 'crew' : 'sheet'), // 'crew' | 'sheet'
   lanyardShowNames: true,
+  lanyardRoleLabel: params.get('role') || (isGenericParam ? 'OFFICIAL VOLUNTEER' : 'OFFICIAL SLEIGH ELF'),
+  lanyardSheets: 1,
+  genericOrganizerContact: '',
+  genericSubtitle: '',
+  customHeadlineText: '',
+  customQrUrl: params.get('qr_url') || '',
+  customQrImageData: '',
+  customQrFileName: '',
   leadMarshal: '',
   towDriver: '',
   meetingPoint: '',
@@ -993,19 +1062,18 @@ async function init() {
   try {
     const res = await fetch(API);
     const data = await res.json();
+    STATE.table = data.table || {};
     STATE.settings = data.settings || data.table || {};
     if (!STATE.collectionPermit) {
       STATE.collectionPermit = STATE.settings.collection_permit || (data.table && data.table.collection_permit) || '';
+    }
+    if (!STATE.genericOrganizerContact) {
+      STATE.genericOrganizerContact = STATE.settings.admin_email || STATE.table.admin_email || '';
     }
     const rawGa = STATE.settings.enable_gift_aid !== undefined
       ? STATE.settings.enable_gift_aid
       : (data.table && data.table.enable_gift_aid);
     STATE.isGiftAidEnabled = rawGa === true || rawGa === 1 || rawGa === '1' || rawGa === 'true';
-
-    if (!STATE.routes.length && STATE.layoutMode === 'poster') {
-      STATE.layoutMode = 'buckets';
-      STATE.qrTargetMode = 'donate';
-    }
 
     const rawStreets = data.streets || [];
     STATE.routes = (data.routes || []).map(r => {
@@ -1021,6 +1089,16 @@ async function init() {
       };
     });
 
+    if (!STATE.routes.length && STATE.layoutMode === 'poster') {
+      STATE.layoutMode = 'buckets';
+      if (STATE.qrTargetMode === 'tracker') STATE.qrTargetMode = 'donate';
+    }
+    if (!STATE.routes.length && STATE.layoutMode === 'lanyards') {
+      STATE.isGenericLanyard = true;
+      STATE.lanyardCrewMode = 'sheet';
+      if (!params.get('role')) STATE.lanyardRoleLabel = 'OFFICIAL VOLUNTEER';
+    }
+
     try {
       const secret = getAuthSecret(tableSlug);
       const vRes = await fetch(`https://turbosanta-api.beverley247.workers.dev/api/volunteers?table=${encodeURIComponent(tableSlug)}`, {
@@ -1034,11 +1112,6 @@ async function init() {
       }
     } catch(e) {
       console.warn("Could not fetch volunteer roster:", e);
-    }
-
-    if (!STATE.routes.length && STATE.layoutMode === 'poster') {
-      STATE.layoutMode = 'buckets';
-      STATE.qrTargetMode = STATE.isGiftAidEnabled ? 'donate_giftaid' : 'direct_donate';
     }
 
     syncLanyardRouteData();
@@ -1144,22 +1217,157 @@ function getTargetQrUrl() {
   const s = STATE.settings;
   const townPublicUrl = `https://${tableSlug}.roundtablesantasleigh.co.uk`;
   const directDonateUrl = s.donate_url || s.justgiving_url || `${townPublicUrl}/?donate=1`;
+  if (STATE.qrTargetMode === 'sumup_custom') {
+    const custom = String(STATE.customQrUrl || '').trim();
+    return custom || directDonateUrl;
+  }
+  if (STATE.qrTargetMode === 'qr_image') {
+    return STATE.customQrImageData || directDonateUrl;
+  }
   if (STATE.qrTargetMode === 'donate') return directDonateUrl;
   return townPublicUrl;
+}
+
+function renderQrSlot(containerEl, qrUrl, size) {
+  if (!containerEl) return;
+  containerEl.innerHTML = '';
+  if (STATE.qrTargetMode === 'qr_image') {
+    if (STATE.customQrImageData) {
+      const img = document.createElement('img');
+      img.src = STATE.customQrImageData;
+      img.alt = 'Payment QR Code';
+      img.style.width = `${size}px`;
+      img.style.height = `${size}px`;
+      img.style.objectFit = 'contain';
+      img.style.display = 'block';
+      containerEl.appendChild(img);
+    } else {
+      const ph = document.createElement('div');
+      ph.style.cssText = `width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;text-align:center;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:#b45309;background:#fef3c7;border-radius:6px;padding:8px;box-sizing:border-box;`;
+      ph.textContent = 'UPLOAD SUMUP QR IMAGE ABOVE';
+      containerEl.appendChild(ph);
+    }
+    return;
+  }
+  new QRCode(containerEl, {
+    text: qrUrl,
+    width: size,
+    height: size,
+    colorDark: "#0d0d0b",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.H
+  });
 }
 
 function onLayoutChange(mode) {
   STATE.layoutMode = mode;
   if (mode === 'buckets' || mode === 'lanyards') {
-    STATE.qrTargetMode = 'donate';
+    if (STATE.qrTargetMode === 'tracker') STATE.qrTargetMode = 'donate';
   } else if (mode === 'poster') {
-    STATE.qrTargetMode = 'tracker';
+    if (STATE.qrTargetMode === 'donate') STATE.qrTargetMode = 'tracker';
   }
-  if (mode === 'lanyards') {
+  if (mode === 'lanyards' && !STATE.isGenericLanyard) {
     syncLanyardRouteData();
   }
   renderControls();
   generatePoster();
+}
+
+function onLanyardRouteOrScopeChange(val) {
+  if (val === 'generic') {
+    STATE.isGenericLanyard = true;
+    STATE.lanyardCrewMode = 'sheet';
+    if (!STATE.lanyardRoleLabel || STATE.lanyardRoleLabel === 'OFFICIAL SLEIGH ELF') {
+      STATE.lanyardRoleLabel = 'OFFICIAL VOLUNTEER';
+    }
+  } else {
+    STATE.isGenericLanyard = false;
+    STATE.selectedRoute = val;
+    if (STATE.lanyardRoleLabel === 'OFFICIAL VOLUNTEER') {
+      STATE.lanyardRoleLabel = 'OFFICIAL SLEIGH ELF';
+    }
+    syncLanyardRouteData(val);
+  }
+  renderControls();
+  generatePoster();
+}
+
+function onQrTargetModeChange(val) {
+  STATE.qrTargetMode = val;
+  renderControls();
+  generatePoster();
+}
+
+function onCustomQrImageSelected(inputEl) {
+  const file = inputEl && inputEl.files && inputEl.files[0];
+  if (!file) return;
+  if (!file.type || !file.type.startsWith('image/')) {
+    alert('Please choose a valid PNG, JPG, or SVG QR code image file.');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    STATE.customQrImageData = typeof reader.result === 'string' ? reader.result : '';
+    STATE.customQrFileName = file.name || 'custom-qr.png';
+    renderControls();
+    generatePoster();
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderQrTargetControlsHtml() {
+  const s = STATE.settings || {};
+  const hasSavedDonateUrl = Boolean(s.donate_url || s.justgiving_url);
+  const donateOptionLabel = STATE.isGiftAidEnabled
+    ? '💛 Direct Online Donation (+ 25% Gift Aid Boost)'
+    : (hasSavedDonateUrl
+        ? '💳 Table Online Donate Link (Card / Apple Pay / Zeffy / JustGiving)'
+        : '💳 Table Online Donate Flow (Card / Apple Pay)');
+
+  const extraRow = STATE.qrTargetMode === 'sumup_custom'
+    ? `
+      <div class="control-row">
+        <div class="control-group">
+          <label>SumUp Payment Link or Custom QR Destination URL</label>
+          <input type="url" id="customQrUrlInput" value="${escHtml(STATE.customQrUrl || '')}"
+            placeholder="https://pay.sumup.com/b2c/... or https://sumup.me/..."
+            oninput="STATE.customQrUrl=this.value; generatePoster()">
+          <div style="font-size:11px; color:var(--text-dim); margin-top:6px; line-height:1.45;">
+            Paste your SumUp Payment Link from <strong>me.sumup.com</strong> (or any checkout URL) to generate a live QR code on every badge.
+            ${!String(STATE.customQrUrl || '').trim() ? '<br><span style="color:var(--gold);">Showing default table donate URL until you enter your SumUp link above.</span>' : ''}
+          </div>
+        </div>
+      </div>
+    `
+    : (STATE.qrTargetMode === 'qr_image'
+        ? `
+          <div class="control-row">
+            <div class="control-group">
+              <label>Upload Exported SumUp / Payment QR Image (PNG, JPG, SVG)</label>
+              <input type="file" id="customQrImageInput" accept="image/*" onchange="onCustomQrImageSelected(this)" style="padding:10px 12px;">
+              <div style="font-size:11px; color:var(--text-dim); margin-top:6px; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+                <span>${STATE.customQrImageData ? `✅ Loaded QR image: <strong>${escHtml(STATE.customQrFileName || 'QR image')}</strong>` : 'Upload the QR image downloaded from SumUp Dashboard (me.sumup.com) — stays local in your browser.'}</span>
+                ${STATE.customQrImageData ? `<button type="button" onclick="STATE.customQrImageData=''; STATE.customQrFileName=''; renderControls(); generatePoster()" style="background:none;border:1px solid var(--border);color:#fca5a5;padding:3px 8px;border-radius:5px;font-size:11px;cursor:pointer;">Clear Image</button>` : ''}
+              </div>
+            </div>
+          </div>
+        `
+        : '');
+
+  return {
+    selectGroupHtml: `
+      <div class="control-group">
+        <label>QR Code Destination</label>
+        <select id="qrTargetSelect" onchange="onQrTargetModeChange(this.value)">
+          <option value="donate" ${STATE.qrTargetMode === 'donate' ? 'selected' : ''}>${donateOptionLabel}</option>
+          <option value="sumup_custom" ${STATE.qrTargetMode === 'sumup_custom' ? 'selected' : ''}>💳 SumUp Payment Link / Custom QR URL</option>
+          <option value="qr_image" ${STATE.qrTargetMode === 'qr_image' ? 'selected' : ''}>🖼️ Upload Existing QR Image (SumUp PNG / Bank QR)</option>
+          <option value="tracker" ${STATE.qrTargetMode === 'tracker' ? 'selected' : ''}>📍 Live Sleigh Map & Public Site (${escHtml(tableSlug)}.roundtablesantasleigh.co.uk)</option>
+        </select>
+      </div>
+    `,
+    extraRowHtml: extraRow
+  };
 }
 
 function escHtml(val) {
@@ -1236,11 +1444,21 @@ function onLanyardPresetChange(preset) {
   if (preset === '90x60') { STATE.lanyardWidthMm = 90; STATE.lanyardHeightMm = 60; }
   else if (preset === '86x54') { STATE.lanyardWidthMm = 86; STATE.lanyardHeightMm = 54; }
   else if (preset === '95x65') { STATE.lanyardWidthMm = 95; STATE.lanyardHeightMm = 65; }
-  if (preset !== '6up') {
+  if (preset !== '6up' && !STATE.isGenericLanyard) {
     STATE.lanyardCrewMode = 'crew';
+  } else if (STATE.isGenericLanyard) {
+    STATE.lanyardCrewMode = 'sheet';
   }
   renderControls();
   generatePoster();
+}
+
+function getEffectiveLanyardCount(sizeCfg, nightCrew) {
+  if (!STATE.isGenericLanyard && STATE.lanyardCrewMode === 'crew' && nightCrew.length > 0) {
+    return nightCrew.length;
+  }
+  const sheets = Math.max(1, Math.min(10, Number(STATE.lanyardSheets) || 1));
+  return sizeCfg.perPage * sheets;
 }
 
 function onLanyardCustomDimensionInput() {
@@ -1252,8 +1470,8 @@ function onLanyardCustomDimensionInput() {
   const labelEl = document.getElementById('lanyardSizeLabel');
   if (labelEl) labelEl.textContent = `Lanyard Card Size (${sizeCfg.cols}×${sizeCfg.rows} = ${sizeCfg.perPage}/page)`;
   const activeRoute = STATE.routes[Number(STATE.selectedRoute || 0)] || {};
-  const nightCrew = getNightCrewForRoute(activeRoute);
-  const totalCards = (STATE.lanyardCrewMode === 'crew' && nightCrew.length > 0) ? nightCrew.length : sizeCfg.perPage;
+  const nightCrew = STATE.isGenericLanyard ? [] : getNightCrewForRoute(activeRoute);
+  const totalCards = getEffectiveLanyardCount(sizeCfg, nightCrew);
   const sheetPages = Math.max(1, Math.ceil(totalCards / sizeCfg.perPage));
   const totalPrintPages = STATE.lanyardSides === 'double' ? sheetPages * 2 : sheetPages;
   const btnEl = document.getElementById('printLanyardsBtn');
@@ -1262,38 +1480,51 @@ function onLanyardCustomDimensionInput() {
 }
 
 function renderControls() {
-  const options = STATE.routes.length
+  const routeOptions = STATE.routes.length
+    ? STATE.routes.map((r, i) => `<option value="${i}" ${!STATE.isGenericLanyard && Number(STATE.selectedRoute) === i ? 'selected' : ''}>${escHtml(r.routeName || 'Route')} — ${formatDateLong(r.date)}</option>`).join('')
+    : '';
+  const posterOptions = STATE.routes.length
     ? STATE.routes.map((r, i) => `<option value="${i}" ${Number(STATE.selectedRoute) === i ? 'selected' : ''}>${escHtml(r.routeName || 'Route')} — ${formatDateLong(r.date)}</option>`).join('')
     : `<option value="0">General Sleigh Campaign</option>`;
 
   const isPoster = STATE.layoutMode === 'poster';
   const isLanyards = STATE.layoutMode === 'lanyards';
+  const qrControls = renderQrTargetControlsHtml();
 
   if (isLanyards) {
     const sizeCfg = getLanyardSizeConfig();
+    const isGeneric = Boolean(STATE.isGenericLanyard);
     const activeRoute = STATE.routes[Number(STATE.selectedRoute || 0)] || {};
-    const nightCrew = getNightCrewForRoute(activeRoute);
-    const totalCards = (STATE.lanyardCrewMode === 'crew' && nightCrew.length > 0) ? nightCrew.length : sizeCfg.perPage;
+    const nightCrew = isGeneric ? [] : getNightCrewForRoute(activeRoute);
+    const totalCards = getEffectiveLanyardCount(sizeCfg, nightCrew);
     const sheetPages = Math.max(1, Math.ceil(totalCards / sizeCfg.perPage));
     const totalPrintPages = STATE.lanyardSides === 'double' ? sheetPages * 2 : sheetPages;
+    const sheetsVal = Math.max(1, Math.min(10, Number(STATE.lanyardSheets) || 1));
 
     document.getElementById('controlsInner').innerHTML = `
       <div class="control-row">
         <div class="control-group">
           <label>Print Format</label>
           <select id="layoutSelect" onchange="onLayoutChange(this.value)">
-            <option value="lanyards" selected>🪪 Walking Elf Lanyard Badges (A4 Sheet)</option>
+            <option value="lanyards" selected>🪪 Collector &amp; Elf Lanyard Badges (A4 Sheet)</option>
             <option value="poster">📌 1-Up A4 Street Route Poster</option>
             <option value="buckets">🪣 4-Up Collector Bucket Stickers (A4 Sheet)</option>
           </select>
         </div>
         <div class="control-group">
-          <label>Select Route For Lanyard</label>
-          <select id="routeSelect" onchange="STATE.selectedRoute=this.value; syncLanyardRouteData(this.value); renderControls(); generatePoster()">
-            ${options}
+          <label>Lanyard Scope / Route</label>
+          <select id="routeSelect" onchange="onLanyardRouteOrScopeChange(this.value)">
+            <option value="generic" ${isGeneric ? 'selected' : ''}>🌐 Generic Official Volunteer (All Routes · Non-Route-Specific)</option>
+            ${routeOptions}
           </select>
         </div>
       </div>
+
+      ${isGeneric ? `
+      <div style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 8px; padding: 10px 14px; margin-bottom: 18px; font-size: 12.5px; color: #d1fae5; line-height: 1.45;">
+        <strong>🌐 Generic Collector / Official Volunteer Mode:</strong> Excludes specific route names, dates, muster times, and crew rosters so badges work across your whole season.
+      </div>
+      ` : ''}
 
       <div class="control-row">
         <div class="control-group">
@@ -1306,13 +1537,22 @@ function renderControls() {
             <option value="custom" ${sizeCfg.preset === 'custom' ? 'selected' : ''}>📐 Custom Size (mm Width × Height)</option>
           </select>
         </div>
+        ${isGeneric ? `
+        <div class="control-group">
+          <label>Generic Badge Quantity</label>
+          <select id="lanyardSheetsSelect" onchange="STATE.lanyardSheets=Number(this.value)||1; renderControls(); generatePoster()">
+            ${[1, 2, 3, 4, 5, 6].map(n => `<option value="${n}" ${sheetsVal === n ? 'selected' : ''}>📄 ${n} Sheet${n > 1 ? 's' : ''} (${n * sizeCfg.perPage} generic badges)</option>`).join('')}
+          </select>
+        </div>
+        ` : `
         <div class="control-group">
           <label>Crew List Tiling (${nightCrew.length} crew found for night)</label>
           <select id="lanyardCrewModeSelect" onchange="STATE.lanyardCrewMode=this.value; renderControls(); generatePoster()">
             <option value="crew" ${STATE.lanyardCrewMode === 'crew' ? 'selected' : ''}>👥 Tile Tonight's Crew List (${nightCrew.length > 0 ? `${nightCrew.length} badges` : `fallback ${sizeCfg.perPage} generic`})</option>
-            <option value="sheet" ${STATE.lanyardCrewMode === 'sheet' ? 'selected' : ''}>📄 Fill 1 Full Sheet (${sizeCfg.perPage} generic badges)</option>
+            <option value="sheet" ${STATE.lanyardCrewMode === 'sheet' ? 'selected' : ''}>📄 Fill ${sheetsVal} Sheet${sheetsVal > 1 ? 's' : ''} (${sheetsVal * sizeCfg.perPage} unassigned badges)</option>
           </select>
         </div>
+        `}
       </div>
 
       ${sizeCfg.preset === 'custom' ? `
@@ -1332,24 +1572,46 @@ function renderControls() {
         <div class="control-group">
           <label>Lanyard Print Sides</label>
           <select id="lanyardSidesSelect" onchange="STATE.lanyardSides=this.value; renderControls(); generatePoster()">
-            <option value="double" ${STATE.lanyardSides === 'double' ? 'selected' : ''}>📄 Double-Sided (Front QR + Rear Route Contacts & Safety)</option>
-            <option value="front" ${STATE.lanyardSides === 'front' ? 'selected' : ''}>Front QR Code Only (Single-Sided)</option>
-            <option value="rear" ${STATE.lanyardSides === 'rear' ? 'selected' : ''}>Rear Route Brief & Contacts Only (Single-Sided)</option>
+            <option value="double" ${STATE.lanyardSides === 'double' ? 'selected' : ''}>${isGeneric ? '📄 Double-Sided (Front QR + Rear Safety & Permit)' : '📄 Double-Sided (Front QR + Rear Route Contacts & Safety)'}</option>
+            <option value="front" ${STATE.lanyardSides === 'front' ? 'selected' : ''}>Front QR Code &amp; Logo Only (Single-Sided)</option>
+            <option value="rear" ${STATE.lanyardSides === 'rear' ? 'selected' : ''}>${isGeneric ? 'Rear Volunteer Safety & Permit Only' : 'Rear Route Brief & Contacts Only'}</option>
           </select>
         </div>
+        ${qrControls.selectGroupHtml}
+      </div>
+
+      ${qrControls.extraRowHtml}
+
+      ${isGeneric ? `
+      <div class="control-row">
         <div class="control-group">
-          <label>Front QR Destination</label>
-          <select id="qrTargetSelect" onchange="STATE.qrTargetMode=this.value; generatePoster()">
-            <option value="donate" ${STATE.qrTargetMode === 'donate' ? 'selected' : ''}>
-              ${STATE.isGiftAidEnabled ? '💛 Direct Online Donation (+ 25% Gift Aid Boost)' : '💳 Direct Online Donation (Card / Apple Pay / Zeffy / JustGiving)'}
-            </option>
-            <option value="tracker" ${STATE.qrTargetMode === 'tracker' ? 'selected' : ''}>
-              📍 Live Sleigh Map & Public Site (${tableSlug}.roundtablesantasleigh.co.uk)
-            </option>
-          </select>
+          <label>Volunteer Badge Role Pill</label>
+          <input type="text" id="lanyardRoleInput" value="${escHtml(STATE.lanyardRoleLabel || 'OFFICIAL VOLUNTEER')}" placeholder="OFFICIAL VOLUNTEER" oninput="STATE.lanyardRoleLabel=this.value; generatePoster()">
+        </div>
+        <div class="control-group">
+          <label>Organiser Duty Contact (Rear Pass · Optional)</label>
+          <input type="text" id="genericContactInput" value="${escHtml(STATE.genericOrganizerContact || '')}" placeholder="e.g. Coordinator phone or lichfield@roundtable.org.uk" oninput="STATE.genericOrganizerContact=this.value; generatePoster()">
         </div>
       </div>
 
+      <div class="control-row">
+        <div class="control-group">
+          <label>Front Custom Call-to-Action</label>
+          <input type="text" id="customHeadline" value="${escHtml(STATE.customHeadlineText || '')}" placeholder="SCAN TO DONATE" oninput="STATE.customHeadlineText=this.value; generatePoster()">
+        </div>
+        <div class="control-group">
+          <label>Generic Collector Subtitle (Optional)</label>
+          <input type="text" id="genericSubtitleInput" value="${escHtml(STATE.genericSubtitle || '')}" placeholder="Official Street Collector &amp; Charity Volunteer" oninput="STATE.genericSubtitle=this.value; generatePoster()">
+        </div>
+      </div>
+
+      <div class="control-row">
+        <div class="control-group">
+          <label>Council Collection Permit / Licence No. (Printed on Badges)</label>
+          <input type="text" id="lanyardPermit" value="${escHtml(STATE.collectionPermit || '')}" placeholder="e.g. CP/2026/049 or Borough Lic. #1234" oninput="STATE.collectionPermit=this.value; generatePoster()">
+        </div>
+      </div>
+      ` : `
       ${STATE.lanyardCrewMode === 'crew' ? `
       <div class="control-row" style="margin-bottom:14px;">
         <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; color:var(--text); font-weight:600;">
@@ -1387,17 +1649,18 @@ function renderControls() {
       <div class="control-row">
         <div class="control-group">
           <label>Front Custom Call-to-Action</label>
-          <input type="text" id="customHeadline" placeholder="SCAN TO DONATE" oninput="generatePoster()">
+          <input type="text" id="customHeadline" value="${escHtml(STATE.customHeadlineText || '')}" placeholder="SCAN TO DONATE" oninput="STATE.customHeadlineText=this.value; generatePoster()">
         </div>
         <div class="control-group">
           <label>Council Collection Permit / Licence No. (Printed on Badges)</label>
           <input type="text" id="lanyardPermit" value="${escHtml(STATE.collectionPermit || '')}" placeholder="e.g. CP/2026/049 or Borough Lic. #1234" oninput="STATE.collectionPermit=this.value; generatePoster()">
         </div>
       </div>
+      `}
 
       <div class="btn-row">
         <button id="printLanyardsBtn" class="btn btn-gold" onclick="window.print()">🖨️ Print Lanyards (${totalPrintPages} ${totalPrintPages === 1 ? 'Page' : 'Pages'} · ${sizeCfg.widthMm}×${sizeCfg.heightMm}mm)</button>
-        ${STATE.routes.length > 1 ? `<button class="btn btn-ghost" onclick="printAllLanyards()">🖨️ Print All ${STATE.routes.length} Route Lanyards</button>` : ''}
+        ${!isGeneric && STATE.routes.length > 1 ? `<button class="btn btn-ghost" onclick="printAllLanyards()">🖨️ Print All ${STATE.routes.length} Route Lanyards</button>` : ''}
       </div>
     `;
     return;
@@ -1410,49 +1673,40 @@ function renderControls() {
         <select id="layoutSelect" onchange="onLayoutChange(this.value)">
           <option value="poster" ${STATE.layoutMode === 'poster' ? 'selected' : ''}>📌 1-Up A4 Street Route Poster</option>
           <option value="buckets" ${STATE.layoutMode === 'buckets' ? 'selected' : ''}>🪣 4-Up Collector Bucket Stickers (A4 Sheet)</option>
-          <option value="lanyards" ${STATE.layoutMode === 'lanyards' ? 'selected' : ''}>🪪 Walking Elf Lanyard Badges (6-Up / 90×60mm / Custom)</option>
+          <option value="lanyards" ${STATE.layoutMode === 'lanyards' ? 'selected' : ''}>🪪 Collector &amp; Elf Lanyard Badges (6-Up / 90×60mm / Generic)</option>
         </select>
       </div>
-      <div class="control-group">
-        <label>QR Code Destination</label>
-        <select id="qrTargetSelect" onchange="STATE.qrTargetMode=this.value; generatePoster()">
-          <option value="donate" ${STATE.qrTargetMode === 'donate' ? 'selected' : ''}>
-            ${STATE.isGiftAidEnabled ? '💛 Direct Online Donation (+ 25% Gift Aid Boost)' : '💳 Direct Online Donation (Card / Apple Pay / Zeffy / JustGiving)'}
-          </option>
-          <option value="tracker" ${STATE.qrTargetMode === 'tracker' ? 'selected' : ''}>
-            📍 Live Sleigh Map & Public Site (${tableSlug}.roundtablesantasleigh.co.uk)
-          </option>
-        </select>
-      </div>
+      ${qrControls.selectGroupHtml}
     </div>
+    ${qrControls.extraRowHtml}
     ${isPoster ? `
     <div class="control-row">
       <div class="control-group">
         <label>Select Route</label>
         <select id="routeSelect" onchange="STATE.selectedRoute=this.value; generatePoster()">
-          ${options}
+          ${posterOptions}
         </select>
       </div>
       <div class="control-group">
         <label>Custom Headline</label>
-        <input type="text" id="customHeadline" placeholder="SANTA'S COMING TO YOUR STREET!" oninput="generatePoster()">
+        <input type="text" id="customHeadline" value="${escHtml(STATE.customHeadlineText || '')}" placeholder="SANTA'S COMING TO YOUR STREET!" oninput="STATE.customHeadlineText=this.value; generatePoster()">
       </div>
     </div>
     <div class="control-row">
       <div class="control-group">
         <label>Council Collection Permit / Licence No. (Printed in Footer)</label>
-        <input type="text" id="lanyardPermit" value="${STATE.collectionPermit || ''}" placeholder="e.g. CP/2026/049 or Borough Lic. #1234" oninput="STATE.collectionPermit=this.value; generatePoster()">
+        <input type="text" id="lanyardPermit" value="${escHtml(STATE.collectionPermit || '')}" placeholder="e.g. CP/2026/049 or Borough Lic. #1234" oninput="STATE.collectionPermit=this.value; generatePoster()">
       </div>
     </div>
     ` : `
     <div class="control-row">
       <div class="control-group">
         <label>Custom Call-to-Action</label>
-        <input type="text" id="customHeadline" placeholder="${STATE.layoutMode === 'buckets' ? 'NO CASH? SCAN TO DONATE!' : 'SCAN TO DONATE OR TRACK'}" oninput="generatePoster()">
+        <input type="text" id="customHeadline" value="${escHtml(STATE.customHeadlineText || '')}" placeholder="${STATE.layoutMode === 'buckets' ? 'NO CASH? SCAN TO DONATE!' : 'SCAN TO DONATE OR TRACK'}" oninput="STATE.customHeadlineText=this.value; generatePoster()">
       </div>
       <div class="control-group">
         <label>Council Collection Permit / Licence No. (Printed on Bucket Stickers)</label>
-        <input type="text" id="lanyardPermit" value="${STATE.collectionPermit || ''}" placeholder="e.g. CP/2026/049 or Borough Lic. #1234" oninput="STATE.collectionPermit=this.value; generatePoster()">
+        <input type="text" id="lanyardPermit" value="${escHtml(STATE.collectionPermit || '')}" placeholder="e.g. CP/2026/049 or Borough Lic. #1234" oninput="STATE.collectionPermit=this.value; generatePoster()">
       </div>
     </div>
     `}
@@ -1466,7 +1720,7 @@ function renderControls() {
 function generatePoster(idx) {
   const s = STATE.settings;
   const qrUrl = getTargetQrUrl();
-  const logoUrl = s.logo_overlay_url || s.logo_url || '';
+  const logoUrl = s.logo_overlay_url || s.logo_url || (STATE.table && (STATE.table.logo_overlay_url || STATE.table.logo_url)) || '';
   const sleighName = s.sleigh_display_name || s.name || 'Santa Sleigh';
   const permit = (STATE.collectionPermit || '').trim();
   const charityNum = (s.charity_number || (STATE.table && STATE.table.charity_number) || '').trim();
@@ -1474,21 +1728,23 @@ function generatePoster(idx) {
   document.getElementById('posterWrap').style.display = 'block';
 
   if (STATE.layoutMode === 'buckets') {
-    const headline = document.getElementById('customHeadline')?.value || 'NO CASH? SCAN TO DONATE!';
+    const headline = (document.getElementById('customHeadline')?.value || STATE.customHeadlineText || 'NO CASH? SCAN TO DONATE!').trim();
     posterEl.className = 'sheet-grid-4';
-    const gaNotice = STATE.isGiftAidEnabled
-      ? '<div class="bucket-giftaid">✨ UK Taxpayer? Boost your donation by +25% with Gift Aid for FREE!</div>'
-      : '<div class="bucket-giftaid" style="background:#f0fdf4; border:1px solid #86efac; color:#166534;">✨ 100% of your donation directly supports local charities and community causes!</div>';
+    const gaNotice = STATE.qrTargetMode === 'sumup_custom' || STATE.qrTargetMode === 'qr_image'
+      ? '<div class="bucket-giftaid" style="background:#f0fdf4; border:1px solid #86efac; color:#166534;">💳 Fast Card, Apple Pay &amp; Google Pay &middot; 100% supports local causes!</div>'
+      : (STATE.isGiftAidEnabled
+          ? '<div class="bucket-giftaid">✨ UK Taxpayer? Boost your donation by +25% with Gift Aid for FREE!</div>'
+          : '<div class="bucket-giftaid" style="background:#f0fdf4; border:1px solid #86efac; color:#166534;">✨ 100% of your donation directly supports local charities and community causes!</div>');
     let cardsHtml = '';
     for (let i = 0; i < 4; i++) {
       cardsHtml += `
         <div class="bucket-sticker">
           <div class="bucket-sticker-top">
-            ${logoUrl ? `<img src="${logoUrl}">` : '<span style="font-size:22px;">🎅</span>'}
-            <div class="bs-title">${sleighName}<br><span style="color:#fff;font-size:10px;opacity:0.8;">OFFICIAL COLLECTION BUCKET</span></div>
+            ${logoUrl ? `<img src="${escHtml(logoUrl)}" alt="${escHtml(sleighName)}">` : '<span style="font-size:22px;">🎅</span>'}
+            <div class="bs-title">${escHtml(sleighName)}<br><span style="color:#fff;font-size:10px;opacity:0.8;">OFFICIAL COLLECTION BUCKET</span></div>
           </div>
           <div>
-            <div class="bucket-headline">${headline}</div>
+            <div class="bucket-headline">${escHtml(headline)}</div>
             <div class="bucket-sub" style="margin-top:4px;">Every Penny Supports Local Causes</div>
           </div>
           <div class="bucket-qr-box" id="qrBucket_${i}"></div>
@@ -1499,36 +1755,33 @@ function generatePoster(idx) {
             <span class="bucket-pill">🍎 Apple / Google Pay</span>
           </div>
           ${gaNotice}
-          ${permit ? `<div style="font-family:'DM Mono',monospace; font-size:9px; font-weight:800; color:#111827; margin-top:5px; text-transform:uppercase; letter-spacing:0.5px; background:#f3f4f6; padding:3px 8px; border-radius:4px; border:1px solid #e5e7eb;">Council Collection Permit: <strong style="color:#b91c1c;">${permit}</strong>${charityNum ? ` &bull; Reg. Charity ${charityNum}` : ''}</div>` : (charityNum ? `<div style="font-family:'DM Mono',monospace; font-size:8.5px; font-weight:700; color:#4b5563; margin-top:4px;">Registered Charity No. ${charityNum}</div>` : '')}
+          ${permit ? `<div style="font-family:'DM Mono',monospace; font-size:9px; font-weight:800; color:#111827; margin-top:5px; text-transform:uppercase; letter-spacing:0.5px; background:#f3f4f6; padding:3px 8px; border-radius:4px; border:1px solid #e5e7eb;">Council Collection Permit: <strong style="color:#b91c1c;">${escHtml(permit)}</strong>${charityNum ? ` &bull; Reg. Charity ${escHtml(charityNum)}` : ''}</div>` : (charityNum ? `<div style="font-family:'DM Mono',monospace; font-size:8.5px; font-weight:700; color:#4b5563; margin-top:4px;">Registered Charity No. ${escHtml(charityNum)}</div>` : '')}
         </div>
       `;
     }
     posterEl.innerHTML = cardsHtml;
     for (let i = 0; i < 4; i++) {
-      new QRCode(document.getElementById(`qrBucket_${i}`), {
-        text: qrUrl,
-        width: 170,
-        height: 170,
-        colorDark: "#0d0d0b",
-        colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.H
-      });
+      renderQrSlot(document.getElementById(`qrBucket_${i}`), qrUrl, 170);
     }
     return;
   }
 
   if (STATE.layoutMode === 'lanyards') {
-    const headline = document.getElementById('customHeadline')?.value || 'SCAN TO DONATE';
-    const route = STATE.routes[idx !== undefined ? idx : STATE.selectedRoute] || {
-      routeName: sleighName,
-      date: '',
-      streets: ''
-    };
+    const headline = (document.getElementById('customHeadline')?.value || STATE.customHeadlineText || 'SCAN TO DONATE').trim();
+    const isGeneric = Boolean(STATE.isGenericLanyard);
+    const route = isGeneric
+      ? { routeName: sleighName, date: '', streets: '' }
+      : (STATE.routes[idx !== undefined ? idx : STATE.selectedRoute] || {
+          routeName: sleighName,
+          date: '',
+          streets: ''
+        });
     const sizeCfg = getLanyardSizeConfig();
     const sides = STATE.lanyardSides || 'double';
     const built = buildRouteLanyardPages({
       route,
-      rIdx: idx !== undefined ? idx : Number(STATE.selectedRoute || 0),
+      rIdx: isGeneric ? 'gen' : (idx !== undefined ? idx : Number(STATE.selectedRoute || 0)),
+      isGeneric,
       sizeCfg,
       headline,
       sleighName,
@@ -1547,14 +1800,7 @@ function generatePoster(idx) {
     for (const qTask of built.qrTasks) {
       const qrEl = document.getElementById(qTask.id);
       if (qrEl) {
-        new QRCode(qrEl, {
-          text: qrUrl,
-          width: qTask.size,
-          height: qTask.size,
-          colorDark: "#0d0d0b",
-          colorLight: "#ffffff",
-          correctLevel: QRCode.CorrectLevel.H
-        });
+        renderQrSlot(qrEl, qrUrl, qTask.size);
       }
     }
     return;
@@ -1567,31 +1813,33 @@ function generatePoster(idx) {
     date: '',
     streets: 'Live GPS Tracking & Online Donations'
   };
-  const headline = document.getElementById('customHeadline')?.value || "SANTA'S COMING TO YOUR STREET!";
-  const streets = (route.streets || '').split(',').map(s => s.trim()).filter(Boolean);
-  const streetsHtml = streets.join('<span class="separator">·</span>');
+  const headline = (document.getElementById('customHeadline')?.value || STATE.customHeadlineText || "SANTA'S COMING TO YOUR STREET!").trim();
+  const streets = (route.streets || '').split(',').map(str => str.trim()).filter(Boolean);
+  const streetsHtml = streets.map(str => escHtml(str)).join('<span class="separator">·</span>');
   const startTime = route["Start Time"] || "";
   const endTime = route["End Time"] || "";
-  const timeHtml = startTime ? `<div class="day-name" style="margin-top:8px;">${startTime} – ${endTime}</div>` : "";
+  const timeHtml = startTime ? `<div class="day-name" style="margin-top:8px;">${escHtml(startTime)} – ${escHtml(endTime)}</div>` : "";
   const scanTitle = STATE.qrTargetMode === 'tracker' ? 'SCAN TO TRACK SANTA LIVE' : 'SCAN TO DONATE TO SANTA';
   const scanSub = STATE.qrTargetMode === 'tracker'
     ? 'Follow the sleigh on the map & get doorstep alerts'
-    : (STATE.isGiftAidEnabled
-        ? 'Fast Apple Pay / Card Checkout + 25% Gift Aid Boost'
-        : 'Fast Apple Pay / Card Checkout · 100% to Local Causes');
+    : (STATE.qrTargetMode === 'sumup_custom' || STATE.qrTargetMode === 'qr_image'
+        ? 'Fast Card / Apple Pay / Google Pay · 100% to Local Causes'
+        : (STATE.isGiftAidEnabled
+            ? 'Fast Apple Pay / Card Checkout + 25% Gift Aid Boost'
+            : 'Fast Apple Pay / Card Checkout · 100% to Local Causes'));
 
-  let h = `
+  const h = `
     <div class="poster-accent-top"></div>
     <div class="poster-content">
-      ${logoUrl ? `<img class="poster-logo" src="${logoUrl}">` : ''}
-      <div class="poster-sleigh-name">${sleighName}</div>
-      <div class="poster-headline">${headline}</div>
-      <div class="poster-subline">${route.routeName || ''}</div>
+      ${logoUrl ? `<img class="poster-logo" src="${escHtml(logoUrl)}" alt="${escHtml(sleighName)}">` : ''}
+      <div class="poster-sleigh-name">${escHtml(sleighName)}</div>
+      <div class="poster-headline">${escHtml(headline)}</div>
+      <div class="poster-subline">${escHtml(route.routeName || '')}</div>
       
       ${route.date ? `
       <div class="poster-date-block">
-        <div class="day-name">${getDayName(route.date)}</div>
-        <div class="date-main">${formatDateLong(route.date)}</div>
+        <div class="day-name">${escHtml(getDayName(route.date))}</div>
+        <div class="date-main">${escHtml(formatDateLong(route.date))}</div>
         ${timeHtml}
       </div>` : ''}
 
@@ -1605,26 +1853,19 @@ function generatePoster(idx) {
       </div>
     </div>
     <div class="poster-footer">
-      ${logoUrl ? `<img src="${logoUrl}">` : ''}
-      <span class="footer-text">${sleighName} · <span>TurboSanta</span>${permit ? ` · <span>Permit: ${permit}</span>` : ''}${charityNum ? ` · <span>Charity No. ${charityNum}</span>` : ''}</span>
+      ${logoUrl ? `<img src="${escHtml(logoUrl)}" alt="${escHtml(sleighName)}">` : ''}
+      <span class="footer-text">${escHtml(sleighName)} · <span>TurboSanta</span>${permit ? ` · <span>Permit: ${escHtml(permit)}</span>` : ''}${charityNum ? ` · <span>Charity No. ${escHtml(charityNum)}</span>` : ''}</span>
     </div>
   `;
 
   posterEl.innerHTML = h;
-
-  new QRCode(document.getElementById('qrTarget'), {
-    text: qrUrl,
-    width: 170,
-    height: 170,
-    colorDark: "#0d0d0b",
-    colorLight: "#ffffff",
-    correctLevel: QRCode.CorrectLevel.H
-  });
+  renderQrSlot(document.getElementById('qrTarget'), qrUrl, 170);
 }
 
 function buildRouteLanyardPages({
   route,
   rIdx,
+  isGeneric = false,
   sizeCfg,
   headline,
   sleighName,
@@ -1647,23 +1888,24 @@ function buildRouteLanyardPages({
   const driverText = STATE.towDriver || '____________________';
   const trackerHost = `${tableSlug}.roundtablesantasleigh.co.uk`;
 
-  const nightCrew = getNightCrewForRoute(route);
-  const useCrew = STATE.lanyardCrewMode === 'crew' && nightCrew.length > 0;
+  const nightCrew = isGeneric ? [] : getNightCrewForRoute(route);
+  const useCrew = !isGeneric && STATE.lanyardCrewMode === 'crew' && nightCrew.length > 0;
+  const totalSheetCards = sizeCfg.perPage * Math.max(1, Math.min(10, Number(STATE.lanyardSheets) || 1));
   const items = useCrew
     ? nightCrew.map(v => ({ name: v.name || '', role: v.role || 'Volunteer' }))
-    : Array.from({ length: sizeCfg.perPage }, () => ({ name: '', role: '' }));
+    : Array.from({ length: totalSheetCards }, () => ({ name: '', role: '' }));
 
   const showVolunteerBadge = useCrew && STATE.lanyardShowNames !== false;
   const isCompact = !sizeCfg.isClassic6Up && (sizeCfg.widthMm > sizeCfg.heightMm || sizeCfg.heightMm < 95);
   const qrSize = sizeCfg.isClassic6Up
-    ? 132
+    ? 124
     : (isCompact
         ? Math.max(60, Math.min(118, Math.round((sizeCfg.heightMm - 24) * 2.9)))
-        : Math.max(76, Math.min(132, Math.round(Math.min(sizeCfg.widthMm, sizeCfg.heightMm) * 1.75))));
+        : Math.max(76, Math.min(126, Math.round(Math.min(sizeCfg.widthMm, sizeCfg.heightMm) * 1.72))));
 
-  const sameNightRoutes = (STATE.routes || []).filter(rOther =>
-    rOther.date && route.date && rOther.date === route.date
-  );
+  const sameNightRoutes = (!isGeneric && route.date)
+    ? (STATE.routes || []).filter(rOther => rOther.date && rOther.date === route.date)
+    : [];
 
   let multiRouteHtml = '';
   if (sameNightRoutes.length > 1) {
@@ -1693,16 +1935,32 @@ function buildRouteLanyardPages({
     `;
   }
 
-  const gaBadge = STATE.isGiftAidEnabled
-    ? '<div style="font-size:11px;font-weight:800;color:#b45309;">+25% GIFT AID BOOST AVAILABLE</div>'
-    : '<div style="font-size:11px;font-weight:800;color:#15803d;">SUPPORTING LOCAL COMMUNITY CAUSES</div>';
+  const isDirectCardQr = STATE.qrTargetMode === 'sumup_custom' || STATE.qrTargetMode === 'qr_image';
+  const genericSubtext = String(STATE.genericSubtitle || '').trim() || 'Official Street Collector & Charity Volunteer';
+  const genericContactText = String(STATE.genericOrganizerContact || '').trim();
+  const customRoleClean = String(STATE.lanyardRoleLabel || '').trim() || (isGeneric ? 'OFFICIAL VOLUNTEER' : 'OFFICIAL SLEIGH ELF');
+
+  const gaBadge = isDirectCardQr
+    ? '<div style="font-size:10px;font-weight:800;color:#0f766e;">CARD &middot; APPLE PAY &middot; GOOGLE PAY</div>'
+    : (STATE.isGiftAidEnabled
+        ? '<div style="font-size:11px;font-weight:800;color:#b45309;">+25% GIFT AID BOOST AVAILABLE</div>'
+        : '<div style="font-size:10px;font-weight:800;color:#15803d;">SUPPORTING LOCAL COMMUNITY CAUSES</div>');
+
+  const compactSubText = isDirectCardQr
+    ? '💳 Card · Apple Pay · Google Pay'
+    : (STATE.isGiftAidEnabled
+        ? '✨ +25% Gift Aid Boost Eligible'
+        : (isGeneric && STATE.genericSubtitle
+            ? `✨ ${escHtml(STATE.genericSubtitle)}`
+            : '✨ 100% To Local Causes'));
 
   const renderFrontCard = (vol, qrId) => {
     if (!vol) {
       if (sizeCfg.isClassic6Up) return `<div class="lanyard-card" style="opacity:0.2;"></div>`;
       return `<div class="lanyard-card is-compact-empty" style="width:${sizeCfg.widthMm}mm;height:${sizeCfg.heightMm}mm;"></div>`;
     }
-    const roleLabel = showVolunteerBadge && vol.role ? escHtml(vol.role) : 'OFFICIAL SLEIGH ELF';
+    const roleLabel = showVolunteerBadge && vol.role ? escHtml(vol.role) : escHtml(customRoleClean);
+    const roleIcon = isGeneric ? '🪪' : '🎅';
     const volNameHtml = showVolunteerBadge && vol.name
       ? `<div class="compact-vol-name" title="${escHtml(vol.name)}">🎅 ${escHtml(vol.name)}</div>`
       : '';
@@ -1713,7 +1971,7 @@ function buildRouteLanyardPages({
         <div class="lanyard-card is-compact" style="${cardStyle}">
           <div class="compact-header">
             <div class="compact-header-left">
-              ${logoUrl ? `<img src="${escHtml(logoUrl)}">` : '<span style="font-size:11px;">🎅</span>'}
+              ${logoUrl ? `<img src="${escHtml(logoUrl)}" alt="${escHtml(sleighName)}">` : `<span style="font-size:11px;">${roleIcon}</span>`}
               <span class="compact-sleigh-title">${escHtml(sleighName)}</span>
             </div>
             <span class="compact-role-pill">${roleLabel}</span>
@@ -1721,14 +1979,14 @@ function buildRouteLanyardPages({
           <div class="compact-body">
             <div class="compact-qr-wrap" id="${qrId}"></div>
             <div class="compact-info">
-              ${volNameHtml}
+              ${volNameHtml || (logoUrl ? `<img class="compact-info-logo" src="${escHtml(logoUrl)}" alt="${escHtml(sleighName)}">` : '')}
               <div class="compact-headline">${escHtml(headline)}</div>
-              <div class="compact-sub">${STATE.isGiftAidEnabled ? '✨ +25% Gift Aid Boost Eligible' : '✨ 100% To Local Causes'}</div>
+              <div class="compact-sub">${compactSubText}</div>
               <div class="compact-url">${escHtml(trackerHost)}</div>
             </div>
           </div>
           <div class="compact-footer">
-            <span>${permit ? `Permit: ${escHtml(permit)}` : (charityNum ? `Reg Charity: ${escHtml(charityNum)}` : 'Round Table Santa Sleigh')}</span>
+            <span>${permit ? `Permit: ${escHtml(permit)}` : (charityNum ? `Reg Charity: ${escHtml(charityNum)}` : 'Official Charity Collection')}</span>
             <span>#DoMore &middot; RTBI</span>
           </div>
         </div>
@@ -1739,9 +1997,9 @@ function buildRouteLanyardPages({
     return `
       <div class="lanyard-card" style="${cardStyle}">
         <div class="lanyard-slot" title="Lanyard punch slot"></div>
-        <div class="lanyard-badge-role">🎅 ${roleLabel}</div>
+        <div class="lanyard-badge-role">${roleIcon} ${roleLabel}</div>
         ${showVolunteerBadge && vol.name ? `<div style="font-size:12px;font-weight:800;color:#0d0d0b;line-height:1.1;">${escHtml(vol.name)}</div>` : ''}
-        ${logoUrl ? `<img src="${escHtml(logoUrl)}" style="width:44px;height:44px;object-fit:contain;">` : ''}
+        ${logoUrl ? `<img class="lanyard-front-logo" src="${escHtml(logoUrl)}" alt="${escHtml(sleighName)}">` : ''}
         <div class="lanyard-title">${escHtml(headline)}</div>
         <div class="lanyard-qr-box" id="${qrId}"></div>
         ${gaBadge}
@@ -1757,6 +2015,95 @@ function buildRouteLanyardPages({
     if (!vol) {
       if (sizeCfg.isClassic6Up) return `<div class="lanyard-card-rear" style="opacity:0.2;"></div>`;
       return `<div class="lanyard-card is-compact-empty" style="width:${sizeCfg.widthMm}mm;height:${sizeCfg.heightMm}mm;"></div>`;
+    }
+
+    if (isGeneric) {
+      if (isCompact) {
+        const cardStyle = `width:${sizeCfg.widthMm}mm;height:${sizeCfg.heightMm}mm;`;
+        return `
+          <div class="lanyard-card-rear is-compact" style="${cardStyle}">
+            <div class="lanyard-badge-role" style="background:#0d0d0b; color:var(--gold); display:flex; justify-content:space-between; align-items:center; padding:2px 6px; font-size:7.5px; border-radius:4px;">
+              <span>🪪 ${escHtml(customRoleClean)}</span>
+              <span style="color:#fff;font-size:6.5px;opacity:0.9;">ALL-SEASON PASS</span>
+            </div>
+            <div style="border-bottom:1px solid #0d0d0b; padding-bottom:2px;">
+              <div style="font-family:'Eurostile', sans-serif; font-size:9.5px; font-weight:700; color:#0d0d0b; text-transform:uppercase; line-height:1.1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                ${escHtml(sleighName)}
+              </div>
+              <div style="font-size:6.8px; color:#374151; font-weight:600; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                ${escHtml(genericSubtext)}
+              </div>
+            </div>
+            <div style="background:#fef3c7; border:1px solid #f59e0b; border-radius:4px; padding:2.5px 5px; font-size:6.8px; color:#1f2937; line-height:1.25;">
+              <div>${genericContactText ? `👤 <strong>Organiser:</strong> ${escHtml(genericContactText)}` : `✅ <strong>Authorised Collector:</strong> ${escHtml(sleighName)}`}</div>
+              <div><strong style="color:#b45309;">🚨 Emergency: 999</strong> &middot; Non-Emergency: 101${permit ? ` &middot; <strong>Permit:</strong> ${escHtml(permit)}` : ''}</div>
+            </div>
+            <div style="background:#f3f4f6; border:1px solid #e5e7eb; border-radius:4px; padding:2.5px 5px; font-size:6.4px; color:#1f2937; line-height:1.25; flex:1; display:flex; flex-direction:column; justify-content:center;">
+              <div>• Stay on pavements; keep 2m clear of vehicles &amp; sleigh.</div>
+              <div>• High-vis &amp; torch on; return sealed tins to Organiser.</div>
+              <div style="color:#166534; font-weight:700;">• Official Site: ${escHtml(trackerHost)}${charityNum ? ` · Reg. ${escHtml(charityNum)}` : ''}</div>
+            </div>
+            <div class="compact-footer">
+              <span>${escHtml(sleighName)}</span>
+              <span>RTBI &middot; #DoMore</span>
+            </div>
+          </div>
+        `;
+      }
+
+      const cardStyle = sizeCfg.isClassic6Up ? '' : `width:${sizeCfg.widthMm}mm;height:${sizeCfg.heightMm}mm;`;
+      return `
+        <div class="lanyard-card-rear" style="${cardStyle}">
+          <div class="lanyard-slot" title="Lanyard punch slot" style="margin: 0 auto 3px auto;"></div>
+          <div class="lanyard-badge-role" style="background:#0d0d0b; color:var(--gold); display:flex; justify-content:space-between; align-items:center; padding:3px 8px; font-size:8.5px; margin-bottom:4px;">
+            <span>🪪 ${escHtml(customRoleClean)}</span>
+            <span style="color:#fff; font-size:7.5px; opacity:0.9;">SEASON PASS</span>
+          </div>
+
+          <div style="border-bottom:1.5px solid #0d0d0b; padding-bottom:5px; margin-bottom:4px;">
+            <div style="font-family:'Eurostile', sans-serif; font-size:12px; font-weight:700; color:#0d0d0b; text-transform:uppercase; line-height:1.15; word-break:break-word;">
+              ${escHtml(sleighName)}
+            </div>
+            <div style="font-size:8.5px; color:#374151; font-weight:700; margin-top:2px;">
+              ${escHtml(genericSubtext)}
+            </div>
+            <div style="font-family:'DM Mono', monospace; font-size:7.5px; color:#4b5563; margin-top:3px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px;">
+              ${permit ? `<span>📋 Permit: <strong>${escHtml(permit)}</strong></span>` : '<span>✅ Official Charity Collection</span>'}
+              ${charityNum ? `<span>🏛️ Reg. Charity: <strong>${escHtml(charityNum)}</strong></span>` : ''}
+            </div>
+          </div>
+
+          <div style="background:#fef3c7; border:1px solid #f59e0b; border-radius:6px; padding:6px 8px; margin-bottom:4px;">
+            <div style="font-family:'DM Mono', monospace; font-size:7.5px; font-weight:800; text-transform:uppercase; color:#92400e; margin-bottom:2px;">
+              📞 ORGANISER &amp; EMERGENCY CONTACTS
+            </div>
+            <div style="font-size:8px; color:#1f2937; line-height:1.4;">
+              ${genericContactText
+                ? `<div>👤 <strong>Table Organiser:</strong> ${escHtml(genericContactText)}</div>`
+                : `<div>👤 <strong>Authorised Carrier:</strong> Official Round Table Collector</div>`}
+              <div>🌐 <strong>Campaign Site:</strong> ${escHtml(trackerHost)}</div>
+              <div style="color:#b45309; font-size:7px; margin-top:1px;">🚨 Emergency: 999 · Police Non-Emergency: 101</div>
+            </div>
+          </div>
+
+          <div style="background:#f3f4f6; border:1px solid #e5e7eb; border-radius:6px; padding:7px 8px; font-size:8.5px; color:#1f2937; line-height:1.38; margin-bottom:4px; display:flex; flex-direction:column; gap:3px; flex:1;">
+            <div style="font-family:'DM Mono', monospace; font-size:8.5px; font-weight:800; text-transform:uppercase; color:#111827; margin-bottom:1px;">
+              🛡️ VOLUNTEER SAFETY &amp; CONDUCT
+            </div>
+            <div>• Carry official lanyard &amp; bucket clearly visible to donors.</div>
+            <div>• Stay on pavements; keep 2m clear of vehicles &amp; tow hitch.</div>
+            <div>• Wear high-vis vest &amp; lit torch after dusk at all times.</div>
+            <div>• Hold QR badge flat at chest height for contactless scans.</div>
+            <div>• Never open collection tins; return sealed tins to Organiser.</div>
+            ${permit ? `<div>• <strong>Permit:</strong> Licensed Street Collection (#${escHtml(permit)}).</div>` : ''}
+          </div>
+
+          <div class="lanyard-footer" style="padding:4px 6px; font-size:7.5px; margin-top:auto; text-align:center;">
+            ${escHtml(sleighName)}<br><span style="color:var(--gold);">ROUND TABLE BRITAIN &amp; IRELAND &middot; #DOMORE</span>
+            ${permit ? `<div style="color:#e5e7eb; font-size:6.5px; margin-top:1px; letter-spacing:0.3px;">COUNCIL PERMIT NO: <strong style="color:var(--gold);">${escHtml(permit)}</strong></div>` : ''}
+          </div>
+        </div>
+      `;
     }
 
     if (isCompact) {
@@ -1897,7 +2244,7 @@ function buildRouteLanyardPages({
       if (showPageDividers && sides === 'double') {
         html += `
           <div class="sheet-divider-label">
-            📄 SHEET ${pIdx + 1} REAR: VOLUNTEER ROUTE BRIEF &amp; CONTACTS (${sizeCfg.widthMm}×${sizeCfg.heightMm}mm)
+            📄 SHEET ${pIdx + 1} REAR: ${isGeneric ? 'VOLUNTEER PASS, SAFETY &amp; PERMIT' : 'VOLUNTEER ROUTE BRIEF &amp; CONTACTS'} (${sizeCfg.widthMm}×${sizeCfg.heightMm}mm)
           </div>
         `;
       }
@@ -1940,11 +2287,11 @@ async function printAllLanyards() {
 
   const qrUrl = getTargetQrUrl();
   const s = STATE.settings;
-  const logoUrl = s.logo_overlay_url || s.logo_url || '';
+  const logoUrl = s.logo_overlay_url || s.logo_url || (STATE.table && (STATE.table.logo_overlay_url || STATE.table.logo_url)) || '';
   const sleighName = s.sleigh_display_name || s.name || 'Santa Sleigh';
   const permit = (STATE.collectionPermit || '').trim();
   const charityNum = (s.charity_number || (STATE.table && STATE.table.charity_number) || '').trim();
-  const headline = document.getElementById('customHeadline')?.value || 'SCAN TO DONATE';
+  const headline = (document.getElementById('customHeadline')?.value || STATE.customHeadlineText || 'SCAN TO DONATE').trim();
   const sides = STATE.lanyardSides || 'double';
   const sizeCfg = getLanyardSizeConfig();
   const allQrTasks = [];
@@ -1957,6 +2304,7 @@ async function printAllLanyards() {
     const built = buildRouteLanyardPages({
       route,
       rIdx,
+      isGeneric: false,
       sizeCfg,
       headline,
       sleighName,
@@ -1977,14 +2325,7 @@ async function printAllLanyards() {
   for (const qTask of allQrTasks) {
     const el = document.getElementById(qTask.id);
     if (el) {
-      new QRCode(el, {
-        text: qrUrl,
-        width: qTask.size,
-        height: qTask.size,
-        colorDark: "#0d0d0b",
-        colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.H
-      });
+      renderQrSlot(el, qrUrl, qTask.size);
     }
   }
 
