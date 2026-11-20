@@ -991,7 +991,7 @@ const STATE = {
   selectedRoute: 0,
   isGenericLanyard: isGenericParam,
   layoutMode: params.get('mode') || 'poster', // 'poster' | 'buckets' | 'lanyards'
-  qrTargetMode: (params.get('mode') === 'poster' || params.get('qr') === 'tracker') ? 'tracker' : (params.get('qr_url') ? 'sumup_custom' : 'donate'),
+  qrTargetMode: (params.get('mode') === 'poster' || params.get('qr') === 'tracker') ? 'tracker' : (params.get('qr_url') ? 'custom_url' : 'donate'),
   lanyardSides: 'double', // 'double' | 'front' | 'rear'
   lanyardPreset: params.get('size') || '6up', // '6up' | '90x60' | '86x54' | '95x65' | 'custom'
   lanyardWidthMm: Number(params.get('w')) || 90,
@@ -1214,10 +1214,12 @@ function getDayName(dateStr) {
 }
 
 function getTargetQrUrl() {
-  const s = STATE.settings;
+  const s = STATE.settings || {};
+  const t = STATE.table || {};
   const townPublicUrl = `https://${tableSlug}.roundtablesantasleigh.co.uk`;
-  const directDonateUrl = s.donate_url || s.justgiving_url || `${townPublicUrl}/?donate=1`;
-  if (STATE.qrTargetMode === 'sumup_custom') {
+  const tableSavedDonateUrl = String(s.donate_url || t.donate_url || s.justgiving_url || t.justgiving_url || '').trim();
+  const directDonateUrl = tableSavedDonateUrl || `${townPublicUrl}/?donate=1`;
+  if (STATE.qrTargetMode === 'custom_url' || STATE.qrTargetMode === 'sumup_custom') {
     const custom = String(STATE.customQrUrl || '').trim();
     return custom || directDonateUrl;
   }
@@ -1235,7 +1237,7 @@ function renderQrSlot(containerEl, qrUrl, size) {
     if (STATE.customQrImageData) {
       const img = document.createElement('img');
       img.src = STATE.customQrImageData;
-      img.alt = 'Payment QR Code';
+      img.alt = 'Donation QR Code';
       img.style.width = `${size}px`;
       img.style.height = `${size}px`;
       img.style.objectFit = 'contain';
@@ -1244,7 +1246,7 @@ function renderQrSlot(containerEl, qrUrl, size) {
     } else {
       const ph = document.createElement('div');
       ph.style.cssText = `width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;text-align:center;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:#b45309;background:#fef3c7;border-radius:6px;padding:8px;box-sizing:border-box;`;
-      ph.textContent = 'UPLOAD SUMUP QR IMAGE ABOVE';
+      ph.textContent = 'UPLOAD QR IMAGE ABOVE';
       containerEl.appendChild(ph);
     }
     return;
@@ -1317,24 +1319,28 @@ function onCustomQrImageSelected(inputEl) {
 
 function renderQrTargetControlsHtml() {
   const s = STATE.settings || {};
-  const hasSavedDonateUrl = Boolean(s.donate_url || s.justgiving_url);
+  const t = STATE.table || {};
+  const townPublicUrl = `https://${tableSlug}.roundtablesantasleigh.co.uk`;
+  const tableSavedDonateUrl = String(s.donate_url || t.donate_url || s.justgiving_url || t.justgiving_url || '').trim();
   const donateOptionLabel = STATE.isGiftAidEnabled
-    ? '💛 Direct Online Donation (+ 25% Gift Aid Boost)'
-    : (hasSavedDonateUrl
-        ? '💳 Table Online Donate Link (Card / Apple Pay / Zeffy / JustGiving)'
-        : '💳 Table Online Donate Flow (Card / Apple Pay)');
+    ? '💛 Table Donation Link (+25% Gift Aid Boost)'
+    : (tableSavedDonateUrl
+        ? '💳 Table Donation Link (Saved Fundraising URL)'
+        : '💳 Table Donation Link (Online Donate Page)');
 
-  const extraRow = STATE.qrTargetMode === 'sumup_custom'
+  const isCustomUrlMode = STATE.qrTargetMode === 'custom_url' || STATE.qrTargetMode === 'sumup_custom';
+
+  const extraRow = isCustomUrlMode
     ? `
       <div class="control-row">
         <div class="control-group">
-          <label>SumUp Payment Link or Custom QR Destination URL</label>
+          <label>Custom Donation Link / QR URL Override (Any Provider)</label>
           <input type="url" id="customQrUrlInput" value="${escHtml(STATE.customQrUrl || '')}"
-            placeholder="https://pay.sumup.com/b2c/... or https://sumup.me/..."
+            placeholder="https://... (e.g. Zeffy, JustGiving, SumUp, Stripe, PayPal)"
             oninput="STATE.customQrUrl=this.value; generatePoster()">
           <div style="font-size:11px; color:var(--text-dim); margin-top:6px; line-height:1.45;">
-            Paste your SumUp Payment Link from <strong>me.sumup.com</strong> (or any checkout URL) to generate a live QR code on every badge.
-            ${!String(STATE.customQrUrl || '').trim() ? '<br><span style="color:var(--gold);">Showing default table donate URL until you enter your SumUp link above.</span>' : ''}
+            Overrides your saved Table Donation URL for this print run (supports any payment or fundraising link).
+            ${!String(STATE.customQrUrl || '').trim() ? `<br><span style="color:var(--gold);">Currently previewing Table Donation Link (${escHtml(tableSavedDonateUrl || `${townPublicUrl}/?donate=1`)}) until a custom link is entered.</span>` : ''}
           </div>
         </div>
       </div>
@@ -1343,16 +1349,24 @@ function renderQrTargetControlsHtml() {
         ? `
           <div class="control-row">
             <div class="control-group">
-              <label>Upload Exported SumUp / Payment QR Image (PNG, JPG, SVG)</label>
+              <label>Upload Pre-Made Payment / Donation QR Image (PNG, JPG, SVG)</label>
               <input type="file" id="customQrImageInput" accept="image/*" onchange="onCustomQrImageSelected(this)" style="padding:10px 12px;">
               <div style="font-size:11px; color:var(--text-dim); margin-top:6px; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
-                <span>${STATE.customQrImageData ? `✅ Loaded QR image: <strong>${escHtml(STATE.customQrFileName || 'QR image')}</strong>` : 'Upload the QR image downloaded from SumUp Dashboard (me.sumup.com) — stays local in your browser.'}</span>
+                <span>${STATE.customQrImageData ? `✅ Loaded QR image: <strong>${escHtml(STATE.customQrFileName || 'QR image')}</strong>` : 'Upload any exported QR graphic from your payment or donation provider — stays local in your browser.'}</span>
                 ${STATE.customQrImageData ? `<button type="button" onclick="STATE.customQrImageData=''; STATE.customQrFileName=''; renderControls(); generatePoster()" style="background:none;border:1px solid var(--border);color:#fca5a5;padding:3px 8px;border-radius:5px;font-size:11px;cursor:pointer;">Clear Image</button>` : ''}
               </div>
             </div>
           </div>
         `
-        : '');
+        : (STATE.qrTargetMode === 'donate'
+            ? `
+              <div style="margin: -8px 0 18px 0; padding: 8px 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; font-size: 11.5px; color: var(--text-dim); line-height: 1.45; word-break: break-all;">
+                ${tableSavedDonateUrl
+                  ? `<strong style="color:#86efac;">✅ Active Table Donation QR URL:</strong> ${escHtml(tableSavedDonateUrl)}`
+                  : `<strong style="color:var(--gold);">ℹ️ Active QR URL:</strong> ${escHtml(townPublicUrl)}/?donate=1 <span style="opacity:0.8;">(No external Donation URL saved in Admin Settings — choose "Custom Donation Link" above to override for any provider.)</span>`}
+              </div>
+            `
+            : ''));
 
   return {
     selectGroupHtml: `
@@ -1360,8 +1374,8 @@ function renderQrTargetControlsHtml() {
         <label>QR Code Destination</label>
         <select id="qrTargetSelect" onchange="onQrTargetModeChange(this.value)">
           <option value="donate" ${STATE.qrTargetMode === 'donate' ? 'selected' : ''}>${donateOptionLabel}</option>
-          <option value="sumup_custom" ${STATE.qrTargetMode === 'sumup_custom' ? 'selected' : ''}>💳 SumUp Payment Link / Custom QR URL</option>
-          <option value="qr_image" ${STATE.qrTargetMode === 'qr_image' ? 'selected' : ''}>🖼️ Upload Existing QR Image (SumUp PNG / Bank QR)</option>
+          <option value="custom_url" ${isCustomUrlMode ? 'selected' : ''}>🔗 Custom Donation Link / Override URL (Any Provider)</option>
+          <option value="qr_image" ${STATE.qrTargetMode === 'qr_image' ? 'selected' : ''}>🖼️ Upload Pre-Made QR Image (PNG, JPG, SVG)</option>
           <option value="tracker" ${STATE.qrTargetMode === 'tracker' ? 'selected' : ''}>📍 Live Sleigh Map & Public Site (${escHtml(tableSlug)}.roundtablesantasleigh.co.uk)</option>
         </select>
       </div>
@@ -1730,8 +1744,9 @@ function generatePoster(idx) {
   if (STATE.layoutMode === 'buckets') {
     const headline = (document.getElementById('customHeadline')?.value || STATE.customHeadlineText || 'NO CASH? SCAN TO DONATE!').trim();
     posterEl.className = 'sheet-grid-4';
-    const gaNotice = STATE.qrTargetMode === 'sumup_custom' || STATE.qrTargetMode === 'qr_image'
-      ? '<div class="bucket-giftaid" style="background:#f0fdf4; border:1px solid #86efac; color:#166534;">💳 Fast Card, Apple Pay &amp; Google Pay &middot; 100% supports local causes!</div>'
+    const isCustomQr = STATE.qrTargetMode === 'custom_url' || STATE.qrTargetMode === 'sumup_custom' || STATE.qrTargetMode === 'qr_image';
+    const gaNotice = isCustomQr
+      ? '<div class="bucket-giftaid" style="background:#f0fdf4; border:1px solid #86efac; color:#166534;">💳 Fast Online, Apple Pay &amp; Card Donations &middot; 100% supports local causes!</div>'
       : (STATE.isGiftAidEnabled
           ? '<div class="bucket-giftaid">✨ UK Taxpayer? Boost your donation by +25% with Gift Aid for FREE!</div>'
           : '<div class="bucket-giftaid" style="background:#f0fdf4; border:1px solid #86efac; color:#166534;">✨ 100% of your donation directly supports local charities and community causes!</div>');
@@ -1820,10 +1835,11 @@ function generatePoster(idx) {
   const endTime = route["End Time"] || "";
   const timeHtml = startTime ? `<div class="day-name" style="margin-top:8px;">${escHtml(startTime)} – ${escHtml(endTime)}</div>` : "";
   const scanTitle = STATE.qrTargetMode === 'tracker' ? 'SCAN TO TRACK SANTA LIVE' : 'SCAN TO DONATE TO SANTA';
+  const isCustomPosterQr = STATE.qrTargetMode === 'custom_url' || STATE.qrTargetMode === 'sumup_custom' || STATE.qrTargetMode === 'qr_image';
   const scanSub = STATE.qrTargetMode === 'tracker'
     ? 'Follow the sleigh on the map & get doorstep alerts'
-    : (STATE.qrTargetMode === 'sumup_custom' || STATE.qrTargetMode === 'qr_image'
-        ? 'Fast Card / Apple Pay / Google Pay · 100% to Local Causes'
+    : (isCustomPosterQr
+        ? 'Fast Online / Apple Pay / Card Checkout · 100% to Local Causes'
         : (STATE.isGiftAidEnabled
             ? 'Fast Apple Pay / Card Checkout + 25% Gift Aid Boost'
             : 'Fast Apple Pay / Card Checkout · 100% to Local Causes'));
@@ -1935,19 +1951,19 @@ function buildRouteLanyardPages({
     `;
   }
 
-  const isDirectCardQr = STATE.qrTargetMode === 'sumup_custom' || STATE.qrTargetMode === 'qr_image';
+  const isDirectCardQr = STATE.qrTargetMode === 'custom_url' || STATE.qrTargetMode === 'sumup_custom' || STATE.qrTargetMode === 'qr_image';
   const genericSubtext = String(STATE.genericSubtitle || '').trim() || 'Official Street Collector & Charity Volunteer';
   const genericContactText = String(STATE.genericOrganizerContact || '').trim();
   const customRoleClean = String(STATE.lanyardRoleLabel || '').trim() || (isGeneric ? 'OFFICIAL VOLUNTEER' : 'OFFICIAL SLEIGH ELF');
 
   const gaBadge = isDirectCardQr
-    ? '<div style="font-size:10px;font-weight:800;color:#0f766e;">CARD &middot; APPLE PAY &middot; GOOGLE PAY</div>'
+    ? '<div style="font-size:10px;font-weight:800;color:#0f766e;">ONLINE &middot; APPLE PAY &middot; CARD</div>'
     : (STATE.isGiftAidEnabled
         ? '<div style="font-size:11px;font-weight:800;color:#b45309;">+25% GIFT AID BOOST AVAILABLE</div>'
         : '<div style="font-size:10px;font-weight:800;color:#15803d;">SUPPORTING LOCAL COMMUNITY CAUSES</div>');
 
   const compactSubText = isDirectCardQr
-    ? '💳 Card · Apple Pay · Google Pay'
+    ? '💳 Online · Apple Pay · Card'
     : (STATE.isGiftAidEnabled
         ? '✨ +25% Gift Aid Boost Eligible'
         : (isGeneric && STATE.genericSubtitle

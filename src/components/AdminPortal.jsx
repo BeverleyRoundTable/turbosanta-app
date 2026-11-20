@@ -5187,7 +5187,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     textDecoration: 'none',
                     fontWeight: 700
                   }}
-                  title="Open Print Studio for Generic Official Volunteer Lanyards (All Routes), SumUp QR codes, 6-Up, 90×60mm & Crew List Tiling (Tool 4)"
+                  title="Open Print Studio for Generic Official Volunteer Lanyards (All Routes), Custom QR links, 6-Up, 90×60mm & Crew List Tiling (Tool 4)"
                 >
                   <Printer size={16} />
                   <span>🪪 Print Collector &amp; Elf Lanyards</span>
@@ -7552,7 +7552,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                           textDecoration: 'none',
                           fontWeight: 700
                         }}
-                        title="Open Print Studio pre-selected for Generic Official Volunteer collector lanyards (SumUp QR & Table Logo)"
+                        title="Open Print Studio pre-selected for Generic Official Volunteer collector lanyards (Table Logo & Donation QR)"
                       >
                         <Printer size={14} />
                         <span>🪪 Print Volunteer Lanyards</span>
@@ -8861,7 +8861,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
 
                 <div style={{ minWidth: 0 }}>
                   <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>
-                    Donation URL (Zeffy / SumUp Payment Link / Stripe / JustGiving)
+                    Donation URL (Zeffy / JustGiving / SumUp / Stripe / Any Link)
                   </label>
                   <input
                     type="url"
