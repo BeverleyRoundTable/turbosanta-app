@@ -744,10 +744,10 @@
               Connect your Square account so street reader taps and online sales instantly credit your live thermometer:
             </p>
             <ul style="font-size: 12px; color: var(--text-muted); margin-left: 18px; line-height: 1.7;">
-              <li><strong>Webhook URL:</strong> <code>https://turbosanta-api.beverley247.workers.dev/api/webhooks/square?table=<span class="active-table-slug">beverley</span></code></li>
-              <li><strong>Events:</strong> Subscribe to <code>payment.created</code> and <code>payment.updated</code>.</li>
-              <li><strong>Cryptographic Security:</strong> Paste your Square <strong>Webhook Signature Key</strong> into Table Settings; incoming requests are verified with HMAC-SHA256 signatures.</li>
-              <li><strong>Dry-Run vs Live Simulator:</strong> The "Send Test Webhook" button in Admin runs a dry-run test (verifying that the endpoint parses payloads without injecting fake donations into production revenue). To verify live webhook delivery, trigger a test payment in your Square Developer Dashboard.</li>
+              <li><strong>Webhook URL:</strong> Copy your full Square Webhook URL (including <code>?table=<span class="active-table-slug">beverley</span>&amp;secret=...</code>) from the <strong>Fundraising &amp; Webhooks</strong> tab in Admin.</li>
+              <li><strong>Events:</strong> Subscribe to <code>payment.created</code> and <code>payment.updated</code> in Square Developer Dashboard.</li>
+              <li><strong>Security Options:</strong> Your generated URL token authenticates deliveries automatically. Optionally, you may also save your Square <strong>Webhook Signature Key</strong> in the Square settings panel for full HMAC-SHA256 signature verification.</li>
+              <li><strong>Dry-Run vs Live Simulator:</strong> The "Simulate Receiver Payload (Dry-Run)" button in Admin tests TurboSanta's parser without adding fake donations. To test end-to-end delivery from Square, click "More (&hellip;) &rarr; Test event" (<code>payment.updated</code>) in your Square Developer Dashboard or complete a live £1 payment.</li>
             </ul>
           </div>
           <div class="card">

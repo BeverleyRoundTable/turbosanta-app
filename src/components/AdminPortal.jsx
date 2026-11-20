@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import {
-  Megaphone, Settings, Mic, Calendar, Heart, Shield,
+  Megaphone, Settings, Mic, Calendar, Heart, Shield, ShieldCheck,
   LogOut, ExternalLink, Save, Download, CheckCircle2,
   Users, Plus, Trash2, Edit3, Smartphone, Code, Copy,
   MapPin, Bell, Activity, MessageSquare, Check, X, BookOpen,
@@ -1380,6 +1380,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     fundraising_goal: tableData?.table?.fundraising_goal || 8000,
     donations_start_date: tableData?.table?.donations_start_date || '',
     donate_url: tableData?.table?.donate_url || (currentTableSlug === 'beverley' ? 'https://www.zeffy.com/en-GB/donation-form/beverley-round-table-for-our-community' : ''),
+    square_webhook_signature_key: tableData?.table?.square_webhook_signature_key || '',
     logo_url: (tableData?.table?.logo_url && tableData.table.logo_url !== '/icons/RTBI_Santa.png') ? tableData.table.logo_url : '',
     sleigh_icon_live: tableData?.table?.sleigh_icon_live || '',
     website_url: tableData?.table?.website_url || '',
@@ -2384,6 +2385,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
   const [testDonorName, setTestDonorName] = useState('Festive Supporter');
   const [isSendingTestWebhook, setIsSendingTestWebhook] = useState(false);
   const [webhookTestMessage, setWebhookTestMessage] = useState('');
+  const [isSavingSquareKey, setIsSavingSquareKey] = useState(false);
+  const [squareKeyStatus, setSquareKeyStatus] = useState('');
 
   const webhookProviders = [
     {
@@ -2463,9 +2466,9 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
       name: 'Square',
       tag: 'Native Square Webhooks',
       badgeColor: '#006aff',
-      description: 'Stream instant donations from Square Reader contactless card taps, Square Terminal, Stand, or Square Online checkout.',
-      guide: 'In your Square Developer Dashboard (developer.squareup.com) > Webhooks > Add Webhook, paste the Webhook URL above and subscribe to payment.updated and payment.created.',
-      testMethod: 'In your Square Developer Dashboard (developer.squareup.com) > Webhooks > Subscriptions > click your TurboSanta subscription > click "More (⋯) > Test event", select "payment.updated", and click "Send" — Square will push a real £1.00 test event to TurboSanta and return 200 OK! (Or tap a £1.00 live payment on your Square Reader).'
+      description: 'Stream instant donations from Square Reader contactless card taps, Square Terminal, Stand, or Square Online / Payment Links.',
+      guide: 'In your Square Developer Dashboard (developer.squareup.com) > Webhooks > Add Subscription, paste your full Webhook URL (including ?secret=...) and subscribe to payment.updated and payment.created. Optionally save Square\'s Signature Key above for HMAC-SHA256 validation.',
+      testMethod: 'In your Square Developer Dashboard (developer.squareup.com) > Webhooks > Subscriptions > click your TurboSanta subscription > click "More (⋯) > Test event", select "payment.updated", and click "Send" — Square will push a real £1.00 test event to TurboSanta and return 200 OK! (Or complete a live £1.00 card/Square Link donation).'
     },
     {
       id: 'custom',
@@ -2856,6 +2859,39 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     } catch {}
     setSaveStatus('Generated and saved new secure webhook secret key!');
     setTimeout(() => setSaveStatus(''), 3000);
+  };
+
+  const handleSaveSquareSignatureKey = async () => {
+    const slug = currentTableSlug || session?.tableSlug || tableData?.table?.slug || 'beverley';
+    const keyVal = (formData.square_webhook_signature_key || '').trim();
+    if (keyVal.includes('•')) {
+      setSquareKeyStatus('ℹ️ Existing signature key is already saved — enter a new key to replace it.');
+      return;
+    }
+    setIsSavingSquareKey(true);
+    setSquareKeyStatus(keyVal ? 'Saving Square Webhook Signature Key...' : 'Clearing saved Square Signature Key...');
+    try {
+      const res = await saveTableSettings(slug, { square_webhook_signature_key: keyVal });
+      if (!res || !res.ok) {
+        throw new Error(res?.error || 'Failed to save signature key');
+      }
+      if (onUpdateTableData) {
+        onUpdateTableData(prev => ({
+          ...prev,
+          table: {
+            ...prev?.table,
+            square_webhook_configured: Boolean(keyVal)
+          }
+        }));
+      }
+      setSquareKeyStatus(keyVal
+        ? '✅ Square Webhook Signature Key saved! HMAC-SHA256 verification is now active for Square webhooks.'
+        : 'ℹ️ Square Signature Key cleared (webhooks will authenticate via your ?secret= URL token).');
+    } catch (err) {
+      setSquareKeyStatus(`❌ Could not save key: ${err.message}`);
+    } finally {
+      setIsSavingSquareKey(false);
+    }
   };
 
   const getWebhookEndpointUrl = (provider) => {
@@ -5517,6 +5553,65 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                               <span>{isSyncingExternal ? 'Syncing...' : '🔄 Save & Sync Ticket Tailor'}</span>
                             </button>
                           </div>
+                        </div>
+                      )}
+
+                      {selectedWebhookProvider === 'square' && (
+                        <div style={{
+                          background: 'rgba(0, 106, 255, 0.08)',
+                          border: '1px solid rgba(0, 106, 255, 0.4)',
+                          borderRadius: '12px',
+                          padding: '18px 20px',
+                          marginBottom: '22px'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '6px' }}>
+                            <strong style={{ fontSize: '15px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <ShieldCheck size={17} color="#60a5fa" />
+                              <span>Square Authentication &amp; Signature Key</span>
+                              {tableData?.table?.square_webhook_configured && (
+                                <span style={{ color: '#22c55e', fontSize: '12px', fontWeight: 800 }}>✓ Signature Key Saved</span>
+                              )}
+                            </strong>
+                            <span style={{ fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '999px', background: 'rgba(34, 197, 94, 0.18)', color: '#86efac', textTransform: 'uppercase' }}>
+                              ?secret= Token Auto-Supported
+                            </span>
+                          </div>
+                          <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 12px 0', lineHeight: 1.5 }}>
+                            When you paste the full Webhook URL below into Square Developer Dashboard, the <code>?secret=</code> token authenticates both Street Reader taps and Square Online / Payment Link (<code>square.link</code>) payments automatically. Optionally, you can also paste your Square Webhook Subscription <strong>Signature Key</strong> below for full HMAC-SHA256 verification.
+                          </p>
+                          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <input
+                              type="password"
+                              value={formData.square_webhook_signature_key || ''}
+                              onChange={(e) => setFormData(prev => ({ ...prev, square_webhook_signature_key: e.target.value }))}
+                              placeholder={tableData?.table?.square_webhook_configured ? '•••••••• (Saved — enter new Square Signature Key to replace)' : 'Optional: Paste Square Webhook Signature Key'}
+                              style={{
+                                flex: '1 1 240px',
+                                background: '#151513',
+                                border: '1px solid var(--border)',
+                                borderRadius: '8px',
+                                padding: '10px 14px',
+                                color: '#fff',
+                                fontSize: '13px',
+                                fontFamily: 'monospace'
+                              }}
+                            />
+                            <button
+                              type="button"
+                              disabled={isSavingSquareKey}
+                              onClick={handleSaveSquareSignatureKey}
+                              className="btn-primary"
+                              style={{ padding: '10px 18px', fontSize: '13px', background: '#006aff', color: '#fff', display: 'inline-flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}
+                            >
+                              <Key size={15} />
+                              <span>{isSavingSquareKey ? 'Saving...' : 'Save Signature Key'}</span>
+                            </button>
+                          </div>
+                          {squareKeyStatus && (
+                            <p style={{ fontSize: '12px', color: squareKeyStatus.startsWith('❌') ? '#fca5a5' : '#86efac', margin: '10px 0 0 0' }}>
+                              {squareKeyStatus}
+                            </p>
+                          )}
                         </div>
                       )}
 
@@ -13129,6 +13224,8 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                         justgiving_url: formData.justgiving_url || null,
                         tickettailor_event_id: formData.tickettailor_event_id || null,
                         tickettailor_api_key: (formData.tickettailor_api_key && formData.tickettailor_api_key.trim()) ? formData.tickettailor_api_key.trim() : undefined,
+                        zeffy_webhook_secret: webhookSecret && webhookSecret.trim() ? webhookSecret.trim() : undefined,
+                        square_webhook_signature_key: (formData.square_webhook_signature_key && !formData.square_webhook_signature_key.includes('•') && formData.square_webhook_signature_key.trim()) ? formData.square_webhook_signature_key.trim() : undefined,
                         auto_crew_briefing_enabled: formData.auto_crew_briefing_enabled !== false ? 1 : 0,
                         crew_briefing_hours_before: Number(formData.crew_briefing_hours_before || 2),
                         default_muster_point: formData.default_muster_point || '',

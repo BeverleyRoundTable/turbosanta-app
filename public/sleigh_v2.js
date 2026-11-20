@@ -2608,6 +2608,44 @@
     openModal('alert-modal');
   }
 
+  async function refreshLiveFundraisingTotals(targetSlug) {
+    const slugToFetch = (targetSlug || state.slug || '').trim();
+    if (!slugToFetch) return;
+    try {
+      const res = await fetch(`${API_ORIGIN}/api/payload?table=${encodeURIComponent(slugToFetch)}&_t=${Date.now()}`, {
+        cache: 'no-store'
+      });
+      if (!res.ok) return;
+      const fresh = await res.json();
+      if (!fresh || !fresh.table || fresh.table.slug !== state.slug) return;
+      state.payload = fresh;
+      state.lastFundraisingSyncAt = Date.now();
+      renderFundraisingAndImpact();
+    } catch (e) {
+      // Silent background refresh
+    }
+  }
+
+  function scheduleFundraisingLiveRefresh() {
+    if (state.fundraisingRefreshTimer) {
+      clearInterval(state.fundraisingRefreshTimer);
+    }
+    state.lastFundraisingSyncAt = Date.now();
+    state.fundraisingRefreshTimer = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        refreshLiveFundraisingTotals(state.slug);
+      }
+    }, 45000);
+    if (!state.fundraisingVisibilityBound) {
+      state.fundraisingVisibilityBound = true;
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && Date.now() - (state.lastFundraisingSyncAt || 0) > 15000) {
+          refreshLiveFundraisingTotals(state.slug);
+        }
+      });
+    }
+  }
+
   // --- Master Table Loader ---
   async function loadTableExperience(targetSlug, usePrefetched = false) {
     state.slug = targetSlug || DEFAULT_RICH_TABLE;
@@ -2624,10 +2662,13 @@
 
     try {
       let data = null;
-      if (usePrefetched && window.__sleighPrefetchedData && window.__sleighPrefetchedData?.table?.slug === state.slug) {
+      const usedPrefetch = Boolean(usePrefetched && window.__sleighPrefetchedData && window.__sleighPrefetchedData?.table?.slug === state.slug);
+      if (usedPrefetch) {
         data = window.__sleighPrefetchedData;
       } else {
-        const res = await fetch(`${API_ORIGIN}/api/payload?table=${encodeURIComponent(state.slug)}`);
+        const res = await fetch(`${API_ORIGIN}/api/payload?table=${encodeURIComponent(state.slug)}`, {
+          cache: 'no-store'
+        });
         data = await res.json();
       }
 
@@ -2650,6 +2691,12 @@
       renderCharityAppeals();
       renderPartnersPedestal();
       renderFaqs();
+
+      // Always fetch a fresh uncached payload after SSR prefetched paint so live running totals never stay stale
+      if (usedPrefetch) {
+        refreshLiveFundraisingTotals(state.slug);
+      }
+      scheduleFundraisingLiveRefresh();
 
       // Parallel non-blocking loads: GPX tracks, Memory Wall, Live Cheer, View counter
       renderFrames(state.slug);
