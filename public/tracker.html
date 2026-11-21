@@ -327,14 +327,14 @@
 
     .donate-box { 
       position: fixed; bottom: var(--donate-bottom); left: 50%; transform: translateX(-50%); 
-      width: min(360px, calc((100vw - 32px) * 0.67)); max-width: 360px; z-index: 2000; transition: opacity 600ms ease; 
+      width: min(440px, calc(100vw - 64px)); max-width: 440px; z-index: 2000; transition: opacity 600ms ease; 
     }
 
     .donate-btn { 
       font-family: 'Eurostile', sans-serif;
-      font-size: 15px;
+      font-size: 14px;
       line-height: 1.2;
-      letter-spacing: 0.8px;
+      letter-spacing: 0.7px;
       text-transform: uppercase;
       background: var(--primary); 
       color: var(--on-primary); 
@@ -342,7 +342,7 @@
       display: flex; 
       align-items: center; 
       justify-content: center;
-      min-height: 44px;
+      min-height: 40px;
       padding: 6px 14px;
       box-sizing: border-box; 
       width: 100%;
@@ -359,8 +359,8 @@
 
     #donateText {
       display: block;
-      transition: opacity 0.4s ease, transform 0.4s ease;
-      text-align: center;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+      text-align: left;
       width: 100%;
       overflow: hidden;
       white-space: nowrap;
@@ -368,19 +368,15 @@
       -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 7%, #000 93%, transparent 100%);
     }
     .donate-marquee-track {
-      display: inline-flex;
-      align-items: center;
+      display: inline-block;
       white-space: nowrap;
+      padding-left: 100%;
       will-change: transform;
-      animation: donateTickerScroll 8.5s linear infinite;
-    }
-    .donate-marquee-track .donate-sep {
-      margin: 0 18px;
-      opacity: 0.55;
+      animation: donateTickerScroll 8.6s linear 1 forwards;
     }
     @keyframes donateTickerScroll {
-      0% { transform: translateX(0); }
-      100% { transform: translateX(-50%); }
+      0% { transform: translateX(-10%); }
+      100% { transform: translateX(-100%); }
     }
     .text-fade-out {
       opacity: 0;
@@ -466,8 +462,8 @@
         max-width: calc(100vw - 88px);
       }
       .donate-box {
-        width: calc((100vw - 16px) * 0.67);
-        max-width: 320px;
+        width: min(320px, calc(100vw - 44px));
+        max-width: calc(100vw - 44px);
       }
       .donate-btn {
         min-height: 34px;
@@ -738,8 +734,8 @@
     
     @media(max-height:700px){ 
       :root{ --ui-bottom-safe: calc(10px + env(safe-area-inset-bottom)); }
-      .donate-box{ width: auto; max-width: calc(100vw - 24px); }
-      .donate-btn{ min-height: 34px; padding: 5px 16px; font-size: 12px; border-radius: 999px; white-space: nowrap; }
+      .donate-box{ width: min(440px, calc(100vw - 64px)); max-width: calc(100vw - 44px); }
+      .donate-btn{ min-height: 36px; padding: 5px 14px; font-size: 12.5px; border-radius: 999px; white-space: nowrap; }
       .info-popup{ font-size: .8em; padding: 5px 8px; }
       .status-popup{ font-size: .86em; padding: 6px 12px; } 
     }
@@ -2574,7 +2570,7 @@
         renderPhrase(phrase) {
           if (!this.textEl) return;
           const safe = escapeHtml(phrase);
-          this.textEl.innerHTML = `<span class="donate-marquee-track"><span>${safe}</span><span class="donate-sep">•</span><span>${safe}</span><span class="donate-sep">•</span></span>`;
+          this.textEl.innerHTML = `<span class="donate-marquee-track">${safe}</span>`;
         },
         init() {
           this.textEl = document.getElementById("donateText");
@@ -2582,7 +2578,7 @@
           if (this._timer) clearInterval(this._timer);
           this.currentIndex = Math.floor(Math.random() * this.phrases.length);
           this.renderPhrase(this.phrases[this.currentIndex]);
-          this._timer = setInterval(() => this.rotate(), 11000);
+          this._timer = setInterval(() => this.rotate(), 8600);
         },
         rotate() {
           if (!this.textEl) return;
