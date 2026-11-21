@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>TurboSanta — Tracker</title>
   
   <link id="dynamic-manifest" rel="manifest" href="">
@@ -101,7 +101,7 @@
     }
 
     html, body { 
-      margin: 0; padding: 0; height: 100%; 
+      margin: 0; padding: 0; height: 100%; height: 100dvh;
       background: var(--dark); 
       color: var(--text); 
       font-family: 'Open Sans', sans-serif; 
@@ -791,9 +791,76 @@
     @media (max-width: 600px) { .polaroid { max-width: 160px; padding: 5px 5px 16px 5px; } .polaroid-caption { font-size: 0.85em; margin-top: 6px; } }
     
     .driver-mode { max-width: 500px; margin: 0 auto; position: relative; border-left: 1px solid var(--border); border-right: 1px solid var(--border); box-shadow: 0 0 40px rgba(0,0,0,0.8); }
-    .driver-progress-box { font-family: 'Eurostile', sans-serif; letter-spacing: 2px; display: none; position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); background: rgba(29, 29, 26, 0.95); border: 3px solid var(--primary); color: var(--primary); padding: 14px 40px; font-size: 3em; font-weight: 900; border-radius: 24px; z-index: 5000; box-shadow: 0 10px 40px rgba(0,0,0,0.8), inset 0 0 15px rgba(var(--primary-rgb), 0.2); text-align: center; pointer-events: none; }
+    .driver-progress-box { font-family: 'Eurostile', sans-serif; letter-spacing: 2px; display: none; position: absolute; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); background: rgba(29, 29, 26, 0.95); border: 3px solid var(--primary); color: var(--primary); padding: 12px 32px; font-size: clamp(2em, 8vw, 3em); font-weight: 900; border-radius: 24px; z-index: 5000; box-shadow: 0 10px 40px rgba(0,0,0,0.8), inset 0 0 15px rgba(var(--primary-rgb), 0.2); text-align: center; pointer-events: none; }
     body.driver-mode.nav-active .driver-progress-box { display: none; }
     body.driver-mode .donate-box, body.driver-mode .info-popup, body.driver-mode .install-overlay, body.driver-mode .ios-install-prompt { display: none !important; }
+    body.driver-mode.nav-active .maplibregl-ctrl-bottom-right,
+    body.driver-mode.nav-active .maplibregl-ctrl-bottom-left { bottom: calc(66px + env(safe-area-inset-bottom, 0px)); }
+    #driverStartBtn {
+      position: fixed;
+      bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(380px, calc(100vw - 32px));
+      box-sizing: border-box;
+      padding: 16px 18px;
+      font-size: clamp(14px, 4.3vw, 18px);
+      font-weight: 900;
+      font-family: 'Eurostile', sans-serif;
+      letter-spacing: 1.5px;
+      background: var(--primary);
+      color: var(--on-primary);
+      border-radius: 16px;
+      z-index: 9999;
+      border: 3px solid rgba(255,255,255,0.2);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6), 0 0 30px rgba(var(--primary-rgb), 0.3);
+      cursor: pointer;
+      text-align: center;
+      line-height: 1.2;
+      touch-action: manipulation;
+    }
+    #driverControlDock {
+      position: fixed;
+      bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 4500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: min(468px, calc(100vw - 16px));
+      box-sizing: border-box;
+      padding: 0 4px;
+      pointer-events: auto;
+      touch-action: manipulation;
+    }
+    #driverControlDock #txPill,
+    #driverControlDock button {
+      box-sizing: border-box;
+      min-width: 0;
+      flex: 0 1 auto;
+      white-space: nowrap;
+      font-size: clamp(11px, 3.1vw, 13px);
+      padding: 9px 11px;
+      border-radius: 12px;
+      line-height: 1.15;
+      touch-action: manipulation;
+    }
+    @media (max-width: 400px) {
+      #driverControlDock {
+        gap: 5px;
+        width: calc(100vw - 12px);
+        bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+      }
+      #driverControlDock #txPill {
+        gap: 6px !important;
+        padding: 8px 8px;
+      }
+      #driverControlDock button {
+        padding: 8px 10px;
+      }
+    }
 
     /* ══════════════════════════════════════════════
        DRIVER MODE — HEADING-UP NAV (Waze-style)
@@ -4873,8 +4940,9 @@
         if (AppState.flags.isDriver) {
           document.body.classList.add("driver-mode");
           const navBtn = document.createElement("button");
+          navBtn.id = "driverStartBtn";
+          navBtn.type = "button";
           navBtn.innerHTML = "START SAT-NAV & BEACON";
-          navBtn.style.cssText = "position:absolute; bottom:80px; left:10%; width:80%; padding:20px; font-size:20px; font-weight:900; font-family:'Eurostile',sans-serif; letter-spacing:2px; background:var(--primary); color:var(--on-primary); border-radius:16px; z-index:9999; border:3px solid rgba(255,255,255,0.2); box-shadow:0 10px 40px rgba(0,0,0,0.6), 0 0 30px rgba(var(--primary-rgb), 0.3); cursor:pointer;";
           document.body.appendChild(navBtn);
           
           const BeaconDB = { db: null, sent: 0, depth: 0, init: () => new Promise((resolve) => { const req = indexedDB.open("TurboBeacon", 1); req.onupgradeneeded = e => { if(!e.target.result.objectStoreNames.contains("q")) e.target.result.createObjectStore("q", {keyPath:"id", autoIncrement:true}); }; req.onsuccess = () => { BeaconDB.db = req.result; resolve(); }; req.onerror = () => resolve(); }), add: (p) => new Promise(res => { if(!BeaconDB.db) return res(); const tx = BeaconDB.db.transaction("q","readwrite"); tx.objectStore("q").add({p, t:Date.now()}); tx.oncomplete=()=>{ BeaconDB.updateUI(); res(); }; }), getAll: () => new Promise(res => { if(!BeaconDB.db) return res([]); const tx = BeaconDB.db.transaction("q","readonly"); const req = tx.objectStore("q").getAll(); req.onsuccess=()=>res(req.result||[]); }), del: (id) => new Promise(res => { if(!BeaconDB.db) return res(); const tx = BeaconDB.db.transaction("q","readwrite"); tx.objectStore("q").delete(id); tx.oncomplete=res; }), updateUI: async () => { if(!BeaconDB.db) return; BeaconDB.depth = (await BeaconDB.getAll()).length; const qEl = document.getElementById('txQueued'); if(qEl) qEl.textContent = BeaconDB.depth; const pill = document.getElementById('txPill'); if(pill) { if (BeaconDB.depth > 0) { pill.style.borderColor = "var(--primary)"; pill.style.color = "var(--primary)"; document.getElementById('txState').textContent = "BUFFERING"; } else { pill.style.borderColor = "#00e676"; pill.style.color = "#00e676"; document.getElementById('txState').textContent = "LIVE"; } } }, flush: async (url) => { if (BeaconDB.depth === 0 || !navigator.onLine) return; const items = await BeaconDB.getAll(); if (!items.length) return; items.sort((a,b) => a.t - b.t); const bSec = sessionStorage.getItem('beaconSecret') || ''; for (const it of items) { if (Date.now() - it.t > 90*60*1000) { await BeaconDB.del(it.id); continue; } try { const r = await fetch(url, { method:"PUT", headers:{"Content-Type":"application/json", "Authorization": `Bearer ${bSec}`}, body:JSON.stringify({ ...it.p, pin: bSec }) }); if (r.ok) { await BeaconDB.del(it.id); BeaconDB.sent++; document.getElementById('txSent').textContent = BeaconDB.sent; } else break; } catch { break; } } BeaconDB.updateUI(); } };
@@ -5005,11 +5073,10 @@
             if (existingDock) existingDock.remove();
             const controlDock = document.createElement("div");
             controlDock.id = "driverControlDock";
-            controlDock.style.cssText = "position:fixed; bottom:46px; left:50%; transform:translateX(-50%); z-index:4500; display:flex; align-items:center; gap:8px; max-width:calc(100vw - 20px); pointer-events:auto;";
 
             const txPill = document.createElement("div");
             txPill.id = "txPill";
-            txPill.style.cssText = "background:rgba(13, 13, 11, 0.95); border:2px solid #00e676; color:#00e676; padding:7px 12px; border-radius:14px; font-weight:900; font-size:0.78em; box-shadow:0 4px 16px rgba(0,0,0,0.6); display:flex; align-items:center; gap:9px; pointer-events:none; font-family:'Open Sans',sans-serif; white-space:nowrap;";
+            txPill.style.cssText = "background:rgba(13, 13, 11, 0.95); border:2px solid #00e676; color:#00e676; font-weight:900; box-shadow:0 4px 16px rgba(0,0,0,0.6); display:flex; align-items:center; gap:9px; pointer-events:none; font-family:'Open Sans',sans-serif;";
             txPill.innerHTML = `<span id="txState">LIVE</span> <span>Tx: <span id="txSent">0</span></span> <span>Q: <span id="txQueued">0</span></span>`;
 
             const pauseBtn = document.createElement("button");
@@ -5017,14 +5084,14 @@
             pauseBtn.type = "button";
             pauseBtn.innerHTML = "&#10074;&#10074; Pause";
             pauseBtn.title = "Pause or resume GPS coordinate transmission";
-            pauseBtn.style.cssText = "background:rgba(251, 175, 51, 0.16); border:2px solid #fbaf33; color:#fbaf33; padding:7px 12px; border-radius:14px; font-weight:800; font-size:0.78em; box-shadow:0 4px 16px rgba(0,0,0,0.6); cursor:pointer; font-family:'Open Sans',sans-serif; white-space:nowrap;";
+            pauseBtn.style.cssText = "background:rgba(251, 175, 51, 0.16); border:2px solid #fbaf33; color:#fbaf33; font-weight:800; box-shadow:0 4px 16px rgba(0,0,0,0.6); cursor:pointer; font-family:'Open Sans',sans-serif;";
 
             const stopBtn = document.createElement("button");
             stopBtn.id = "driverStopBtn";
             stopBtn.type = "button";
             stopBtn.innerHTML = "&#9632; Stop";
             stopBtn.title = "Stop live GPS tracking and end route";
-            stopBtn.style.cssText = "background:rgba(211, 28, 28, 0.9); border:2px solid #ff6b6b; color:#fff; padding:7px 12px; border-radius:14px; font-weight:800; font-size:0.78em; box-shadow:0 4px 16px rgba(0,0,0,0.6); cursor:pointer; font-family:'Open Sans',sans-serif; white-space:nowrap;";
+            stopBtn.style.cssText = "background:rgba(211, 28, 28, 0.9); border:2px solid #ff6b6b; color:#fff; font-weight:800; box-shadow:0 4px 16px rgba(0,0,0,0.6); cursor:pointer; font-family:'Open Sans',sans-serif;";
 
             controlDock.appendChild(txPill);
             controlDock.appendChild(pauseBtn);
@@ -5583,15 +5650,12 @@
           const vw = (typeof window !== 'undefined' && window.innerWidth) ? window.innerWidth : 1024;
           const isMobile = vw < 640;
           if (isMobile) {
-            if (zoom <= 10) return 38;
-            if (zoom <= 13) return 44;
+            if (zoom <= 11) return 44;
             if (zoom <= 14) return 48;
             return 54;
           }
-          if (zoom <= 8) return 48;
-          if (zoom <= 11) return 52;
-          if (zoom <= 13) return 56;
-          if (zoom <= 14) return 60;
+          if (zoom <= 11) return 60;
+          if (zoom <= 14) return 62;
           return 64;
         }
 
@@ -6417,7 +6481,7 @@
             const recenterBtnEl = document.createElement('button');
             recenterBtnEl.id = 'driverRecenterBtn';
             recenterBtnEl.innerHTML = 'RECENTER';
-            recenterBtnEl.style.cssText = "position:fixed; right:16px; bottom:130px; padding:14px 18px; background:var(--primary); color:var(--on-primary); border:3px solid rgba(255,255,255,0.2); border-radius:24px; font-family:'Eurostile',sans-serif; font-size:1.1em; font-weight:900; letter-spacing:2px; box-shadow:0 8px 24px rgba(0,0,0,0.6), 0 0 20px rgba(var(--primary-rgb), 0.3); z-index:5500; display:none; cursor:pointer;";
+            recenterBtnEl.style.cssText = "position:fixed; right:14px; bottom:calc(78px + env(safe-area-inset-bottom, 0px)); padding:12px 16px; background:var(--primary); color:var(--on-primary); border:3px solid rgba(255,255,255,0.2); border-radius:20px; font-family:'Eurostile',sans-serif; font-size:0.95em; font-weight:900; letter-spacing:1.5px; box-shadow:0 8px 24px rgba(0,0,0,0.6), 0 0 20px rgba(var(--primary-rgb), 0.3); z-index:5500; display:none; cursor:pointer; touch-action:manipulation;";
             document.body.appendChild(recenterBtnEl);
             recenterBtnEl.onclick = () => {
               AppState.flags.driverFollow = true;
