@@ -291,6 +291,7 @@ export default function PublicSleigh({ tableData, activeTableSlug }) {
   const [addressFrameHeight, setAddressFrameHeight] = useState(500);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const [radarModalOpen, setRadarModalOpen] = useState(false);
+  const scrollGuardRef = useRef(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -315,6 +316,139 @@ export default function PublicSleigh({ tableData, activeTableSlug }) {
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
   }, []);
+
+  // Native non-passive touch listeners so 2-finger pinch immediately locks touch-action: none and cancels parent page zoom
+  useEffect(() => {
+    const el = scrollGuardRef.current;
+    if (!el || !isTouchDevice || radarModalOpen) return;
+
+    let pinchRaf = null;
+    let pendingPinch = null;
+
+    const flushPinch = () => {
+      pinchRaf = null;
+      if (!pendingPinch) return;
+      const frame = document.getElementById('tracker-iframe');
+      if (frame && frame.contentWindow) {
+        try {
+          frame.contentWindow.postMessage(pendingPinch, '*');
+        } catch (_) {}
+      }
+      pendingPinch = null;
+    };
+
+    const onTouchStart = (e) => {
+      const touches = e.touches;
+      if (!touches) return;
+      if (touches.length === 1) {
+        el.style.touchAction = 'pan-y';
+        el._tsGuard = {
+          moved: false,
+          hintSent: false,
+          pinch: false,
+          x: touches[0].clientX,
+          y: touches[0].clientY
+        };
+      } else if (touches.length >= 2) {
+        el.style.touchAction = 'none';
+        if (e.cancelable) e.preventDefault();
+        const frame = document.getElementById('tracker-iframe');
+        const rect = (frame || el).getBoundingClientRect();
+        const midX = (touches[0].clientX + touches[1].clientX) / 2 - rect.left;
+        const midY = (touches[0].clientY + touches[1].clientY) / 2 - rect.top;
+        const dist = Math.hypot(
+          touches[1].clientX - touches[0].clientX,
+          touches[1].clientY - touches[0].clientY
+        );
+        el._tsGuard = { moved: true, hintSent: true, pinch: true };
+        if (frame && frame.contentWindow) {
+          try {
+            frame.contentWindow.postMessage({ type: 'turbosanta-pinch-start', x: midX, y: midY, dist }, '*');
+          } catch (_) {}
+        }
+      }
+    };
+
+    const onTouchMove = (e) => {
+      const st = el._tsGuard || {};
+      const touches = e.touches;
+      if (!touches) return;
+      const frame = document.getElementById('tracker-iframe');
+      if (touches.length >= 2) {
+        el.style.touchAction = 'none';
+        if (e.cancelable) e.preventDefault();
+        const rect = (frame || el).getBoundingClientRect();
+        const midX = (touches[0].clientX + touches[1].clientX) / 2 - rect.left;
+        const midY = (touches[0].clientY + touches[1].clientY) / 2 - rect.top;
+        const dist = Math.hypot(
+          touches[1].clientX - touches[0].clientX,
+          touches[1].clientY - touches[0].clientY
+        );
+        if (!st.pinch) {
+          st.pinch = true;
+          st.moved = true;
+          if (frame && frame.contentWindow) {
+            try {
+              frame.contentWindow.postMessage({ type: 'turbosanta-pinch-start', x: midX, y: midY, dist }, '*');
+            } catch (_) {}
+          }
+        } else {
+          pendingPinch = { type: 'turbosanta-pinch-move', x: midX, y: midY, dist };
+          if (!pinchRaf) pinchRaf = requestAnimationFrame(flushPinch);
+        }
+        el._tsGuard = st;
+        return;
+      }
+      if (touches.length === 1 && typeof st.x === 'number') {
+        const dx = touches[0].clientX - st.x;
+        const dy = touches[0].clientY - st.y;
+        if (Math.hypot(dx, dy) > 10) st.moved = true;
+        if (!st.hintSent && Math.abs(dx) > 22 && Math.abs(dx) > Math.abs(dy) * 1.6) {
+          st.hintSent = true;
+          if (frame && frame.contentWindow) {
+            try {
+              frame.contentWindow.postMessage({ type: 'turbosanta-show-2finger-hint' }, '*');
+            } catch (_) {}
+          }
+        }
+        el._tsGuard = st;
+      }
+    };
+
+    const onTouchEnd = (e) => {
+      const st = el._tsGuard || {};
+      if (st.pinch && (!e.touches || e.touches.length < 2)) {
+        st.pinch = false;
+        el._tsGuard = st;
+        if (pinchRaf) {
+          cancelAnimationFrame(pinchRaf);
+          flushPinch();
+        }
+        const frame = document.getElementById('tracker-iframe');
+        if (frame && frame.contentWindow) {
+          try {
+            frame.contentWindow.postMessage({ type: 'turbosanta-pinch-end' }, '*');
+          } catch (_) {}
+        }
+      }
+      if (!e.touches || e.touches.length === 0) {
+        el.style.touchAction = 'pan-y';
+      }
+    };
+
+    el.addEventListener('touchstart', onTouchStart, { passive: false });
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('touchend', onTouchEnd, { passive: true });
+    el.addEventListener('touchcancel', onTouchEnd, { passive: true });
+
+    return () => {
+      if (pinchRaf) cancelAnimationFrame(pinchRaf);
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+      el.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [isTouchDevice, radarModalOpen]);
   const [showFab, setShowFab] = useState(false);
   const [showGiftAidCheckoutModal, setShowGiftAidCheckoutModal] = useState(false);
   const [showGrantModal, setShowGrantModal] = useState(false);
@@ -1422,7 +1556,8 @@ export default function PublicSleigh({ tableData, activeTableSlug }) {
             borderRadius: '16px',
             border: '1px solid var(--border)',
             overflow: 'hidden',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.6)'
+            boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
+            touchAction: 'pan-y'
           }}>
             {todayItem?.sponsors && todayItem.sponsors.length > 0 && (() => {
               const sp = todayItem.sponsors[0];
@@ -1436,7 +1571,8 @@ export default function PublicSleigh({ tableData, activeTableSlug }) {
                   background: isCharity ? 'rgba(26, 16, 22, 0.95)' : 'rgba(18, 20, 24, 0.95)',
                   borderBottom: `1px solid ${isCharity ? 'rgba(244, 114, 182, 0.35)' : 'rgba(var(--primary-rgb), 0.25)'}`,
                   fontSize: '12px',
-                  gap: '10px'
+                  gap: '10px',
+                  touchAction: 'pan-y'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                     <span style={{
@@ -1470,7 +1606,7 @@ export default function PublicSleigh({ tableData, activeTableSlug }) {
                 </div>
               );
             })()}
-            <div style={{ position: 'relative', width: '100%', overflow: 'hidden' }}>
+            <div style={{ position: 'relative', width: '100%', overflow: 'hidden', touchAction: 'pan-y' }}>
               <iframe
                 id="tracker-iframe"
                 src={`/tracker.html?table=${encodeURIComponent(activeTableSlug)}&embedded=1`}
@@ -1488,6 +1624,7 @@ export default function PublicSleigh({ tableData, activeTableSlug }) {
               />
               {isTouchDevice && !radarModalOpen && (
                 <div
+                  ref={scrollGuardRef}
                   className="radar-scroll-guard"
                   aria-hidden="true"
                   style={{
@@ -1497,93 +1634,6 @@ export default function PublicSleigh({ tableData, activeTableSlug }) {
                     background: 'transparent',
                     touchAction: 'pan-y',
                     WebkitOverflowScrolling: 'touch'
-                  }}
-                  onTouchStart={(e) => {
-                    const el = e.currentTarget;
-                    const touches = e.touches;
-                    if (!touches) return;
-                    if (touches.length === 1) {
-                      el._tsGuard = {
-                        moved: false,
-                        hintSent: false,
-                        pinch: false,
-                        x: touches[0].clientX,
-                        y: touches[0].clientY
-                      };
-                    } else if (touches.length >= 2) {
-                      const frame = document.getElementById('tracker-iframe');
-                      const rect = (frame || el).getBoundingClientRect();
-                      const midX = (touches[0].clientX + touches[1].clientX) / 2 - rect.left;
-                      const midY = (touches[0].clientY + touches[1].clientY) / 2 - rect.top;
-                      const dist = Math.hypot(
-                        touches[1].clientX - touches[0].clientX,
-                        touches[1].clientY - touches[0].clientY
-                      );
-                      el._tsGuard = { moved: true, hintSent: true, pinch: true };
-                      if (frame && frame.contentWindow) {
-                        try {
-                          frame.contentWindow.postMessage({ type: 'turbosanta-pinch-start', x: midX, y: midY, dist }, '*');
-                        } catch (_) {}
-                      }
-                    }
-                  }}
-                  onTouchMove={(e) => {
-                    const el = e.currentTarget;
-                    const st = el._tsGuard || {};
-                    const touches = e.touches;
-                    if (!touches) return;
-                    const frame = document.getElementById('tracker-iframe');
-                    if (touches.length >= 2) {
-                      if (e.cancelable) e.preventDefault();
-                      const rect = (frame || el).getBoundingClientRect();
-                      const midX = (touches[0].clientX + touches[1].clientX) / 2 - rect.left;
-                      const midY = (touches[0].clientY + touches[1].clientY) / 2 - rect.top;
-                      const dist = Math.hypot(
-                        touches[1].clientX - touches[0].clientX,
-                        touches[1].clientY - touches[0].clientY
-                      );
-                      if (frame && frame.contentWindow) {
-                        try {
-                          if (!st.pinch) {
-                            st.pinch = true;
-                            st.moved = true;
-                            frame.contentWindow.postMessage({ type: 'turbosanta-pinch-start', x: midX, y: midY, dist }, '*');
-                          } else {
-                            frame.contentWindow.postMessage({ type: 'turbosanta-pinch-move', x: midX, y: midY, dist }, '*');
-                          }
-                        } catch (_) {}
-                      }
-                      el._tsGuard = st;
-                      return;
-                    }
-                    if (touches.length === 1 && typeof st.x === 'number') {
-                      const dx = touches[0].clientX - st.x;
-                      const dy = touches[0].clientY - st.y;
-                      if (Math.hypot(dx, dy) > 10) st.moved = true;
-                      if (!st.hintSent && Math.abs(dx) > 22 && Math.abs(dx) > Math.abs(dy) * 1.6) {
-                        st.hintSent = true;
-                        if (frame && frame.contentWindow) {
-                          try {
-                            frame.contentWindow.postMessage({ type: 'turbosanta-show-2finger-hint' }, '*');
-                          } catch (_) {}
-                        }
-                      }
-                      el._tsGuard = st;
-                    }
-                  }}
-                  onTouchEnd={(e) => {
-                    const el = e.currentTarget;
-                    const st = el._tsGuard || {};
-                    if (st.pinch && (!e.touches || e.touches.length < 2)) {
-                      st.pinch = false;
-                      el._tsGuard = st;
-                      const frame = document.getElementById('tracker-iframe');
-                      if (frame && frame.contentWindow) {
-                        try {
-                          frame.contentWindow.postMessage({ type: 'turbosanta-pinch-end' }, '*');
-                        } catch (_) {}
-                      }
-                    }
                   }}
                   onClick={(e) => {
                     const el = e.currentTarget;

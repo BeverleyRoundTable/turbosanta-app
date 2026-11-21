@@ -764,6 +764,8 @@
       let guardTouchMoved = false;
       let guardHintSent = false;
       let pinchActive = false;
+      let pinchRaf = null;
+      let pendingPinchPayload = null;
 
       const postToTracker = (payload) => {
         const trackerIframe = document.getElementById('tracker-iframe');
@@ -772,6 +774,13 @@
             trackerIframe.contentWindow.postMessage(payload, '*');
           } catch (_) {}
         }
+      };
+
+      const flushPinchToTracker = () => {
+        pinchRaf = null;
+        if (!pendingPinchPayload) return;
+        postToTracker(pendingPinchPayload);
+        pendingPinchPayload = null;
       };
 
       const getRelPoint = (clientX, clientY) => {
@@ -783,11 +792,14 @@
       scrollGuard.addEventListener('touchstart', (e) => {
         if (!e.touches) return;
         if (e.touches.length === 1) {
+          scrollGuard.style.touchAction = 'pan-y';
           pinchActive = false;
           guardTouchMoved = false;
           guardHintSent = false;
           guardTouchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         } else if (e.touches.length >= 2) {
+          scrollGuard.style.touchAction = 'none';
+          if (e.cancelable) e.preventDefault();
           pinchActive = true;
           guardTouchMoved = true;
           const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
@@ -799,11 +811,12 @@
           const pt = getRelPoint(midX, midY);
           postToTracker({ type: 'turbosanta-pinch-start', x: pt.x, y: pt.y, dist });
         }
-      }, { passive: true });
+      }, { passive: false });
 
       scrollGuard.addEventListener('touchmove', (e) => {
         if (!e.touches) return;
         if (e.touches.length >= 2) {
+          scrollGuard.style.touchAction = 'none';
           if (e.cancelable) e.preventDefault();
           const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
           const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
@@ -816,7 +829,8 @@
             pinchActive = true;
             postToTracker({ type: 'turbosanta-pinch-start', x: pt.x, y: pt.y, dist });
           } else {
-            postToTracker({ type: 'turbosanta-pinch-move', x: pt.x, y: pt.y, dist });
+            pendingPinchPayload = { type: 'turbosanta-pinch-move', x: pt.x, y: pt.y, dist };
+            if (!pinchRaf) pinchRaf = requestAnimationFrame(flushPinchToTracker);
           }
           return;
         }
@@ -836,7 +850,14 @@
       const endPinchIfNeeded = (e) => {
         if (pinchActive && (!e.touches || e.touches.length < 2)) {
           pinchActive = false;
+          if (pinchRaf) {
+            cancelAnimationFrame(pinchRaf);
+            flushPinchToTracker();
+          }
           postToTracker({ type: 'turbosanta-pinch-end' });
+        }
+        if (!e.touches || e.touches.length === 0) {
+          scrollGuard.style.touchAction = 'pan-y';
         }
       };
       scrollGuard.addEventListener('touchend', endPinchIfNeeded, { passive: true });

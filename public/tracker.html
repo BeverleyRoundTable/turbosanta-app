@@ -108,7 +108,11 @@
       overflow: hidden; 
       -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
     }
-    #map { position: absolute; top: var(--ann-offset, 0px); left: 0; right: 0; bottom: 0; z-index: 100; }
+    #map { position: absolute; top: var(--ann-offset, 0px); left: 0; right: 0; bottom: 0; z-index: 100; touch-action: none !important; }
+    #map .leaflet-container, .leaflet-container { touch-action: none !important; }
+    .santa-sleigh-marker, .santa-route-marker, .stop-marker { background: transparent !important; border: none !important; }
+    .santa-sleigh-marker img, .santa-route-marker img, .stop-marker img, img.leaflet-marker-icon { object-fit: contain; }
+    .announcement-top-bar, .status-popup, .info-popup, .donate-box, .route-sponsor, .live-street-ticker, #giftAidLink, .demo-bar, .kiosk-banner, .kiosk-sponsor { touch-action: manipulation; }
     body.dim-ui #map { filter: brightness(0.85); transition: filter 600ms ease; }
     /* MapLibre satnav map — only used in driver mode */
     #mlmap { position: absolute; top: var(--ann-offset, 0px); left: 0; right: 0; bottom: 0; z-index: 100; display: none; }
@@ -519,6 +523,12 @@
       .route-sponsor img { 
         max-height: 28px; 
         max-width: 100px; 
+      }
+      .leaflet-control-zoom a {
+        width: 36px !important;
+        height: 36px !important;
+        line-height: 36px !important;
+        font-size: 18px !important;
       }
     }
     
@@ -1114,9 +1124,12 @@
 
     /* 🚀 EMBEDDED TURNKEY IFRAME & MOBILE CLEAN SCALING */
     /* Preserves clean card aspect ratio with balanced padding and zero cutoffs */
-    body.is-embedded,
+    body.is-embedded {
+      touch-action: pan-y;
+      overscroll-behavior: none;
+    }
     body.is-embedded #map {
-      touch-action: pinch-zoom;
+      touch-action: none !important;
       overscroll-behavior: none;
     }
     body.is-embedded #workshopOverlay,
@@ -1940,6 +1953,44 @@
         window.__tsHandleParentTap = handleParentTap;
 
         let pinchState = null;
+        function flushPinchFrame() {
+          if (!pinchState || !AppState || !AppState.map || !window.L) return;
+          pinchState.rafId = null;
+          const wsOverlay = document.getElementById('workshopOverlay');
+          const isWsVisible = wsOverlay && wsOverlay.style.display !== 'none' && getComputedStyle(wsOverlay).display !== 'none';
+          if (isWsVisible) return;
+
+          const nx = pinchState.pendingX;
+          const ny = pinchState.pendingY;
+          const dx = pinchState.lastX - nx;
+          const dy = pinchState.lastY - ny;
+          pinchState.lastX = nx;
+          pinchState.lastY = ny;
+
+          if (Math.hypot(nx - pinchState.startX, ny - pinchState.startY) > 25) {
+            if (AppState.flags.follow && !AppState.flags.isKiosk && !AppState.flags.isDriver) {
+              AppState.flags.follow = false;
+              if (AppState.dom && AppState.dom.followBtn) {
+                AppState.dom.followBtn.textContent = "Follow: OFF";
+              }
+            }
+          }
+          if (Math.abs(dx) > 0.25 || Math.abs(dy) > 0.25) {
+            AppState.map.panBy([dx, dy], { animate: false });
+          }
+
+          const dist = Math.max(10, pinchState.pendingDist || pinchState.startDist);
+          const scale = dist / pinchState.startDist;
+          const minZ = AppState.map.getMinZoom();
+          const maxZ = AppState.map.getMaxZoom();
+          const rawZoom = pinchState.startZoom + Math.log2(scale);
+          const targetZoom = Math.min(maxZ, Math.max(minZ, Math.round(rawZoom * 10) / 10));
+          if (Math.abs(targetZoom - pinchState.lastZoom) >= 0.05) {
+            pinchState.lastZoom = targetZoom;
+            AppState.map.setZoomAround(L.point(nx, ny), targetZoom, { animate: false });
+          }
+        }
+
         window.addEventListener('message', (e) => {
           if (!e.data || typeof e.data !== 'object') return;
           if (e.data.type === 'turbosanta-show-2finger-hint') {
@@ -1961,53 +2012,51 @@
               pinchState = null;
               return;
             }
+            if (pinchState && pinchState.rafId) cancelAnimationFrame(pinchState.rafId);
+            const curZoom = AppState.map.getZoom();
+            const sx = Number(e.data.x) || 0;
+            const sy = Number(e.data.y) || 0;
+            const sdist = Math.max(10, Number(e.data.dist) || 10);
             pinchState = {
-              startX: Number(e.data.x) || 0,
-              startY: Number(e.data.y) || 0,
-              lastX: Number(e.data.x) || 0,
-              lastY: Number(e.data.y) || 0,
-              startDist: Math.max(10, Number(e.data.dist) || 10),
-              startZoom: AppState.map.getZoom(),
-              lastZoom: AppState.map.getZoom()
+              startX: sx,
+              startY: sy,
+              lastX: sx,
+              lastY: sy,
+              pendingX: sx,
+              pendingY: sy,
+              startDist: sdist,
+              pendingDist: sdist,
+              startZoom: curZoom,
+              lastZoom: curZoom,
+              rafId: null
             };
             return;
           }
           if (e.data.type === 'turbosanta-pinch-move') {
             if (!pinchState || isWsVisible || !AppState || !AppState.map || !window.L) return;
-            const nx = Number(e.data.x) || 0;
-            const ny = Number(e.data.y) || 0;
-            const dx = pinchState.lastX - nx;
-            const dy = pinchState.lastY - ny;
-            pinchState.lastX = nx;
-            pinchState.lastY = ny;
-            if (Math.hypot(nx - pinchState.startX, ny - pinchState.startY) > 25) {
-              if (AppState.flags.follow && !AppState.flags.isKiosk && !AppState.flags.isDriver) {
-                AppState.flags.follow = false;
-                if (AppState.dom && AppState.dom.followBtn) {
-                  AppState.dom.followBtn.textContent = "Follow: OFF";
-                }
-              }
-            }
-            if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
-              AppState.map.panBy([dx, dy], { animate: false });
-            }
-            const dist = Math.max(10, Number(e.data.dist) || pinchState.startDist);
-            const scale = dist / pinchState.startDist;
-            const targetZoom = Math.round(pinchState.startZoom + Math.log2(scale));
-            if (
-              targetZoom !== pinchState.lastZoom &&
-              targetZoom >= AppState.map.getMinZoom() &&
-              targetZoom <= AppState.map.getMaxZoom()
-            ) {
-              pinchState.lastZoom = targetZoom;
-              AppState.map.setZoomAround(L.point(nx, ny), targetZoom, { animate: false });
+            pinchState.pendingX = Number(e.data.x) || 0;
+            pinchState.pendingY = Number(e.data.y) || 0;
+            pinchState.pendingDist = Math.max(10, Number(e.data.dist) || pinchState.startDist);
+            if (!pinchState.rafId) {
+              pinchState.rafId = requestAnimationFrame(flushPinchFrame);
             }
             return;
           }
           if (e.data.type === 'turbosanta-pinch-end') {
+            if (pinchState && pinchState.rafId) {
+              cancelAnimationFrame(pinchState.rafId);
+              flushPinchFrame();
+            }
             pinchState = null;
           }
         });
+      } else {
+        // Standalone mobile tracker: prevent 2-finger pinch starting on fixed HUD overlays from zooming the whole HTML shell instead of the map
+        document.addEventListener('touchmove', (e) => {
+          if (!e.touches || e.touches.length < 2) return;
+          if (e.target && e.target.closest && e.target.closest('#map, .leaflet-container, .modal-overlay')) return;
+          if (e.cancelable) e.preventDefault();
+        }, { passive: false });
       }
 
       // --- THEME FROM THE API ---
@@ -2599,8 +2648,8 @@
       };
 
       const AppState = {
-        map: null, mlMap: null, marker: null, notifyMarker: null, gpxRoute: null, lastFix: null, recentFixes: [], routeFixes: [],
-        flags: { follow: true, firstFix: true, isKiosk: false, isDemo: false, isEmbedded: isEmbedded, gpxLoaded: false, snowActive: false, pageVisible: !document.hidden, awaitingPin: false, browserNotified: sessionStorage.getItem("SANTA_BROWSER_NOTIFIED") === "1", hasPassedSticky: sessionStorage.getItem("SANTA_HAS_PASSED") === "1", celebrationFired: sessionStorage.getItem("SANTA_CELEBRATION_FIRED") === "1", musicEnabled: false, beaconActive: false, proximityBellsFired: false },
+        map: null, mlMap: null, marker: null, startMarker: null, endMarker: null, stopMarkers: [], notifyMarker: null, gpxRoute: null, lastFix: null, recentFixes: [], routeFixes: [],
+        flags: { follow: true, firstFix: true, needsLiveZoom: true, isKiosk: false, isDemo: false, isEmbedded: isEmbedded, gpxLoaded: false, snowActive: false, pageVisible: !document.hidden, awaitingPin: false, browserNotified: sessionStorage.getItem("SANTA_BROWSER_NOTIFIED") === "1", hasPassedSticky: sessionStorage.getItem("SANTA_HAS_PASSED") === "1", celebrationFired: sessionStorage.getItem("SANTA_CELEBRATION_FIRED") === "1", musicEnabled: false, beaconActive: false, proximityBellsFired: false },
         vars: { apiUrl: null, tableSlug: "", sleighName: "Santa Sleigh", staleSince: null, lastSnapIndex: 0, snowflakes: [], animRaf: null, pendingSubscription: null, notifyLatLng: null, lastVisualPos: null, escapeListener: null, lastElfCamUrl: null, lastSeenMsgTs: Number(sessionStorage.getItem('SANTA_LAST_MSG_TS')) || 0, pollTimer: null, consecutiveErrors: 0, musicUrl: null, currentMapHeading: 0, latestApiData: null, lastSettingsFetch: 0, lastTxTime: 0, lastLeafletRouteIdx: -1, lastMlRouteIdx: -1, userSnapCache: null, etaEmaSec: null, minPinDistSeen: null },
         dom: { loading: document.getElementById("loadingCover"), statusBox: document.getElementById("statusBox"), followBtn: document.getElementById("followBtn"), recenterBtn: document.getElementById("recenterBtn"), notifyBtn: document.getElementById("notifyBtn"), msgBtn: document.getElementById("msgBtn"), statusDot: document.getElementById("statusDot"), donateLink: document.getElementById("donateLink"), donateBox: document.getElementById("donateBox"), kioskBanner: document.getElementById("kioskBanner"), sponsorBox: document.getElementById("kioskSponsor"), toast: document.getElementById("toast"), snowCanvas: document.getElementById("snow"), shareBtn: document.getElementById("shareBtn"), fireworks: document.getElementById("fireworks") }
       };
@@ -4008,7 +4057,7 @@
             if (AppState.flags.gpxLoaded && AppState.gpxRoute && AppState.gpxRoute.length > 0) {
               AppState.marker.setLatLng(AppConfig.LOCATIONS.LAPLAND);
               if (AppState.flags.firstFix && AppState.dynamicRouteRemainingMain && !AppState.vars.notifyLatLng) {
-                AppState.map.fitBounds(AppState.dynamicRouteRemainingMain.getBounds(), { padding: [40, 40] });
+                AppState.map.fitBounds(AppState.dynamicRouteRemainingMain.getBounds(), { padding: [40, 40], maxZoom: 15 });
               }
             } else {
               AppState.marker.setLatLng(AppConfig.LOCATIONS.LAPLAND);
@@ -4023,6 +4072,7 @@
             AppState.dom.statusDot.style.display = "none";
             setDimUI(false);
             AppState.flags.firstFix = false;
+            AppState.flags.needsLiveZoom = true;
             SleighAudio.setIntensity(0);
             if (typeof StreetTracker !== 'undefined') StreetTracker.update(null, null);
             scheduleNextPoll();
@@ -4079,7 +4129,25 @@
             return s;
           };
 
-          animateMarkerTo(visualPos.lat, visualPos.lng);
+          const targetLiveZoom = AppState.flags.isKiosk ? 15 : 16;
+          if (AppState.flags.needsLiveZoom) {
+            const shouldAnimateLive = !AppState.flags.firstFix;
+            AppState.flags.needsLiveZoom = false;
+            AppState.flags.firstFix = false;
+            if (AppState.marker) {
+              if (AppState.vars.animRaf) {
+                cancelAnimationFrame(AppState.vars.animRaf);
+                AppState.vars.animRaf = null;
+              }
+              AppState.marker.setLatLng([visualPos.lat, visualPos.lng]);
+              AppState.vars.lastVisualPos = { lat: visualPos.lat, lng: visualPos.lng };
+            }
+            if ((AppState.flags.follow || AppState.flags.isKiosk) && !AppState.flags.isDriver && AppState.map) {
+              AppState.map.setView([visualPos.lat, visualPos.lng], targetLiveZoom, { animate: shouldAnimateLive });
+            }
+          } else {
+            animateMarkerTo(visualPos.lat, visualPos.lng);
+          }
           const liveRoadForTicker = cleanRoadName(data.roadName || data.road_name) || cleanRoadName(AppState.gpxRoute?.[AppState.vars.lastSnapIndex]?.roadName);
           if (typeof StreetTracker !== 'undefined') StreetTracker.update(AppState.vars.lastSnapIndex, visualPos, liveRoadForTicker);
 
@@ -5510,6 +5578,53 @@
         };
         window.updateGiftAidDisplay();
         
+        function getSleighIconSizeForZoom(z) {
+          const zoom = Number.isFinite(z) ? z : 16;
+          if (zoom <= 8) return 26;
+          if (zoom <= 11) return 32;
+          if (zoom <= 13) return 40;
+          if (zoom <= 14) return 46;
+          if (zoom <= 15) return 52;
+          return 58;
+        }
+
+        function updateLeafletMarkerDomSize(marker, size, anchorX, anchorY) {
+          if (!marker) return;
+          const iconOpts = marker.options && marker.options.icon && marker.options.icon.options;
+          if (iconOpts) {
+            iconOpts.iconSize = [size, size];
+            iconOpts.iconAnchor = [anchorX, anchorY];
+          }
+          const el = marker.getElement ? marker.getElement() : null;
+          if (el) {
+            el.style.width = size + 'px';
+            el.style.height = size + 'px';
+            el.style.marginLeft = (-anchorX) + 'px';
+            el.style.marginTop = (-anchorY) + 'px';
+            const img = el.tagName === 'IMG' ? el : el.querySelector('img');
+            if (img) {
+              img.style.width = size + 'px';
+              img.style.height = size + 'px';
+            }
+          }
+        }
+
+        function syncMarkerScalesToZoom() {
+          if (!AppState.map) return;
+          const z = AppState.map.getZoom();
+          const sleighSz = getSleighIconSizeForZoom(z);
+          updateLeafletMarkerDomSize(AppState.marker, sleighSz, Math.round(sleighSz / 2), Math.round(sleighSz * 0.85));
+
+          const endSz = z <= 11 ? 26 : z <= 13 ? 34 : z <= 15 ? 40 : 46;
+          updateLeafletMarkerDomSize(AppState.startMarker, endSz, Math.round(endSz / 2), endSz);
+          updateLeafletMarkerDomSize(AppState.endMarker, endSz, Math.round(endSz / 2), endSz);
+
+          const stopSz = z <= 12 ? 20 : z <= 14 ? 26 : 32;
+          if (Array.isArray(AppState.stopMarkers)) {
+            AppState.stopMarkers.forEach(sm => updateLeafletMarkerDomSize(sm, stopSz, Math.round(stopSz / 2), Math.round(stopSz / 2)));
+          }
+        }
+
         window.initTrackerMap = function() {
           const enableWheelZoom = !AppState.flags.isKiosk && !AppState.flags.isDriver && !AppState.flags.isEmbedded;
           const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
@@ -5521,9 +5636,13 @@
             touchRotate: false,
             shiftKeyRotate: false,
             rotateControl: false,
-            wheelPxPerZoomLevel: 120,
+            zoomSnap: 0.1,
             zoomDelta: 1,
-            wheelDebounceTime: 60
+            wheelPxPerZoomLevel: 90,
+            wheelDebounceTime: 40,
+            inertia: true,
+            inertiaDeceleration: 2400,
+            bounceAtZoomLimits: false
           }).setView(AppConfig.LOCATIONS.LAPLAND, AppState.flags.isKiosk ? 6 : 5);
           
           // Automatically disable auto-follow if a spectator manually pans the map
@@ -5534,7 +5653,8 @@
             }
           });
 
-          AppState.map.on("zoomend", () => {
+          const handleZoomVisuals = () => {
+            syncMarkerScalesToZoom();
             if (!AppState.dynamicRouteRemainingMain) return;
             const z = AppState.map.getZoom();
             const mainWeight = z >= 17 ? 5 : z >= 15 ? 4 : 3;
@@ -5546,7 +5666,9 @@
             }
             const tailWeight = z >= 17 ? 7 : z >= 15 ? 5 : 4;
             if (AppState.tailSegments) AppState.tailSegments.forEach(seg => seg.setStyle({ weight: tailWeight }));
-          });
+          };
+          AppState.map.on("zoom", syncMarkerScalesToZoom);
+          AppState.map.on("zoomend", handleZoomVisuals);
           
           L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
             maxZoom: 19,
@@ -5576,30 +5698,32 @@
               L.polyline([], { color: '#FBAF33', weight: 6, opacity: (i + 1) / 24, lineCap: 'round', lineJoin: 'round' }).addTo(AppState.map)
             );
             const startPt = AppState.gpxRoute[0], endPt = AppState.gpxRoute[AppState.gpxRoute.length - 1]; 
-            L.marker([startPt.lat, startPt.lng], { icon: L.icon({ iconUrl: settings.sleigh_icon_start || AppConfig.ICONS.FALLBACK_START, iconSize: [48, 48], iconAnchor: [24, 48] }) }).addTo(AppState.map); 
-            L.marker([endPt.lat, endPt.lng], { icon: L.icon({ iconUrl: settings.sleigh_icon_end || AppConfig.ICONS.FALLBACK_END, iconSize: [48, 48], iconAnchor: [24, 48] }) }).addTo(AppState.map); 
+            AppState.startMarker = L.marker([startPt.lat, startPt.lng], { icon: L.icon({ iconUrl: settings.sleigh_icon_start || AppConfig.ICONS.FALLBACK_START, className: 'santa-route-marker', iconSize: [40, 40], iconAnchor: [20, 40] }) }).addTo(AppState.map); 
+            AppState.endMarker = L.marker([endPt.lat, endPt.lng], { icon: L.icon({ iconUrl: settings.sleigh_icon_end || AppConfig.ICONS.FALLBACK_END, className: 'santa-route-marker', iconSize: [40, 40], iconAnchor: [20, 40] }) }).addTo(AppState.map); 
             AppState.map.fire("zoomend"); 
           }
 
           // Draw Planned Stops
+          AppState.stopMarkers = [];
           if (AppState.gpxStops && AppState.gpxStops.length > 0) {
             const stopImgUrl = settings.sleigh_icon_stop || settings.sleigh_icon_start || AppConfig.ICONS.FALLBACK_START;
             AppState.gpxStops.forEach(stop => {
-              L.marker([stop.lat, stop.lng], {
+              const sm = L.marker([stop.lat, stop.lng], {
                 icon: L.divIcon({
                   className: 'stop-marker',
-                  html: `<img src="${stopImgUrl}" style="width:32px; height:32px; filter:drop-shadow(0 4px 8px rgba(0,0,0,0.6)); object-fit:contain; display:block;">`,
-                  iconSize: [32, 32],
-                  iconAnchor: [16, 16]
+                  html: `<img src="${escapeHtml(stopImgUrl)}" style="width:28px; height:28px; filter:drop-shadow(0 4px 8px rgba(0,0,0,0.6)); object-fit:contain; display:block;">`,
+                  iconSize: [28, 28],
+                  iconAnchor: [14, 14]
                 })
               })
               .bindTooltip(stop.name, { direction: 'top', offset: [0, -16], className: 'stop-tooltip' })
               .addTo(AppState.map);
+              AppState.stopMarkers.push(sm);
             });
             if (!AppState.flags.gpxLoaded && AppState.map) {
               const stopCoords = AppState.gpxStops.map(s => [s.lat, s.lng]).filter(c => !isNaN(c[0]) && !isNaN(c[1]));
               if (stopCoords.length === 1) AppState.map.setView(stopCoords[0], 16);
-              else if (stopCoords.length > 1) AppState.map.fitBounds(stopCoords, { padding: [40, 40] });
+              else if (stopCoords.length > 1) AppState.map.fitBounds(stopCoords, { padding: [40, 40], maxZoom: 15 });
             }
           }
 
@@ -6027,26 +6151,43 @@
             showNotifyMarker(e.latlng.lat, e.latlng.lng, false);
             AppState.dom.statusBox.textContent = "Pin moved — tap again to confirm";
           });
+          const initSleighUrl = Utils.resolveImageUrl(settings.sleigh_icon_live || AppConfig.ICONS.FALLBACK_LIVE) || AppConfig.ICONS.FALLBACK_LIVE;
+          const initSleighSz = getSleighIconSizeForZoom(AppState.map.getZoom());
           AppState.marker = L.marker(AppConfig.LOCATIONS.LAPLAND, {
-            icon: L.icon({
-              iconUrl: settings.sleigh_icon_live || AppConfig.ICONS.FALLBACK_LIVE,
-              iconSize: [64, 64],
-              iconAnchor: [32, 60]
+            zIndexOffset: 1000,
+            icon: L.divIcon({
+              className: 'santa-sleigh-marker',
+              html: `<img src="${escapeHtml(initSleighUrl)}" alt="Santa Sleigh" style="width:${initSleighSz}px; height:${initSleighSz}px; object-fit:contain; display:block; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.55)); pointer-events:none;" onerror="this.onerror=null; this.src='${AppConfig.ICONS.FALLBACK_LIVE}';">`,
+              iconSize: [initSleighSz, initSleighSz],
+              iconAnchor: [Math.round(initSleighSz / 2), Math.round(initSleighSz * 0.85)]
             })
           });
-          if (!AppState.flags.isDriver) AppState.marker.addTo(AppState.map);
+          if (!AppState.flags.isDriver) {
+            AppState.marker.addTo(AppState.map);
+            syncMarkerScalesToZoom();
+          }
 
           AppState.dom.followBtn.onclick = () => {
             AppState.flags.follow = !AppState.flags.follow;
             AppState.dom.followBtn.textContent = "Follow: " + (AppState.flags.follow ? "ON" : "OFF");
             if (AppState.flags.follow && AppState.marker && AppState.map) {
-              AppState.map.panTo(AppState.marker.getLatLng());
+              const targetZoom = AppState.flags.isKiosk ? 15 : 16;
+              if (AppState.lastFix && AppState.map.getZoom() < 14.5) {
+                AppState.map.setView(AppState.marker.getLatLng(), targetZoom, { animate: true });
+              } else {
+                AppState.map.panTo(AppState.marker.getLatLng());
+              }
             }
           };
           AppState.dom.recenterBtn.onclick = () => {
             AppState.flags.follow = true;
             AppState.dom.followBtn.textContent = "Follow: ON";
-            AppState.map.panTo(AppState.marker.getLatLng());
+            const targetZoom = AppState.flags.isKiosk ? 15 : 16;
+            if (AppState.lastFix && AppState.map.getZoom() < 15) {
+              AppState.map.setView(AppState.marker.getLatLng(), targetZoom, { animate: true });
+            } else {
+              AppState.map.panTo(AppState.marker.getLatLng());
+            }
           };
 
           // When embedded inside turnkey page OR when table has disabled resident email alerts, hide the notifyBtn
