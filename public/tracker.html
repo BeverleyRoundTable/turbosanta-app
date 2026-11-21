@@ -5580,12 +5580,19 @@
         
         function getSleighIconSizeForZoom(z) {
           const zoom = Number.isFinite(z) ? z : 16;
-          if (zoom <= 8) return 26;
-          if (zoom <= 11) return 32;
-          if (zoom <= 13) return 40;
-          if (zoom <= 14) return 46;
-          if (zoom <= 15) return 52;
-          return 58;
+          const vw = (typeof window !== 'undefined' && window.innerWidth) ? window.innerWidth : 1024;
+          const isMobile = vw < 640;
+          if (isMobile) {
+            if (zoom <= 10) return 38;
+            if (zoom <= 13) return 44;
+            if (zoom <= 14) return 48;
+            return 54;
+          }
+          if (zoom <= 8) return 48;
+          if (zoom <= 11) return 52;
+          if (zoom <= 13) return 56;
+          if (zoom <= 14) return 60;
+          return 64;
         }
 
         function updateLeafletMarkerDomSize(marker, size, anchorX, anchorY) {
@@ -5613,13 +5620,19 @@
           if (!AppState.map) return;
           const z = AppState.map.getZoom();
           const sleighSz = getSleighIconSizeForZoom(z);
-          updateLeafletMarkerDomSize(AppState.marker, sleighSz, Math.round(sleighSz / 2), Math.round(sleighSz * 0.85));
+          updateLeafletMarkerDomSize(AppState.marker, sleighSz, Math.round(sleighSz / 2), Math.round(sleighSz * 0.9375));
 
-          const endSz = z <= 11 ? 26 : z <= 13 ? 34 : z <= 15 ? 40 : 46;
+          const vw = (typeof window !== 'undefined' && window.innerWidth) ? window.innerWidth : 1024;
+          const isMobile = vw < 640;
+          const endSz = isMobile
+            ? (z <= 11 ? 28 : z <= 14 ? 34 : 40)
+            : (z <= 11 ? 34 : z <= 14 ? 42 : 48);
           updateLeafletMarkerDomSize(AppState.startMarker, endSz, Math.round(endSz / 2), endSz);
           updateLeafletMarkerDomSize(AppState.endMarker, endSz, Math.round(endSz / 2), endSz);
 
-          const stopSz = z <= 12 ? 20 : z <= 14 ? 26 : 32;
+          const stopSz = isMobile
+            ? (z <= 12 ? 22 : z <= 14 ? 26 : 30)
+            : (z <= 12 ? 24 : z <= 14 ? 28 : 32);
           if (Array.isArray(AppState.stopMarkers)) {
             AppState.stopMarkers.forEach(sm => updateLeafletMarkerDomSize(sm, stopSz, Math.round(stopSz / 2), Math.round(stopSz / 2)));
           }
@@ -6159,12 +6172,13 @@
               className: 'santa-sleigh-marker',
               html: `<img src="${escapeHtml(initSleighUrl)}" alt="Santa Sleigh" style="width:${initSleighSz}px; height:${initSleighSz}px; object-fit:contain; display:block; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.55)); pointer-events:none;" onerror="this.onerror=null; this.src='${AppConfig.ICONS.FALLBACK_LIVE}';">`,
               iconSize: [initSleighSz, initSleighSz],
-              iconAnchor: [Math.round(initSleighSz / 2), Math.round(initSleighSz * 0.85)]
+              iconAnchor: [Math.round(initSleighSz / 2), Math.round(initSleighSz * 0.9375)]
             })
           });
           if (!AppState.flags.isDriver) {
             AppState.marker.addTo(AppState.map);
             syncMarkerScalesToZoom();
+            window.addEventListener("resize", syncMarkerScalesToZoom);
           }
 
           AppState.dom.followBtn.onclick = () => {
