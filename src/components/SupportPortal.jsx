@@ -139,6 +139,7 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
   const [modalStatus, setModalStatus] = useState('open');
   const [modalRag, setModalRag] = useState('amber');
   const [notifyRecipient, setNotifyRecipient] = useState(true);
+  const [modalRecipientEmail, setModalRecipientEmail] = useState('');
   const [updatingTicketId, setUpdatingTicketId] = useState(null);
   const [zoomImage, setZoomImage] = useState(null);
 
@@ -300,11 +301,29 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
     setUpdatingTicketId(ticketId);
     try {
       const isResolved = newStatus === 'resolved' || newStatus === 'closed';
-      await updateSupportTicket(ticketId, { status: newStatus, notify_recipient: isResolved });
-      setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: newStatus } : t));
+      const res = await updateSupportTicket(ticketId, { status: newStatus, notify_recipient: isResolved });
+      setTickets(prev => prev.map(t => t.id === ticketId ? {
+        ...t,
+        status: newStatus,
+        resolution_summary: res?.resolution_summary || t.resolution_summary
+      } : t));
       if (activeTicketModal?.id === ticketId) {
-        setActiveTicketModal(prev => ({ ...prev, status: newStatus }));
+        setActiveTicketModal(prev => ({
+          ...prev,
+          status: newStatus,
+          resolution_summary: res?.resolution_summary || prev?.resolution_summary
+        }));
         setModalStatus(newStatus);
+      }
+      if (isResolved) {
+        const preview = res?.resolution_summary
+          ? `\n\nSummary:\n${String(res.resolution_summary).slice(0, 260)}${String(res.resolution_summary).length > 260 ? '...' : ''}`
+          : '';
+        if (res?.email_dispatched) {
+          alert(`✅ Ticket marked as ${newStatus.toUpperCase()}!\n\nResolution email sent to: ${res.email_to || 'recipient'}${preview}`);
+        } else {
+          alert(`⚠️ Ticket marked as ${newStatus.toUpperCase()}, but the resolution email could not be sent: ${res?.email_error || 'Check Gmail connection or contact email.'}${preview}`);
+        }
       }
     } catch (err) {
       alert(`Update failed: ${err.message}`);
@@ -317,23 +336,32 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
     setUpdatingTicketId(ticketId);
     try {
       const isResolved = modalStatus === 'resolved' || modalStatus === 'closed';
-      await updateSupportTicket(ticketId, {
+      const trimmedRecipient = modalRecipientEmail.trim();
+      const res = await updateSupportTicket(ticketId, {
         status: modalStatus,
         rag_status: modalRag,
         admin_notes: adminNoteInput,
-        notify_recipient: isResolved ? notifyRecipient : false
+        notify_recipient: isResolved ? notifyRecipient : false,
+        recipient_email: isResolved && notifyRecipient && trimmedRecipient ? trimmedRecipient : undefined
       });
       setTickets(prev => prev.map(t => t.id === ticketId ? {
         ...t,
         status: modalStatus,
         rag_status: modalRag,
-        admin_notes: adminNoteInput
+        admin_notes: adminNoteInput,
+        resolution_summary: res?.resolution_summary || t.resolution_summary
       } : t));
-      const recipientEmail = activeTicketModal?.contact_email;
       const tktNum = activeTicketModal?.ticket_number || ticketId;
       setActiveTicketModal(null);
-      if (isResolved && notifyRecipient && recipientEmail) {
-        alert(`✅ Ticket #${tktNum} marked as ${modalStatus.toUpperCase()}!\n\nAn automated resolution email with your engineering notes was dispatched to ${recipientEmail}.`);
+      if (isResolved && notifyRecipient) {
+        const preview = res?.resolution_summary
+          ? `\n\nSummary:\n${String(res.resolution_summary).slice(0, 260)}${String(res.resolution_summary).length > 260 ? '...' : ''}`
+          : '';
+        if (res?.email_dispatched) {
+          alert(`✅ Ticket #${tktNum} marked as ${modalStatus.toUpperCase()}!\n\nResolution email dispatched to ${res.email_to || trimmedRecipient || activeTicketModal?.contact_email}.${preview}`);
+        } else {
+          alert(`⚠️ Ticket #${tktNum} marked as ${modalStatus.toUpperCase()}, but the resolution email was NOT sent: ${res?.email_error || 'Check Gmail connection or contact email.'}${preview}`);
+        }
       } else {
         alert("Ticket details updated successfully.");
       }
@@ -1767,6 +1795,7 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
                                 setModalStatus(ticket.status || 'open');
                                 setModalRag(ticket.rag_status || 'amber');
                                 setNotifyRecipient(true);
+                                setModalRecipientEmail(ticket.contact_email || '');
                               }}
                               style={{
                                 backgroundColor: 'rgba(251, 175, 51, 0.15)',
@@ -2043,7 +2072,7 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
               />
             </div>
 
-            {/* Auto-Email Resolution Checkbox */}
+            {/* Auto-Email Resolution Checkbox & Recipient Input */}
             {(modalStatus === 'resolved' || modalStatus === 'closed') && (
               <div style={{
                 marginBottom: '18px',
@@ -2068,9 +2097,38 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
                     style={{ accentColor: '#22c55e', width: '16px', height: '16px', cursor: 'pointer' }}
                   />
                   <span>
-                    Auto-email resolution briefing to <strong>{activeTicketModal.contact_name ? `${activeTicketModal.contact_name} (${activeTicketModal.contact_email})` : activeTicketModal.contact_email}</strong>
+                    Auto-email resolution briefing to <strong>{modalRecipientEmail.trim() || (activeTicketModal.contact_name ? `${activeTicketModal.contact_name} (${activeTicketModal.contact_email})` : activeTicketModal.contact_email)}</strong>
                   </span>
                 </label>
+                {notifyRecipient && (
+                  <div style={{ marginTop: '10px' }}>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '11px',
+                      color: 'rgba(255, 255, 255, 0.7)',
+                      marginBottom: '4px',
+                      fontWeight: 600
+                    }}>
+                      Send Resolution Email To (comma-separated for multiple)
+                    </label>
+                    <input
+                      type="text"
+                      value={modalRecipientEmail}
+                      onChange={(e) => setModalRecipientEmail(e.target.value)}
+                      placeholder={activeTicketModal.contact_email || 'recipient@roundtable.org.uk'}
+                      style={{
+                        width: '100%',
+                        backgroundColor: 'rgba(0, 0, 0, 0.35)',
+                        border: '1px solid rgba(34, 197, 94, 0.35)',
+                        borderRadius: '6px',
+                        padding: '7px 10px',
+                        color: '#ffffff',
+                        fontSize: '12px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             )}
 
