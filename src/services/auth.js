@@ -256,21 +256,17 @@ export async function requestMagicLink(email) {
   const details = parseTableDetailsFromEmail(cleanEmail);
 
   // Call the live Cloudflare Worker email dispatch endpoint
-  try {
-    const res = await authFetch(`/api/auth/send-otp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: cleanEmail,
-        tableName: details.tableName
-      })
-    });
-    const result = await res.json();
-    if (!res.ok) {
-      console.warn("Worker OTP dispatch notification:", result?.error || "Using direct delivery");
-    }
-  } catch (err) {
-    console.warn("OTP delivery dispatch error:", err);
+  const res = await authFetch(`/api/auth/send-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: cleanEmail,
+      tableName: details.tableName
+    })
+  });
+  const result = await res.json().catch(() => ({}));
+  if (!res.ok || result?.ok === false) {
+    throw new Error(result?.error || "Failed to send verification code. Please try again.");
   }
 
   // Store expiration timestamp locally
@@ -306,21 +302,24 @@ export async function verifyMagicLink(email, enteredCode) {
   // Verify with Cloudflare Worker OTP backend and receive HMAC-signed session token
   let verifiedOnWorker = false;
   let signedToken = "";
+  let serverError = "";
   try {
     const res = await authFetch(`/api/auth/verify-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: cleanEmail, code, tableSlug: details?.slug || "beverley" })
     });
-    const result = await res.json();
-    if (result.ok && result.token) {
+    const result = await res.json().catch(() => ({}));
+    if (res.ok && result.ok && result.token) {
       verifiedOnWorker = true;
       signedToken = result.token;
+    } else if (result?.error) {
+      serverError = result.error;
     }
   } catch {}
 
   if (!verifiedOnWorker || !signedToken) {
-    throw new Error("Invalid verification code. Please check your official Round Table inbox.");
+    throw new Error(serverError || "Invalid verification code. Please check your official Round Table inbox.");
   }
 
   const isSuperAdmin = isSuperAdminEmail(cleanEmail);
