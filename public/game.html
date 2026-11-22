@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="/embed-theme.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>TurboSanta: Rooftop Rush 3D — Round Table Santa Sleigh Game</title>
+  <meta name="description" content="Fly Santa's 3D sleigh over twinkling Christmas rooftops! Drop presents down chimneys, dodge hazards, grab Magic Carrots for Rudolph's Turbo Boost, and unlock sleigh upgrades." />
+  <link rel="icon" type="image/png" href="/icons/RTBI_Santa.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    @font-face {
+      font-family: 'Eurostile';
+      src: url('/site/Eurostile_Extended_2_Bold.woff2') format('woff2');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root {
+      --primary: #FBAF33;
+      --primary-rgb: 251, 175, 51;
+      --on-primary: #000000;
+      --red: #D31C1C;
+      --green: #22C55E;
+      --cyan: #38BDF8;
+      --bg: #070b1a;
+      --panel: rgba(16, 18, 28, 0.84);
+      --panel-strong: rgba(13, 15, 24, 0.94);
+      --border: rgba(255, 255, 255, 0.14);
+      --text: #F8FAFC;
+      --muted: rgba(226, 232, 240, 0.68);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Open Sans', system-ui, -apple-system, sans-serif;
+    }
+
+    #game-canvas-wrap {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      touch-action: none;
+      background: radial-gradient(circle at 50% 30%, #172554 0%, #070b1a 75%);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Screen-flash & Turbo Speed vignette */
+    #fx-vignette {
+      position: fixed;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      background: radial-gradient(circle at center, transparent 48%, rgba(251, 175, 51, 0.42) 100%);
+    }
+    #fx-vignette.turbo {
+      opacity: 1;
+      animation: turboPulse 0.45s ease-in-out infinite alternate;
+    }
+    #fx-vignette.damage {
+      opacity: 1;
+      background: radial-gradient(circle at center, transparent 40%, rgba(211, 28, 28, 0.72) 100%);
+    }
+
+    @keyframes turboPulse {
+      from { opacity: 0.55; }
+      to { opacity: 1; }
+    }
+
+    /* Floating score callouts projected from 3D world */
+    #fx-popups {
+      position: fixed;
+      inset: 0;
+      z-index: 12;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .world-popup {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      font-family: 'Eurostile', 'Open Sans', sans-serif;
+      font-weight: 800;
+      font-size: 16px;
+      letter-spacing: 0.6px;
+      text-shadow: 0 3px 10px rgba(0, 0, 0, 0.9), 0 0 12px rgba(251, 175, 51, 0.65);
+      white-space: nowrap;
+      animation: floatUpFade 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes floatUpFade {
+      0% { opacity: 0; transform: translate(-50%, -20%) scale(0.7); }
+      20% { opacity: 1; transform: translate(-50%, -60%) scale(1.1); }
+      100% { opacity: 0; transform: translate(-50%, -170%) scale(0.95); }
+    }
+
+    /* HUD Bar */
+    #hud {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 15;
+      padding: max(10px, env(safe-area-inset-top)) 14px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .hud-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .hud-cluster {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      pointer-events: auto;
+    }
+
+    .hud-pill {
+      background: var(--panel);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    }
+
+    .hud-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.9px;
+      color: var(--muted);
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .hud-val {
+      font-family: 'Eurostile', 'Open Sans', sans-serif;
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.1;
+    }
+
+    .hud-val.gold { color: var(--primary); }
+    .hud-val.red { color: #F87171; }
+    .hud-val.cyan { color: var(--cyan); }
+
+    .combo-badge {
+      background: linear-gradient(135deg, rgba(251, 175, 51, 0.25), rgba(211, 28, 28, 0.35));
+      border: 1px solid rgba(251, 175, 51, 0.55);
+      border-radius: 12px;
+      padding: 6px 12px;
+      font-family: 'Eurostile', 'Open Sans', sans-serif;
+      font-weight: 800;
+      font-size: 14px;
+      color: var(--primary);
+      display: none;
+      align-items: center;
+      gap: 5px;
+      box-shadow: 0 0 18px rgba(251, 175, 51, 0.3);
+    }
+    .combo-badge.active { display: inline-flex; }
+    .combo-badge.fever {
+      background: linear-gradient(135deg, #FBAF33, #D31C1C);
+      color: #fff;
+      animation: feverShake 0.35s ease-in-out infinite alternate;
+    }
+    @keyframes feverShake {
+      from { transform: scale(1); }
+      to { transform: scale(1.06); }
+    }
+
+    .hud-icon-btn {
+      background: var(--panel);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      color: #fff;
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      cursor: pointer;
+      transition: border-color 0.15s, transform 0.15s;
+      text-decoration: none;
+    }
+    .hud-icon-btn:hover {
+      border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    .hud-sub-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .turbo-meter-wrap {
+      background: var(--panel);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px 10px 4px 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 190px;
+      max-width: 260px;
+    }
+    .turbo-track {
+      flex: 1;
+      height: 9px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .turbo-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #F97316, #FBAF33, #FEF08A);
+      border-radius: 999px;
+      transition: width 0.18s ease-out;
+    }
+    .turbo-meter-wrap.ready {
+      border-color: var(--primary);
+      box-shadow: 0 0 18px rgba(251, 175, 51, 0.45);
+    }
+
+    .active-buffs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .buff-chip {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.5);
+      color: #BAE6FD;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Biome announcement banner */
+    #biome-banner {
+      position: fixed;
+      top: 96px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-14px);
+      z-index: 16;
+      background: linear-gradient(135deg, rgba(16, 18, 28, 0.94), rgba(211, 28, 28, 0.35));
+      border: 1px solid rgba(251, 175, 51, 0.5);
+      border-radius: 999px;
+      padding: 7px 18px;
+      font-family: 'Eurostile', 'Open Sans', sans-serif;
+      font-size: 13px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--primary);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      white-space: nowrap;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55);
+    }
+    #biome-banner.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Achievement unlock toast */
+    #ach-toast {
+      position: fixed;
+      bottom: 108px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      z-index: 25;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid var(--primary);
+      border-radius: 14px;
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s ease;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65);
+    }
+    #ach-toast.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Mobile & quick action controls dock */
+    #controls-dock {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 16;
+      padding: 10px 14px max(14px, env(safe-area-inset-bottom));
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      pointer-events: none;
+    }
+    #controls-dock.hidden { display: none; }
+
+    .ctrl-group {
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .ctrl-btn {
+      background: rgba(15, 20, 35, 0.78);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      color: #fff;
+      border-radius: 16px;
+      height: 54px;
+      min-width: 54px;
+      padding: 0 14px;
+      font-family: 'Eurostile', 'Open Sans', sans-serif;
+      font-weight: 800;
+      font-size: 14px;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      touch-action: manipulation;
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.48);
+    }
+    .ctrl-btn:active {
+      transform: scale(0.93);
+      border-color: var(--primary);
+    }
+    .ctrl-btn.drop-btn {
+      background: linear-gradient(135deg, #D31C1C, #991B1B);
+      border-color: rgba(251, 175, 51, 0.65);
+      min-width: 112px;
+      height: 60px;
+      font-size: 13px;
+    }
+    .ctrl-btn.turbo-btn {
+      background: linear-gradient(135deg, #F59E0B, #D97706);
+      color: #000;
+      border-color: #FEF08A;
+      min-width: 88px;
+      height: 54px;
+      display: none;
+      animation: turboPulse 0.45s ease-in-out infinite alternate;
+    }
+    .ctrl-btn.turbo-btn.ready {
+      display: inline-flex;
+    }
+    .ctrl-sub {
+      font-family: 'Open Sans', sans-serif;
+      font-size: 9px;
+      font-weight: 700;
+      opacity: 0.78;
+      letter-spacing: 0.5px;
+    }
+
+    @media (min-width: 900px) and (pointer: fine) {
+      .touch-steer-only { display: none; }
+    }
+
+    /* Fullscreen Glass Modal Overlay (Title / Workshop / Pause / Summary) */
+    .overlay-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      background: radial-gradient(circle at 50% 35%, rgba(16, 24, 48, 0.55) 0%, rgba(5, 8, 18, 0.86) 100%);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      overflow-y: auto;
+    }
+    .overlay-backdrop.hidden { display: none; }
+
+    .modal-card {
+      width: 100%;
+      max-width: 680px;
+      max-height: 92dvh;
+      overflow-y: auto;
+      background: var(--panel-strong);
+      border: 1px solid rgba(251, 175, 51, 0.35);
+      border-radius: 22px;
+      padding: 24px 22px;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.8), 0 0 38px rgba(251, 175, 51, 0.14);
+    }
+
+    .brand-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(251, 175, 51, 0.14);
+      border: 1px solid rgba(251, 175, 51, 0.4);
+      color: var(--primary);
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    h1.game-title {
+      font-family: 'Eurostile', 'Open Sans', sans-serif;
+      font-size: clamp(26px, 5vw, 40px);
+      font-weight: 800;
+      margin: 0 0 6px 0;
+      letter-spacing: 1.4px;
+      line-height: 1.08;
+      text-transform: uppercase;
+    }
+    h1.game-title span { color: var(--primary); }
+
+    .lead-copy {
+      color: var(--muted);
+      font-size: 13.5px;
+      line-height: 1.5;
+      margin: 0 0 18px 0;
+    }
+
+    .tabs-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .tab-pill {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-family: 'Eurostile', 'Open Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      cursor: pointer;
+    }
+    .tab-pill.active {
+      background: rgba(251, 175, 51, 0.18);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .section-box {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .section-box-title {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--primary);
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .mode-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 10px;
+    }
+    .mode-card {
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 12px;
+      text-align: left;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .mode-card:hover { border-color: rgba(251, 175, 51, 0.6); }
+    .mode-card.selected {
+      background: rgba(251, 175, 51, 0.15);
+      border-color: var(--primary);
+      box-shadow: 0 0 18px rgba(251, 175, 51, 0.2);
+    }
+    .mode-card-title {
+      font-family: 'Eurostile', 'Open Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 3px;
+    }
+    .mode-card-desc {
+      font-size: 11.5px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+    .mode-card-best {
+      margin-top: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    select.town-select {
+      width: 100%;
+      background: #0b0f1d;
+      color: #fff;
+      border: 1px solid rgba(251, 175, 51, 0.4);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 13.5px;
+      font-family: 'Open Sans', sans-serif;
+      font-weight: 600;
+    }
+
+    .controls-legend {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+      gap: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .key-chip {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #fff;
+      font-family: monospace;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 5px;
+      margin-right: 4px;
+    }
+
+    .upgrade-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 10px;
+    }
+    .upgrade-item {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-primary {
+      width: 100%;
+      background: linear-gradient(135deg, #FBAF33, #F59E0B);
+      color: #000;
+      border: none;
+      border-radius: 14px;
+      padding: 14px 20px;
+      font-family: 'Eurostile', 'Open Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+      box-shadow: 0 10px 28px rgba(251, 175, 51, 0.35);
+      transition: transform 0.15s;
+    }
+    .btn-primary:hover { transform: translateY(-1px); }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 16px;
+      font-family: 'Eurostile', 'Open Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-secondary:hover { border-color: var(--primary); }
+
+    .btn-sm {
+      background: rgba(251, 175, 51, 0.18);
+      color: var(--primary);
+      border: 1px solid rgba(251, 175, 51, 0.45);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-sm:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
+      gap: 10px;
+      margin: 14px 0 18px;
+    }
+    .stat-tile {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      text-align: center;
+    }
+    .stat-tile-val {
+      font-family: 'Eurostile', 'Open Sans', sans-serif;
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .stat-tile-lbl {
+      font-size: 10.5px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-top: 2px;
+    }
+
+    .ach-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 8px;
+    }
+    .ach-row {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 11px;
+      display: flex;
+      gap: 9px;
+      align-items: center;
+      opacity: 0.55;
+    }
+    .ach-row.unlocked {
+      opacity: 1;
+      border-color: rgba(34, 197, 94, 0.45);
+      background: rgba(34, 197, 94, 0.09);
+    }
+
+    @media (max-width: 600px) {
+      .hud-val { font-size: 15px; }
+      .hud-pill { padding: 5px 9px; }
+      .modal-card { padding: 18px 15px; }
+      .ctrl-btn { height: 50px; min-width: 48px; }
+      .ctrl-btn.drop-btn { min-width: 98px; height: 56px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="game-canvas-wrap"></div>
+  <div id="fx-vignette"></div>
+  <div id="fx-popups"></div>
+  <div id="biome-banner">❄️ Victorian High Street</div>
+  <div id="ach-toast">
+    <span style="font-size: 22px;">🏆</span>
+    <div>
+      <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: #FBAF33; font-weight: 800;">Achievement Unlocked!</div>
+      <div id="ach-toast-name" style="font-size: 13px; font-weight: 700; color: #fff;">First Chimney Bullseye</div>
+    </div>
+  </div>
+
+  <!-- Live HUD -->
+  <header id="hud">
+    <div class="hud-top-row">
+      <div class="hud-cluster">
+        <a href="/" class="hud-icon-btn" title="Back to Round Table Santa Sleigh">🏠</a>
+        <div class="hud-pill">
+          <div>
+            <div class="hud-label">Score</div>
+            <div class="hud-val gold" id="hud-score">0</div>
+          </div>
+          <div style="width: 1px; height: 24px; background: var(--border);"></div>
+          <div>
+            <div class="hud-label">Gifts</div>
+            <div class="hud-val" id="hud-gifts">0</div>
+          </div>
+          <div style="width: 1px; height: 24px; background: var(--border);"></div>
+          <div>
+            <div class="hud-label">Coins</div>
+            <div class="hud-val gold" id="hud-coins">0</div>
+          </div>
+          <div id="hud-timer-sep" style="width: 1px; height: 24px; background: var(--border); display: none;"></div>
+          <div id="hud-timer-box" style="display: none;">
+            <div class="hud-label">Time Left</div>
+            <div class="hud-val cyan" id="hud-timer">02:00</div>
+          </div>
+        </div>
+        <div class="combo-badge" id="hud-combo">🔥 x2</div>
+      </div>
+
+      <div class="hud-cluster">
+        <div class="hud-pill">
+          <div>
+            <div class="hud-label">Sleigh</div>
+            <div class="hud-val red" id="hud-hearts">❤️❤️❤️</div>
+          </div>
+          <div style="width: 1px; height: 24px; background: var(--border);"></div>
+          <div>
+            <div class="hud-label">Dist</div>
+            <div class="hud-val" id="hud-dist">0m</div>
+          </div>
+        </div>
+        <button class="hud-icon-btn" id="btn-mute" title="Toggle Festive Audio">🔊</button>
+        <button class="hud-icon-btn" id="btn-pause" title="Pause Game (P)">⏸️</button>
+      </div>
+    </div>
+
+    <div class="hud-sub-row">
+      <div class="turbo-meter-wrap" id="turbo-meter-wrap">
+        <span style="font-size: 14px;">🥕</span>
+        <div class="turbo-track"><div class="turbo-fill" id="hud-turbo-fill"></div></div>
+        <span id="hud-turbo-pct" style="font-size: 11px; font-weight: 800; color: var(--primary); min-width: 34px; text-align: right;">0%</span>
+      </div>
+      <div class="active-buffs" id="hud-buffs"></div>
+    </div>
+  </header>
+
+  <!-- Touch & Action Controls -->
+  <div id="controls-dock" class="hidden">
+    <div class="ctrl-group touch-steer-only">
+      <button class="ctrl-btn" id="ctrl-left" aria-label="Move Left">◀</button>
+      <button class="ctrl-btn" id="ctrl-jump" aria-label="Jump">⬆<span class="ctrl-sub">JUMP</span></button>
+      <button class="ctrl-btn" id="ctrl-right" aria-label="Move Right">▶</button>
+    </div>
+    <div class="ctrl-group" style="margin-left: auto;">
+      <button class="ctrl-btn turbo-btn" id="ctrl-turbo" aria-label="Activate Rudolph Turbo Boost">🔥 TURBO<span class="ctrl-sub">SHIFT / E</span></button>
+      <button class="ctrl-btn drop-btn" id="ctrl-drop" aria-label="Drop Present">🎁 DROP<span class="ctrl-sub">SPACE / TAP</span></button>
+    </div>
+  </div>
+
+  <!-- Main Menu / Lapland Workshop Overlay -->
+  <div id="menu-overlay" class="overlay-backdrop">
+    <div class="modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <div class="brand-eyebrow">🎅 Round Table Official Arcade</div>
+        <div style="font-size: 13px; font-weight: 800; color: var(--primary);">🪙 <span id="menu-bank-coins">0</span> Charity Coins</div>
+      </div>
+
+      <h1 class="game-title">TurboSanta: <span>Rooftop Rush 3D</span></h1>
+      <p class="lead-copy" id="menu-town-tagline">
+        Pilot Santa &amp; Rudolph over 3D moonlit streets! Aim presents down glowing chimneys, leap over rooftop aerials, and collect Magic Carrots for supersonic sleigh boost.
+      </p>
+
+      <div class="tabs-bar">
+        <button class="tab-pill active" data-tab="play">🛷 Launch Flight</button>
+        <button class="tab-pill" data-tab="workshop">🛠️ Lapland Workshop</button>
+        <button class="tab-pill" data-tab="badges">🏆 Badges (<span id="menu-badge-count">0/10</span>)</button>
+      </div>
+
+      <!-- TAB: PLAY -->
+      <div id="tab-play">
+        <div class="section-box">
+          <div class="section-box-title">
+            <span>Select Game Mode</span>
+            <span id="daily-date-label" style="color: var(--muted); font-weight: 600;"></span>
+          </div>
+          <div class="mode-grid">
+            <button class="mode-card selected" data-mode="endless">
+              <div class="mode-card-title">❄️ Endless Rooftop Run</div>
+              <div class="mode-card-desc">Fly as far as you can through 4 festive biomes as speeds escalate.</div>
+              <div class="mode-card-best">Best: <span id="best-endless">0</span></div>
+            </button>
+            <button class="mode-card" data-mode="blitz">
+              <div class="mode-card-title">⚡ 2-Min Christmas Blitz</div>
+              <div class="mode-card-desc">120-second clock! Respawn cleanly on bumps and chase pure score combos.</div>
+              <div class="mode-card-best">Best: <span id="best-blitz">0</span></div>
+            </button>
+            <button class="mode-card" data-mode="daily">
+              <div class="mode-card-title">📅 Daily Challenge</div>
+              <div class="mode-card-desc">Same seeded rooftop layout worldwide today so everyone competes fairly.</div>
+              <div class="mode-card-best">Today Best: <span id="best-daily">0</span></div>
+            </button>
+          </div>
+        </div>
+
+        <div class="section-box">
+          <div class="section-box-title">
+            <span>Represent Your Local Round Table</span>
+            <a id="menu-track-real-link" href="/" style="color: var(--cyan); text-decoration: none; font-size: 11px;">View Real Sleigh Hub ↗</a>
+          </div>
+          <select id="town-select" class="town-select">
+            <option value="national">Round Table Great Britain &amp; Ireland (National)</option>
+            <option value="beverley">Beverley Round Table #247</option>
+          </select>
+        </div>
+
+        <div class="section-box">
+          <div class="section-box-title"><span>Flight Controls</span></div>
+          <div class="controls-legend">
+            <div><span class="key-chip">A</span><span class="key-chip">D</span> / <span class="key-chip">◀</span><span class="key-chip">▶</span> Steer Lanes</div>
+            <div><span class="key-chip">W</span> / <span class="key-chip">▲</span> Jump Aerials</div>
+            <div><span class="key-chip">SPACE</span> / <span class="key-chip">▼</span> Drop Present</div>
+            <div><span class="key-chip">SHIFT</span> / <span class="key-chip">E</span> Turbo Boost</div>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="btn-start-flight">🚀 Take Off Into the Night Sky</button>
+      </div>
+
+      <!-- TAB: WORKSHOP -->
+      <div id="tab-workshop" style="display: none;">
+        <div class="section-box">
+          <div class="section-box-title"><span>Sleigh Upgrades</span></div>
+          <div class="upgrade-grid" id="upgrades-list"></div>
+        </div>
+        <div class="section-box">
+          <div class="section-box-title"><span>Unlockable Sleigh Skins</span></div>
+          <div class="upgrade-grid" id="skins-list"></div>
+        </div>
+      </div>
+
+      <!-- TAB: BADGES -->
+      <div id="tab-badges" style="display: none;">
+        <div class="ach-grid" id="badges-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pause Overlay -->
+  <div id="pause-overlay" class="overlay-backdrop hidden">
+    <div class="modal-card" style="max-width: 420px; text-align: center;">
+      <div class="brand-eyebrow">⏸️ Sleigh Hovering</div>
+      <h1 class="game-title">Flight <span>Paused</span></h1>
+      <p class="lead-copy">Catch your breath with a warm mince pie! Your chimney streak is waiting.</p>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button class="btn-primary" id="btn-resume">▶ Resume Flight</button>
+        <button class="btn-secondary" id="btn-restart-from-pause">🔄 Restart Run</button>
+        <button class="btn-secondary" id="btn-quit-to-menu">🏠 Back to Hangar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over / Run Summary Overlay -->
+  <div id="gameover-overlay" class="overlay-backdrop hidden">
+    <div class="modal-card" style="max-width: 540px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="brand-eyebrow" id="over-badge">🎄 Shift Complete</div>
+        <div id="over-new-best" style="display: none; font-size: 12px; font-weight: 800; color: #4ADE80;">✨ NEW PERSONAL BEST!</div>
+      </div>
+      <h1 class="game-title" id="over-title">Festive Run <span>Summary</span></h1>
+      <p class="lead-copy" id="over-subtitle">Great flying across the rooftops!</p>
+
+      <div class="stats-grid">
+        <div class="stat-tile">
+          <div class="stat-tile-val" id="over-score" style="color: var(--primary);">0</div>
+          <div class="stat-tile-lbl">Final Score</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-tile-val" id="over-gifts">0</div>
+          <div class="stat-tile-lbl">Chimney Hits</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-tile-val" id="over-accuracy">0%</div>
+          <div class="stat-tile-lbl">Drop Accuracy</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-tile-val" id="over-coins" style="color: var(--primary);">+0</div>
+          <div class="stat-tile-lbl">Coins Earned</div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button class="btn-primary" id="btn-play-again">🛷 Fly Again</button>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <button class="btn-secondary" id="btn-share-score">📤 Share Score</button>
+          <button class="btn-secondary" id="btn-open-workshop">🛠️ Workshop</button>
+        </div>
+        <a class="btn-secondary" id="over-real-sleigh-link" href="/">🎅 Track Real Round Table Sleigh →</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous"></script>
+  <script src="/game.js"></script>
+</body>
+</html>

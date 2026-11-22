@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  MapPin, Search, ArrowRight, Shield, Sparkles, Navigation, Calendar, Heart, CheckCircle2, Users, ExternalLink
+  MapPin, Search, ArrowRight, Shield, Sparkles, Navigation, Calendar, Heart, CheckCircle2, Users, ExternalLink, Gamepad2
 } from 'lucide-react';
 import { fetchPublicTables } from '../services/api';
 
@@ -124,6 +124,38 @@ export default function PublicDirectory({ session, onNavigateAdmin, onSelectTabl
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <a
+            href="/game"
+            style={{
+              backgroundColor: 'rgba(211, 28, 28, 0.22)',
+              color: '#ffffff',
+              border: '1px solid rgba(251, 175, 51, 0.55)',
+              borderRadius: '8px',
+              padding: '8px 14px',
+              fontFamily: 'Eurostile, sans-serif',
+              fontWeight: 800,
+              fontSize: '11px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.6px',
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.15s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#D31C1C';
+              e.currentTarget.style.borderColor = '#FBAF33';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(211, 28, 28, 0.22)';
+              e.currentTarget.style.borderColor = 'rgba(251, 175, 51, 0.55)';
+            }}
+          >
+            <Gamepad2 size={14} color="#FBAF33" />
+            <span>Play 3D Sleigh Game</span>
+          </a>
+
           <a
             href="https://www.roundtable.co.uk/contact"
             target="_blank"

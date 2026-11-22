@@ -38,7 +38,8 @@ const CLEAN_ROUTE_MAP = {
   '/v1': '/sleigh_v2.html',
   '/santasleigh': '/sleigh_v2.html',
   '/v2': '/sleigh_v2.html',
-  '/sleigh_v2': '/sleigh_v2.html'
+  '/sleigh_v2': '/sleigh_v2.html',
+  '/game': '/game.html'
 };
 
 const FullPageLoader = ({ label = 'Loading Sleigh Radar...' }) => (
