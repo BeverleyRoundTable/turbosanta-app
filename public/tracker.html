@@ -788,7 +788,8 @@
     
     .driver-mode { max-width: 500px; margin: 0 auto; position: relative; border-left: 1px solid var(--border); border-right: 1px solid var(--border); box-shadow: 0 0 40px rgba(0,0,0,0.8); }
     .driver-progress-box { font-family: 'Eurostile', sans-serif; letter-spacing: 2px; display: none; position: absolute; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); background: rgba(29, 29, 26, 0.95); border: 3px solid var(--primary); color: var(--primary); padding: 12px 32px; font-size: clamp(2em, 8vw, 3em); font-weight: 900; border-radius: 24px; z-index: 5000; box-shadow: 0 10px 40px rgba(0,0,0,0.8), inset 0 0 15px rgba(var(--primary-rgb), 0.2); text-align: center; pointer-events: none; }
-    body.driver-mode.nav-active .driver-progress-box { display: none; }
+    body.driver-mode.nav-active .driver-progress-box,
+    body.driver-mode.nav-active .status-popup { display: none !important; }
     body.driver-mode .donate-box, body.driver-mode .info-popup, body.driver-mode .install-overlay, body.driver-mode .ios-install-prompt { display: none !important; }
     body.driver-mode.nav-active .maplibregl-ctrl-bottom-right,
     body.driver-mode.nav-active .maplibregl-ctrl-bottom-left { bottom: calc(66px + env(safe-area-inset-bottom, 0px)); }
@@ -820,7 +821,7 @@
       bottom: calc(18px + env(safe-area-inset-bottom, 0px));
       left: 50%;
       transform: translateX(-50%);
-      z-index: 4500;
+      z-index: 4700;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -886,14 +887,14 @@
       display: flex;
       align-items: center;
       gap: 14px;
-      padding: 16px 18px 12px 18px;
+      padding: 14px 16px 10px 16px;
     }
 
     #navBanner .nav-icon {
-      font-size: 2.8em;
+      font-size: 2.6em;
       line-height: 1;
       flex-shrink: 0;
-      width: 64px;
+      width: 56px;
       text-align: center;
       filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
     }
@@ -902,18 +903,21 @@
 
     #navBanner .nav-dist {
       font-family: 'Eurostile', sans-serif;
-      letter-spacing: 3px;
-      font-size: 2.6em;
+      letter-spacing: 2px;
+      font-size: 2.15em;
       font-weight: 900;
       color: var(--primary);
-      line-height: 1;
+      line-height: 1.05;
       text-shadow: 0 0 20px rgba(var(--primary-rgb), 0.3);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     #navBanner .nav-road {
-      font-size: 1.1em;
+      font-size: 1.05em;
       font-weight: 800;
-      margin-top: 4px;
+      margin-top: 3px;
       color: #fff;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -921,7 +925,7 @@
     }
 
     #navBanner .nav-instruction {
-      font-size: 0.85em;
+      font-size: 0.84em;
       font-weight: 600;
       margin-top: 2px;
       color: var(--text-dim);
@@ -935,8 +939,8 @@
       background: var(--surface-2);
       border: 2px solid var(--border-primary);
       color: var(--primary);
-      font-size: 1.3em;
-      width: 48px; height: 48px;
+      font-size: 1.25em;
+      width: 46px; height: 46px;
       border-radius: 50%;
       cursor: pointer;
       flex-shrink: 0;
@@ -948,27 +952,367 @@
       background: var(--primary-dim);
     }
 
+    .nav-current-street {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 16px;
+      background: rgba(251, 175, 51, 0.12);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.8em;
+      font-weight: 800;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
+    .nav-current-street-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.8);
+      flex-shrink: 0;
+    }
+    .nav-current-street-label {
+      color: var(--primary);
+      font-size: 0.85em;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      flex-shrink: 0;
+    }
+    #navCurrentStreetEl {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+      min-width: 0;
+    }
+
     /* Speed + ETA strip at bottom of nav banner */
     .nav-meta-strip {
       display: flex;
       justify-content: space-between;
-      padding: 8px 18px 10px 18px;
-      background: rgba(0,0,0,0.3);
+      align-items: center;
+      gap: 8px;
+      padding: 7px 16px 9px 16px;
+      background: rgba(0,0,0,0.34);
       border-top: 1px solid var(--border);
-      font-size: 0.8em;
+      font-size: 0.78em;
       font-weight: 700;
       color: var(--text-dim);
-      letter-spacing: 0.5px;
+      letter-spacing: 0.4px;
     }
-    .nav-meta-strip .nav-speed { color: var(--text); }
-    .nav-meta-strip .nav-eta { color: var(--primary); }
+    .nav-meta-strip .nav-speed { color: var(--text); white-space: nowrap; flex-shrink: 0; }
+    .nav-meta-strip .nav-eta { color: var(--primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
 
     #navBanner.off-route {
-      border-bottom-color: var(--red);
-      box-shadow: 0 6px 28px rgba(211,28,28,0.3), 0 2px 0 rgba(211,28,28,0.15) inset;
+      border-bottom-color: #38bdf8;
+      box-shadow: 0 6px 28px rgba(56, 189, 248, 0.32), 0 2px 0 rgba(56, 189, 248, 0.2) inset;
     }
-    #navBanner.off-route .nav-dist { color: var(--red); text-shadow: 0 0 20px rgba(211,28,28,0.4); }
-    #navBanner.off-route .nav-road { color: var(--red); }
+    #navBanner.off-route .nav-dist { color: #38bdf8; text-shadow: 0 0 18px rgba(56, 189, 248, 0.45); font-size: 1.32em; letter-spacing: 0.6px; }
+    #navBanner.off-route .nav-road { color: #bae6fd; }
+    #navBanner.off-route .nav-current-street { background: rgba(56, 189, 248, 0.14); }
+
+    @media (max-width: 420px) {
+      .nav-top-row { gap: 10px; padding: 10px 12px 8px 12px; }
+      #navBanner .nav-icon { width: 42px; font-size: 1.9em; }
+      #navBanner .nav-dist { font-size: 1.5em; letter-spacing: 0.8px; }
+      #navBanner.off-route .nav-dist { font-size: 1.08em; letter-spacing: 0.4px; }
+      #navBanner .nav-road { font-size: 0.96em; }
+      #navBanner .nav-instruction { font-size: 0.78em; }
+      #navBanner .nav-mute { width: 40px; height: 40px; font-size: 1.1em; }
+      .nav-current-street { padding: 5px 12px; font-size: 0.76em; }
+      .nav-meta-strip { padding: 6px 12px 8px 12px; font-size: 0.74em; }
+    }
+
+    /* ── SANTA STOP PINS & TAP-TO-ARRIVE UI ── */
+    .santa-stop-pin {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #d31c1c;
+      border: 2.5px solid #ffffff;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Open Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 900;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.65);
+      cursor: pointer;
+      pointer-events: auto;
+      position: relative;
+      transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body.driver-mode .santa-stop-pin {
+      width: 34px;
+      height: 34px;
+      font-size: 13px;
+    }
+    .santa-stop-pin.is-approaching {
+      border-color: #fbaf33;
+      box-shadow: 0 0 0 6px rgba(251, 175, 51, 0.35), 0 4px 14px rgba(0, 0, 0, 0.75);
+      animation: stopPulse 1.5s infinite;
+    }
+    .santa-stop-pin.is-arrived {
+      background: #22c55e;
+      border-color: #dcfce7;
+      color: #052e16;
+      box-shadow: 0 0 18px rgba(34, 197, 94, 0.9), 0 4px 12px rgba(0, 0, 0, 0.65);
+      animation: none;
+    }
+    .santa-stop-check {
+      display: none;
+      font-size: 15px;
+      font-weight: 900;
+      line-height: 1;
+    }
+    .santa-stop-pin.is-arrived .santa-stop-num { display: none; }
+    .santa-stop-pin.is-arrived .santa-stop-check { display: inline-block; }
+    @keyframes stopPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    body.driver-mode .maplibregl-popup-content {
+      background: rgba(18, 18, 16, 0.96);
+      color: #ffffff;
+      border: 1px solid rgba(251, 175, 51, 0.45);
+      border-radius: 14px;
+      padding: 10px 12px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.8);
+    }
+    body.driver-mode .maplibregl-popup-tip {
+      border-top-color: rgba(18, 18, 16, 0.96);
+      border-bottom-color: rgba(18, 18, 16, 0.96);
+    }
+    .stop-action-card {
+      min-width: 175px;
+      max-width: 230px;
+      font-family: 'Open Sans', sans-serif;
+    }
+    .stop-action-title {
+      font-weight: 800;
+      font-size: 13px;
+      color: #fff;
+      margin-bottom: 3px;
+      line-height: 1.25;
+    }
+    .stop-action-meta {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.72);
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+    .stop-action-btn {
+      width: 100%;
+      border: none;
+      border-radius: 9px;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: 'Open Sans', sans-serif;
+      background: #22c55e;
+      color: #052e16;
+    }
+    .stop-action-btn.is-undo {
+      background: rgba(255, 255, 255, 0.14);
+      color: #fde68a;
+      border: 1px solid rgba(251, 175, 51, 0.5);
+    }
+
+    #driverStopBar {
+      position: fixed;
+      bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 20px);
+      max-width: 460px;
+      background: rgba(16, 16, 14, 0.95);
+      border: 1.5px solid rgba(251, 175, 51, 0.45);
+      border-radius: 14px;
+      padding: 7px 10px;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      z-index: 4600;
+      box-shadow: 0 6px 22px rgba(0, 0, 0, 0.65);
+      box-sizing: border-box;
+      font-family: 'Open Sans', sans-serif;
+    }
+    #driverStopBar.visible { display: flex; }
+    .driver-stop-summary {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 1;
+      background: transparent;
+      border: none;
+      padding: 0;
+      color: #fff;
+      text-align: left;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .driver-stop-count {
+      background: rgba(211, 28, 28, 0.25);
+      border: 1px solid rgba(255, 107, 107, 0.55);
+      color: #fecaca;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 900;
+      flex-shrink: 0;
+    }
+    .driver-stop-count.all-done {
+      background: rgba(34, 197, 94, 0.22);
+      border-color: rgba(34, 197, 94, 0.65);
+      color: #86efac;
+    }
+    .driver-stop-next {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 12px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .driver-stop-next small {
+      color: var(--primary);
+      font-weight: 700;
+      margin-left: 4px;
+    }
+    .driver-stop-quick-btn {
+      background: #22c55e;
+      color: #052e16;
+      border: none;
+      border-radius: 10px;
+      padding: 7px 11px;
+      font-size: 11.5px;
+      font-weight: 900;
+      cursor: pointer;
+      flex-shrink: 0;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+    .driver-stop-quick-btn:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    #driverStopsSheet {
+      position: fixed;
+      bottom: calc(116px + env(safe-area-inset-bottom, 0px));
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 20px);
+      max-width: 460px;
+      max-height: 46vh;
+      background: rgba(16, 16, 14, 0.98);
+      border: 1.5px solid rgba(251, 175, 51, 0.55);
+      border-radius: 16px;
+      padding: 12px;
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 6500;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.85);
+      box-sizing: border-box;
+      font-family: 'Open Sans', sans-serif;
+    }
+    #driverStopsSheet.open { display: flex; }
+    .driver-stops-sheet-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 900;
+      color: var(--primary);
+    }
+    .driver-stops-list {
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-right: 2px;
+    }
+    .driver-stop-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 7px 10px;
+    }
+    .driver-stop-row.is-arrived {
+      background: rgba(34, 197, 94, 0.14);
+      border-color: rgba(34, 197, 94, 0.55);
+    }
+    .driver-stop-row-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 1;
+    }
+    .driver-stop-dot {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #d31c1c;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .driver-stop-row.is-arrived .driver-stop-dot {
+      background: #22c55e;
+      color: #052e16;
+    }
+    .driver-stop-row-name {
+      font-size: 12.5px;
+      font-weight: 800;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .driver-stop-row-dist {
+      font-size: 10.5px;
+      color: rgba(255, 255, 255, 0.6);
+      font-weight: 700;
+    }
+    .driver-stop-row-btn {
+      border: none;
+      border-radius: 8px;
+      padding: 6px 9px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      flex-shrink: 0;
+      background: rgba(34, 197, 94, 0.9);
+      color: #052e16;
+      font-family: inherit;
+    }
+    .driver-stop-row.is-arrived .driver-stop-row-btn {
+      background: rgba(255, 255, 255, 0.14);
+      color: #fde68a;
+    }
 
     .twitch-container { position: fixed; bottom: calc(var(--info-bottom) + 80px); right: 12px; width: 640px; height: 360px; background: var(--surface-2); border: 2px solid var(--primary); border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); z-index: 3000; overflow: hidden; transform: translateX(120%); opacity: 0; transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; }
     .twitch-container.visible { transform: translateX(0); opacity: 1; pointer-events: auto; }
@@ -2713,7 +3057,7 @@
       const AppState = {
         map: null, mlMap: null, marker: null, startMarker: null, endMarker: null, stopMarkers: [], notifyMarker: null, gpxRoute: null, lastFix: null, recentFixes: [], routeFixes: [],
         flags: { follow: true, firstFix: true, needsLiveZoom: true, isKiosk: false, isDemo: false, isEmbedded: isEmbedded, gpxLoaded: false, snowActive: false, pageVisible: !document.hidden, awaitingPin: false, browserNotified: sessionStorage.getItem("SANTA_BROWSER_NOTIFIED") === "1", hasPassedSticky: sessionStorage.getItem("SANTA_HAS_PASSED") === "1", celebrationFired: sessionStorage.getItem("SANTA_CELEBRATION_FIRED") === "1", musicEnabled: false, beaconActive: false, proximityBellsFired: false },
-        vars: { apiUrl: null, tableSlug: "", sleighName: "Santa Sleigh", staleSince: null, lastSnapIndex: 0, snowflakes: [], animRaf: null, pendingSubscription: null, notifyLatLng: null, lastVisualPos: null, escapeListener: null, lastElfCamUrl: null, lastSeenMsgTs: Number(sessionStorage.getItem('SANTA_LAST_MSG_TS')) || 0, pollTimer: null, consecutiveErrors: 0, musicUrl: null, currentMapHeading: 0, latestApiData: null, lastSettingsFetch: 0, lastTxTime: 0, lastLeafletRouteIdx: -1, lastMlRouteIdx: -1, userSnapCache: null, etaEmaSec: null, minPinDistSeen: null },
+        vars: { apiUrl: null, tableSlug: "", sleighName: "Santa Sleigh", staleSince: null, lastSnapIndex: 0, maxProgressIndex: 0, hasLockedOnRoute: false, isOffRoute: false, lastRejoinPoint: null, driverHeading: null, snowflakes: [], animRaf: null, pendingSubscription: null, notifyLatLng: null, lastVisualPos: null, escapeListener: null, lastElfCamUrl: null, lastSeenMsgTs: Number(sessionStorage.getItem('SANTA_LAST_MSG_TS')) || 0, pollTimer: null, consecutiveErrors: 0, musicUrl: null, currentMapHeading: 0, latestApiData: null, lastSettingsFetch: 0, lastTxTime: 0, lastLeafletRouteIdx: -1, lastMlRouteIdx: -1, userSnapCache: null, etaEmaSec: null, minPinDistSeen: null },
         dom: { loading: document.getElementById("loadingCover"), statusBox: document.getElementById("statusBox"), followBtn: document.getElementById("followBtn"), recenterBtn: document.getElementById("recenterBtn"), notifyBtn: document.getElementById("notifyBtn"), msgBtn: document.getElementById("msgBtn"), statusDot: document.getElementById("statusDot"), donateLink: document.getElementById("donateLink"), donateBox: document.getElementById("donateBox"), kioskBanner: document.getElementById("kioskBanner"), sponsorBox: document.getElementById("kioskSponsor"), toast: document.getElementById("toast"), snowCanvas: document.getElementById("snow"), shareBtn: document.getElementById("shareBtn"), fireworks: document.getElementById("fireworks") }
       };
 
@@ -2858,10 +3202,206 @@
           AppState.gpxRoute = route;
           AppState.flags.gpxLoaded = true;
           AppState.vars.lastSnapIndex = 0;
+          AppState.vars.maxProgressIndex = 0;
+          AppState.vars.hasLockedOnRoute = false;
+          AppState.vars.isOffRoute = false;
+          AppState.vars.lastRejoinPoint = null;
+          if (typeof StopManager !== 'undefined') {
+            StopManager.resolveStops(AppState.vars.activeRoute || AppState.vars.todayRoute);
+          }
         } catch (e) {
           AppState.gpxRoute = null;
           AppState.flags.gpxLoaded = false;
+          if (typeof StopManager !== 'undefined') {
+            StopManager.resolveStops(AppState.vars.activeRoute || AppState.vars.todayRoute);
+          }
         }
+      }
+
+      function snapToLineSegment(pos, snapIdx, minIndex = 0) {
+        if (!AppState.gpxRoute || snapIdx < 0 || snapIdx >= AppState.gpxRoute.length) return null;
+        const route = AppState.gpxRoute;
+        const floorIdx = Math.max(0, Math.min(route.length - 1, minIndex || 0));
+        const clampedSnapIdx = Math.max(floorIdx, Math.min(route.length - 1, snapIdx));
+        let bestPt = { ...route[clampedSnapIdx], index: clampedSnapIdx };
+        let bestDist = Utils.haversineMeters(pos, bestPt);
+
+        const segments = [];
+        if (clampedSnapIdx > floorIdx) segments.push([clampedSnapIdx - 1, clampedSnapIdx]);
+        if (clampedSnapIdx < route.length - 1) segments.push([clampedSnapIdx, clampedSnapIdx + 1]);
+
+        for (const [iA, iB] of segments) {
+          const a = route[iA], b = route[iB];
+          const dx = b.lng - a.lng, dy = b.lat - a.lat;
+          const lenSq = dx * dx + dy * dy;
+          if (lenSq === 0) continue;
+          let t = ((pos.lng - a.lng) * dx + (pos.lat - a.lat) * dy) / lenSq;
+          t = Math.max(0, Math.min(1, t));
+          const projected = {
+            lat: a.lat + t * dy,
+            lng: a.lng + t * dx,
+            dist: a.dist + t * (b.dist - a.dist),
+            index: Math.max(floorIdx, Math.min(route.length - 1, t >= 0.5 ? iB : iA)),
+            roadName: (t >= 0.5 ? (b.roadName || a.roadName) : (a.roadName || b.roadName)) || ''
+          };
+          const d = Utils.haversineMeters(pos, projected);
+          if (d < bestDist) {
+            bestDist = d;
+            bestPt = projected;
+          }
+        }
+        return { point: bestPt, distance: bestDist };
+      }
+
+      function findNearestUpcomingRejoinPoint(pos, fromIndex) {
+        const route = AppState.gpxRoute;
+        if (!route || !route.length || !pos) return null;
+        const startIdx = Math.max(0, Math.min(route.length - 1, Math.floor(fromIndex || 0)));
+        let bestIdx = startIdx;
+        let bestDist = Infinity;
+        for (let i = startIdx; i < route.length; i++) {
+          const d = Utils.haversineMeters(pos, route[i]);
+          if (d < bestDist) {
+            bestDist = d;
+            bestIdx = i;
+          }
+        }
+        const seg = snapToLineSegment(pos, bestIdx, startIdx);
+        let point = route[bestIdx];
+        let index = bestIdx;
+        let distance = bestDist;
+        if (seg && seg.point && seg.distance <= bestDist) {
+          point = seg.point;
+          index = Math.max(startIdx, typeof seg.point.index === 'number' ? seg.point.index : bestIdx);
+          distance = seg.distance;
+        }
+        let targetLabel = (point && point.roadName) ? point.roadName : '';
+        if (!targetLabel && typeof StopManager !== 'undefined' && Array.isArray(StopManager.stops)) {
+          let nearStop = null;
+          let nearStopDist = Infinity;
+          for (const st of StopManager.stops) {
+            if (StopManager.isArrived(st.key)) continue;
+            if (typeof st.routeIdx === 'number' && st.routeIdx < startIdx) continue;
+            const dStop = Utils.haversineMeters(point, st);
+            if (dStop <= 150 && dStop < nearStopDist) {
+              nearStopDist = dStop;
+              nearStop = st;
+            }
+          }
+          if (nearStop) targetLabel = nearStop.name;
+        }
+        if (!targetLabel && typeof TurnByTurn !== 'undefined' && Array.isArray(TurnByTurn.steps)) {
+          for (const st of TurnByTurn.steps) {
+            if (st.type !== 'depart' && st.gpxIdx >= index && st.roadName) {
+              targetLabel = st.roadName;
+              break;
+            }
+          }
+        }
+        if (!targetLabel) targetLabel = 'Route ahead';
+        return {
+          point,
+          index,
+          distance,
+          bearing: Utils.bearingBetween(pos, point),
+          targetLabel
+        };
+      }
+
+      function snapDriverToRoute(rawPos, headingDeg = null) {
+        const route = AppState.gpxRoute;
+        if (!route || !route.length || !rawPos) return null;
+        const ON_ROUTE_SNAP_M = 45;
+
+        if (!AppState.vars.hasLockedOnRoute) {
+          let bestIdx = 0;
+          let bestDist = Infinity;
+          for (let i = 0; i < route.length; i++) {
+            const d = Utils.haversineMeters(rawPos, route[i]);
+            if (d < bestDist) {
+              bestDist = d;
+              bestIdx = i;
+            }
+          }
+          const seg = snapToLineSegment(rawPos, bestIdx, 0);
+          const point = (seg && seg.point) ? seg.point : route[bestIdx];
+          const distance = (seg && typeof seg.distance === 'number') ? seg.distance : bestDist;
+          const idx = (point && typeof point.index === 'number') ? point.index : bestIdx;
+          if (distance <= ON_ROUTE_SNAP_M) {
+            AppState.vars.hasLockedOnRoute = true;
+            AppState.vars.lastSnapIndex = idx;
+            AppState.vars.maxProgressIndex = Math.max(AppState.vars.maxProgressIndex || 0, idx);
+            AppState.vars.isOffRoute = false;
+            AppState.vars.lastRejoinPoint = null;
+            return { isOnRoute: true, point, index: idx, distance };
+          }
+          const rejoin = findNearestUpcomingRejoinPoint(rawPos, 0);
+          AppState.vars.isOffRoute = true;
+          AppState.vars.lastRejoinPoint = rejoin;
+          return {
+            isOnRoute: false,
+            point: rejoin ? rejoin.point : route[idx],
+            index: rejoin ? rejoin.index : idx,
+            distance: rejoin ? rejoin.distance : distance,
+            rejoin
+          };
+        }
+
+        const curSnap = Math.max(0, Math.min(route.length - 1, AppState.vars.lastSnapIndex || 0));
+        const winStart = Math.max(0, curSnap - 8);
+        const winEnd = Math.min(route.length - 1, curSnap + 160);
+        let bestIdx = curSnap;
+        let bestScore = Infinity;
+        let bestDist = Infinity;
+
+        for (let i = winStart; i <= winEnd; i++) {
+          const d = Utils.haversineMeters(rawPos, route[i]);
+          let score = d;
+          if (i < curSnap) score += 10;
+          if (typeof headingDeg === 'number' && !isNaN(headingDeg) && i < route.length - 1) {
+            const segBrg = Utils.bearingBetween(route[i], route[i + 1]);
+            let aDiff = Math.abs(segBrg - headingDeg);
+            if (aDiff > 180) aDiff = 360 - aDiff;
+            if (aDiff > 110) score += 8;
+          }
+          if (score < bestScore - 0.5) {
+            bestScore = score;
+            bestDist = d;
+            bestIdx = i;
+          }
+        }
+
+        if (bestDist <= ON_ROUTE_SNAP_M) {
+          const seg = snapToLineSegment(rawPos, bestIdx, winStart);
+          if (seg && seg.distance <= ON_ROUTE_SNAP_M) {
+            const idx = Math.max(0, Math.min(route.length - 1, typeof seg.point.index === 'number' ? seg.point.index : bestIdx));
+            AppState.vars.lastSnapIndex = idx;
+            AppState.vars.maxProgressIndex = Math.max(AppState.vars.maxProgressIndex || 0, idx);
+            AppState.vars.isOffRoute = false;
+            AppState.vars.lastRejoinPoint = null;
+            return { isOnRoute: true, point: seg.point, index: idx, distance: seg.distance };
+          }
+        }
+
+        const progressFloor = Math.max(0, Math.min(route.length - 1, AppState.vars.maxProgressIndex || 0));
+        const rejoin = findNearestUpcomingRejoinPoint(rawPos, progressFloor);
+        if (rejoin && rejoin.distance <= ON_ROUTE_SNAP_M) {
+          AppState.vars.lastSnapIndex = rejoin.index;
+          AppState.vars.maxProgressIndex = Math.max(progressFloor, rejoin.index);
+          AppState.vars.isOffRoute = false;
+          AppState.vars.lastRejoinPoint = null;
+          return { isOnRoute: true, rejoined: true, point: rejoin.point, index: rejoin.index, distance: rejoin.distance };
+        }
+
+        AppState.vars.isOffRoute = true;
+        AppState.vars.lastRejoinPoint = rejoin;
+        return {
+          isOnRoute: false,
+          point: route[progressFloor],
+          index: progressFloor,
+          distance: rejoin ? rejoin.distance : bestDist,
+          rejoin
+        };
       }
 
       function snapToGpxIndex(pos, searchOpts) {
@@ -2883,17 +3423,47 @@
             bestIndex = i;
           }
         }
-        // If local window missed (e.g. viewer opened map mid-route or after a deep cul-de-sac), recover via full-route search
+        // If local window missed, search forward first before checking backward so diversions do not snap back to start
         if (!isGlobalSearch && bestDist > 45) {
-          for (let i = 0; i < AppState.gpxRoute.length; i++) {
+          let fwdIdx = bestIndex;
+          let fwdDist = Infinity;
+          const fwdStart = Math.max(0, AppState.vars.lastSnapIndex);
+          for (let i = fwdStart; i < AppState.gpxRoute.length; i++) {
             const d = Utils.haversineMeters(pos, AppState.gpxRoute[i]);
-            if (d < bestDist) {
-              bestDist = d;
-              bestIndex = i;
+            if (d < fwdDist) {
+              fwdDist = d;
+              fwdIdx = i;
+            }
+          }
+          if (fwdDist <= 120 || !AppState.vars.hasLockedOnRoute) {
+            bestDist = fwdDist;
+            bestIndex = fwdIdx;
+          } else {
+            let bwdIdx = bestIndex;
+            let bwdDist = Infinity;
+            for (let i = 0; i < fwdStart; i++) {
+              const d = Utils.haversineMeters(pos, AppState.gpxRoute[i]);
+              if (d < bwdDist) {
+                bwdDist = d;
+                bwdIdx = i;
+              }
+            }
+            if (bwdDist <= 35 && bwdDist < fwdDist) {
+              bestDist = bwdDist;
+              bestIndex = bwdIdx;
+            } else {
+              bestDist = fwdDist;
+              bestIndex = fwdIdx;
             }
           }
         }
-        if (!isGlobalSearch && bestDist <= 60) AppState.vars.lastSnapIndex = bestIndex;
+        if (!isGlobalSearch && bestDist <= 60) {
+          AppState.vars.lastSnapIndex = bestIndex;
+          AppState.vars.hasLockedOnRoute = true;
+          if (bestIndex > (AppState.vars.maxProgressIndex || 0)) {
+            AppState.vars.maxProgressIndex = bestIndex;
+          }
+        }
         return { point: AppState.gpxRoute[bestIndex], distance: bestDist };
       }
 
@@ -3070,15 +3640,27 @@
               }
             }
 
+            let minI = 0;
             for (const s of steps) {
-              let bestI = 0, bestD = Infinity;
-              for (let i = 0; i < gpxRoute.length; i++) {
+              let bestI = minI, bestD = Infinity;
+              const backStart = Math.max(0, minI - 4);
+              for (let i = backStart; i < gpxRoute.length; i++) {
                 const d = Utils.haversineMeters(s.loc, gpxRoute[i]);
                 if (d < bestD) { bestD = d; bestI = i; }
               }
               s.gpxIdx = bestI;
+              minI = Math.max(minI, bestI);
             }
             steps.sort((a, b) => a.gpxIdx - b.gpxIdx);
+            for (let k = 0; k < steps.length; k++) {
+              const rName = String(steps[k].roadName || steps[k].name || '').trim();
+              if (!rName) continue;
+              const startI = Math.max(0, steps[k].gpxIdx || 0);
+              const endI = (k + 1 < steps.length) ? Math.min(gpxRoute.length, steps[k + 1].gpxIdx) : gpxRoute.length;
+              for (let i = startI; i < endI; i++) {
+                if (!gpxRoute[i].roadName) gpxRoute[i].roadName = rName;
+              }
+            }
             return steps;
           } catch (e) {
             console.warn('[TBT] OSRM unavailable:', e.message);
@@ -3176,11 +3758,19 @@
               );
               if (!res.ok) continue;
               const data = await res.json();
-              const road = data.address?.road || data.address?.pedestrian || data.address?.path;
+              const road = data.address?.road || data.address?.pedestrian || data.address?.residential || data.address?.path;
               if (road) {
                 step.name = road;
                 step.roadName = road;
                 step.instruction = `Turn ${step.mod} onto ${road}`;
+                if (AppState.gpxRoute && Array.isArray(AppState.gpxRoute)) {
+                  const sIdx = steps.indexOf(step);
+                  const startI = Math.max(0, step.gpxIdx || 0);
+                  const endI = (sIdx >= 0 && sIdx + 1 < steps.length) ? Math.min(AppState.gpxRoute.length, steps[sIdx + 1].gpxIdx) : AppState.gpxRoute.length;
+                  for (let i = startI; i < endI; i++) {
+                    if (!AppState.gpxRoute[i].roadName) AppState.gpxRoute[i].roadName = road;
+                  }
+                }
                 enriched++;
               }
             } catch (e) {}
@@ -3188,6 +3778,34 @@
           }
           
           console.info(`[TBT] Road names: ${enriched}/${turnSteps.length} enriched`);
+        },
+
+        getCurrentLegRoad(snapIdx) {
+          if (!TurnByTurn.steps || !TurnByTurn.steps.length || typeof snapIdx !== 'number') return '';
+          let best = '';
+          for (let i = 0; i < TurnByTurn.steps.length; i++) {
+            const st = TurnByTurn.steps[i];
+            if ((st.gpxIdx || 0) <= snapIdx) {
+              if (st.roadName) best = st.roadName;
+            } else {
+              break;
+            }
+          }
+          return best;
+        },
+
+        compassCardinal(deg) {
+          if (typeof deg !== 'number' || isNaN(deg)) return 'ahead';
+          const dirs = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'];
+          return dirs[Math.round(((deg % 360) + 360) % 360 / 45) % 8];
+        },
+
+        arrowForBearing(targetBearing, headingDeg) {
+          if (typeof targetBearing !== 'number' || isNaN(targetBearing)) return '🔄';
+          if (typeof headingDeg !== 'number' || isNaN(headingDeg)) return '🧭';
+          const rel = ((targetBearing - headingDeg) + 360) % 360;
+          const arrows = ['⬆️', '↗️', '➡️', '↘️', '⬇️', '↙️', '⬅️', '↖️'];
+          return arrows[Math.round(rel / 45) % 8];
         },
 
         buildInstruction(s) {
@@ -3242,6 +3860,11 @@
               </div>
               <button class="nav-mute" id="navMuteBtn" aria-label="Toggle voice">🔊</button>
             </div>
+            <div class="nav-current-street">
+              <span class="nav-current-street-dot"></span>
+              <span class="nav-current-street-label">ON</span>
+              <span id="navCurrentStreetEl">Locating street…</span>
+            </div>
             <div class="nav-meta-strip">
               <span class="nav-speed" id="navSpeedEl">— mph</span>
               <span class="nav-eta" id="navEtaEl">Route in progress</span>
@@ -3254,7 +3877,8 @@
             navIcon: document.getElementById('navIconEl'),
             navRoad: document.getElementById('navRoadEl'),
             navText: document.getElementById('navTextEl'),
-            navDist: document.getElementById('navDistEl')
+            navDist: document.getElementById('navDistEl'),
+            navCurrentStreet: document.getElementById('navCurrentStreetEl')
           };
           document.getElementById('navMuteBtn').onclick = () => {
             TurnByTurn.muted = !TurnByTurn.muted;
@@ -3264,7 +3888,7 @@
           return el;
         },
 
-        update(snapIdx, snapDistance, speedMps) {
+        update(snapIdx, snapDistance, speedMps, ctx = {}) {
           if (!TurnByTurn.steps || !TurnByTurn.steps.length || !AppState.gpxRoute) return;
           const banner = TurnByTurn.ensureBanner();
           banner.classList.add('ready');
@@ -3276,9 +3900,13 @@
             if (speedEl) speedEl.textContent = `${mph} mph`;
           }
 
+          const offRoute = (typeof ctx.isOffRoute === 'boolean') ? ctx.isOffRoute : (snapDistance > 60);
+          const rejoin = (offRoute && ctx.rejoin) ? ctx.rejoin : null;
+          const effIdx = rejoin ? Math.max(0, Math.min(AppState.gpxRoute.length - 1, rejoin.index || 0)) : Math.max(0, Math.min(AppState.gpxRoute.length - 1, snapIdx || 0));
+
           const totalDist = AppState.gpxRoute[AppState.gpxRoute.length - 1].dist;
-          const currentDist = AppState.gpxRoute[snapIdx] ? AppState.gpxRoute[snapIdx].dist : 0;
-          const remaining = totalDist - currentDist;
+          const currentDist = AppState.gpxRoute[effIdx] ? AppState.gpxRoute[effIdx].dist : 0;
+          const remaining = Math.max(0, (totalDist - currentDist) + (rejoin ? rejoin.distance : 0));
           const etaEl = TurnByTurn.els.navEta;
           if (etaEl) {
             if (TurnByTurn.lastSpeed > 0.5) {
@@ -3290,35 +3918,53 @@
             }
           }
 
-          while (TurnByTurn.cursor < TurnByTurn.steps.length - 1 &&
-                 TurnByTurn.steps[TurnByTurn.cursor].gpxIdx <= snapIdx - 1) {
-            TurnByTurn.cursor++;
+          if (offRoute && rejoin) {
+            while (TurnByTurn.cursor < TurnByTurn.steps.length - 1 &&
+                   (TurnByTurn.steps[TurnByTurn.cursor].gpxIdx < effIdx || TurnByTurn.steps[TurnByTurn.cursor].type === 'depart')) {
+              TurnByTurn.cursor++;
+            }
+          } else {
+            while (TurnByTurn.cursor < TurnByTurn.steps.length - 1 &&
+                   ((TurnByTurn.steps[TurnByTurn.cursor].type === 'depart' && effIdx >= 1) ||
+                    (TurnByTurn.steps[TurnByTurn.cursor].type !== 'arrive' && TurnByTurn.steps[TurnByTurn.cursor].gpxIdx <= effIdx))) {
+              TurnByTurn.cursor++;
+            }
           }
           const step = TurnByTurn.steps[TurnByTurn.cursor];
           if (!step) return;
 
-          const offRoute = snapDistance > 60;
           banner.classList.toggle('off-route', offRoute);
 
           const tgt = AppState.gpxRoute[step.gpxIdx];
           const metersToTurn = tgt ? Math.max(0, tgt.dist - currentDist) : 0;
 
-          TurnByTurn.els.navIcon.textContent = step.icon;
-          
           const roadEl = TurnByTurn.els.navRoad;
           const textEl = TurnByTurn.els.navText;
-          
+          const streetEl = TurnByTurn.els.navCurrentStreet;
+
+          if (streetEl) {
+            streetEl.textContent = ctx.currentRoadName || (offRoute ? 'Diverting off route…' : 'Locating street…');
+          }
+
           if (offRoute) {
-            roadEl.textContent = 'Return to route';
-            textEl.textContent = step.instruction;
-            TurnByTurn.els.navDist.textContent = 'OFF ROUTE';
+            if (rejoin) {
+              TurnByTurn.els.navIcon.textContent = TurnByTurn.arrowForBearing(rejoin.bearing, ctx.heading);
+              TurnByTurn.els.navDist.textContent = `REJOIN · ${TurnByTurn.formatDist(rejoin.distance)}`;
+              roadEl.textContent = `Rejoin → ${rejoin.targetLabel || 'Route ahead'}`;
+              textEl.textContent = `Head ${TurnByTurn.compassCardinal(rejoin.bearing)} toward route`;
+            } else {
+              TurnByTurn.els.navIcon.textContent = step.icon;
+              roadEl.textContent = 'Return to route ahead';
+              textEl.textContent = step.instruction;
+              TurnByTurn.els.navDist.textContent = 'OFF ROUTE';
+            }
           } else {
+            TurnByTurn.els.navIcon.textContent = step.icon;
             roadEl.textContent = step.roadName || step.instruction;
             textEl.textContent = step.roadName ? step.instruction : '';
             TurnByTurn.els.navDist.textContent = TurnByTurn.formatDist(metersToTurn);
+            TurnByTurn.maybeSpeak(step, metersToTurn);
           }
-
-          if (!offRoute) TurnByTurn.maybeSpeak(step, metersToTurn);
         },
 
         formatDist(m) {
@@ -3377,8 +4023,196 @@
         return Math.abs(lat - AppConfig.LOCATIONS.LAPLAND[0]) < 0.1 && Math.abs(lng - AppConfig.LOCATIONS.LAPLAND[1]) < 0.1;
       }
 
+      const LiveRoadResolver = {
+        currentRoad: '',
+        lastGeoPos: null,
+        lastGeoTs: 0,
+        lastResolvedPos: null,
+        inFlightCtrl: null,
+        reqSeq: 0,
+        cache: new Map(),
+
+        clean(raw) {
+          const s = String(raw || '').trim();
+          if (!s || /^(active\s+(santa\s+)?route|lapland\s+workshop|unknown(\s+road)?|unnamed\s+road)$/i.test(s)) return '';
+          return s;
+        },
+
+        _pointToLineDistSq(px, py, lineCoords) {
+          if (!Array.isArray(lineCoords) || lineCoords.length === 0) return Infinity;
+          if (typeof lineCoords[0] === 'number') {
+            const dx = px - lineCoords[0], dy = py - lineCoords[1];
+            return dx * dx + dy * dy;
+          }
+          let best = Infinity;
+          for (let i = 0; i < lineCoords.length - 1; i++) {
+            const a = lineCoords[i], b = lineCoords[i + 1];
+            const dx = b[0] - a[0], dy = b[1] - a[1];
+            const lenSq = dx * dx + dy * dy;
+            let t = lenSq > 0 ? ((px - a[0]) * dx + (py - a[1]) * dy) / lenSq : 0;
+            t = Math.max(0, Math.min(1, t));
+            const qx = a[0] + t * dx, qy = a[1] + t * dy;
+            const d2 = (px - qx) * (px - qx) + (py - qy) * (py - qy);
+            if (d2 < best) best = d2;
+          }
+          if (lineCoords.length === 1) {
+            const dx = px - lineCoords[0][0], dy = py - lineCoords[0][1];
+            best = dx * dx + dy * dy;
+          }
+          return best;
+        },
+
+        queryMapLibreRoad(pos) {
+          try {
+            const mlMap = AppState.mlMap;
+            if (!mlMap || !pos || !Utils.validPos(pos.lat, pos.lng)) return '';
+            if (typeof mlMap.isStyleLoaded === 'function' && !mlMap.isStyleLoaded()) return '';
+            const pt = mlMap.project([pos.lng, pos.lat]);
+            if (!pt || !isFinite(pt.x) || !isFinite(pt.y)) return '';
+            const pad = 22;
+            const features = mlMap.queryRenderedFeatures([[pt.x - pad, pt.y - pad], [pt.x + pad, pt.y + pad]]);
+            if (!features || !features.length) return '';
+            let bestName = '';
+            let bestDistSq = Infinity;
+            for (const f of features) {
+              const srcLayer = String(f.sourceLayer || '').toLowerCase();
+              const layerId = String(f.layer?.id || '').toLowerCase();
+              const isTransport = srcLayer.includes('transportation') || /(road|street|highway|motorway|trunk|primary|secondary|tertiary|residential)/i.test(layerId);
+              if (!isTransport) continue;
+              const props = f.properties || {};
+              const candidate = this.clean(props.name || props['name:latin'] || props.name_en || props.ref);
+              if (!candidate) continue;
+              const geom = f.geometry;
+              let d2 = Infinity;
+              if (geom && geom.type === 'LineString') {
+                d2 = this._pointToLineDistSq(pos.lng, pos.lat, geom.coordinates);
+              } else if (geom && geom.type === 'MultiLineString') {
+                for (const line of (geom.coordinates || [])) {
+                  const ld2 = this._pointToLineDistSq(pos.lng, pos.lat, line);
+                  if (ld2 < d2) d2 = ld2;
+                }
+              } else if (geom && geom.type === 'Point') {
+                d2 = this._pointToLineDistSq(pos.lng, pos.lat, geom.coordinates) * 1.4;
+              }
+              if (d2 < bestDistSq) {
+                bestDistSq = d2;
+                bestName = candidate;
+              }
+            }
+            return bestName;
+          } catch (e) {
+            return '';
+          }
+        },
+
+        reverseGeocode(pos, opts = {}) {
+          if (!pos || !Utils.validPos(pos.lat, pos.lng)) return '';
+          const minMoveMeters = typeof opts.minMoveMeters === 'number' ? opts.minMoveMeters : 20;
+          const minIntervalMs = typeof opts.minIntervalMs === 'number' ? opts.minIntervalMs : 1500;
+          const onUpdate = typeof opts.onUpdate === 'function' ? opts.onUpdate : null;
+          const gridKey = `${pos.lat.toFixed(4)},${pos.lng.toFixed(4)}`;
+
+          if (this.cache.has(gridKey)) {
+            const cachedRoad = this.cache.get(gridKey);
+            if (cachedRoad && cachedRoad !== this.currentRoad) {
+              this.currentRoad = cachedRoad;
+              this.lastResolvedPos = { lat: pos.lat, lng: pos.lng };
+              if (onUpdate) onUpdate(cachedRoad, true);
+            }
+            return cachedRoad || this.currentRoad;
+          }
+
+          if (this.lastGeoPos && Utils.haversineMeters(this.lastGeoPos, pos) < minMoveMeters && this.currentRoad) {
+            return this.currentRoad;
+          }
+
+          const now = Date.now();
+          if (now - this.lastGeoTs < minIntervalMs) {
+            return this.currentRoad;
+          }
+
+          this.lastGeoTs = now;
+          this.lastGeoPos = { lat: pos.lat, lng: pos.lng };
+          if (this.inFlightCtrl) {
+            try { this.inFlightCtrl.abort(); } catch (e) {}
+          }
+          const ctrl = new AbortController();
+          this.inFlightCtrl = ctrl;
+          const mySeq = ++this.reqSeq;
+
+          fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.lat.toFixed(6)}&lon=${pos.lng.toFixed(6)}&format=json&zoom=18&addressdetails=1`, {
+            signal: ctrl.signal,
+            headers: { 'Accept': 'application/json' }
+          })
+          .then(r => (r.ok ? r.json() : null))
+          .then(data => {
+            if (mySeq !== this.reqSeq || !data || !data.address) return;
+            const addr = data.address;
+            const rawRoad = addr.road || addr.pedestrian || addr.residential || addr.footway || addr.path || addr.hamlet || addr.suburb || '';
+            const road = this.clean(rawRoad);
+            if (road) {
+              this.cache.set(gridKey, road);
+              if (this.cache.size > 400) {
+                const firstKey = this.cache.keys().next().value;
+                this.cache.delete(firstKey);
+              }
+              const changed = road !== this.currentRoad;
+              this.currentRoad = road;
+              this.lastResolvedPos = { lat: pos.lat, lng: pos.lng };
+              if (onUpdate && changed) onUpdate(road, false);
+            }
+          })
+          .catch(() => {});
+
+          return this.currentRoad;
+        },
+
+        resolveForDriver(rawPos, snappedPos, snapIdx, isOnRoute, onUpdate) {
+          let resolved = '';
+          if (isOnRoute) {
+            resolved = this.clean(snappedPos?.roadName) || this.clean(AppState.gpxRoute?.[snapIdx]?.roadName);
+          }
+          if (!resolved) {
+            resolved = this.clean(this.queryMapLibreRoad(rawPos));
+          }
+          if (resolved) {
+            this.currentRoad = resolved;
+            this.lastResolvedPos = { lat: rawPos.lat, lng: rawPos.lng };
+            const el = document.getElementById('navCurrentStreetEl');
+            if (el) el.textContent = resolved;
+            return resolved;
+          }
+
+          this.reverseGeocode(rawPos, {
+            minMoveMeters: 20,
+            minIntervalMs: 1500,
+            onUpdate: (newRoad) => {
+              const el = document.getElementById('navCurrentStreetEl');
+              if (el && newRoad) el.textContent = newRoad;
+              if (typeof onUpdate === 'function') onUpdate(newRoad);
+            }
+          });
+
+          if (!this.currentRoad || (this.lastResolvedPos && Utils.haversineMeters(this.lastResolvedPos, rawPos) > 120)) {
+            const legRoad = isOnRoute ? this.clean(TurnByTurn.getCurrentLegRoad(snapIdx)) : '';
+            if (legRoad) {
+              this.currentRoad = legRoad;
+              this.lastResolvedPos = { lat: rawPos.lat, lng: rawPos.lng };
+            } else if (this.lastResolvedPos && Utils.haversineMeters(this.lastResolvedPos, rawPos) > 120) {
+              this.currentRoad = '';
+            }
+          }
+
+          const display = this.currentRoad || (isOnRoute ? this.clean(TurnByTurn.getCurrentLegRoad(snapIdx)) : '');
+          const el = document.getElementById('navCurrentStreetEl');
+          if (el) el.textContent = display || 'Locating street…';
+          return display;
+        }
+      };
+
       const StreetTracker = {
         currentStreet: '',
+        liveRoadDisplay: '',
         nextStreet: '',
         currentIndex: -1,
         lastRoadMatchedIdx: -1,
@@ -3433,20 +4267,27 @@
         update(snapIdx, visualPos, liveRoadName = '') {
           const route = AppState.vars.activeRoute || AppState.vars.todayRoute;
           const tickerEl = document.getElementById('liveStreetTicker');
-          if (!tickerEl) return;
+          const cleanLive = LiveRoadResolver.clean(liveRoadName);
 
           // Check if Santa is actively live/moving on route
           const isResting = isRestingInLapland(visualPos || AppState.lastFix || AppConfig.LOCATIONS.LAPLAND);
           const isLive = !AppState.flags.hasPassedSticky && AppState.lastFix && !isResting && !AppState.flags.isKiosk && !AppState.flags.isDriver;
 
           if (!isLive || !route) {
-            tickerEl.style.display = 'none';
+            if (tickerEl) tickerEl.style.display = 'none';
+            this.liveRoadDisplay = '';
             return;
           }
 
+          const gpxRoad = (typeof snapIdx === 'number' && AppState.gpxRoute && AppState.gpxRoute[snapIdx])
+            ? LiveRoadResolver.clean(AppState.gpxRoute[snapIdx].roadName)
+            : '';
+
           const streets = this.getOrderedStreets(route);
           if (!streets || streets.length === 0) {
-            tickerEl.style.display = 'none';
+            this.liveRoadDisplay = cleanLive || gpxRoad || '';
+            this.currentStreet = this.liveRoadDisplay;
+            if (tickerEl) tickerEl.style.display = 'none';
             return;
           }
 
@@ -3461,17 +4302,9 @@
           const progressIdx = Math.min(Math.floor(progress * streets.length), streets.length - 1);
           let targetIdx = progressIdx;
 
-          // Determine active road name from live GPS reverse-geocoding, GPX point, or Turn-by-Turn
-          const tbtRoad = (TurnByTurn.steps && TurnByTurn.cursor >= 0 && TurnByTurn.steps[TurnByTurn.cursor])
-            ? (TurnByTurn.steps[TurnByTurn.cursor].roadName || '')
-            : '';
-          const gpxRoad = (typeof snapIdx === 'number' && AppState.gpxRoute && AppState.gpxRoute[snapIdx])
-            ? (AppState.gpxRoute[snapIdx].roadName || '')
-            : '';
-          const road = String(liveRoadName || gpxRoad || tbtRoad || '').toLowerCase().trim();
+          const road = String(cleanLive || gpxRoad || '').toLowerCase().trim();
 
           if (road) {
-            // Find all candidate indices in the ordered street list that match the live road name
             const candidates = [];
             for (let i = 0; i < streets.length; i++) {
               const st = streets[i].toLowerCase().trim();
@@ -3480,7 +4313,6 @@
               }
             }
             if (candidates.length > 0) {
-              // Pick candidate closest to our GPX route progress (prevents spine road at index 0 from pulling ticker backward mid-route)
               let bestCand = candidates[0];
               let bestDiff = Math.abs(bestCand - progressIdx);
               for (const c of candidates) {
@@ -3497,21 +4329,25 @@
                 this.lastRoadMatchedIdx = bestCand;
                 this.lastRoadMatchedSnap = (typeof snapIdx === 'number') ? snapIdx : -1;
               }
-            } else if (this.lastRoadMatchedIdx >= 0 && typeof snapIdx === 'number' && this.lastRoadMatchedSnap >= 0 && Math.abs(snapIdx - this.lastRoadMatchedSnap) <= 15) {
-              // Hold the recently matched street while briefly turning between cul-de-sacs
-              targetIdx = this.lastRoadMatchedIdx;
+            } else {
+              // Do not hold a stale matched street when live telemetry already resolved a different real road name
+              this.lastRoadMatchedIdx = -1;
+              this.lastRoadMatchedSnap = -1;
             }
+          } else if (this.lastRoadMatchedIdx >= 0 && typeof snapIdx === 'number' && this.lastRoadMatchedSnap >= 0 && Math.abs(snapIdx - this.lastRoadMatchedSnap) <= 3) {
+            targetIdx = this.lastRoadMatchedIdx;
           }
 
           this.currentIndex = targetIdx;
           this.currentStreet = streets[targetIdx] || streets[0];
+          this.liveRoadDisplay = cleanLive || gpxRoad || this.currentStreet;
           this.nextStreet = streets[targetIdx + 1] || 'Final Stretch 🏁';
 
-          tickerEl.style.display = 'none';
+          if (tickerEl) tickerEl.style.display = 'none';
           const currEl = document.getElementById('tickerCurrentStreet');
           const nextEl = document.getElementById('tickerNextStreet');
           const countBadge = document.getElementById('tickerStreetsCountBadge');
-          if (currEl) currEl.textContent = this.currentStreet;
+          if (currEl) currEl.textContent = this.liveRoadDisplay || this.currentStreet;
           if (nextEl) nextEl.textContent = this.nextStreet;
           if (countBadge) countBadge.textContent = `${targetIdx + 1}/${streets.length}`;
 
@@ -3594,6 +4430,606 @@
       function filterStreetProgressList(query) {
         StreetTracker.renderModalList(query);
       }
+
+      const StopManager = {
+        GEOFENCE_METERS: 40,
+        APPROACHING_METERS: 120,
+        UNDO_REARM_METERS: 75,
+        stops: [],
+        states: new Map(),
+        mlMarkers: [],
+        leafletMarkers: [],
+        _activePopup: null,
+        _routeId: 'default',
+        _sheetOpen: false,
+
+        _parseRawStops(route) {
+          let raw = [];
+          if (route) {
+            if (Array.isArray(route.planned_stops)) {
+              raw = route.planned_stops;
+            } else if (typeof route.planned_stops === 'string' && route.planned_stops.trim()) {
+              try {
+                const parsed = JSON.parse(route.planned_stops);
+                if (Array.isArray(parsed)) raw = parsed;
+              } catch (e) {}
+            } else if (Array.isArray(route.stops)) {
+              raw = route.stops;
+            }
+          }
+          const result = [];
+          for (const st of raw) {
+            const lat = Number(st?.lat);
+            const lng = Number(st?.lng !== undefined ? st.lng : st?.lon);
+            if (!Utils.validPos(lat, lng)) continue;
+            result.push({
+              id: st?.id ? String(st.id).trim() : '',
+              lat,
+              lng,
+              name: String(st?.name || 'Santa Stop').trim() || 'Santa Stop',
+              allocated_mins: Number(st?.allocated_mins || st?.dwellMins || 0) || 0,
+              sourceType: 'planned'
+            });
+          }
+          if (Array.isArray(AppState.gpxStops)) {
+            for (const wpt of AppState.gpxStops) {
+              const lat = Number(wpt?.lat);
+              const lng = Number(wpt?.lng);
+              if (!Utils.validPos(lat, lng)) continue;
+              const isDup = result.some(existing => Utils.haversineMeters(existing, { lat, lng }) <= 25);
+              if (!isDup) {
+                result.push({
+                  id: wpt?.id ? String(wpt.id).trim() : '',
+                  lat,
+                  lng,
+                  name: String(wpt?.name || 'Planned Stop').trim() || 'Planned Stop',
+                  allocated_mins: 0,
+                  sourceType: 'wpt'
+                });
+              }
+            }
+          }
+          return result;
+        },
+
+        _storageKey() {
+          const slug = AppState.vars.tableSlug || 'default';
+          const dateStr = new Date().toISOString().slice(0, 10);
+          return `SANTA_STOP_STATES:${slug}:${this._routeId}:${dateStr}`;
+        },
+
+        _loadLocalStates() {
+          this.states = new Map();
+          try {
+            const raw = localStorage.getItem(this._storageKey());
+            if (raw) {
+              const obj = JSON.parse(raw);
+              if (obj && typeof obj === 'object') {
+                for (const [k, v] of Object.entries(obj)) {
+                  if (v && v.status === 'arrived') {
+                    this.states.set(k, { status: 'arrived', source: v.source || 'manual', updated_at: v.updated_at || Date.now(), manualUndoBlock: false });
+                  }
+                }
+              }
+            }
+          } catch (e) {}
+        },
+
+        _saveLocalStates() {
+          try {
+            const out = {};
+            for (const [k, v] of this.states.entries()) {
+              if (v && v.status === 'arrived') {
+                out[k] = { status: 'arrived', source: v.source || 'manual', updated_at: v.updated_at || Date.now() };
+              }
+            }
+            localStorage.setItem(this._storageKey(), JSON.stringify(out));
+          } catch (e) {}
+        },
+
+        resolveStops(route) {
+          const rId = String(route?.id || route?.routeName || 'default');
+          this._routeId = rId;
+          const raw = this._parseRawStops(route);
+          const gpx = AppState.gpxRoute;
+          const usedKeys = new Set();
+
+          const enriched = raw.map((st, idx) => {
+            let key = st.id || `wpt_${idx}_${st.lat.toFixed(4)}_${st.lng.toFixed(4)}`;
+            if (usedKeys.has(key)) key = `${key}_${idx}`;
+            usedKeys.add(key);
+
+            let routeIdx = idx;
+            let routeDist = idx;
+            if (gpx && gpx.length > 0) {
+              let bestI = 0, bestD = Infinity;
+              for (let i = 0; i < gpx.length; i++) {
+                const d = Utils.haversineMeters(st, gpx[i]);
+                if (d < bestD) { bestD = d; bestI = i; }
+              }
+              routeIdx = bestI;
+              routeDist = gpx[bestI].dist || 0;
+            }
+            return {
+              ...st,
+              key,
+              routeIdx,
+              routeDist,
+              stopNum: idx + 1,
+              lastDist: null,
+              approaching: false
+            };
+          });
+
+          if (gpx && gpx.length > 1) {
+            enriched.sort((a, b) => (a.routeIdx - b.routeIdx) || (a.stopNum - b.stopNum));
+          }
+          enriched.forEach((st, i) => { st.stopNum = i + 1; });
+          this.stops = enriched;
+          this._loadLocalStates();
+          this.refreshDriverStopUI();
+          return this.stops;
+        },
+
+        isArrived(stopKey) {
+          const entry = this.states.get(String(stopKey));
+          return Boolean(entry && entry.status === 'arrived');
+        },
+
+        getPlainStates() {
+          const out = {};
+          for (const st of this.stops) {
+            if (this.isArrived(st.key)) {
+              const entry = this.states.get(st.key);
+              out[st.key] = { status: 'arrived', source: entry?.source || 'manual', stop_name: st.name };
+            }
+          }
+          return out;
+        },
+
+        _notifyParentFrame() {
+          try {
+            if (window.parent && window.parent !== window) {
+              window.parent.postMessage({
+                type: 'turbosanta-stop-states',
+                routeId: this._routeId,
+                stopStates: this.getPlainStates()
+              }, '*');
+            }
+          } catch (e) {}
+        },
+
+        _syncMarkerDom(stopKey) {
+          const stop = this.stops.find(s => s.key === stopKey);
+          const arrived = this.isArrived(stopKey);
+          const approaching = Boolean(!arrived && stop && stop.approaching);
+
+          for (const mObj of this.mlMarkers) {
+            if (mObj.key === stopKey && mObj.el) {
+              mObj.el.classList.toggle('is-arrived', arrived);
+              mObj.el.classList.toggle('is-approaching', approaching);
+            }
+          }
+          for (const lObj of this.leafletMarkers) {
+            if (lObj.key === stopKey && lObj.marker) {
+              const el = lObj.marker.getElement?.()?.querySelector('.santa-stop-pin');
+              if (el) {
+                el.classList.toggle('is-arrived', arrived);
+                el.classList.toggle('is-approaching', approaching);
+              }
+              if (lObj.marker.getTooltip && lObj.marker.getTooltip()) {
+                lObj.marker.setTooltipContent(`${arrived ? '✓ Reached: ' : ''}${lObj.stop.name}`);
+              }
+            }
+          }
+        },
+
+        _buildStopActionCard(stop) {
+          const arrived = this.isArrived(stop.key);
+          const card = document.createElement('div');
+          card.className = 'stop-action-card';
+
+          const title = document.createElement('div');
+          title.className = 'stop-action-title';
+          title.textContent = `Stop #${stop.stopNum} · ${stop.name}`;
+
+          const meta = document.createElement('div');
+          meta.className = 'stop-action-meta';
+          const distLabel = typeof stop.lastDist === 'number'
+            ? (stop.lastDist < 30 ? 'Right at stop' : TurnByTurn.formatDist(stop.lastDist) + ' away')
+            : (stop.allocated_mins > 0 ? `${stop.allocated_mins} min dwell` : 'Planned Santa Stop');
+          meta.textContent = arrived ? `✓ Arrived (${distLabel})` : distLabel;
+
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'stop-action-btn' + (arrived ? ' is-undo' : '');
+          btn.textContent = arrived ? '↺ Mark Not Reached' : '✓ Mark Arrived';
+          btn.onclick = (e) => {
+            e.stopPropagation();
+            this.toggleManual(stop.key);
+            if (this._activePopup && typeof this._activePopup.remove === 'function') {
+              this._activePopup.remove();
+              this._activePopup = null;
+            }
+          };
+
+          card.appendChild(title);
+          card.appendChild(meta);
+          card.appendChild(btn);
+          return card;
+        },
+
+        openStopPopup(stop) {
+          if (!stop || !AppState.mlMap || typeof maplibregl === 'undefined') return;
+          if (this._activePopup) {
+            try { this._activePopup.remove(); } catch (e) {}
+            this._activePopup = null;
+          }
+          const popup = new maplibregl.Popup({ offset: 22, closeButton: true, closeOnClick: false, maxWidth: '240px' })
+            .setLngLat([stop.lng, stop.lat])
+            .setDOMContent(this._buildStopActionCard(stop))
+            .addTo(AppState.mlMap);
+          this._activePopup = popup;
+        },
+
+        renderMapLibreMarkers() {
+          if (!AppState.mlMap || typeof maplibregl === 'undefined') return;
+          if (!this._mlMapCloseBound) {
+            this._mlMapCloseBound = true;
+            AppState.mlMap.on('click', () => {
+              if (this._activePopup) {
+                try { this._activePopup.remove(); } catch (e) {}
+                this._activePopup = null;
+              }
+            });
+          }
+          for (const mObj of this.mlMarkers) {
+            try { mObj.marker.remove(); } catch (e) {}
+          }
+          this.mlMarkers = [];
+          for (const stop of this.stops) {
+            const arrived = this.isArrived(stop.key);
+            const el = document.createElement('div');
+            el.className = 'santa-stop-pin' + (arrived ? ' is-arrived' : '') + (!arrived && stop.approaching ? ' is-approaching' : '');
+            el.dataset.stopKey = stop.key;
+            el.setAttribute('role', 'button');
+            el.setAttribute('tabindex', '0');
+            el.setAttribute('aria-label', `Santa Stop ${stop.stopNum}: ${stop.name}`);
+            el.title = stop.name;
+            el.innerHTML = `<span class="santa-stop-num">${stop.stopNum}</span><span class="santa-stop-check">✓</span>`;
+            el.addEventListener('click', (e) => {
+              e.stopPropagation();
+              this.openStopPopup(stop);
+            });
+            const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+              .setLngLat([stop.lng, stop.lat])
+              .addTo(AppState.mlMap);
+            this.mlMarkers.push({ key: stop.key, stop, marker, el });
+          }
+          this.refreshDriverStopUI();
+        },
+
+        renderLeafletMarkers() {
+          if (!AppState.map || typeof L === 'undefined') return;
+          for (const lObj of this.leafletMarkers) {
+            try { AppState.map.removeLayer(lObj.marker); } catch (e) {}
+          }
+          this.leafletMarkers = [];
+          for (const stop of this.stops) {
+            const arrived = this.isArrived(stop.key);
+            const html = `<div class="santa-stop-pin${arrived ? ' is-arrived' : ''}${!arrived && stop.approaching ? ' is-approaching' : ''}" data-stop-key="${Utils.escapeHtml(stop.key)}" title="${Utils.escapeHtml(stop.name)}"><span class="santa-stop-num">${stop.stopNum}</span><span class="santa-stop-check">✓</span></div>`;
+            const marker = L.marker([stop.lat, stop.lng], {
+              icon: L.divIcon({
+                className: 'stop-marker',
+                html,
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+              })
+            })
+            .bindTooltip(`${arrived ? '✓ Reached: ' : ''}${stop.name}`, { direction: 'top', offset: [0, -16], className: 'stop-tooltip' })
+            .addTo(AppState.map);
+            if (AppState.flags.isDriver) {
+              marker.on('click', () => this.toggleManual(stop.key));
+            }
+            this.leafletMarkers.push({ key: stop.key, stop, marker });
+          }
+          AppState.stopMarkers = this.leafletMarkers.map(x => x.marker);
+          this.refreshDriverStopUI();
+        },
+
+        renderMarkers() {
+          if (AppState.mlMap) this.renderMapLibreMarkers();
+          if (AppState.map && !AppState.flags.isDriver) this.renderLeafletMarkers();
+          else if (AppState.flags.isDriver && !AppState.mlMap && AppState.map) this.renderLeafletMarkers();
+        },
+
+        setStopStatus(stopKey, status, opts = {}) {
+          const stop = this.stops.find(s => s.key === stopKey);
+          if (!stop) return;
+          const nextStatus = status === 'upcoming' ? 'upcoming' : 'arrived';
+          const source = opts.source === 'geofence' ? 'geofence' : 'manual';
+          const prevEntry = this.states.get(stopKey);
+
+          if (nextStatus === 'arrived') {
+            this.states.set(stopKey, { status: 'arrived', source, updated_at: Date.now(), manualUndoBlock: false });
+          } else {
+            this.states.set(stopKey, {
+              status: 'upcoming',
+              source: 'manual',
+              updated_at: Date.now(),
+              manualUndoBlock: opts.manualUndo === true
+            });
+          }
+          this._saveLocalStates();
+          this._syncMarkerDom(stopKey);
+          this.refreshDriverStopUI();
+          this._notifyParentFrame();
+
+          const changed = (prevEntry?.status === 'arrived') !== (nextStatus === 'arrived');
+          if (changed && source === 'geofence' && nextStatus === 'arrived' && AppState.flags.isDriver) {
+            showToast(`🎅 Reached Stop #${stop.stopNum}: ${stop.name}`);
+          } else if (changed && source === 'manual' && AppState.flags.isDriver) {
+            showToast(nextStatus === 'arrived' ? `✓ Stop #${stop.stopNum} marked arrived` : `↺ Stop #${stop.stopNum} reset to upcoming`);
+          }
+
+          if (opts.sync && AppState.vars.isWorkerD1 && AppState.vars.tableSlug) {
+            const beaconToken = sessionStorage.getItem('beaconSecret') || '';
+            if (beaconToken) {
+              fetch(`${WORKER_URL}/api/stop-status?table=${encodeURIComponent(AppState.vars.tableSlug)}`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${beaconToken}`
+                },
+                body: JSON.stringify({
+                  route_id: this._routeId,
+                  stop_key: stopKey,
+                  stop_name: stop.name,
+                  status: nextStatus,
+                  source,
+                  secret: beaconToken,
+                  pin: beaconToken
+                })
+              }).catch(() => {});
+            }
+          }
+        },
+
+        toggleManual(stopKey) {
+          const currentlyArrived = this.isArrived(stopKey);
+          this.setStopStatus(stopKey, currentlyArrived ? 'upcoming' : 'arrived', {
+            source: 'manual',
+            manualUndo: currentlyArrived,
+            sync: AppState.flags.isDriver
+          });
+        },
+
+        checkProximity(pos, opts = {}) {
+          if (!pos || !Utils.validPos(pos.lat, pos.lng) || !this.stops.length) return;
+          const allowAutoArrive = Boolean(opts.isDriver);
+          let dirty = false;
+
+          for (const stop of this.stops) {
+            const d = Utils.haversineMeters(pos, stop);
+            stop.lastDist = d;
+            const entry = this.states.get(stop.key);
+            const arrived = Boolean(entry && entry.status === 'arrived');
+
+            if (entry && entry.manualUndoBlock && d > this.UNDO_REARM_METERS) {
+              entry.manualUndoBlock = false;
+            }
+            const nextApproaching = !arrived && d <= this.APPROACHING_METERS;
+            if (nextApproaching !== stop.approaching) {
+              stop.approaching = nextApproaching;
+              this._syncMarkerDom(stop.key);
+            }
+            if (allowAutoArrive && !arrived && d <= this.GEOFENCE_METERS && !(entry && entry.manualUndoBlock)) {
+              this.setStopStatus(stop.key, 'arrived', { source: 'geofence', sync: true });
+              dirty = true;
+            }
+          }
+          if (!dirty) this.refreshDriverStopUI();
+        },
+
+        applyRemoteStates(stopStates, stopStatesByRoute, activeRouteId) {
+          if (!this.stops.length) return;
+          const routeSpecific = (stopStatesByRoute && activeRouteId && stopStatesByRoute[String(activeRouteId)])
+            ? stopStatesByRoute[String(activeRouteId)]
+            : (stopStatesByRoute && stopStatesByRoute[this._routeId])
+              ? stopStatesByRoute[this._routeId]
+              : null;
+          const serverMap = routeSpecific || stopStates || {};
+          let changed = false;
+
+          for (const stop of this.stops) {
+            const srv = serverMap[stop.key];
+            const localEntry = this.states.get(stop.key);
+            if (srv && srv.status === 'arrived') {
+              if (!AppState.flags.isDriver && !(localEntry && localEntry.status === 'arrived')) {
+                this.states.set(stop.key, { status: 'arrived', source: srv.source || 'manual', updated_at: Date.now(), manualUndoBlock: false });
+                this._syncMarkerDom(stop.key);
+                changed = true;
+              } else if (AppState.flags.isDriver && !localEntry) {
+                this.states.set(stop.key, { status: 'arrived', source: srv.source || 'manual', updated_at: Date.now(), manualUndoBlock: false });
+                this._syncMarkerDom(stop.key);
+                changed = true;
+              }
+            } else if (!AppState.flags.isDriver && localEntry && localEntry.status === 'arrived') {
+              this.states.delete(stop.key);
+              this._syncMarkerDom(stop.key);
+              changed = true;
+            }
+          }
+          if (changed) {
+            this._saveLocalStates();
+            this.refreshDriverStopUI();
+            this._notifyParentFrame();
+          }
+        },
+
+        _getQuickTargetStop() {
+          const remaining = this.stops.filter(s => !this.isArrived(s.key));
+          if (!remaining.length) return null;
+          let nearest = null;
+          let nearestD = Infinity;
+          for (const s of remaining) {
+            if (typeof s.lastDist === 'number' && s.lastDist < nearestD) {
+              nearestD = s.lastDist;
+              nearest = s;
+            }
+          }
+          if (nearest && nearestD <= 150) return nearest;
+          return remaining[0];
+        },
+
+        ensureDriverStopUI() {
+          if (!AppState.flags.isDriver) return;
+          let bar = document.getElementById('driverStopBar');
+          if (!this.stops.length) {
+            if (bar) bar.classList.remove('visible');
+            const recBtn = document.getElementById('driverRecenterBtn');
+            if (recBtn) recBtn.style.bottom = 'calc(78px + env(safe-area-inset-bottom, 0px))';
+            return;
+          }
+          if (!bar) {
+            bar = document.createElement('div');
+            bar.id = 'driverStopBar';
+            bar.innerHTML = `
+              <button type="button" id="driverStopSummaryBtn" class="driver-stop-summary" aria-label="Open Santa stops list">
+                <span id="driverStopCountBadge" class="driver-stop-count">0/${this.stops.length}</span>
+                <span id="driverStopNextLabel" class="driver-stop-next">Next stop</span>
+              </button>
+              <button type="button" id="driverStopQuickBtn" class="driver-stop-quick-btn">✓ Arrived</button>
+            `;
+            document.body.appendChild(bar);
+            document.getElementById('driverStopSummaryBtn').onclick = () => {
+              this._sheetOpen = !this._sheetOpen;
+              const sheet = document.getElementById('driverStopsSheet');
+              if (sheet) sheet.classList.toggle('open', this._sheetOpen);
+              this.refreshDriverStopUI();
+            };
+            document.getElementById('driverStopQuickBtn').onclick = () => {
+              const tgt = this._getQuickTargetStop();
+              if (tgt) this.toggleManual(tgt.key);
+            };
+          }
+
+          let sheet = document.getElementById('driverStopsSheet');
+          if (!sheet) {
+            sheet = document.createElement('div');
+            sheet.id = 'driverStopsSheet';
+            sheet.innerHTML = `
+              <div class="driver-stops-sheet-hdr">
+                <span>🎅 Santa Stops Checklist</span>
+                <button type="button" id="driverStopsSheetCloseBtn" style="background:transparent;border:none;color:#fff;font-size:18px;font-weight:900;cursor:pointer;padding:2px 6px;">✕</button>
+              </div>
+              <div id="driverStopsSheetList" class="driver-stops-list"></div>
+            `;
+            document.body.appendChild(sheet);
+            document.getElementById('driverStopsSheetCloseBtn').onclick = () => {
+              this._sheetOpen = false;
+              sheet.classList.remove('open');
+            };
+          }
+
+          bar.classList.add('visible');
+          const recBtn = document.getElementById('driverRecenterBtn');
+          if (recBtn) recBtn.style.bottom = 'calc(122px + env(safe-area-inset-bottom, 0px))';
+          this.refreshDriverStopUI();
+        },
+
+        refreshDriverStopUI() {
+          const bar = document.getElementById('driverStopBar');
+          if (!bar) return;
+          if (!this.stops.length || !AppState.flags.beaconActive) {
+            bar.classList.remove('visible');
+            return;
+          }
+          bar.classList.add('visible');
+          const total = this.stops.length;
+          const arrivedCount = this.stops.filter(s => this.isArrived(s.key)).length;
+          const countEl = document.getElementById('driverStopCountBadge');
+          const nextEl = document.getElementById('driverStopNextLabel');
+          const quickBtn = document.getElementById('driverStopQuickBtn');
+
+          if (countEl) {
+            countEl.textContent = `🎅 ${arrivedCount}/${total}`;
+            countEl.classList.toggle('all-done', arrivedCount === total);
+          }
+
+          const target = this._getQuickTargetStop();
+          if (nextEl) {
+            if (target) {
+              const dTxt = typeof target.lastDist === 'number' ? TurnByTurn.formatDist(target.lastDist) : '';
+              nextEl.innerHTML = `${Utils.escapeHtml(target.name)}${dTxt ? `<small>${Utils.escapeHtml(dTxt)}</small>` : ''}`;
+            } else {
+              nextEl.textContent = 'All Santa stops reached!';
+            }
+          }
+          if (quickBtn) {
+            quickBtn.disabled = !target;
+            quickBtn.textContent = target ? `✓ Stop #${target.stopNum}` : '✓ Done';
+          }
+
+          const listEl = document.getElementById('driverStopsSheetList');
+          if (listEl && this._sheetOpen) {
+            listEl.innerHTML = '';
+            for (const stop of this.stops) {
+              const arrived = this.isArrived(stop.key);
+              const row = document.createElement('div');
+              row.className = 'driver-stop-row' + (arrived ? ' is-arrived' : '');
+
+              const left = document.createElement('div');
+              left.className = 'driver-stop-row-left';
+
+              const dot = document.createElement('span');
+              dot.className = 'driver-stop-dot';
+              dot.textContent = arrived ? '✓' : String(stop.stopNum);
+
+              const textWrap = document.createElement('div');
+              textWrap.style.minWidth = '0';
+              const nameDiv = document.createElement('div');
+              nameDiv.className = 'driver-stop-row-name';
+              nameDiv.textContent = stop.name;
+              const distDiv = document.createElement('div');
+              distDiv.className = 'driver-stop-row-dist';
+              distDiv.textContent = arrived
+                ? 'Arrived'
+                : (typeof stop.lastDist === 'number' ? TurnByTurn.formatDist(stop.lastDist) + ' away' : 'Upcoming stop');
+              textWrap.appendChild(nameDiv);
+              textWrap.appendChild(distDiv);
+
+              left.appendChild(dot);
+              left.appendChild(textWrap);
+
+              const btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = 'driver-stop-row-btn';
+              btn.textContent = arrived ? 'Undo' : '✓ Arrived';
+              btn.onclick = (e) => {
+                e.stopPropagation();
+                this.toggleManual(stop.key);
+              };
+
+              row.appendChild(left);
+              row.appendChild(btn);
+              listEl.appendChild(row);
+            }
+          }
+        },
+
+        destroyDriverStopUI() {
+          this._sheetOpen = false;
+          if (this._activePopup) {
+            try { this._activePopup.remove(); } catch (e) {}
+            this._activePopup = null;
+          }
+          const bar = document.getElementById('driverStopBar');
+          if (bar) bar.classList.remove('visible');
+          const sheet = document.getElementById('driverStopsSheet');
+          if (sheet) sheet.classList.remove('open');
+        }
+      };
 
       function setDimUI(dim) { document.body.classList.toggle("dim-ui", !!dim); }
       function showToast(message) { if (AppState.flags.isKiosk) return; const t = AppState.dom.toast; t.textContent = message; t.classList.add("toast-visible"); setTimeout(() => t.classList.remove("toast-visible"), 4000); }
@@ -4143,6 +5579,16 @@
           } else {
             AppState.vars.staleSince = isBlackspotHold ? (AppState.vars.staleSince || Date.now()) : null;
             AppState.lastFix = { lat: lastKnownLat, lng: lastKnownLng };
+            if (isFresh) {
+              const wsOverlay = document.getElementById('workshopOverlay');
+              if (wsOverlay && (wsOverlay.style.display === 'flex' || wsOverlay.style.display === 'block')) {
+                wsOverlay.style.display = 'none';
+                if (typeof WorkshopManager !== 'undefined' && WorkshopManager.timerId) {
+                  clearInterval(WorkshopManager.timerId);
+                  WorkshopManager.timerId = null;
+                }
+              }
+            }
           }
 
           let visualPos = { lat: lastKnownLat, lng: lastKnownLng };
@@ -4159,10 +5605,11 @@
                   if (bigBox) bigBox.textContent = `${percentComplete}%`;
                 }
               } else {
-                AppState.dom.statusBox.style.setProperty('--progress', `0%`);
+                const preservedPct = Math.min(100, Math.round((AppState.vars.maxProgressIndex || AppState.vars.lastSnapIndex || 0) / (AppState.gpxRoute.length - 1) * 100));
+                AppState.dom.statusBox.style.setProperty('--progress', `${preservedPct}%`);
                 if (AppState.flags.isDriver) {
                   const bigBox = document.getElementById("driverProgressBox");
-                  if (bigBox) bigBox.textContent = `OFF ROUTE`;
+                  if (bigBox) bigBox.textContent = `REJOINING`;
                 }
               }
             }
@@ -4186,11 +5633,14 @@
             }
           }
 
-          const cleanRoadName = (raw) => {
-            const s = String(raw || '').trim();
-            if (!s || /^(active\s+(santa\s+)?route|lapland\s+workshop|unknown(\s+road)?|unnamed\s+road)$/i.test(s)) return '';
-            return s;
-          };
+          if (typeof StopManager !== 'undefined') {
+            StopManager.applyRemoteStates(data.stop_states, data.stop_states_by_route, data.active_route_id || AppState.vars.activeRoute?.id);
+            if (!AppState.flags.isDriver && isFresh) {
+              StopManager.checkProximity({ lat: lastKnownLat, lng: lastKnownLng }, { isDriver: false });
+            }
+          }
+
+          const cleanRoadName = (raw) => LiveRoadResolver.clean(raw);
 
           const targetLiveZoom = AppState.flags.isKiosk ? 15 : 16;
           if (AppState.flags.needsLiveZoom) {
@@ -4211,7 +5661,26 @@
           } else {
             animateMarkerTo(visualPos.lat, visualPos.lng);
           }
-          const liveRoadForTicker = cleanRoadName(data.roadName || data.road_name) || cleanRoadName(AppState.gpxRoute?.[AppState.vars.lastSnapIndex]?.roadName);
+          let liveRoadForTicker = cleanRoadName(data.roadName || data.road_name) || cleanRoadName(AppState.gpxRoute?.[AppState.vars.lastSnapIndex]?.roadName);
+          if (!liveRoadForTicker && isFresh && !AppState.flags.isDriver) {
+            const cachedOrResolved = LiveRoadResolver.reverseGeocode(
+              { lat: lastKnownLat, lng: lastKnownLng },
+              {
+                minMoveMeters: 35,
+                minIntervalMs: 2500,
+                onUpdate: (resolvedRoad) => {
+                  if (typeof StreetTracker !== 'undefined') {
+                    StreetTracker.update(AppState.vars.lastSnapIndex, visualPos, resolvedRoad);
+                  }
+                  if (!AppState.flags.hasPassedSticky && !isAtPinNow && etaSeconds === null && !isBlackspotHold && AppState.dom.statusBox) {
+                    const verb = isSleighMoving() ? 'Santa is on' : 'Santa is spreading joy on';
+                    AppState.dom.statusBox.textContent = `${verb} ${resolvedRoad}!`;
+                  }
+                }
+              }
+            );
+            if (cachedOrResolved) liveRoadForTicker = cachedOrResolved;
+          }
           if (typeof StreetTracker !== 'undefined') StreetTracker.update(AppState.vars.lastSnapIndex, visualPos, liveRoadForTicker);
 
           // --- FADING TAIL LOGIC ---
@@ -4439,7 +5908,7 @@
           } else if (isBlackspotHold) {
             const minsAgo = Math.max(1, Math.round(age / 60000));
             const gpxPoint = AppState.gpxRoute?.[AppState.vars.lastSnapIndex];
-            const currentRoad = cleanRoadName(data.roadName || data.road_name) || cleanRoadName(gpxPoint?.roadName) || cleanRoadName(StreetTracker.currentStreet) || "";
+            const currentRoad = cleanRoadName(data.roadName || data.road_name) || cleanRoadName(gpxPoint?.roadName) || cleanRoadName(StreetTracker.liveRoadDisplay) || "";
             AppState.dom.statusBox.textContent = currentRoad
               ? `📡 Signal Paused — Last seen ${minsAgo}m ago on ${currentRoad}`
               : `📡 Signal Paused — Last seen ${minsAgo}m ago`;
@@ -4450,7 +5919,7 @@
           } else if (moving) { 
             const gpxPoint = AppState.gpxRoute?.[AppState.vars.lastSnapIndex];
             const gpxDist = gpxPoint ? Utils.haversineMeters({lat: data.lat, lng: data.lng}, gpxPoint) : 999;
-            const currentRoad = cleanRoadName(data.roadName || data.road_name) || (gpxDist < 60 ? cleanRoadName(gpxPoint?.roadName) : "") || cleanRoadName(StreetTracker.currentStreet) || "";
+            const currentRoad = cleanRoadName(data.roadName || data.road_name) || (gpxDist < 60 ? cleanRoadName(gpxPoint?.roadName) : "") || cleanRoadName(StreetTracker.liveRoadDisplay) || "";
             
             AppState.dom.statusBox.textContent = currentRoad ? `Santa is on ${currentRoad}!` : "Santa is out spreading joy!"; 
             setDimUI(false); 
@@ -4458,7 +5927,7 @@
           } else { 
             const gpxPoint = AppState.gpxRoute?.[AppState.vars.lastSnapIndex];
             const gpxDist = gpxPoint ? Utils.haversineMeters({lat: data.lat, lng: data.lng}, gpxPoint) : 999;
-            const currentRoad = cleanRoadName(data.roadName || data.road_name) || (gpxDist < 60 ? cleanRoadName(gpxPoint?.roadName) : "") || cleanRoadName(StreetTracker.currentStreet) || "";
+            const currentRoad = cleanRoadName(data.roadName || data.road_name) || (gpxDist < 60 ? cleanRoadName(gpxPoint?.roadName) : "") || cleanRoadName(StreetTracker.liveRoadDisplay) || "";
             
             AppState.dom.statusBox.textContent = currentRoad ? `Santa is spreading joy on ${currentRoad}!` : "Santa is out spreading joy!"; 
             setDimUI(false); 
@@ -4679,6 +6148,7 @@
                     try { AppState.map.fitBounds(allLatLngs, { padding: [40, 40] }); } catch(e){}
                   }
                 }
+                if (typeof StopManager !== 'undefined') StopManager.renderMarkers();
                 DemoSimulator.reset(true);
               }
             };
@@ -4713,6 +6183,9 @@
               if (AppState.gpxRoute && AppState.gpxRoute.length > 1) {
                 const total = AppState.gpxRoute[AppState.gpxRoute.length - 1].dist;
                 DemoSimulator.simDist = total * pct;
+                AppState.vars.lastSnapIndex = 0;
+                AppState.vars.maxProgressIndex = 0;
+                AppState.vars.hasLockedOnRoute = false;
                 updateTracker();
               }
             };
@@ -4789,6 +6262,9 @@
         reset(fitMap = false) {
           DemoSimulator.simDist = 0;
           DemoSimulator.lastTickTime = performance.now();
+          AppState.vars.lastSnapIndex = 0;
+          AppState.vars.maxProgressIndex = 0;
+          AppState.vars.hasLockedOnRoute = false;
           AppState.flags.hasPassedSticky = false;
           AppState.flags.celebrationFired = false;
           sessionStorage.removeItem("SANTA_CELEBRATION_FIRED");
@@ -5034,7 +6510,7 @@
                   pBtn.style.color = "#00e676";
                 } else {
                   pBtn.innerHTML = "&#10074;&#10074; Pause";
-                  pBtn.style.background = "rgba(251, 175, 51, 0.16)";
+                  pBtn.style.background = "rgba(24, 19, 10, 0.92)";
                   pBtn.style.borderColor = "#fbaf33";
                   pBtn.style.color = "#fbaf33";
                 }
@@ -5080,7 +6556,7 @@
             pauseBtn.type = "button";
             pauseBtn.innerHTML = "&#10074;&#10074; Pause";
             pauseBtn.title = "Pause or resume GPS coordinate transmission";
-            pauseBtn.style.cssText = "background:rgba(251, 175, 51, 0.16); border:2px solid #fbaf33; color:#fbaf33; font-weight:800; box-shadow:0 4px 16px rgba(0,0,0,0.6); cursor:pointer; font-family:'Open Sans',sans-serif;";
+            pauseBtn.style.cssText = "background:rgba(24, 19, 10, 0.92); border:2px solid #fbaf33; color:#fbaf33; font-weight:800; box-shadow:0 4px 16px rgba(0,0,0,0.6); cursor:pointer; font-family:'Open Sans',sans-serif;";
 
             const stopBtn = document.createElement("button");
             stopBtn.id = "driverStopBtn";
@@ -5093,6 +6569,16 @@
             controlDock.appendChild(pauseBtn);
             controlDock.appendChild(stopBtn);
             document.body.appendChild(controlDock);
+
+            if (typeof StopManager !== 'undefined') {
+              if (!StopManager.stops.length && (AppState.vars.activeRoute || AppState.vars.todayRoute || AppState.gpxStops?.length)) {
+                StopManager.resolveStops(AppState.vars.activeRoute || AppState.vars.todayRoute);
+              }
+              if (AppState.mlMap && StopManager.stops.length && StopManager.mlMarkers.length === 0) {
+                StopManager.renderMapLibreMarkers();
+              }
+              StopManager.ensureDriverStopUI();
+            }
 
             pauseBtn.onclick = () => {
               isBeaconPaused = !isBeaconPaused;
@@ -5137,6 +6623,7 @@
             
             let smoothedHeading = null;
             let lastDriverPos = null;
+            let lastDriverSpeed = 0;
             const recentFixesForHeading = [];
             const HEADING_BUFFER_MAX = 6;
             
@@ -5147,33 +6634,40 @@
               return (current + diff * factor + 360) % 360;
             }
 
-            function snapToLineSegment(pos, snapIdx) {
-              if (!AppState.gpxRoute || snapIdx < 0) return null;
-              const route = AppState.gpxRoute;
-              let bestPt = route[snapIdx];
-              let bestDist = Utils.haversineMeters(pos, bestPt);
-              
-              const segments = [];
-              if (snapIdx > 0) segments.push([snapIdx - 1, snapIdx]);
-              if (snapIdx < route.length - 1) segments.push([snapIdx, snapIdx + 1]);
-              
-              for (const [iA, iB] of segments) {
-                const a = route[iA], b = route[iB];
-                const dx = b.lng - a.lng, dy = b.lat - a.lat;
-                const lenSq = dx * dx + dy * dy;
-                if (lenSq === 0) continue;
-                let t = ((pos.lng - a.lng) * dx + (pos.lat - a.lat) * dy) / lenSq;
-                t = Math.max(0, Math.min(1, t));
-                const projected = { lat: a.lat + t * dy, lng: a.lng + t * dx };
-                const d = Utils.haversineMeters(pos, projected);
-                if (d < bestDist) {
-                  bestDist = d;
-                  bestPt = projected;
-                  bestPt.dist = a.dist + t * (b.dist - a.dist);
-                  bestPt.index = iA;
-                }
+            async function transmitDriverFix(txLat, txLng, speedMph, roadName) {
+              if (isBeaconPaused || !AppState.flags.beaconActive) return;
+              AppState.vars.lastTxTime = Date.now();
+              const cleanRoad = LiveRoadResolver.clean(roadName);
+              const beaconToken = secret || sessionStorage.getItem('beaconSecret') || "";
+              const activeRId = AppState.vars.activeRoute?.id || AppState.vars.todayRoute?.id || null;
+              const payload = {
+                lat: txLat,
+                lng: txLng,
+                speed: speedMph,
+                route_id: activeRId,
+                road_name: cleanRoad,
+                roadName: cleanRoad,
+                ts: new Date().toISOString(),
+                secret: beaconToken
+              };
+              try {
+                const r = await fetch(gpsLoggerUrl, {
+                  method: "PUT",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${beaconToken}`
+                  },
+                  body: JSON.stringify(payload)
+                });
+                if (!r.ok) throw new Error("HTTP " + r.status);
+                BeaconDB.sent++;
+                const sentEl = document.getElementById('txSent');
+                if (sentEl) sentEl.textContent = BeaconDB.sent;
+                updateDriverControlUI();
+              } catch (e) {
+                await BeaconDB.add(payload);
+                updateDriverControlUI();
               }
-              return { point: bestPt, distance: bestDist };
             }
 
             let gpsWatchId = navigator.geolocation.watchPosition(async (pos) => {
@@ -5182,28 +6676,22 @@
               const lng = pos.coords.longitude;
               const gpsHeading = pos.coords.heading;
               const speed = pos.coords.speed || 0;
-              
-              let vp = { lat, lng };
-              let snapResult = null;
-              
-              if (AppState.flags.gpxLoaded && AppState.gpxRoute) {
-                snapResult = snapToGpxIndex(vp, null);
-                if (snapResult && snapResult.distance < 40) {
-                  const interpolated = snapToLineSegment(vp, snapResult.point.index || AppState.vars.lastSnapIndex);
-                  if (interpolated && interpolated.distance < 40) {
-                    vp = interpolated.point;
-                    snapResult = interpolated;
-                  } else {
-                    vp = snapResult.point;
-                  }
-                }
-              }
-              
-              let heading = null;
-              const isOnRoute = snapResult && snapResult.distance < 40;
+              lastDriverSpeed = speed;
 
+              const headingForSnap = smoothedHeading !== null
+                ? smoothedHeading
+                : (typeof gpsHeading === 'number' && !isNaN(gpsHeading) ? gpsHeading : null);
+
+              let snapResult = null;
+              if (AppState.flags.gpxLoaded && AppState.gpxRoute) {
+                snapResult = snapDriverToRoute({ lat, lng }, headingForSnap);
+              }
+              const isOnRoute = Boolean(snapResult && snapResult.isOnRoute);
+              const vp = (isOnRoute && snapResult.point) ? { lat: snapResult.point.lat, lng: snapResult.point.lng } : { lat, lng };
+
+              let heading = null;
               if (isOnRoute && AppState.gpxRoute) {
-                const idx = snapResult.point.index || AppState.vars.lastSnapIndex;
+                const idx = snapResult.index || AppState.vars.lastSnapIndex || 0;
                 const lookAhead = Math.min(idx + 10, AppState.gpxRoute.length - 1);
                 if (lookAhead > idx) {
                   heading = Utils.bearingBetween(AppState.gpxRoute[idx], AppState.gpxRoute[lookAhead]);
@@ -5243,33 +6731,76 @@
                   smoothedHeading = smoothAngle(smoothedHeading, heading, smoothFactor);
                 }
               }
-              
+              AppState.vars.driverHeading = smoothedHeading;
               lastDriverPos = { lat, lng };
-              
-              if (snapResult && snapResult.point) {
-                TurnByTurn.update(snapResult.point.index, snapResult.distance, speed);
+
+              const resolveIdx = snapResult
+                ? (isOnRoute ? snapResult.index : (snapResult.rejoin ? snapResult.rejoin.index : AppState.vars.maxProgressIndex))
+                : 0;
+
+              const liveRoadName = LiveRoadResolver.resolveForDriver(
+                { lat, lng },
+                isOnRoute && snapResult ? snapResult.point : null,
+                resolveIdx,
+                isOnRoute,
+                (resolvedRoad) => {
+                  if (!isBeaconPaused && AppState.flags.beaconActive && lastDriverPos && resolvedRoad) {
+                    if (Date.now() - AppState.vars.lastTxTime >= 1500) {
+                      transmitDriverFix(lastDriverPos.lat, lastDriverPos.lng, Math.round((lastDriverSpeed || 0) * 2.237), resolvedRoad);
+                    }
+                  }
+                }
+              );
+
+              if (snapResult) {
+                TurnByTurn.update(resolveIdx, snapResult.distance, speed, {
+                  isOffRoute: !isOnRoute,
+                  rejoin: snapResult.rejoin || null,
+                  heading: smoothedHeading,
+                  currentRoadName: liveRoadName
+                });
               }
 
-              const liveRouteIdx = (isOnRoute && snapResult && snapResult.point && typeof snapResult.point.index === 'number') ? snapResult.point.index : AppState.vars.lastSnapIndex;
-              if (AppState.mlMap && AppState.flags.gpxLoaded && AppState.gpxRoute && AppState.vars.lastMlRouteIdx !== liveRouteIdx) {
-                const idx = liveRouteIdx;
-                const rSrc = AppState.mlMap.getSource('gpx-route-remaining');
-                if (rSrc) {
-                  const rCoords = AppState.gpxRoute.slice(idx).map(p => [p.lng, p.lat]);
-                  rSrc.setData(rCoords.length >= 2 ? { type: 'Feature', geometry: { type: 'LineString', coordinates: rCoords } } : { type: 'FeatureCollection', features: [] });
-                  setMlPastRoute(idx);
-                  AppState.vars.lastMlRouteIdx = idx;
+              const pastIdx = isOnRoute
+                ? (snapResult ? snapResult.index : (AppState.vars.maxProgressIndex || 0))
+                : (AppState.vars.maxProgressIndex || 0);
+              const remIdx = isOnRoute
+                ? (snapResult ? snapResult.index : 0)
+                : (snapResult?.rejoin ? snapResult.rejoin.index : pastIdx);
+              const routeStateKey = `${pastIdx}:${remIdx}:${isOnRoute ? 1 : 0}`;
+
+              if (AppState.mlMap && AppState.flags.gpxLoaded && AppState.gpxRoute) {
+                if (AppState.vars.lastMlRouteIdx !== routeStateKey) {
+                  const rSrc = AppState.mlMap.getSource('gpx-route-remaining');
+                  if (rSrc) {
+                    const rCoords = AppState.gpxRoute.slice(remIdx).map(p => [p.lng, p.lat]);
+                    rSrc.setData(rCoords.length >= 2 ? { type: 'Feature', geometry: { type: 'LineString', coordinates: rCoords } } : { type: 'FeatureCollection', features: [] });
+                  }
+                  setMlPastRoute(pastIdx);
+                  AppState.vars.lastMlRouteIdx = routeStateKey;
+                }
+                const offLineSrc = AppState.mlMap.getSource('offroute-rejoin-line');
+                const offPtSrc = AppState.mlMap.getSource('offroute-rejoin-target');
+                if (offLineSrc && offPtSrc) {
+                  if (!isOnRoute && snapResult && snapResult.rejoin && snapResult.rejoin.point) {
+                    const rp = snapResult.rejoin.point;
+                    offLineSrc.setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: [[lng, lat], [rp.lng, rp.lat]] } });
+                    offPtSrc.setData({ type: 'Feature', geometry: { type: 'Point', coordinates: [rp.lng, rp.lat] } });
+                  } else {
+                    offLineSrc.setData({ type: 'FeatureCollection', features: [] });
+                    offPtSrc.setData({ type: 'FeatureCollection', features: [] });
+                  }
                 }
               }
-              
+
               if (AppState.mlMap) {
                 driverMarker.setLngLat([vp.lng, vp.lat]);
               } else {
                 driverMarker.setLatLng([vp.lat, vp.lng]);
               }
-              
-              if (isOnRoute && AppState.gpxRoute && smoothedHeading !== null) {
-                const idx = snapResult.point.index || AppState.vars.lastSnapIndex;
+
+              if (isOnRoute && AppState.gpxRoute && smoothedHeading !== null && snapResult) {
+                const idx = snapResult.index || AppState.vars.lastSnapIndex || 0;
                 const arrowLookAhead = Math.min(idx + 3, AppState.gpxRoute.length - 1);
                 if (arrowLookAhead > idx) {
                   const immediateRouteBearing = Utils.bearingBetween(AppState.gpxRoute[idx], AppState.gpxRoute[arrowLookAhead]);
@@ -5283,6 +6814,17 @@
                     if (arrowDiv) arrowDiv.style.transform = `rotate(${arrowAngle}deg)`;
                   }
                 }
+              } else {
+                if (AppState.mlMap) {
+                  if (driverMarker._arrowEl) driverMarker._arrowEl.style.transform = 'rotate(0deg)';
+                } else {
+                  const arrowDiv = driverMarker.getElement()?.querySelector('div');
+                  if (arrowDiv) arrowDiv.style.transform = 'rotate(0deg)';
+                }
+              }
+
+              if (typeof StopManager !== 'undefined') {
+                StopManager.checkProximity({ lat, lng }, { isDriver: true });
               }
 
               AppState.vars.lastDriverFix = { lat: vp.lat, lng: vp.lng };
@@ -5297,38 +6839,11 @@
                 AppState.map.panTo([vp.lat, vp.lng], { animate: true, duration: 1 });
                 if (smoothedHeading !== null) TurnByTurn.rotateMap(smoothedHeading);
               }
-              
+
               const txNow = Date.now();
-              if (!isBeaconPaused && txNow - AppState.vars.lastTxTime >= 4000) {
-                AppState.vars.lastTxTime = txNow;
-                let activeRoad = "";
-                if (isOnRoute && snapResult && snapResult.point && snapResult.point.roadName) {
-                  activeRoad = snapResult.point.roadName;
-                } else if (isOnRoute && TurnByTurn.steps && TurnByTurn.steps[TurnByTurn.cursor]) {
-                  activeRoad = TurnByTurn.steps[TurnByTurn.cursor].roadName || "";
-                }
-                
+              if (!isBeaconPaused && txNow - AppState.vars.lastTxTime >= 3000) {
                 const speedMph = Math.round((speed || 0) * 2.237);
-                const beaconToken = secret || sessionStorage.getItem('beaconSecret') || "";
-                const payload = { lat, lng, speed: speedMph, road_name: activeRoad, roadName: activeRoad, ts: new Date().toISOString(), secret: beaconToken };
-                try {
-                  const r = await fetch(gpsLoggerUrl, { 
-                    method: "PUT", 
-                    headers: {
-                      "Content-Type": "application/json",
-                      "Authorization": `Bearer ${beaconToken}`
-                    }, 
-                    body: JSON.stringify(payload) 
-                  });
-                  if (!r.ok) throw new Error("HTTP " + r.status);
-                  BeaconDB.sent++;
-                  const sentEl = document.getElementById('txSent');
-                  if (sentEl) sentEl.textContent = BeaconDB.sent;
-                  updateDriverControlUI();
-                } catch(e) {
-                  await BeaconDB.add(payload);
-                  updateDriverControlUI();
-                }
+                await transmitDriverFix(lat, lng, speedMph, liveRoadName);
               }
             }, () => {
               if (AppState.flags.beaconActive) {
@@ -5348,6 +6863,15 @@
               try { if ('speechSynthesis' in window) speechSynthesis.cancel(); } catch (e) {}
               try { if (driverMarker && typeof driverMarker.remove === 'function') driverMarker.remove(); } catch (e) {}
               try { controlDock.remove(); } catch (e) {}
+              if (typeof StopManager !== 'undefined') StopManager.destroyDriverStopUI();
+              if (AppState.mlMap) {
+                try {
+                  const ol = AppState.mlMap.getSource('offroute-rejoin-line');
+                  const op = AppState.mlMap.getSource('offroute-rejoin-target');
+                  if (ol) ol.setData({ type: 'FeatureCollection', features: [] });
+                  if (op) op.setData({ type: 'FeatureCollection', features: [] });
+                } catch (e) {}
+              }
               document.body.classList.remove("nav-active");
               const banner = document.getElementById('navBanner');
               if (banner) banner.classList.remove('ready', 'off-route');
@@ -5511,20 +7035,22 @@
         AppState.vars.sleighName = settings.sleigh_display_name || "Santa Sleigh";
         const today = new Date().toISOString().slice(0, 10);
         const allRoutes = apiData.routes || [];
-        const todayRoute = allRoutes.find(r => r.date === today) || null;
+        const inProgressRoute = allRoutes.find(r => r.status === 'In Progress') || null;
+        const todayRoute = inProgressRoute || allRoutes.find(r => r.date === today) || null;
         const reqRoute = params.get("route");
         let route = null;
         if (reqRoute && allRoutes.length > 0) {
           route = allRoutes.find(r => String(r.id) === reqRoute || (r.routeName && r.routeName.toLowerCase().includes(reqRoute.toLowerCase()))) || null;
         } else if (todayRoute) {
           route = todayRoute;
-        } else if (AppState.flags.isDemo && allRoutes.length > 0) {
-          route = allRoutes.find(r => r.gpxUrl || r.gpx_url) || allRoutes[0];
+        } else if ((AppState.flags.isDriver || AppState.flags.isDemo) && allRoutes.length > 0) {
+          const upcoming = allRoutes.filter(r => r.date && r.date >= today).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+          route = upcoming.find(r => r.gpxUrl || r.gpx_url) || allRoutes.find(r => r.gpxUrl || r.gpx_url) || allRoutes[0];
         }
         AppState.vars.todayRoute = todayRoute;
         AppState.vars.activeRoute = route;
 
-        if (!AppState.flags.isDriver && !AppState.flags.isKiosk && !todayRoute && !AppState.flags.isDemo) {
+        if (!AppState.flags.isDriver && !AppState.flags.isKiosk && !todayRoute && !reqRoute && !AppState.flags.isDemo) {
             WorkshopManager.init(apiData.routes);
         }
 
@@ -5615,6 +7141,7 @@
         } else {
           AppState.gpxRoute = null;
           AppState.flags.gpxLoaded = false;
+          if (typeof StopManager !== 'undefined') StopManager.resolveStops(route);
           if (AppState.dom.notifyBtn) AppState.dom.notifyBtn.style.display = "none";
         }
 
@@ -5672,6 +7199,11 @@
             if (img) {
               img.style.width = size + 'px';
               img.style.height = size + 'px';
+            }
+            const pin = el.querySelector ? el.querySelector('.santa-stop-pin') : null;
+            if (pin) {
+              pin.style.width = size + 'px';
+              pin.style.height = size + 'px';
             }
           }
         }
@@ -5778,23 +7310,13 @@
 
           // Draw Planned Stops
           AppState.stopMarkers = [];
-          if (AppState.gpxStops && AppState.gpxStops.length > 0) {
-            const stopImgUrl = settings.sleigh_icon_stop || settings.sleigh_icon_start || AppConfig.ICONS.FALLBACK_START;
-            AppState.gpxStops.forEach(stop => {
-              const sm = L.marker([stop.lat, stop.lng], {
-                icon: L.divIcon({
-                  className: 'stop-marker',
-                  html: `<img src="${escapeHtml(stopImgUrl)}" style="width:28px; height:28px; filter:drop-shadow(0 4px 8px rgba(0,0,0,0.6)); object-fit:contain; display:block;">`,
-                  iconSize: [28, 28],
-                  iconAnchor: [14, 14]
-                })
-              })
-              .bindTooltip(stop.name, { direction: 'top', offset: [0, -16], className: 'stop-tooltip' })
-              .addTo(AppState.map);
-              AppState.stopMarkers.push(sm);
-            });
-            if (!AppState.flags.gpxLoaded && AppState.map) {
-              const stopCoords = AppState.gpxStops.map(s => [s.lat, s.lng]).filter(c => !isNaN(c[0]) && !isNaN(c[1]));
+          if (typeof StopManager !== 'undefined') {
+            StopManager.resolveStops(AppState.vars.activeRoute || route);
+            if (!AppState.flags.isDriver || typeof maplibregl === 'undefined') {
+              StopManager.renderLeafletMarkers();
+            }
+            if (!AppState.flags.gpxLoaded && AppState.map && StopManager.stops.length > 0) {
+              const stopCoords = StopManager.stops.map(s => [s.lat, s.lng]).filter(c => !isNaN(c[0]) && !isNaN(c[1]));
               if (stopCoords.length === 1) AppState.map.setView(stopCoords[0], 16);
               else if (stopCoords.length > 1) AppState.map.fitBounds(stopCoords, { padding: [40, 40], maxZoom: 15 });
             }
@@ -6198,9 +7720,10 @@
                         if (AppState.dynamicRoutePastGlow) AppState.dynamicRoutePastGlow.setLatLngs([]);
                         if (AppState.dynamicRoutePastMain) AppState.dynamicRoutePastMain.setLatLngs([]);
                         if (AppState.map) {
-                          try { AppState.map.fitBounds(allLatLngs, { padding: [40, 40] }); } catch(e){}
+                          try { AppState.map.fitBounds(allLatLngs, { padding: [40, 40], maxZoom: 15 }); } catch(e){}
                         }
                       }
+                      if (typeof StopManager !== 'undefined') StopManager.renderMarkers();
                     });
                   }
                 }
@@ -6515,6 +8038,16 @@
                   lineMetrics: true, 
                   data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] } }
                 });
+
+                mlMap.addSource('offroute-rejoin-line', {
+                  type: 'geojson',
+                  data: { type: 'FeatureCollection', features: [] }
+                });
+
+                mlMap.addSource('offroute-rejoin-target', {
+                  type: 'geojson',
+                  data: { type: 'FeatureCollection', features: [] }
+                });
                 
                 mlMap.addLayer({
                   id: 'gpx-route-glow',
@@ -6560,6 +8093,31 @@
                     ]
                   }
                 });
+
+                mlMap.addLayer({
+                  id: 'offroute-rejoin-line-layer',
+                  type: 'line',
+                  source: 'offroute-rejoin-line',
+                  layout: { 'line-cap': 'round', 'line-join': 'round' },
+                  paint: {
+                    'line-color': '#38bdf8',
+                    'line-width': 5,
+                    'line-dasharray': [2, 2],
+                    'line-opacity': 0.95
+                  }
+                });
+
+                mlMap.addLayer({
+                  id: 'offroute-rejoin-target-layer',
+                  type: 'circle',
+                  source: 'offroute-rejoin-target',
+                  paint: {
+                    'circle-radius': 9,
+                    'circle-color': '#38bdf8',
+                    'circle-stroke-width': 3,
+                    'circle-stroke-color': '#ffffff'
+                  }
+                });
               }
 
               if (AppState.gpxRoute && AppState.gpxRoute.length > 1) {
@@ -6571,8 +8129,8 @@
                   if (p.lng > maxLng) maxLng = p.lng;
                 }
                 mlMap.fitBounds([[minLng, minLat], [maxLng, maxLat]], { padding: 60, pitch: 0, bearing: 0, duration: 0 });
-              } else if (AppState.gpxStops && AppState.gpxStops.length > 0) {
-                const validStops = AppState.gpxStops.filter(s => !isNaN(s.lat) && !isNaN(s.lng));
+              } else if (typeof StopManager !== 'undefined' && StopManager.stops.length > 0) {
+                const validStops = StopManager.stops.filter(s => !isNaN(s.lat) && !isNaN(s.lng));
                 if (validStops.length === 1) {
                   mlMap.jumpTo({ center: [validStops[0].lng, validStops[0].lat], zoom: 16, pitch: 45, bearing: 0 });
                 } else if (validStops.length > 1) {
@@ -6587,21 +8145,9 @@
                 }
               }
 
-              if (AppState.gpxStops && AppState.gpxStops.length > 0) {
-                const stopImgUrl = settings.sleigh_icon_stop || settings.sleigh_icon_start || AppConfig.ICONS.FALLBACK_START;
-
-                AppState.gpxStops.forEach(stop => {
-                  const el = document.createElement('div');
-                  el.innerHTML = `<img src="${stopImgUrl}" style="width:40px; height:40px; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.8)); object-fit:contain; display:block;">`;
-                  
-                  const popup = new maplibregl.Popup({ offset: 25, closeButton: false })
-                    .setHTML(`<div style="color:#000; font-weight:900; font-family:'Open Sans', sans-serif; font-size:14px; padding:4px;">${stop.name}</div>`);
-
-                  new maplibregl.Marker({ element: el, anchor: 'bottom' })
-                    .setLngLat([stop.lng, stop.lat])
-                    .setPopup(popup)
-                    .addTo(AppState.mlMap);
-                });
+              if (typeof StopManager !== 'undefined') {
+                StopManager.resolveStops(AppState.vars.activeRoute || route);
+                StopManager.renderMapLibreMarkers();
               }
             });
 
@@ -6630,7 +8176,11 @@
         if (AppState.flags.isDemo && typeof DemoSimulator !== 'undefined') {
           DemoSimulator.init(apiData.routes || [], AppState.vars.activeRoute);
         }
-        window.SantaDebug = { AppState, SnowSystem, Fireworks, SleighAudio, SantaSoundboard, animateMarkerTo, Utils, AppConfig, TurnByTurn };
+        window.SantaDebug = {
+          AppState, SnowSystem, Fireworks, SleighAudio, SantaSoundboard, animateMarkerTo,
+          Utils, AppConfig, TurnByTurn, LiveRoadResolver, StopManager,
+          snapDriverToRoute, findNearestUpcomingRejoinPoint, snapToGpxIndex, snapToLineSegment
+        };
       }
 
       document.addEventListener("visibilitychange", () => {

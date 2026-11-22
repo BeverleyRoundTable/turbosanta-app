@@ -270,6 +270,7 @@
     allStreetRecords: [],      // [{ street, route, lat, lng }]
     selectedRouteId: null,
     expandedRouteStreets: new Set(),
+    arrivedStopKeys: new Set(),
     routeFilterTab: 'upcoming',
     routeFilterQuery: '',
     selectedTierAmount: 5,
@@ -890,6 +891,24 @@
         return;
       }
 
+      // 0a. Sync Santa Stop arrival status from embedded tracker into route cards
+      if (e.data.type === 'turbosanta-stop-states' && e.data.stopStates && typeof e.data.stopStates === 'object') {
+        const nextSet = new Set();
+        for (const [k, v] of Object.entries(e.data.stopStates)) {
+          if (v && v.status === 'arrived') nextSet.add(String(k));
+        }
+        state.arrivedStopKeys = nextSet;
+        document.querySelectorAll('[data-stop-key]').forEach(chip => {
+          const k = chip.getAttribute('data-stop-key');
+          const num = chip.getAttribute('data-stop-idx') || '';
+          const arrived = nextSet.has(String(k));
+          chip.classList.toggle('is-arrived', arrived);
+          const badge = chip.querySelector('.stop-num-badge');
+          if (badge) badge.textContent = arrived ? '✓' : num;
+        });
+        return;
+      }
+
       // 0b. Dynamically mute top banner jingles when tracker proximity/arrival audio is active
       if (e.data.type === 'turbosanta-proximity-audio') {
         const isTrackerPlaying = Boolean(e.data.playing);
@@ -1469,20 +1488,22 @@
           <div class="route-stops-chips">
             ${plannedStops.map((st, sIdx) => {
               const matched = q && st.name.toLowerCase().includes(q);
+              const arrived = state.arrivedStopKeys && state.arrivedStopKeys.has(String(st.id));
               const dwellStr = st.allocated_mins > 0 ? `<span class="stop-dwell">(${st.allocated_mins}m)</span>` : '';
               const hasCoords = st.lat !== null && st.lng !== null;
               return `
                 <button
                   type="button"
-                  class="route-stop-chip${matched ? ' matched' : ''}"
+                  class="route-stop-chip${matched ? ' matched' : ''}${arrived ? ' is-arrived' : ''}"
                   data-fly-stop-route="${escapeHtml(route.id)}"
+                  data-stop-key="${escapeHtml(st.id)}"
                   data-stop-lat="${hasCoords ? st.lat : ''}"
                   data-stop-lng="${hasCoords ? st.lng : ''}"
                   data-stop-name="${escapeHtml(st.name)}"
                   data-stop-idx="${sIdx + 1}"
                   title="Fly map to Stop #${sIdx + 1}: ${escapeHtml(st.name)}"
                 >
-                  <span class="stop-num-badge">${sIdx + 1}</span>
+                  <span class="stop-num-badge">${arrived ? '✓' : (sIdx + 1)}</span>
                   <span class="stop-name-text">${escapeHtml(st.name)}</span>
                   ${dwellStr}
                 </button>

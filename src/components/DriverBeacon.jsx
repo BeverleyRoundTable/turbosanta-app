@@ -32,6 +32,10 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
   const wakeLockRef = useRef(null);
   const roadNameRef = useRef('');
   const lastGeocodeRef = useRef(0);
+  const lastGeoPosRef = useRef(null);
+  const geoAbortRef = useRef(null);
+  const geoSeqRef = useRef(0);
+  const lastTxTsRef = useRef(0);
 
   const tableSlug = session?.tableSlug || session?.tableId || 'beverley';
   const tableName = session?.tableName || 'Santa Sleigh';
@@ -124,6 +128,41 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
     }
 
     // 2. High-Accuracy Continuous Watch
+    const distMeters = (a, b) => {
+      const R = 6371000;
+      const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+      const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+      const s = Math.sin(dLat / 2) ** 2 + Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+      return 2 * R * Math.asin(Math.sqrt(s));
+    };
+
+    const sendTelemetryFix = (latVal, lngVal, speedVal, roadVal) => {
+      lastTxTsRef.current = Date.now();
+      const beaconSecret = sessionToken || getAdminAuthToken(tableSlug) || '';
+      fetch(`https://turbosanta-api.beverley247.workers.dev/api/telemetry?table=${encodeURIComponent(tableSlug)}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${beaconSecret}`
+        },
+        body: JSON.stringify({
+          lat: latVal,
+          lng: lngVal,
+          speed: speedVal,
+          road_name: roadVal || '',
+          roadName: roadVal || '',
+          secret: beaconSecret
+        })
+      })
+      .then(async (res) => {
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          console.warn("GPS Beacon telemetry rejected:", errData);
+        }
+      })
+      .catch(e => console.warn("GPS Beacon telemetry push failed:", e));
+    };
+
     if ('geolocation' in navigator) {
       watchIdRef.current = navigator.geolocation.watchPosition(
         (pos) => {
@@ -133,15 +172,29 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
           const nowTime = new Date().toLocaleTimeString();
 
           const nowMs = Date.now();
-          if (nowMs - lastGeocodeRef.current > 8000) {
+          const movedEnough = !lastGeoPosRef.current || distMeters(lastGeoPosRef.current, { lat: latitude, lng: longitude }) >= 20;
+          if (movedEnough && (nowMs - lastGeocodeRef.current >= 1500)) {
             lastGeocodeRef.current = nowMs;
-            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`)
-              .then(r => r.json())
+            lastGeoPosRef.current = { lat: latitude, lng: longitude };
+            if (geoAbortRef.current) {
+              try { geoAbortRef.current.abort(); } catch {}
+            }
+            const ctrl = new AbortController();
+            geoAbortRef.current = ctrl;
+            const mySeq = ++geoSeqRef.current;
+
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`, { signal: ctrl.signal })
+              .then(r => (r.ok ? r.json() : null))
               .then(gData => {
-                const rName = gData?.address?.road || gData?.address?.pedestrian || gData?.address?.path || '';
-                if (rName) {
+                if (mySeq !== geoSeqRef.current || !gData || !gData.address) return;
+                const a = gData.address;
+                const rName = (a.road || a.pedestrian || a.residential || a.footway || a.path || a.hamlet || a.suburb || '').trim();
+                if (rName && rName !== roadNameRef.current) {
                   roadNameRef.current = rName;
                   setGpsStats(prev => ({ ...prev, roadName: rName }));
+                  if (Date.now() - lastTxTsRef.current >= 1200) {
+                    sendTelemetryFix(latitude, longitude, speedMph, rName);
+                  }
                 }
               })
               .catch(() => {});
@@ -164,30 +217,7 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
           ]);
 
           playBeaconBeep();
-
-          // Transmit directly to Cloudflare Edge API
-          const beaconSecret = sessionToken || getAdminAuthToken(tableSlug) || '';
-          fetch(`https://turbosanta-api.beverley247.workers.dev/api/telemetry?table=${encodeURIComponent(tableSlug)}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${beaconSecret}`
-            },
-            body: JSON.stringify({
-              lat: latitude,
-              lng: longitude,
-              speed: speedMph,
-              road_name: roadNameRef.current || "",
-              secret: beaconSecret
-            })
-          })
-          .then(async (res) => {
-            if (!res.ok) {
-              const errData = await res.json().catch(() => ({}));
-              console.warn("GPS Beacon telemetry rejected:", errData);
-            }
-          })
-          .catch(e => console.warn("GPS Beacon telemetry push failed:", e));
+          sendTelemetryFix(latitude, longitude, speedMph, roadNameRef.current || '');
         },
         (err) => {
           console.error("GPS Beacon error:", err);
@@ -203,6 +233,9 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
     return () => {
       if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
       if (wakeLockRef.current) wakeLockRef.current.release().catch(() => {});
+      if (geoAbortRef.current) {
+        try { geoAbortRef.current.abort(); } catch {}
+      }
     };
   }, [cockpitMode, isActive, tableSlug, playBeaconBeep, sessionToken]);
 
@@ -563,6 +596,14 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
               }}>
                 {isActive ? 'TRANSMITTING SANTA RADAR LIVE' : 'GPS BEACON STANDBY'}
               </span>
+              <div style={{
+                marginTop: '6px',
+                fontSize: '13px',
+                fontWeight: 700,
+                color: 'var(--primary)'
+              }}>
+                📍 {gpsStats.roadName || 'Locating street…'}
+              </div>
             </div>
           </div>
 

@@ -1923,6 +1923,12 @@ body {
   box-shadow: 0 0 10px rgba(251, 175, 51, 0.4);
 }
 
+.route-stop-chip.is-arrived {
+  background: rgba(34, 197, 94, 0.22);
+  border-color: rgba(34, 197, 94, 0.78);
+  color: #dcfce7;
+}
+
 .stop-num-badge {
   background: #d31c1c;
   color: #ffffff;
@@ -1936,6 +1942,12 @@ body {
   font-weight: 900;
   flex-shrink: 0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.route-stop-chip.is-arrived .stop-num-badge {
+  background: #22c55e;
+  color: #052e16;
+  font-weight: 900;
 }
 
 .stop-name-text {

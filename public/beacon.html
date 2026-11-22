@@ -766,37 +766,58 @@ async function flush() {
 // GPS WATCH
 // ═══════════════════════════════════════
 
+function _geoDistM(a, b) {
+  const R = 6371000, dLat = (b.lat - a.lat) * Math.PI / 180, dLng = (b.lng - a.lng) * Math.PI / 180;
+  const s = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+
 function gpsOn() {
   if(!("geolocation" in navigator)){_("St").textContent="Geolocation not supported";L("❌ Geolocation unavailable","r");return}
   X.wid = navigator.geolocation.watchPosition(
     pos => {
   const c = pos.coords;
+  const now = Date.now();
   const payload = {
     lat: c.latitude,
     lng: c.longitude,
     speed: c.speed != null ? Math.round(c.speed * 3.6) : 0,
     route_id: X.routeId || null,
+    roadName: window._lastRoadName || "",
+    road_name: window._lastRoadName || "",
     ts: new Date().toISOString()
   };
-  
-  if (window._lastRoadName) payload.roadName = window._lastRoadName;
+  window._lastPayload = payload;
 
-  const now = Date.now();
-  if (!window._lastGeocodeTime || now - window._lastGeocodeTime > 5000) {
+  const movedEnough = !window._lastGeoPos || _geoDistM(window._lastGeoPos, { lat: c.latitude, lng: c.longitude }) >= 20;
+  if (movedEnough && (!window._lastGeocodeTime || now - window._lastGeocodeTime >= 1500)) {
     window._lastGeocodeTime = now;
-    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${c.latitude.toFixed(6)}&lon=${c.longitude.toFixed(6)}&format=json&zoom=18&addressdetails=1`, { 
-      headers: { 'User-Agent': 'TurboSanta-Beacon/1.0' } 
+    window._lastGeoPos = { lat: c.latitude, lng: c.longitude };
+    if (window._geoCtrl) { try { window._geoCtrl.abort(); } catch {} }
+    window._geoCtrl = new AbortController();
+    const seq = (window._geoSeq = (window._geoSeq || 0) + 1);
+    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${c.latitude.toFixed(6)}&lon=${c.longitude.toFixed(6)}&format=json&zoom=18&addressdetails=1`, {
+      signal: window._geoCtrl.signal,
+      headers: { 'User-Agent': 'TurboSanta-Beacon/1.0' }
     })
-    .then(r => r.json())
+    .then(r => (r.ok ? r.json() : null))
     .then(data => {
-      const road = data.address?.road || data.address?.pedestrian || data.address?.path || "";
-      if (road) window._lastRoadName = road;
+      if (seq !== window._geoSeq || !data || !data.address) return;
+      const a = data.address;
+      const road = (a.road || a.pedestrian || a.residential || a.footway || a.path || a.hamlet || a.suburb || "").trim();
+      if (road && road !== window._lastRoadName) {
+        window._lastRoadName = road;
+        if (window._lastPayload && X.running && (!window._lastPutFixTs || Date.now() - window._lastPutFixTs >= 1200)) {
+          window._lastPutFixTs = Date.now();
+          putFix({ ...window._lastPayload, roadName: road, road_name: road, ts: new Date().toISOString() });
+        }
+      }
     }).catch(() => {});
   }
       const acc=Math.round(c.accuracy);
       const aEl=_("Va"); aEl.textContent=acc; aEl.className="sv "+(acc<=10?"cg":acc<=30?"cw":"ca");
       if(c.speed!=null&&c.speed>=0){const kph=Math.round(c.speed*3.6);const sEl=_("Vs");sEl.textContent=kph;sEl.className="sv "+(kph>2?"cg":"cw")}
-      if (!window._lastPutFixTs || (now - window._lastPutFixTs >= 3500)) { window._lastPutFixTs = now; putFix(payload); }
+      if (!window._lastPutFixTs || (now - window._lastPutFixTs >= 3000)) { window._lastPutFixTs = now; putFix(payload); }
     },
     err => { L(`⚠️ GPS: ${err.message} (${err.code})`,"r"); _("St").textContent="GPS Error: "+err.message; setMode("err"); },
     { enableHighAccuracy:true, maximumAge:0, timeout:4000 }
