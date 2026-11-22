@@ -110,6 +110,20 @@
       height: 680,
       maxWidth: 840
     },
+    game: {
+      id: 'game',
+      anchorId: 'game',
+      navLabel: '3D Game',
+      badge: 'Interactive 3D Sleigh Arcade',
+      title: 'TURBOSANTA:',
+      titleHighlight: 'ROOFTOP RUSH 3D',
+      description: 'Pilot Santa & Rudolph over 3D moonlit streets! Aim presents down glowing chimneys, dodge aerials, and unlock sleigh upgrades.',
+      embedSrc: slug => `/game.html?table=${encodeURIComponent(slug)}`,
+      fullscreenSrc: slug => (typeof window !== 'undefined' && window.location.hostname.includes('roundtablesantasleigh.co.uk')) ? `https://${encodeURIComponent(slug)}.roundtablesantasleigh.co.uk/game` : `/game.html?table=${encodeURIComponent(slug)}`,
+      fullscreenLabel: 'Play 3D Game Full-Screen',
+      height: 680,
+      maxWidth: 1000
+    },
     letter: {
       id: 'letter',
       anchorId: 'letter',

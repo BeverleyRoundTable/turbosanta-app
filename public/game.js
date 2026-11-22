@@ -225,6 +225,8 @@
     }
   }
 
+  let _publicTablesCache = [];
+
   /* ================= TOWN DIRECTORY LOADER ================= */
   async function populateTownSelector(save) {
     const select = document.getElementById("town-select");
@@ -261,6 +263,8 @@
       }
     } catch {}
 
+    _publicTablesCache = tables;
+
     if (!select) return;
     select.innerHTML = "";
     const addOpt = (val, label) => {
@@ -277,18 +281,55 @@
 
     const validValues = new Set(Array.from(select.options).map((o) => o.value));
     select.value = validValues.has(save.selectedTown) ? save.selectedTown : "national";
-    updateTownLinks(select.value);
+    updateTownLinks(select.value, _publicTablesCache);
   }
 
-  function updateTownLinks(slug) {
-    const clean = (slug || "national").toLowerCase();
-    const hubUrl = clean === "national"
+  function updateTownLinks(slug, tablesList = _publicTablesCache) {
+    const clean = (slug || "national").toLowerCase().trim();
+    const isNational = !clean || clean === "national";
+    const prefTable = window.__sleighPrefetchedData?.table;
+    const matched = (Array.isArray(tablesList) ? tablesList : []).find((t) => String(t?.slug || "").toLowerCase() === clean);
+    const townLabel = isNational
+      ? "Round Table"
+      : (matched?.town_name || (prefTable?.slug === clean ? (prefTable.town_alias || prefTable.name) : "") || (clean.charAt(0).toUpperCase() + clean.slice(1)));
+
+    const hubUrl = isNational
       ? "https://roundtablesantasleigh.co.uk/"
-      : `https://${clean}.roundtablesantasleigh.co.uk/`;
+      : `https://${encodeURIComponent(clean)}.roundtablesantasleigh.co.uk/`;
+    const gameShareUrl = isNational
+      ? "https://roundtablesantasleigh.co.uk/game"
+      : `https://${encodeURIComponent(clean)}.roundtablesantasleigh.co.uk/game`;
+
+    const eyebrow = document.getElementById("menu-brand-eyebrow");
+    if (eyebrow) {
+      eyebrow.textContent = isNational ? "🎅 Round Table Official Arcade" : `🎅 ${townLabel} Round Table Arcade`;
+    }
+
     const l1 = document.getElementById("menu-track-real-link");
     const l2 = document.getElementById("over-real-sleigh-link");
-    if (l1) l1.href = hubUrl;
-    if (l2) l2.href = hubUrl;
+    if (l1) {
+      l1.href = hubUrl;
+      l1.textContent = isNational ? "View Real Sleigh Hub ↗" : `Track ${townLabel} Sleigh ↗`;
+    }
+    if (l2) {
+      l2.href = hubUrl;
+      l2.textContent = isNational ? "🎅 Track Real Round Table Sleigh →" : `🎅 Track ${townLabel} Santa Sleigh →`;
+    }
+
+    const donateBtn = document.getElementById("over-donate-link");
+    if (donateBtn) {
+      const rawDonate = !isNational && prefTable?.slug === clean ? (prefTable.donate_url || prefTable.justgiving_url || "") : "";
+      const safeDonate = typeof rawDonate === "string" && /^https?:\/\//i.test(rawDonate.trim()) ? rawDonate.trim() : "";
+      if (safeDonate) {
+        donateBtn.href = safeDonate;
+        donateBtn.textContent = `❤️ Support ${townLabel} Charity Appeal →`;
+        donateBtn.style.display = "inline-flex";
+      } else {
+        donateBtn.style.display = "none";
+      }
+    }
+
+    return gameShareUrl;
   }
 
   /* ================= MAIN 3D GAME ENGINE ================= */
@@ -1782,10 +1823,14 @@
 
       document.getElementById("btn-share-score").addEventListener("click", () => {
         const townSel = document.getElementById("town-select");
+        const townSlug = (townSel?.value || this.save.selectedTown || "national").toLowerCase().trim();
         const townLabel = townSel?.selectedOptions?.[0]?.textContent || "Round Table Santa Sleigh";
-        const text = `🎅 TurboSanta: Rooftop Rush 3D\nI scored ${Math.floor(this.score).toLocaleString()} pts (${this.giftsHit} chimneys hit, max x${this.maxComboRun} combo) flying for ${townLabel}!\nPlay now: https://roundtablesantasleigh.co.uk/game`;
+        const shareUrl = (!townSlug || townSlug === "national")
+          ? "https://roundtablesantasleigh.co.uk/game"
+          : `https://${encodeURIComponent(townSlug)}.roundtablesantasleigh.co.uk/game`;
+        const text = `🎅 TurboSanta: Rooftop Rush 3D\nI scored ${Math.floor(this.score).toLocaleString()} pts (${this.giftsHit} chimneys hit, max x${this.maxComboRun} combo) flying for ${townLabel}!\nPlay now: ${shareUrl}`;
         if (navigator.share) {
-          navigator.share({ title: "TurboSanta: Rooftop Rush 3D", text, url: "https://roundtablesantasleigh.co.uk/game" }).catch(() => {});
+          navigator.share({ title: "TurboSanta: Rooftop Rush 3D", text, url: shareUrl }).catch(() => {});
         } else if (navigator.clipboard?.writeText) {
           navigator.clipboard.writeText(text).then(() => {
             const btn = document.getElementById("btn-share-score");
