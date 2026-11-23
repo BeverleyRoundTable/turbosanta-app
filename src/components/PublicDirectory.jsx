@@ -4,6 +4,57 @@ import {
 } from 'lucide-react';
 import { fetchPublicTables } from '../services/api';
 
+const DIRECTORY_TOWN_OVERRIDES = {
+  isleofwight: 'Isle of Wight',
+  'isle-of-wight': 'Isle of Wight',
+  iow: 'Isle of Wight',
+  knowleanddorridge: 'Knowle and Dorridge',
+  'knowle-and-dorridge': 'Knowle and Dorridge',
+  'knowle-dorridge': 'Knowle and Dorridge',
+  'melton-mowbray': 'Melton Mowbray',
+  meltonmowbray: 'Melton Mowbray',
+  'weston-super-mare': 'Weston-super-Mare',
+  'newcastle-upon-tyne': 'Newcastle upon Tyne',
+  'stratford-upon-avon': 'Stratford-upon-Avon',
+  mold: 'Mold and Buckley',
+  moldandbuckley: 'Mold and Buckley',
+  'mold-and-buckley': 'Mold and Buckley',
+  'mold-buckley': 'Mold and Buckley',
+  linlithgow: 'Linlithgow'
+};
+
+function looksLikeUrl(val) {
+  return /^(?:https?:\/\/|www\.)/i.test(String(val || '').trim());
+}
+
+function formatDirectoryTownFromSlug(slug) {
+  const cleanSlug = String(slug || '').toLowerCase().trim();
+  if (!cleanSlug) return 'Round Table';
+  if (DIRECTORY_TOWN_OVERRIDES[cleanSlug]) return DIRECTORY_TOWN_OVERRIDES[cleanSlug];
+  return cleanSlug
+    .split(/[-_]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function resolveSafeDirectoryTable(t) {
+  if (!t || typeof t !== 'object') return t;
+  const rawTown = String(t.town_name || '').trim();
+  const safeTown = (!rawTown || looksLikeUrl(rawTown))
+    ? formatDirectoryTownFromSlug(t.slug)
+    : rawTown;
+  const rawDisplay = String(t.sleigh_display_name || '').trim();
+  const safeDisplay = (!rawDisplay || looksLikeUrl(rawDisplay))
+    ? `${safeTown} Round Table Santa Sleigh`
+    : rawDisplay;
+  return {
+    ...t,
+    town_name: safeTown,
+    sleigh_display_name: safeDisplay
+  };
+}
+
 export default function PublicDirectory({ session, onNavigateAdmin, onSelectTable }) {
   const prefetched = (typeof window !== 'undefined' && Array.isArray(window.__PREFETCHED_PUBLIC_TABLES__) && window.__PREFETCHED_PUBLIC_TABLES__.length > 0)
     ? window.__PREFETCHED_PUBLIC_TABLES__
@@ -29,10 +80,17 @@ export default function PublicDirectory({ session, onNavigateAdmin, onSelectTabl
     };
   }, []);
 
+  const normalizedTables = useMemo(() => {
+    return (Array.isArray(tables) ? tables : [])
+      .map(resolveSafeDirectoryTable)
+      .filter(Boolean)
+      .sort((a, b) => (a.town_name || '').localeCompare(b.town_name || ''));
+  }, [tables]);
+
   const filteredTables = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return tables;
-    return tables.filter((t) => {
+    if (!q) return normalizedTables;
+    return normalizedTables.filter((t) => {
       const town = (t.town_name || '').toLowerCase();
       const name = (t.sleigh_display_name || '').toLowerCase();
       const slug = (t.slug || '').toLowerCase();
@@ -40,7 +98,7 @@ export default function PublicDirectory({ session, onNavigateAdmin, onSelectTabl
       const num = t.table_number ? String(t.table_number) : '';
       return town.includes(q) || name.includes(q) || slug.includes(q) || areas.includes(q) || num.includes(q);
     });
-  }, [tables, searchQuery]);
+  }, [normalizedTables, searchQuery]);
 
   const handleOpenTown = (tableItem) => {
     const slug = (tableItem?.slug || '').toLowerCase().trim();

@@ -1498,9 +1498,10 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     custom_css_acknowledged: Boolean(tableData?.table?.custom_css)
   });
 
-  const activeTownAlias = (formData?.town_alias !== undefined && formData?.town_alias !== null)
+  const activeTownAliasRaw = (formData?.town_alias !== undefined && formData?.town_alias !== null)
     ? String(formData.town_alias)
     : (tableData?.table?.town_alias || (currentTableSlug === 'mold' ? 'Mold and Buckley' : ''));
+  const activeTownAlias = /^(?:https?:\/\/|www\.)/i.test(activeTownAliasRaw.trim()) ? '' : activeTownAliasRaw;
   const effectiveTownName = activeTownAlias.trim() || cleanTown;
   const standardSleighDisplayName = `${effectiveTownName} Round Table Santa Sleigh`;
 
@@ -13176,10 +13177,12 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                         .filter(f => f.q);
                       const faqsJson = JSON.stringify(validFaqs);
                       const parsedGoal = (formData.fundraising_goal === '' || formData.fundraising_goal === undefined || formData.fundraising_goal === null) ? 0 : Number(formData.fundraising_goal);
+                      const rawTownAlias = (formData.town_alias !== undefined && formData.town_alias !== null) ? formData.town_alias.trim() : null;
+                      const safeTownAlias = (rawTownAlias && /^(?:https?:\/\/|www\.)/i.test(rawTownAlias)) ? null : rawTownAlias;
                       const payload = {
                         sleigh_display_name: standardSleighDisplayName,
                         name: standardSleighDisplayName,
-                        town_alias: (formData.town_alias !== undefined && formData.town_alias !== null) ? formData.town_alias.trim() : null,
+                        town_alias: safeTownAlias,
                         subdomain_aliases: (formData.subdomain_aliases !== undefined && formData.subdomain_aliases !== null) ? formData.subdomain_aliases.trim() : null,
                         seo_title: (formData.seo_title !== undefined && formData.seo_title !== null && String(formData.seo_title).trim()) ? String(formData.seo_title).trim() : null,
                         seo_description: (formData.seo_description !== undefined && formData.seo_description !== null && String(formData.seo_description).trim()) ? String(formData.seo_description).trim() : null,
