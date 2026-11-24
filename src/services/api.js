@@ -459,11 +459,10 @@ export async function upvoteKnowledgeLesson(tableSlug = "beverley", lessonId) {
 
 export async function askFleetAdvisor(tableSlug = "beverley", { question, category = "all", scope = "all", model }) {
   try {
-    const selectedModel = model || localStorage.getItem('turbosanta_global_gemini_model') || 'auto';
     const res = await apiFetch(`${API_BASE}/api/knowledge-base/ask?table=${encodeURIComponent(tableSlug)}`, {
       method: "POST",
       headers: getAuthHeaders(null, tableSlug),
-      body: JSON.stringify({ question, category, scope, model: selectedModel })
+      body: JSON.stringify({ question, category, scope, ...(model ? { model } : {}) })
     });
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
@@ -485,7 +484,6 @@ export async function askAdminAssistant(tableSlug = "beverley", { message, histo
   const timeoutId = setTimeout(() => controller.abort(), 28000); // 28s client timeout
 
   try {
-    const selectedModel = model || localStorage.getItem('turbosanta_global_gemini_model') || 'auto';
     const authHeaders = getAuthHeaders(null, tableSlug);
     const res = await apiFetch(`${API_BASE}/api/admin/assistant?table=${encodeURIComponent(tableSlug)}`, {
       method: "POST",
@@ -497,7 +495,7 @@ export async function askAdminAssistant(tableSlug = "beverley", { message, histo
         table: tableSlug,
         message,
         history,
-        model: selectedModel
+        ...(model ? { model } : {})
       }),
       signal: controller.signal
     });

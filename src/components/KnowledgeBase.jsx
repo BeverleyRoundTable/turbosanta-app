@@ -113,12 +113,12 @@ export default function KnowledgeBase({ session, tableData }) {
   const currentTableSlug = session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley';
   const currentTableName = tableData?.table?.sleigh_display_name || tableData?.table?.name || 'Beverley Round Table';
 
-  const globalModel = localStorage.getItem('turbosanta_global_gemini_model') || tableData?.table?.gemini_model || 'auto';
+  const globalModel = tableData?.table?.resolved_gemini_model || tableData?.table?.gemini_model || 'auto';
 
   const formatModelDisplay = (raw) => {
     const m = String(raw || 'auto').trim().toLowerCase();
-    if (m === 'auto' || m === 'latest' || m === 'latest-flash') {
-      return 'Gemini Flash (Auto)';
+    if (m === 'auto' || m === 'latest' || m === 'latest-flash' || m.includes('hydrogen') || m.includes('gemini-4')) {
+      return 'Gemini 4 Hydrogen';
     }
     if (m.includes('3.8')) return 'Gemini 3.8 Flash';
     if (m.includes('3.6')) return 'Gemini 3.6 Flash';

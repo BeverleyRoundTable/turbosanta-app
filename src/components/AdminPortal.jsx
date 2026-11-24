@@ -1482,7 +1482,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
       }
       return normalizeFaqs(raw);
     })(),
-    gemini_model: tableData?.table?.gemini_model || localStorage.getItem('turbosanta_global_gemini_model') || 'auto',
+    gemini_model: tableData?.table?.gemini_model || 'auto',
     enable_colouring: Boolean(tableData?.table?.enable_colouring),
     elevenlabs_agent_id: tableData?.table?.elevenlabs_agent_id || (currentTableSlug === 'beverley' ? 'agent_4401kxaqcqygfb4940wnc4a9haeh' : (currentTableSlug === 'abergavenny' ? 'agent_2101m5d5sktze0rb4mchkhaz1aqj' : '')),
     public_slot_1: tableData?.table?.public_slot_1 || '',
@@ -13231,11 +13231,11 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                       <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e' }}></span>
                       {['auto', 'latest', 'latest-flash', ''].includes(String(formData.gemini_model || '').toLowerCase().trim()) ? (
                         <span>
-                          System Constant: <strong style={{ color: '#FBAF33' }}>AUTO MODE (Zero Maintenance)</strong> &bull; Auto-resolves to Google&apos;s newest free tier engine (gemini-4-hydrogen) with Flash fallback cascade
+                          National Master Constant (Beverley): <strong style={{ color: '#FBAF33' }}>AUTO MODE</strong> &bull; Locks to Google&apos;s newest free Flash engine (<strong>gemini-4-hydrogen</strong>) across all tables &amp; AI screening (Memory Book, Santa Chat, Mailbox, Assistant)
                         </span>
                       ) : (
                         <span>
-                          System Constant: <strong style={{ color: '#fff' }}>{formData.gemini_model}</strong> &bull; Pointed to Google Generative Language Free Tier ($0 Cost)
+                          National Master Constant (Beverley): <strong style={{ color: '#fff' }}>{formData.gemini_model}</strong> &bull; Locked across all tables &amp; AI features ($0 Free Tier)
                         </span>
                       )}
                     </div>
@@ -13611,7 +13611,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                         headline_sponsor_logo: leadPartner.logo || formData.headline_sponsor_logo || null,
                         headline_sponsor_url: leadPartner.url || formData.headline_sponsor_url || null,
                         headline_sponsor_tagline: leadPartner.role || formData.headline_sponsor_tagline || null,
-                        gemini_model: chosenGeminiModel,
+                        gemini_model: isMasterAdmin ? chosenGeminiModel : undefined,
                         elevenlabs_agent_id: formData.elevenlabs_agent_id || null,
                         public_slot_1: formData.public_slot_1 || '',
                         public_slot_2: formData.public_slot_2 || '',

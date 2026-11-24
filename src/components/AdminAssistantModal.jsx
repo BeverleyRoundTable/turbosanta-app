@@ -35,7 +35,7 @@ export default function AdminAssistantModal({
 
   const targetSlug = (currentTableSlug || session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley').toLowerCase().trim();
   const tableName = tableData?.table?.name || session?.tableName || `${targetSlug.charAt(0).toUpperCase() + targetSlug.slice(1)} Round Table`;
-  const rawModel = String(tableData?.table?.gemini_model || localStorage.getItem('turbosanta_global_gemini_model') || 'auto');
+  const rawModel = String(tableData?.table?.resolved_gemini_model || tableData?.table?.gemini_model || 'auto');
   const cleanRawModel = rawModel.toLowerCase().trim();
   const displayModel = (cleanRawModel === 'auto' || cleanRawModel === 'latest' || cleanRawModel === 'latest-flash' || cleanRawModel.includes('hydrogen') || cleanRawModel.includes('gemini-4'))
     ? 'Gemini 4 Hydrogen'
