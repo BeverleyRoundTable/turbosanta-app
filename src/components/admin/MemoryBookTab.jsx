@@ -19,7 +19,10 @@ export default function MemoryBookTab({
   handlePurgeYearMedia,
   handleModerateMemory,
   handleDeleteMemory,
-  handleDownloadMedia
+  handleDownloadMedia,
+  enableMemoryBook = true,
+  requireManualApproval = false,
+  onToggleMemorySetting
 }) {
   const availableMediaSeasons = ['2026'];
   if (Array.isArray(tableData?.season_history)) {
@@ -238,6 +241,77 @@ export default function MemoryBookTab({
             ✓ Photos & videos are isolated by season.
           </div>
         </div>
+
+        {/* PUBLIC MEMORY BOOK & MODERATION CONTROLS */}
+        {typeof onToggleMemorySetting === 'function' && (
+          <div style={{
+            background: '#0d0d0b',
+            border: '1px solid var(--border)',
+            borderRadius: '12px',
+            padding: '16px 20px',
+            marginTop: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+            boxSizing: 'border-box',
+            maxWidth: '100%'
+          }}>
+            <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <Camera size={16} color="var(--primary)" />
+                <strong style={{ fontSize: '14px', color: '#fff' }}>Public Photo Uploads &amp; Review Policy</strong>
+              </div>
+              <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--text-muted)', lineHeight: 1.45 }}>
+                Disable community photo uploads altogether, or require compulsory organiser approval before any uploaded photo appears on your public site.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => onToggleMemorySetting({ enable_memory_book: !enableMemoryBook })}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '7px',
+                  padding: '8px 13px',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  border: enableMemoryBook ? '1px solid #22c55e' : '1px solid rgba(239, 68, 68, 0.45)',
+                  background: enableMemoryBook ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                  color: enableMemoryBook ? '#86efac' : '#fca5a5'
+                }}
+              >
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: enableMemoryBook ? '#22c55e' : '#ef4444', display: 'inline-block' }} />
+                {enableMemoryBook ? 'Memory Book: ENABLED' : 'Memory Book: DISABLED'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onToggleMemorySetting({ memory_book_require_approval: !requireManualApproval })}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '7px',
+                  padding: '8px 13px',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  border: requireManualApproval ? '1px solid #f59e0b' : '1px solid rgba(59, 130, 246, 0.45)',
+                  background: requireManualApproval ? 'rgba(245, 158, 11, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                  color: requireManualApproval ? '#fde68a' : '#93c5fd'
+                }}
+              >
+                <CheckCircle2 size={14} />
+                {requireManualApproval ? 'Review: COMPULSORY ADMIN APPROVAL' : 'Review: AI AUTO-APPROVE SAFE PHOTOS'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Architecture Explainer Pill */}

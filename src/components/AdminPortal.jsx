@@ -1405,6 +1405,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     enable_gift_aid: tableData?.table?.enable_gift_aid || false,
     enable_grant_nominations: tableData?.table?.enable_grant_nominations !== undefined ? Boolean(tableData.table.enable_grant_nominations) : true,
     enable_volunteer_crew: tableData?.table?.enable_volunteer_crew !== undefined ? Boolean(tableData.table.enable_volunteer_crew) : true,
+    enable_memory_book: tableData?.table?.enable_memory_book !== undefined ? Boolean(tableData.table.enable_memory_book) : true,
+    memory_book_require_approval: Boolean(tableData?.table?.memory_book_require_approval),
     music_mode: tableData?.table?.music_mode || 'none',
     music_title: tableData?.table?.music_title || '',
     music_custom_url: tableData?.table?.music_custom_url || '',
@@ -1587,6 +1589,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
         enable_gift_aid: tableData.table.enable_gift_aid !== undefined ? Boolean(tableData.table.enable_gift_aid) : prev.enable_gift_aid,
         enable_grant_nominations: tableData.table.enable_grant_nominations !== undefined ? Boolean(tableData.table.enable_grant_nominations) : (prev.enable_grant_nominations !== undefined ? prev.enable_grant_nominations : true),
         enable_volunteer_crew: tableData.table.enable_volunteer_crew !== undefined ? Boolean(tableData.table.enable_volunteer_crew) : (prev.enable_volunteer_crew !== undefined ? prev.enable_volunteer_crew : true),
+        enable_memory_book: tableData.table.enable_memory_book !== undefined ? Boolean(tableData.table.enable_memory_book) : (prev.enable_memory_book !== undefined ? prev.enable_memory_book : true),
+        memory_book_require_approval: tableData.table.memory_book_require_approval !== undefined ? Boolean(tableData.table.memory_book_require_approval) : Boolean(prev.memory_book_require_approval),
         music_mode: tableData.table.music_mode !== undefined ? tableData.table.music_mode : (prev.music_mode || 'none'),
         music_title: tableData.table.music_title !== undefined ? tableData.table.music_title : (prev.music_title || ''),
         music_custom_url: tableData.table.music_custom_url !== undefined ? tableData.table.music_custom_url : (prev.music_custom_url || ''),
@@ -11255,6 +11259,106 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                 </p>
               </div>
 
+              {/* COMMUNITY MEMORY BOOK & PHOTO MODERATION TOGGLES */}
+              <div style={{
+                background: '#0d0d0b',
+                border: '1px solid var(--border)',
+                borderRadius: '12px',
+                padding: 'clamp(14px, 3vw, 22px)',
+                maxWidth: '100%',
+                boxSizing: 'border-box'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Camera size={18} color="var(--primary)" />
+                    <strong style={{ fontSize: '15px', color: '#fff' }}>
+                      Community Memory Book &amp; Spotted Santa Photo Uploads
+                    </strong>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const nextVal = formData.enable_memory_book === false ? true : false;
+                        setFormData(prev => ({ ...prev, enable_memory_book: nextVal }));
+                        if (onUpdateTableData) {
+                          onUpdateTableData(prev => ({
+                            ...prev,
+                            table: { ...prev.table, enable_memory_book: nextVal }
+                          }));
+                        }
+                        const tableSlug = currentTableSlug || session?.tableSlug || session?.tableId || 'beverley';
+                        setSaveStatus('Updating Memory Book visibility...');
+                        const res = await saveTableSettings(tableSlug, { enable_memory_book: nextVal });
+                        setSaveStatus(res?.ok ? `Memory Book ${nextVal ? 'Enabled' : 'Disabled'} on public site!` : `Memory Book ${nextVal ? 'Enabled' : 'Disabled'} locally.`);
+                        setTimeout(() => setSaveStatus(''), 3000);
+                      }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '7px 14px',
+                        borderRadius: '8px',
+                        fontWeight: 700,
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        border: formData.enable_memory_book !== false ? '1px solid #22c55e' : '1px solid rgba(239, 68, 68, 0.4)',
+                        background: formData.enable_memory_book !== false ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                        color: formData.enable_memory_book !== false ? '#86efac' : '#fca5a5'
+                      }}
+                    >
+                      <span style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        background: formData.enable_memory_book !== false ? '#22c55e' : '#ef4444',
+                        display: 'inline-block'
+                      }}></span>
+                      {formData.enable_memory_book !== false ? 'Memory Book: VISIBLE ON SITE' : 'Memory Book: HIDDEN / DISABLED'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const nextVal = !formData.memory_book_require_approval;
+                        setFormData(prev => ({ ...prev, memory_book_require_approval: nextVal }));
+                        if (onUpdateTableData) {
+                          onUpdateTableData(prev => ({
+                            ...prev,
+                            table: { ...prev.table, memory_book_require_approval: nextVal }
+                          }));
+                        }
+                        const tableSlug = currentTableSlug || session?.tableSlug || session?.tableId || 'beverley';
+                        setSaveStatus('Updating photo moderation policy...');
+                        const res = await saveTableSettings(tableSlug, { memory_book_require_approval: nextVal });
+                        setSaveStatus(res?.ok
+                          ? (nextVal ? 'Compulsory admin photo approval enabled!' : 'AI auto-approval enabled for safe photos!')
+                          : 'Photo moderation mode updated.');
+                        setTimeout(() => setSaveStatus(''), 3000);
+                      }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '7px 14px',
+                        borderRadius: '8px',
+                        fontWeight: 700,
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        border: formData.memory_book_require_approval ? '1px solid #f59e0b' : '1px solid rgba(59, 130, 246, 0.4)',
+                        background: formData.memory_book_require_approval ? 'rgba(245, 158, 11, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                        color: formData.memory_book_require_approval ? '#fde68a' : '#93c5fd'
+                      }}
+                    >
+                      {formData.memory_book_require_approval ? 'Review: COMPULSORY ADMIN APPROVAL' : 'Review: AI AUTO-APPROVE SAFE'}
+                    </button>
+                  </div>
+                </div>
+                <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0, lineHeight: 1.5 }}>
+                  Control whether residents can upload "Spotted Santa" photos to your public Memory Wall, or switch to <strong>Compulsory Admin Approval</strong> so every uploaded photo waits in your <strong>Memory Book</strong> screening queue until approved by a Round Table volunteer.
+                </p>
+              </div>
+
               {/* FESTIVE BACKGROUND MUSIC & SLEIGH JINGLES */}
               <div style={{
                 background: '#0d0d0b',
@@ -13213,6 +13317,8 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                         enable_gift_aid: formData.enable_gift_aid,
                         enable_grant_nominations: formData.enable_grant_nominations !== false ? 1 : 0,
                         enable_volunteer_crew: formData.enable_volunteer_crew !== false ? 1 : 0,
+                        enable_memory_book: formData.enable_memory_book !== false ? 1 : 0,
+                        memory_book_require_approval: formData.memory_book_require_approval ? 1 : 0,
                         music_mode: formData.music_mode || 'none',
                         music_title: formData.music_title || '',
                         music_custom_url: formData.music_custom_url || null,
@@ -13478,6 +13584,22 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
               handleModerateMemory={handleModerateMemory}
               handleDeleteMemory={handleDeleteMemory}
               handleDownloadMedia={handleDownloadMedia}
+              enableMemoryBook={formData.enable_memory_book !== false}
+              requireManualApproval={Boolean(formData.memory_book_require_approval)}
+              onToggleMemorySetting={async (patch) => {
+                setFormData(prev => ({ ...prev, ...patch }));
+                if (onUpdateTableData) {
+                  onUpdateTableData(prev => ({
+                    ...prev,
+                    table: { ...prev.table, ...patch }
+                  }));
+                }
+                const tableSlug = currentTableSlug || session?.tableSlug || session?.tableId || 'beverley';
+                setSaveStatus('Saving Memory Book setting...');
+                await saveTableSettings(tableSlug, patch);
+                setSaveStatus('Memory Book setting saved!');
+                setTimeout(() => setSaveStatus(''), 2500);
+              }}
             />
           </Suspense>
         )}

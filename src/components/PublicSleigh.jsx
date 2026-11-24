@@ -2745,6 +2745,7 @@ export default function PublicSleigh({ tableData, activeTableSlug }) {
         })}
 
         {/* 6. Community Polaroids Section (Embedding memory_book.html) */}
+        {(table.enable_memory_book !== false && tableData?.table?.enable_memory_book !== false) && (
         <section id="photos" style={{ padding: '60px 20px', maxWidth: '1000px', margin: '0 auto', scrollMarginTop: '80px', position: 'relative' }}>
           <span id="memory-book" style={{ position: 'absolute', top: '-80px', left: 0, height: 1, width: 1, opacity: 0, pointerEvents: 'none' }} />
           <div style={{ textAlign: 'center', marginBottom: '40px' }}>
@@ -2802,6 +2803,7 @@ export default function PublicSleigh({ tableData, activeTableSlug }) {
             />
           </div>
         </section>
+        )}
 
         {/* 7. FAQ & Safety Section */}
         {(() => {

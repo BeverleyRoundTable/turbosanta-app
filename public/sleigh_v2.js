@@ -28,6 +28,13 @@
     return true;
   }
 
+  function isMemoryBookEnabled(tbl = state.payload?.table) {
+    if (!tbl) return true;
+    const val = tbl.enable_memory_book;
+    if (val === false || val === 0 || val === '0' || val === 'false') return false;
+    return true;
+  }
+
   function hasDonationLink(tbl = state.payload?.table) {
     if (!tbl) return false;
     const url = tbl.donate_url || tbl.justgiving_url || '';
@@ -374,14 +381,17 @@
         customStyle.id = 'v2-tenant-custom-css';
         document.head.appendChild(customStyle);
       }
-      customStyle.textContent = table.custom_css;
+      const sanitizedCss = String(table.custom_css)
+        .replace(/<[^>]*>/g, '')
+        .replace(/expression\s*\(|javascript:|@import\b/gi, '');
+      customStyle.textContent = sanitizedCss;
     } else if (customStyle) {
       customStyle.remove();
     }
   }
 
   function extractTownName(table, slug) {
-    if (table?.town_alias && typeof table.town_alias === 'string' && table.town_alias.trim()) {
+    if (table?.town_alias && typeof table.town_alias === 'string' && table.town_alias.trim() && !/^(?:https?:\/\/|www\.)/i.test(table.town_alias.trim())) {
       return table.town_alias.trim();
     }
     const raw = table?.sleigh_display_name || table?.name || slug || 'Community';
@@ -1990,14 +2000,25 @@
   }
 
   async function loadAndRenderMemoryWall() {
+    const memSection = document.getElementById('memories');
+    const navLink = document.getElementById('nav-memory-wall');
     const grid = document.getElementById('memory-wall-grid');
-    if (!grid) return;
+    const memEnabled = isMemoryBookEnabled();
+
+    if (memSection) memSection.style.display = memEnabled ? '' : 'none';
+    if (navLink) navLink.style.display = memEnabled ? '' : 'none';
+    if (!grid || !memEnabled) return;
 
     const activeSlug = state.payload?.table?.slug || state.slug;
     let items = [];
     try {
       const res = await fetch(`${API_ORIGIN}/api/memory-book?table=${encodeURIComponent(activeSlug)}`);
       const data = await res.json();
+      if (data && data.enabled === false) {
+        if (memSection) memSection.style.display = 'none';
+        if (navLink) navLink.style.display = 'none';
+        return;
+      }
       if (Array.isArray(data?.items)) items = data.items;
     } catch (e) {}
 
@@ -3173,7 +3194,9 @@
           closeModal('photo-modal');
           e.target.reset();
           loadAndRenderMemoryWall();
-          alert('📸 Thank you! Your photo has been submitted to the Digital Memory Book!');
+          alert(data.requires_approval
+            ? '📸 Thank you! Your photo has been submitted and will appear in the Memory Book once approved by our Round Table volunteers!'
+            : '📸 Thank you! Your photo has been submitted to the Digital Memory Book!');
         }
       } catch (err) {
         alert('Could not process photo — please try another image.');
