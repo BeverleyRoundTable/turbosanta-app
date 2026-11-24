@@ -231,6 +231,86 @@
 
     .btn-clear { background: var(--surface-3); color: var(--text-dim); border: 1px solid var(--border); }
 
+    .pa-presets-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 11px;
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+    .pa-presets-badge {
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+    }
+    .pa-presets-badge.is-custom {
+      background: rgba(251, 175, 51, 0.14);
+      border-color: rgba(251, 175, 51, 0.45);
+      color: var(--gold);
+    }
+    .pa-quick-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      max-height: 210px;
+      overflow-y: auto;
+      margin-bottom: 12px;
+      padding-right: 2px;
+    }
+    .pa-quick-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      text-align: left;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 9px 11px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: 'Open Sans', sans-serif;
+      font-size: 12.5px;
+      line-height: 1.35;
+      transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    }
+    .pa-quick-btn:hover { border-color: rgba(251, 175, 51, 0.55); }
+    .pa-quick-btn:active { transform: scale(0.99); }
+    .pa-quick-btn.is-live {
+      background: rgba(251, 175, 51, 0.14);
+      border-color: var(--gold);
+      color: #fff;
+    }
+    .pa-quick-text { flex: 1 1 auto; min-width: 0; word-break: break-word; }
+    .pa-quick-pill {
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: rgba(251, 175, 51, 0.14);
+      color: var(--gold);
+      border: 1px solid rgba(251, 175, 51, 0.35);
+      white-space: nowrap;
+    }
+    .pa-quick-btn.is-live .pa-quick-pill {
+      background: var(--gold);
+      color: #000;
+      border-color: var(--gold);
+    }
+
     /* ── CREW ALERT PANEL ── */
     .crew-alert-panel { border-color: rgba(211,28,28,0.2) !important; }
     .crew-alert-badge {
@@ -453,6 +533,33 @@ if (!API && !TABLE_SLUG) {
   init();
 }
 
+const DEFAULT_PA_PRESETS = [
+  "🎅 Santa is on the move! Sleigh has departed the depot and is heading down the route. Come out and wave!",
+  "❄️ Reindeer Rest: We're taking a quick 2-minute pause for photos. Come and say hello safely!",
+  "📱 No cash? No problem! Tap 'Donate' on your live tracker or scan the QR code on elf lanyards!",
+  "🚸 Safety Notice: Santa's sleigh is approaching! Please stay safely on pavements and hold little hands.",
+  "🎁 Santa's looking for the heaviest buckets in Town! Dig deep for local community causes!",
+  "🌧️ Weather Update: A light winter drizzle tonight, but Santa's tour is running on full schedule!",
+  "🏁 Final Leg: This is our very last street of the night! Let's make it the loudest cheer yet!"
+];
+
+function resolvePaPresets(rawPresets) {
+  if (Array.isArray(rawPresets)) {
+    const cleaned = rawPresets.map(p => String(p || '').trim()).filter(Boolean);
+    if (cleaned.length > 0) return cleaned;
+  }
+  return DEFAULT_PA_PRESETS;
+}
+
+function escapePaHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
   async function fetchFastAnnouncements() {
   try {
     if (API) {
@@ -464,12 +571,26 @@ if (!API && !TABLE_SLUG) {
         STATE.settings.live_announcement = data.settings.live_announcement || '';
         STATE.settings.user_announcement = data.settings.user_announcement || '';
         STATE.settings.user_announcement_ts = data.settings.user_announcement_ts || 0;
+        if (Array.isArray(data.settings.presets)) {
+          const nextPresets = resolvePaPresets(data.settings.presets);
+          if (JSON.stringify(nextPresets) !== JSON.stringify(STATE.settings.presets)) {
+            STATE.settings.presets = nextPresets;
+            renderPaPresetControls();
+          }
+        }
       }
     } else {
       const res = await fetch(`${WORKER_API}/api/payload?table=${encodeURIComponent(TABLE_SLUG)}`);
       const data = await res.json();
       if (data && data.table) {
         STATE.settings.live_announcement = data.table.live_announcement || '';
+        const nextPresets = resolvePaPresets(data.table.pa_presets);
+        const nextCustom = Boolean(data.table.pa_presets_is_custom);
+        if (JSON.stringify(nextPresets) !== JSON.stringify(STATE.settings.presets) || nextCustom !== Boolean(STATE.settings.pa_presets_is_custom)) {
+          STATE.settings.presets = nextPresets;
+          STATE.settings.pa_presets_is_custom = nextCustom;
+          renderPaPresetControls();
+        }
       }
     }
 
@@ -678,6 +799,8 @@ async function fetchApiData() {
         accent_color: raw.table?.accent_color || '#FFFFFF',
         donate_url: raw.table?.donate_url || '',
         live_announcement: raw.table?.live_announcement || '',
+        presets: resolvePaPresets(raw.table?.pa_presets),
+        pa_presets_is_custom: Boolean(raw.table?.pa_presets_is_custom),
         logo_overlay_url: raw.table?.logo_url || '',
         sleigh_icon_live: raw.table?.sleigh_icon_live || '',
         sleigh_icon_start: raw.table?.sleigh_icon_start || '',
@@ -916,8 +1039,19 @@ function isGpsFresh() {
   return STATE.gps?.ts && (Date.now() - new Date(STATE.gps.ts).getTime()) < 120000;
 }
 
-async function sendAnnouncement() {
-  const msg = document.getElementById('paInput').value.trim();
+function broadcastPresetIdx(idx) {
+  const list = resolvePaPresets(STATE.settings?.presets);
+  const chosen = list[idx];
+  if (!chosen) return;
+  const paInput = document.getElementById('paInput');
+  if (paInput) paInput.value = chosen;
+  sendAnnouncement(chosen);
+}
+
+async function sendAnnouncement(overrideMsg) {
+  const paInput = document.getElementById('paInput');
+  const msg = (typeof overrideMsg === 'string' ? overrideMsg : (paInput ? paInput.value : '')).trim();
+  if (paInput && typeof overrideMsg === 'string') paInput.value = msg;
   const btn = document.getElementById('broadcastBtn');
   const secret = sessionStorage.getItem('sleighSecret') || ''; 
   
@@ -964,18 +1098,30 @@ function updatePaButtonState() {
   const btn = document.getElementById('broadcastBtn');
   const paInput = document.getElementById("paInput");
   const msg = STATE.settings.live_announcement || '';
+  const trimmedMsg = msg.trim();
   
   if (paInput && document.activeElement !== paInput) {
     paInput.value = msg;
   }
 
-  if (msg.trim() !== '') {
-    btn.innerText = "ACTIVE ON TRACKER";
-    btn.className = "btn-broadcast live-active";
-  } else {
-    btn.innerText = "Broadcast Live";
-    btn.className = "btn-broadcast";
+  if (btn) {
+    if (trimmedMsg !== '') {
+      btn.innerText = "ACTIVE ON TRACKER";
+      btn.className = "btn-broadcast live-active";
+    } else {
+      btn.innerText = "Broadcast Live";
+      btn.className = "btn-broadcast";
+    }
   }
+
+  const presetList = resolvePaPresets(STATE.settings?.presets);
+  document.querySelectorAll('.pa-quick-btn').forEach(el => {
+    const idx = parseInt(el.getAttribute('data-preset-idx'), 10);
+    const isLive = Boolean(trimmedMsg && presetList[idx] && presetList[idx].trim() === trimmedMsg);
+    el.classList.toggle('is-live', isLive);
+    const pill = el.querySelector('.pa-quick-pill');
+    if (pill) pill.textContent = isLive ? 'LIVE' : '1-Tap Send';
+  });
 }
 
 async function sendCrewAlert() {
@@ -1128,29 +1274,53 @@ function updateCrewAlertButtonState() {
   }
 }
 
+function buildPaPresetControlsHTML() {
+  const s = STATE.settings || {};
+  const presetList = resolvePaPresets(s.presets);
+  const activeMsg = (s.live_announcement || '').trim();
+  const isCustom = Boolean(s.pa_presets_is_custom);
+
+  let presetOptionsHTML = '<select class="pa-input" id="paSelect" onchange="if(this.value){ const inp = document.getElementById(\'paInput\'); if(inp) inp.value = this.value; this.value=\'\'; }">';
+  presetOptionsHTML += '<option value="">-- Load preset into text box to edit first --</option>';
+  presetList.forEach(cleanStr => {
+    const safeVal = escapePaHtml(cleanStr);
+    presetOptionsHTML += `<option value="${safeVal}" title="${safeVal}">${safeVal}</option>`;
+  });
+  presetOptionsHTML += '</select>';
+
+  const quickButtonsHTML = presetList.map((cleanStr, idx) => {
+    const safeText = escapePaHtml(cleanStr);
+    const isLive = Boolean(activeMsg && cleanStr.trim() === activeMsg);
+    return `<button type="button" class="pa-quick-btn${isLive ? ' is-live' : ''}" data-preset-idx="${idx}" onclick="broadcastPresetIdx(${idx})" title="Tap once to broadcast immediately">
+      <span class="pa-quick-text">${safeText}</span>
+      <span class="pa-quick-pill">${isLive ? 'LIVE' : '1-Tap Send'}</span>
+    </button>`;
+  }).join('');
+
+  return `
+    <div class="pa-presets-meta">
+      <span>1-Click Night Presets</span>
+      <span class="pa-presets-badge${isCustom ? ' is-custom' : ''}">${isCustom ? 'Custom Saved' : 'Default Presets'}</span>
+    </div>
+    <div class="pa-quick-list">${quickButtonsHTML}</div>
+    ${presetOptionsHTML}
+  `;
+}
+
+function renderPaPresetControls() {
+  const container = document.getElementById('paPresetControls');
+  if (container) {
+    container.innerHTML = buildPaPresetControlsHTML();
+  }
+}
+
 function buildDashboard() {
   const s = STATE.settings;
   const logo = s.logo_overlay_url || '';
   const currency = STATE.donations.currency || '£';
   const todayRoute = getTodayRoute();
 
-  const presetList = Array.isArray(s.presets) ? s.presets : [];
-  let presetOptionsHTML = '<select class="pa-input" id="paSelect" onchange="if(this.value){ document.getElementById(\'paInput\').value = this.value; this.value=\'\'; }">';
-  
-  if (presetList.length > 0) {
-    presetOptionsHTML += '<option value="">-- Quick select a preset message --</option>';
-    presetList.forEach(p => {
-      if (p && String(p).trim() !== '') {
-        const cleanStr = String(p).trim();
-        const safeVal = cleanStr.replace(/"/g, '&quot;');
-        presetOptionsHTML += `<option value="${safeVal}" title="${safeVal}">${cleanStr}</option>`;
-      }
-    });
-  }
-  else {
-    presetOptionsHTML += '<option value="" disabled selected>No presets loaded from settings</option>';
-  }
-  presetOptionsHTML += '</select>';
+  const presetControlsHTML = buildPaPresetControlsHTML();
 
   let h = '<div class="dashboard">';
 
@@ -1232,9 +1402,9 @@ function buildDashboard() {
       <div class="panel">
         <div class="panel-header"><span class="icon">📢</span><h3>Live PA System</h3></div>
         
-        ${presetOptionsHTML}
+        <div id="paPresetControls">${presetControlsHTML}</div>
         
-        <input type="text" id="paInput" class="pa-input" placeholder="Type a custom alert or select above..." value="${s.live_announcement || ''}" />
+        <input type="text" id="paInput" class="pa-input" placeholder="Type a custom alert or select above..." value="${escapePaHtml(s.live_announcement || '')}" />
         <div class="pa-btns">
           <button id="broadcastBtn" class="btn-broadcast" onclick="sendAnnouncement()">Broadcast Live</button>
           <button class="btn-clear" onclick="clearAnnouncement()">Clear</button>

@@ -113,9 +113,27 @@ function formatTownNameFromSlug(slug) {
     .join(' ') || 'Round Table';
 }
 
+const DEFAULT_PA_PRESETS = [
+  "🎅 Santa is on the move! Sleigh has departed the depot and is heading down the route. Come out and wave!",
+  "❄️ Reindeer Rest: We're taking a quick 2-minute pause for photos. Come and say hello safely!",
+  "📱 No cash? No problem! Tap 'Donate' on your live tracker or scan the QR code on elf lanyards!",
+  "🚸 Safety Notice: Santa's sleigh is approaching! Please stay safely on pavements and hold little hands.",
+  "🎁 Santa's looking for the heaviest buckets in Town! Dig deep for local community causes!",
+  "🌧️ Weather Update: A light winter drizzle tonight, but Santa's tour is running on full schedule!",
+  "🏁 Final Leg: This is our very last street of the night! Let's make it the loudest cheer yet!"
+];
+
 export default function AdminPortal({ session, onLogout, tableData, onUpdateTableData }) {
   const [activeTab, setActiveTab] = useState('announcements'); // Default to announcements
   const [announcementText, setAnnouncementText] = useState(tableData?.table?.live_announcement || '');
+  const [presetList, setPresetList] = useState(() => (
+    Array.isArray(tableData?.table?.pa_presets) && tableData.table.pa_presets.length > 0
+      ? tableData.table.pa_presets
+      : DEFAULT_PA_PRESETS
+  ));
+  const [isEditingPresets, setIsEditingPresets] = useState(false);
+  const [presetsDirty, setPresetsDirty] = useState(false);
+  const [isSavingPresets, setIsSavingPresets] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
   const [liveGps, setLiveGps] = useState(tableData?.live_sleigh || null);
   const [isDetectingModel, setIsDetectingModel] = useState(false);
@@ -3019,16 +3037,89 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
     }
   };
 
-  // Presets & Templates from the playbook
-  const presets = [
-    "🎅 Santa is on the move! Sleigh has departed the depot and is heading down the route. Come out and wave!",
-    "❄️ Reindeer Rest: We're taking a quick 2-minute pause for photos. Come and say hello safely!",
-    "📱 No cash? No problem! Tap 'Donate' on your live tracker or scan the QR code on elf lanyards!",
-    "🚸 Safety Notice: Santa's sleigh is approaching! Please stay safely on pavements and hold little hands.",
-    "🎁 Santa's looking for the heaviest buckets in Town! Dig deep for local community causes!",
-    "🌧️ Weather Update: A light winter drizzle tonight, but Santa's tour is running on full schedule!",
-    "🏁 Final Leg: This is our very last street of the night! Let's make it the loudest cheer yet!"
-  ];
+  // Keep custom/default PA presets synced across poll refreshes unless user has unsaved edits
+  useEffect(() => {
+    setPresetsDirty(false);
+    setIsEditingPresets(false);
+  }, [currentTableSlug]);
+
+  useEffect(() => {
+    if (presetsDirty) return;
+    const serverPresets = tableData?.table?.pa_presets;
+    const nextList = (Array.isArray(serverPresets) && serverPresets.length > 0)
+      ? serverPresets
+      : DEFAULT_PA_PRESETS;
+    setPresetList(prev => (JSON.stringify(prev) === JSON.stringify(nextList) ? prev : nextList));
+  }, [tableData?.table?.pa_presets, presetsDirty]);
+
+  // Handle PA presets persistence (stored in D1 pa_presets_json, linked to God Mode)
+  const handleSavePresets = async (nextList = presetList) => {
+    const cleaned = (Array.isArray(nextList) ? nextList : [])
+      .map(p => String(p || '').trim().slice(0, 320))
+      .filter(Boolean)
+      .slice(0, 25);
+
+    if (cleaned.length === 0) {
+      setSaveStatus('⚠️ Add at least one preset or click Reset to Defaults.');
+      setTimeout(() => setSaveStatus(''), 3500);
+      return;
+    }
+
+    setIsSavingPresets(true);
+    setSaveStatus('Saving presets for Live Broadcast & God Mode...');
+    const jsonStr = JSON.stringify(cleaned);
+    const res = await saveTableSettings(currentTableSlug, { pa_presets_json: jsonStr });
+    setIsSavingPresets(false);
+
+    if (res && res.ok) {
+      setPresetList(cleaned);
+      setPresetsDirty(false);
+      setIsEditingPresets(false);
+      if (onUpdateTableData) {
+        onUpdateTableData(prev => ({
+          ...prev,
+          table: {
+            ...(prev?.table || {}),
+            pa_presets_json: jsonStr,
+            pa_presets: cleaned,
+            pa_presets_is_custom: true
+          }
+        }));
+      }
+      setSaveStatus('✅ Presets saved! Synced to Live Broadcast & God Mode.');
+    } else {
+      setSaveStatus(`❌ Failed to save presets: ${res?.error || 'Unknown error'}`);
+    }
+    setTimeout(() => setSaveStatus(''), 3500);
+  };
+
+  const handleResetPresets = async () => {
+    setIsSavingPresets(true);
+    setSaveStatus('Resetting presets to playbook defaults...');
+    const res = await saveTableSettings(currentTableSlug, { pa_presets_json: null });
+    setIsSavingPresets(false);
+
+    if (res && res.ok) {
+      setPresetList(DEFAULT_PA_PRESETS);
+      setPresetsDirty(false);
+      setIsEditingPresets(false);
+      if (onUpdateTableData) {
+        onUpdateTableData(prev => ({
+          ...prev,
+          table: {
+            ...(prev?.table || {}),
+            pa_presets_json: null,
+            pa_presets: DEFAULT_PA_PRESETS,
+            pa_presets_is_custom: false
+          }
+        }));
+      }
+      setSaveStatus('↺ Presets reset to defaults across Live Broadcast & God Mode.');
+    } else {
+      setSaveStatus(`❌ Failed to reset presets: ${res?.error || 'Unknown error'}`);
+    }
+    setTimeout(() => setSaveStatus(''), 3500);
+  };
 
   // Handle PA broadcast update
   const handleBroadcast = async (textToBroadcast) => {
@@ -4142,12 +4233,114 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
               </button>
             </div>
 
-            {/* Presets */}
-            <h3 className="brand-font" style={{ fontSize: '16px', color: 'var(--primary)', marginBottom: '12px' }}>
-              Quick Presets & Templates (Draft or Broadcast):
-            </h3>
+            {/* Presets (Synced with God Mode; Defaults unless overridden) */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '10px',
+              flexWrap: 'wrap',
+              marginBottom: '12px'
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <h3 className="brand-font" style={{ fontSize: '16px', color: 'var(--primary)', margin: 0 }}>
+                    Quick Presets & Templates (1-Click or Draft):
+                  </h3>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    background: tableData?.table?.pa_presets_is_custom ? 'rgba(251, 175, 51, 0.16)' : 'rgba(255,255,255,0.08)',
+                    border: tableData?.table?.pa_presets_is_custom ? '1px solid rgba(251, 175, 51, 0.45)' : '1px solid rgba(255,255,255,0.16)',
+                    color: tableData?.table?.pa_presets_is_custom ? '#FBAF33' : '#9ca3af'
+                  }}>
+                    {tableData?.table?.pa_presets_is_custom ? 'Custom Saved' : 'Default Presets'}
+                  </span>
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Synced automatically with God Mode Live PA. Default presets apply unless customised and saved here.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {!isEditingPresets ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingPresets(true)}
+                      className="btn-secondary"
+                      style={{ padding: '7px 12px', fontSize: '12px' }}
+                    >
+                      ✏️ Edit Presets
+                    </button>
+                    {tableData?.table?.pa_presets_is_custom && (
+                      <button
+                        type="button"
+                        disabled={isSavingPresets}
+                        onClick={handleResetPresets}
+                        className="btn-secondary"
+                        style={{ padding: '7px 12px', fontSize: '12px', borderColor: '#6b7280', color: '#d1d5db' }}
+                        title="Restore default playbook presets"
+                      >
+                        ↺ Reset Defaults
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      disabled={isSavingPresets || presetList.length >= 25}
+                      onClick={() => {
+                        setPresetsDirty(true);
+                        setPresetList(prev => [...prev, '']);
+                      }}
+                      className="btn-secondary"
+                      style={{ padding: '7px 12px', fontSize: '12px' }}
+                    >
+                      + Add Preset
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isSavingPresets}
+                      onClick={() => handleSavePresets()}
+                      className="btn-primary"
+                      style={{ padding: '7px 14px', fontSize: '12px' }}
+                    >
+                      {isSavingPresets ? 'Saving...' : '💾 Save Presets'}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isSavingPresets}
+                      onClick={handleResetPresets}
+                      className="btn-secondary"
+                      style={{ padding: '7px 12px', fontSize: '12px', borderColor: '#6b7280', color: '#d1d5db' }}
+                    >
+                      ↺ Defaults
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isSavingPresets}
+                      onClick={() => {
+                        const serverPresets = tableData?.table?.pa_presets;
+                        setPresetList((Array.isArray(serverPresets) && serverPresets.length > 0) ? serverPresets : DEFAULT_PA_PRESETS);
+                        setPresetsDirty(false);
+                        setIsEditingPresets(false);
+                      }}
+                      className="btn-secondary"
+                      style={{ padding: '7px 12px', fontSize: '12px' }}
+                    >
+                      Cancel
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {presets.map((preset, idx) => (
+              {presetList.map((preset, idx) => (
                 <div
                   key={idx}
                   style={{
@@ -4157,7 +4350,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     padding: '12px 14px',
                     display: 'flex',
                     justifyContent: 'space-between',
-                    alignItems: 'center',
+                    alignItems: isEditingPresets ? 'stretch' : 'center',
                     gap: '10px',
                     flexWrap: 'wrap',
                     maxWidth: '100%',
@@ -4165,33 +4358,116 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     overflow: 'hidden'
                   }}
                 >
-                  <span style={{ color: '#fff', fontSize: '14px', flex: '1 1 220px', minWidth: 0, lineHeight: 1.4, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
-                    {preset}
-                  </span>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', maxWidth: '100%', boxSizing: 'border-box' }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAnnouncementText(preset);
-                        setSaveStatus('Loaded template into draft box! Edit or click Publish Banner above.');
-                        setTimeout(() => setSaveStatus(''), 3000);
-                      }}
-                      className="btn-secondary"
-                      style={{ padding: '6px 10px', fontSize: '11px', whiteSpace: 'nowrap', flex: '1 1 auto', maxWidth: '100%', boxSizing: 'border-box', justifyContent: 'center' }}
-                      title="Load into draft box to preview or customize before sending"
-                    >
-                      ✏️ Load Draft
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleBroadcast(preset)}
-                      className="btn-primary"
-                      style={{ padding: '6px 10px', fontSize: '11px', whiteSpace: 'nowrap', flex: '1 1 auto', maxWidth: '100%', boxSizing: 'border-box', justifyContent: 'center' }}
-                      title="Publish immediately to public tracker banner"
-                    >
-                      📢 1-Tap Broadcast
-                    </button>
-                  </div>
+                  {isEditingPresets ? (
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--primary)', minWidth: '24px' }}>#{idx + 1}</span>
+                      <textarea
+                        rows={2}
+                        maxLength={320}
+                        value={preset}
+                        placeholder="Enter one-click broadcast announcement..."
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setPresetsDirty(true);
+                          setPresetList(prev => prev.map((item, i) => (i === idx ? val : item)));
+                        }}
+                        style={{
+                          flex: '1 1 240px',
+                          background: '#151513',
+                          border: '1px solid var(--border)',
+                          borderRadius: '8px',
+                          padding: '8px 10px',
+                          color: '#fff',
+                          fontSize: '13px',
+                          outline: 'none',
+                          resize: 'vertical',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <button
+                          type="button"
+                          disabled={idx === 0}
+                          onClick={() => {
+                            if (idx === 0) return;
+                            setPresetsDirty(true);
+                            setPresetList(prev => {
+                              const next = [...prev];
+                              [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                              return next;
+                            });
+                          }}
+                          className="btn-secondary"
+                          style={{ padding: '6px 9px', fontSize: '12px', opacity: idx === 0 ? 0.4 : 1 }}
+                          title="Move up"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          disabled={idx === presetList.length - 1}
+                          onClick={() => {
+                            if (idx === presetList.length - 1) return;
+                            setPresetsDirty(true);
+                            setPresetList(prev => {
+                              const next = [...prev];
+                              [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]];
+                              return next;
+                            });
+                          }}
+                          className="btn-secondary"
+                          style={{ padding: '6px 9px', fontSize: '12px', opacity: idx === presetList.length - 1 ? 0.4 : 1 }}
+                          title="Move down"
+                        >
+                          ↓
+                        </button>
+                        <button
+                          type="button"
+                          disabled={presetList.length <= 1}
+                          onClick={() => {
+                            if (presetList.length <= 1) return;
+                            setPresetsDirty(true);
+                            setPresetList(prev => prev.filter((_, i) => i !== idx));
+                          }}
+                          className="btn-secondary"
+                          style={{ padding: '6px 9px', fontSize: '12px', borderColor: '#d31c1c', color: '#fca5a5', opacity: presetList.length <= 1 ? 0.4 : 1 }}
+                          title="Remove preset"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <span style={{ color: '#fff', fontSize: '14px', flex: '1 1 220px', minWidth: 0, lineHeight: 1.4, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+                        {preset}
+                      </span>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', maxWidth: '100%', boxSizing: 'border-box' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAnnouncementText(preset);
+                            setSaveStatus('Loaded template into draft box! Edit or click Publish Banner above.');
+                            setTimeout(() => setSaveStatus(''), 3000);
+                          }}
+                          className="btn-secondary"
+                          style={{ padding: '6px 10px', fontSize: '11px', whiteSpace: 'nowrap', flex: '1 1 auto', maxWidth: '100%', boxSizing: 'border-box', justifyContent: 'center' }}
+                          title="Load into draft box to preview or customize before sending"
+                        >
+                          ✏️ Load Draft
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleBroadcast(preset)}
+                          className="btn-primary"
+                          style={{ padding: '6px 10px', fontSize: '11px', whiteSpace: 'nowrap', flex: '1 1 auto', maxWidth: '100%', boxSizing: 'border-box', justifyContent: 'center' }}
+                          title="Publish immediately to public tracker banner"
+                        >
+                          📢 1-Tap Broadcast
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
