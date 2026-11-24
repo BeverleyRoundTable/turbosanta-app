@@ -192,8 +192,174 @@
 
   /* ── AGREEMENTS ── */
   .agreement-item { display: flex; align-items: flex-start; margin-bottom: 12px; }
-  .agreement-item input { width: 18px; height: 18px; margin-right: 12px; margin-top: 2px; accent-color: var(--primary); cursor: pointer; }
+  .agreement-item input { width: 18px; height: 18px; padding: 0; margin-right: 12px; margin-top: 2px; accent-color: var(--primary); cursor: pointer; flex-shrink: 0; }
   .agreement-item label { font-family: 'Open Sans', sans-serif; text-transform: none; letter-spacing: normal; font-size: 14px; color: var(--text-dim); font-weight: 400; cursor: pointer; margin-bottom: 0; line-height: 1.5; }
+
+  /* ── MULTI-ROUTE & WHOLE-EVENING PICKER ── */
+  .route-picker-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .route-picker-top label { margin-bottom: 0 !important; }
+  .route-picker-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .route-selected-pill {
+    font-family: 'Open Sans', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 99px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+  .route-selected-pill.active {
+    background: var(--primary-dim);
+    border-color: var(--border-primary);
+    color: var(--primary);
+  }
+  .route-mini-btn {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    border-radius: 6px;
+    padding: 4px 9px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .route-mini-btn:hover { border-color: var(--primary); color: #fff; }
+  .route-picker-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 360px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .route-day-group {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .route-day-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 9px 12px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .route-day-title {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: #fff;
+    text-transform: uppercase;
+  }
+  .route-day-sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-weight: 600;
+    margin-left: 6px;
+  }
+  .route-day-btn {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border-primary);
+    background: var(--primary-dim);
+    color: var(--primary);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .route-day-btn.all-selected {
+    background: var(--primary);
+    color: var(--on-primary);
+    border-color: var(--primary);
+  }
+  .route-day-items {
+    display: flex;
+    flex-direction: column;
+  }
+  .route-choice {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+    border-top: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.15s;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    margin-bottom: 0 !important;
+    font-family: 'Open Sans', sans-serif !important;
+  }
+  .route-day-items .route-choice:first-child { border-top: none; }
+  .route-choice:hover:not(.is-disabled) { background: rgba(255,255,255,0.04); }
+  .route-choice.is-checked { background: var(--primary-dim); }
+  .route-choice.is-disabled { opacity: 0.55; cursor: not-allowed; }
+  .route-choice input.crew-route-cb {
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px;
+    padding: 0 !important;
+    margin: 0 !important;
+    accent-color: var(--primary);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .route-choice-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .route-choice-name {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+  .route-choice-time {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .route-slot-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.06);
+    color: var(--text-dim);
+  }
+  .route-slot-badge.low { background: rgba(34,197,94,0.14); color: #86efac; }
+  .route-slot-badge.warn { background: rgba(245,158,11,0.15); color: #fcd34d; }
+  .route-slot-badge.closed { background: rgba(239,68,68,0.15); color: #fca5a5; }
+  @media (max-width: 480px) {
+    .app { padding: 28px 14px 48px; }
+    .panel { padding: 20px 16px; }
+    .route-choice { align-items: flex-start; }
+  }
   
   /* ── BUTTONS ── */
   .btn-row { display: flex; gap: 12px; margin-top: 32px; }
@@ -281,14 +447,21 @@
 
     <div id="signup" class="section active">
       <div class="panel">
-        <h3>Join a Route</h3>
+        <h3>Join Route(s)</h3>
         <div id="signupSuccessBanner" role="status" aria-live="polite" style="display:none; background: rgba(16, 185, 129, 0.14); border: 1px solid rgba(52, 211, 153, 0.45); border-radius: 12px; padding: 14px 16px; margin-bottom: 18px; color: #ecfdf5; font-size: 14px; line-height: 1.55;"></div>
         <form id="signupForm" onsubmit="submitVolunteer(event)">
-          <div class="field">
-            <label>Select Route & Date</label>
-            <select id="routeSelect" required onchange="updateRouteCapacityNotice()">
-              <option value="">Loading routes...</option>
-            </select>
+          <div class="field" id="routePickerField">
+            <div class="route-picker-top">
+              <label style="margin:0;">Select Route(s) &amp; Date(s)</label>
+              <div class="route-picker-controls">
+                <span id="routeSelectedBadge" class="route-selected-pill">0 selected</span>
+                <button type="button" class="route-mini-btn" onclick="selectAllOpenRoutes()">Select All</button>
+                <button type="button" class="route-mini-btn" onclick="clearSelectedRoutes()">Clear</button>
+              </div>
+            </div>
+            <div id="routeChecklist" class="route-picker-list" role="group" aria-label="Select Santa sleigh routes">
+              <div style="padding:14px; color:var(--text-dim); font-size:13px;">Loading routes...</div>
+            </div>
           </div>
           <div id="routeCapNotice" style="display:none; margin-bottom: 16px;"></div>
           <div class="field">
@@ -881,45 +1054,87 @@ async function switchTab(btn) {
   document.getElementById(target).classList.add('active');
 }
 
-function updateRoleDropdown(capacity) {
+function getRoleLimitFlag(capacity, roleName) {
+  if (!capacity) return { hidden: false, full: false };
+  const rLower = String(roleName || "").toLowerCase();
+  const rolesFull = Array.isArray(capacity.roles_full) ? capacity.roles_full : [];
+
+  let isZeroCap = false;
+  if (rLower.includes('santa') && capacity.max_santas === 0) isZeroCap = true;
+  else if ((rLower.includes('driver') || rLower.includes('tow')) && capacity.max_drivers === 0) isZeroCap = true;
+  else if ((rLower.includes('lead') || rLower.includes('navigator')) && capacity.max_lead_marshals === 0) isZeroCap = true;
+  else if ((rLower.includes('tech') || rLower.includes('gps')) && capacity.max_tech === 0) isZeroCap = true;
+  else if (rLower.includes('banksman') && capacity.max_banksman === 0) isZeroCap = true;
+  else if ((rLower.includes('collect') || rLower.includes('bucket')) && capacity.max_collectors === 0) isZeroCap = true;
+  else if ((rLower.includes('marshal') || rLower.includes('walker') || rLower.includes('safety')) && capacity.max_marshals === 0) isZeroCap = true;
+
+  const isFull = rolesFull.some(rf => {
+    const rfLower = String(rf || "").toLowerCase();
+    if (rfLower.includes('santa') && rLower.includes('santa')) return true;
+    if (rfLower.includes('driver') && rLower.includes('driver')) return true;
+    if ((rfLower.includes('lead') || rfLower.includes('navigator')) && (rLower.includes('lead') || rLower.includes('navigator'))) return true;
+    if ((rfLower.includes('tech') || rfLower.includes('gps')) && (rLower.includes('tech') || rLower.includes('gps'))) return true;
+    if (rfLower.includes('banksman') && rLower.includes('banksman')) return true;
+    if ((rfLower.includes('collect') || rfLower.includes('bucket')) && (rLower.includes('collect') || rLower.includes('bucket'))) return true;
+    if ((rfLower.includes('marshal') || rfLower.includes('walker')) && (rLower.includes('marshal') || rLower.includes('walker'))) return true;
+    return false;
+  });
+
+  return { hidden: isZeroCap, full: isFull };
+}
+
+function updateRoleDropdown(selectedRoutesListOrCap) {
   const roleSel = document.getElementById('volRole');
   if (!roleSel) return;
   const currentVal = roleSel.value;
   const roles = window.baseRoles || ['Driver','Collections','Lead Elf','Santa','Tech/GPS','Safety Walkers','Banksman'];
-  const rolesFull = capacity?.roles_full || [];
+
+  // Support either a list of route objects or a single capacity object (or null)
+  const routeObjs = Array.isArray(selectedRoutesListOrCap)
+    ? selectedRoutesListOrCap.filter(Boolean)
+    : [];
+  const singleCap = (!Array.isArray(selectedRoutesListOrCap) && selectedRoutesListOrCap && typeof selectedRoutesListOrCap === 'object')
+    ? selectedRoutesListOrCap
+    : null;
 
   roleSel.innerHTML = '<option value="">Select a role…</option>';
   roles.forEach(r => {
-    const rLower = r.toLowerCase();
+    let allZeroHidden = false;
+    let unavailableReason = null;
 
-    // If role is set to 0 capacity, completely remove from public volunteer options
-    if (capacity) {
-      if (rLower.includes('santa') && capacity.max_santas === 0) return;
-      if ((rLower.includes('driver') || rLower.includes('tow')) && capacity.max_drivers === 0) return;
-      if ((rLower.includes('lead') || rLower.includes('navigator')) && capacity.max_lead_marshals === 0) return;
-      if ((rLower.includes('tech') || rLower.includes('gps')) && capacity.max_tech === 0) return;
-      if (rLower.includes('banksman') && capacity.max_banksman === 0) return;
-      if ((rLower.includes('collect') || rLower.includes('bucket')) && capacity.max_collectors === 0) return;
-      if ((rLower.includes('marshal') || rLower.includes('walker') || rLower.includes('safety')) && capacity.max_marshals === 0) return;
+    if (routeObjs.length > 0) {
+      let zeroCount = 0;
+      const blockedNames = [];
+      for (const rt of routeObjs) {
+        const cap = rt?.volunteer_capacity || null;
+        const st = getRoleLimitFlag(cap, r);
+        if (st.hidden) {
+          zeroCount++;
+          blockedNames.push(rt.routeName || rt.name || 'Route');
+        } else if (st.full) {
+          blockedNames.push(rt.routeName || rt.name || 'Route');
+        }
+      }
+      if (zeroCount === routeObjs.length) {
+        allZeroHidden = true;
+      } else if (blockedNames.length > 0) {
+        unavailableReason = routeObjs.length === 1
+          ? `${r} (Position Filled)`
+          : `${r} (Full/Closed on ${blockedNames[0]})`;
+      }
+    } else if (singleCap) {
+      const st = getRoleLimitFlag(singleCap, r);
+      if (st.hidden) allZeroHidden = true;
+      else if (st.full) unavailableReason = `${r} (Position Filled)`;
     }
 
-    const isFull = rolesFull.some(rf => {
-      const rfLower = rf.toLowerCase();
-      if (rfLower.includes('santa') && rLower.includes('santa')) return true;
-      if (rfLower.includes('driver') && rLower.includes('driver')) return true;
-      if ((rfLower.includes('lead') || rfLower.includes('navigator')) && (rLower.includes('lead') || rLower.includes('navigator'))) return true;
-      if ((rfLower.includes('tech') || rfLower.includes('gps')) && (rLower.includes('tech') || rLower.includes('gps'))) return true;
-      if (rfLower.includes('banksman') && rLower.includes('banksman')) return true;
-      if ((rfLower.includes('collect') || rfLower.includes('bucket')) && (rLower.includes('collect') || rLower.includes('bucket'))) return true;
-      if ((rfLower.includes('marshal') || rfLower.includes('walker')) && (rLower.includes('marshal') || rLower.includes('walker'))) return true;
-      return false;
-    });
+    if (allZeroHidden) return;
 
     const opt = document.createElement('option');
     opt.value = r;
-    if (isFull) {
+    if (unavailableReason) {
       opt.disabled = true;
-      opt.textContent = `${r} (Position Filled)`;
+      opt.textContent = unavailableReason;
     } else {
       opt.textContent = r;
     }
@@ -936,14 +1151,86 @@ function updateRoleDropdown(capacity) {
   }
 }
 
+function getSelectedSignupRouteItems() {
+  const checked = Array.from(document.querySelectorAll('#routeChecklist input.crew-route-cb:checked'));
+  return checked.map(cb => {
+    const idx = parseInt(cb.dataset.routeIdx, 10);
+    const routeObj = (!isNaN(idx) && Array.isArray(window.allRoutes)) ? window.allRoutes[idx] : null;
+    return {
+      id: cb.dataset.routeId || routeObj?.id || "",
+      name: cb.value,
+      dateKey: cb.dataset.dateKey || "unscheduled",
+      dateLabel: cb.dataset.routeDate || "",
+      timeLabel: cb.dataset.routeTime || "",
+      routeObj
+    };
+  });
+}
+
+function syncRouteChecklistVisuals() {
+  const selected = getSelectedSignupRouteItems();
+  const badge = document.getElementById('routeSelectedBadge');
+  if (badge) {
+    const uniqueDays = new Set(selected.map(s => s.dateKey).filter(k => k && k !== 'unscheduled'));
+    if (selected.length === 0) {
+      badge.textContent = '0 selected';
+      badge.classList.remove('active');
+    } else if (uniqueDays.size > 0 && selected.length > 1) {
+      badge.textContent = `${selected.length} routes (${uniqueDays.size} night${uniqueDays.size === 1 ? '' : 's'})`;
+      badge.classList.add('active');
+    } else {
+      badge.textContent = `${selected.length} route${selected.length === 1 ? '' : 's'} selected`;
+      badge.classList.add('active');
+    }
+  }
+
+  document.querySelectorAll('#routeChecklist .route-choice').forEach(lbl => {
+    const cb = lbl.querySelector('input.crew-route-cb');
+    lbl.classList.toggle('is-checked', Boolean(cb && cb.checked));
+  });
+
+  document.querySelectorAll('#routeChecklist .route-day-group').forEach(group => {
+    const btn = group.querySelector('.route-day-btn');
+    if (!btn) return;
+    const openCbs = Array.from(group.querySelectorAll('input.crew-route-cb:not(:disabled)'));
+    const allChecked = openCbs.length > 0 && openCbs.every(c => c.checked);
+    btn.classList.toggle('all-selected', allChecked);
+    btn.textContent = allChecked
+      ? `✓ Whole Evening (${openCbs.length})`
+      : `+ Whole Evening (${openCbs.length})`;
+  });
+}
+
+function toggleDateGroupRoutes(dateKey) {
+  const group = document.querySelector(`#routeChecklist .route-day-group[data-date-key="${CSS.escape(dateKey)}"]`);
+  if (!group) return;
+  const openCbs = Array.from(group.querySelectorAll('input.crew-route-cb:not(:disabled)'));
+  if (openCbs.length === 0) return;
+  const shouldCheck = !openCbs.every(cb => cb.checked);
+  openCbs.forEach(cb => { cb.checked = shouldCheck; });
+  updateRouteCapacityNotice();
+}
+
+function selectAllOpenRoutes() {
+  const openCbs = Array.from(document.querySelectorAll('#routeChecklist input.crew-route-cb:not(:disabled)'));
+  openCbs.forEach(cb => { cb.checked = true; });
+  updateRouteCapacityNotice();
+}
+
+function clearSelectedRoutes() {
+  const allCbs = Array.from(document.querySelectorAll('#routeChecklist input.crew-route-cb'));
+  allCbs.forEach(cb => { cb.checked = false; });
+  updateRouteCapacityNotice();
+}
+
 function updateRouteCapacityNotice() {
-  const routeSelect = document.getElementById('routeSelect');
+  syncRouteChecklistVisuals();
   const noticeDiv = document.getElementById('routeCapNotice');
   const submitBtn = document.getElementById('submitBtn');
-  if (!routeSelect || !noticeDiv) return;
+  if (!noticeDiv) return;
 
-  const selectedName = routeSelect.value;
-  if (!selectedName) {
+  const selectedItems = getSelectedSignupRouteItems();
+  if (selectedItems.length === 0) {
     noticeDiv.style.display = 'none';
     noticeDiv.innerHTML = '';
     updateRoleDropdown(null);
@@ -954,73 +1241,197 @@ function updateRouteCapacityNotice() {
     return;
   }
 
-  const route = (window.allRoutes || []).find(r => (r.routeName || r.name) === selectedName);
-  const cap = route?.volunteer_capacity;
+  const routeObjs = selectedItems.map(s => s.routeObj).filter(Boolean);
+  updateRoleDropdown(routeObjs);
 
-  if (!cap) {
-    noticeDiv.style.display = 'none';
-    noticeDiv.innerHTML = '';
-    updateRoleDropdown(null);
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.innerText = "Sign Up Now";
+  const lowCapNotes = [];
+  let hasClosed = false;
+  let hasFull = false;
+
+  for (const item of selectedItems) {
+    const cap = item.routeObj?.volunteer_capacity;
+    if (!cap) continue;
+    if (cap.is_closed) {
+      hasClosed = true;
+    } else if (cap.is_full || cap.slots_remaining <= 0) {
+      hasFull = true;
+    } else if (cap.slots_remaining <= 5) {
+      lowCapNotes.push(`${escapeCrewHtml(item.name)}: <strong>${cap.slots_remaining}</strong> of ${cap.max_volunteers} left`);
     }
-    return;
   }
 
-  updateRoleDropdown(cap);
-
-  if (cap.is_closed) {
-    noticeDiv.style.display = 'block';
-    noticeDiv.innerHTML = `
-      <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 12px 14px; color: #fca5a5; font-size: 13px; line-height: 1.45;">
-        <strong>🔒 Volunteer Registration Closed</strong><br>
-        Registration for this route has been closed by the organizers. Thank you so much for your generosity! Please choose another route from the dropdown if available.
-      </div>
-    `;
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.innerText = "Registration Closed";
-    }
-  } else if (cap.is_full || cap.slots_remaining <= 0) {
+  if (hasClosed || hasFull) {
     noticeDiv.style.display = 'block';
     noticeDiv.innerHTML = `
       <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 12px 14px; color: #fcd34d; font-size: 13px; line-height: 1.45;">
-        <strong>🎅 Route is at Full Capacity!</strong><br>
-        This route already has all ${cap.current_total || cap.max_volunteers} volunteer positions filled. Thank you so much for offering to help! Please check our other dates or routes to see where extra hands are needed.
+        <strong>🎅 Route Unavailable</strong><br>
+        One or more selected routes are full or closed. Please untick unavailable routes before submitting.
       </div>
     `;
     if (submitBtn) {
       submitBtn.disabled = true;
-      submitBtn.innerText = "Route Capacity Reached";
+      submitBtn.innerText = "Route Unavailable";
     }
-  } else if (cap.slots_remaining <= 5) {
+    return;
+  }
+
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.innerText = selectedItems.length > 1
+      ? `Sign Up for ${selectedItems.length} Routes`
+      : "Sign Up Now";
+  }
+
+  if (lowCapNotes.length > 0 || selectedItems.length > 1) {
     noticeDiv.style.display = 'block';
+    const summaryText = selectedItems.length > 1
+      ? `✅ Ready to book <strong>${selectedItems.length} route slots</strong> in one submission &mdash; you'll receive one combined confirmation email.`
+      : '';
+    const lowHtml = lowCapNotes.length > 0
+      ? `<div>✨ ${lowCapNotes.join(' &bull; ')}</div>`
+      : '';
     noticeDiv.innerHTML = `
-      <div style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.2); border-radius: 8px; padding: 8px 12px; color: #86efac; font-size: 12px;">
-        ✨ <strong>${cap.slots_remaining} of ${cap.max_volunteers} volunteer slot${cap.slots_remaining === 1 ? '' : 's'} remaining</strong> on this run.
+      <div style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.22); border-radius: 8px; padding: 10px 12px; color: #86efac; font-size: 12.5px; line-height: 1.5;">
+        ${summaryText ? `<div>${summaryText}</div>` : ''}${lowHtml}
       </div>
     `;
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.innerText = "Sign Up Now";
-    }
   } else {
     noticeDiv.style.display = 'none';
     noticeDiv.innerHTML = '';
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.innerText = "Sign Up Now";
-    }
   }
 }
 
 function populateRouteDropdowns(routes) {
-  const dropdowns = [document.getElementById('routeSelect'), document.getElementById('opsRouteSelect')];
-  
-  dropdowns.forEach(dropdown => {
-    if (!dropdown) return;
-    dropdown.innerHTML = '<option value="">-- Choose a Route --</option>';
+  const checklistEl = document.getElementById('routeChecklist');
+  if (checklistEl) {
+    checklistEl.innerHTML = '';
+    const validRoutes = (routes || [])
+      .map((route, idx) => ({ route, idx, rName: route.routeName || route.name }))
+      .filter(entry => Boolean(entry.rName));
+
+    if (validRoutes.length === 0) {
+      checklistEl.innerHTML = `
+        <div class="route-day-group" data-date-key="general">
+          <div class="route-day-items">
+            <label class="route-choice is-checked">
+              <input type="checkbox" class="crew-route-cb" value="General Volunteer / Sleigh Operations" data-route-id="" data-date-key="general" data-route-date="Scheduled" data-route-time="" checked onchange="updateRouteCapacityNotice()">
+              <span class="route-choice-body">
+                <span class="route-choice-name">General Volunteer / Sleigh Operations</span>
+                <span class="route-choice-time">Sleigh Operations Team</span>
+              </span>
+            </label>
+          </div>
+        </div>
+      `;
+    } else {
+      const groupOrder = [];
+      const groupsByDate = new Map();
+
+      validRoutes.forEach(({ route, idx, rName }) => {
+        const rawDate = String(route.date || "").trim();
+        const parsedDate = rawDate ? new Date(rawDate + (rawDate.length === 10 ? "T12:00:00" : "")) : null;
+        const isValidDate = parsedDate && !isNaN(parsedDate.getTime());
+        const dateKey = rawDate || "unscheduled";
+        const dayHeaderLabel = isValidDate
+          ? parsedDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+          : "Scheduled Dates";
+        const friendlyDate = isValidDate
+          ? parsedDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+          : "Scheduled";
+
+        if (!groupsByDate.has(dateKey)) {
+          groupsByDate.set(dateKey, { dateKey, dayHeaderLabel, friendlyDate, items: [] });
+          groupOrder.push(dateKey);
+        }
+        groupsByDate.get(dateKey).items.push({ route, idx, rName, friendlyDate });
+      });
+
+      groupOrder.forEach(dateKey => {
+        const grp = groupsByDate.get(dateKey);
+        const openItems = grp.items.filter(({ route }) => {
+          const cap = route.volunteer_capacity;
+          return !(cap && (cap.is_closed || cap.is_full || cap.slots_remaining <= 0));
+        });
+
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'route-day-group';
+        groupDiv.dataset.dateKey = dateKey;
+
+        const headerHtml = `
+          <div class="route-day-header">
+            <div>
+              <span class="route-day-title">${escapeCrewHtml(grp.dayHeaderLabel)}</span>
+              <span class="route-day-sub">(${grp.items.length} route${grp.items.length === 1 ? '' : 's'})</span>
+            </div>
+            ${openItems.length > 1
+              ? `<button type="button" class="route-day-btn" data-toggle-date="${escapeCrewHtml(dateKey)}">+ Whole Evening (${openItems.length})</button>`
+              : ''}
+          </div>
+        `;
+
+        const itemsHtml = grp.items.map(({ route, idx, rName, friendlyDate }) => {
+          const startTime = route["Start Time"] || route.start_time || "";
+          const endTime = route["End Time"] || route.end_time || "";
+          const timeLabel = startTime ? (endTime ? `${startTime}–${endTime}` : startTime) : "";
+          const cap = route.volunteer_capacity;
+          let isDisabled = false;
+          let badgeText = "";
+          let badgeClass = "";
+
+          if (cap) {
+            if (cap.is_closed) {
+              isDisabled = true;
+              badgeText = "CLOSED";
+              badgeClass = "closed";
+            } else if (cap.is_full || cap.slots_remaining <= 0) {
+              isDisabled = true;
+              badgeText = `FULL (${cap.current_total}/${cap.max_volunteers})`;
+              badgeClass = "closed";
+            } else if (cap.slots_remaining <= 5) {
+              badgeText = `${cap.slots_remaining} left`;
+              badgeClass = "warn";
+            } else {
+              badgeText = `${cap.slots_remaining} left`;
+              badgeClass = "low";
+            }
+          }
+
+          return `
+            <label class="route-choice${isDisabled ? ' is-disabled' : ''}">
+              <input
+                type="checkbox"
+                class="crew-route-cb"
+                value="${escapeCrewHtml(rName)}"
+                data-route-idx="${idx}"
+                data-route-id="${escapeCrewHtml(route.id || '')}"
+                data-date-key="${escapeCrewHtml(dateKey)}"
+                data-route-date="${escapeCrewHtml(friendlyDate)}"
+                data-route-time="${escapeCrewHtml(timeLabel)}"
+                ${isDisabled ? 'disabled' : ''}
+                onchange="updateRouteCapacityNotice()"
+              >
+              <span class="route-choice-body">
+                <span class="route-choice-name">${escapeCrewHtml(rName)}</span>
+                <span class="route-choice-time">${escapeCrewHtml(friendlyDate)}${timeLabel ? ` &bull; ${escapeCrewHtml(timeLabel)}` : ''}</span>
+              </span>
+              ${badgeText ? `<span class="route-slot-badge ${badgeClass}">${escapeCrewHtml(badgeText)}</span>` : ''}
+            </label>
+          `;
+        }).join('');
+
+        groupDiv.innerHTML = `${headerHtml}<div class="route-day-items">${itemsHtml}</div>`;
+        const dayBtn = groupDiv.querySelector('.route-day-btn');
+        if (dayBtn) {
+          dayBtn.addEventListener('click', () => toggleDateGroupRoutes(dateKey));
+        }
+        checklistEl.appendChild(groupDiv);
+      });
+    }
+  }
+
+  const opsDropdown = document.getElementById('opsRouteSelect');
+  if (opsDropdown) {
+    opsDropdown.innerHTML = '<option value="">-- Choose a Route --</option>';
     let count = 0;
     (routes || []).forEach(route => {
       const rName = route.routeName || route.name;
@@ -1028,40 +1439,23 @@ function populateRouteDropdowns(routes) {
         count++;
         const d = route.date ? new Date(route.date) : null;
         const friendlyDate = d && !isNaN(d.getTime()) ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : "Scheduled";
-        
         const option = document.createElement('option');
         option.value = rName;
         option.dataset.routeId = route.id || "";
         const startTime = route["Start Time"] || route.start_time || "";
         const endTime = route["End Time"] || route.end_time || "";
         const timeStr = startTime ? ` (${startTime}–${endTime})` : "";
-        option.dataset.routeDate = friendlyDate || "";
-        option.dataset.routeTime = startTime ? (endTime ? `${startTime}–${endTime}` : startTime) : "";
-
-        const cap = route.volunteer_capacity;
-        let capStr = "";
-        if (cap && dropdown.id === 'routeSelect') {
-          if (cap.is_closed) {
-            capStr = " [CLOSED]";
-          } else if (cap.is_full || cap.slots_remaining <= 0) {
-            capStr = ` [FULL - ${cap.current_total}/${cap.max_volunteers}]`;
-          } else {
-            capStr = ` (${cap.slots_remaining} slot${cap.slots_remaining === 1 ? '' : 's'} left)`;
-          }
-        }
-
-        option.textContent = `${rName} — ${friendlyDate}${timeStr}${capStr}`;
-        dropdown.appendChild(option);
+        option.textContent = `${rName} — ${friendlyDate}${timeStr}`;
+        opsDropdown.appendChild(option);
       }
     });
-
     if (count === 0) {
       const option = document.createElement('option');
       option.value = "General Volunteer / Sleigh Operations";
       option.textContent = "General Volunteer / Sleigh Operations";
-      dropdown.appendChild(option);
+      opsDropdown.appendChild(option);
     }
-  });
+  }
 }
 
 function escapeCrewHtml(str) {
@@ -1075,11 +1469,7 @@ function escapeCrewHtml(str) {
 
 async function submitVolunteer(e) {
   e.preventDefault();
-  const routeSelect = document.getElementById('routeSelect');
-  const selectedOpt = routeSelect.options[routeSelect.selectedIndex];
-  const routeId = selectedOpt ? (selectedOpt.dataset.routeId || "") : "";
-  const bookedRouteDate = selectedOpt ? (selectedOpt.dataset.routeDate || "") : "";
-  const bookedRouteTime = selectedOpt ? (selectedOpt.dataset.routeTime || "") : "";
+  const selectedRoutes = getSelectedSignupRouteItems();
 
   const successBanner = document.getElementById('signupSuccessBanner');
   if (successBanner) {
@@ -1093,8 +1483,14 @@ async function submitVolunteer(e) {
   const cleanEmail = document.getElementById('volEmail').value.trim();
   const cleanOrg = document.getElementById('volOrg').value.trim();
 
-  if (!routeSelect.value || !cleanName || !cleanRole || !cleanPhone || !cleanEmail || !cleanOrg) {
-    alert("Please complete all required fields (Route, Full Name, Role, Phone Number, Email Address, and Organisation — enter 'Individual' if not with a group).");
+  if (selectedRoutes.length === 0) {
+    alert("Please tick at least one route or evening to volunteer on.");
+    document.getElementById('routePickerField')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  if (!cleanName || !cleanRole || !cleanPhone || !cleanEmail || !cleanOrg) {
+    alert("Please complete all required fields (Full Name, Role, Phone Number, Email Address, and Organisation — enter 'Individual' if not with a group).");
     return;
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
@@ -1106,41 +1502,81 @@ async function submitVolunteer(e) {
   btn.innerText = "Submitting...";
   btn.disabled = true;
 
-  const payload = {
-    action: "registerVolunteer",
-    routeId: routeId,
-    routeName: routeSelect.value,
-    name: cleanName,
-    role: cleanRole,
-    phone: cleanPhone,
-    email: cleanEmail,
-    organisation: cleanOrg
-  };
-
   try {
-    let res;
+    let data = {};
     if (API) {
-      res = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      for (const rt of selectedRoutes) {
+        const res = await fetch(API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "registerVolunteer",
+            routeId: rt.id,
+            routeName: rt.name,
+            name: cleanName,
+            role: cleanRole,
+            phone: cleanPhone,
+            email: cleanEmail,
+            organisation: cleanOrg
+          })
+        });
+        data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          alert(data.error || `Unable to register for "${rt.name}".`);
+          return;
+        }
+      }
     } else {
-      res = await crewApiFetch(`/api/volunteers?table=${encodeURIComponent(tableSlug)}`, {
+      const payload = selectedRoutes.length === 1
+        ? {
+            action: "registerVolunteer",
+            routeId: selectedRoutes[0].id,
+            routeName: selectedRoutes[0].name,
+            name: cleanName,
+            role: cleanRole,
+            phone: cleanPhone,
+            email: cleanEmail,
+            organisation: cleanOrg
+          }
+        : {
+            action: "registerVolunteer",
+            routes: selectedRoutes.map(rt => ({ id: rt.id, name: rt.name })),
+            name: cleanName,
+            role: cleanRole,
+            phone: cleanPhone,
+            email: cleanEmail,
+            organisation: cleanOrg
+          };
+
+      const res = await crewApiFetch(`/api/volunteers?table=${encodeURIComponent(tableSlug)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-    }
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      alert(data.error || "Unable to register for this route. It may have reached capacity.");
-      return;
+      data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) {
+        alert(data.error || "Unable to register for the selected route(s). One may have reached capacity.");
+        return;
+      }
     }
 
     const emailSent = Boolean(data.confirmation_email_queued);
     if (successBanner) {
-      const whenBits = [bookedRouteDate, bookedRouteTime].filter(Boolean).join(" • ");
+      const bookedSummaryHtml = selectedRoutes.length === 1
+        ? (() => {
+            const rt = selectedRoutes[0];
+            const whenBits = [rt.dateLabel, rt.timeLabel].filter(Boolean).join(" • ");
+            return `<strong>${escapeCrewHtml(rt.name)}</strong>${whenBits ? ` (${escapeCrewHtml(whenBits)})` : ""}`;
+          })()
+        : `${selectedRoutes.length} routes: <ul style="margin:6px 0 6px 18px;padding:0;">${selectedRoutes.map(rt => {
+            const whenBits = [rt.dateLabel, rt.timeLabel].filter(Boolean).join(" • ");
+            return `<li><strong>${escapeCrewHtml(rt.name)}</strong>${whenBits ? ` <span style="color:#d1fae5;font-size:12.5px;">(${escapeCrewHtml(whenBits)})</span>` : ""}</li>`;
+          }).join('')}</ul>`;
+
       successBanner.innerHTML = `
         <div style="font-weight: 800; color: #4ade80; font-size: 15px; margin-bottom: 6px;">✅ Booking Confirmed!</div>
         <div style="color: #f3f4f6;">
-          Thank you <strong>${escapeCrewHtml(cleanName)}</strong> — your place on <strong>${escapeCrewHtml(payload.routeName)}</strong>${whenBits ? ` (${escapeCrewHtml(whenBits)})` : ""} as <strong>${escapeCrewHtml(cleanRole)}</strong> is booked.
+          Thank you <strong>${escapeCrewHtml(cleanName)}</strong> — you are booked as <strong>${escapeCrewHtml(cleanRole)}</strong> for ${bookedSummaryHtml}
         </div>
         <div style="margin-top: 8px; color: #a7f3d0; font-size: 13px;">
           ${emailSent
@@ -1152,17 +1588,38 @@ async function submitVolunteer(e) {
       successBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
+    const routeNamesAlert = selectedRoutes.length === 1
+      ? `"${selectedRoutes[0].name}"`
+      : `${selectedRoutes.length} routes (${selectedRoutes.map(r => r.name).join(', ')})`;
     const alertMsg = emailSent
-      ? `Thanks ${cleanName}! Your booking for "${payload.routeName}" is confirmed.\n\nA confirmation email with your route and briefing details has been sent to ${cleanEmail}.`
-      : `Thanks for signing up, ${cleanName}! Your booking for "${payload.routeName}" is confirmed on the volunteer roster.`;
+      ? `Thanks ${cleanName}! Your booking for ${routeNamesAlert} is confirmed.\n\nA confirmation email with your route and briefing details has been sent to ${cleanEmail}.`
+      : `Thanks for signing up, ${cleanName}! Your booking for ${routeNamesAlert} is confirmed on the volunteer roster.`;
     alert(alertMsg);
     document.getElementById('signupForm').reset();
+
+    // Refresh routes capacity silently so slot counters update immediately
+    if (!API) {
+      try {
+        const freshRes = await crewApiFetch(`/api/payload?table=${encodeURIComponent(tableSlug)}&_t=${Date.now()}`);
+        if (freshRes.ok) {
+          const freshData = await freshRes.json();
+          if (Array.isArray(freshData?.routes)) {
+            window.allRoutes = freshData.routes.map(r => ({
+              ...r,
+              routeName: r.name || r.routeName,
+              "Start Time": r.start_time || "18:00",
+              "End Time": r.end_time || "20:30"
+            }));
+            populateRouteDropdowns(window.allRoutes);
+          }
+        }
+      } catch (_) {}
+    }
     updateRouteCapacityNotice();
   } catch (err) {
     alert("Something went wrong. Please check your connection and try again.");
   } finally {
-    btn.innerText = "Sign Up Now";
-    btn.disabled = false;
+    updateRouteCapacityNotice();
   }
 }
 
