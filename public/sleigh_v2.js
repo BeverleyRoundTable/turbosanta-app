@@ -410,7 +410,9 @@
       'isleofwight': 'Isle of Wight',
       'meltonmowbray': 'Melton Mowbray',
       'mold': 'Mold and Buckley',
-      'moldandbuckley': 'Mold and Buckley'
+      'moldandbuckley': 'Mold and Buckley',
+      'northwirral': 'North Wirral',
+      'north-wirral': 'North Wirral'
     };
     const lowerKey = cleaned.toLowerCase().replace(/[-_\s]+/g, '');
     if (overrides[lowerKey]) return overrides[lowerKey];

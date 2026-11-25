@@ -67,7 +67,12 @@ export const SLUG_ALIASES = {
   "darlington": "darlington",
   "darlingtonbondgate": "darlington",
   "darlington-bondgate": "darlington",
-  "darlingtontongate": "darlington"
+  "darlingtontongate": "darlington",
+  "311": "northwirral",
+  "rt311": "northwirral",
+  "north-wirral": "northwirral",
+  "north_wirral": "northwirral",
+  "northwirral": "northwirral"
 };
 
 export function normalizeTableSlug(slug) {
@@ -210,13 +215,28 @@ export function parseTableDetailsFromEmail(email) {
   if (match) {
     townSlug = match[1];
     tableNumber = match[2] || "";
+  } else if (/^\d+$/.test(core)) {
+    tableNumber = core;
+    townSlug = core;
   }
 
-  // Canonicalize multi-word slugs (e.g. meltonmowbray -> melton-mowbray)
+  // Canonicalize multi-word slugs (e.g. meltonmowbray -> melton-mowbray, 311 -> northwirral)
   townSlug = normalizeTableSlug(townSlug);
 
+  const TOWN_DISPLAY_OVERRIDES = {
+    "northwirral": "North Wirral",
+    "north-wirral": "North Wirral",
+    "isleofwight": "Isle of Wight",
+    "knowleanddorridge": "Knowle and Dorridge",
+    "melton-mowbray": "Melton Mowbray",
+    "weston-super-mare": "Weston-super-Mare",
+    "newcastle-upon-tyne": "Newcastle upon Tyne",
+    "stratford-upon-avon": "Stratford-upon-Avon",
+    "mold": "Mold and Buckley"
+  };
+
   // Capitalize town (e.g. beverley -> Beverley, melton-mowbray -> Melton Mowbray)
-  const townName = townSlug
+  const townName = TOWN_DISPLAY_OVERRIDES[townSlug] || townSlug
     .replace(/[-_]/g, ' ')
     .split(' ')
     .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())

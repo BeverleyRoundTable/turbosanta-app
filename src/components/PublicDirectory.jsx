@@ -20,6 +20,9 @@ const DIRECTORY_TOWN_OVERRIDES = {
   moldandbuckley: 'Mold and Buckley',
   'mold-and-buckley': 'Mold and Buckley',
   'mold-buckley': 'Mold and Buckley',
+  northwirral: 'North Wirral',
+  'north-wirral': 'North Wirral',
+  '311': 'North Wirral',
   linlithgow: 'Linlithgow'
 };
 

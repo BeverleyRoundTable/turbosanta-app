@@ -102,7 +102,11 @@ function formatTownNameFromSlug(slug) {
     'mold': 'Mold and Buckley',
     'moldandbuckley': 'Mold and Buckley',
     'mold-and-buckley': 'Mold and Buckley',
-    'mold-buckley': 'Mold and Buckley'
+    'mold-buckley': 'Mold and Buckley',
+    'northwirral': 'North Wirral',
+    'north-wirral': 'North Wirral',
+    '311': 'North Wirral',
+    'rt311': 'North Wirral'
   };
   if (overrides[clean]) return overrides[clean];
   clean = clean.replace(/([a-z]{2,})and([a-z]{2,})/gi, '$1 and $2');
