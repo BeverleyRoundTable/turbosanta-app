@@ -2967,8 +2967,149 @@
       window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; const overlay = document.getElementById('installOverlayBox'); overlay.classList.add('visible'); installTimeout = setTimeout(() => { overlay.classList.remove('visible'); }, 10000); });
       document.getElementById('installAppBtn').addEventListener('click', async () => { const overlay = document.getElementById('installOverlayBox'); if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; overlay.classList.remove('visible'); deferredPrompt = null; clearTimeout(installTimeout); } });
 
-      // ⚡ CLOUDFLARE WORKER ENDPOINT
+      // ⚡ CLOUDFLARE WORKER ENDPOINT & SAME-ORIGIN PROXY HELPER
       const WORKER_URL = "https://turbosanta-api.beverley247.workers.dev";
+      const DRIVER_API_BASE = (() => {
+        const h = (window.location.hostname || "").toLowerCase();
+        return (h === "roundtablesantasleigh.co.uk" || h.endsWith(".roundtablesantasleigh.co.uk"))
+          ? window.location.origin
+          : WORKER_URL;
+      })();
+
+      function safeSessionGet(k) { try { return sessionStorage.getItem(k); } catch { return null; } }
+      function safeSessionSet(k, v) { try { sessionStorage.setItem(k, v); } catch {} }
+      function safeSessionRemove(k) { try { sessionStorage.removeItem(k); } catch {} }
+      function safeLocalGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
+      function safeLocalSet(k, v) { try { localStorage.setItem(k, v); } catch {} }
+      function safeLocalRemove(k) { try { localStorage.removeItem(k); } catch {} }
+
+      function getQueryParamCI(searchParams, names) {
+        if (!searchParams) return "";
+        const want = new Set(names.map(n => n.toLowerCase()));
+        for (const [k, v] of searchParams.entries()) {
+          if (want.has(String(k || "").toLowerCase())) {
+            const clean = String(v || "").trim();
+            if (clean) return clean;
+          }
+        }
+        return "";
+      }
+
+      function getHashAuthParam() {
+        const m = String(window.location.hash || "").match(/[#&](?:pin|driver_pin|token|secret|auth)=([^&]+)/i);
+        return m ? decodeURIComponent(m[1]).trim() : "";
+      }
+
+      function resolveDriverSubdomainSlug() {
+        const h = (location.hostname || "").toLowerCase();
+        if (h.endsWith(".roundtablesantasleigh.co.uk")) {
+          const s = h.replace(".roundtablesantasleigh.co.uk", "").split(".")[0].replace(/(tracker|crew|addresses|godmode)$/, "");
+          if (s && s !== "www" && s !== "santa" && s !== "demo" && s !== "admin" && s !== "turbosanta") return s;
+        }
+        return "";
+      }
+
+      function saveDriverSecret(slug, val) {
+        const clean = String(val || "").trim();
+        if (!clean) return;
+        if (typeof AppState !== "undefined" && AppState.vars) AppState.vars.driverSecret = clean;
+        safeSessionSet("beaconSecret", clean);
+        const keySlug = String(slug || resolveDriverSubdomainSlug() || "default").toLowerCase().trim();
+        safeLocalSet(`turbosanta_driver_pin_${keySlug}`, JSON.stringify({ v: clean, ts: Date.now() }));
+      }
+
+      function loadDriverSecret(slug) {
+        if (typeof AppState !== "undefined" && AppState.vars && AppState.vars.driverSecret) {
+          return AppState.vars.driverSecret;
+        }
+        const sess = safeSessionGet("beaconSecret");
+        if (sess && sess.trim()) return sess.trim();
+        const keySlug = String(slug || resolveDriverSubdomainSlug() || "default").toLowerCase().trim();
+        try {
+          const raw = safeLocalGet(`turbosanta_driver_pin_${keySlug}`);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && parsed.v && parsed.ts && (Date.now() - Number(parsed.ts)) < 24 * 3600 * 1000) {
+              return String(parsed.v).trim();
+            }
+            safeLocalRemove(`turbosanta_driver_pin_${keySlug}`);
+          }
+        } catch {}
+        return "";
+      }
+
+      function clearDriverSecret(slug) {
+        if (typeof AppState !== "undefined" && AppState.vars) AppState.vars.driverSecret = "";
+        safeSessionRemove("beaconSecret");
+        const keySlug = String(slug || resolveDriverSubdomainSlug() || "default").toLowerCase().trim();
+        safeLocalRemove(`turbosanta_driver_pin_${keySlug}`);
+      }
+
+      async function verifyDriverAuthFetch(targetSlug, candidateSecret) {
+        const qs = `table=${encodeURIComponent(targetSlug)}&secret=${encodeURIComponent(candidateSecret)}&pin=${encodeURIComponent(candidateSecret)}`;
+        const bases = DRIVER_API_BASE !== WORKER_URL ? [DRIVER_API_BASE, WORKER_URL] : [WORKER_URL];
+        let lastNetErr = null;
+        for (const base of bases) {
+          try {
+            const res = await fetch(`${base}/api/auth/verify?${qs}`, {
+              headers: { "Authorization": `Bearer ${candidateSecret}` },
+              cache: "no-store"
+            });
+            const data = await res.json().catch(() => ({}));
+            return { ok: true, valid: Boolean(data && data.valid), status: res.status, error: data?.error || "", data };
+          } catch (err) {
+            lastNetErr = err;
+          }
+        }
+        return { ok: false, valid: false, networkError: true, error: lastNetErr?.message || "Network request failed" };
+      }
+
+      function promptDriverPinModal(targetSlug) {
+        return new Promise((resolve) => {
+          const existing = document.getElementById("driverPinModalBackdrop");
+          if (existing) existing.remove();
+
+          const wrap = document.createElement("div");
+          wrap.id = "driverPinModalBackdrop";
+          wrap.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.82);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;";
+          const cleanTown = targetSlug ? (targetSlug.charAt(0).toUpperCase() + targetSlug.slice(1)) : "Round Table";
+          const adminUrl = `https://roundtablesantasleigh.co.uk/?table=${encodeURIComponent(targetSlug || "beverley")}&admin=1`;
+
+          wrap.innerHTML = `
+            <div style="width:100%;max-width:380px;background:#141412;border:1px solid rgba(251,175,51,0.4);border-radius:16px;padding:22px;color:#fff;box-shadow:0 20px 50px rgba(0,0,0,0.7);font-family:'Open Sans',system-ui,sans-serif;">
+              <div style="font-size:18px;font-weight:800;margin-bottom:6px;color:#FBAF33;">🚗 ${escapeHtml(cleanTown)} Driver PIN</div>
+              <p style="margin:0 0 14px;font-size:13px;line-height:1.45;color:#cbd5e1;">Enter your Table's 4-digit Driver PIN to unlock Sat-Nav &amp; Live GPS Beacon:</p>
+              <form id="driverPinModalForm" style="display:flex;flex-direction:column;gap:10px;">
+                <input id="driverPinModalInput" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="16" placeholder="Enter PIN"
+                  style="width:100%;box-sizing:border-box;padding:14px;font-size:20px;font-weight:800;letter-spacing:4px;text-align:center;background:#090908;color:#fff;border:2px solid rgba(255,255,255,0.2);border-radius:12px;outline:none;" />
+                <div style="display:flex;gap:8px;">
+                  <button type="button" id="driverPinModalCancel" style="flex:1;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.18);background:#1f1f1c;color:#e2e8f0;font-weight:700;cursor:pointer;">Cancel</button>
+                  <button type="submit" style="flex:2;padding:12px;border-radius:10px;border:none;background:#FBAF33;color:#000;font-weight:900;cursor:pointer;">Unlock Beacon</button>
+                </div>
+              </form>
+              <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.1);text-align:center;">
+                <a href="${escapeHtml(adminUrl)}" style="color:#FBAF33;font-size:12px;font-weight:700;text-decoration:none;">Sign in via Admin Portal instead &rarr;</a>
+              </div>
+            </div>
+          `;
+          document.body.appendChild(wrap);
+
+          const inp = document.getElementById("driverPinModalInput");
+          const finish = (val) => {
+            wrap.remove();
+            resolve(val);
+          };
+          document.getElementById("driverPinModalCancel").onclick = () => finish(null);
+          wrap.onclick = (e) => { if (e.target === wrap) finish(null); };
+          document.getElementById("driverPinModalForm").onsubmit = (e) => {
+            e.preventDefault();
+            const v = (inp.value || "").trim();
+            if (!v) { inp.focus(); return; }
+            finish(v);
+          };
+          setTimeout(() => inp && inp.focus(), 50);
+        });
+      }
 
       function escapeHtml(str) {
         if (!str) return '';
@@ -4773,9 +4914,9 @@
           }
 
           if (opts.sync && AppState.vars.isWorkerD1 && AppState.vars.tableSlug) {
-            const beaconToken = sessionStorage.getItem('beaconSecret') || '';
+            const beaconToken = loadDriverSecret(AppState.vars.tableSlug);
             if (beaconToken) {
-              fetch(`${WORKER_URL}/api/stop-status?table=${encodeURIComponent(AppState.vars.tableSlug)}`, {
+              fetch(`${DRIVER_API_BASE}/api/stop-status?table=${encodeURIComponent(AppState.vars.tableSlug)}`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -6395,10 +6536,17 @@
         const isDemo = params.get("demo") === "1" || params.get("demo") === "true" || location.pathname.includes("trackerdemo") || location.pathname.includes("tracker-demo") || location.pathname.endsWith("/demo");
         AppState.flags.isDemo = isDemo;
         if (AppState.flags.isDemo) document.body.classList.add("demo-mode");
-        AppState.flags.isKiosk = params.get("kiosk") === "1" || sessionStorage.getItem("SANTA_KIOSK") === "1";
-        if (params.get("kiosk") === "1") sessionStorage.setItem("SANTA_KIOSK", "1");
+        AppState.flags.isKiosk = params.get("kiosk") === "1" || safeSessionGet("SANTA_KIOSK") === "1";
+        if (params.get("kiosk") === "1") safeSessionSet("SANTA_KIOSK", "1");
         if (AppState.flags.isKiosk) document.body.classList.add("kiosk");
         AppState.flags.isDriver = params.get("driver") === "1" || params.get("mode") === "driver";
+        if (AppState.flags.isDriver) {
+          const earlySlug = (getQueryParamCI(params, ["table", "slug"]) || resolveDriverSubdomainSlug() || safeLocalGet("SANTA_TABLE") || safeSessionGet("SANTA_TABLE") || "").toLowerCase().trim();
+          const earlyUrlCred = getQueryParamCI(params, ["pin", "driver_pin", "token", "secret", "auth"]) || getHashAuthParam();
+          if (earlyUrlCred && !earlyUrlCred.includes(",")) {
+            saveDriverSecret(earlySlug, earlyUrlCred);
+          }
+        }
 
         // ── DRIVER-ONLY LIBRARIES (lazy-loaded) ──
         const loadScript = (src) => new Promise((res) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = res; document.head.appendChild(s); });
@@ -6417,13 +6565,15 @@
           navBtn.innerHTML = "START SAT-NAV & BEACON";
           document.body.appendChild(navBtn);
           
-          const BeaconDB = { db: null, sent: 0, depth: 0, init: () => new Promise((resolve) => { const req = indexedDB.open("TurboBeacon", 1); req.onupgradeneeded = e => { if(!e.target.result.objectStoreNames.contains("q")) e.target.result.createObjectStore("q", {keyPath:"id", autoIncrement:true}); }; req.onsuccess = () => { BeaconDB.db = req.result; resolve(); }; req.onerror = () => resolve(); }), add: (p) => new Promise(res => { if(!BeaconDB.db) return res(); const tx = BeaconDB.db.transaction("q","readwrite"); tx.objectStore("q").add({p, t:Date.now()}); tx.oncomplete=()=>{ BeaconDB.updateUI(); res(); }; }), getAll: () => new Promise(res => { if(!BeaconDB.db) return res([]); const tx = BeaconDB.db.transaction("q","readonly"); const req = tx.objectStore("q").getAll(); req.onsuccess=()=>res(req.result||[]); }), del: (id) => new Promise(res => { if(!BeaconDB.db) return res(); const tx = BeaconDB.db.transaction("q","readwrite"); tx.objectStore("q").delete(id); tx.oncomplete=res; }), updateUI: async () => { if(!BeaconDB.db) return; BeaconDB.depth = (await BeaconDB.getAll()).length; const qEl = document.getElementById('txQueued'); if(qEl) qEl.textContent = BeaconDB.depth; const pill = document.getElementById('txPill'); if(pill) { if (BeaconDB.depth > 0) { pill.style.borderColor = "var(--primary)"; pill.style.color = "var(--primary)"; document.getElementById('txState').textContent = "BUFFERING"; } else { pill.style.borderColor = "#00e676"; pill.style.color = "#00e676"; document.getElementById('txState').textContent = "LIVE"; } } }, flush: async (url) => { if (BeaconDB.depth === 0 || !navigator.onLine) return; const items = await BeaconDB.getAll(); if (!items.length) return; items.sort((a,b) => a.t - b.t); const bSec = sessionStorage.getItem('beaconSecret') || ''; for (const it of items) { if (Date.now() - it.t > 90*60*1000) { await BeaconDB.del(it.id); continue; } try { const r = await fetch(url, { method:"PUT", headers:{"Content-Type":"application/json", "Authorization": `Bearer ${bSec}`}, body:JSON.stringify({ ...it.p, pin: bSec }) }); if (r.ok) { await BeaconDB.del(it.id); BeaconDB.sent++; document.getElementById('txSent').textContent = BeaconDB.sent; } else break; } catch { break; } } BeaconDB.updateUI(); } };
+          const BeaconDB = { db: null, sent: 0, depth: 0, init: () => new Promise((resolve) => { const req = indexedDB.open("TurboBeacon", 1); req.onupgradeneeded = e => { if(!e.target.result.objectStoreNames.contains("q")) e.target.result.createObjectStore("q", {keyPath:"id", autoIncrement:true}); }; req.onsuccess = () => { BeaconDB.db = req.result; resolve(); }; req.onerror = () => resolve(); }), add: (p) => new Promise(res => { if(!BeaconDB.db) return res(); const tx = BeaconDB.db.transaction("q","readwrite"); tx.objectStore("q").add({p, t:Date.now()}); tx.oncomplete=()=>{ BeaconDB.updateUI(); res(); }; }), getAll: () => new Promise(res => { if(!BeaconDB.db) return res([]); const tx = BeaconDB.db.transaction("q","readonly"); const req = tx.objectStore("q").getAll(); req.onsuccess=()=>res(req.result||[]); }), del: (id) => new Promise(res => { if(!BeaconDB.db) return res(); const tx = BeaconDB.db.transaction("q","readwrite"); tx.objectStore("q").delete(id); tx.oncomplete=res; }), updateUI: async () => { if(!BeaconDB.db) return; BeaconDB.depth = (await BeaconDB.getAll()).length; const qEl = document.getElementById('txQueued'); if(qEl) qEl.textContent = BeaconDB.depth; const pill = document.getElementById('txPill'); if(pill) { if (BeaconDB.depth > 0) { pill.style.borderColor = "var(--primary)"; pill.style.color = "var(--primary)"; document.getElementById('txState').textContent = "BUFFERING"; } else { pill.style.borderColor = "#00e676"; pill.style.color = "#00e676"; document.getElementById('txState').textContent = "LIVE"; } } }, flush: async (url) => { if (BeaconDB.depth === 0 || !navigator.onLine) return; const items = await BeaconDB.getAll(); if (!items.length) return; items.sort((a,b) => a.t - b.t); const bSec = loadDriverSecret(AppState.vars.tableSlug); for (const it of items) { if (Date.now() - it.t > 90*60*1000) { await BeaconDB.del(it.id); continue; } try { const r = await fetch(url, { method:"PUT", headers:{"Content-Type":"application/json", "Authorization": `Bearer ${bSec}`}, body:JSON.stringify({ ...it.p, pin: bSec, secret: bSec }) }); if (r.ok) { await BeaconDB.del(it.id); BeaconDB.sent++; document.getElementById('txSent').textContent = BeaconDB.sent; } else break; } catch { break; } } BeaconDB.updateUI(); } };
           
           navBtn.onclick = async () => {
-            let secret = params.get('pin') || params.get('driver_pin') || params.get('token') || params.get('secret') || sessionStorage.getItem('beaconSecret');
+            const targetSlug = (AppState.vars.tableSlug || getQueryParamCI(params, ["table", "slug"]) || resolveDriverSubdomainSlug() || "").toLowerCase().trim();
+            const urlCred = getQueryParamCI(params, ['pin', 'driver_pin', 'token', 'secret', 'auth']) || getHashAuthParam();
+            let secret = (urlCred && !urlCred.includes(',')) ? urlCred : loadDriverSecret(targetSlug);
             let adminSession = null;
             try {
-              adminSession = JSON.parse(localStorage.getItem("turbosanta_admin_session") || "{}");
+              adminSession = JSON.parse(safeLocalGet("turbosanta_admin_session") || "{}");
             } catch(e) {}
 
             if (!secret && adminSession && (adminSession.googleCredential || adminSession.token)) {
@@ -6431,47 +6581,42 @@
             }
 
             if (!secret) {
-              const enteredPin = prompt("Enter Driver PIN to start Sat-Nav & GPS Beacon (or leave blank if signed into Google Workspace):");
-              if (enteredPin && enteredPin.trim()) {
-                secret = enteredPin.trim();
-              }
+              const enteredPin = await promptDriverPinModal(targetSlug);
+              if (!enteredPin) return;
+              secret = enteredPin;
             }
 
-            if (!secret) {
-              alert("Driver Beacon Authorization Required:\n\nPlease enter your Table's Driver PIN or sign in with your official @roundtable.org.uk Google Workspace account via the Admin Portal.");
-              return;
-            }
             navBtn.textContent = "VERIFYING...";
             let gpsLoggerUrl = null;
             try {
-              const targetSlug = AppState.vars.tableSlug || params.get("table") || "";
               const isWorkerOrD1 = AppState.vars.isWorkerD1 || !AppState.vars.apiUrl || !AppState.vars.apiUrl.includes("script.google.com");
               
               if (isWorkerOrD1) {
                 if (!targetSlug) throw new Error("Missing ?table=SLUG parameter");
-                let isValid = false;
-                try {
-                  const chk = await fetch(`${WORKER_URL}/api/auth/verify?table=${encodeURIComponent(targetSlug)}&secret=${encodeURIComponent(secret)}&pin=${encodeURIComponent(secret)}`, {
-                    headers: { 'Authorization': `Bearer ${secret}` }
-                  });
-                  const chkRes = await chk.json();
-                  if (chkRes.valid) isValid = true;
-                } catch(e) {}
-                if (!isValid) {
-                  alert("Access Denied: Invalid Driver PIN or unverified Google account for " + targetSlug + ".");
+                const vRes = await verifyDriverAuthFetch(targetSlug, secret);
+                if (!vRes.ok && vRes.networkError) {
+                  alert("Connection error verifying Driver PIN (" + vRes.error + "). Check signal and tap again.");
                   navBtn.textContent = "START SAT-NAV & BEACON";
-                  sessionStorage.removeItem('beaconSecret');
                   return;
                 }
-                sessionStorage.setItem('beaconSecret', secret);
-                gpsLoggerUrl = `${WORKER_URL}/api/telemetry?table=${encodeURIComponent(targetSlug)}`;
+                if (!vRes.valid) {
+                  clearDriverSecret(targetSlug);
+                  const errDetail = vRes.status === 429 && vRes.error
+                    ? vRes.error
+                    : ("Access Denied: Invalid Driver PIN or unverified Google account for " + targetSlug + ".");
+                  alert(errDetail);
+                  navBtn.textContent = "START SAT-NAV & BEACON";
+                  return;
+                }
+                saveDriverSecret(targetSlug, secret);
+                gpsLoggerUrl = `${DRIVER_API_BASE}/api/telemetry?table=${encodeURIComponent(targetSlug)}`;
               } else {
                 const res = await fetch(Utils.appendQuery(AppState.vars.apiUrl, `function=verifyBeaconAuth&secret=${encodeURIComponent(secret)}&pin=${encodeURIComponent(secret)}`), {
                   headers: { 'Authorization': `Bearer ${secret}` }
                 });
                 const result = await res.json();
-                if (!result.valid) { alert("Access Denied."); navBtn.textContent = "START SAT-NAV & BEACON"; sessionStorage.removeItem('beaconSecret'); return; }
-                sessionStorage.setItem('beaconSecret', secret);
+                if (!result.valid) { alert("Access Denied."); navBtn.textContent = "START SAT-NAV & BEACON"; clearDriverSecret(targetSlug); return; }
+                saveDriverSecret(targetSlug, secret);
                 navBtn.textContent = "FETCHING CONFIG...";
                 const cfgRes = await fetch(Utils.appendQuery(AppState.vars.apiUrl, `function=getBeaconConfig&secret=${encodeURIComponent(secret)}&pin=${encodeURIComponent(secret)}`), {
                   headers: { 'Authorization': `Bearer ${secret}` }
@@ -6638,7 +6783,7 @@
               if (isBeaconPaused || !AppState.flags.beaconActive) return;
               AppState.vars.lastTxTime = Date.now();
               const cleanRoad = LiveRoadResolver.clean(roadName);
-              const beaconToken = secret || sessionStorage.getItem('beaconSecret') || "";
+              const beaconToken = secret || loadDriverSecret(AppState.vars.tableSlug);
               const activeRId = AppState.vars.activeRoute?.id || AppState.vars.todayRoute?.id || null;
               const payload = {
                 lat: txLat,
@@ -6648,7 +6793,8 @@
                 road_name: cleanRoad,
                 roadName: cleanRoad,
                 ts: new Date().toISOString(),
-                secret: beaconToken
+                secret: beaconToken,
+                pin: beaconToken
               };
               try {
                 const r = await fetch(gpsLoggerUrl, {
@@ -6884,7 +7030,7 @@
                 }
               } catch (e) {}
 
-              const beaconToken = secret || sessionStorage.getItem('beaconSecret') || "";
+              const beaconToken = secret || loadDriverSecret(AppState.vars.tableSlug);
               try {
                 await fetch(gpsLoggerUrl, {
                   method: "DELETE",
@@ -6924,7 +7070,7 @@
           } catch (e) {}
         }
 
-        const tableSlug = rawTableParam || (!explicitApi ? (localStorage.getItem("SANTA_TABLE") || sessionStorage.getItem("SANTA_TABLE") || "") : "");
+        const tableSlug = rawTableParam || (!explicitApi ? (safeLocalGet("SANTA_TABLE") || safeSessionGet("SANTA_TABLE") || "") : "");
         AppState.vars.tableSlug = tableSlug;
 
         // 👁️ Record unique visit beacon to update D1 total_views & site_views (session deduplicated)
@@ -7616,7 +7762,7 @@
             }
           };
 
-          if (!AppState.flags.isKiosk) {
+          if (!AppState.flags.isKiosk && !AppState.flags.isDriver) {
             let pinSource = null;
             let isDeepLink = false;
             const urlSearch = new URLSearchParams(location.search);
@@ -7633,10 +7779,12 @@
                   isDeepLink = !confirmedParam;
                 }
               }
-              const cleanUrl = new URL(window.location.href);
-              cleanUrl.searchParams.delete('pin');
-              cleanUrl.searchParams.delete('confirmed');
-              window.history.replaceState({}, document.title, cleanUrl.toString());
+              if (pinSource) {
+                const cleanUrl = new URL(window.location.href);
+                cleanUrl.searchParams.delete('pin');
+                cleanUrl.searchParams.delete('confirmed');
+                window.history.replaceState({}, document.title, cleanUrl.toString());
+              }
             }
             
             if (!pinSource) {
