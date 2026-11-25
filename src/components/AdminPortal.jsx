@@ -3603,6 +3603,18 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
             </a>
 
             <a
+              href={`https://${encodeURIComponent((currentTableSlug || session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/phrases`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary"
+              style={{ padding: '8px 12px', fontSize: '13px', textDecoration: 'none', flexShrink: 0, whiteSpace: 'nowrap' }}
+              title="Open Santa Phrasebook & Arm's-Length Teleprompter"
+            >
+              <Mic size={15} />
+              <span>Santa Phrases</span>
+            </a>
+
+            <a
               href={`https://${encodeURIComponent((currentTableSlug || session?.tableSlug || session?.tableId || tableData?.table?.slug || 'beverley').toLowerCase())}.roundtablesantasleigh.co.uk/guide`}
               target="_blank"
               rel="noopener noreferrer"

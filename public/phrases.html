@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#050505" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Santa Phrasebook &amp; Cue Cards | Round Table Santa Sleigh</title>
+  <style>
+    :root {
+      --bg: #050505;
+      --surface: #11110f;
+      --surface-2: #191916;
+      --border: rgba(255, 255, 255, 0.14);
+      --primary: #FBAF33;
+      --on-primary: #090908;
+      --text: #ffffff;
+      --muted: rgba(255, 255, 255, 0.68);
+      --green: #22c55e;
+      --amber: #f59e0b;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-top: env(safe-area-inset-top, 0px);
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      overscroll-behavior: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      overflow: hidden;
+      padding-top: var(--safe-top);
+      padding-bottom: var(--safe-bottom);
+      user-select: none;
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 12px;
+      background: #0a0a09;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .brand-icon {
+      font-size: 20px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .brand-title-wrap {
+      min-width: 0;
+    }
+
+    .brand-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.15;
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      color: var(--primary);
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .top-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .pill-btn {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+      min-height: 34px;
+      transition: transform 0.08s, border-color 0.15s, background 0.15s;
+    }
+
+    .pill-btn:active { transform: scale(0.96); }
+
+    .wake-pill.is-awake {
+      background: rgba(34, 197, 94, 0.16);
+      border-color: rgba(34, 197, 94, 0.5);
+      color: #86efac;
+    }
+
+    .wake-pill.needs-tap {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: rgba(245, 158, 11, 0.65);
+      color: #fde68a;
+    }
+
+    .wake-pill.is-paused {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: var(--border);
+      color: var(--muted);
+    }
+
+    .size-group {
+      display: inline-flex;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 2px;
+    }
+
+    .size-btn {
+      appearance: none;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 8px;
+      border-radius: 999px;
+      cursor: pointer;
+      min-height: 28px;
+    }
+
+    .size-btn.active {
+      background: var(--primary);
+      color: var(--on-primary);
+    }
+
+    /* ── FILTER STRIPS ── */
+    .filters-wrap {
+      background: #080807;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .cat-strip, .style-strip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding: 7px 12px;
+    }
+
+    .cat-strip::-webkit-scrollbar,
+    .style-strip::-webkit-scrollbar { display: none; }
+
+    .style-strip {
+      padding-top: 0;
+      padding-bottom: 7px;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .style-pills {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .style-pills::-webkit-scrollbar { display: none; }
+
+    .chip {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: rgba(255, 255, 255, 0.82);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 11px;
+      border-radius: 999px;
+      white-space: nowrap;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .chip.active {
+      background: var(--primary);
+      color: var(--on-primary);
+      border-color: var(--primary);
+    }
+
+    .chip-sm {
+      font-size: 11px;
+      padding: 4px 9px;
+    }
+
+    .deck-stats {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .reset-link {
+      appearance: none;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 9px;
+      border-radius: 999px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    /* ── MAIN STAGE ── */
+    .stage {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 10px 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cue-card {
+      flex: 1 1 auto;
+      min-height: 0;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 14px 18px 18px;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+      touch-action: pan-y;
+    }
+
+    .cue-card.is-used {
+      border-color: rgba(251, 175, 51, 0.35);
+    }
+
+    .cue-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .cue-badges {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .meta-tag {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .meta-tag.primary {
+      background: rgba(251, 175, 51, 0.16);
+      color: var(--primary);
+      border: 1px solid rgba(251, 175, 51, 0.35);
+    }
+
+    .meta-tag.said {
+      background: rgba(34, 197, 94, 0.16);
+      color: #86efac;
+      border: 1px solid rgba(34, 197, 94, 0.35);
+    }
+
+    .cue-actions-top {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .icon-btn {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: #fff;
+      font-size: 16px;
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .icon-btn.fav-active {
+      color: var(--primary);
+      border-color: rgba(251, 175, 51, 0.6);
+      background: rgba(251, 175, 51, 0.15);
+    }
+
+    .cue-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      overflow-y: auto;
+      padding: 10px 4px;
+    }
+
+    .cue-text {
+      margin: 0;
+      color: #ffffff;
+      font-weight: 800;
+      letter-spacing: -0.015em;
+      line-height: 1.24;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      max-width: 24ch;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+    }
+
+    body[data-size="S"] .cue-text { font-size: clamp(22px, 4.6vw, 34px); max-width: 32ch; }
+    body[data-size="M"] .cue-text { font-size: clamp(27px, 5.8vw, 44px); max-width: 28ch; }
+    body[data-size="L"] .cue-text { font-size: clamp(32px, 7vw, 56px); max-width: 24ch; }
+    body[data-size="XL"] .cue-text { font-size: clamp(38px, 8.6vw, 68px); max-width: 20ch; }
+
+    .cue-hint {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.45);
+      flex-shrink: 0;
+    }
+
+    .auto-progress {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.08);
+      display: none;
+    }
+
+    .auto-progress.active { display: block; }
+
+    .auto-progress-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--primary);
+      transition: width 0.25s linear;
+    }
+
+    /* ── LIST MODE ── */
+    .list-view {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      padding-bottom: 8px;
+    }
+
+    .list-view.active { display: flex; }
+    .cue-card.hidden { display: none; }
+
+    .list-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 13px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      cursor: pointer;
+    }
+
+    .list-item.is-used {
+      opacity: 0.56;
+    }
+
+    .list-item.is-current {
+      border-color: var(--primary);
+      background: rgba(251, 175, 51, 0.08);
+    }
+
+    .list-item-main {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .list-item-text {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.35;
+      color: #fff;
+      margin-bottom: 5px;
+      word-break: break-word;
+    }
+
+    .list-item-sub {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .list-item-btns {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    /* ── BOTTOM ACTION BAR ── */
+    .bottom-bar {
+      display: flex;
+      align-items: stretch;
+      gap: 8px;
+      padding: 8px 12px 12px;
+      background: #0a0a09;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .btn-prev {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 800;
+      padding: 0 16px;
+      min-height: 66px;
+      border-radius: 14px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .btn-prev:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .btn-next {
+      appearance: none;
+      border: none;
+      background: var(--primary);
+      color: var(--on-primary);
+      font-size: 19px;
+      font-weight: 900;
+      letter-spacing: 0.01em;
+      padding: 10px 14px;
+      min-height: 66px;
+      border-radius: 14px;
+      cursor: pointer;
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.15;
+      box-shadow: 0 4px 18px rgba(251, 175, 51, 0.25);
+    }
+
+    .btn-next:active, .btn-prev:active, .btn-auto:active { transform: scale(0.98); }
+
+    .btn-next-sub {
+      font-size: 11px;
+      font-weight: 800;
+      opacity: 0.78;
+      margin-top: 2px;
+    }
+
+    .btn-auto {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 0 12px;
+      min-height: 66px;
+      min-width: 72px;
+      border-radius: 14px;
+      cursor: pointer;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.2;
+    }
+
+    .btn-auto.active {
+      border-color: var(--primary);
+      background: rgba(251, 175, 51, 0.16);
+      color: var(--primary);
+    }
+
+    /* ── TOAST & MODAL ── */
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 96px;
+      transform: translateX(-50%) translateY(16px);
+      background: #1f2937;
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 9px 15px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 50;
+      white-space: nowrap;
+      max-width: calc(100vw - 24px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 100;
+    }
+
+    .modal-backdrop.open { display: flex; }
+
+    .modal-card {
+      width: 100%;
+      max-width: 460px;
+      background: #141412;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      color: #fff;
+    }
+
+    .modal-card h2 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .modal-card p {
+      margin: 0 0 12px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .modal-input {
+      width: 100%;
+      background: #090908;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: #fff;
+      padding: 12px;
+      font-size: 16px;
+      font-family: inherit;
+      resize: vertical;
+      margin-bottom: 12px;
+    }
+
+    .modal-select {
+      width: 100%;
+      background: #090908;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: #fff;
+      padding: 10px 12px;
+      font-size: 14px;
+      margin-bottom: 14px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    /* ── LANDSCAPE SLEIGH DASHBOARD OPTIMIZATION ── */
+    @media (orientation: landscape) and (max-height: 520px) {
+      .topbar { padding: 5px 10px; }
+      .cat-strip { padding: 4px 10px; }
+      .style-strip { padding: 0 10px 4px; }
+      .stage { padding: 6px 10px; }
+      .cue-card { padding: 8px 14px 10px; border-radius: 14px; }
+      .cue-hint { display: none; }
+      .bottom-bar { padding: 6px 10px 8px; }
+      .btn-prev, .btn-next, .btn-auto { min-height: 52px; }
+      body[data-size="L"] .cue-text { font-size: clamp(28px, 6.2vh, 46px); }
+      body[data-size="XL"] .cue-text { font-size: clamp(32px, 7.6vh, 56px); }
+    }
+
+    @media (max-width: 420px) {
+      .brand-title { font-size: 13px; }
+      .pill-btn { font-size: 11px; padding: 5px 8px; min-height: 30px; }
+      .btn-prev { padding: 0 12px; font-size: 14px; }
+      .btn-next { font-size: 17px; }
+    }
+  </style>
+</head>
+<body data-size="L">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-icon">🎅</span>
+      <div class="brand-title-wrap">
+        <div class="brand-title" id="tableTitle">Santa Phrasebook</div>
+        <div class="brand-sub" id="routeSub">Loading route details…</div>
+      </div>
+    </div>
+
+    <div class="top-controls">
+      <button type="button" id="wakeLockBtn" class="pill-btn wake-pill needs-tap" title="Screen Sleep Protection">⚡ Tap to Keep Awake</button>
+      <div class="size-group" role="group" aria-label="Text size">
+        <button type="button" class="size-btn" data-size="S">S</button>
+        <button type="button" class="size-btn" data-size="M">M</button>
+        <button type="button" class="size-btn active" data-size="L">L</button>
+        <button type="button" class="size-btn" data-size="XL">XL</button>
+      </div>
+      <button type="button" id="modeToggleBtn" class="pill-btn" title="Switch Card / List view">☰ List</button>
+      <button type="button" id="addPhraseBtn" class="pill-btn" title="Add custom phrase">+ Add</button>
+      <button type="button" id="fullscreenBtn" class="pill-btn" title="Toggle Fullscreen" style="display:none;">⛶</button>
+    </div>
+  </header>
+
+  <section class="filters-wrap">
+    <div class="cat-strip" id="catStrip" role="tablist" aria-label="Phrase categories"></div>
+    <div class="style-strip">
+      <div class="style-pills" id="styleStrip" role="tablist" aria-label="Santa delivery style"></div>
+      <div class="deck-stats">
+        <span id="deckCounter">Fresh: 0 / 0</span>
+        <button type="button" id="resetUsedBtn" class="reset-link" title="Mark all phrases fresh again">↺ Reset</button>
+      </div>
+    </div>
+  </section>
+
+  <main class="stage">
+    <div id="cueCard" class="cue-card" role="button" tabindex="0" aria-label="Current Santa phrase. Tap for next fresh phrase.">
+      <div class="cue-meta">
+        <div class="cue-badges">
+          <span id="cueCatBadge" class="meta-tag primary">🎅 Greetings</span>
+          <span id="cueStyleBadge" class="meta-tag">Traditional</span>
+          <span id="cueUsedBadge" class="meta-tag said" style="display:none;">Said ✓</span>
+        </div>
+        <div class="cue-actions-top">
+          <button type="button" id="deleteCustomBtn" class="icon-btn" title="Delete custom phrase" style="display:none;">🗑️</button>
+          <button type="button" id="favBtn" class="icon-btn" title="Star / Favourite phrase">☆</button>
+        </div>
+      </div>
+
+      <div class="cue-body">
+        <p id="cueText" class="cue-text">Ho Ho Ho! Merry Christmas, everybody! Santa's here!</p>
+      </div>
+
+      <div class="cue-hint" id="cueHint">Tap card or swipe left for next fresh line • Swipe right for previous</div>
+      <div class="auto-progress" id="autoProgress"><div class="auto-progress-fill" id="autoProgressFill"></div></div>
+    </div>
+
+    <div id="listView" class="list-view" aria-label="Phrase list"></div>
+  </main>
+
+  <footer class="bottom-bar">
+    <button type="button" id="prevBtn" class="btn-prev" disabled>◀ Prev</button>
+    <button type="button" id="nextBtn" class="btn-next">
+      <span>NEXT PHRASE →</span>
+      <span class="btn-next-sub" id="nextSubLabel">Fresh lines ready</span>
+    </button>
+    <button type="button" id="autoBtn" class="btn-auto" title="Auto-cycle hands-free">
+      <span>⏱ Auto</span>
+      <span id="autoStateLabel">Off</span>
+    </button>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <div id="addModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="addModalTitle">
+    <div class="modal-card">
+      <h2 id="addModalTitle">Add Custom Sleigh Line</h2>
+      <p>Saved on this device for tonight's run (e.g. a local pub, street shout-out, or inside joke).</p>
+      <textarea id="customPhraseInput" class="modal-input" rows="3" maxlength="220" placeholder="Ho Ho Ho! Great to see everyone outside the Crown Inn!"></textarea>
+      <select id="customStyleSelect" class="modal-select">
+        <option value="traditional">🎅 Traditional Santa</option>
+        <option value="cheeky">😜 Cheeky Santa</option>
+        <option value="roundtable">🤝 Round Table Santa</option>
+      </select>
+      <div class="modal-actions">
+        <button type="button" id="cancelAddBtn" class="pill-btn">Cancel</button>
+        <button type="button" id="saveAddBtn" class="pill-btn" style="background:var(--primary); color:var(--on-primary); border-color:var(--primary);">Save Phrase</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function() {
+  const API_BASE = 'https://turbosanta-api.beverley247.workers.dev';
+
+  const CATEGORIES = [
+    { id: 'all', label: '✨ All Fresh' },
+    { id: 'tonight', label: '📍 Tonight / Town' },
+    { id: 'greetings', label: '🎅 Greetings' },
+    { id: 'sleigh', label: '🛷 Sleigh' },
+    { id: 'cheeky', label: '😜 Cheeky' },
+    { id: 'fundraising', label: '💰 Fundraising' },
+    { id: 'interactive', label: '📣 Crowd' },
+    { id: 'magic', label: '✨ Magic' },
+    { id: 'goodbyes', label: '👋 Goodbyes' },
+    { id: 'situations', label: '🏠 Streets & Spots' },
+    { id: 'favourites', label: '★ Favourites' }
+  ];
+
+  const STYLES = [
+    { id: 'all', label: 'All Tones' },
+    { id: 'traditional', label: '🎅 Traditional' },
+    { id: 'cheeky', label: '😜 Cheeky' },
+    { id: 'roundtable', label: '🤝 Round Table' }
+  ];
+
+  // Exact verbatim Round Table Santa Phrasebook (48 phrases) + extra real-world sleigh lines
+  const BASE_PHRASES = [
+    // ── Section 1: Classic Santa Greetings (8 PDF verbatim) ──
+    { id: 'pdf_1_1', category: 'greetings', styles: ['traditional'], text: "Ho Ho Ho! Merry Christmas, everybody! Santa's here!" },
+    { id: 'pdf_1_2', category: 'greetings', styles: ['traditional'], text: "Well, well, well! Look at all these wonderful smiling faces!" },
+    { id: 'pdf_1_3', category: 'greetings', styles: ['traditional', 'cheeky'], text: "Have you all been good this year? Ho Ho Ho! I certainly hope so!" },
+    { id: 'pdf_1_4', category: 'greetings', styles: ['traditional'], text: "Rudolph tells me there are some very special boys and girls around here!" },
+    { id: 'pdf_1_5', category: 'greetings', styles: ['traditional'], text: "Give me your biggest Christmas wave! I want to see those hands!" },
+    { id: 'pdf_1_6', category: 'greetings', styles: ['traditional'], text: "Christmas magic is in the air, and Santa's come to spread some cheer!" },
+    { id: 'pdf_1_7', category: 'greetings', styles: ['traditional'], text: "Ho Ho Ho! Who's ready for Christmas?" },
+    { id: 'pdf_1_8', category: 'greetings', styles: ['traditional'], text: "My goodness! You've all grown since last Christmas!" },
+
+    // ── Section 2: Round Table Santa Sleigh Announcements (7 PDF verbatim) ──
+    { id: 'pdf_2_1', category: 'sleigh', styles: ['traditional', 'roundtable'], text: "Ho Ho Ho! Santa's coming through, bringing Christmas magic just for you!" },
+    { id: 'pdf_2_2', category: 'sleigh', styles: ['roundtable'], text: "Come on, everybody! Give your local Round Table elves a great big wave!" },
+    { id: 'pdf_2_3', category: 'sleigh', styles: ['traditional'], text: "Santa's sleigh is on its way, spreading Christmas joy throughout the day!" },
+    { id: 'pdf_2_4', category: 'sleigh', styles: ['traditional'], text: "Don't be shy! Come to your windows, give us a wave, and share some Christmas cheer!" },
+    { id: 'pdf_2_5', category: 'sleigh', styles: ['roundtable'], text: "Ho Ho Ho! Your local Round Table has been working very hard to bring a little North Pole magic to your neighbourhood!" },
+    { id: 'pdf_2_6', category: 'sleigh', styles: ['traditional'], text: "The elves have polished the sleigh, Rudolph's checked the route, and Santa's ready to go!" },
+    { id: 'pdf_2_7', category: 'sleigh', styles: ['roundtable'], text: "Christmas is about giving, kindness and community, and that's exactly what our wonderful Round Table volunteers are here for!" },
+
+    // ── Section 3: Funny and Cheeky Santa Phrases (8 PDF verbatim) ──
+    { id: 'pdf_3_1', category: 'cheeky', styles: ['cheeky'], text: "Ho Ho Ho! Who's been naughty? Don't worry, I won't tell... unless you've eaten all the mince pies!" },
+    { id: 'pdf_3_2', category: 'cheeky', styles: ['cheeky'], text: "Mrs Claus told me to behave tonight. I told her I'd try!" },
+    { id: 'pdf_3_3', category: 'cheeky', styles: ['cheeky'], text: "Rudolph's got a red nose, I've got a big belly, and the elves have eaten all my jelly!" },
+    { id: 'pdf_3_4', category: 'cheeky', styles: ['cheeky', 'roundtable'], text: "I checked my naughty list twice... and somehow half the Round Table members are on it!" },
+    { id: 'pdf_3_5', category: 'cheeky', styles: ['cheeky'], text: "Santa doesn't need a gym membership. Have you seen how many chimneys I climb?" },
+    { id: 'pdf_3_6', category: 'cheeky', styles: ['cheeky'], text: "If anyone sees my reindeer, please tell them I've parked the sleigh somewhere around here!" },
+    { id: 'pdf_3_7', category: 'cheeky', styles: ['cheeky'], text: "Ho Ho Ho! I've travelled all the way from the North Pole, and nobody's offered me a cuppa yet!" },
+    { id: 'pdf_3_8', category: 'cheeky', styles: ['cheeky'], text: "The elves told me this sleigh was fuel-efficient. They forgot to mention it runs on mince pies!" },
+
+    // ── Section 4: Community and Fundraising Messages (6 PDF verbatim + 6 bonus) ──
+    { id: 'pdf_4_1', category: 'fundraising', styles: ['roundtable'], text: "Christmas is a time for giving, and thanks to your kindness, our Round Table elves can help make a difference in your local community." },
+    { id: 'pdf_4_2', category: 'fundraising', styles: ['traditional', 'roundtable'], text: "Every smile, every wave and every little act of kindness helps make Christmas magical!" },
+    { id: 'pdf_4_3', category: 'fundraising', styles: ['traditional', 'roundtable'], text: "Santa might bring the presents, but it's wonderful people like you who bring the Christmas spirit!" },
+    { id: 'pdf_4_4', category: 'fundraising', styles: ['roundtable'], text: "A big Christmas thank-you to everyone supporting your local Round Table. You're helping us spread kindness all year round!" },
+    { id: 'pdf_4_5', category: 'fundraising', styles: ['roundtable'], text: "Our Round Table volunteers give their time to bring Christmas cheer and support local good causes. Let's give them a great big cheer!" },
+    { id: 'pdf_4_6', category: 'fundraising', styles: ['traditional'], text: "Remember, Christmas magic isn't just about presents under the tree. It's about looking after each other!" },
+    { id: 'ext_fund_1', category: 'fundraising', styles: ['roundtable'], text: "No spare change? No worries! Our elves have contactless card readers and QR codes right on their buckets!" },
+    { id: 'ext_fund_2', category: 'fundraising', styles: ['roundtable'], text: "Every single penny raised tonight stays right here to support amazing local charities and families!" },
+    { id: 'ext_fund_3', category: 'fundraising', styles: ['cheeky', 'roundtable'], text: "Hear that jingling? That's Rudolph's bells AND our Round Table buckets! Thank you for helping fill them up!" },
+    { id: 'ext_fund_4', category: 'fundraising', styles: ['roundtable'], text: "Donating online? Don't forget to tick Gift Aid if you're a UK taxpayer — it adds 25% more charity magic at no cost!" },
+    { id: 'ext_fund_5', category: 'fundraising', styles: ['roundtable'], text: "Give a wave to our elves in high-vis! They've braved the winter chill tonight to raise funds for our community!" },
+    { id: 'ext_fund_6', category: 'fundraising', styles: ['roundtable'], text: "Even if you just came out for a wave and a smile, thank you for bringing Christmas magic to your street tonight!" },
+
+    // ── Section 5: Interactive Santa Phrases (8 PDF verbatim) ──
+    { id: 'pdf_5_1', category: 'interactive', styles: ['traditional', 'roundtable'], text: "When I say Merry, you shout Christmas! MERRY...!" },
+    { id: 'pdf_5_2', category: 'interactive', styles: ['traditional'], text: "Can everybody shout HO HO HO on the count of three?" },
+    { id: 'pdf_5_3', category: 'interactive', styles: ['traditional'], text: "Who can give me the loudest Christmas cheer?" },
+    { id: 'pdf_5_4', category: 'interactive', styles: ['traditional'], text: "Hands up if you've already put your Christmas tree up!" },
+    { id: 'pdf_5_5', category: 'interactive', styles: ['traditional'], text: "Can anyone tell me the name of my favourite red-nosed reindeer?" },
+    { id: 'pdf_5_6', category: 'interactive', styles: ['traditional', 'cheeky'], text: "Let's see if we can make enough noise for Mrs Claus to hear us all the way at the North Pole!" },
+    { id: 'pdf_5_7', category: 'interactive', styles: ['traditional'], text: "If you're excited for Christmas, give me three big claps!" },
+    { id: 'pdf_5_8', category: 'interactive', styles: ['roundtable'], text: "Can everybody give our hardworking Round Table elves a massive round of applause?" },
+
+    // ── Section 6: Magical Christmas Messages (5 PDF verbatim) ──
+    { id: 'pdf_6_1', category: 'magic', styles: ['traditional'], text: "Always remember, the greatest Christmas magic comes from kindness, love and sharing happiness." },
+    { id: 'pdf_6_2', category: 'magic', styles: ['traditional'], text: "A little Christmas magic can make even the coldest winter night feel warm." },
+    { id: 'pdf_6_3', category: 'magic', styles: ['traditional'], text: "No matter how old you get, there's always room for a little Christmas magic." },
+    { id: 'pdf_6_4', category: 'magic', styles: ['traditional'], text: "The brightest lights at Christmas aren't on the tree. They're the smiles we share." },
+    { id: 'pdf_6_5', category: 'magic', styles: ['traditional'], text: "Keep believing, keep smiling, and never forget to spread a little kindness wherever you go." },
+
+    // ── Section 7: Santa's Goodbye Phrases (6 PDF verbatim) ──
+    { id: 'pdf_7_1', category: 'goodbyes', styles: ['traditional'], text: "Ho Ho Ho! Merry Christmas to you all, and remember to keep being kind!" },
+    { id: 'pdf_7_2', category: 'goodbyes', styles: ['traditional'], text: "Santa's got lots more boys and girls to visit, so it's time for me to dash!" },
+    { id: 'pdf_7_3', category: 'goodbyes', styles: ['traditional'], text: "Until Christmas Eve, keep those smiles shining and your Christmas spirit glowing!" },
+    { id: 'pdf_7_4', category: 'goodbyes', styles: ['traditional'], text: "Thank you for giving Santa such a wonderful welcome! Merry Christmas!" },
+    { id: 'pdf_7_5', category: 'goodbyes', styles: ['roundtable'], text: "From Santa, the elves and everyone at your local Round Table, have a truly magical Christmas!" },
+    { id: 'pdf_7_6', category: 'goodbyes', styles: ['traditional'], text: "Keep your eyes on the skies on Christmas Eve! You never know what you might see!" },
+
+    // ── Real-World Sleigh Situations (16 extras for streets & doorsteps) ──
+    { id: 'ext_sit_1', category: 'situations', styles: ['traditional'], text: "I can see someone waving from the upstairs window! Hello up there, Merry Christmas!" },
+    { id: 'ext_sit_2', category: 'situations', styles: ['traditional', 'cheeky'], text: "Look at all those cosy Christmas pyjamas! Ready for bedtime soon, I hope!" },
+    { id: 'ext_sit_3', category: 'situations', styles: ['traditional'], text: "Remember, Santa can only visit on Christmas Eve once you're tucked up fast asleep!" },
+    { id: 'ext_sit_4', category: 'situations', styles: ['traditional'], text: "Don't forget to leave out a crunchy carrot for Rudolph and Dasher on Christmas Eve!" },
+    { id: 'ext_sit_5', category: 'situations', styles: ['traditional'], text: "Wow, look at those brilliant Christmas lights on your house! Even the elves are impressed!" },
+    { id: 'ext_sit_6', category: 'situations', styles: ['traditional'], text: "Make sure you wrap up nice and warm out here — Santa's got his big red coat on!" },
+    { id: 'ext_sit_7', category: 'situations', styles: ['cheeky'], text: "Hello mums, dads, nans and grandads! You're on the Nice List too... mostly!" },
+    { id: 'ext_sit_8', category: 'situations', styles: ['cheeky'], text: "Even the teenagers are smiling! You're never too cool to wave at Santa!" },
+    { id: 'ext_sit_9', category: 'situations', styles: ['cheeky'], text: "Ho Ho Ho! Even the dogs are excited to see Santa tonight — give them a Christmas pat from Rudolph!" },
+    { id: 'ext_sit_10', category: 'situations', styles: ['cheeky'], text: "Brrr! Tonight feels almost as chilly as Lapland! Good job we've got festive cheer to warm us up!" },
+    { id: 'ext_sit_11', category: 'situations', styles: ['cheeky'], text: "A spot of winter drizzle won't stop Rudolph's glowing nose — Santa's sleigh rolls through anything!" },
+    { id: 'ext_sit_12', category: 'situations', styles: ['traditional'], text: "Mind the kerb and stay safely on the pavement, everybody — our elves want everyone safe and sound!" },
+    { id: 'ext_sit_13', category: 'situations', styles: ['cheeky'], text: "Have any chocolate decorations mysteriously vanished off your Christmas tree yet? No names mentioned!" },
+    { id: 'ext_sit_14', category: 'situations', styles: ['traditional'], text: "We're pausing for just a moment so everyone can snap a quick photo — big Christmas smiles!" },
+    { id: 'ext_sit_15', category: 'situations', styles: ['cheeky'], text: "That's a top-tier Christmas jumper right there! Ten out of ten from Lapland Fashion Week!" },
+    { id: 'ext_sit_16', category: 'situations', styles: ['cheeky'], text: "Is someone putting the kettle on? No? Just checking! Keep those waves coming!" }
+  ];
+
+  // ── Multi-tenant table slug resolution ──
+  const params = new URLSearchParams(window.location.search);
+  const host = (window.location.hostname || '').toLowerCase();
+  const excludedSubs = new Set(['www', 'national', 'admin', 'support', 'turbosanta', 'localhost', '127']);
+  let subSlug = '';
+  if (host.endsWith('.roundtablesantasleigh.co.uk')) {
+    const first = host.split('.')[0];
+    if (first && !excludedSubs.has(first)) subSlug = first;
+  }
+  const tableSlug = (params.get('table') || params.get('slug') || subSlug || 'beverley')
+    .toLowerCase().trim().replace(/[^a-z0-9-_]/g, '') || 'beverley';
+
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const LS_USED = `turbosanta_phrases_used_${tableSlug}_${todayIso}`;
+  const LS_FAVS = `turbosanta_phrases_favs_${tableSlug}`;
+  const LS_CUSTOM = `turbosanta_phrases_custom_${tableSlug}`;
+  const LS_SIZE = `turbosanta_phrases_size`;
+
+  function escHtml(val) {
+    return String(val || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function formatTownName(slug) {
+    return String(slug || 'Round Table')
+      .split(/[-_]+/)
+      .filter(Boolean)
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+  }
+
+  function loadJsonSet(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return new Set(Array.isArray(parsed) ? parsed : []);
+    } catch {
+      return new Set();
+    }
+  }
+
+  function saveJsonSet(key, setObj) {
+    try { localStorage.setItem(key, JSON.stringify([...setObj])); } catch {}
+  }
+
+  function loadCustomPhrases() {
+    try {
+      const raw = localStorage.getItem(LS_CUSTOM);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed.filter(p => p && p.id && p.text) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveCustomPhrases(list) {
+    try { localStorage.setItem(LS_CUSTOM, JSON.stringify(list)); } catch {}
+  }
+
+  // ── App State ──
+  const STATE = {
+    category: 'all',
+    style: 'all',
+    mode: 'card', // 'card' | 'list'
+    usedIds: loadJsonSet(LS_USED),
+    favIds: loadJsonSet(LS_FAVS),
+    customPhrases: loadCustomPhrases(),
+    tonightPhrases: [],
+    currentId: null,
+    history: [],
+    historyIdx: -1,
+    autoSeconds: 0, // 0, 10, 15, 20, 30
+    autoElapsedMs: 0,
+    autoTimer: null
+  };
+
+  // Initial town fallback phrases right away (updated when payload returns)
+  function buildTonightPhrases({ townName, tableName, routeName, sponsorsText, charityName }) {
+    const out = [
+      {
+        id: 'dyn_town_1',
+        category: 'tonight',
+        styles: ['roundtable', 'traditional'],
+        text: `Ho Ho Ho, ${townName}! ${tableName} is rolling through tonight!`
+      },
+      {
+        id: 'dyn_town_2',
+        category: 'tonight',
+        styles: ['roundtable'],
+        text: `Thank you, ${townName}! Look at this incredible Christmas turnout!`
+      },
+      {
+        id: 'dyn_town_3',
+        category: 'tonight',
+        styles: ['roundtable', 'traditional'],
+        text: `From Santa and everyone at ${tableName}, Merry Christmas ${townName}!`
+      }
+    ];
+    if (routeName) {
+      out.push({
+        id: 'dyn_route_1',
+        category: 'tonight',
+        styles: ['roundtable', 'traditional'],
+        text: `We're visiting ${routeName} tonight! Come out to your doorsteps and give Santa a wave!`
+      });
+    }
+    if (sponsorsText) {
+      out.push({
+        id: 'dyn_sponsor_1',
+        category: 'tonight',
+        styles: ['roundtable'],
+        text: `A huge Ho-Ho-Ho thank-you to tonight's sponsor, ${sponsorsText}, for supporting ${tableName}!`
+      });
+    }
+    if (charityName) {
+      out.push({
+        id: 'dyn_charity_1',
+        category: 'tonight',
+        styles: ['roundtable'],
+        text: `Every penny donated tonight helps ${tableName} support ${charityName}!`
+      });
+    }
+    return out;
+  }
+
+  const initialTown = formatTownName(tableSlug);
+  STATE.tonightPhrases = buildTonightPhrases({
+    townName: initialTown,
+    tableName: `${initialTown} Round Table`,
+    routeName: '',
+    sponsorsText: '',
+    charityName: ''
+  });
+  document.getElementById('tableTitle').textContent = `${initialTown} Santa Phrases`;
+  document.getElementById('routeSub').textContent = 'Live Teleprompter • Screen Awake Active';
+
+  function getAllPhrases() {
+    return [...STATE.tonightPhrases, ...STATE.customPhrases, ...BASE_PHRASES];
+  }
+
+  function getFilteredPhrases() {
+    const all = getAllPhrases();
+    return all.filter(p => {
+      if (STATE.category === 'favourites') {
+        if (!STATE.favIds.has(p.id)) return false;
+      } else if (STATE.category !== 'all') {
+        if (p.category !== STATE.category) return false;
+      }
+      if (STATE.style !== 'all') {
+        if (!Array.isArray(p.styles) || !p.styles.includes(STATE.style)) return false;
+      }
+      return true;
+    });
+  }
+
+  function getFreshPhrases(pool) {
+    return pool.filter(p => !STATE.usedIds.has(p.id));
+  }
+
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(showToast._tmr);
+    showToast._tmr = setTimeout(() => el.classList.remove('show'), 2600);
+  }
+
+  // ── Screen Sleep Protection (Wake Lock + Silent Audio Fallback) ──
+  const WakeLockManager = (() => {
+    let lock = null;
+    let enabled = true;
+    let audioCtx = null;
+    let oscNode = null;
+    let gainNode = null;
+    let retryTimer = null;
+
+    function updateUi() {
+      const btn = document.getElementById('wakeLockBtn');
+      if (!btn) return;
+      btn.classList.remove('is-awake', 'needs-tap', 'is-paused');
+      if (!enabled) {
+        btn.classList.add('is-paused');
+        btn.textContent = '🌙 Sleep Allowed';
+      } else if (lock || audioCtx) {
+        btn.classList.add('is-awake');
+        btn.textContent = '🔒 Screen Awake';
+      } else {
+        btn.classList.add('needs-tap');
+        btn.textContent = '⚡ Tap to Keep Awake';
+      }
+    }
+
+    function startSilentAudio() {
+      if (!enabled || audioCtx) return;
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        audioCtx = new AC();
+        if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+        oscNode = audioCtx.createOscillator();
+        gainNode = audioCtx.createGain();
+        gainNode.gain.value = 0.0008;
+        oscNode.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscNode.start();
+        updateUi();
+      } catch {
+        audioCtx = null;
+      }
+    }
+
+    function stopSilentAudio() {
+      try {
+        if (oscNode) { oscNode.stop(); oscNode.disconnect(); }
+        if (gainNode) gainNode.disconnect();
+        if (audioCtx) audioCtx.close().catch(() => {});
+      } catch {}
+      oscNode = null;
+      gainNode = null;
+      audioCtx = null;
+    }
+
+    async function acquire(fromGesture = false) {
+      if (!enabled || document.hidden) return;
+      if (fromGesture) startSilentAudio();
+      if ('wakeLock' in navigator) {
+        try {
+          if (lock) return;
+          lock = await navigator.wakeLock.request('screen');
+          lock.addEventListener('release', () => {
+            lock = null;
+            updateUi();
+            if (enabled && !document.hidden) {
+              clearTimeout(retryTimer);
+              retryTimer = setTimeout(() => acquire(false), 1500);
+            }
+          });
+        } catch {}
+      }
+      updateUi();
+    }
+
+    function releaseAll() {
+      clearTimeout(retryTimer);
+      if (lock) {
+        lock.release().catch(() => {});
+        lock = null;
+      }
+      stopSilentAudio();
+      updateUi();
+    }
+
+    function toggle() {
+      enabled = !enabled;
+      if (enabled) {
+        acquire(true);
+        showToast('🔒 Screen Wake Lock active');
+      } else {
+        releaseAll();
+        showToast('🌙 Screen allowed to sleep');
+      }
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && enabled) acquire(false);
+    });
+
+    const unlockOnce = () => {
+      if (enabled) acquire(true);
+      document.removeEventListener('pointerdown', unlockOnce);
+      document.removeEventListener('keydown', unlockOnce);
+    };
+    document.addEventListener('pointerdown', unlockOnce, { passive: true });
+    document.addEventListener('keydown', unlockOnce, { passive: true });
+
+    acquire(false);
+    return { toggle, acquire };
+  })();
+
+  // ── Deck & Navigation ──
+  function pickNextPhrase(markCurrentUsed = true) {
+    const current = getAllPhrases().find(p => p.id === STATE.currentId);
+    if (markCurrentUsed && current) {
+      STATE.usedIds.add(current.id);
+      saveJsonSet(LS_USED, STATE.usedIds);
+    }
+
+    const pool = getFilteredPhrases();
+    if (pool.length === 0) {
+      render();
+      return;
+    }
+
+    let fresh = getFreshPhrases(pool).filter(p => p.id !== STATE.currentId);
+    if (fresh.length === 0) {
+      // Clear used flags only for the active pool so the deck reshuffles cleanly
+      pool.forEach(p => STATE.usedIds.delete(p.id));
+      saveJsonSet(LS_USED, STATE.usedIds);
+      fresh = pool.filter(p => p.id !== STATE.currentId);
+      if (fresh.length === 0) fresh = pool;
+      showToast('All phrases in this deck said — reshuffled fresh!');
+    }
+
+    const next = fresh[Math.floor(Math.random() * fresh.length)];
+    showPhraseById(next.id, true);
+  }
+
+  function showPhraseById(id, pushHistory = true) {
+    STATE.currentId = id;
+    if (pushHistory) {
+      if (STATE.historyIdx < STATE.history.length - 1) {
+        STATE.history = STATE.history.slice(0, STATE.historyIdx + 1);
+      }
+      if (STATE.history[STATE.history.length - 1] !== id) {
+        STATE.history.push(id);
+      }
+      STATE.historyIdx = STATE.history.length - 1;
+    }
+    STATE.autoElapsedMs = 0;
+    render();
+  }
+
+  function goPrev() {
+    if (STATE.historyIdx <= 0) return;
+    STATE.historyIdx -= 1;
+    STATE.currentId = STATE.history[STATE.historyIdx];
+    STATE.autoElapsedMs = 0;
+    render();
+  }
+
+  // ── Auto-Cycle Hands-Free Teleprompter ──
+  const AUTO_INTERVALS = [0, 10, 15, 20, 30];
+  function cycleAutoMode() {
+    const idx = AUTO_INTERVALS.indexOf(STATE.autoSeconds);
+    STATE.autoSeconds = AUTO_INTERVALS[(idx + 1) % AUTO_INTERVALS.length];
+    STATE.autoElapsedMs = 0;
+    clearInterval(STATE.autoTimer);
+    STATE.autoTimer = null;
+
+    if (STATE.autoSeconds > 0) {
+      STATE.autoTimer = setInterval(() => {
+        if (STATE.mode !== 'card' || document.hidden) return;
+        STATE.autoElapsedMs += 250;
+        const pct = Math.min(100, (STATE.autoElapsedMs / (STATE.autoSeconds * 1000)) * 100);
+        const fill = document.getElementById('autoProgressFill');
+        if (fill) fill.style.width = `${pct}%`;
+        if (STATE.autoElapsedMs >= STATE.autoSeconds * 1000) {
+          pickNextPhrase(true);
+        }
+      }, 250);
+      showToast(`Hands-free auto-advance every ${STATE.autoSeconds}s`);
+    } else {
+      showToast('Hands-free auto-advance turned off');
+    }
+    renderControlsOnly();
+  }
+
+  // ── Rendering ──
+  function renderFilters() {
+    const catEl = document.getElementById('catStrip');
+    const styleEl = document.getElementById('styleStrip');
+
+    catEl.innerHTML = CATEGORIES.map(c => {
+      if (c.id === 'tonight' && STATE.tonightPhrases.length === 0) return '';
+      const active = STATE.category === c.id ? ' active' : '';
+      return `<button type="button" class="chip${active}" data-cat="${c.id}">${escHtml(c.label)}</button>`;
+    }).join('');
+
+    styleEl.innerHTML = `<div class="style-pills">${STYLES.map(s => {
+      const active = STATE.style === s.id ? ' active' : '';
+      return `<button type="button" class="chip chip-sm${active}" data-style="${s.id}">${escHtml(s.label)}</button>`;
+    }).join('')}</div>`;
+  }
+
+  function renderControlsOnly() {
+    const pool = getFilteredPhrases();
+    const freshCount = getFreshPhrases(pool).length;
+    document.getElementById('deckCounter').textContent = `Fresh: ${freshCount} / ${pool.length}`;
+    document.getElementById('nextSubLabel').textContent = pool.length
+      ? `${freshCount} fresh remaining in deck`
+      : 'No phrases match filter';
+    document.getElementById('prevBtn').disabled = STATE.historyIdx <= 0;
+
+    const autoBtn = document.getElementById('autoBtn');
+    const autoLbl = document.getElementById('autoStateLabel');
+    const prog = document.getElementById('autoProgress');
+    const fill = document.getElementById('autoProgressFill');
+    autoBtn.classList.toggle('active', STATE.autoSeconds > 0);
+    autoLbl.textContent = STATE.autoSeconds > 0 ? `${STATE.autoSeconds}s` : 'Off';
+    prog.classList.toggle('active', STATE.autoSeconds > 0);
+    if (STATE.autoSeconds === 0 && fill) fill.style.width = '0%';
+  }
+
+  function categoryLabel(catId) {
+    const found = CATEGORIES.find(c => c.id === catId);
+    return found ? found.label : catId;
+  }
+
+  function styleLabel(styles) {
+    if (!Array.isArray(styles) || styles.length === 0) return 'Traditional';
+    const names = { traditional: 'Traditional', cheeky: 'Cheeky', roundtable: 'Round Table' };
+    return styles.map(s => names[s] || s).join(' • ');
+  }
+
+  function render() {
+    renderFilters();
+    const all = getAllPhrases();
+    const pool = getFilteredPhrases();
+
+    // Ensure currentId stays valid inside filtered pool if possible
+    let current = all.find(p => p.id === STATE.currentId);
+    if (pool.length > 0 && (!current || !pool.some(p => p.id === current.id))) {
+      const fresh = getFreshPhrases(pool);
+      const chosen = (fresh.length > 0 ? fresh : pool)[0];
+      STATE.currentId = chosen.id;
+      if (STATE.history.length === 0) {
+        STATE.history.push(chosen.id);
+        STATE.historyIdx = 0;
+      }
+      current = chosen;
+    }
+
+    const cueCard = document.getElementById('cueCard');
+    const listView = document.getElementById('listView');
+    const modeBtn = document.getElementById('modeToggleBtn');
+
+    if (STATE.mode === 'list') {
+      cueCard.classList.add('hidden');
+      listView.classList.add('active');
+      modeBtn.textContent = '🎴 Card';
+    } else {
+      cueCard.classList.remove('hidden');
+      listView.classList.remove('active');
+      modeBtn.textContent = '☰ List';
+    }
+
+    if (!current || pool.length === 0) {
+      document.getElementById('cueCatBadge').textContent = categoryLabel(STATE.category);
+      document.getElementById('cueStyleBadge').textContent = 'Empty Filter';
+      document.getElementById('cueUsedBadge').style.display = 'none';
+      document.getElementById('favBtn').style.display = 'none';
+      document.getElementById('deleteCustomBtn').style.display = 'none';
+      document.getElementById('cueText').textContent = STATE.category === 'favourites'
+        ? 'No favourites yet — tap ☆ on any cue card to star your go-to lines!'
+        : 'No phrases match this category and tone filter. Tap "All Tones" to see more!';
+    } else {
+      const isUsed = STATE.usedIds.has(current.id);
+      const isFav = STATE.favIds.has(current.id);
+      const isCustom = String(current.id).startsWith('custom_');
+
+      cueCard.classList.toggle('is-used', isUsed);
+      document.getElementById('cueCatBadge').textContent = isCustom ? '✏️ Custom' : categoryLabel(current.category);
+      document.getElementById('cueStyleBadge').textContent = styleLabel(current.styles);
+      document.getElementById('cueUsedBadge').style.display = isUsed ? 'inline-flex' : 'none';
+      document.getElementById('cueText').textContent = current.text;
+
+      const favBtn = document.getElementById('favBtn');
+      favBtn.style.display = 'inline-flex';
+      favBtn.textContent = isFav ? '★' : '☆';
+      favBtn.classList.toggle('fav-active', isFav);
+
+      const delBtn = document.getElementById('deleteCustomBtn');
+      delBtn.style.display = isCustom ? 'inline-flex' : 'none';
+    }
+
+    if (STATE.mode === 'list') {
+      if (pool.length === 0) {
+        listView.innerHTML = `<div class="list-item"><div class="list-item-main"><div class="list-item-text">No phrases in this view yet.</div></div></div>`;
+      } else {
+        listView.innerHTML = pool.map(p => {
+          const used = STATE.usedIds.has(p.id);
+          const fav = STATE.favIds.has(p.id);
+          const isCur = p.id === STATE.currentId;
+          return `
+            <div class="list-item${used ? ' is-used' : ''}${isCur ? ' is-current' : ''}" data-pick-id="${escHtml(p.id)}">
+              <div class="list-item-main">
+                <div class="list-item-text">${escHtml(p.text)}</div>
+                <div class="list-item-sub">
+                  <span>${escHtml(categoryLabel(p.category))}</span>
+                  <span>• ${escHtml(styleLabel(p.styles))}</span>
+                  ${used ? '<span style="color:#86efac;">• Said ✓</span>' : '<span style="color:var(--primary);">• Fresh</span>'}
+                </div>
+              </div>
+              <div class="list-item-btns">
+                <button type="button" class="icon-btn${fav ? ' fav-active' : ''}" data-list-fav="${escHtml(p.id)}" title="Toggle favourite">${fav ? '★' : '☆'}</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    renderControlsOnly();
+  }
+
+  // ── Event Wiring ──
+  document.getElementById('wakeLockBtn').addEventListener('click', () => WakeLockManager.toggle());
+
+  document.getElementById('catStrip').addEventListener('click', e => {
+    const btn = e.target.closest('[data-cat]');
+    if (!btn) return;
+    STATE.category = btn.getAttribute('data-cat');
+    STATE.currentId = null;
+    pickNextPhrase(false);
+  });
+
+  document.getElementById('styleStrip').addEventListener('click', e => {
+    const btn = e.target.closest('[data-style]');
+    if (!btn) return;
+    STATE.style = btn.getAttribute('data-style');
+    STATE.currentId = null;
+    pickNextPhrase(false);
+  });
+
+  document.querySelectorAll('.size-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const sz = btn.getAttribute('data-size') || 'L';
+      document.body.setAttribute('data-size', sz);
+      document.querySelectorAll('.size-btn').forEach(b => b.classList.toggle('active', b === btn));
+      try { localStorage.setItem(LS_SIZE, sz); } catch {}
+    });
+  });
+
+  // Restore saved font size
+  try {
+    const savedSize = localStorage.getItem(LS_SIZE);
+    if (savedSize && ['S', 'M', 'L', 'XL'].includes(savedSize)) {
+      document.body.setAttribute('data-size', savedSize);
+      document.querySelectorAll('.size-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-size') === savedSize));
+    }
+  } catch {}
+
+  document.getElementById('modeToggleBtn').addEventListener('click', () => {
+    STATE.mode = STATE.mode === 'card' ? 'list' : 'card';
+    render();
+  });
+
+  document.getElementById('favBtn').addEventListener('click', e => {
+    e.stopPropagation();
+    if (!STATE.currentId) return;
+    if (STATE.favIds.has(STATE.currentId)) STATE.favIds.delete(STATE.currentId);
+    else STATE.favIds.add(STATE.currentId);
+    saveJsonSet(LS_FAVS, STATE.favIds);
+    render();
+  });
+
+  document.getElementById('deleteCustomBtn').addEventListener('click', e => {
+    e.stopPropagation();
+    if (!STATE.currentId || !String(STATE.currentId).startsWith('custom_')) return;
+    STATE.customPhrases = STATE.customPhrases.filter(p => p.id !== STATE.currentId);
+    STATE.favIds.delete(STATE.currentId);
+    STATE.usedIds.delete(STATE.currentId);
+    saveCustomPhrases(STATE.customPhrases);
+    saveJsonSet(LS_FAVS, STATE.favIds);
+    saveJsonSet(LS_USED, STATE.usedIds);
+    STATE.currentId = null;
+    showToast('Removed custom phrase');
+    pickNextPhrase(false);
+  });
+
+  document.getElementById('listView').addEventListener('click', e => {
+    const favTarget = e.target.closest('[data-list-fav]');
+    if (favTarget) {
+      const id = favTarget.getAttribute('data-list-fav');
+      if (STATE.favIds.has(id)) STATE.favIds.delete(id);
+      else STATE.favIds.add(id);
+      saveJsonSet(LS_FAVS, STATE.favIds);
+      render();
+      return;
+    }
+    const row = e.target.closest('[data-pick-id]');
+    if (row) {
+      const id = row.getAttribute('data-pick-id');
+      STATE.mode = 'card';
+      showPhraseById(id, true);
+    }
+  });
+
+  document.getElementById('nextBtn').addEventListener('click', () => pickNextPhrase(true));
+  document.getElementById('prevBtn').addEventListener('click', goPrev);
+  document.getElementById('autoBtn').addEventListener('click', cycleAutoMode);
+
+  document.getElementById('resetUsedBtn').addEventListener('click', () => {
+    const pool = getFilteredPhrases();
+    pool.forEach(p => STATE.usedIds.delete(p.id));
+    saveJsonSet(LS_USED, STATE.usedIds);
+    showToast('Deck reset — all phrases fresh!');
+    render();
+  });
+
+  // Tap or swipe cue card
+  const cueCardEl = document.getElementById('cueCard');
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let swipeHandled = false;
+
+  cueCardEl.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    swipeHandled = false;
+  }, { passive: true });
+
+  cueCardEl.addEventListener('touchend', e => {
+    if (e.changedTouches.length !== 1) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    if (Math.abs(dx) > 52 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+      swipeHandled = true;
+      if (dx < 0) pickNextPhrase(true);
+      else goPrev();
+    }
+  }, { passive: true });
+
+  cueCardEl.addEventListener('click', e => {
+    if (swipeHandled) { swipeHandled = false; return; }
+    if (e.target.closest('button')) return;
+    pickNextPhrase(true);
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    if (document.getElementById('addModal').classList.contains('open')) return;
+    if (e.code === 'Space' || e.code === 'ArrowRight') {
+      e.preventDefault();
+      pickNextPhrase(true);
+    } else if (e.code === 'ArrowLeft') {
+      e.preventDefault();
+      goPrev();
+    }
+  });
+
+  // Fullscreen button (only when supported)
+  const fsBtn = document.getElementById('fullscreenBtn');
+  if (document.documentElement.requestFullscreen) {
+    fsBtn.style.display = 'inline-flex';
+    fsBtn.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    });
+  }
+
+  // Add custom phrase modal
+  const addModal = document.getElementById('addModal');
+  const customInput = document.getElementById('customPhraseInput');
+  document.getElementById('addPhraseBtn').addEventListener('click', () => {
+    customInput.value = '';
+    addModal.classList.add('open');
+    setTimeout(() => customInput.focus(), 60);
+  });
+  document.getElementById('cancelAddBtn').addEventListener('click', () => addModal.classList.remove('open'));
+  addModal.addEventListener('click', e => { if (e.target === addModal) addModal.classList.remove('open'); });
+  document.getElementById('saveAddBtn').addEventListener('click', () => {
+    const text = customInput.value.trim();
+    if (!text) return;
+    const style = document.getElementById('customStyleSelect').value || 'traditional';
+    const item = {
+      id: `custom_${Date.now()}`,
+      category: 'tonight',
+      styles: [style],
+      text
+    };
+    STATE.customPhrases.unshift(item);
+    saveCustomPhrases(STATE.customPhrases);
+    addModal.classList.remove('open');
+    STATE.mode = 'card';
+    showToast('Added custom phrase!');
+    showPhraseById(item.id, true);
+  });
+
+  // Initial immediate render
+  pickNextPhrase(false);
+
+  // Hydrate town branding & tonight's route/sponsors asynchronously
+  fetch(`${API_BASE}/api/payload?table=${encodeURIComponent(tableSlug)}`)
+    .then(r => (r.ok ? r.json() : null))
+    .then(data => {
+      const tbl = data?.table;
+      if (!tbl) return;
+
+      if (typeof tbl.primary_color === 'string' && /^#[0-9a-f]{3,8}$/i.test(tbl.primary_color.trim())) {
+        document.documentElement.style.setProperty('--primary', tbl.primary_color.trim());
+      }
+
+      const cleanTown = (tbl.town_alias && String(tbl.town_alias).trim())
+        ? String(tbl.town_alias).trim()
+        : formatTownName(tbl.slug || tableSlug);
+      const sleighName = (tbl.sleigh_display_name && String(tbl.sleigh_display_name).trim())
+        ? String(tbl.sleigh_display_name).trim()
+        : `${cleanTown} Round Table`;
+      const tableShort = sleighName.replace(/\s*Santa\s*Sleigh\s*$/i, '').trim() || `${cleanTown} Round Table`;
+
+      const routes = Array.isArray(data.routes) ? data.routes : [];
+      const todayRoute = routes.find(r => r.status === 'In Progress')
+        || routes.find(r => r.date === todayIso)
+        || null;
+
+      let sponsorNames = [];
+      if (todayRoute) {
+        if (Array.isArray(todayRoute.sponsors)) {
+          sponsorNames = todayRoute.sponsors.map(s => s?.name || s?.sponsor_name).filter(Boolean);
+        } else if (todayRoute.sponsors_json) {
+          try {
+            const parsed = typeof todayRoute.sponsors_json === 'string'
+              ? JSON.parse(todayRoute.sponsors_json)
+              : todayRoute.sponsors_json;
+            if (Array.isArray(parsed)) {
+              sponsorNames = parsed.map(s => s?.name || s?.sponsor_name).filter(Boolean);
+            }
+          } catch {}
+        }
+        if (sponsorNames.length === 0 && (todayRoute.sponsor_name || todayRoute.sponsorName)) {
+          sponsorNames = [todayRoute.sponsor_name || todayRoute.sponsorName];
+        }
+      }
+
+      const routeName = todayRoute?.name || todayRoute?.routeName || '';
+      const sponsorsText = sponsorNames.join(' & ');
+      const charityName = (tbl.charity_name && String(tbl.charity_name).trim()) ? String(tbl.charity_name).trim() : '';
+
+      document.title = `${cleanTown} Santa Phrasebook | Round Table Santa Sleigh`;
+      document.getElementById('tableTitle').textContent = `${cleanTown} Santa Phrases`;
+      document.getElementById('routeSub').textContent = routeName
+        ? `Tonight: ${routeName}${sponsorsText ? ` • Sponsored by ${sponsorsText}` : ''}`
+        : `${tableShort} • Live Teleprompter`;
+
+      STATE.tonightPhrases = buildTonightPhrases({
+        townName: cleanTown,
+        tableName: tableShort,
+        routeName,
+        sponsorsText,
+        charityName
+      });
+      render();
+    })
+    .catch(() => {
+      document.getElementById('routeSub').textContent = `${initialTown} Round Table • Live Teleprompter`;
+    });
+})();
+</script>
+</body>
+</html>

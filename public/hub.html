@@ -516,6 +516,22 @@
           </div>
         </div>
 
+        <!-- Santa Phrasebook & Arm's-Length Teleprompter -->
+        <div class="hub-card">
+          <div>
+            <span class="card-badge badge-gold"><i class="fa-solid fa-comment-dots"></i> Screen Awake &bull; Sleigh Teleprompter</span>
+            <h3><i class="fa-solid fa-microphone-lines" style="color:var(--primary);"></i> Santa Phrasebook</h3>
+            <p>High-contrast giant cue cards for the person playing Santa, with screen sleep protection, tonight's route &amp; sponsor lines, and anti-repetition deck shuffling.</p>
+          </div>
+          <div>
+            <div class="url-preview" id="phrasesUrl">https://beverley.roundtablesantasleigh.co.uk/phrases</div>
+            <div class="card-actions">
+              <a id="btnLaunchPhrases" href="https://beverley.roundtablesantasleigh.co.uk/phrases" target="_blank" class="btn btn-primary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Phrases</a>
+              <button class="btn btn-secondary" onclick="copyDynamicUrl('phrasesUrl')"><i class="fa-solid fa-copy"></i> Copy Link</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Print Studio: Posters, Bucket Stickers & Lanyards -->
         <div class="hub-card">
           <div>
@@ -885,6 +901,7 @@
         giftAidUrl: `${townBase}/giftaid`,
         driverUrl: `${townBase}/tracker?driver=1`,
         beaconUrl: `${townBase}/beacon.html`,
+        phrasesUrl: `${townBase}/phrases`,
         printStudioUrl: `${townBase}/qr_poster.html`,
         crewAdminUrl: `${townBase}/crew`,
         blueprintUrl: `${townBase}/blueprint.html`,
@@ -924,6 +941,7 @@
         btnLaunchGiftAid: links.giftAidUrl,
         btnLaunchDriver: links.driverUrl,
         btnLaunchBeacon: links.beaconUrl,
+        btnLaunchPhrases: links.phrasesUrl,
         btnLaunchPrintStudio: links.printStudioUrl,
         btnLaunchCrewAdmin: links.crewAdminUrl,
         btnLaunchBlueprint: links.blueprintUrl,

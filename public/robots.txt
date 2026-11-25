@@ -26,6 +26,7 @@ Disallow: /god_mode
 Disallow: /crew
 Disallow: /hub
 Disallow: /beacon
+Disallow: /phrases
 Disallow: /planner
 Disallow: /route-planner
 Disallow: /migrate
