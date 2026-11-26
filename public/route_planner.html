@@ -210,12 +210,56 @@
   .density-row select { flex: 1; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; color: #fff; font-family: 'Open Sans', sans-serif; font-size: 13px; font-weight: 600; outline: none; cursor: pointer; }
 
   .wp-list { max-height: 280px; overflow-y: auto; margin-top: 12px; padding-right: 6px; }
-  .wp-item { display: flex; flex-direction: column; gap: 6px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
-  .wp-header { display: flex; align-items: center; gap: 12px; width: 100%; }
-  .wp-idx { font-family: 'Open Sans', sans-serif; font-size: 11px; color: var(--primary); font-weight: 700; min-width: 20px; text-align: right; }
-  .wp-coords { color: var(--text-dim); font-family: 'Open Sans', monospace; font-size: 12px; flex: 1; }
-  .wp-del { background: none; border: none; color: var(--red); cursor: pointer; font-size: 14px; padding: 4px; opacity: 0.6; transition: 0.2s; }
+  .wp-item { display: flex; flex-direction: column; gap: 6px; padding: 10px 6px; border-bottom: 1px solid var(--border); font-size: 13px; border-radius: 6px; transition: background 0.15s, border-color 0.15s; }
+  .wp-item.active-edit { background: rgba(251, 175, 51, 0.1); border: 1px solid rgba(251, 175, 51, 0.45); margin: 2px 0; }
+  .wp-header { display: flex; align-items: center; gap: 6px; width: 100%; }
+  .wp-focus-btn { display: inline-flex; align-items: center; gap: 6px; flex: 1; min-width: 0; background: none; border: none; padding: 0; color: inherit; cursor: pointer; text-align: left; }
+  .wp-focus-btn:hover .wp-coords { color: #fff; }
+  .wp-idx { font-family: 'Open Sans', sans-serif; font-size: 11px; color: var(--primary); font-weight: 700; min-width: 22px; text-align: right; }
+  .wp-coords { color: var(--text-dim); font-family: 'Open Sans', monospace; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .wp-actions { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
+  .wp-act-btn { background: var(--surface-2); border: 1px solid var(--border); color: var(--text-dim); border-radius: 4px; padding: 3px 6px; font-size: 10px; font-weight: 700; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .wp-act-btn:hover { background: var(--surface-3); color: #fff; border-color: rgba(255,255,255,0.25); }
+  .wp-act-btn.active { background: var(--primary); color: #000; border-color: var(--primary); }
+  .wp-del { background: none; border: none; color: var(--red); cursor: pointer; font-size: 14px; padding: 2px 5px; opacity: 0.7; transition: 0.2s; }
   .wp-del:hover { opacity: 1; }
+
+  .edit-action-banner {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    background: rgba(251, 175, 51, 0.14);
+    border: 1px solid rgba(251, 175, 51, 0.55);
+    color: #fef3c7;
+    font-size: 11.5px;
+    line-height: 1.35;
+  }
+  .edit-action-banner strong { color: var(--primary); }
+  .edit-action-done { background: var(--primary); color: #000; border: none; border-radius: 5px; padding: 4px 9px; font-size: 10.5px; font-weight: 800; cursor: pointer; flex-shrink: 0; }
+
+  .wp-pin-badge {
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 800;
+    cursor: grab;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    user-select: none;
+  }
+  .wp-pin-badge:hover { transform: scale(1.16); }
+  .wp-pin-badge:active { cursor: grabbing; }
+  .wp-pin-badge.active-pin {
+    box-shadow: 0 0 0 4px rgba(251, 175, 51, 0.65), 0 3px 12px rgba(0,0,0,0.85);
+    transform: scale(1.18);
+  }
 
   .wp-leg-row {
     display: flex; align-items: center; justify-content: space-between;
@@ -355,7 +399,7 @@
       <div class="sb-section" id="placeSection" style="display:none">
         <div class="sb-label">Build Route <span class="wp-count" id="wpCount">0 pts</span></div>
         <div class="place-info">
-          <strong>Mode For Next Clicks:</strong> Use <strong>🚗 Driving</strong> on public roads, <strong>🚶 Walking</strong> to snap through pedestrian precincts/walkways, or <strong>📐 Direct (No Snap)</strong> for freehand pin drops across car parks, school grounds, or unmapped areas.
+          <strong>Editing &amp; Snapping:</strong> <strong>Drag any numbered pin</strong> to reposition &amp; snap to roads, or tap <strong>📍 Move</strong> / <strong>+ After</strong> on any point to reroute a section (e.g. through an estate) without altering later points. Use <strong>🚗 Driving</strong>, <strong>🚶 Walking</strong>, or <strong>📐 Direct</strong> per click/leg.
         </div>
         <div class="profile-row">
           <button class="profile-btn active" data-profile="driving" onclick="setActiveToolProfile(this)" title="Snaps to vehicular roads (respects one-ways & restrictions)">🚗 Driving</button>
@@ -363,6 +407,7 @@
           <button class="profile-btn" data-profile="direct" onclick="setActiveToolProfile(this)" title="Straight line pin drop with zero road snapping (car parks, greens, unmapped tracks)">📐 Direct (No Snap)</button>
           <button class="profile-btn" data-profile="bike" onclick="setActiveToolProfile(this)" title="Snaps to cycleways and quiet roads">🚴 Cycling</button>
         </div>
+        <div id="editActionBanner" class="edit-action-banner"></div>
         <div class="wp-list" id="wpList"></div>
         <div class="btn-row" style="justify-content: center; gap: 6px;">
           <button id="btnUndoWp" class="btn btn-dim btn-sm" onclick="undo()" title="Undo (Ctrl+Z)" disabled>↩ Undo</button>
@@ -598,6 +643,10 @@ let detectedStreets = [];
 let roadNameMap = [];
 let geocodeAbort = false;
 let routingInProgress = false;
+let routingQueued = false;
+let movingWaypointIdx = -1;
+let insertAfterIdx = -1;
+let dragPreviewLine = null;
 
 // Per-segment in-memory cache to guarantee previously snapped segments never get lost or overwritten
 const legCache = new Map();
@@ -692,6 +741,7 @@ async function redo() {
 }
 
 async function restoreHistoryState(state) {
+  clearWaypointEditMode(true);
   waypoints = JSON.parse(JSON.stringify(state.waypoints || []));
   window.plannedStops = JSON.parse(JSON.stringify(state.plannedStops || []));
   rebuildWaypointMarkers();
@@ -712,6 +762,12 @@ function updateUndoRedoButtons() {
   redoBtns.forEach(b => { if (b) b.disabled = redoStack.length === 0; });
 }
 
+function defaultPlaceToastText() {
+  return window.isAddingStop
+    ? '📍 Click anywhere along the route to place a Planned Stop'
+    : 'Drag numbered pins to move · Click pin for Move/Insert · Click line to insert';
+}
+
 function showToast(msg) {
   const toast = document.getElementById('mapToast');
   if (toast) {
@@ -720,7 +776,13 @@ function showToast(msg) {
     clearTimeout(window._toastTimer);
     window._toastTimer = setTimeout(() => {
       if (mode === 'place') {
-        toast.textContent = window.isAddingStop ? '📍 Click anywhere along the route to place a Planned Stop' : 'Click map to place waypoints, or click line to insert';
+        if (movingWaypointIdx >= 0) {
+          toast.textContent = `📍 Click map to reposition Waypoint #${movingWaypointIdx + 1} (Esc to cancel)`;
+        } else if (insertAfterIdx >= 0) {
+          toast.textContent = `➕ Click map to insert point after #${insertAfterIdx + 1} (Esc to finish)`;
+        } else {
+          toast.textContent = defaultPlaceToastText();
+        }
       } else {
         toast.style.display = 'none';
       }
@@ -728,9 +790,159 @@ function showToast(msg) {
   }
 }
 
+function getSnapProfileForWaypoint(index) {
+  const w = waypoints[index];
+  const prev = index > 0 ? waypoints[index - 1] : null;
+  if (w && w.nextMode && w.nextMode !== 'direct') return w.nextMode;
+  if (prev && prev.nextMode && prev.nextMode !== 'direct') return prev.nextMode;
+  if ((w && w.nextMode === 'direct') || (prev && prev.nextMode === 'direct')) return 'direct';
+  return activeClickProfile || 'driving';
+}
+
+async function snapLatLngToRoad(lat, lng, profile = 'driving') {
+  if (profile === 'direct') return { lat, lng, snapped: false, roadName: '' };
+  const nearestUrls = profile === 'foot'
+    ? [
+        `https://routing.openstreetmap.de/routed-foot/nearest/v1/driving/${lng.toFixed(6)},${lat.toFixed(6)}?number=1`,
+        `https://router.project-osrm.org/nearest/v1/driving/${lng.toFixed(6)},${lat.toFixed(6)}?number=1`
+      ]
+    : profile === 'bike'
+      ? [
+          `https://routing.openstreetmap.de/routed-bike/nearest/v1/driving/${lng.toFixed(6)},${lat.toFixed(6)}?number=1`,
+          `https://router.project-osrm.org/nearest/v1/driving/${lng.toFixed(6)},${lat.toFixed(6)}?number=1`
+        ]
+      : [
+          `https://router.project-osrm.org/nearest/v1/driving/${lng.toFixed(6)},${lat.toFixed(6)}?number=1`,
+          `https://routing.openstreetmap.de/routed-car/nearest/v1/driving/${lng.toFixed(6)},${lat.toFixed(6)}?number=1`
+        ];
+
+  for (const url of nearestUrls) {
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 2500);
+      try {
+        const res = await fetch(url, { signal: ctrl.signal });
+        if (!res.ok) continue;
+        const data = await res.json();
+        if (data && data.code === 'Ok' && Array.isArray(data.waypoints) && data.waypoints[0] && Array.isArray(data.waypoints[0].location)) {
+          const wp = data.waypoints[0];
+          const dist = typeof wp.distance === 'number' ? wp.distance : 0;
+          if (dist <= 120) {
+            return {
+              lat: wp.location[1],
+              lng: wp.location[0],
+              snapped: true,
+              roadName: cleanDetectedRoadName(wp.name || '') || ''
+            };
+          }
+          return { lat, lng, snapped: false, roadName: '' };
+        }
+      } finally {
+        clearTimeout(timer);
+      }
+    } catch (_) {}
+  }
+  return { lat, lng, snapped: false, roadName: '' };
+}
+
+function updateEditActionBanner() {
+  const banner = document.getElementById('editActionBanner');
+  const toast = document.getElementById('mapToast');
+  if (!banner) return;
+
+  if (movingWaypointIdx >= 0 && movingWaypointIdx < waypoints.length) {
+    banner.style.display = 'flex';
+    banner.innerHTML = `<span><strong>Moving Waypoint #${movingWaypointIdx + 1}:</strong> Click new street/spot on map to reposition &amp; snap.</span><button type="button" class="edit-action-done" onclick="clearWaypointEditMode()">Cancel (Esc)</button>`;
+    map.getContainer().style.cursor = 'crosshair';
+    if (toast && mode === 'place') {
+      toast.textContent = `📍 Click map to reposition Waypoint #${movingWaypointIdx + 1} (Esc to cancel)`;
+      toast.style.display = 'block';
+    }
+  } else if (insertAfterIdx >= 0 && insertAfterIdx < waypoints.length) {
+    const nextNum = insertAfterIdx + 2;
+    banner.style.display = 'flex';
+    banner.innerHTML = `<span><strong>Insert After #${insertAfterIdx + 1}:</strong> Click road/estate points in order (becomes #${nextNum}) connecting into #${nextNum}.</span><button type="button" class="edit-action-done" onclick="clearWaypointEditMode()">Done (Esc)</button>`;
+    map.getContainer().style.cursor = 'crosshair';
+    if (toast && mode === 'place') {
+      toast.textContent = `➕ Click map to insert point after #${insertAfterIdx + 1} (Esc to finish)`;
+      toast.style.display = 'block';
+    }
+  } else {
+    banner.style.display = 'none';
+    banner.innerHTML = '';
+    if (toast && mode === 'place') {
+      toast.textContent = defaultPlaceToastText();
+      toast.style.display = 'block';
+    }
+  }
+}
+
+window.clearWaypointEditMode = function(silent = false) {
+  const prevMove = movingWaypointIdx;
+  const prevInsert = insertAfterIdx;
+  movingWaypointIdx = -1;
+  insertAfterIdx = -1;
+  updateEditActionBanner();
+  if (prevMove >= 0 && prevMove < waypointMarkers.length) updateMarkerVisual(prevMove);
+  if (prevInsert >= 0 && prevInsert < waypointMarkers.length) updateMarkerVisual(prevInsert);
+  if (!silent) updateWpUI();
+};
+
+window.startMoveWaypoint = function(idx) {
+  if (idx < 0 || idx >= waypoints.length) return;
+  if (mode !== 'place') setMode('place');
+  if (window.isAddingStop && typeof toggleAddStopMode === 'function') toggleAddStopMode(false);
+  map.closePopup();
+  const prevMove = movingWaypointIdx;
+  const prevInsert = insertAfterIdx;
+  insertAfterIdx = -1;
+  movingWaypointIdx = (prevMove === idx) ? -1 : idx;
+  if (prevMove >= 0 && prevMove < waypointMarkers.length) updateMarkerVisual(prevMove);
+  if (prevInsert >= 0 && prevInsert < waypointMarkers.length) updateMarkerVisual(prevInsert);
+  updateMarkerVisual(idx);
+  updateEditActionBanner();
+  updateWpUI();
+  if (movingWaypointIdx >= 0) {
+    focusWaypointOnMap(idx, false);
+  }
+};
+
+window.startInsertAfterWaypoint = function(idx) {
+  if (idx < 0 || idx >= waypoints.length) return;
+  if (mode !== 'place') setMode('place');
+  if (window.isAddingStop && typeof toggleAddStopMode === 'function') toggleAddStopMode(false);
+  map.closePopup();
+  const prevMove = movingWaypointIdx;
+  const prevInsert = insertAfterIdx;
+  movingWaypointIdx = -1;
+  insertAfterIdx = (prevInsert === idx) ? -1 : idx;
+  if (prevMove >= 0 && prevMove < waypointMarkers.length) updateMarkerVisual(prevMove);
+  if (prevInsert >= 0 && prevInsert < waypointMarkers.length) updateMarkerVisual(prevInsert);
+  updateMarkerVisual(idx);
+  updateEditActionBanner();
+  updateWpUI();
+  if (insertAfterIdx >= 0) {
+    focusWaypointOnMap(idx, false);
+  }
+};
+
+window.focusWaypointOnMap = function(idx, openPop = true) {
+  if (idx < 0 || idx >= waypoints.length) return;
+  const w = waypoints[idx];
+  const m = waypointMarkers[idx];
+  map.panTo([w.lat, w.lng], { animate: true });
+  if (openPop && m) m.openPopup();
+};
+
 window.addEventListener('keydown', e => {
   const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
   if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+  if (e.key === 'Escape' && (movingWaypointIdx >= 0 || insertAfterIdx >= 0)) {
+    e.preventDefault();
+    clearWaypointEditMode();
+    return;
+  }
 
   if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
     e.preventDefault();
@@ -747,11 +959,16 @@ window.addEventListener('keydown', e => {
 
 function setMode(m) {
   mode = m;
+  if (m !== 'place') clearWaypointEditMode(true);
   document.getElementById('modeUpload').classList.toggle('active', m === 'upload');
   document.getElementById('modePlace').classList.toggle('active', m === 'place');
   document.getElementById('uploadSection').style.display = m === 'upload' ? 'block' : 'none';
   document.getElementById('placeSection').style.display = m === 'place' ? 'block' : 'none';
-  document.getElementById('mapToast').style.display = m === 'place' ? 'block' : 'none';
+  const toast = document.getElementById('mapToast');
+  if (toast) {
+    if (m === 'place') toast.textContent = defaultPlaceToastText();
+    toast.style.display = m === 'place' ? 'block' : 'none';
+  }
   map.getContainer().style.cursor = m === 'place' ? 'crosshair' : '';
   const stopsSec = document.getElementById('plannedStopsSection');
   if (stopsSec && (m === 'place' || (window.plannedStops && window.plannedStops.length > 0))) {
@@ -771,6 +988,51 @@ function setActiveToolProfile(btn) {
   }
 }
 
+async function applyMapEditClick(rawLat, rawLng) {
+  if (movingWaypointIdx >= 0 && movingWaypointIdx < waypoints.length) {
+    pushState();
+    const targetIdx = movingWaypointIdx;
+    const snapProfile = getSnapProfileForWaypoint(targetIdx);
+    const snapped = await snapLatLngToRoad(rawLat, rawLng, snapProfile);
+    waypoints[targetIdx].lat = snapped.lat;
+    waypoints[targetIdx].lng = snapped.lng;
+    movingWaypointIdx = -1;
+    rebuildWaypointMarkers();
+    updateEditActionBanner();
+    updateWpUI();
+    if (waypoints.length >= 2) await routeAllWaypoints();
+    updateStats();
+    showToast(`✓ Repositioned Waypoint #${targetIdx + 1}${snapped.snapped ? (snapped.roadName ? ' on ' + snapped.roadName : ' (snapped to road)') : ''}`);
+    return true;
+  }
+
+  if (insertAfterIdx >= 0 && insertAfterIdx < waypoints.length) {
+    pushState();
+    const insPos = insertAfterIdx + 1;
+    const prevWp = waypoints[insertAfterIdx];
+    const legProfile = activeClickProfile || (prevWp && prevWp.nextMode) || 'driving';
+    const snapped = await snapLatLngToRoad(rawLat, rawLng, legProfile);
+    const newWp = {
+      lat: snapped.lat,
+      lng: snapped.lng,
+      isStop: false,
+      stopName: '',
+      nextMode: (prevWp && prevWp.nextMode) || legProfile
+    };
+    waypoints.splice(insPos, 0, newWp);
+    insertAfterIdx = insPos;
+    rebuildWaypointMarkers();
+    updateEditActionBanner();
+    updateWpUI();
+    if (waypoints.length >= 2) await routeAllWaypoints();
+    updateStats();
+    showToast(`✓ Inserted Waypoint #${insPos + 1}${snapped.roadName ? ' (' + snapped.roadName + ')' : ''} — Click next street or Done (Esc)`);
+    return true;
+  }
+
+  return false;
+}
+
 map.on('click', async e => {
   if (window.isAddingStop) {
     pushState();
@@ -778,8 +1040,12 @@ map.on('click', async e => {
     return;
   }
   if (mode !== 'place') return;
+  if (await applyMapEditClick(e.latlng.lat, e.latlng.lng)) return;
+
   pushState();
-  const { lat, lng } = e.latlng;
+  const snapped = await snapLatLngToRoad(e.latlng.lat, e.latlng.lng, activeClickProfile);
+  const lat = snapped.lat;
+  const lng = snapped.lng;
   addWaypointMarker(lat, lng);
   waypoints.push({
     lat, lng,
@@ -797,12 +1063,20 @@ function updateWpUI() {
   const list = document.getElementById('wpList');
   list.innerHTML = waypoints.map((w, i) => {
     const isLast = i === waypoints.length - 1;
+    const isMoving = i === movingWaypointIdx;
+    const isInsertingAfter = i === insertAfterIdx;
     return `
-      <div class="wp-item">
+      <div class="wp-item${(isMoving || isInsertingAfter) ? ' active-edit' : ''}" id="wpRow_${i}">
         <div class="wp-header">
-          <span class="wp-idx">${i + 1}</span>
-          <span class="wp-coords">${w.lat.toFixed(5)}, ${w.lng.toFixed(5)}</span>
-          <button class="wp-del" onclick="deleteWpIndex(${i})" title="Remove">✕</button>
+          <button type="button" class="wp-focus-btn" onclick="focusWaypointOnMap(${i})" title="Center map on Waypoint #${i + 1}">
+            <span class="wp-idx">${i + 1}</span>
+            <span class="wp-coords">${w.lat.toFixed(5)}, ${w.lng.toFixed(5)}</span>
+          </button>
+          <div class="wp-actions">
+            <button type="button" class="wp-act-btn${isMoving ? ' active' : ''}" onclick="startMoveWaypoint(${i})" title="Reposition Waypoint #${i + 1} by clicking the map (or drag its pin directly)">📍 Move</button>
+            <button type="button" class="wp-act-btn${isInsertingAfter ? ' active' : ''}" onclick="startInsertAfterWaypoint(${i})" title="Insert new road-snapped waypoints after #${i + 1}">+ After</button>
+            <button type="button" class="wp-del" onclick="deleteWpIndex(${i})" title="Remove Waypoint #${i + 1}">✕</button>
+          </div>
         </div>
 
         ${!isLast ? `
@@ -847,22 +1121,26 @@ window.updateStopName = function(index, name) {
   waypoints[index].stopName = name;
 };
 
+function buildWaypointDivIcon(index, w) {
+  const isFirst = index === 0;
+  const isActive = index === movingWaypointIdx || index === insertAfterIdx;
+  const bg = w && w.isStop ? 'var(--red)' : (isFirst ? '#16a34a' : 'var(--primary)');
+  const fg = (w && w.isStop) || isFirst ? '#ffffff' : '#111827';
+  const size = isFirst ? 26 : 22;
+  const fontSize = (index + 1) >= 100 ? 9 : 11;
+  return L.divIcon({
+    className: '',
+    html: `<div class="wp-pin-badge${isActive ? ' active-pin' : ''}" style="background:${bg};color:${fg};width:${size}px;height:${size}px;font-size:${fontSize}px;">${index + 1}</div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2]
+  });
+}
+
 function updateMarkerVisual(index) {
   const marker = waypointMarkers[index];
   if (!marker) return;
-  const isFirst = index === 0;
   const w = waypoints[index];
-  
-  const visualHtml = w.isStop 
-    ? `<div style="background:var(--red); width:14px; height:14px; border:2px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,0.5);"></div>`
-    : `<div style="background:${isFirst ? 'var(--green)' : 'var(--primary)'}; width:${isFirst ? 16 : 12}px; height:${isFirst ? 16 : 12}px; border-radius:50%; border:2px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,0.5);"></div>`;
-
-  marker.setIcon(L.divIcon({
-    className: '',
-    html: visualHtml,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8]
-  }));
+  marker.setIcon(buildWaypointDivIcon(index, w));
 }
 
 /* ==========================================================================
@@ -1219,6 +1497,8 @@ function toggleAddStopMode(forceState = null) {
   const toast = document.getElementById('mapToast');
 
   if (window.isAddingStop) {
+    clearWaypointEditMode(true);
+    updateWpUI();
     if (btn) {
       btn.style.background = '#d31c1c';
       btn.style.color = '#fff';
@@ -1240,7 +1520,7 @@ function toggleAddStopMode(forceState = null) {
     map.getContainer().style.cursor = mode === 'place' ? 'crosshair' : '';
     if (toast) {
       toast.style.display = mode === 'place' ? 'block' : 'none';
-      if (mode === 'place') toast.textContent = 'Click the map to place waypoints';
+      if (mode === 'place') toast.textContent = defaultPlaceToastText();
     }
   }
 }
@@ -1445,33 +1725,94 @@ function rebuildWaypointMarkers() {
 function addWaypointMarker(lat, lng) {
   const idx = waypointMarkers.length;
   const isFirst = idx === 0;
-  const color = isFirst ? 'var(--green)' : 'var(--primary)';
 
   const marker = L.marker([lat, lng], {
     draggable: true,
-    icon: L.divIcon({
-      className: '',
-      html: `<div style="background:${color};width:${isFirst ? 16 : 12}px;height:${isFirst ? 16 : 12}px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.5);position:relative;z-index:${1000-idx}"></div>`,
-      iconSize: [16, 16], iconAnchor: [8, 8]
-    }),
-    zIndexOffset: isFirst ? 1000 : 500 - idx
+    icon: buildWaypointDivIcon(idx, waypoints[idx]),
+    zIndexOffset: isFirst ? 1300 : 1100 + Math.max(0, 500 - idx)
   }).addTo(map);
 
-  marker.bindTooltip(`Waypoint ${idx + 1}`, { direction: 'top', offset: [0, -8] });
+  marker.bindTooltip(`Waypoint #${idx + 1} — Drag to move · Click for Move/Insert · Right-click to delete`, {
+    direction: 'top',
+    offset: [0, -12]
+  });
+
+  marker.bindPopup(() => {
+    const i = waypointMarkers.indexOf(marker);
+    const num = (i >= 0 ? i : idx) + 1;
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'min-width:175px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:#111;';
+    wrap.innerHTML = `
+      <div style="font-weight:800;font-size:13px;margin-bottom:8px;color:#111827;">Waypoint #${num}</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <button type="button" data-act="move" style="background:#FBAF33;color:#000;border:none;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:800;cursor:pointer;text-align:left;">📍 Move (Click Map)</button>
+        <button type="button" data-act="insert" style="background:#111827;color:#fff;border:none;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;text-align:left;">➕ Insert Point After #${num}</button>
+        <button type="button" data-act="delete" style="background:#fee2e2;color:#b91c1c;border:1px solid #f87171;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;text-align:left;">🗑️ Delete Waypoint</button>
+      </div>
+    `;
+    const btnMove = wrap.querySelector('[data-act="move"]');
+    const btnInsert = wrap.querySelector('[data-act="insert"]');
+    const btnDel = wrap.querySelector('[data-act="delete"]');
+    if (btnMove) btnMove.onclick = () => { const cur = waypointMarkers.indexOf(marker); if (cur >= 0) startMoveWaypoint(cur); };
+    if (btnInsert) btnInsert.onclick = () => { const cur = waypointMarkers.indexOf(marker); if (cur >= 0) startInsertAfterWaypoint(cur); };
+    if (btnDel) btnDel.onclick = async () => {
+      const cur = waypointMarkers.indexOf(marker);
+      map.closePopup();
+      if (cur >= 0) {
+        pushState();
+        await deleteWaypointAt(cur);
+        showToast(`Removed Waypoint ${cur + 1} (Ctrl+Z to restore)`);
+      }
+    };
+    return wrap;
+  });
 
   marker.on('dragstart', () => {
+    map.closePopup();
+    if (dragPreviewLine) { map.removeLayer(dragPreviewLine); dragPreviewLine = null; }
     pushState();
   });
 
+  marker.on('drag', () => {
+    const pos = marker.getLatLng();
+    const i = waypointMarkers.indexOf(marker);
+    if (i < 0) return;
+    const pts = [];
+    if (i > 0 && waypoints[i - 1]) pts.push([waypoints[i - 1].lat, waypoints[i - 1].lng]);
+    pts.push([pos.lat, pos.lng]);
+    if (i < waypoints.length - 1 && waypoints[i + 1]) pts.push([waypoints[i + 1].lat, waypoints[i + 1].lng]);
+    if (pts.length >= 2) {
+      if (!dragPreviewLine) {
+        dragPreviewLine = L.polyline(pts, {
+          color: '#FBAF33',
+          weight: 4,
+          dashArray: '8 6',
+          opacity: 0.95,
+          interactive: false
+        }).addTo(map);
+      } else {
+        dragPreviewLine.setLatLngs(pts);
+      }
+    }
+  });
+
   marker.on('dragend', async () => {
+    if (dragPreviewLine) {
+      map.removeLayer(dragPreviewLine);
+      dragPreviewLine = null;
+    }
     const pos = marker.getLatLng();
     const i = waypointMarkers.indexOf(marker);
     if (i >= 0) {
-      waypoints[i].lat = pos.lat;
-      waypoints[i].lng = pos.lng;
+      const snapProfile = getSnapProfileForWaypoint(i);
+      const snapped = await snapLatLngToRoad(pos.lat, pos.lng, snapProfile);
+      waypoints[i].lat = snapped.lat;
+      waypoints[i].lng = snapped.lng;
+      marker.setLatLng([snapped.lat, snapped.lng]);
       updateWpUI();
       if (waypoints.length >= 2) await routeAllWaypoints();
       updateStats();
+      showToast(`✓ Moved Waypoint #${i + 1}${snapped.snapped ? (snapped.roadName ? ' → ' + snapped.roadName : ' (snapped to road)') : ''}`);
     }
   });
 
@@ -1494,10 +1835,16 @@ function undoWaypoint() {
 
 async function deleteWaypointAt(i) {
   if (i >= 0 && i < waypoints.length) {
+    if (movingWaypointIdx === i || insertAfterIdx === i) clearWaypointEditMode(true);
+    else {
+      if (movingWaypointIdx > i) movingWaypointIdx--;
+      if (insertAfterIdx > i) insertAfterIdx--;
+    }
     if (waypointMarkers[i]) map.removeLayer(waypointMarkers[i]);
     waypointMarkers.splice(i, 1);
     waypoints.splice(i, 1);
     rebuildWaypointMarkers();
+    updateEditActionBanner();
     updateWpUI();
     if (waypoints.length >= 2) await routeAllWaypoints();
     else clearSnappedRoute();
@@ -1506,6 +1853,8 @@ async function deleteWaypointAt(i) {
 }
 
 function clearAllWaypoints() {
+  clearWaypointEditMode(true);
+  if (dragPreviewLine) { map.removeLayer(dragPreviewLine); dragPreviewLine = null; }
   if (waypoints.length > 0) pushState();
   waypointMarkers.forEach(m => map.removeLayer(m));
   waypointMarkers = [];
@@ -1681,7 +2030,10 @@ async function fetchContiguousDrivingBatch(jobs) {
 
 async function routeAllWaypoints() {
   if (waypoints.length < 2) return;
-  if (routingInProgress) return;
+  if (routingInProgress) {
+    routingQueued = true;
+    return;
+  }
   routingInProgress = true;
 
   const t0 = performance.now();
@@ -1816,6 +2168,10 @@ async function routeAllWaypoints() {
   } finally {
     routingInProgress = false;
     spinner.style.display = 'none';
+    if (routingQueued) {
+      routingQueued = false;
+      routeAllWaypoints();
+    }
   }
 }
 
@@ -1843,23 +2199,26 @@ function drawSnappedRoute() {
       return;
     }
     if (mode === 'place') {
+      if (await applyMapEditClick(e.latlng.lat, e.latlng.lng)) return;
       const legIdx = findClosestLegIndex(e.latlng);
       if (legIdx >= 0 && legIdx < waypoints.length) {
         pushState();
         const prevWp = waypoints[legIdx];
+        const legProfile = (prevWp && prevWp.nextMode) || activeClickProfile;
+        const snapped = await snapLatLngToRoad(e.latlng.lat, e.latlng.lng, legProfile);
         const newWp = {
-          lat: e.latlng.lat,
-          lng: e.latlng.lng,
+          lat: snapped.lat,
+          lng: snapped.lng,
           isStop: false,
           stopName: '',
-          nextMode: (prevWp && prevWp.nextMode) || activeClickProfile
+          nextMode: legProfile
         };
         waypoints.splice(legIdx + 1, 0, newWp);
         rebuildWaypointMarkers();
         updateWpUI();
         await routeAllWaypoints();
         updateStats();
-        showToast(`✓ Inserted Waypoint ${legIdx + 2} on route line`);
+        showToast(`✓ Inserted Waypoint #${legIdx + 2} on route line`);
       }
     }
   };
