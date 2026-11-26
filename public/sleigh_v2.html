@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Santa Sleigh — Live Community Radar &amp; Schedule</title>
   <meta name="description" content="Track Santa live across our streets, search your road in seconds, get automatic doorstep alerts, and support 100% local charities.">
-  <meta name="theme-color" content="#080a0f">
+  <meta name="theme-color" content="#090d16">
 
   <meta property="og:type" content="website">
   <meta property="og:title" content="Round Table Santa Sleigh — Live Community Radar">
@@ -23,7 +23,7 @@
 
   <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
-  <link rel="stylesheet" href="/sleigh_v2.css?v=2026.11.14.1">
+  <link rel="stylesheet" href="/sleigh_v2.css?v=2026.11.26.1">
 </head>
 <body>
 
@@ -62,7 +62,7 @@
   <div class="announcement-strip" id="announcement-strip" role="status" aria-live="polite"></div>
 
   <!-- Sticky Glass Navigation -->
-  <header class="site-header">
+  <header class="site-header" id="site-header">
     <div class="container header-inner">
       <a href="#top" class="brand-lockup">
         <div class="brand-crest-wrap">
@@ -75,8 +75,7 @@
       </a>
 
       <nav class="desktop-nav" aria-label="Primary sections">
-        <a href="#tracker">Live Radar</a>
-        <a href="#streets">Find My Street</a>
+        <a href="#tracker" id="nav-tracker-link">Radar &amp; Street Finder</a>
         <a href="#routes">Route Schedule</a>
         <a href="#impact" id="nav-impact-link">Local Impact</a>
         <a href="#memories" id="nav-memory-wall">Memory Wall</a>
@@ -97,16 +96,16 @@
   </header>
 
   <main id="top">
-    <!-- HERO COMMAND STAGE -->
+    <!-- FULL-BLEED CINEMATIC HERO -->
     <section class="hero-stage" id="hero">
+      <!-- Ambient Hero Video Loop (Full-bleed when table background_mode is video or custom_video) -->
+      <div class="hero-video-wrap" id="hero-video-wrap" style="display:none;" aria-hidden="true">
+        <video id="hero-bg-video" autoplay loop muted playsinline webkit-playsinline disablePictureInPicture></video>
+        <div class="hero-video-overlay"></div>
+      </div>
+
       <div class="container hero-container">
         <div class="hero-card" id="hero-card">
-          <!-- Ambient Hero Video Loop (Active when table background_mode is video or custom_video) -->
-          <div class="hero-video-wrap" id="hero-video-wrap" style="display:none;" aria-hidden="true">
-            <video id="hero-bg-video" autoplay loop muted playsinline webkit-playsinline disablePictureInPicture></video>
-            <div class="hero-video-overlay"></div>
-          </div>
-
           <div class="status-pill-row">
             <div class="live-status-badge" id="hero-status-badge">
               <span class="pulse-dot"></span>
@@ -127,40 +126,54 @@
           </p>
 
           <div class="hero-cta-row">
-            <div class="hero-tracker-row">
-              <a href="#tracker" class="btn-brand hero-btn-tracker">
+            <!-- Primary 2-CTA tier: adapts automatically between Resting and LIVE states -->
+            <div class="hero-cta-primary">
+              <a href="#tracker" id="hero-btn-tracker" class="btn-brand hero-btn-tracker">
                 <i class="fa-solid fa-satellite-dish"></i>
                 <span>Watch Live Tracker</span>
               </a>
-              <button type="button" id="hero-share-cta" class="btn-glass hero-btn-share" aria-label="Share sleigh tracker">
+              <a href="#streets" id="hero-btn-street" class="btn-brand hero-btn-street">
+                <i class="fa-solid fa-magnifying-glass-location"></i>
+                <span>Find My Street</span>
+              </a>
+              <button type="button" id="hero-alert-cta" class="btn-glass hero-btn-alert">
+                <i class="fa-solid fa-bell" style="color:var(--primary);"></i>
+                <span>Doorstep Alert</span>
+              </button>
+            </div>
+
+            <!-- Quiet utility link strip -->
+            <div class="hero-cta-secondary">
+              <a href="#tracker" id="hero-sec-tracker" class="hero-util-link hero-sec-tracker">
+                <i class="fa-solid fa-satellite-dish"></i>
+                <span>Live Radar</span>
+              </a>
+              <button type="button" id="hero-sec-alert" class="hero-util-link hero-sec-alert">
+                <i class="fa-solid fa-bell"></i>
+                <span>Doorstep Alert</span>
+              </button>
+              <button type="button" id="hero-donate-cta" class="hero-util-link hero-btn-donate">
+                <i class="fa-solid fa-hand-holding-heart"></i>
+                <span id="hero-donate-label">Donate Online</span>
+              </button>
+              <a id="hero-volunteer-cta" href="/crew" target="_blank" rel="noopener" class="hero-util-link hero-btn-volunteer">
+                <i class="fa-solid fa-users"></i>
+                <span>Volunteer</span>
+              </a>
+              <button type="button" id="hero-share-cta" class="hero-util-link hero-btn-share" aria-label="Share sleigh tracker">
                 <i class="fa-solid fa-share-nodes"></i>
                 <span>Share</span>
               </button>
             </div>
-            <a href="#streets" class="btn-glass hero-btn-street">
-              <i class="fa-solid fa-magnifying-glass-location" style="color:var(--primary);"></i>
-              <span>Find My Street</span>
-            </a>
-            <button type="button" id="hero-alert-cta" class="btn-glass hero-btn-alert">
-              <i class="fa-solid fa-bell" style="color:var(--primary);"></i>
-              <span>Doorstep Alert</span>
-            </button>
-            <button type="button" id="hero-donate-cta" class="btn-glass hero-btn-donate">
-              <i class="fa-solid fa-hand-holding-heart" style="color:var(--primary);"></i>
-              <span id="hero-donate-label">Donate Online</span>
-            </button>
-            <a id="hero-volunteer-cta" href="/crew" target="_blank" rel="noopener" class="btn-glass hero-btn-volunteer">
-              <i class="fa-solid fa-users" style="color:var(--primary);"></i>
-              <span>Volunteer</span>
-            </a>
           </div>
 
-          <!-- Live Town Route Coverage Metrics -->
+          <!-- Compact Town Coverage Pill Strip -->
           <div class="hero-metrics-row">
             <div class="hero-metric-tile">
               <div class="hero-metric-val brand-font tabular" id="metric-routes">--</div>
               <div class="hero-metric-lbl">Sleigh Routes</div>
             </div>
+            <div class="hero-metric-divider" aria-hidden="true"></div>
             <div class="hero-metric-tile">
               <div class="hero-metric-val brand-font tabular" id="metric-streets">--</div>
               <div class="hero-metric-lbl">Streets Covered</div>
@@ -170,64 +183,87 @@
       </div>
     </section>
 
-    <!-- LIVE SLEIGH RADAR SECTION -->
-    <section class="page-section" id="tracker">
+    <!-- UNIFIED INTERACTIVE SLEIGH MAP STAGE (OPTION A: TABBED LIVE RADAR + STREET FINDER) -->
+    <section class="page-section map-stage-section reveal-section" id="tracker">
+      <span id="streets" class="stage-anchor" aria-hidden="true"></span>
       <div class="container">
         <div class="section-head text-center">
           <div>
-            <div class="section-eyebrow"><i class="fa-solid fa-satellite-dish"></i> Live GPS Radar</div>
-            <h2 class="section-title">LIVE <span class="hl">SLEIGH RADAR</span></h2>
-            <p class="section-subtitle">Watch Santa's sleigh move in real-time as he visits the streets! Follow his exact turn-by-turn position and listen for the bells.</p>
+            <div class="section-eyebrow"><i class="fa-solid fa-map-location-dot"></i> Interactive Sleigh Map</div>
+            <h2 class="section-title">TRACK SANTA &amp; <span class="hl">FIND YOUR STREET</span></h2>
+            <p class="section-subtitle">Follow the live GPS sleigh radar when Santa is out, or search your street &amp; postcode to see which night he visits your road.</p>
           </div>
         </div>
 
-        <div class="iframe-container tracker-frame-container" id="tracker-frame-container">
+        <div class="map-stage-tabs-wrap">
+          <div class="map-stage-tabs" role="tablist" aria-label="Sleigh map modes">
+            <button type="button" class="map-tab-btn" id="tab-btn-tracker" data-map-tab="tracker" role="tab" aria-selected="false" aria-controls="map-panel-tracker">
+              <span class="tab-live-dot" id="tab-tracker-dot" aria-hidden="true"></span>
+              <i class="fa-solid fa-satellite-dish"></i>
+              <span>Live Sleigh Radar</span>
+            </button>
+            <button type="button" class="map-tab-btn is-active" id="tab-btn-streets" data-map-tab="streets" role="tab" aria-selected="true" aria-controls="map-panel-streets">
+              <i class="fa-solid fa-magnifying-glass-location"></i>
+              <span>Find My Street</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="iframe-container tracker-frame-container map-stage-container" id="tracker-frame-container">
           <div class="iframe-chrome">
             <div class="iframe-chrome-left">
-              <span class="chrome-pulse" aria-hidden="true"></span>
-              <span>Sleigh Radar Feed</span>
+              <span class="chrome-pulse" id="stage-chrome-pulse" aria-hidden="true"></span>
+              <span id="stage-chrome-label">Street Finder &amp; Route Map</span>
             </div>
             <div class="iframe-chrome-actions">
-              <a href="#streets" class="radar-ctrl-btn">
-                <i class="fa-solid fa-magnifying-glass"></i> <span>Find Street</span>
-              </a>
               <a href="#routes" class="radar-ctrl-btn">
                 <i class="fa-solid fa-route"></i> <span>All Routes</span>
               </a>
               <a id="tracker-fullscreen" href="/tracker" target="_blank" rel="noopener" class="radar-ctrl-btn">
-                <i class="fa-solid fa-up-right-from-square"></i> <span>Fullscreen 3D</span>
+                <i class="fa-solid fa-up-right-from-square"></i> <span id="stage-fs-label">Fullscreen 3D</span>
               </a>
             </div>
           </div>
-          <!-- Dedicated Tonight's Route Sponsor Bar (Separated from inside iframe to keep map unsquashed) -->
-          <div id="radar-route-sponsor" class="radar-route-sponsor" style="display:none;"></div>
-          <div class="radar-embed-stage" id="radar-embed-stage">
-            <iframe id="tracker-iframe" height="650" title="Santa Sleigh Live Tracker" allow="geolocation; screen-wake-lock" scrolling="no"></iframe>
-            <div class="radar-scroll-guard" id="radar-scroll-guard" aria-hidden="true"></div>
-          </div>
-        </div>
-      </div>
-    </section>
 
-    <!-- SPATIAL STREET FINDER & ADDRESS LOOKUP SECTION -->
-    <section class="page-section" id="streets">
-      <div class="container">
-        <div class="section-head text-center">
-          <div>
-            <div class="section-eyebrow"><i class="fa-solid fa-magnifying-glass-location"></i> Street Finder &amp; Dates</div>
-            <h2 class="section-title">FIND YOUR <span class="hl">STREET &amp; POSTCODE</span></h2>
-            <p class="section-subtitle">Find out exactly when Santa is coming to your neighbourhood.</p>
+          <!-- Panel 1: Live GPS Radar -->
+          <div class="map-tab-panel" id="map-panel-tracker" role="tabpanel" aria-labelledby="tab-btn-tracker">
+            <!-- Dedicated Tonight's Route Sponsor Bar (Separated from inside iframe to keep map unsquashed) -->
+            <div id="radar-route-sponsor" class="radar-route-sponsor" style="display:none;"></div>
+            <!-- Smart Off-Duty Next Sleigh Night Context Bar -->
+            <div id="next-night-stage-bar" class="next-night-stage-bar" style="display:none;">
+              <div class="next-night-info">
+                <span class="next-night-pill"><i class="fa-regular fa-calendar-check"></i> Next Sleigh Night</span>
+                <span class="next-night-text">
+                  <strong id="next-night-route-name">Upcoming Route</strong>
+                  <span class="next-night-sep">&bull;</span>
+                  <span id="next-night-route-when">Date TBC</span>
+                </span>
+              </div>
+              <div class="next-night-actions">
+                <button type="button" id="next-night-alert-btn" class="radar-ctrl-btn is-accent">
+                  <i class="fa-solid fa-bell"></i> <span>Doorstep Alert</span>
+                </button>
+                <button type="button" id="next-night-streets-btn" class="radar-ctrl-btn">
+                  <i class="fa-solid fa-magnifying-glass"></i> <span>Find My Street &rarr;</span>
+                </button>
+              </div>
+            </div>
+            <div class="radar-embed-stage" id="radar-embed-stage">
+              <iframe id="tracker-iframe" height="650" title="Santa Sleigh Live Tracker" allow="geolocation; screen-wake-lock" scrolling="no"></iframe>
+              <div class="radar-scroll-guard" id="radar-scroll-guard" aria-hidden="true"></div>
+            </div>
           </div>
-        </div>
 
-        <div class="iframe-container address-frame-container">
-          <iframe id="address-iframe" height="500" title="Address Lookup" scrolling="no" loading="lazy" allow="geolocation"></iframe>
+          <!-- Panel 2: Spatial Street & Postcode Finder -->
+          <div class="map-tab-panel is-active" id="map-panel-streets" role="tabpanel" aria-labelledby="tab-btn-streets">
+            <iframe id="address-iframe" height="540" title="Address Lookup" scrolling="no" allow="geolocation"></iframe>
+          </div>
         </div>
       </div>
     </section>
 
     <!-- MASTER ROUTE SCHEDULE & STREET EXPLORER -->
-    <section class="page-section" id="routes">
+    <section class="page-section reveal-section" id="routes">
       <div class="container">
         <div class="section-head">
           <div>
@@ -255,7 +291,7 @@
     </section>
 
     <!-- COMMUNITY IMPACT, ADAPTIVE FUNDRAISING & +25% GIFT AID -->
-    <section class="page-section" id="impact">
+    <section class="page-section impact-section reveal-section" id="impact">
       <div class="container">
         <div class="section-head">
           <div>
@@ -325,7 +361,7 @@
             <div class="glass-bento-card" id="grant-beneficiaries-card">
               <div>
                 <div class="section-eyebrow"><i class="fa-solid fa-hand-holding-medical"></i> Local Beneficiaries &amp; Grants</div>
-                <h3 style="font-size:20px; margin-bottom:8px;">WHERE YOUR <span class="hl">DONATIONS GO</span></h3>
+                <h3 style="font-size:20px; margin-bottom:8px;">Where Your <span class="hl">Donations Go</span></h3>
                 <p style="font-size:13.5px; color:var(--text-secondary); line-height:1.55;">
                   Funds raised by <strong id="impact-charity-name" style="color:#fff;">our Round Table</strong> directly support local charities, youth groups, schools, and community projects across our area.
                 </p>
@@ -346,7 +382,7 @@
             <div class="glass-bento-card" id="volunteer-crew-card">
               <div>
                 <div class="section-eyebrow"><i class="fa-solid fa-sleigh"></i> Join Our Sleigh Crew</div>
-                <h3 style="font-size:20px; margin-bottom:8px;">VOLUNTEER AS AN <span class="hl">ELF TONIGHT</span></h3>
+                <h3 style="font-size:20px; margin-bottom:8px;">Volunteer as an <span class="hl">Elf Tonight</span></h3>
                 <p style="font-size:13.5px; color:var(--text-secondary); line-height:1.55;">
                   Community groups, sports clubs, friends, and neighbours are welcome! Help us walk the streets with buckets and spread festive cheer.
                 </p>
@@ -365,7 +401,7 @@
     <div id="modular-feature-slots"></div>
 
     <!-- NATIVE POLAROID COMMUNITY MEMORY WALL -->
-    <section class="page-section" id="memories">
+    <section class="page-section reveal-section" id="memories">
       <div class="container">
         <div class="section-head">
           <div>
@@ -383,7 +419,7 @@
     </section>
 
     <!-- UNIFIED COMMUNITY PARTNERS & ROUTE SPONSORS -->
-    <section class="page-section" id="partners" style="display:none;">
+    <section class="page-section reveal-section" id="partners" style="display:none;">
       <div class="container">
         <div class="section-head">
           <div>
@@ -397,7 +433,7 @@
     </section>
 
     <!-- SPECIAL CHARITY APPEALS & STREET DRIVES (FOOD BANK, MISSION CHRISTMAS, TOY APPEALS) -->
-    <section class="page-section" id="charity-appeals" style="display:none;">
+    <section class="page-section reveal-section" id="charity-appeals" style="display:none;">
       <div class="container">
         <div class="section-head">
           <div>
@@ -411,7 +447,7 @@
     </section>
 
     <!-- TWO-COLUMN SAFETY & CUL-DE-SAC FAQ -->
-    <section class="page-section" id="faq">
+    <section class="page-section reveal-section" id="faq">
       <div class="container">
         <div class="section-head">
           <div>
@@ -465,7 +501,7 @@
     </section>
 
     <!-- ROUND TABLE "DO MORE" CLUB FOOTER -->
-    <section class="page-section" style="padding-top:16px;">
+    <section class="page-section reveal-section" style="padding-top:16px;">
       <div class="container">
         <div class="club-footer-card">
           <div style="max-width:660px;">
@@ -532,7 +568,7 @@
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
         <div style="flex:1; min-width:0;">
           <span class="ga-tag">+25% HMRC Boost</span>
-          <h3 style="font-size:22px; margin-top:8px;">BOOST YOUR <span class="hl">DONATION</span></h3>
+          <h3 style="font-size:22px; margin-top:8px;">Boost Your <span class="hl">Donation</span></h3>
           <p style="font-size:13px; color:var(--text-secondary); margin-top:4px;">
             UK taxpayer? Confirm your address in 15 seconds so our charity can claim an extra <strong>25p for every £1</strong> from HMRC at zero cost to you!
           </p>
@@ -574,7 +610,7 @@
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
         <div style="flex:1; min-width:0;">
           <div class="section-eyebrow"><i class="fa-solid fa-bell"></i> Free GPS Proximity Ping</div>
-          <h3 style="font-size:22px;">DOORSTEP <span class="hl">SLEIGH ALERT</span></h3>
+          <h3 style="font-size:22px;">Doorstep <span class="hl">Sleigh Alert</span></h3>
           <p style="font-size:13px; color:var(--text-secondary); margin-top:4px;" id="alert-modal-desc">
             Enter your postcode (or use GPS) and email — we'll automatically ping you when Santa sets off and when his sleigh comes within 250 metres of your home!
           </p>
@@ -606,7 +642,7 @@
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
         <div style="flex:1; min-width:0;">
           <div class="section-eyebrow"><i class="fa-solid fa-seedling"></i> Community Service Fund</div>
-          <h3 style="font-size:22px;">NOMINATE A <span class="hl">LOCAL CAUSE</span></h3>
+          <h3 style="font-size:22px;">Nominate a <span class="hl">Local Cause</span></h3>
           <p style="font-size:13px; color:var(--text-secondary); margin-top:4px;">
             Know a local charity, youth team, school project, or community group that could use funding from this year's sleigh appeal? Tell our committee!
           </p>
@@ -639,7 +675,7 @@
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
         <div style="flex:1; min-width:0;">
           <div class="section-eyebrow"><i class="fa-solid fa-wand-magic-sparkles"></i> Kerbside Shoutout</div>
-          <h3 style="font-size:22px;">WAVE TO <span class="hl">SANTA &amp; ELVES</span></h3>
+          <h3 style="font-size:22px;">Wave to <span class="hl">Santa &amp; Elves</span></h3>
           <p style="font-size:13px; color:var(--text-secondary); margin-top:4px;">
             Post a festive wave or thank-you message to appear on the live community cheer ticker!
           </p>
@@ -664,7 +700,7 @@
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
         <div style="flex:1; min-width:0;">
           <div class="section-eyebrow"><i class="fa-solid fa-camera-retro"></i> Digital Memory Book</div>
-          <h3 style="font-size:22px;">SHARE YOUR <span class="hl">SLEIGH PHOTO</span></h3>
+          <h3 style="font-size:22px;">Share Your <span class="hl">Sleigh Photo</span></h3>
           <p style="font-size:13px; color:var(--text-secondary); margin-top:4px;">
             Upload a festive photo from tonight's sleigh visit! Photos appear on the wall once verified by our family-friendly safety check.
           </p>
@@ -683,6 +719,6 @@
     </div>
   </div>
 
-  <script src="/sleigh_v2.js?v=2026.11.20.1"></script>
+  <script src="/sleigh_v2.js?v=2026.11.26.1"></script>
 </body>
 </html>

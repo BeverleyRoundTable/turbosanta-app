@@ -290,6 +290,9 @@
     streetsByRoute: new Map(), // routeId -> [streetName]
     allStreetRecords: [],      // [{ street, route, lat, lng }]
     selectedRouteId: null,
+    activeMapTab: 'streets',
+    userPickedMapTab: false,
+    nextUpcomingRouteId: null,
     expandedRouteStreets: new Set(),
     arrivedStopKeys: new Set(),
     routeFilterTab: 'upcoming',
@@ -760,6 +763,74 @@
     return url;
   }
 
+  function pingIframeMapResize(tabName) {
+    const targetId = tabName === 'tracker' ? 'tracker-iframe' : 'address-iframe';
+    const postResize = () => {
+      const iframe = document.getElementById(targetId);
+      if (iframe && iframe.contentWindow) {
+        try {
+          iframe.contentWindow.postMessage({ type: 'turbosanta-resize-map' }, '*');
+        } catch (_) {}
+      }
+    };
+    requestAnimationFrame(postResize);
+    setTimeout(postResize, 180);
+  }
+
+  function setMapStageTab(tabName, opts = {}) {
+    const nextTab = tabName === 'tracker' ? 'tracker' : 'streets';
+    state.activeMapTab = nextTab;
+    if (opts.userAction) state.userPickedMapTab = true;
+
+    const tabTrackerBtn = document.getElementById('tab-btn-tracker');
+    const tabStreetsBtn = document.getElementById('tab-btn-streets');
+    const panelTracker = document.getElementById('map-panel-tracker');
+    const panelStreets = document.getElementById('map-panel-streets');
+
+    if (tabTrackerBtn) {
+      const isT = nextTab === 'tracker';
+      tabTrackerBtn.classList.toggle('is-active', isT);
+      tabTrackerBtn.setAttribute('aria-selected', isT ? 'true' : 'false');
+    }
+    if (tabStreetsBtn) {
+      const isS = nextTab === 'streets';
+      tabStreetsBtn.classList.toggle('is-active', isS);
+      tabStreetsBtn.setAttribute('aria-selected', isS ? 'true' : 'false');
+    }
+    if (panelTracker) panelTracker.classList.toggle('is-active', nextTab === 'tracker');
+    if (panelStreets) panelStreets.classList.toggle('is-active', nextTab === 'streets');
+
+    const chromeLabel = document.getElementById('stage-chrome-label');
+    const chromePulse = document.getElementById('stage-chrome-pulse');
+    const fsLink = document.getElementById('tracker-fullscreen');
+    const fsLabel = document.getElementById('stage-fs-label');
+
+    if (chromeLabel) {
+      chromeLabel.textContent = nextTab === 'tracker' ? 'Live Sleigh Radar Feed' : 'Street Finder & Route Map';
+    }
+    if (chromePulse) {
+      chromePulse.style.display = nextTab === 'tracker' ? '' : 'none';
+    }
+    if (fsLink) {
+      fsLink.href = nextTab === 'tracker' ? prettyTrackerUrl(state.slug) : prettyAddressesUrl(state.slug);
+    }
+    if (fsLabel) {
+      fsLabel.textContent = nextTab === 'tracker' ? 'Fullscreen 3D' : 'Open Full Page';
+    }
+
+    document.querySelectorAll('.mobile-thumb-dock .dock-item[href]').forEach(el => {
+      const href = el.getAttribute('href');
+      el.classList.toggle('is-active', (nextTab === 'tracker' && href === '#tracker') || (nextTab === 'streets' && href === '#streets'));
+    });
+
+    pingIframeMapResize(nextTab);
+
+    if (opts.scroll) {
+      const stageEl = document.getElementById('tracker');
+      if (stageEl) stageEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
   function renderFrames(slug) {
     const s = slug || state.slug;
     const trackerIframe = document.getElementById('tracker-iframe');
@@ -776,7 +847,7 @@
       addressIframe.src = addressUrl;
     }
     if (fsLink) {
-      fsLink.href = prettyTrackerUrl(s);
+      fsLink.href = state.activeMapTab === 'tracker' ? prettyTrackerUrl(s) : prettyAddressesUrl(s);
     }
   }
 
@@ -1001,10 +1072,7 @@
 
       // 2. Smoothly scroll to routes/streets when requested by iframe button
       if (e.data.type === 'turbosanta-scroll-to-routes') {
-        const target = document.getElementById('streets') || document.getElementById('routes');
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+        setMapStageTab('streets', { userAction: true, scroll: true });
         return;
       }
 
@@ -1043,15 +1111,10 @@
     const routeObj = state.routes.find(r => String(r.id) === String(routeId));
     const isLive = forceLive || (routeObj && isRouteLive(routeObj, 0));
 
-    if (scrollMapIntoView) {
-      const targetSec = isLive
-        ? (document.getElementById('tracker') || document.getElementById('streets'))
-        : (document.getElementById('streets') || document.getElementById('tracker'));
-
-      if (targetSec) {
-        targetSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }
+    setMapStageTab(isLive ? 'tracker' : 'streets', {
+      userAction: true,
+      scroll: Boolean(scrollMapIntoView)
+    });
 
     const routeName = routeObj ? (routeObj.name || routeObj.routeName || '') : '';
 
@@ -1254,21 +1317,31 @@
       }
     }
 
-    // Status & Countdown Pill
+    // Status, Adaptive Hero Mode & Map Tab Auto-Default
     const badge = document.getElementById('hero-status-badge');
     const badgeText = document.getElementById('hero-status-text');
     const cdChip = document.getElementById('hero-countdown-chip');
     const cdText = document.getElementById('hero-countdown-text');
+    const heroCard = document.getElementById('hero-card');
+    const tabTrackerDot = document.getElementById('tab-tracker-dot');
+    const nextNightBar = document.getElementById('next-night-stage-bar');
+    const nextNightNameEl = document.getElementById('next-night-route-name');
+    const nextNightWhenEl = document.getElementById('next-night-route-when');
 
     clearInterval(state.countdownTimer);
     const liveNow = state.simMode === 'live' || Boolean(state.payload?.live_sleigh?.is_fresh) || state.routes.some((r, i) => isRouteLive(r, i));
+    const activeR = liveNow ? (state.routes.find((r, i) => isRouteLive(r, i)) || state.routes[0]) : null;
+    const nextR = !liveNow ? findNextUpcomingRoute() : null;
+    state.nextUpcomingRouteId = nextR ? String(nextR.id) : null;
+
+    if (heroCard) heroCard.classList.toggle('is-hero-live', Boolean(liveNow));
+    if (tabTrackerDot) tabTrackerDot.classList.toggle('is-live', Boolean(liveNow));
 
     if (state.simMode === 'rain') {
       badge.className = 'live-status-badge is-postponed';
       badgeText.textContent = `Rain-Check: ${state.routes[0]?.name || 'Route'} Postponed`;
       if (cdChip) cdChip.style.display = 'none';
     } else if (liveNow) {
-      const activeR = state.routes.find((r, i) => isRouteLive(r, i)) || state.routes[0];
       badge.className = 'live-status-badge is-live';
       const rStreets = (activeR && state.streetsByRoute.get(String(activeR.id))) || [];
       const streetCount = rStreets.length;
@@ -1279,7 +1352,6 @@
       }
     } else {
       badge.className = 'live-status-badge';
-      const nextR = findNextUpcomingRoute();
       if (nextR) {
         const todayMatch = isRouteToday(nextR);
         badgeText.textContent = todayMatch
@@ -1292,16 +1364,35 @@
       }
     }
 
-    // Fullscreen tracker & crew links
-    const fsLink = document.getElementById('tracker-fullscreen');
-    if (fsLink) fsLink.href = prettyTrackerUrl(state.slug);
+    if (nextNightBar) {
+      if (!liveNow && nextR) {
+        nextNightBar.style.display = 'flex';
+        if (nextNightNameEl) nextNightNameEl.textContent = nextR.name || 'Upcoming Route';
+        if (nextNightWhenEl) {
+          const timeRange = nextR.start_time ? `${nextR.start_time}${nextR.end_time ? ` – ${nextR.end_time}` : ''}` : 'Evening';
+          nextNightWhenEl.textContent = `${formatFriendlyDate(nextR.date)} · ${timeRange}`;
+        }
+      } else {
+        nextNightBar.style.display = 'none';
+      }
+    }
+
+    if (!state.userPickedMapTab) {
+      const hash = (window.location.hash || '').toLowerCase();
+      const autoTab = hash === '#tracker' ? 'tracker' : (hash === '#streets' ? 'streets' : (liveNow ? 'tracker' : 'streets'));
+      setMapStageTab(autoTab, { userAction: false });
+    } else {
+      setMapStageTab(state.activeMapTab, { userAction: false });
+    }
+
+    // Crew & Gift Aid links
     const crewLink = document.getElementById('volunteer-crew-link');
     if (crewLink) crewLink.href = buildSubdomainToolUrl('/crew');
     const gaOnlyLink = document.getElementById('impact-giftaid-only-btn');
     if (gaOnlyLink) gaOnlyLink.href = buildSubdomainToolUrl('/giftaid');
 
     // Dedicated Tonight's Route Sponsor Bar above radar
-    renderRadarRouteSponsor((typeof activeR !== 'undefined' ? activeR : null) || (typeof nextR !== 'undefined' ? nextR : null) || state.routes[0]);
+    renderRadarRouteSponsor(activeR || nextR || state.routes[0]);
 
     // Footer & Socials
     const clubHeading = document.getElementById('footer-club-heading');
@@ -1499,7 +1590,7 @@
       const allStreets = state.streetsByRoute.get(String(route.id)) || [];
       const plannedStops = getRoutePlannedStops(route);
       const isExpanded = state.expandedRouteStreets.has(String(route.id)) || Boolean(q);
-      const previewStreets = isExpanded ? allStreets : allStreets.slice(0, 7);
+      const previewStreets = isExpanded ? allStreets : allStreets.slice(0, 5);
       const hiddenCount = Math.max(0, allStreets.length - previewStreets.length);
 
       const stopsHtml = plannedStops.length > 0 ? `
@@ -1545,7 +1636,7 @@
             const matched = q && st.toLowerCase().includes(q);
             return `<span class="street-chip${matched ? ' matched' : ''}">${escapeHtml(st)}</span>`;
           }).join('')}
-          ${hiddenCount > 0 ? `<button type="button" class="street-more-btn" data-expand-route="${escapeHtml(route.id)}">+${hiddenCount} more streets</button>` : ''}
+          ${hiddenCount > 0 ? `<button type="button" class="street-more-btn" data-expand-route="${escapeHtml(route.id)}">+${hiddenCount} more streets</button>` : (allStreets.length > 5 && !q ? `<button type="button" class="street-more-btn" data-expand-route="${escapeHtml(route.id)}">Show fewer</button>` : '')}
         </div>
       ` : isStaticRoute ? `
         <div style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
@@ -1647,7 +1738,8 @@
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const rId = btn.getAttribute('data-expand-route');
-        state.expandedRouteStreets.add(rId);
+        if (state.expandedRouteStreets.has(rId)) state.expandedRouteStreets.delete(rId);
+        else state.expandedRouteStreets.add(rId);
         renderRoutesGrid();
       });
     });
@@ -1733,7 +1825,7 @@
       if (impactEyebrow) impactEyebrow.innerHTML = '<i class="fa-solid fa-heart-circle-check"></i> 100% Volunteer Community Sleigh';
       if (impactTitle) impactTitle.innerHTML = 'SUPPORTING OUR <span class="hl">COMMUNITY</span>';
       if (impactSubtitle) impactSubtitle.textContent = 'Our volunteers give their evenings for free to bring festive joy to local families, visit residential streets, and support community good causes and local food banks.';
-      if (grantBeneficiariesTitle) grantBeneficiariesTitle.innerHTML = 'SUPPORTING OUR <span class="hl">COMMUNITY</span>';
+      if (grantBeneficiariesTitle) grantBeneficiariesTitle.innerHTML = 'Supporting Our <span class="hl">Community</span>';
       if (grantBeneficiariesDesc) {
         grantBeneficiariesDesc.innerHTML = `Work carried out by <strong id="impact-charity-name" style="color:#fff;">our Round Table</strong> brings festive joy to families and supports local community projects, schools, and food banks across our area.`;
       }
@@ -1744,7 +1836,7 @@
       if (impactEyebrow) impactEyebrow.innerHTML = '<i class="fa-solid fa-heart-circle-check"></i> 100% Volunteer-Run Charity Appeal';
       if (impactTitle) impactTitle.innerHTML = 'EVERY PENNY STAYS <span class="hl">LOCAL</span>';
       if (impactSubtitle) impactSubtitle.textContent = 'Our elves give their evenings for free so every pound collected on the doorstep or donated online goes straight to local good causes, grassroots clubs, and families in need.';
-      if (grantBeneficiariesTitle) grantBeneficiariesTitle.innerHTML = 'WHERE YOUR <span class="hl">DONATIONS GO</span>';
+      if (grantBeneficiariesTitle) grantBeneficiariesTitle.innerHTML = 'Where Your <span class="hl">Donations Go</span>';
       if (grantBeneficiariesDesc) {
         grantBeneficiariesDesc.innerHTML = `Funds raised by <strong id="impact-charity-name" style="color:#fff;">our Round Table</strong> directly support local charities, youth groups, schools, and community projects across our area.`;
       }
@@ -2449,7 +2541,8 @@
 
         if (window.IntersectionObserver && !heroVideoEl._observerAttached) {
           heroVideoEl._observerAttached = true;
-          if (heroCard) {
+          const heroObserveEl = document.getElementById('hero') || heroCard;
+          if (heroObserveEl) {
             const obs = new IntersectionObserver((entries) => {
               entries.forEach((entry) => {
                 if (entry.isIntersecting) {
@@ -2459,7 +2552,7 @@
                 }
               });
             }, { threshold: 0.05 });
-            obs.observe(heroCard);
+            obs.observe(heroObserveEl);
           }
         }
       }
@@ -2729,6 +2822,7 @@
   async function loadTableExperience(targetSlug, usePrefetched = false) {
     state.slug = targetSlug || DEFAULT_RICH_TABLE;
     state.selectedRouteId = null;
+    state.userPickedMapTab = false;
     state.expandedRouteStreets.clear();
     state.simTickIndex = 0;
 
@@ -2875,11 +2969,47 @@
     document.querySelectorAll('[data-sim]').forEach(btn => {
       btn.addEventListener('click', () => {
         state.simMode = btn.getAttribute('data-sim') || 'auto';
+        state.userPickedMapTab = false;
         document.querySelectorAll('[data-sim]').forEach(b => b.classList.toggle('active', b === btn));
         renderHeaderAndHero();
         renderRoutesGrid();
         renderFrames(state.slug);
       });
+    });
+
+    // Unified Tabbed Map Stage Switcher & Anchor Sync (Option A)
+    document.querySelectorAll('[data-map-tab]').forEach(tabBtn => {
+      tabBtn.addEventListener('click', () => {
+        const nextTab = tabBtn.getAttribute('data-map-tab');
+        setMapStageTab(nextTab, { userAction: true });
+      });
+    });
+
+    document.getElementById('next-night-alert-btn')?.addEventListener('click', () => {
+      openDoorstepAlertModal(state.nextUpcomingRouteId ? { routeId: state.nextUpcomingRouteId } : {});
+    });
+
+    document.getElementById('next-night-streets-btn')?.addEventListener('click', () => {
+      setMapStageTab('streets', { userAction: true });
+    });
+
+    document.addEventListener('click', (e) => {
+      const link = e.target.closest('a[href="#tracker"], a[href="#streets"]');
+      if (!link) return;
+      e.preventDefault();
+      const href = link.getAttribute('href');
+      const targetTab = href === '#tracker' ? 'tracker' : 'streets';
+      setMapStageTab(targetTab, { userAction: true, scroll: true });
+      try {
+        if (window.location.hash !== href) history.replaceState(null, '', href);
+      } catch (_) {}
+    });
+
+    window.addEventListener('hashchange', () => {
+      const h = (window.location.hash || '').toLowerCase();
+      if (h === '#tracker' || h === '#streets') {
+        setMapStageTab(h === '#tracker' ? 'tracker' : 'streets', { userAction: true });
+      }
     });
 
     document.getElementById('lab-hide-btn')?.addEventListener('click', () => {
@@ -2915,6 +3045,7 @@
     document.getElementById('impact-donate-btn')?.addEventListener('click', () => openDonateFlow({ direct: false }));
 
     document.getElementById('hero-alert-cta')?.addEventListener('click', () => openDoorstepAlertModal({}));
+    document.getElementById('hero-sec-alert')?.addEventListener('click', () => openDoorstepAlertModal({}));
     document.getElementById('open-grant-btn')?.addEventListener('click', () => openModal('grant-modal'));
     document.getElementById('open-cheer-btn')?.addEventListener('click', () => openModal('cheer-modal'));
     document.getElementById('open-photo-upload-btn')?.addEventListener('click', () => openModal('photo-modal'));
@@ -3082,7 +3213,7 @@
             const pinObj = { lat: coords.lat, lng: coords.lng, email, table: state.slug, confirmed: true, subscribed: true, updated_at: Date.now() };
             localStorage.setItem('SANTA_NOTIFY_POINT', JSON.stringify(pinObj));
             sessionStorage.setItem('SANTA_NOTIFY_POINT', JSON.stringify(pinObj));
-            const radarIframe = document.getElementById('v2-radar-iframe');
+            const radarIframe = document.getElementById('tracker-iframe') || document.getElementById('v2-radar-iframe');
             if (radarIframe && radarIframe.contentWindow) {
               radarIframe.contentWindow.postMessage({ type: 'turbosanta-pin-saved', pin: pinObj }, '*');
             }
@@ -3244,9 +3375,50 @@
     });
   }
 
+  function initPolishEffects() {
+    const header = document.getElementById('site-header') || document.querySelector('.site-header');
+    if (header) {
+      const syncHeaderScroll = () => {
+        header.classList.toggle('is-scrolled', window.scrollY > 36);
+      };
+      syncHeaderScroll();
+      window.addEventListener('scroll', syncHeaderScroll, { passive: true });
+    }
+
+    const revealSections = Array.from(document.querySelectorAll('.reveal-section'));
+    if (!revealSections.length) return;
+
+    const revealVisibleNow = () => {
+      const vh = window.innerHeight || 800;
+      revealSections.forEach(sec => {
+        const rect = sec.getBoundingClientRect();
+        if (rect.top < vh * 0.96) sec.classList.add('is-visible');
+      });
+    };
+
+    if ('IntersectionObserver' in window) {
+      const revObs = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            revObs.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.05, rootMargin: '0px 0px -24px 0px' });
+      revealSections.forEach(sec => revObs.observe(sec));
+      revealVisibleNow();
+      setTimeout(() => {
+        revealSections.forEach(sec => sec.classList.add('is-visible'));
+      }, 900);
+    } else {
+      revealSections.forEach(sec => sec.classList.add('is-visible'));
+    }
+  }
+
   // --- Bootstrap ---
   document.addEventListener('DOMContentLoaded', () => {
     initSnowCanvas();
+    initPolishEffects();
     bindFrameMessages();
     bindEvents();
     populateTestLabTablesDropdown();

@@ -83,23 +83,23 @@
       --on-primary: #000000;         /* text on --primary, auto-picked for readability */
       --primary-dim: rgba(var(--primary-rgb), 0.12);
       --primary-glow: rgba(var(--primary-rgb), 0.25);
-      --dark: #0d0d0b;
-      --surface: #161614;
-      --surface-2: #1e1e1b;
-      --border: rgba(255,255,255,0.08);
-      --border-primary: rgba(var(--primary-rgb), 0.2);
-      --text: #eaeae5;
-      --text-dim: rgba(255,255,255,0.55);
+      --dark: #090d16;
+      --surface: #101624;
+      --surface-2: #172033;
+      --border: rgba(255,255,255,0.095);
+      --border-primary: rgba(var(--primary-rgb), 0.28);
+      --text: #f1f5f9;
+      --text-dim: rgba(226,232,240,0.66);
       --red: #D31C1C;
-      --green: #2ecc71;
-      --text-muted: rgba(255,255,255,0.3);
+      --green: #10b981;
+      --text-muted: rgba(203,213,225,0.44);
     }
 
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      padding: 24px 12px 60px; 
+      padding: 16px 18px 24px;
       background: transparent; 
       color: var(--text);
       font-family: 'Open Sans', sans-serif;
@@ -108,63 +108,89 @@
     }
 
     /* Set by JS when the page is opened directly rather than embedded */
-    html.standalone body { background: var(--dark); }
+    html.standalone body {
+      padding: 24px 12px 60px;
+      background: var(--dark);
+    }
 
     #address-root {
+      max-width: none;
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      border-radius: 0;
+      border: none;
+      box-shadow: none;
+    }
+
+    html.standalone #address-root {
       max-width: 960px;
       margin: 0 auto;
       padding: 24px 20px;
       background: var(--surface);
-      border-radius: 16px;
+      border-radius: 20px;
       border: 1px solid var(--border-primary);
-      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+      box-shadow: 0 18px 48px rgba(0,0,0,0.65);
     }
 
     .controls-wrapper {
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      margin-bottom: 24px;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .controls-row {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
     }
 
     .locate-btn {
-      height: 58px;
-      width: 100%;
-      border-radius: 16px;
-      border: 2px solid var(--primary);
+      height: 48px;
+      width: auto;
+      flex-shrink: 0;
+      padding: 0 20px;
+      border-radius: 999px;
+      border: 1px solid var(--primary);
       background: var(--primary);
       color: var(--on-primary);
-      font-weight: 900;
-      font-family: 'Eurostile', 'Open Sans', sans-serif;
-      font-size: 24px;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
+      font-weight: 800;
+      font-family: 'Open Sans', sans-serif;
+      font-size: 13.5px;
+      letter-spacing: 0.01em;
+      text-transform: none;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
-      box-shadow: 0 4px 16px rgba(0,0,0,.4);
-      transition: transform 0.1s, filter 0.2s;
+      gap: 8px;
+      white-space: nowrap;
+      box-shadow: 0 6px 20px rgba(var(--primary-rgb), 0.28);
+      transition: transform 0.12s, filter 0.18s, box-shadow 0.18s;
     }
 
-    .locate-btn:hover:not(:disabled) { filter: brightness(0.92); }
-    .locate-btn:active:not(:disabled) { transform: scale(0.96); box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+    .locate-btn:hover:not(:disabled) {
+      filter: brightness(1.06);
+      box-shadow: 0 8px 24px rgba(var(--primary-rgb), 0.38);
+    }
+    .locate-btn:active:not(:disabled) { transform: scale(0.97); }
     .locate-btn:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
 
     .instruction-text {
-      text-align: center;
-      font-size: 13px;
-      font-weight: 700;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 600;
       color: var(--text-dim);
-      text-transform: uppercase;
-      letter-spacing: 1px;
+      text-transform: none;
+      letter-spacing: 0.01em;
+      padding-left: 4px;
     }
 
     #lookup-map {
-      height: 350px;
+      height: 380px;
       width: 100%;
-      border-radius: 12px;
+      border-radius: 14px;
       border: 1px solid var(--border);
       background: var(--surface-2);
       z-index: 1;
@@ -217,11 +243,12 @@
 
     .addr-route-title {
       margin: 0 0 4px;
-      font-family: 'Eurostile', 'Open Sans', sans-serif;
-      font-size: 32px;
-      letter-spacing: 1.5px;
+      font-family: 'Open Sans', sans-serif;
+      font-weight: 800;
+      font-size: 20px;
+      letter-spacing: -0.015em;
       color: #fff;
-      line-height: 1;
+      line-height: 1.2;
     }
 
     .addr-route-date {
@@ -262,28 +289,29 @@
     .addr-no-results.addr-passed { color: var(--green); }
 
     /* ── STREET SEARCH (from countdown) ── */
-    .addr-search-wrap { position: relative; width: 100%; }
+    .addr-search-wrap { position: relative; flex: 1 1 auto; min-width: 0; }
 
     .addr-search-input {
       width: 100%;
-      height: 58px;
-      padding: 0 20px 0 48px;
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      border-radius: 16px;
+      height: 48px;
+      padding: 0 18px 0 44px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 999px;
       color: #fff;
       font-family: 'Open Sans', sans-serif;
-      font-size: 16px;
+      font-size: 14.5px;
+      font-weight: 600;
       outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
     }
-    .addr-search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
+    .addr-search-input:focus { border-color: var(--primary); background: rgba(255, 255, 255, 0.09); box-shadow: 0 0 0 3px var(--primary-glow); }
     .addr-search-input:disabled { opacity: 0.6; cursor: not-allowed; }
     .addr-search-input::placeholder { color: var(--text-muted); font-family: 'Open Sans', sans-serif; }
 
     .addr-search-icon {
-      position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
-      font-size: 18px; pointer-events: none; opacity: 0.7;
+      position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+      font-size: 15px; pointer-events: none; opacity: 0.78;
     }
 
     /* Overlays the map instead of pushing it down, so the embed height doesn't jump */
@@ -319,8 +347,8 @@
     .addr-btn-row { display: flex; gap: 10px; margin-top: 16px; }
 
     .addr-btn {
-      flex: 1; padding: 12px; border-radius: 12px; border: none;
-      font-weight: 900; font-size: 20px; letter-spacing: 1.5px; font-family: 'Eurostile', 'Open Sans', sans-serif;
+      flex: 1; padding: 10px 14px; border-radius: 999px; border: none;
+      font-weight: 800; font-size: 13.5px; letter-spacing: 0.01em; font-family: 'Open Sans', sans-serif;
       cursor: pointer; text-align: center;
       transition: transform 0.1s, background 0.2s, filter 0.2s;
     }
@@ -366,15 +394,28 @@
     }
 
     @media (max-width: 600px) {
-      .locate-btn {
-        font-size: 15px; /* Scales down the wide Eurostile text so it fits */
-        height: 50px;
-        letter-spacing: 0.5px;
-        padding: 0 10px;
+      body {
+        padding: 12px 12px 20px;
       }
-      
+      .controls-row {
+        gap: 8px;
+      }
+      .locate-btn {
+        font-size: 12.5px;
+        height: 44px;
+        padding: 0 14px;
+      }
+      .addr-search-input {
+        height: 44px;
+        font-size: 14px;
+        padding: 0 14px 0 38px;
+      }
+      .addr-search-icon {
+        left: 13px;
+        font-size: 14px;
+      }
       .addr-route-title {
-        font-size: 24px; /* Scales down route titles for narrow screens */
+        font-size: 18px;
       }
     }
 
@@ -428,11 +469,11 @@
       border: none;
       background: var(--primary);
       color: var(--on-primary);
-      font-family: 'Eurostile', sans-serif;
+      font-family: 'Open Sans', sans-serif;
       font-size: 13.5px;
       font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      text-transform: none;
+      letter-spacing: 0.01em;
       cursor: pointer;
       box-shadow: 0 4px 14px rgba(0,0,0,0.35);
       display: inline-flex;
@@ -469,15 +510,17 @@
     </a>
 
     <div class="controls-wrapper">
-      <button id="locateBtn" class="locate-btn" disabled>
-        Loading Map Data...
-      </button>
-      <div class="addr-search-wrap">
-        <span class="addr-search-icon">🔍</span>
-        <input type="text" id="streetInput" class="addr-search-input" placeholder="Or type your street name…" autocomplete="off" disabled>
-        <div class="addr-suggest" id="streetSuggest"></div>
+      <div class="controls-row">
+        <div class="addr-search-wrap">
+          <span class="addr-search-icon">🔍</span>
+          <input type="text" id="streetInput" class="addr-search-input" placeholder="Search your street name…" autocomplete="off" disabled>
+          <div class="addr-suggest" id="streetSuggest"></div>
+        </div>
+        <button id="locateBtn" class="locate-btn" title="Use my current location" aria-label="Use my current location" disabled>
+          Loading...
+        </button>
       </div>
-      <div class="instruction-text">or simply tap your street on the map below</div>
+      <div class="instruction-text">Tip: Tap any street directly on the map below to see when Santa visits</div>
     </div>
 
     <div id="lookup-map"></div>
@@ -597,6 +640,8 @@
   let notifyEmailEnabled = true;
   let streetIndex = [];    // [{ street, route }] built from each route's comma-separated "streets" field
   let currentStreet = '';  // street the current results were looked up for ('' for pin / GPS lookups)
+  let initialRouteBounds = null;
+  let hasInitialBoundsFit = false;
 
   const D1_API_BASE = "https://turbosanta-api.beverley247.workers.dev";
 
@@ -843,11 +888,14 @@
     const resultsDiv = document.getElementById('results');
     const btn = document.getElementById('locateBtn');
     const defaultBtnHtml = `
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 2px;">
-        <circle cx="12" cy="12" r="10"></circle>
-        <path d="M12 2a10 10 0 0 1 10 10c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2z"></path>
-        <circle cx="12" cy="12" r="3"></circle>
-      </svg> Use My Current Location`;
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="9"></circle>
+        <line x1="12" y1="2" x2="12" y2="5"></line>
+        <line x1="12" y1="19" x2="12" y2="22"></line>
+        <line x1="2" y1="12" x2="5" y2="12"></line>
+        <line x1="19" y1="12" x2="22" y2="12"></line>
+        <circle cx="12" cy="12" r="2.5"></circle>
+      </svg> <span>Near Me</span>`;
 
     try {
       let data = null;
@@ -993,7 +1041,10 @@
             const featureGroup = L.featureGroup(validBoundsLayers);
             const b = featureGroup.getBounds();
             if (b && typeof b.isValid === 'function' && b.isValid()) {
+              initialRouteBounds = b;
+              const mapEl = document.getElementById('lookup-map');
               map.fitBounds(b, { padding: [30, 30] });
+              hasInitialBoundsFit = Boolean(mapEl && mapEl.offsetWidth > 0 && mapEl.offsetHeight > 0);
             } else {
               map.setView([52.4708, -1.9207], 13);
             }
@@ -1713,6 +1764,9 @@
   let selectedRouteDecoration = null;
 
   function focusRoute(targetRouteName) {
+    if (map) {
+      map.invalidateSize({ animate: false });
+    }
     if (selectedRouteDecoration) {
       try { map.removeLayer(selectedRouteDecoration); } catch(e) {}
       selectedRouteDecoration = null;
@@ -2062,7 +2116,9 @@
   function sendHeight() {
     const root = document.getElementById('address-root');
     if (!root) return;
-    const height = Math.ceil(root.offsetHeight + 84);
+    const isStandalone = document.documentElement.classList.contains('standalone');
+    const pad = isStandalone ? 84 : 42;
+    const height = Math.ceil(root.offsetHeight + pad);
     if (height > 100 && Math.abs(height - lastSentAddrHeight) >= 12) {
       lastSentAddrHeight = height;
       parent.postMessage({ addressLookupHeight: height }, "*");
@@ -2097,6 +2153,20 @@
 
   window.addEventListener("message", (e) => {
     if (!e.data || typeof e.data !== "object") return;
+    if (e.data.type === "turbosanta-resize-map") {
+      if (map) {
+        map.invalidateSize({ animate: false });
+        if (!hasInitialBoundsFit && initialRouteBounds && !userPin) {
+          const mapEl = document.getElementById('lookup-map');
+          if (mapEl && mapEl.offsetWidth > 0 && mapEl.offsetHeight > 0) {
+            try { map.fitBounds(initialRouteBounds, { padding: [30, 30] }); } catch (_) {}
+            hasInitialBoundsFit = true;
+          }
+        }
+      }
+      sendHeight();
+      return;
+    }
     if (e.data.type === "turbosanta-focus-route" || e.data.type === "turbosanta-select-route") {
       selectRouteFromParent(e.data.routeId, e.data.routeName);
     } else if (e.data.type === "turbosanta-focus-stop") {

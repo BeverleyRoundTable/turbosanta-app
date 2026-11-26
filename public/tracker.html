@@ -7688,6 +7688,12 @@
             // Real-time sync when user drops a pin or signs up in address.html (#routes)
             window.addEventListener("message", (e) => {
               if (!e.data || typeof e.data !== "object") return;
+              if (e.data.type === "turbosanta-resize-map") {
+                if (AppState.map && typeof AppState.map.invalidateSize === "function") {
+                  requestAnimationFrame(() => AppState.map.invalidateSize({ pan: false }));
+                }
+                return;
+              }
               if (e.data.type === "turbosanta-pin-saved" && e.data.pin) {
                 const p = e.data.pin;
                 if (Utils.validPos(p.lat, p.lng)) {
