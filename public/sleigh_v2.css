@@ -1276,22 +1276,6 @@ body {
   display: none;
 }
 
-@media (hover: none) and (pointer: coarse), (max-width: 900px) {
-  .radar-embed-stage:not(.is-modal-open) #tracker-iframe {
-    pointer-events: none;
-  }
-
-  .radar-embed-stage:not(.is-modal-open) .radar-scroll-guard {
-    position: absolute;
-    inset: 0;
-    z-index: 20;
-    display: block;
-    background: transparent;
-    touch-action: pan-y;
-    -webkit-overflow-scrolling: touch;
-  }
-}
-
 @media (max-width: 768px) {
   #tracker {
     scroll-margin-top: 60px;

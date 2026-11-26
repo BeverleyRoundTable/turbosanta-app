@@ -1535,11 +1535,13 @@
     /* Preserves clean card aspect ratio with balanced padding and zero cutoffs */
     body.is-embedded {
       touch-action: pan-y;
-      overscroll-behavior: none;
+      overscroll-behavior: auto;
     }
-    body.is-embedded #map {
-      touch-action: none !important;
-      overscroll-behavior: none;
+    body.is-embedded #map,
+    body.is-embedded #map .leaflet-container,
+    body.is-embedded #map * {
+      touch-action: pan-y !important;
+      overscroll-behavior: auto;
     }
     body.is-embedded #workshopOverlay,
     #workshopOverlay.ws-compact {
@@ -1547,8 +1549,8 @@
       justify-content: center;
       align-items: center;
       overflow: hidden;
-      overscroll-behavior: none;
-      touch-action: none;
+      overscroll-behavior: auto;
+      touch-action: pan-y;
     }
     body.is-embedded .ws-card,
     #workshopOverlay.ws-compact .ws-card {
@@ -2088,34 +2090,6 @@
         document.body.classList.add('is-embedded');
       }
 
-      function normalizeWheelDelta(e) {
-        let dy = e.deltaY;
-        if (e.deltaMode === 1) { // DOM_DELTA_LINE: Windows mouse wheel sends 3 lines (~114px)
-          dy *= 38;
-        } else if (e.deltaMode === 2) { // DOM_DELTA_PAGE
-          dy *= (window.innerHeight || 600);
-        }
-        return dy;
-      }
-
-      function forwardScrollToParent(deltaY) {
-        if (!isEmbedded || typeof deltaY !== 'number' || Math.abs(deltaY) < 0.5) return;
-        let directSuccess = false;
-        try {
-          if (window.parent && window.parent !== window && window.parent.document) {
-            window.parent.scrollBy({ top: deltaY, behavior: 'auto' });
-            directSuccess = true;
-          }
-        } catch (_) {
-          directSuccess = false;
-        }
-        if (!directSuccess) {
-          try {
-            window.parent.postMessage({ type: 'turbosanta-scroll-parent', deltaY: deltaY }, '*');
-          } catch (_) {}
-        }
-      }
-
       let hintTimer = null;
       function showMapHint(html) {
         let hint = document.getElementById('ctrlZoomHint');
@@ -2154,159 +2128,21 @@
         }, 1300);
       }
 
-      function showCtrlZoomHint() {
-        const isMac = (navigator.platform && navigator.platform.toUpperCase().includes('MAC')) ||
-                      (navigator.userAgent && navigator.userAgent.toUpperCase().includes('MAC'));
-        showMapHint(`💡 Hold <span style="color:var(--primary, #FBAF33);">${isMac ? '⌘ Cmd' : 'Ctrl'}</span> + scroll to zoom map`);
-      }
-
       function showTwoFingerTouchHint() {
         showMapHint('💡 Use <span style="color:var(--primary, #FBAF33);">two fingers</span> to move map');
       }
 
       if (isEmbedded) {
-        // Universal wheel forwarding for embedded iframe — eliminates sticking scroll and map zoom traps
+        // Surgical Ctrl/Cmd + scroll map zoom only — normal wheel & finger swipes pass straight through natively
         window.addEventListener('wheel', (e) => {
-          // If user holds Ctrl (or Cmd on Mac), permit map zoom
-          if (e.ctrlKey || e.metaKey) {
-            if (AppState && AppState.map) {
-              const currentZoom = AppState.map.getZoom();
-              const zoomDelta = e.deltaY < 0 ? 1 : -1;
-              AppState.map.setZoom(currentZoom + zoomDelta);
-              if (e.cancelable) e.preventDefault();
-            }
-            return;
-          }
-
-          // Otherwise, user is scrolling through the webpage!
+          if (!e.ctrlKey && !e.metaKey) return;
           const wsOverlay = document.getElementById('workshopOverlay');
           const isWsVisible = wsOverlay && wsOverlay.style.display !== 'none' && getComputedStyle(wsOverlay).display !== 'none';
-
-          // Show subtle Ctrl+scroll hint if scrolling over active map (not over Santa's Workshop)
-          if (!isWsVisible) {
-            showCtrlZoomHint();
-          }
-
-          const dy = normalizeWheelDelta(e);
-          if (Math.abs(dy) > 0.5) {
-            forwardScrollToParent(dy);
-            if (e.cancelable) {
-              e.preventDefault();
-            }
-          }
+          if (isWsVisible || !AppState || !AppState.map) return;
+          const zoomDelta = e.deltaY < 0 ? 1 : -1;
+          AppState.map.setZoom(AppState.map.getZoom() + zoomDelta);
+          if (e.cancelable) e.preventDefault();
         }, { passive: false });
-
-        // Touch drag forwarding for mobile on embedded iframe using physical screenY
-        // (avoids iframe viewport clientY feedback oscillation) + inertial momentum on touchend
-        let startScreenX = null;
-        let startScreenY = null;
-        let lastScreenY = null;
-        let lastMoveTs = 0;
-        let velocityY = 0;
-        let isDraggingScroll = false;
-        let momentumRaf = null;
-        let twoFingerHintShown = false;
-
-        function stopMomentum() {
-          if (momentumRaf) {
-            cancelAnimationFrame(momentumRaf);
-            momentumRaf = null;
-          }
-          velocityY = 0;
-        }
-
-        window.addEventListener('touchstart', (e) => {
-          stopMomentum();
-          if (e.touches && e.touches.length === 1) {
-            startScreenX = e.touches[0].screenX;
-            startScreenY = e.touches[0].screenY;
-            lastScreenY = startScreenY;
-            lastMoveTs = performance.now();
-            isDraggingScroll = false;
-            twoFingerHintShown = false;
-          } else {
-            startScreenX = null;
-            startScreenY = null;
-            lastScreenY = null;
-            isDraggingScroll = false;
-          }
-        }, { passive: true });
-
-        window.addEventListener('touchmove', (e) => {
-          if (lastScreenY === null || !e.touches || e.touches.length !== 1) return;
-
-          // Allow scrolling inside open modal lists (#scheduleList / #streetProgressList)
-          if (e.target && e.target.closest && e.target.closest('#scheduleList, #streetProgressList')) {
-            return;
-          }
-
-          const now = performance.now();
-          const currentScreenX = e.touches[0].screenX;
-          const currentScreenY = e.touches[0].screenY;
-          const totalDx = currentScreenX - startScreenX;
-          const totalDy = startScreenY - currentScreenY;
-          const deltaY = lastScreenY - currentScreenY;
-
-          const wsOverlay = document.getElementById('workshopOverlay');
-          const isWsVisible = wsOverlay && wsOverlay.style.display !== 'none' && getComputedStyle(wsOverlay).display !== 'none';
-
-          if (!isDraggingScroll) {
-            if (!isWsVisible && !twoFingerHintShown && Math.abs(totalDx) > 18 && Math.abs(totalDx) > Math.abs(totalDy) * 1.5) {
-              twoFingerHintShown = true;
-              showTwoFingerTouchHint();
-            }
-            if (Math.abs(totalDy) > 5) {
-              isDraggingScroll = true;
-            }
-          }
-
-          if (isDraggingScroll || Math.abs(deltaY) > 0.5) {
-            if (isDraggingScroll && e.cancelable) {
-              e.preventDefault();
-            }
-            const dt = Math.max(1, now - lastMoveTs);
-            lastScreenY = currentScreenY;
-            lastMoveTs = now;
-
-            // Exponentially smoothed velocity (px per ms)
-            const instVel = deltaY / dt;
-            velocityY = velocityY * 0.35 + instVel * 0.65;
-
-            if (isDraggingScroll && Math.abs(deltaY) > 0.5) {
-              forwardScrollToParent(deltaY);
-            }
-          }
-        }, { passive: false });
-
-        window.addEventListener('touchend', () => {
-          lastScreenY = null;
-          isDraggingScroll = false;
-          const sinceLastMove = performance.now() - lastMoveTs;
-          if (sinceLastMove < 90 && Math.abs(velocityY) > 0.12) {
-            let lastFrameTs = performance.now();
-            const stepMomentum = (now) => {
-              const dt = Math.min(32, Math.max(8, now - lastFrameTs));
-              lastFrameTs = now;
-              velocityY *= Math.pow(0.95, dt / 16);
-              const stepDelta = velocityY * dt;
-              if (Math.abs(stepDelta) >= 0.6) {
-                forwardScrollToParent(stepDelta);
-                momentumRaf = requestAnimationFrame(stepMomentum);
-              } else {
-                stopMomentum();
-              }
-            };
-            momentumRaf = requestAnimationFrame(stepMomentum);
-          } else {
-            velocityY = 0;
-          }
-        }, { passive: true });
-
-        window.addEventListener('touchcancel', () => {
-          lastScreenY = null;
-          isDraggingScroll = false;
-          stopMomentum();
-        }, { passive: true });
 
         // Support invisible parent scroll-guard tap pass-through, 2-finger pinch/pan, and modal state sync
         let lastModalOpenState = false;

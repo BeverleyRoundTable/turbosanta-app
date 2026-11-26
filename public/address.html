@@ -754,6 +754,17 @@
         processCoordinates(e.latlng.lat, e.latlng.lng);
       }
     });
+
+    const lookupMapEl = document.getElementById('lookup-map');
+    if (lookupMapEl) {
+      lookupMapEl.addEventListener('wheel', function(e) {
+        if (!e.ctrlKey && !e.metaKey) return;
+        if (!map) return;
+        if (e.cancelable) e.preventDefault();
+        const zoomDelta = e.deltaY < 0 ? 1 : -1;
+        map.setZoom(map.getZoom() + zoomDelta);
+      }, { passive: false });
+    }
   }
 
   function extractRouteSponsors(route) {
