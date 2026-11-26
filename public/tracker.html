@@ -20,6 +20,8 @@
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script defer src="/protomaps-leaflet.min.js"></script>
+  <script defer src="/map_tiles.js"></script>
   <!-- leaflet-gpx removed: never used (GPX is parsed manually in loadGpxRoute).
        leaflet-rotate + MapLibre GL JS (~800KB, driver-mode satnav only) are now
        lazy-loaded in init() when ?driver=1 — spectators skip them entirely. -->
@@ -3894,7 +3896,7 @@
           for (const step of turnSteps) {
             try {
               const res = await fetch(
-                `https://nominatim.openstreetmap.org/reverse?lat=${step.loc.lat.toFixed(6)}&lon=${step.loc.lng.toFixed(6)}&format=json&zoom=18&addressdetails=1`,
+                `https://nominatim.openstreetmap.org/reverse?lat=${step.loc.lat.toFixed(6)}&lon=${step.loc.lng.toFixed(6)}&format=json&zoom=18&addressdetails=1&email=turbosanta@beverleyroundtable.co.uk`,
                 { headers: { 'User-Agent': 'TurboSanta-SleighTracker/1.0' } }
               );
               if (!res.ok) continue;
@@ -4281,7 +4283,7 @@
           this.inFlightCtrl = ctrl;
           const mySeq = ++this.reqSeq;
 
-          fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.lat.toFixed(6)}&lon=${pos.lng.toFixed(6)}&format=json&zoom=18&addressdetails=1`, {
+          fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.lat.toFixed(6)}&lon=${pos.lng.toFixed(6)}&format=json&zoom=18&addressdetails=1&email=turbosanta@beverleyroundtable.co.uk`, {
             signal: ctrl.signal,
             headers: { 'Accept': 'application/json' }
           })
@@ -7421,10 +7423,14 @@
           AppState.map.on("zoom", syncMarkerScalesToZoom);
           AppState.map.on("zoomend", handleZoomVisuals);
           
-          L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            maxZoom: 19,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          }).addTo(AppState.map);
+          if (window.TurboMapTiles) {
+            window.TurboMapTiles.attachBaseLayer(AppState.map, { maxZoom: 19 });
+          } else {
+            L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+              maxZoom: 19,
+              attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
+            }).addTo(AppState.map);
+          }
           
           if (AppState.flags.isKiosk) {
             const m = AppState.map;

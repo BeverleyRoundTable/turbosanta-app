@@ -17,6 +17,8 @@
   <!-- Leaflet CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/protomaps-leaflet.min.js"></script>
+  <script src="/map_tiles.js"></script>
 
   <!-- Turf.js for Lightning-Fast Client-Side Spatial Math -->
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
@@ -720,23 +722,33 @@
     return { isFutureOrToday, parsedTime };
   }
 
+  let baseTilesAttached = false;
+  function ensureBaseTiles() {
+    if (baseTilesAttached || !map) return;
+    baseTilesAttached = true;
+    if (window.TurboMapTiles) {
+      window.TurboMapTiles.attachBaseLayer(map, { maxZoom: 19 });
+    } else {
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        subdomains: 'abcd',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>',
+        maxZoom: 19
+      }).addTo(map);
+    }
+  }
+
   function initMap() {
     const isEmbeddedTouch = (window.self !== window.top) &&
       (('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
 
-    // Initialized to Marchesi House (Round Table HQ) as the national fallback
+    // Defer initial setView & tiles until town routes load so Birmingham HQ tiles are never double-fetched
     map = L.map('lookup-map', {
       scrollWheelZoom: false,
       dragging: !isEmbeddedTouch,
       wheelPxPerZoomLevel: 120,
       zoomDelta: 1,
       wheelDebounceTime: 60
-    }).setView([52.4708, -1.9207], 15);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap',
-      maxZoom: 18
-    }).addTo(map);
+    });
 
     map.on('click', function(e) {
       if (!document.getElementById('locateBtn').disabled) {
@@ -983,6 +995,7 @@
           // Fallback to Round Table HQ (Marchesi House)
           map.setView([52.4708, -1.9207], 13);
         }
+        ensureBaseTiles();
 
         applyDeepLink();
 
@@ -1001,6 +1014,8 @@
       }
     } catch (err) {
       console.error("Failed to fetch route data:", err);
+      if (!map._loaded) map.setView([52.4708, -1.9207], 13);
+      ensureBaseTiles();
     } finally {
       btn.innerHTML = defaultBtnHtml;
       btn.disabled = false;
@@ -1229,6 +1244,7 @@
     if (!options.skipZoom) {
       map.setView([lat, lng], 16);
     }
+    ensureBaseTiles();
 
     const userLocation = turf.point([lng, lat]);
     const matchedRoutes = [];

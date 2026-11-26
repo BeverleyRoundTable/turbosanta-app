@@ -10,6 +10,8 @@
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/protomaps-leaflet.min.js"></script>
+  <script src="/map_tiles.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.7.0/gpx.min.js"></script>
 
   <style>
@@ -182,15 +184,24 @@
     document.addEventListener("DOMContentLoaded", async () => {
       const loader = document.getElementById("loadingCover");
 
-      // Initialize Map (Round Table HQ fallback)
-      map = L.map("map", { zoomControl: false }).setView([52.4708, -1.9207], 13);
+      // Defer initial setView & tiles until town coordinates resolve to avoid double-fetching Birmingham HQ tiles
+      map = L.map("map", { zoomControl: false });
       L.control.zoom({ position: 'bottomright' }).addTo(map);
-      
-      // Standard OpenStreetMap tiles
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: '© OpenStreetMap'
-      }).addTo(map);
+
+      let baseTilesAttached = false;
+      const ensureBaseTiles = () => {
+        if (baseTilesAttached) return;
+        baseTilesAttached = true;
+        if (window.TurboMapTiles) {
+          window.TurboMapTiles.attachBaseLayer(map, { maxZoom: 19 });
+        } else {
+          L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+            subdomains: 'abcd',
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>'
+          }).addTo(map);
+        }
+      };
 
       try {
         const fetchUrl = apiUrl
@@ -202,7 +213,10 @@
 
         if (data.table?.lat && data.table?.lng) {
           map.setView([parseFloat(data.table.lat), parseFloat(data.table.lng)], 13);
+        } else {
+          map.setView([52.4708, -1.9207], 13);
         }
+        ensureBaseTiles();
 
         // ⭐ CURATED COLOR PALETTE: Red, Blue, Forest Green, Deep Orange, Purple, Teal
         const colorPalette = [
@@ -238,6 +252,8 @@
         });
         setTimeout(() => loader.classList.add("done"), 800);
       } catch (err) {
+        if (!map._loaded) map.setView([52.4708, -1.9207], 13);
+        ensureBaseTiles();
         loader.innerHTML = "<div style='color: var(--red); font-weight: bold;'>❌ Failed to load existing routes.</div>";
       }
 

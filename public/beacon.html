@@ -893,7 +893,7 @@ function gpsOn() {
     if (window._geoCtrl) { try { window._geoCtrl.abort(); } catch {} }
     window._geoCtrl = new AbortController();
     const seq = (window._geoSeq = (window._geoSeq || 0) + 1);
-    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${c.latitude.toFixed(6)}&lon=${c.longitude.toFixed(6)}&format=json&zoom=18&addressdetails=1`, {
+    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${c.latitude.toFixed(6)}&lon=${c.longitude.toFixed(6)}&format=json&zoom=18&addressdetails=1&email=turbosanta@beverleyroundtable.co.uk`, {
       signal: window._geoCtrl.signal,
       headers: { 'User-Agent': 'TurboSanta-Beacon/1.0' }
     })

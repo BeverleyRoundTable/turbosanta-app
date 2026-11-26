@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { Compass, Maximize2, Minimize2, Radio, Wrench, Building2 } from 'lucide-react';
 import { fetchLiveGps } from '../services/api';
+import { attachBaseLayer } from '../utils/mapTiles';
 import WorkshopOverlay from './WorkshopOverlay';
 
 // Dynamic route points fallback (empty by default — genuine data only)
@@ -36,11 +37,8 @@ export default function LiveMap({ tableData }) {
       attributionControl: true
     });
 
-    // 🗺️ EXACT OPENSTREETMAP TILE LAYER FROM tracker.html & address.html
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
-    }).addTo(map);
+    // 🗺️ 3-TIER MAP BASE LAYER (Self-hosted R2 UK PMTiles -> CARTO Voyager -> Canonical OSM)
+    attachBaseLayer(map, { maxZoom: 19 });
 
     if (BEVERLEY_ROUTE_POINTS.length > 0) {
       // 🎄 DUAL-LAYER ROUTE LINE (Gold Glow + Red Core, identical to tracker.html lines 2712-2713)

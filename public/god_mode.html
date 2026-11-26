@@ -14,6 +14,8 @@
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/protomaps-leaflet.min.js"></script>
+  <script src="/map_tiles.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.7.0/gpx.min.js"></script>
   <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 
@@ -1616,10 +1618,15 @@ function initMap() {
     wheelDebounceTime: 60
   }).setView([startLat, startLng], startZoom);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '© OpenStreetMap'
-  }).addTo(STATE.map);
+  if (window.TurboMapTiles) {
+    window.TurboMapTiles.attachBaseLayer(STATE.map, { maxZoom: 19 });
+  } else {
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      subdomains: 'abcd',
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>'
+    }).addTo(STATE.map);
+  }
 
   const iconUrl = s.sleigh_icon_live || 'https://turbosanta-app.pages.dev/icons/sleigh_icon.png';
   STATE.marker = L.marker([startLat, startLng], {

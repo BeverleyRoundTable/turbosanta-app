@@ -207,7 +207,10 @@ function startRoutes() {
             shadowUrl: null // Explicitly disable shadow
         });
 
-        mapContainers.forEach(async (container) => {
+        const initCardMap = async (container) => {
+            if (!container || container.dataset.mapInit === '1') return;
+            container.dataset.mapInit = '1';
+
             const gpxUrl = container.getAttribute('data-gpx');
             if (!gpxUrl) return;
 
@@ -217,10 +220,20 @@ function startRoutes() {
                 scrollWheelZoom: false // Prevent page scrolling from getting stuck on the map
             });
 
-            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { 
-                maxZoom: 19,
-                attribution: '© OpenStreetMap'
-            }).addTo(map);
+            let baseTilesAttached = false;
+            const ensureBaseTiles = () => {
+                if (baseTilesAttached) return;
+                baseTilesAttached = true;
+                if (window.TurboMapTiles) {
+                    window.TurboMapTiles.attachBaseLayer(map, { maxZoom: 19 });
+                } else {
+                    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+                        subdomains: 'abcd',
+                        maxZoom: 19,
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>'
+                    }).addTo(map);
+                }
+            };
 
             try {
                 // Fetch the GPX file directly
@@ -240,6 +253,7 @@ function startRoutes() {
                     stopPts.forEach(c => L.marker(c, { icon: startIcon }).addTo(map));
                     if (stopPts.length === 1) map.setView(stopPts[0], 15);
                     else map.fitBounds(stopPts, { padding: [20, 20] });
+                    ensureBaseTiles();
                     return;
                 }
 
@@ -254,6 +268,7 @@ function startRoutes() {
 
                 // Auto-center and zoom the map to fit the route perfectly
                 map.fitBounds(routeLine.getBounds(), { padding: [20, 20] });
+                ensureBaseTiles();
 
                 // Drop the pins
                 L.marker(latLngs[0], { icon: startIcon }).addTo(map);
@@ -261,8 +276,23 @@ function startRoutes() {
 
             } catch (err) {
                 console.error("Map rendering error:", err);
+                ensureBaseTiles();
             }
-        });
+        };
+
+        if ('IntersectionObserver' in window) {
+            const io = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        io.unobserve(entry.target);
+                        initCardMap(entry.target);
+                    }
+                });
+            }, { rootMargin: '250px' });
+            mapContainers.forEach((container) => io.observe(container));
+        } else {
+            mapContainers.forEach(initCardMap);
+        }
     }
 }
 

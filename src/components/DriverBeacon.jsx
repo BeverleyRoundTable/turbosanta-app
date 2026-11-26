@@ -183,7 +183,7 @@ export default function DriverBeacon({ session, onBack, onQuickAnnouncement }) {
             geoAbortRef.current = ctrl;
             const mySeq = ++geoSeqRef.current;
 
-            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`, { signal: ctrl.signal })
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1&email=turbosanta@beverleyroundtable.co.uk`, { signal: ctrl.signal })
               .then(r => (r.ok ? r.json() : null))
               .then(gData => {
                 if (mySeq !== geoSeqRef.current || !gData || !gData.address) return;

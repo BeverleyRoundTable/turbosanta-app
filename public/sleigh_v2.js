@@ -3049,7 +3049,7 @@
         if (!coords && pc) {
           const town = extractTownName(state.payload?.table, state.slug);
           const q = isLikelyUkPostcode(pc) ? pc : `${pc}, ${town}, UK`;
-          const gRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=gb&limit=1&q=${encodeURIComponent(q)}`);
+          const gRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=gb&limit=1&email=turbosanta@beverleyroundtable.co.uk&q=${encodeURIComponent(q)}`);
           const gData = await gRes.json();
           if (Array.isArray(gData) && gData[0]) {
             coords = { lat: parseFloat(gData[0].lat), lng: parseFloat(gData[0].lon) };

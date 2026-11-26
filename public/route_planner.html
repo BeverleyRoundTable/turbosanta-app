@@ -14,6 +14,8 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="/protomaps-leaflet.min.js"></script>
+<script src="/map_tiles.js"></script>
 <script src="/leaflet.polylineDecorator.min.js"></script>
 <script>
   if (!window.L || !L.polylineDecorator) {
@@ -626,9 +628,14 @@ const map = L.map('map', {
   zoomDelta: 1,
   wheelDebounceTime: 60
 }).setView([52.4708, -1.9207], 15);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap', maxZoom: 19
-}).addTo(map);
+if (window.TurboMapTiles) {
+  window.TurboMapTiles.attachBaseLayer(map, { maxZoom: 19, layerControl: true });
+} else {
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
+    maxZoom: 19
+  }).addTo(map);
+}
 stopsLayer.addTo(map);
 startFinishLayer.addTo(map);
 
