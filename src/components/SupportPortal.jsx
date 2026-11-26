@@ -300,7 +300,7 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
   const handleUpdateTicketStatus = async (ticketId, newStatus) => {
     setUpdatingTicketId(ticketId);
     try {
-      const isResolved = newStatus === 'resolved' || newStatus === 'closed';
+      const isResolved = newStatus === 'resolved';
       const res = await updateSupportTicket(ticketId, { status: newStatus, notify_recipient: isResolved });
       setTickets(prev => prev.map(t => t.id === ticketId ? {
         ...t,
@@ -320,9 +320,9 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
           ? `\n\nSummary:\n${String(res.resolution_summary).slice(0, 260)}${String(res.resolution_summary).length > 260 ? '...' : ''}`
           : '';
         if (res?.email_dispatched) {
-          alert(`✅ Ticket marked as ${newStatus.toUpperCase()}!\n\nResolution email sent to: ${res.email_to || 'recipient'}${preview}`);
+          alert(`✅ Ticket marked as RESOLVED!\n\nResolution email sent to: ${res.email_to || 'recipient'}${preview}`);
         } else {
-          alert(`⚠️ Ticket marked as ${newStatus.toUpperCase()}, but the resolution email could not be sent: ${res?.email_error || 'Check Gmail connection or contact email.'}${preview}`);
+          alert(`⚠️ Ticket marked as RESOLVED, but the resolution email could not be sent: ${res?.email_error || 'Check Gmail connection or contact email.'}${preview}`);
         }
       }
     } catch (err) {
@@ -335,14 +335,16 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
   const handleSaveModalTicket = async (ticketId) => {
     setUpdatingTicketId(ticketId);
     try {
-      const isResolved = modalStatus === 'resolved' || modalStatus === 'closed';
+      const isResolved = modalStatus === 'resolved';
+      const isClosed = modalStatus === 'closed';
+      const canNotify = isResolved || isClosed;
       const trimmedRecipient = modalRecipientEmail.trim();
       const res = await updateSupportTicket(ticketId, {
         status: modalStatus,
         rag_status: modalRag,
         admin_notes: adminNoteInput,
-        notify_recipient: isResolved ? notifyRecipient : false,
-        recipient_email: isResolved && notifyRecipient && trimmedRecipient ? trimmedRecipient : undefined
+        notify_recipient: canNotify ? notifyRecipient : false,
+        recipient_email: canNotify && notifyRecipient && trimmedRecipient ? trimmedRecipient : undefined
       });
       setTickets(prev => prev.map(t => t.id === ticketId ? {
         ...t,
@@ -358,10 +360,18 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
           ? `\n\nSummary:\n${String(res.resolution_summary).slice(0, 260)}${String(res.resolution_summary).length > 260 ? '...' : ''}`
           : '';
         if (res?.email_dispatched) {
-          alert(`✅ Ticket #${tktNum} marked as ${modalStatus.toUpperCase()}!\n\nResolution email dispatched to ${res.email_to || trimmedRecipient || activeTicketModal?.contact_email}.${preview}`);
+          alert(`✅ Ticket #${tktNum} marked as RESOLVED!\n\nResolution email dispatched to ${res.email_to || trimmedRecipient || activeTicketModal?.contact_email}.${preview}`);
         } else {
-          alert(`⚠️ Ticket #${tktNum} marked as ${modalStatus.toUpperCase()}, but the resolution email was NOT sent: ${res?.email_error || 'Check Gmail connection or contact email.'}${preview}`);
+          alert(`⚠️ Ticket #${tktNum} marked as RESOLVED, but the resolution email was NOT sent: ${res?.email_error || 'Check Gmail connection or contact email.'}${preview}`);
         }
+      } else if (isClosed && notifyRecipient) {
+        if (res?.email_dispatched) {
+          alert(`Ticket #${tktNum} closed!\n\nUpdate email dispatched to ${res.email_to || trimmedRecipient || activeTicketModal?.contact_email}.`);
+        } else {
+          alert(`⚠️ Ticket #${tktNum} marked as CLOSED, but the update email was NOT sent: ${res?.email_error || 'Check Gmail connection or contact email.'}`);
+        }
+      } else if (isClosed) {
+        alert(`Ticket #${tktNum} closed silently (no email sent).`);
       } else {
         alert("Ticket details updated successfully.");
       }
@@ -1792,9 +1802,10 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
                               onClick={() => {
                                 setActiveTicketModal(ticket);
                                 setAdminNoteInput(ticket.admin_notes || '');
-                                setModalStatus(ticket.status || 'open');
+                                const initialStatus = ticket.status || 'open';
+                                setModalStatus(initialStatus);
                                 setModalRag(ticket.rag_status || 'amber');
-                                setNotifyRecipient(true);
+                                setNotifyRecipient(initialStatus !== 'closed');
                                 setModalRecipientEmail(ticket.contact_email || '');
                               }}
                               style={{
@@ -2030,7 +2041,15 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
                 </label>
                 <select
                   value={modalStatus}
-                  onChange={(e) => setModalStatus(e.target.value)}
+                  onChange={(e) => {
+                    const nextStatus = e.target.value;
+                    setModalStatus(nextStatus);
+                    if (nextStatus === 'closed') {
+                      setNotifyRecipient(false);
+                    } else if (nextStatus === 'resolved') {
+                      setNotifyRecipient(true);
+                    }
+                  }}
                   style={{
                     width: '100%',
                     backgroundColor: '#1d1d1a',
@@ -2072,65 +2091,73 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
               />
             </div>
 
-            {/* Auto-Email Resolution Checkbox & Recipient Input */}
-            {(modalStatus === 'resolved' || modalStatus === 'closed') && (
-              <div style={{
-                marginBottom: '18px',
-                padding: '10px 14px',
-                backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                border: '1px solid rgba(34, 197, 94, 0.3)',
-                borderRadius: '8px'
-              }}>
-                <label style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  cursor: 'pointer',
-                  fontSize: '12px',
-                  color: '#86efac',
-                  fontWeight: 600
+            {/* Auto-Email Resolution / Closed Update Checkbox & Recipient Input */}
+            {(modalStatus === 'resolved' || modalStatus === 'closed') && (() => {
+              const isClosedStatus = modalStatus === 'closed';
+              const recipientDisplay = modalRecipientEmail.trim() || (activeTicketModal.contact_name ? `${activeTicketModal.contact_name} (${activeTicketModal.contact_email})` : activeTicketModal.contact_email);
+              return (
+                <div style={{
+                  marginBottom: '18px',
+                  padding: '10px 14px',
+                  backgroundColor: isClosedStatus ? 'rgba(148, 163, 184, 0.12)' : 'rgba(34, 197, 94, 0.1)',
+                  border: isClosedStatus ? '1px solid rgba(148, 163, 184, 0.35)' : '1px solid rgba(34, 197, 94, 0.3)',
+                  borderRadius: '8px'
                 }}>
-                  <input
-                    type="checkbox"
-                    checked={notifyRecipient}
-                    onChange={(e) => setNotifyRecipient(e.target.checked)}
-                    style={{ accentColor: '#22c55e', width: '16px', height: '16px', cursor: 'pointer' }}
-                  />
-                  <span>
-                    Auto-email resolution briefing to <strong>{modalRecipientEmail.trim() || (activeTicketModal.contact_name ? `${activeTicketModal.contact_name} (${activeTicketModal.contact_email})` : activeTicketModal.contact_email)}</strong>
-                  </span>
-                </label>
-                {notifyRecipient && (
-                  <div style={{ marginTop: '10px' }}>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '11px',
-                      color: 'rgba(255, 255, 255, 0.7)',
-                      marginBottom: '4px',
-                      fontWeight: 600
-                    }}>
-                      Send Resolution Email To (comma-separated for multiple)
-                    </label>
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    color: isClosedStatus ? '#e2e8f0' : '#86efac',
+                    fontWeight: 600
+                  }}>
                     <input
-                      type="text"
-                      value={modalRecipientEmail}
-                      onChange={(e) => setModalRecipientEmail(e.target.value)}
-                      placeholder={activeTicketModal.contact_email || 'recipient@roundtable.org.uk'}
-                      style={{
-                        width: '100%',
-                        backgroundColor: 'rgba(0, 0, 0, 0.35)',
-                        border: '1px solid rgba(34, 197, 94, 0.35)',
-                        borderRadius: '6px',
-                        padding: '7px 10px',
-                        color: '#ffffff',
-                        fontSize: '12px',
-                        boxSizing: 'border-box'
-                      }}
+                      type="checkbox"
+                      checked={notifyRecipient}
+                      onChange={(e) => setNotifyRecipient(e.target.checked)}
+                      style={{ accentColor: isClosedStatus ? '#94a3b8' : '#22c55e', width: '16px', height: '16px', cursor: 'pointer' }}
                     />
-                  </div>
-                )}
-              </div>
-            )}
+                    <span>
+                      {isClosedStatus
+                        ? <>Email update to <strong>{recipientDisplay}</strong> (neutral closed notice — no fix summary)</>
+                        : <>Auto-email resolution briefing to <strong>{recipientDisplay}</strong></>}
+                    </span>
+                  </label>
+                  {notifyRecipient && (
+                    <div style={{ marginTop: '10px' }}>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '11px',
+                        color: 'rgba(255, 255, 255, 0.7)',
+                        marginBottom: '4px',
+                        fontWeight: 600
+                      }}>
+                        {isClosedStatus
+                          ? 'Send Update Email To (comma-separated for multiple)'
+                          : 'Send Resolution Email To (comma-separated for multiple)'}
+                      </label>
+                      <input
+                        type="text"
+                        value={modalRecipientEmail}
+                        onChange={(e) => setModalRecipientEmail(e.target.value)}
+                        placeholder={activeTicketModal.contact_email || 'recipient@roundtable.org.uk'}
+                        style={{
+                          width: '100%',
+                          backgroundColor: 'rgba(0, 0, 0, 0.35)',
+                          border: isClosedStatus ? '1px solid rgba(148, 163, 184, 0.35)' : '1px solid rgba(34, 197, 94, 0.35)',
+                          borderRadius: '6px',
+                          padding: '7px 10px',
+                          color: '#ffffff',
+                          fontSize: '12px',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button
@@ -2151,7 +2178,7 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
                 onClick={() => handleSaveModalTicket(activeTicketModal.id)}
                 disabled={updatingTicketId === activeTicketModal.id}
                 style={{
-                  backgroundColor: (modalStatus === 'resolved' || modalStatus === 'closed') ? '#22c55e' : '#FBAF33',
+                  backgroundColor: modalStatus === 'resolved' ? '#22c55e' : (modalStatus === 'closed' ? '#94a3b8' : '#FBAF33'),
                   border: 'none',
                   borderRadius: '6px',
                   color: '#000000',
@@ -2168,9 +2195,11 @@ export default function SupportPortal({ session: propSession, onBackToAdmin, onB
               >
                 {updatingTicketId === activeTicketModal.id
                   ? 'Saving...'
-                  : (modalStatus === 'resolved' || modalStatus === 'closed')
+                  : modalStatus === 'resolved'
                     ? (notifyRecipient ? 'Save & Email Resolution ✅' : 'Save & Mark Resolved ✅')
-                    : 'Save Changes'}
+                    : modalStatus === 'closed'
+                      ? (notifyRecipient ? 'Save & Email Update' : 'Save & Close Ticket')
+                      : 'Save Changes'}
               </button>
             </div>
           </div>
