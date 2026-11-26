@@ -4583,7 +4583,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                         flexWrap: 'wrap',
                         gap: '16px'
                       }}>
-                        <div style={{ flex: 1, minWidth: '260px' }}>
+                        <div style={{ flex: 1, minWidth: 'min(100%, 260px)' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px', flexWrap: 'wrap' }}>
                             <strong style={{ fontSize: '19px', color: '#fff' }}>
                               Molescroft & Woodhall Way
@@ -4702,7 +4702,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                                   gap: '16px'
                                 }}
                               >
-                                <div style={{ flex: 1, minWidth: '240px' }}>
+                                <div style={{ flex: 1, minWidth: 'min(100%, 240px)' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
                                     <strong style={{ fontSize: '20px', color: '#fff' }}>
                                       {r.name}
@@ -5096,7 +5096,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                                   gap: '16px'
                                 }}
                               >
-                                <div style={{ flex: 1, minWidth: '240px' }}>
+                                <div style={{ flex: 1, minWidth: 'min(100%, 240px)' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                                     <strong style={{ fontSize: '19px', color: '#eaeae5' }}>
                                       {r.name}
@@ -5543,7 +5543,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
               </label>
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))',
                 gap: '12px'
               }}>
                 {webhookProviders.map(p => {
@@ -6130,7 +6130,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                           }}
                         />
                       </div>
-                      <div style={{ flex: 1, minWidth: '180px' }}>
+                      <div style={{ flex: 1, minWidth: 'min(100%, 180px)' }}>
                         <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Simulated Donor Name</label>
                         <input
                           type="text"
@@ -6249,7 +6249,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   {/* Provider Breakdown Grid */}
                   <div style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 170px), 1fr))',
                     gap: '12px'
                   }}>
                     {webhookProviders.map(p => {
@@ -6334,7 +6334,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '14px', marginBottom: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600 }}>
                     SumUp Secret API Key {(tableData?.table?.sumup_connected || tableData?.table?.sumup_configured) ? <span style={{ color: '#22c55e' }}>(✓ Connected)</span> : '(Street Card Readers)'}
@@ -6435,7 +6435,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                 padding: '12px 14px',
                 marginBottom: '16px',
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
                 gap: '12px',
                 alignItems: 'end'
               }}>
@@ -7619,7 +7619,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   }}>
                     {/* Top row: Filter & Search */}
                     <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-                      <div style={{ flex: '1 1 220px', minWidth: '180px' }}>
+                      <div style={{ flex: '1 1 220px', minWidth: 'min(100%, 180px)' }}>
                         <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
                           Filter by Route Night:
                         </label>
@@ -7645,7 +7645,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                         </select>
                       </div>
 
-                      <div style={{ flex: '1 1 200px', minWidth: '160px' }}>
+                      <div style={{ flex: '1 1 200px', minWidth: 'min(100%, 160px)' }}>
                         <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
                           Search Volunteer:
                         </label>
@@ -8397,7 +8397,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                         flexWrap: 'wrap'
                       }}
                     >
-                      <div style={{ flex: 1, minWidth: '220px' }}>
+                      <div style={{ flex: 1, minWidth: 'min(100%, 220px)' }}>
                         <p style={{ margin: '0 0 6px 0', fontSize: '14px', color: '#fff', fontStyle: 'italic' }}>
                           &ldquo;{msg.text}&rdquo;
                         </p>
@@ -8521,7 +8521,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
               Upload your Table's logo directly and configure your fundraising target.
             </p>
 
-            <div style={{ display: 'grid', gap: '20px', maxWidth: '100%' }}>
+            <div className="admin-settings-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '20px', width: '100%', maxWidth: '100%', minWidth: 0 }}>
               {/* Civic Area & Subdomain Aliases Setting */}
               <div style={{
                 background: 'rgba(255, 255, 255, 0.02)',
@@ -9257,7 +9257,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', alignItems: 'end' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '12px', alignItems: 'end' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '5px', fontWeight: 600 }}>
                       Campaign Start Date / Ignore Transactions Before Date:
@@ -9688,7 +9688,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     marginBottom: '12px',
                     flexWrap: 'wrap'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: '1 1 200px' }}>
                       <div style={{
                         width: '60px',
                         height: '40px',
@@ -9702,11 +9702,11 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                       }}>
                         📹
                       </div>
-                      <div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>
                           Custom Video Loop Active
                         </div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                           {formData.background_video_url || 'Enter custom .mp4 URL above.'}
                         </div>
                       </div>
@@ -10001,7 +10001,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   {Array.isArray(formData.custom_links) && formData.custom_links.length > 0 && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
                       {formData.custom_links.map((link, idx) => (
-                        <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'center', background: '#161614', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                        <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', background: '#161614', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border)' }}>
                           <input
                             type="text"
                             value={link.label || ''}
@@ -10011,7 +10011,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                               setFormData(prev => ({ ...prev, custom_links: newLinks }));
                             }}
                             placeholder="Link Name (e.g. Beverley Lions Club)"
-                            style={{ flex: 1, minWidth: '130px', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '4px', padding: '6px 10px', color: '#fff', fontSize: '13px' }}
+                            style={{ flex: 1, minWidth: 'min(100%, 130px)', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '4px', padding: '6px 10px', color: '#fff', fontSize: '13px' }}
                           />
                           <input
                             type="url"
@@ -10022,7 +10022,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                               setFormData(prev => ({ ...prev, custom_links: newLinks }));
                             }}
                             placeholder="https://..."
-                            style={{ flex: 2, minWidth: '160px', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '4px', padding: '6px 10px', color: '#fff', fontSize: '13px' }}
+                            style={{ flex: 2, minWidth: 'min(100%, 160px)', background: '#0d0d0b', border: '1px solid var(--border)', borderRadius: '4px', padding: '6px 10px', color: '#fff', fontSize: '13px' }}
                           />
                           <button
                             type="button"
@@ -10601,7 +10601,7 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                   Choose up to 2 interactive features to display on your Round Table&apos;s public website between the Community Memory Book and FAQ sections. Slots are deselected by default to keep public pages lightweight and fast. You can customize the display order using the swap button below.
                 </p>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px', marginBottom: '14px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '14px', marginBottom: '14px' }}>
                   {/* Slot 1 Selection */}
                   <div style={{
                     background: 'rgba(255, 255, 255, 0.03)',
@@ -10610,7 +10610,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     padding: '14px',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '10px'
+                    gap: '10px',
+                    minWidth: 0
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -10743,7 +10744,8 @@ export default function AdminPortal({ session, onLogout, tableData, onUpdateTabl
                     padding: '14px',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '10px'
+                    gap: '10px',
+                    minWidth: 0
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -11686,7 +11688,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                 </p>
 
                 {/* Mode Selector Segmented Buttons */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', marginBottom: '18px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '10px', marginBottom: '18px' }}>
                   <button
                     type="button"
                     onClick={() => {
@@ -11952,7 +11954,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                     </div>
 
                     {/* Playback Settings (Loop, Autoplay, Volume) */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '14px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px' }}>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#fff' }}>
                         <input
                           type="checkbox"
@@ -12031,8 +12033,8 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                   Give this PIN to whoever is driving the sleigh each night. It authorizes GPS broadcasting from the Sat-Nav Cockpit or Battery-Saver Beacon without giving them access to your Table&apos;s Admin Portal or requiring a Google Workspace sign-in.
                 </p>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
-                  <div style={{ background: '#161614', border: '1px solid var(--border)', borderRadius: '8px', padding: '14px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '14px' }}>
+                  <div style={{ background: '#161614', border: '1px solid var(--border)', borderRadius: '8px', padding: '14px', minWidth: 0 }}>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>
                       Driver Broadcast PIN
                     </label>
@@ -12082,12 +12084,12 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                     </div>
                   </div>
 
-                  <div style={{ background: '#161614', border: '1px solid var(--border)', borderRadius: '8px', padding: '14px' }}>
+                  <div style={{ background: '#161614', border: '1px solid var(--border)', borderRadius: '8px', padding: '14px', minWidth: 0 }}>
                     <div style={{ fontSize: '12px', fontWeight: 700, color: '#fff', marginBottom: '8px' }}>
                       Instant Driver Launch Links (Share with Driver)
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', background: '#0a0a09', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap', background: '#0a0a09', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border)', minWidth: 0 }}>
                         <div style={{ minWidth: 0, flex: 1 }}>
                           <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--primary)' }}>3D Driver Sat-Nav &amp; Cockpit</div>
                           <div style={{ fontSize: '10px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -12108,7 +12110,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                         </button>
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', background: '#0a0a09', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap', background: '#0a0a09', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border)', minWidth: 0 }}>
                         <div style={{ minWidth: 0, flex: 1 }}>
                           <div style={{ fontSize: '11px', fontWeight: 700, color: '#22c55e' }}>Battery-Saver Beacon (Low Power)</div>
                           <div style={{ fontSize: '10px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -12224,7 +12226,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                 </p>
 
                 {/* Benefits / Two-Stage Alert Cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '10px', marginBottom: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '10px', marginBottom: '16px' }}>
                   <div style={{ background: '#161614', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px' }}>
                     <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--primary)', marginBottom: '4px' }}>
                       🎅 1. Approaching Alert
@@ -12298,7 +12300,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                             onChange={(e) => setTestEmailAddress(e.target.value)}
                             style={{
                               flex: 1,
-                              minWidth: '200px',
+                              minWidth: 'min(100%, 200px)',
                               background: '#0d0d0b',
                               border: '1px solid var(--border)',
                               borderRadius: '6px',
@@ -12447,7 +12449,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                           onClick={() => setPreviewTab('approaching')}
                           style={{
                             flex: 1,
-                            minWidth: '220px',
+                            minWidth: 'min(100%, 220px)',
                             padding: '10px 14px',
                             borderRadius: '8px',
                             background: previewTab === 'approaching' ? 'rgba(251, 175, 51, 0.15)' : '#0d0d0b',
@@ -12465,7 +12467,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                           onClick={() => setPreviewTab('passed')}
                           style={{
                             flex: 1,
-                            minWidth: '220px',
+                            minWidth: 'min(100%, 220px)',
                             padding: '10px 14px',
                             borderRadius: '8px',
                             background: previewTab === 'passed' ? 'rgba(34, 197, 94, 0.15)' : '#0d0d0b',
@@ -12480,9 +12482,9 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                         </button>
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '20px' }}>
                         {/* Editor Controls */}
-                        <div>
+                        <div style={{ minWidth: 0 }}>
                           {previewTab === 'approaching' ? (
                             <div>
                               <div style={{ marginBottom: '14px' }}>
@@ -12627,7 +12629,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                         </div>
 
                         {/* Visual Email Mockup Preview */}
-                        <div>
+                        <div style={{ minWidth: 0 }}>
                           <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
                             Live Render Preview (Turnkey Theme):
                           </div>
@@ -12750,7 +12752,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                               <div style={{ fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{formData.sleigh_display_name || 'Beverley Round Table Santa Sleigh'}</div>
                               <div style={{ marginTop: '2px' }}>Proudly operated by {currentTableSlug.toUpperCase()} Round Table &bull; Round Table Great Britain &amp; Ireland</div>
                               {formData.charity_number && <div style={{ marginTop: '2px' }}>Registered Charity No. {formData.charity_number}</div>}
-                              <div style={{ marginTop: '6px', color: '#FBAF33', fontSize: '10px' }}>https://{currentTableSlug}.roundtablesantasleigh.co.uk</div>
+                              <div style={{ marginTop: '6px', color: '#FBAF33', fontSize: '10px', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>https://{currentTableSlug}.roundtablesantasleigh.co.uk</div>
                               <div style={{ marginTop: '6px', fontSize: '10px', color: 'rgba(255, 255, 255, 0.45)' }}>You received this automated notification because you dropped a pin on Santa's live tracking map.</div>
                             </div>
                           </div>
@@ -12761,7 +12763,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                 </div>
 
                 {/* Proximity Tuning & Sliders */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '14px', marginBottom: '16px' }}>
                   <div style={{ background: '#161614', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                       <label style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
@@ -12884,7 +12886,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '10px' }}>
                       By default, TurboSanta uses the official Round Table Google Client ID. If your Table has its own Google Cloud project with OAuth consent screen, you can provide your credentials below:
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '10px' }}>
                       <div>
                         <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '3px' }}>Client ID</label>
                         <input
@@ -12961,7 +12963,7 @@ REINDEER: All nine reindeer take turns pulling the ${townName} sleigh, with Rudo
                   Automatically email your volunteer elves and bucket collectors their operational run-sheet ahead of each evening&apos;s route. Dispatches from your connected Google Workspace Gmail with volunteers on BCC for privacy. Includes muster time, assembly location, full street list, safety bubble rules, and live GPS tracker link.
                 </p>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px', marginBottom: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '14px', marginBottom: '16px' }}>
                   <div style={{ background: '#161614', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#fff', fontWeight: 600 }}>
                       <input

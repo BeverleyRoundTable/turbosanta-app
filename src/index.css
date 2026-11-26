@@ -463,4 +463,13 @@ h1, h2, h3, h4, h5, h6, .brand-font, nav a, .nav-link, .header-caps {
   }
 }
 
+.admin-settings-grid > * {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
 
+.admin-settings-grid code {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
