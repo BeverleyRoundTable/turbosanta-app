@@ -90,23 +90,7 @@ const ctx = cvs.getContext("2d");
 let VIEW_W = 0, VIEW_H = 0;
 
 /* ── Map tile style ── */
-const MAP_STYLE = {
-  version: 8,
-  sources: {
-    raster: {
-      type: "raster",
-      tiles: [
-        "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png",
-        "https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png",
-        "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png",
-        "https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png"
-      ],
-      tileSize: 256,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>'
-    }
-  },
-  layers: [{ id: "base", type: "raster", source: "raster" }]
-};
+const MAP_STYLE = "https://tiles.openfreemap.org/styles/bright";
 
 
 /* ═══════════════════════════════════════════════════════════════

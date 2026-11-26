@@ -2,13 +2,15 @@
  * TurboMapTiles — Shared 3-Tier Map Tile Layer Helper (Classic Scripts)
  *
  * Tier 1 (Primary — UK & Ireland): Self-hosted Protomaps v4 uk.pmtiles on Cloudflare R2
- * Tier 2 (Fallback #1 + Outside UK/Ireland e.g. Lapland): CARTO Voyager (@2x CDN)
+ * Tier 2 (Fallback #1 + Outside UK/Ireland e.g. Lapland): Esri World Street Map
  * Tier 3 (Last-Resort Fallback #2): Canonical single-host OpenStreetMap (tile.openstreetmap.org)
  */
 (function (global) {
   'use strict';
 
   var WORKER_MAPS_URL = 'https://turbosanta-api.beverley247.workers.dev/maps/uk.pmtiles';
+  var ESRI_STREET_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';
+  var ESRI_ATTR = 'Tiles &copy; <a href="https://www.esri.com/" target="_blank" rel="noopener">Esri</a> &mdash; Esri, TomTom, Garmin, FAO, NOAA, USGS';
   var _probePromise = null;
 
   function resolvePmtilesUrl() {
@@ -68,12 +70,11 @@
     });
   }
 
-  function createCartoLayer(opts) {
+  function createEsriLayer(opts) {
     var o = opts || {};
-    return global.L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
+    return global.L.tileLayer(ESRI_STREET_URL, {
       maxZoom: o.maxZoom || 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>'
+      attribution: ESRI_ATTR
     });
   }
 
@@ -92,11 +93,11 @@
     var o = opts || {};
     var pmtilesUrl = o.pmtilesUrl || resolvePmtilesUrl();
     var r2Layer = createR2Layer({ pmtilesUrl: pmtilesUrl, flavor: o.flavor, maxDataZoom: o.maxDataZoom, maxZoom: o.maxZoom });
-    var cartoLayer = createCartoLayer(o);
+    var esriLayer = createEsriLayer(o);
     var osmLayer = createOsmLayer(o);
 
     var r2Healthy = Boolean(r2Layer);
-    var cartoHealthy = true;
+    var esriHealthy = true;
     var manualOverride = false;
     var internalSwap = false;
     var activeTier = null;
@@ -111,8 +112,8 @@
     }
 
     function setTier(tier) {
-      var target = tier === 'r2' ? r2Layer : (tier === 'osm' ? osmLayer : cartoLayer);
-      if (!target) target = cartoLayer;
+      var target = tier === 'r2' ? r2Layer : (tier === 'osm' ? osmLayer : esriLayer);
+      if (!target) target = esriLayer;
       if (activeLayer === target && map.hasLayer(target)) {
         activeTier = tier;
         return;
@@ -126,7 +127,7 @@
           target.addTo(map);
         }
         activeLayer = target;
-        activeTier = (target === r2Layer) ? 'r2' : ((target === osmLayer) ? 'osm' : 'carto');
+        activeTier = (target === r2Layer) ? 'r2' : ((target === osmLayer) ? 'osm' : 'esri');
       } finally {
         internalSwap = false;
       }
@@ -136,8 +137,8 @@
       if (manualOverride) return;
       if (r2Layer && r2Healthy && getMapInsideUk()) {
         setTier('r2');
-      } else if (cartoHealthy) {
-        setTier('carto');
+      } else if (esriHealthy) {
+        setTier('esri');
       } else {
         setTier('osm');
       }
@@ -153,20 +154,20 @@
         if (r2Errors.length >= 4 && r2Healthy) {
           r2Healthy = false;
           if (!manualOverride && activeTier === 'r2') {
-            setTier(cartoHealthy ? 'carto' : 'osm');
+            setTier(esriHealthy ? 'esri' : 'osm');
           }
         }
       });
     }
 
-    var cartoErrors = [];
-    cartoLayer.on('tileerror', function () {
+    var esriErrors = [];
+    esriLayer.on('tileerror', function () {
       var now = Date.now();
-      cartoErrors = cartoErrors.filter(function (ts) { return now - ts < 10000; });
-      cartoErrors.push(now);
-      if (cartoErrors.length >= 4 && cartoHealthy) {
-        cartoHealthy = false;
-        if (!manualOverride && activeTier === 'carto') {
+      esriErrors = esriErrors.filter(function (ts) { return now - ts < 10000; });
+      esriErrors.push(now);
+      if (esriErrors.length >= 4 && esriHealthy) {
+        esriHealthy = false;
+        if (!manualOverride && activeTier === 'esri') {
           setTier('osm');
         }
       }
@@ -176,7 +177,7 @@
     if (r2Layer && r2Healthy && getMapInsideUk()) {
       setTier('r2');
     } else {
-      setTier('carto');
+      setTier('esri');
     }
 
     // Probe R2 in background; downgrade cleanly if uk.pmtiles is unavailable or rejects range
@@ -185,7 +186,7 @@
         if (!ok) {
           r2Healthy = false;
           if (!manualOverride && activeTier === 'r2') {
-            setTier(cartoHealthy ? 'carto' : 'osm');
+            setTier(esriHealthy ? 'esri' : 'osm');
           }
         }
       });
@@ -197,7 +198,7 @@
     if (o.layerControl === true && global.L && typeof global.L.control.layers === 'function') {
       var baseLayers = {};
       if (r2Layer) baseLayers['UK Fast Map (R2)'] = r2Layer;
-      baseLayers['CARTO Voyager'] = cartoLayer;
+      baseLayers['Esri Street Map'] = esriLayer;
       baseLayers['Classic OSM'] = osmLayer;
       layerControl = global.L.control.layers(baseLayers, null, {
         position: o.controlPosition || 'topright'
@@ -209,8 +210,8 @@
         if (e.layer === r2Layer) {
           activeTier = 'r2';
           manualOverride = !getMapInsideUk();
-        } else if (e.layer === cartoLayer) {
-          activeTier = 'carto';
+        } else if (e.layer === esriLayer) {
+          activeTier = 'esri';
           manualOverride = true;
         } else if (e.layer === osmLayer) {
           activeTier = 'osm';
@@ -222,7 +223,7 @@
     var handle = {
       getTier: function () { return activeTier; },
       r2Layer: r2Layer,
-      cartoLayer: cartoLayer,
+      esriLayer: esriLayer,
       osmLayer: osmLayer,
       layerControl: layerControl,
       syncBounds: syncBounds
@@ -236,7 +237,9 @@
     isInsideUkIreland: isInsideUkIreland,
     probeR2: probeR2,
     createR2Layer: createR2Layer,
-    createCartoLayer: createCartoLayer,
+    createEsriLayer: createEsriLayer,
+    createFallbackRasterLayer: createEsriLayer,
+    createCartoLayer: createEsriLayer,
     createOsmLayer: createOsmLayer,
     attachBaseLayer: attachBaseLayer
   };

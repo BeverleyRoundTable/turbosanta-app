@@ -2,13 +2,15 @@
  * Shared 3-Tier Map Tile Layer Helper (React / ESM)
  *
  * Tier 1 (Primary — UK & Ireland): Self-hosted Protomaps v4 uk.pmtiles on Cloudflare R2
- * Tier 2 (Fallback #1 + Outside UK/Ireland): CARTO Voyager (@2x CDN)
+ * Tier 2 (Fallback #1 + Outside UK/Ireland e.g. Lapland): Esri World Street Map
  * Tier 3 (Last-Resort Fallback #2): Canonical single-host OpenStreetMap (tile.openstreetmap.org)
  */
 import L from 'leaflet';
 import { leafletLayer as createProtomapsLeafletLayer } from 'protomaps-leaflet';
 
 const WORKER_MAPS_URL = 'https://turbosanta-api.beverley247.workers.dev/maps/uk.pmtiles';
+const ESRI_STREET_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';
+const ESRI_ATTR = 'Tiles &copy; <a href="https://www.esri.com/" target="_blank" rel="noopener">Esri</a> &mdash; Esri, TomTom, Garmin, FAO, NOAA, USGS';
 let _probePromise = null;
 
 export function resolvePmtilesUrl() {
@@ -61,13 +63,15 @@ export function createR2Layer(opts = {}) {
   });
 }
 
-export function createCartoLayer(opts = {}) {
-  return L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    subdomains: 'abcd',
+export function createEsriLayer(opts = {}) {
+  return L.tileLayer(ESRI_STREET_URL, {
     maxZoom: opts.maxZoom || 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>'
+    attribution: ESRI_ATTR
   });
 }
+
+export const createFallbackRasterLayer = createEsriLayer;
+export const createCartoLayer = createEsriLayer;
 
 export function createOsmLayer(opts = {}) {
   return L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -85,11 +89,11 @@ export function attachBaseLayer(map, opts = {}) {
   try {
     r2Layer = createR2Layer({ pmtilesUrl, flavor: opts.flavor, maxDataZoom: opts.maxDataZoom, maxZoom: opts.maxZoom });
   } catch {}
-  const cartoLayer = createCartoLayer(opts);
+  const esriLayer = createEsriLayer(opts);
   const osmLayer = createOsmLayer(opts);
 
   let r2Healthy = Boolean(r2Layer);
-  let cartoHealthy = true;
+  let esriHealthy = true;
   let manualOverride = false;
   let internalSwap = false;
   let activeTier = null;
@@ -104,8 +108,8 @@ export function attachBaseLayer(map, opts = {}) {
   };
 
   const setTier = (tier) => {
-    let target = tier === 'r2' ? r2Layer : (tier === 'osm' ? osmLayer : cartoLayer);
-    if (!target) target = cartoLayer;
+    let target = tier === 'r2' ? r2Layer : (tier === 'osm' ? osmLayer : esriLayer);
+    if (!target) target = esriLayer;
     if (activeLayer === target && map.hasLayer(target)) {
       activeTier = tier;
       return;
@@ -119,7 +123,7 @@ export function attachBaseLayer(map, opts = {}) {
         target.addTo(map);
       }
       activeLayer = target;
-      activeTier = target === r2Layer ? 'r2' : (target === osmLayer ? 'osm' : 'carto');
+      activeTier = target === r2Layer ? 'r2' : (target === osmLayer ? 'osm' : 'esri');
     } finally {
       internalSwap = false;
     }
@@ -129,8 +133,8 @@ export function attachBaseLayer(map, opts = {}) {
     if (manualOverride) return;
     if (r2Layer && r2Healthy && getMapInsideUk()) {
       setTier('r2');
-    } else if (cartoHealthy) {
-      setTier('carto');
+    } else if (esriHealthy) {
+      setTier('esri');
     } else {
       setTier('osm');
     }
@@ -145,20 +149,20 @@ export function attachBaseLayer(map, opts = {}) {
       if (r2Errors.length >= 4 && r2Healthy) {
         r2Healthy = false;
         if (!manualOverride && activeTier === 'r2') {
-          setTier(cartoHealthy ? 'carto' : 'osm');
+          setTier(esriHealthy ? 'esri' : 'osm');
         }
       }
     });
   }
 
-  let cartoErrors = [];
-  cartoLayer.on('tileerror', () => {
+  let esriErrors = [];
+  esriLayer.on('tileerror', () => {
     const now = Date.now();
-    cartoErrors = cartoErrors.filter((ts) => now - ts < 10000);
-    cartoErrors.push(now);
-    if (cartoErrors.length >= 4 && cartoHealthy) {
-      cartoHealthy = false;
-      if (!manualOverride && activeTier === 'carto') {
+    esriErrors = esriErrors.filter((ts) => now - ts < 10000);
+    esriErrors.push(now);
+    if (esriErrors.length >= 4 && esriHealthy) {
+      esriHealthy = false;
+      if (!manualOverride && activeTier === 'esri') {
         setTier('osm');
       }
     }
@@ -167,7 +171,7 @@ export function attachBaseLayer(map, opts = {}) {
   if (r2Layer && r2Healthy && getMapInsideUk()) {
     setTier('r2');
   } else {
-    setTier('carto');
+    setTier('esri');
   }
 
   if (r2Layer) {
@@ -175,7 +179,7 @@ export function attachBaseLayer(map, opts = {}) {
       if (!ok) {
         r2Healthy = false;
         if (!manualOverride && activeTier === 'r2') {
-          setTier(cartoHealthy ? 'carto' : 'osm');
+          setTier(esriHealthy ? 'esri' : 'osm');
         }
       }
     });
@@ -187,7 +191,7 @@ export function attachBaseLayer(map, opts = {}) {
   if (opts.layerControl === true) {
     const baseLayers = {};
     if (r2Layer) baseLayers['UK Fast Map (R2)'] = r2Layer;
-    baseLayers['CARTO Voyager'] = cartoLayer;
+    baseLayers['Esri Street Map'] = esriLayer;
     baseLayers['Classic OSM'] = osmLayer;
     layerControl = L.control.layers(baseLayers, null, {
       position: opts.controlPosition || 'topright'
@@ -199,8 +203,8 @@ export function attachBaseLayer(map, opts = {}) {
       if (e.layer === r2Layer) {
         activeTier = 'r2';
         manualOverride = !getMapInsideUk();
-      } else if (e.layer === cartoLayer) {
-        activeTier = 'carto';
+      } else if (e.layer === esriLayer) {
+        activeTier = 'esri';
         manualOverride = true;
       } else if (e.layer === osmLayer) {
         activeTier = 'osm';
@@ -212,7 +216,7 @@ export function attachBaseLayer(map, opts = {}) {
   const handle = {
     getTier: () => activeTier,
     r2Layer,
-    cartoLayer,
+    esriLayer,
     osmLayer,
     layerControl,
     syncBounds
