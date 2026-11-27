@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sleigh-shell-v10';
+const CACHE_NAME = 'sleigh-shell-v11';
 const STATIC_ASSETS = [
     '/icons/site_background.png',
     '/icons/RTBI_Santa.png',
@@ -48,7 +48,7 @@ self.addEventListener('fetch', (event) => {
     // 2. HTML Navigations: Network-First (Fallback to offline cache only if network is unavailable)
     if (event.request.mode === 'navigate' || (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html'))) {
         event.respondWith(
-            fetch(event.request).catch(() => caches.match(event.request))
+            fetch(event.request, { cache: 'no-cache' }).catch(() => caches.match(event.request))
         );
         return;
     }

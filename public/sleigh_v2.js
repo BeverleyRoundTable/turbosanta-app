@@ -3415,8 +3415,30 @@
     }
   }
 
+  function cleanupLegacyCaches() {
+    try {
+      if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations) {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          regs.forEach(reg => {
+            try { reg.update().catch(() => {}); } catch (_) {}
+          });
+        }).catch(() => {});
+      }
+      if ('caches' in window && caches.keys) {
+        caches.keys().then(keys => {
+          keys.forEach(k => {
+            if (k !== 'sleigh-shell-v11' && (/^(?:sleigh-shell|turbosanta|santa-sleigh)/i.test(k))) {
+              caches.delete(k).catch(() => {});
+            }
+          });
+        }).catch(() => {});
+      }
+    } catch (_) {}
+  }
+
   // --- Bootstrap ---
   document.addEventListener('DOMContentLoaded', () => {
+    cleanupLegacyCaches();
     initSnowCanvas();
     initPolishEffects();
     bindFrameMessages();
